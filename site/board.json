@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-09T23:02:50Z",
+  "generated": "2026-08-09T23:21:23Z",
   "columns": [
     {
       "key": "raw",
@@ -10,16 +10,6 @@
           "title": "The safety gate cannot enumerate the origin, only the files the tree knows about",
           "labels": [],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
-        },
-        {
-          "id": 10,
-          "title": "The narrow-viewport CSS hardcodes the drawing width the build computes",
-          "labels": [
-            "bug",
-            "layout",
-            "status:raw"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/10"
         }
       ]
     },
@@ -46,16 +36,6 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/5"
-        },
-        {
-          "id": 9,
-          "title": "On a narrow viewport the drawing is cut off at the right edge instead of scaling to fit",
-          "labels": [
-            "bug",
-            "layout",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/9"
         }
       ]
     },
@@ -117,6 +97,26 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/8"
+        },
+        {
+          "id": 9,
+          "title": "On a narrow viewport the drawing is cut off at the right edge instead of scaling to fit",
+          "labels": [
+            "bug",
+            "layout",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/9"
+        },
+        {
+          "id": 10,
+          "title": "The narrow-viewport CSS hardcodes the drawing width the build computes",
+          "labels": [
+            "bug",
+            "layout",
+            "status:raw"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/10"
         },
         {
           "id": 11,
