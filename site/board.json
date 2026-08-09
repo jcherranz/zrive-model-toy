@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-09T17:28:19Z",
+  "generated": "2026-08-09T17:33:53Z",
   "columns": [
     {
       "key": "raw",
@@ -82,7 +82,13 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/1"
-        },
+        }
+      ]
+    },
+    {
+      "key": "done",
+      "title": "Done",
+      "cards": [
         {
           "id": 7,
           "title": "Label widths are estimated in Python, so a label can leave its lane on another font stack",
@@ -92,13 +98,7 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/7"
-        }
-      ]
-    },
-    {
-      "key": "done",
-      "title": "Done",
-      "cards": [
+        },
         {
           "id": 8,
           "title": "The classes that do not exist are the finding, and the diagram only draws what does",
