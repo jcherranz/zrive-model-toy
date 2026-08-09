@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-09T17:09:36Z",
+  "generated": "2026-08-09T17:21:24Z",
   "columns": [
     {
       "key": "raw",
@@ -82,6 +82,16 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/7"
+        },
+        {
+          "id": 8,
+          "title": "The classes that do not exist are the finding, and the diagram only draws what does",
+          "labels": [
+            "enhancement",
+            "model",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/8"
         }
       ]
     },
