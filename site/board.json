@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-09T16:42:46Z",
+  "generated": "2026-08-09T16:53:26Z",
   "columns": [
     {
       "key": "raw",
@@ -10,16 +10,6 @@
       "key": "backlog",
       "title": "Backlog",
       "cards": [
-        {
-          "id": 1,
-          "title": "The diagram does not fit one screen",
-          "labels": [
-            "bug",
-            "layout",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/1"
-        },
         {
           "id": 2,
           "title": "The right half of the canvas is empty",
@@ -65,7 +55,18 @@
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": []
+      "cards": [
+        {
+          "id": 1,
+          "title": "The diagram does not fit one screen",
+          "labels": [
+            "bug",
+            "layout",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/1"
+        }
+      ]
     },
     {
       "key": "done",
