@@ -81,27 +81,33 @@ _fellback = []   # (context, string) for every lookup that missed
 _errors = []     # (measured - estimated, context, string) for every lookup that hit
 
 
-def estimate_w(s, size):
+def estimate_w(s, size, caps=False):
+    if caps:  # .band-cap uppercases and letter-spaces in CSS, so the estimate must too
+        s = s.upper()
     u = sum(0.30 if c in NARROW else 0.86 if c in WIDE else 0.62 if c.isupper() else 0.53
             for c in s)
-    return u * size
+    return u * size + (0.07 * size * len(s) if caps else 0.0)
 
 
-def text_w(s, size=FONT, weight=400):
-    ctx = f"{size:g}/{weight:g}"
+def text_w(s, size=FONT, weight=400, italic=False, caps=False):
+    # italic is its own face with its own advances, so it is its own context. Ghosts are drawn
+    # italic (.lbl-ghost, .ghost .chip-tx) and would otherwise silently borrow upright widths.
+    # caps is the band captions, which the stylesheet uppercases and letter-spaces.
+    ctx = f"{size:g}/{weight:g}" + ("i" if italic else "") + ("+caps" if caps else "")
     tbl = MEASURED.get(ctx)
     if tbl is not None and s in tbl:
-        _errors.append((tbl[s] - estimate_w(s, size), ctx, s))
+        est = estimate_w(s, size, caps)
+        _errors.append((tbl[s] - est, ctx, s, est, tbl[s]))
         return tbl[s]
     _fellback.append((ctx, s))
-    return estimate_w(s, size)
+    return estimate_w(s, size, caps)
 
 
-def wrap(label, maxw):
+def wrap(label, maxw, italic=False):
     lines, cur = [], ""
     for word in label.split():
         trial = (cur + " " + word).strip()
-        if cur and text_w(trial) > maxw:
+        if cur and text_w(trial, FONT, 400, italic) > maxw:
             lines.append(cur)
             cur = word
         else:
@@ -119,12 +125,13 @@ nodes = {n["id"]: dict(n) for n in NODES}
 order = [n["id"] for n in NODES]
 for nid, n in nodes.items():
     n["col"] = n.get("col", TYPE_COL[n["type"]])
-    n["lines"] = wrap(n["label"], COL_W[n["col"]] - 8)
+    it = bool(n.get("ghost"))
+    n["lines"] = wrap(n["label"], COL_W[n["col"]] - 8, it)
     # Reserve the bold width, not the regular one. Clicking a node turns its label bold
     # (.node.sel .lbl), which is about a fifth wider, and the reserved box has to hold the
     # state the page enters on a click as well as the one it starts in.
-    n["lw"] = max(max(text_w(ln) for ln in n["lines"]),
-                  max(text_w(ln, FONT, 600) for ln in n["lines"]))
+    n["lw"] = max(max(text_w(ln, FONT, 400, it) for ln in n["lines"]),
+                  max(text_w(ln, FONT, 600, it) for ln in n["lines"]))
     # A node carrying a mark spends one more line under its label saying what it is missing,
     # so it reserves the height for it here and the browser only draws.
     n["nlines"] = len(n["lines"]) + (1 if n.get("mark") else 0)
@@ -154,6 +161,16 @@ def lane_slack(n):
 LANE_TIGHT = min(((lane_slack(n), nid) for nid, n in nodes.items()), default=(0.0, None))
 _over = sorted((lane_slack(n), nid, n["label"], BAND_X[n["col"]][2])
                for nid, n in nodes.items() if lane_slack(n) < 0)
+
+# The caption over a lane is sized by the columns under it, not by its own text, so it can
+# outgrow the lane it names without anything noticing.
+for _cs, _label in BANDS:
+    _x0, _x1, _ = BAND_X[_cs[0]]
+    _x1 = BAND_X[_cs[-1]][1]
+    _cap = text_w(_label, 9.0, 600, False, True)
+    if _cap > _x1 - _x0:
+        _over.append((_x1 - _x0 - _cap, "band", _label, _label))
+
 if _over:
     for slack, nid, label, lab in _over:
         print(f"[layout] LANE OVERFLOW by {-slack:.1f}px: {label!r} ({nid}) leaves the "
@@ -266,7 +283,7 @@ def hits(x, y, w, boxes):
 
 
 for e in sorted(edges, key=lambda e: -e["span"]):
-    e["cw"] = text_w(e["v"], 9.0) + 2 * PADX
+    e["cw"] = text_w(e["v"], 9.0, 400, e["ghost"]) + 2 * PADX
     best, best_n = None, 1e9
     for t in TS:
         x, y = bez(e["pts"], t)
@@ -344,11 +361,10 @@ for c in range(NCOL):
 # where the widths came from; the gate refuses a drawing in which a label leaves its lane,
 # which is the defect the measurement exists to remove and is not visible in a diff.
 if _errors:
-    worst = max(_errors, key=lambda r: r[0])
-    print(f"widths: {len(_errors)} measured, {len(_fellback)} estimated. "
-          f"Worst estimation error {worst[0]:+.2f}px "
-          f"({worst[0] / (worst[0] + estimate_w(worst[2], float(worst[1].split('/')[0]))) * 100:+.1f}%) "
-          f"at {worst[1]} on {worst[2]!r}")
+    d, ctx, s, est, meas = max(_errors, key=lambda r: r[0])
+    print(f"widths: {len(_errors)} measured, {len(_fellback)} estimated. Worst estimation "
+          f"error {d:+.2f}px ({d / meas * 100:+.1f}% of measured) at {ctx}: the old estimate "
+          f"said {est:.2f}px, the browser says {meas:.2f}px, for {s!r}")
 if _fellback:
     seen, uniq = set(), []
     for ctx, s in _fellback:

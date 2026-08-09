@@ -32,6 +32,53 @@ Dates are ISO. Newest first.
   the enrolment to claim band, which was the emptiest part of the canvas, so they cost no
   height at all: the viewBox is 1230x574 before and after.
 
+### Changed
+
+- Label widths are measured in a browser instead of guessed in Python, for issue #7. The
+  layout used a per character width table written by hand, and because the browser only draws
+  what the build already decided, that guess was baked into the shipped coordinates. It was
+  out by up to 8.3 per cent on a label as drawn and 19.3 per cent on a label while selected,
+  in the direction that matters: the true width was the larger one. Widest miss, `All about
+  recruiting in Investment Banking`, guessed 194.10px against a measured 240.66px at the
+  selected weight.
+- `build/measure_labels.py` renders every string the layout measures as an SVG `text` in the
+  exact stack, size, weight and style the stylesheet gives it, reads `getComputedTextLength`
+  for each, and writes `build/label_widths.json`. 417 strings, seven contexts: the label
+  weight and the selected weight, the same two italic for ghosts, the verb chips, the ghost
+  verb chips, and the uppercased letter-spaced band captions. Every contiguous run of words in
+  a label is measured, not only the finished lines, because which lines a label wraps to is
+  what the widths decide.
+- A width is the widest the string takes across every family in the site's font stack that the
+  measuring machine can resolve, four distinct faces here, not the width on the machine that
+  ran the measurement. The stack resolves differently on different machines and the drawing
+  has to hold on all of them. Faces the machine does not hold cannot be measured and are not
+  covered; the file records which were.
+- `build/label_widths.json` is committed, so the build reads a file and never opens a browser.
+  `python3 build/measure_labels.py` regenerates it; `--check` re-measures and reports drift
+  without writing.
+- The per character estimate stays as the fallback for any string not in the table, so a new
+  label cannot crash a build, and every fall back is named on stderr with the command that
+  would measure it.
+- Two labels now wrap where they did not. `Agreement 0001` measures 84.17px against the 84px
+  its column allows, and `Alumnos Z-IB 1Q26` 96.78px against 94px. Both were drawn on one line
+  because the estimate said they fitted. The column widths are unchanged: the labels genuinely
+  do not fit them.
+
+### Added
+
+- A build gate that refuses to write a drawing in which a label, or a band caption, crosses a
+  lane boundary, checked against measured widths at both the drawn and the selected weight
+  before a coordinate is written. The build now also prints how much lane the tightest label
+  has to spare, currently 4.7px of 250 for `All about recruiting in Investment Banking`.
+- A loud warning when wrapping would drop words past the three line cap. It used to truncate
+  silently, which produces a page that looks correct and says less than it should.
+
+### Fixed
+
+- Ghost labels and ghost verb chips are drawn in italic, which is a different face with
+  different advances, and were being sized as upright. They now have their own measured
+  contexts.
+
 ## [0.2.1] - 2026-08-09
 
 The gate learns about the half of the repository it was never able to see.
