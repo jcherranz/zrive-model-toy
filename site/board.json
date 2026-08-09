@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-09T17:25:06Z",
+  "generated": "2026-08-09T17:28:19Z",
   "columns": [
     {
       "key": "raw",
@@ -56,6 +56,16 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/5"
+        },
+        {
+          "id": 9,
+          "title": "On a narrow viewport the drawing is cut off at the right edge instead of scaling to fit",
+          "labels": [
+            "bug",
+            "layout",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/9"
         }
       ]
     },
@@ -95,7 +105,7 @@
           "labels": [
             "enhancement",
             "model",
-            "status:in-progress"
+            "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/8"
         }
