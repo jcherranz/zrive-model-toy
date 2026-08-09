@@ -136,6 +136,48 @@ Dates are ISO. Newest first.
   class of defect as a label leaving its lane: the page renders either way, so a diff cannot
   catch it and only a measurement can.
 
+### Changed, header and board
+
+- The header subtitle is per view, issue #15. It sits above both views and only ever described
+  the drawing. One sentence each now, and the dummy-values badge, the type legend and the
+  `ghosts` toggle are dropped on the board rather than reworded, since all three qualify the
+  drawing and nothing on the board.
+- Board cards are ordered by issue number ascending, issue #16, which is the order they were
+  filed in and the only order `board.json` supports: it carries no dates, and a number never
+  changes, so the same issues land in the same places on every build.
+- Label chips use the page's own neutral token instead of a hue hashed from the label text. The
+  hash invented a colour per label from a palette nothing else on the page uses, and a colour
+  that means nothing is a colour a reader has to learn and then discard.
+- A card no longer reprints its `status:` label. That label is what put the card in its column,
+  so printing it again says the same thing twice and offers a second place to check it. The
+  column heading owns the fact.
+- An empty column keeps its heading and its zero and says `no issues`, on a dashed outline with
+  no panel fill, so that a column holding nothing does not read as a card that failed to load.
+- The meta line links back to the issue list, taken from a card's own URL and only if it is a
+  `github.com` issue address, so the link cannot be redirected by editing `board.json`. It also
+  states plainly what the view is: nothing here is editable and there is no drag and drop.
+
+### Added, keyboard
+
+- The diagram is walked from the keyboard in reading order, issue #17. Nodes are drawn in rows
+  and left to right inside a row, which is also the tab order, since tab order is document
+  order and no two nodes overlap. Enter or Space selects, Escape clears, and the focus ring is
+  the blue the header buttons already use.
+- Escape is untouched in the capture phase. `feedback.js` takes Escape there while its capture
+  mode is on and stops it, so the Escape that leaves capture mode never also throws away the
+  selection the note is about; the diagram's own handler stays in the bubble phase and only
+  ever sees the Escapes capture mode did not want.
+
+### Considered and not done
+
+- The `cohort and students` lane is visibly emptier than its neighbours: two nodes against five
+  to seven. It stays, issue #18, closed as not planned. Merging it into `enrolment to claim`
+  would close the gap and change what the drawing asserts, because a lane is the claim that
+  everything inside it is one kind of thing, and a cohort and a student group are not part of
+  the money chain. The emptiness is honest. That stage of the model really is thin, and a
+  reader who notices the gap has read something true off the page. Recorded here so that it is
+  not refiled as a defect the next time somebody looks at the drawing.
+
 ## [0.2.2] - 2026-08-09
 
 The gate is shown failing on the defect it was written for, and stops reading the wrong bytes.

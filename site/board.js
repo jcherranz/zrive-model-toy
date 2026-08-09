@@ -24,13 +24,20 @@
     host.appendChild(d);
   }
 
-  // Chips are the one place the board is allowed a colour of its own, so the hue comes from
-  // the label text itself and the saturation and lightness are fixed. Any label set, however
-  // it grows, lands inside the same tonal range.
-  function chipStyle(text) {
-    var h = 0, i;
-    for (i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) % 360;
-    return 'background:hsl(' + h + ',42%,92%);color:hsl(' + h + ',34%,31%)';
+  // The status label is what put the card in its column, so printing it on the card as well
+  // says the same thing twice and gives the reader a second place to check it. The column
+  // heading owns that fact; the chips carry only what the column does not already say.
+  function shown(labels) {
+    return labels.filter(function (l) { return String(l).indexOf('status:') !== 0; });
+  }
+
+  // Cards are ordered by issue number, ascending, which is the order they were filed in. It is
+  // the only order the board holds that means anything: board.json carries no dates, and a
+  // number never changes, so the same issues always land in the same places.
+  function byNumber(a, b) {
+    var x = a && typeof a.id === 'number' ? a.id : Infinity;
+    var y = b && typeof b.id === 'number' ? b.id : Infinity;
+    return x - y;
   }
 
   function card(c) {
@@ -48,7 +55,7 @@
     t.textContent = (c && c.title) || 'untitled';
     a.appendChild(t);
 
-    var labels = (c && Array.isArray(c.labels)) ? c.labels : [];
+    var labels = shown((c && Array.isArray(c.labels)) ? c.labels : []);
     if (labels.length) {
       var box = document.createElement('div');
       box.className = 'blabels';
@@ -56,7 +63,6 @@
         var s = document.createElement('span');
         s.className = 'chip';
         s.textContent = String(l);
-        s.setAttribute('style', chipStyle(String(l)));
         box.appendChild(s);
       });
       a.appendChild(box);
@@ -75,14 +81,32 @@
     h.appendChild(n);
     d.appendChild(h);
     if (!cards.length) {
+      // An empty column is a fact about the work, not a failure to load, so it keeps its
+      // heading and its count and says plainly that it holds nothing.
+      d.classList.add('bcol-empty');
       var e = document.createElement('p');
       e.className = 'bempty';
-      e.textContent = 'nothing here';
+      e.textContent = 'no issues';
       d.appendChild(e);
     } else {
-      cards.forEach(function (c) { d.appendChild(card(c)); });
+      cards.slice().sort(byNumber).forEach(function (c) { d.appendChild(card(c)); });
     }
     return d;
+  }
+
+  // The one link out of the board, back to the list it is a picture of. The address is taken
+  // from a card rather than written here, and only if it is an issue URL on github.com, so the
+  // page cannot be made to link somewhere else by editing board.json.
+  function issuesUrl(data) {
+    var found = null;
+    data.columns.forEach(function (col) {
+      ((col && col.cards) || []).forEach(function (c) {
+        var m = c && typeof c.url === 'string' &&
+          c.url.match(/^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/issues\/\d+$/);
+        if (m && !found) found = c.url.replace(/\/\d+$/, '');
+      });
+    });
+    return found;
   }
 
   function render(data) {
@@ -90,10 +114,22 @@
       note('<b>board.json is present but not in the shape this view reads.</b><br>' + SHAPE);
       return;
     }
-    if (data.generated) {
-      meta.textContent = 'Generated ' + data.generated +
-        '. The board reflects GitHub Issues. GitHub is the source of truth.';
+    var href = issuesUrl(data);
+    meta.textContent = '';
+    meta.appendChild(document.createTextNode(
+      (data.generated ? 'Generated ' + data.generated + '. ' : '') + 'The board reflects '));
+    if (href) {
+      var a = document.createElement('a');
+      a.href = href;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.textContent = 'GitHub Issues';
+      meta.appendChild(a);
+    } else {
+      meta.appendChild(document.createTextNode('GitHub Issues'));
     }
+    meta.appendChild(document.createTextNode(
+      '. GitHub is the source of truth: nothing here is editable and there is no drag and drop.'));
     var wrap = document.createElement('div');
     wrap.className = 'bcols';
     data.columns.forEach(function (c) { wrap.appendChild(column(c)); });

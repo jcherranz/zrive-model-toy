@@ -100,7 +100,21 @@
   });
 
   // ---- nodes ---------------------------------------------------------------
-  G.nodes.forEach(function (n) {
+  // Drawn in reading order rather than in the order the model declares them: rows first, then
+  // left to right inside a row. Nothing else depends on the order, since no two nodes overlap,
+  // and the tab order is the document order, so ordering the drawing is the whole of the
+  // keyboard navigation. A band of ROWH holds nodes at nearly the same height in one row,
+  // which is what the eye does with a drawing whose rows are not ruled.
+  var ROWH = 27;
+  var byY = G.nodes.slice().sort(function (a, b) { return a.y - b.y || a.x - b.x; });
+  var rowTop = null;
+  var reading = byY.map(function (n) {
+    if (rowTop === null || n.y - rowTop > ROWH) rowTop = n.y;
+    return { n: n, row: rowTop };
+  }).sort(function (a, b) { return a.row - b.row || a.n.x - b.n.x; })
+    .map(function (r) { return r.n; });
+
+  reading.forEach(function (n) {
     var col = COLOR[n.type];
     // data-node is the instance key. It is what feedback.js reads to say which node a click
     // landed on, the way monetary-lab's capture reads its own linked-highlight key.
@@ -284,6 +298,10 @@
 
   document.getElementById('close').addEventListener('click', clear);
   svg.addEventListener('click', clear);
+  // Escape clears the selection. It is registered in the bubble phase on purpose: feedback.js
+  // takes Escape in the capture phase while its capture mode is on and stops it there, so the
+  // one Escape that leaves capture mode never also throws away the selection the note is
+  // about. This listener only ever sees the Escapes that capture mode did not want.
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') clear(); });
 
   // The panel is a fixed overlay and the header runs the full width, so the panel is told
