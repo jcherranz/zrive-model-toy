@@ -82,6 +82,10 @@ body.board .sub-diagram { display: none; }
 body.board .sub-board { display: inline; }
 body.board #ghtoggle,
 body.board #c2toggle { display: none; }
+/* The detail panel describes a node in the drawing, so on the board it goes the same way. It is
+   hidden rather than closed: the selection is still the selection, and switching back brings the
+   panel and the node it is about back together. */
+body.board #panel { display: none; }
 
 header {
   flex: none;

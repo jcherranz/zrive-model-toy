@@ -107,6 +107,14 @@ Dates are ISO. Newest first.
 
 ### Fixed
 
+- The detail panel stayed open on top of the board, issue #20. The route already hides the
+  legend, the subtitle and the two diagram toggles because they all describe the drawing; the
+  panel describes it too and was the one thing left behind, so a panel about a node the reader
+  could no longer see sat over eight of the nineteen cards at 1440 and over the lower 62 per
+  cent of the board at 390. It is now hidden rather than closed, so the selection survives the
+  round trip and the panel and its node come back together. Found by driving the controls, not
+  by looking at them: no screenshot of either view on its own shows it.
+
 - Ghost labels and ghost verb chips are drawn in italic, which is a different face with
   different advances, and were being sized as upright. They now have their own measured
   contexts.
