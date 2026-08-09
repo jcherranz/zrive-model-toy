@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-09T23:21:23Z",
+  "generated": "2026-08-09T23:55:11Z",
   "columns": [
     {
       "key": "raw",
@@ -10,6 +10,55 @@
           "title": "The safety gate cannot enumerate the origin, only the files the tree knows about",
           "labels": [],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
+        },
+        {
+          "id": 20,
+          "title": "The detail panel stays open on top of the board view",
+          "labels": [
+            "bug",
+            "layout",
+            "status:raw"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/20"
+        },
+        {
+          "id": 21,
+          "title": "Below the breakpoint the panel opens on top of the node it describes",
+          "labels": [
+            "bug",
+            "layout",
+            "status:raw"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/21"
+        },
+        {
+          "id": 22,
+          "title": "The capture popover covers the header controls at narrow widths",
+          "labels": [
+            "bug",
+            "layout",
+            "status:raw"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/22"
+        },
+        {
+          "id": 23,
+          "title": "copy all answers nothing when nothing has been copied yet",
+          "labels": [
+            "bug",
+            "status:raw"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/23"
+        },
+        {
+          "id": 24,
+          "title": "A company sits in the lane captioned cohort sessions",
+          "labels": [
+            "layout",
+            "model",
+            "status:raw"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/24"
         }
       ]
     },
