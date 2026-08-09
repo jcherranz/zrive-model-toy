@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-09T17:40:46Z",
+  "generated": "2026-08-09T17:44:19Z",
   "columns": [
     {
       "key": "raw",
@@ -92,6 +92,15 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/1"
+        },
+        {
+          "id": 11,
+          "title": "The repository gate reported clean while a real name was still committed",
+          "labels": [
+            "bug",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/11"
         }
       ]
     },
