@@ -35,6 +35,8 @@ quietly repoint every one of those.
 | 2026-08 | A review published three counts as "did not reproduce" that its own parser had invented | none |
 | 2026-08 | A field rename reached 93 notes and not the 12 that shared the schema | none |
 | 2026-08-09 | A real surname sat in the script written to keep real names out | gate: `scripts/check_repo.sh` scans every tracked file, on push and on pull request |
+| 2026-08-09 | The gate built to catch that surname reported the tree clean while it was still in the repository | gate: `scan_snapshots` reads the index and HEAD, not only the disk; probes in `--self-test` |
+| 2026-08-09 | A file split agreed in prose did not hold, and a commit carried a third party's work | discipline: stage explicit paths, never the working tree |
 
 ---
 
@@ -293,3 +295,117 @@ matched string, rather than a list of files the gate skips. Skipping a file is h
 of these hides, and the file it would have hidden in this time is the gate itself. Two
 conditions keep the table from becoming a blanket by other means: an entry that stops matching
 fails the run, and the real-name rule cannot be declared for any path at all.
+
+---
+
+## The gate reported the tree clean while the name was still in the repository
+
+`2026-08-09-gate-read-the-disk-not-the-repository` &middot; 2026-08-09
+
+**What happened.** Two things, and the second is the serious one.
+
+First, the fix recorded in the entry above was reported complete and was not made. The surname
+was removed from the working copy of `scripts/gen_forbidden_hashes.sh` and never committed. The
+report said the file was fixed; `git log` showed no commit touching it since the day it was
+installed. For that period the repository, which is what a clone gets, still carried the name.
+
+Second, and this is the part that matters: `scripts/check_repo.sh`, the gate written for
+exactly this defect, was run against that repository and printed `VERDICT: clean` and exited 0.
+Not a gap. A false assurance, which is worse, because a gap leaves the risk visible and an
+assurance closes the question. The project spent that period believing something it had
+checked.
+
+**Root cause, and it is not the name rule.** `git ls-files` names paths. Everything the gate
+then read, it read off the disk. That is one of three copies of a tracked file, and it is the
+only one that is not the repository: the index is what the next commit will carry, HEAD is what
+the repository already carries, and the working tree is neither. They differ exactly when
+somebody edits without committing, which was the state the whole time.
+
+So the gate's answer was true and the question was wrong. It said "the files on this disk are
+clean" and was read as saying "this repository is clean", and on that day those had opposite
+answers. Every other candidate was tested and cleared: the surname's token is in the hash list
+and always was, the salt and truncation are one shared copy so the generator and the checker
+cannot disagree, `.sh` files are scanned like any other, the token survives folding intact, and
+the generator does not exclude the file it lives in. Restoring the original line to the disk
+makes the gate fire on the first run, which is how each of those was eliminated rather than
+argued away.
+
+**How it was found.** By an independent watchdog scan, run by somebody who was not the author
+and was not the gate. That is the second time on this project that an adversarial check found
+what the author's own verification missed; the entry above is the first. Two for two is not a
+run of bad luck, it is the base rate, and it is the argument for keeping an adversarial pass in
+the loop rather than trusting a report that says a thing was done.
+
+**The prevention now in place.** `scan_snapshots` in `scripts/check_repo.sh`. For every tracked
+path whose index copy differs from the disk, the index copy is scanned too, and likewise HEAD's,
+and a finding says which snapshot it came from. In CI the three copies are identical after a
+checkout, so the loop finds nothing there; the false clean happened locally, which is where the
+gate is read most often and trusted most casually.
+
+Three probes hold it, and they are the countermeasure rather than this paragraph:
+
+- a real name in the worked example in `gen_forbidden_hashes.sh`, scanned as that path with
+  that file's declarations active, so "it is one of the gate's own files" can never become the
+  excuse it nearly was;
+- a real name in `check_repo.sh` itself, same reasoning;
+- a name staged for commit and absent from the disk, in a throwaway repository built by the
+  test, which asserts both halves: that the disk scan finds nothing, and that the snapshot scan
+  finds it. If the first half ever starts passing on its own, the probe says so instead of
+  quietly testing nothing.
+
+All names in all three are invented and always will be.
+
+**The rule this leaves behind.** *A gate is not accepted until it has been demonstrated failing
+on the real defect it was written for.* Not on a synthetic payload resembling it. On the actual
+bytes, restored into a scratch copy, exiting non-zero and naming what it found. A gate that has
+only ever been observed passing has not been observed at all: passing is what a gate does when
+it is broken, when it is misaimed, and when the tree is clean, and those look identical from
+outside. This one now has that demonstration on the record, and the probes above are it,
+repeated on every run.
+
+*Prevention kind:* `gate`
+*Named by:* `scripts/check_repo.sh`, `scripts/forbidden_lib.sh`
+
+**Open, and stated rather than closed quietly.** The surname is still in nine ancestor commits
+of `main`, in `scripts/gen_forbidden_hashes.sh`, and an earlier one is in the first commit in
+`build/safety_grep.py`. `HEAD`, the index and the working tree are clean, and the gate now
+covers all three. History is not rewritten here: the repository is private, several agents were
+pushing to it while this was written, and a force push to clean history is a decision with a
+blast radius that belongs to a person, not to a gate run. What the gate can honestly say today
+is that nothing new can be committed carrying a name. What it cannot say is that nothing old
+does.
+
+---
+
+## A file split agreed in prose did not hold, and a commit carried a third party's work
+
+`2026-08-09-file-split-not-enforced` &middot; 2026-08-09
+
+**What happened.** Two agents worked the repository at once under a split stated in prose: one
+owned `site/`, the other owned `scripts/` and the root documents. The second edited
+`site/app.js` and `site/index.html` anyway. Commit `2093f4e` therefore carries in-flight ghost
+node work belonging to the first agent, staged by an agent that did not write it and could not
+fully verify it. It is inert against the committed `graph.js` and produces no console error, and
+`site/graph.js` was deliberately left uncommitted for its author, but the commit is not what its
+message says it is.
+
+**Root cause.** A file split stated in prose is enforced by nothing. It is a shared intention,
+and a shared intention between two processes that cannot see each other is a race. The
+mechanism that turned the race into a mislabelled commit was `git add -A`, or any commit of the
+whole working tree: it stages whatever happens to be dirty, including another agent's
+half-finished edit, and the commit message describes only what its author did.
+
+**How it was found.** The committing agent noticed and said so, in the open, rather than
+letting the commit stand as described. That is the good outcome and it is why the cost stayed
+at a mislabelled commit. Worth recording as the behaviour to repeat: a report that says "this
+commit contains something I did not write" is worth more than a clean-looking log.
+
+**The countermeasure.** *Stage the explicit paths you wrote. Never commit the working tree.*
+`git add path/one path/two` and then `git commit`, not `git commit -a` and not `git add -A`. It
+costs one extra thought per commit and it makes a stray file impossible rather than unlikely.
+Where the split matters and the cost is justified, the stronger form is a separate worktree per
+agent, which makes the collision impossible instead of merely visible.
+
+*Prevention kind:* `discipline`
+*Named by:* none. This one is a habit, and it is recorded here precisely because nothing
+enforces it.

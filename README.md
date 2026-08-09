@@ -127,15 +127,32 @@ python3 build/safety_grep.py site # must print VERDICT: clean
 python3 -m http.server -d site 8000
 ```
 
-No framework, no build step for the site itself, no CDN, no web font. The only request the
-page makes at runtime is the same origin fetch of `board.json`.
+No framework, no build step for the site itself, no CDN, no web font. On load the page makes
+one request, the same origin fetch of `board.json`, and no third party request at all. The one
+outbound request it can ever make is described under Feedback below.
 
 ## Feedback
 
-The `feedback` button in the header opens a small popover: a note and a category. Submitting
-opens a prefilled GitHub issue URL in a new tab. There is no POST, no token and no API call
-from the page. The repository is private, so only someone already signed in with access can
-file, and a prefilled URL needs no credential.
+The `feedback` button in the header opens a small popover: a note and a category. There are two
+filing paths and which one runs depends on the visitor, not on the page.
+
+**With no token stored, which is the state of every visitor by default,** submitting opens a
+prefilled `github.com` issue URL in a new tab. No POST, no API call, no credential. The
+repository is private, so only someone already signed in with access can file, and a prefilled
+URL needs none.
+
+**A visitor may connect their own fine grained personal access token** through the popover. It
+is stored in that browser's `localStorage` under `zmt.gh.token` and nowhere else. When such a
+visitor deliberately files, with Shift+Enter or the file button, the page makes exactly one
+outbound request: a `POST` to `https://api.github.com/repos/<repo>/issues`, carrying that
+visitor's own token in an `Authorization` header. It is sent to `api.github.com` and to no
+other host. On any failure, including a rejected or expired token, the flow falls back to the
+prefilled URL above.
+
+**No credential is shipped in the source.** There is no token in this repository, none in the
+deployed bytes, and none is fetched: the only token that can ever exist is one a reader pasted
+into their own browser. `scripts/check_forbidden.sh` reads the deployed bytes on every deploy
+and would fail the job on one.
 
 The body carries a context block the page fills in: the selected node, the view, the viewport
 size and the build id.

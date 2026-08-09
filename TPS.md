@@ -23,7 +23,7 @@ it is the reason most of what follows exists. Only `site/` is deployed; `TPS.md`
 | Hansei | `[OK]` | `HANSEI.md` |
 | Kaizen | `[OK]` | `KAIZEN.md` |
 | Andon | `[OK]` partial | a red workflow run; no second channel |
-| Muda, Muri, Mura | `[OK]` | one build step, no framework, no CDN, no web font; the page's only runtime request is the same origin fetch of `board.json` |
+| Muda, Muri, Mura | `[OK]` | one build step, no framework, no CDN, no web font; on load the page makes one same origin fetch of `board.json` and no third party request; one `POST` to `api.github.com` is possible, only when a visitor has stored their own token and deliberately files |
 | Just-In-Time | `[OPEN]` nothing pulls | the board is filled by hand |
 | Nemawashi | `[FLAG]` rejected, see below | none |
 | Konnyaku stone | `[OPEN]` no analogue here | none |

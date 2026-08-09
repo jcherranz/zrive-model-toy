@@ -79,6 +79,70 @@ Dates are ISO. Newest first.
   different advances, and were being sized as upright. They now have their own measured
   contexts.
 
+## [0.2.2] - 2026-08-09
+
+The gate is shown failing on the defect it was written for, and stops reading the wrong bytes.
+
+### Fixed
+
+- **`scripts/check_repo.sh` reported `VERDICT: clean` on a repository that still carried a real
+  surname.** The name rule was never at fault: the token was in the hash list, the salt and the
+  truncation are one shared copy, `.sh` files are scanned like any other, and folding leaves the
+  token intact. The gate was reading the wrong bytes. `git ls-files` names paths and everything
+  after it read those paths off the **disk**, which is the one copy of a tracked file that is
+  not the repository. The index is what the next commit carries and HEAD is what the repository
+  already carries; a correction that lives only as an uncommitted edit makes all three disagree,
+  and that was the state. The gate answered "these files are clean" and was read as answering
+  "this repository is clean". A false assurance, not a gap, and worse than a gap. HANSEI.md,
+  seventh entry.
+- `scan_snapshots` closes it. For every tracked path whose index copy differs from the disk, the
+  index copy is scanned too, and likewise HEAD's, and a finding names which snapshot it came
+  from. In CI the three are identical after a checkout, so it finds nothing there; the false
+  clean happened locally, which is where a gate is read most often and trusted most casually.
+- A tracked path deleted from the disk took the whole gate down with exit 123, because
+  `git ls-files -z | xargs -0 stat` fails and `set -e` does the rest. The byte total is now
+  summed file by file, and the deleted path is caught through its index copy, which is the copy
+  that matters.
+
+### Added
+
+- Three permanent probes in `scripts/check_repo.sh --self-test`, one per way this defect could
+  come back. A real name in the worked example in `gen_forbidden_hashes.sh`, scanned as that
+  path with that file's declarations active. A real name in `check_repo.sh` itself. And a name
+  staged for commit while absent from the disk, in a throwaway repository the test builds,
+  asserting both halves: that the disk scan finds nothing and that the snapshot scan finds it.
+  Every name in every probe is invented. The self-test is 27 cases, up from 24.
+- `probe_at`, which runs a probe as though its payload sat at a named path, so a probe can prove
+  that being one of the gate's own files licenses nothing. That was the excuse this defect
+  nearly got away with.
+- `FORBIDDEN_ORIGIN` in `scripts/forbidden_lib.sh`, the prefix that makes a finding say whether
+  it came off the disk, out of the index, or out of HEAD.
+
+### Changed
+
+- `README.md` and `TPS.md` described a page that makes no outbound request. Since the feedback
+  port in `2093f4e` that is false. Corrected precisely rather than hedged: on load the page
+  makes one same origin fetch of `board.json` and no third party request; a visitor who has
+  stored **their own** fine grained token in **their own** browser and deliberately files causes
+  exactly one `POST`, to `api.github.com` and no other host; with no token stored the flow
+  degrades to a prefilled `github.com` issue URL in a new tab. No credential is shipped in the
+  source, and `scripts/check_forbidden.sh` would fail the deploy on one. A doctrine file that
+  overstates its own safety is the same class of defect as a gate that reports clean while a
+  name is in the tree.
+
+### Security
+
+- The rule this leaves behind, and it is the one worth carrying to the next repository: **a gate
+  is not accepted until it has been demonstrated failing on the real defect it was written for**.
+  Not on a synthetic payload resembling it. On the actual bytes, restored into a scratch copy,
+  exiting non-zero and naming what it found. A gate that has only ever been observed passing has
+  not been observed at all.
+- **Still open.** The surname remains in nine ancestor commits of `main`, and an earlier one in
+  the first commit. `HEAD`, the index and the working tree are clean and the gate now covers all
+  three, so nothing new can be committed carrying a name. Rewriting history is a decision with a
+  blast radius that belongs to a person; it is recorded here and in HANSEI.md rather than done
+  quietly.
+
 ## [0.2.1] - 2026-08-09
 
 The gate learns about the half of the repository it was never able to see.

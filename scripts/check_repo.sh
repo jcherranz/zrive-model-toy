@@ -121,6 +121,7 @@ FORBIDDEN_EXEMPT=(
   "uuid|scripts/check_repo.sh|3f2504e0-4f89-11d3-9a0c-0305e82c3301"
   "email|scripts/check_repo.sh|alguien@example.com"
   "email|scripts/check_repo.sh|otro@example.org"
+  "email|scripts/check_repo.sh|probe@example.com"
   "money|scripts/check_repo.sh|€"
   "money|scripts/check_repo.sh|1,000.00"
   "money|scripts/check_repo.sh|46.932"
@@ -172,23 +173,91 @@ report_unused_exemptions() {
 }
 
 # ---------------------------------------------------------------------------------------
+# The bytes on the disk.
+scan_worktree() {  # hashfile
+  local f
+  FORBIDDEN_ORIGIN=""
+  while IFS= read -r f; do
+    [ -f "$f" ] || continue
+    scan_file "$f" "$f" "$1"
+  done < <(git ls-files)
+}
+
+# The bytes that are not on the disk.
+#
+# WHY THIS EXISTS. `git ls-files` names paths; everything above then reads those paths off the
+# working tree. That is one of three copies of a tracked file and it is the only one that is
+# not the repository: the index is what the next commit will carry, and HEAD is what the
+# repository already carries. They diverge exactly when somebody edits without committing,
+# which is the ordinary state of a working session.
+#
+# On 2026-08-09 that divergence produced a false clean. A real surname was in this repository,
+# in `scripts/gen_forbidden_hashes.sh` at HEAD, and a correction to it existed only as an
+# uncommitted working-tree edit. The gate read the disk, found the corrected copy, and printed
+# VERDICT: clean while the name sat in every commit anyone could clone. Nothing was wrong with
+# the name rule; it was pointed at the wrong bytes. HANSEI.md, seventh entry.
+#
+# So: for every tracked path whose index copy differs from the disk, the index copy is scanned
+# too, and likewise HEAD's, and a finding says which. The label passed to the scan is the plain
+# path, so the declared self-matches apply to a snapshot exactly as they apply to the disk: a
+# gate file's staged copy carries the same rule literals by construction, and nothing else is
+# licensed. In CI the three copies are identical after a checkout and this loop finds nothing,
+# which is correct and is not a reason to leave it out. The false clean happened locally, which
+# is where the gate is read most often and trusted most casually.
+scan_snapshots() {  # hashfile
+  local hashfile="$1" f wt idx hd blobdir n=0
+  git rev-parse --verify -q HEAD >/dev/null 2>&1 || return 0
+
+  blobdir="$WORKDIR/snapshots"
+  mkdir -p "$blobdir"
+
+  while IFS= read -r f; do
+    wt=""; [ -f "$f" ] && wt="$(git hash-object -- "$f" 2>/dev/null || true)"
+    idx="$(git rev-parse -q --verify ":$f" 2>/dev/null || true)"
+    hd="$(git rev-parse -q --verify "HEAD:$f" 2>/dev/null || true)"
+
+    if [ -n "$idx" ] && [ "$idx" != "$wt" ]; then
+      git cat-file -p "$idx" > "$blobdir/blob" 2>/dev/null || continue
+      FORBIDDEN_ORIGIN="staged copy of "
+      scan_file "$blobdir/blob" "$f" "$hashfile"
+      n=$((n + 1))
+    fi
+
+    if [ -n "$hd" ] && [ "$hd" != "$wt" ] && [ "$hd" != "$idx" ]; then
+      git cat-file -p "$hd" > "$blobdir/blob" 2>/dev/null || continue
+      FORBIDDEN_ORIGIN="committed copy at HEAD of "
+      scan_file "$blobdir/blob" "$f" "$hashfile"
+      n=$((n + 1))
+    fi
+  done < <(git ls-files)
+
+  FORBIDDEN_ORIGIN=""
+  echo "snapshots scanned beyond the disk: $n"
+}
+
 scan_repo() {
   local n_files n_hashes bytes f
-  cd "$ROOT"
 
   n_files="$(git ls-files | wc -l)"
   n_hashes="$(grep -cv '^#' "$HASHES" || true)"
-  bytes="$(git ls-files -z | xargs -0 -r stat -c%s | awk '{s+=$1} END {print s+0}')"
+  # Summed file by file rather than through xargs. A tracked path deleted from the disk makes
+  # `xargs stat` exit non-zero and, under `set -e`, took the whole gate down with exit 123
+  # before it scanned anything. A gate that crashes is at least not a gate that lies, but it
+  # still has to report; the deleted path is then caught by scan_snapshots through its index
+  # copy, which is the copy that matters.
+  bytes=0
+  while IFS= read -r f; do
+    [ -f "$f" ] || continue
+    bytes=$((bytes + $(stat -c%s "$f")))
+  done < <(git ls-files)
   assert_scan_inputs "$n_files" "$bytes" "$n_hashes"
 
   echo "scanning $n_files tracked files, $bytes bytes, against $n_hashes name hashes"
   echo "declared self-matches: ${#FORBIDDEN_EXEMPT[@]}"
   echo
 
-  while IFS= read -r f; do
-    [ -f "$f" ] || continue
-    scan_file "$f" "$f" "$HASHES"
-  done < <(git ls-files)
+  scan_worktree "$HASHES"
+  scan_snapshots "$HASHES"
 }
 
 # ---------------------------------------------------------------------------------------
@@ -200,18 +269,22 @@ self_test() {
   fake_hashes="$tmp/hashes"
   # The name rule is proved against a synthetic register holding one invented token. Proving
   # the matcher works must not require a real name to exist anywhere, not even in a temp file.
-  { echo "# synthetic"; hash_token "kestrelvane"; } > "$fake_hashes"
+  { echo "# synthetic"; hash_token "kestrelvane"; hash_token "quillfarthing"; } > "$fake_hashes"
+
+  # The path a probe's payload is scanned as. It is the key the declared self-matches are
+  # looked up under, so a probe can be run as though its payload sat in a named gate file.
+  PROBE_REL=""
 
   # expect: trip | pass
   probe() {  # name expect payload [exempt-entry ...]
     local name="$1" expect="$2" payload="$3"; shift 3
-    local table=("$@") rc=0
+    local table=("$@") rc=0 rel="${PROBE_REL:-probe.txt}"
     total=$((total + 1))
     printf '%s\n' "$payload" > "$tmp/probe.txt"
     (
       FORBIDDEN_EXEMPT=(${table[@]+"${table[@]}"})
       FAILURES=0
-      scan_file "$tmp/probe.txt" "probe.txt" "$fake_hashes" >/dev/null 2>&1
+      scan_file "$tmp/probe.txt" "$rel" "$fake_hashes" >/dev/null 2>&1
       [ "$FAILURES" -eq 0 ]
     ) || rc=$?
     if { [ "$expect" = trip ] && [ "$rc" -ne 0 ]; } || { [ "$expect" = pass ] && [ "$rc" -eq 0 ]; }; then
@@ -220,6 +293,11 @@ self_test() {
     else
       echo "  [MISS] $name"
     fi
+  }
+
+  probe_at() {  # path name expect payload [exempt-entry ...]
+    local rel="$1"; shift
+    PROBE_REL="$rel"; probe "$@"; PROBE_REL=""
   }
 
   echo "self-test: the probes below MUST trip the gate"
@@ -250,6 +328,26 @@ self_test() {
   probe "the real-name rule ignores every declaration" 'trip' \
         'Palantir, and taught by Ada Kestrelvane' \
         "banned-word|probe.txt|Palantir" "corpus-link|probe.txt|collection://"
+
+  # THE ORIGINAL DEFECT, kept as a probe rather than as a sentence in a document. On the day
+  # this discipline was written, a real surname stood in exactly this position: the worked
+  # example in the header of scripts/gen_forbidden_hashes.sh, showing how a register filename
+  # is split into a person and an employer. The name below is invented and always will be. The
+  # probe runs the payload as though it sat in that gate file, with that file's declarations
+  # active, because "it is one of the gate's own files" is the excuse that would have let it
+  # through and there must be no path by which it does.
+  probe_at "scripts/gen_forbidden_hashes.sh" \
+        "a real name in the hash generator's own worked example" 'trip' \
+        '  # "Bea Quillfarthing - Kestrel Analytics.md" -> "Bea Quillfarthing". The part after " - " is an employer.' \
+        "banned-word|scripts/gen_forbidden_hashes.sh|Palantir" \
+        "corpus-link|scripts/gen_forbidden_hashes.sh|collection://" \
+        "money|scripts/gen_forbidden_hashes.sh|€"
+
+  probe_at "scripts/check_repo.sh" \
+        "a real name in the repository gate's own source" 'trip' \
+        'the register held Bea Quillfarthing, who taught in March' \
+        "banned-word|scripts/check_repo.sh|Palantir" \
+        "email|scripts/check_repo.sh|alguien@example.com"
 
   echo
   echo "self-test: the probes below MUST NOT trip the gate"
@@ -289,6 +387,46 @@ self_test() {
     echo "  [MISS] a declaration naming the real-name rule was accepted (exit $rc)"
   fi
 
+  # THE FALSE CLEAN, kept as a probe. A name staged for commit, or already committed, while the
+  # disk copy of the same path is clean. Reading the disk alone reports clean and is wrong: the
+  # index is what the next commit carries and HEAD is what the repository already carries. This
+  # builds a throwaway repository, puts an invented name in the index and not on the disk, and
+  # requires that the disk scan finds nothing and the snapshot scan finds it. If the first half
+  # of that ever starts passing on its own, this probe is the thing that will say so.
+  total=$((total + 1))
+  rc=0
+  (
+    set -e
+    snap="$tmp/snaprepo"; mkdir -p "$snap"; cd "$snap"
+    git init -q .
+    git config user.email probe@example.com
+    git config user.name probe
+    printf 'nothing to see here\n' > f.txt
+    git add f.txt
+    git commit -qm probe
+    printf 'taught by Bea Quillfarthing in March\n' > f.txt
+    git add f.txt                        # the name is now in the index
+    printf 'nothing to see here\n' > f.txt   # and gone from the disk again
+
+    FORBIDDEN_EXEMPT=()
+    FAILURES=0
+    scan_worktree "$fake_hashes" >/dev/null 2>&1
+    [ "$FAILURES" -eq 0 ] || exit 3      # the disk really is clean; that is the trap
+
+    WORKDIR="$snap/.work"; mkdir -p "$WORKDIR"
+    FAILURES=0
+    scan_snapshots "$fake_hashes" >/dev/null 2>&1
+    [ "$FAILURES" -gt 0 ]                # and the index is not
+  ) || rc=$?
+  if [ "$rc" -eq 0 ]; then
+    echo "  [OK]   a name staged but not on disk was caught by the snapshot scan"
+    pass=$((pass + 1))
+  elif [ "$rc" -eq 3 ]; then
+    echo "  [MISS] the disk scan saw a name that is not on the disk; this probe no longer tests anything"
+  else
+    echo "  [MISS] a name staged but absent from the disk was reported clean (exit $rc)"
+  fi
+
   # An empty input must abort, not report clean.
   total=$((total + 1))
   rc=0
@@ -318,6 +456,8 @@ main() {
   echo
 
   assert_table_well_formed
+  cd "$ROOT"
+  WORKDIR="$(mktemp -d)"
   scan_repo
 
   echo

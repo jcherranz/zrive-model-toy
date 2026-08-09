@@ -74,9 +74,16 @@ hash_token() {
 
 FAILURES=0
 
+# Prefix on every finding, naming which snapshot of a path the bytes came from. Empty for the
+# working tree, which is the ordinary case and needs no label. The repository gate sets it to
+# "staged " or "committed " while it scans the index and HEAD copies of a path whose disk copy
+# differs, because "the file is clean" and "what you are about to commit is clean" are two
+# different sentences and a finding has to say which one it is about.
+FORBIDDEN_ORIGIN=""
+
 fail() {
   FAILURES=$((FAILURES + 1))
-  echo "  [FORBIDDEN] $*"
+  echo "  [FORBIDDEN] ${FORBIDDEN_ORIGIN}$*"
 }
 
 # All matches of a pattern in a file, deduplicated. Empty output when there are none, and no
