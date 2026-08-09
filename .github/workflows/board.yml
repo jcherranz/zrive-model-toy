@@ -54,7 +54,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/sync_board.mjs
 
+      # GH_TOKEN is needed HERE as well as on the render step above, not only there: the
+      # rebase-retry path below re-runs sync_board.mjs, which calls `gh`. Two same-group runs
+      # fired by one relabel raced on the very first board edit, the loser rebased, and the
+      # re-sync died with "set the GH_TOKEN environment variable". It failed loudly rather
+      # than committing an empty board, which is the assertion in fetchIssues working, but the
+      # run was red for a reason that had nothing to do with the board.
       - name: Commit site/board.json if it changed
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           if [ -z "$(git status --porcelain site/board.json)" ]; then

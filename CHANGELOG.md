@@ -67,6 +67,13 @@ the board is real, and the safety gate reads what the public reads.
   timestamp anywhere else either. The mask is anchored on digits and separators, so no euro
   figure can hide inside one, and the self-test proves that in both directions.
 
+- The board workflow's rebase-retry path re-runs `sync_board.mjs`, which calls `gh`, and the
+  token was scoped to the render step only. Two runs fired by one relabel raced on the first
+  board edit ever made; the loser rebased and the re-sync died for want of the token. It failed
+  loudly rather than committing an empty board, which is the assertion in `fetchIssues` doing
+  its job, but the run was red for a reason unrelated to the board. The token is now on both
+  steps.
+
 ### Removed
 
 - One real surname from `BANNED_WORDS` in `build/safety_grep.py`. It was already produced by
