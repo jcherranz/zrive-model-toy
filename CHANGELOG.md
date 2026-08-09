@@ -210,6 +210,42 @@ Dates are ISO. Newest first.
   reader who notices the gap has read something true off the page. Recorded here so that it is
   not refiled as a defect the next time somebody looks at the drawing.
 
+### Fixed, narrow viewport
+
+- `site/app.css` no longer holds a copy of the drawing's width, issue #10. `app.js` writes
+  `--drawing-w` on `#canvas` from `G.w` on every draw, and the narrow viewport rule reads
+  `min-width: var(--drawing-w, 100%)`. Written per draw rather than once because the two
+  cohort view is laid out separately and need not be the same width as the default one.
+  Proved against a copy of `graph.js` with the two widths changed to 1500 and 1700: at 390px
+  the canvas's scroll extent followed to 1520 and 1720, and the stylesheet was not touched.
+  The fallback is `100%`, which is the right box for a canvas with no drawing laid into it.
+- `build/build_layout.py` refuses to write `site/graph.js` while `site/app.css` contains the
+  literal width of either drawing. Proved in both directions: with `min-width: 1230px` put
+  back the build exits 1 and names the view, with the custom property it exits 0 and
+  `graph.js` is byte identical. The check does not use `\b`, because in `1230px` there is no
+  word boundary between the `0` and the `p` and the first version of it passed the very form
+  the number takes in a stylesheet.
+- The scroll that keeps a selected node in view took both its offset and its limit from the
+  svg box instead of the canvas, issue #9. The drawing does not start at the canvas's scroll
+  origin, since the canvas is padded, and the scroll extent is the canvas's own `scrollWidth`.
+  At 390px the computed maximum was 855 against a real 875, so through that path the last 20px
+  of the drawing could not be reached. Both numbers now come from the element that scrolls.
+
+### Measured, not changed
+
+- Issue #9, the drawing cut off at the right edge on a narrow viewport, does not reproduce.
+  The canvas has scrolled sideways below the 760px breakpoint since 38a53fb, which is the tree
+  the issue was verified against. Scrolled fully right, the rightmost drawn element sits at
+  352px inside a 375px canvas, at 390x844, with the second cohort off and on; the same holds
+  at every width from 320px to 1440px. The issue reports what a screenshot of a scrolling
+  canvas looks like, since a screenshot cannot scroll.
+- The screenshots that appeared to confirm it are a headless Chrome artefact and not a layout
+  fault. `--dump-dom` and JavaScript run in a window no narrower than 500px whatever
+  `--window-size` says, while `--screenshot` captures at the requested width. A scroll driven
+  from the page therefore lands at the 500px maximum and the capture then relays out at 390px,
+  leaving the drawing 100px short of its right edge. Measuring instead inside an iframe fixed
+  at 390px puts the scroll and the capture in one layout, and the right edge is whole.
+
 ## [0.2.2] - 2026-08-09
 
 The gate is shown failing on the defect it was written for, and stops reading the wrong bytes.

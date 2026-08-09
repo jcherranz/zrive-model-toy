@@ -699,8 +699,13 @@ body.fb-mode .fb-popover select { cursor: pointer; }
   body { height: auto; overflow: visible; }
   #canvas { overflow-x: auto; overflow-y: hidden; padding: 6px 10px 0; }
   /* Below the fit-to-screen breakpoint the drawing keeps its designed size and the canvas
-     scrolls sideways, rather than being shrunk until its labels stop being readable. */
-  #graph { min-width: 1230px; height: auto; }
+     scrolls sideways, rather than being shrunk until its labels stop being readable.
+     --drawing-w is the width the build computed for the drawing on screen, written on #canvas
+     by app.js on every draw. The number is not repeated here: a copy of it would go stale the
+     first time a column changes width, and the symptom would be a canvas that stops short of
+     the drawing or scrolls past it into blank space, on narrow viewports only. The fallback is
+     100%, which is what the box should be when no drawing has been laid into it. */
+  #graph { min-width: var(--drawing-w, 100%); height: auto; }
   .hrow { flex-wrap: wrap; gap: 8px; }
   .bcols { display: block; }
   .bcol { min-width: 0; margin-bottom: 10px; }

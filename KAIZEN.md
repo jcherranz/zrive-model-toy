@@ -155,3 +155,19 @@ Two things are worth stating because they are the ways this loop fails quietly:
   and left neither in date order. It was the right answer to the question the sweep asks and
   the wrong drawing. A column of dated things carries an order the reader already knows, and
   breaking it to save crossings spends something the layout cannot see to buy something it can.
+
+- **A value the build computes must never be typed into a second file.** The narrow viewport
+  rule carried `min-width: 1230px`, which is the width `build_layout.py` computes from the
+  column widths and the band padding. Nothing tied them, and the day a column changed width
+  the stylesheet would have gone on scrolling to the old number, on phones only, with no error
+  anywhere. The fix is not a better number: the build writes the value, the stylesheet reads
+  it through a custom property, and the build refuses to run while a copy of it is sitting in
+  the stylesheet. Third time in this repository, after the label widths and the header height.
+
+- **A tool that quietly refuses the size you asked for will confirm any layout bug you suspect.**
+  Headless Chrome runs pages in a window no narrower than 500px, whatever `--window-size` says,
+  but captures the screenshot at the width requested. A page scrolled by its own JavaScript
+  therefore stops at the wide window's maximum and is then photographed narrow, which looks
+  exactly like a clipped right edge. Two rounds of work went at a defect that was not there.
+  Before measuring a viewport-dependent fault, make the harness state the viewport it actually
+  got, and prefer a container the harness controls over a window the tool negotiates.

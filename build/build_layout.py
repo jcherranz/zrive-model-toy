@@ -17,6 +17,7 @@ import json
 import math
 import os
 import pathlib
+import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
@@ -472,7 +473,22 @@ def layout(model_nodes, model_edges, tag, spread_share=None):
 base = layout(NODES, EDGES, "one cohort")
 two = layout(*with_second_cohort(), tag="two cohorts", spread_share={1: 0.92, 2: 0.82})
 
-dest = pathlib.Path(__file__).resolve().parent.parent / "site" / "graph.js"
+site = pathlib.Path(__file__).resolve().parent.parent / "site"
+
+# The width of each drawing is computed here and read by the stylesheet through the
+# --drawing-w custom property that app.js writes. If it is ever typed into app.css as well the
+# two will disagree the first time a column changes width, and the symptom is quiet: on a
+# narrow viewport the canvas would stop short of the drawing or scroll past it into blank
+# space. So refuse to build while a copy of the number is sitting in the stylesheet.
+_css = (site / "app.css").read_text(encoding="utf-8")
+for _view, _g in (("one cohort", base), ("two cohorts", two)):
+    # Not \b: in "1230px" there is no word boundary between the 0 and the p, so \b would let
+    # the very form the number takes in a stylesheet through untouched.
+    if re.search(r"(?<![\d.])" + str(_g["w"]) + r"(?![\d.])", _css):
+        sys.exit(f"[layout] app.css contains the literal {_g['w']}, the width of the "
+                 f"{_view} drawing. The stylesheet must read var(--drawing-w) instead.")
+
+dest = site / "graph.js"
 dest.write_text(
     "window.G=" + json.dumps(base, ensure_ascii=False, separators=(",", ":")) + ";\n"
     "window.G2=" + json.dumps(two, ensure_ascii=False, separators=(",", ":")) + ";\n",

@@ -58,6 +58,7 @@
   // because a hidden node still takes up room in a layout and would have moved the default
   // view. Switching between them therefore means redrawing, not toggling a class.
   var svg = document.getElementById('graph');
+  var canvas = document.getElementById('canvas');
   svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 
   var nodeById, edgesOf, gfxNode, gfxEdge;
@@ -66,6 +67,12 @@
     G = g;
     svg.textContent = '';
     svg.setAttribute('viewBox', '0 0 ' + G.w + ' ' + G.h);
+    // The width of the drawing is a number the build computes, so the stylesheet reads it from
+    // here rather than holding a copy of it. Below the fit-to-screen breakpoint app.css sets
+    // min-width: var(--drawing-w), which is why this is written on every draw and not once:
+    // the two cohort view is laid out separately and need not be the same width as the one
+    // cohort view.
+    canvas.style.setProperty('--drawing-w', G.w + 'px');
     if (window.ZT) window.ZT.build = G.build || 'unknown';
 
     // Column bands. One lane per kind of thing, captioned, so that instructors and session
@@ -291,7 +298,6 @@
   // does not start at the canvas's scroll origin, because the canvas is padded, and the scroll
   // extent is the canvas's own scrollWidth and not the width of the drawing inside it: taking
   // either from the svg box left the last few pixels of the drawing out of reach.
-  var canvas = document.getElementById('canvas');
   function reveal(n) {
     setTimeout(function () {
       var sr = svg.getBoundingClientRect(), cr = canvas.getBoundingClientRect();
