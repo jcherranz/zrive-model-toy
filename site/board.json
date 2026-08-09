@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-09T17:33:53Z",
+  "generated": "2026-08-09T17:39:05Z",
   "columns": [
     {
       "key": "raw",
@@ -10,6 +10,16 @@
           "title": "The safety gate cannot enumerate the origin, only the files the tree knows about",
           "labels": [],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
+        },
+        {
+          "id": 10,
+          "title": "The narrow-viewport CSS hardcodes the drawing width the build computes",
+          "labels": [
+            "bug",
+            "layout",
+            "status:raw"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/10"
         }
       ]
     },
