@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-09T18:12:20Z",
+  "generated": "2026-08-09T18:18:06Z",
   "columns": [
     {
       "key": "raw",
@@ -36,16 +36,6 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/2"
-        },
-        {
-          "id": 3,
-          "title": "Instructors and session templates are interleaved in one column",
-          "labels": [
-            "bug",
-            "layout",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/3"
         },
         {
           "id": 4,
@@ -99,6 +89,16 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 3,
+          "title": "Instructors and session templates are interleaved in one column",
+          "labels": [
+            "bug",
+            "layout",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/3"
+        },
         {
           "id": 7,
           "title": "Label widths are estimated in Python, so a label can leave its lane on another font stack",
