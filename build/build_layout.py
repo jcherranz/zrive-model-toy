@@ -274,8 +274,8 @@ for a, b, verb in EDGES:
 # Where a chip would land on a tile, on a label or on another chip it slides along its own
 # path first: a chip that has moved along its line is still unambiguously on that line, while
 # one that has moved off it is not. Stepping off the line is the last resort and is capped at
-# CHIP_PERP, which is under one chip height, so no chip can end up adrift the way the old
-# greedy search let 'claims against' end up 134px below its own edge.
+# CHIP_PERP, so no chip can end up adrift the way the old greedy search let 'claims against'
+# end up 134px below its own edge.
 CH, PADX = 13.0, 5.0
 CHIP_SLIDE = 0.34    # a chip never slides past this share of the arc length from the midpoint
 CHIP_STEP = 4.0      # granularity of the slide
