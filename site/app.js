@@ -287,12 +287,18 @@
   }
 
   // Keep the selected node visible once the panel has taken its bite of the width.
+  // Both the offset and the limit are read off the element that actually scrolls. The drawing
+  // does not start at the canvas's scroll origin, because the canvas is padded, and the scroll
+  // extent is the canvas's own scrollWidth and not the width of the drawing inside it: taking
+  // either from the svg box left the last few pixels of the drawing out of reach.
   var canvas = document.getElementById('canvas');
   function reveal(n) {
     setTimeout(function () {
-      var scale = svg.getBoundingClientRect().width / G.w;
-      var want = n.x * scale - canvas.clientWidth / 2;
-      var max = svg.getBoundingClientRect().width - canvas.clientWidth;
+      var sr = svg.getBoundingClientRect(), cr = canvas.getBoundingClientRect();
+      var scale = sr.width / G.w;
+      var at = (sr.left - cr.left) + canvas.scrollLeft + n.x * scale;
+      var want = at - canvas.clientWidth / 2;
+      var max = canvas.scrollWidth - canvas.clientWidth;
       canvas.scrollLeft = Math.max(0, Math.min(want, Math.max(0, max)));
     }, 30);
   }
