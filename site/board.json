@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-09T18:07:14Z",
+  "generated": "2026-08-09T18:07:49Z",
   "columns": [
     {
       "key": "raw",
@@ -92,6 +92,34 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/1"
+        },
+        {
+          "id": 14,
+          "title": "Verb chips are placed greedily and some sit off the line they name",
+          "labels": [
+            "bug",
+            "layout",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/14"
+        },
+        {
+          "id": 15,
+          "title": "The header subtitle describes the diagram while the board is showing",
+          "labels": [
+            "bug",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/15"
+        },
+        {
+          "id": 16,
+          "title": "Board polish: card order, label chips, empty columns, a way back to the issues",
+          "labels": [
+            "enhancement",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/16"
         }
       ]
     },
