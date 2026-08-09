@@ -52,7 +52,18 @@
   // ---- svg scaffolding -----------------------------------------------------
   var svg = document.getElementById('graph');
   svg.setAttribute('viewBox', '0 0 ' + G.w + ' ' + G.h);
-  svg.setAttribute('preserveAspectRatio', 'xMidYMin meet');
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+
+  // Column bands. One lane per kind of thing, captioned, so that instructors and session
+  // templates are told apart by where they sit and not only by tile colour.
+  var gBand = el('g', {}, svg);
+  (G.bands || []).forEach(function (b) {
+    el('rect', { class: 'band', x: b.x, y: G.bandTop, width: b.w, height: G.h - G.bandTop - 4 },
+       gBand);
+    var t = el('text', { class: 'band-cap', x: b.x + b.w / 2, y: G.bandTop - 7 }, gBand);
+    t.textContent = b.label;
+  });
+
   var gEdge = el('g', {}, svg);
   var gChip = el('g', {}, svg);
   var gNode = el('g', {}, svg);
@@ -216,4 +227,14 @@
   document.getElementById('close').addEventListener('click', clear);
   svg.addEventListener('click', clear);
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') clear(); });
+
+  // What feedback.js needs in order to say what was on screen when a note was written.
+  window.ZT = {
+    build: G.build || 'unknown',
+    selected: function () {
+      if (!current) return null;
+      var n = nodeById[current];
+      return { id: n.id, label: n.label, type: TLABEL[n.type] };
+    }
+  };
 })();

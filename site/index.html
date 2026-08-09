@@ -10,22 +10,37 @@
 <body>
 
 <header>
-  <h1>Zrive operating model, one cohort as instances</h1>
-  <p class="sub">
-    Programme Z-IB Investment Banking, cohort 1Q26. Every object here is a named instance, and
-    every edge carries the verb that joins them. This is a shape, not a dataset.
-    <span class="warn">every value is dummy or estimated, nothing is measured</span>
-  </p>
+  <div class="hrow">
+    <div class="htitle">
+      <h1>Zrive operating model, one cohort as instances</h1>
+      <p class="sub">
+        Programme Z-IB Investment Banking, cohort 1Q26. Every object here is a named instance, and
+        every edge carries the verb that joins them. This is a shape, not a dataset.
+        <span class="warn">every value is dummy or estimated, nothing is measured</span>
+      </p>
+    </div>
+    <nav class="hnav">
+      <button id="fbbtn" class="linkbtn" type="button" aria-expanded="false"
+              aria-haspopup="dialog">feedback</button>
+      <a id="navview" class="linkbtn" href="#/board">board</a>
+    </nav>
+  </div>
   <div class="legend" id="legend"></div>
 </header>
 
-<div id="canvas"><svg id="graph" role="img" aria-label="Instance diagram of one cohort"></svg></div>
+<main id="view-diagram">
+  <div id="canvas"><svg id="graph" role="img" aria-label="Instance diagram of one cohort"></svg></div>
+  <footer>
+    Names of instructors and of the empresa colaboradora are invented. Session titles and the
+    programme code are real and published. All identifiers, dates, counts and amounts are
+    invented. Click a node for its properties.
+  </footer>
+</main>
 
-<footer>
-  Names of instructors and of the empresa colaboradora are invented. Session titles and the
-  programme code are real and published. All identifiers, dates, counts and amounts are
-  invented. Click a node for its properties.
-</footer>
+<main id="view-board">
+  <p class="bmeta" id="bmeta">The board reflects GitHub Issues. GitHub is the source of truth.</p>
+  <div id="bbody"></div>
+</main>
 
 <aside id="panel" aria-live="polite">
   <button id="close" aria-label="Close">&times;</button>
@@ -37,5 +52,7 @@
 
 <script src="graph.js"></script>
 <script src="app.js"></script>
+<script src="board.js"></script>
+<script src="feedback.js"></script>
 </body>
 </html>

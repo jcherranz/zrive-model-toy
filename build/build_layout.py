@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
 """Degenerate Sugiyama layout for the toy instance graph.
 
-Columns are fixed by object type, with a per-node override for the one type whose two
-instances play different roles. Order within a column comes from barycentre sweeps.
-Y is relaxed towards the mean of each node's neighbours, then packed to a minimum gap.
-Coordinates are written to site/graph.js; the browser only draws.
+Columns are fixed by object type, with a per-node override for the nodes whose instances
+play different roles. Order within a column comes from barycentre sweeps. Y is relaxed
+towards the mean of each node's neighbours, then packed to a minimum gap. Columns are
+gathered into named bands so that two adjacent columns of different kinds of thing read as
+two different lanes rather than one striped list. Coordinates are written to site/graph.js;
+the browser only draws.
+
+The whole drawing is sized to be readable inside one 1440x900 viewport with the header and
+the footer taken out, so the target aspect is roughly two to one and the target height is
+around 650 user units.
 """
+import hashlib
 import json
 import math
 import pathlib
@@ -14,13 +21,32 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from model import TYPES, NODES, EDGES  # noqa: E402
 
-COL_W = [162, 206, 132, 104, 134, 116, 120, 104, 100]
-GAP_X, MARGIN_X, MARGIN_Y = 18, 22, 30
+COL_W = [166, 232, 122, 124, 80, 102, 92, 92]
+GAP_X, MARGIN_X = 18, 22
+BAND_TOP, BAND_PAD, BAND_GAP = 21, 9, 10
+MARGIN_Y = BAND_TOP + 16
 TILE, GAP_LABEL, LINE_H, FONT = 34, 7, 11.5, 10.0
-MIN_GAP = 28
+MIN_GAP = 26
 NCOL = len(COL_W)
+
+# Column bands. Each is a run of columns holding one kind of thing, drawn as its own lane
+# with its own caption. The instructors and the session templates sit in bands of their own
+# for exactly this reason: they are different kinds of object and the drawing should say so
+# without relying on tile colour.
+BANDS = [
+    ([0], "programme and employer"),
+    ([1], "session templates"),
+    ([2], "instructors"),
+    ([3], "cohort sessions"),
+    ([4, 5], "cohort and students"),
+    ([6, 7], "enrolment to claim"),
+]
+
 COLX, _acc = [], MARGIN_X
-for w in COL_W:
+_band_of = {c: i for i, (cs, _l) in enumerate(BANDS) for c in cs}
+for c, w in enumerate(COL_W):
+    if c and _band_of[c] != _band_of[c - 1]:
+        _acc += BAND_PAD + BAND_GAP + BAND_PAD - GAP_X
     COLX.append(_acc + w / 2)
     _acc += w + GAP_X
 W = round(_acc - GAP_X + MARGIN_X)
@@ -67,17 +93,32 @@ cols = [[nid for nid in order if nodes[nid]["col"] == c] for c in range(NCOL)]
 H = max(sum(nodes[i]["h"] for i in c) + MIN_GAP * (len(c) - 1) for c in cols if c)
 
 
-def pack(ordering):
-    """Place a column's nodes in sequence, vertically centred, honouring MIN_GAP."""
-    total = sum(nodes[i]["h"] for i in ordering) + MIN_GAP * (len(ordering) - 1)
+SPREAD, SPREAD_FROM = 0.42, 4
+
+
+def pack(ordering, c=0):
+    """Place a column's nodes in sequence, vertically centred, honouring MIN_GAP.
+
+    A short column on the right of the field opens its gaps until it spans a share of the
+    height. Without that, the enrolment to claim chain reads as a small clump adrift in a tall
+    empty lane, which is what made the right of the earlier drawing look abandoned. Columns on
+    the left stay packed: they carry edges that run the width of the drawing, and spreading
+    them drags those edges through other lanes' labels.
+    """
+    k = len(ordering)
+    hs = sum(nodes[i]["h"] for i in ordering)
+    gap = MIN_GAP
+    if 1 < k < 4 and c >= SPREAD_FROM:
+        gap = max(MIN_GAP, (SPREAD * H - hs) / (k - 1))
+    total = hs + gap * (k - 1)
     y = (H - total) / 2
     for nid in ordering:
         nodes[nid]["y"] = y + nodes[nid]["h"] / 2
-        y += nodes[nid]["h"] + MIN_GAP
+        y += nodes[nid]["h"] + gap
 
 
 for c in range(NCOL):
-    pack(cols[c])
+    pack(cols[c], c)
 
 for sweep in range(30):
     rng = range(NCOL) if sweep % 2 == 0 else range(NCOL - 1, -1, -1)
@@ -89,12 +130,12 @@ for sweep in range(30):
             ys = [nodes[m]["y"] for m in adj[nid] if nodes[m]["col"] != c]
             want[nid] = sum(ys) / len(ys) if ys else nodes[nid]["y"]
         cols[c].sort(key=lambda n: (want[n], order.index(n)))
-        pack(cols[c])
+        pack(cols[c], c)
 
 top = min(n["y"] - n["h"] / 2 for n in nodes.values())
 for n in nodes.values():
     n["y"] += MARGIN_Y - top
-height = max(n["y"] + n["h"] / 2 for n in nodes.values()) + MARGIN_Y
+height = max(n["y"] + n["h"] / 2 for n in nodes.values()) + 14
 
 
 def tile_y(n):
@@ -174,11 +215,18 @@ for e in edges:
     e["ax"], e["ay"] = tip
     e["aa"] = math.degrees(math.atan2(tip[1] - ctl[1], tip[0] - ctl[0]))
 
-height = max(height, max(e["cy"] for e in edges) + 30,
-             max(bez(e["pts"], 0.5)[1] for e in edges if e["span"] >= 3) + 26)
+height = max(height, max(e["cy"] for e in edges) + 26,
+             *[bez(e["pts"], 0.5)[1] + 26 for e in edges if e["span"] >= 3])
+
+bands = []
+for cs, label in BANDS:
+    x0 = COLX[cs[0]] - COL_W[cs[0]] / 2 - BAND_PAD
+    x1 = COLX[cs[-1]] + COL_W[cs[-1]] / 2 + BAND_PAD
+    bands.append({"x": round(x0, 1), "w": round(x1 - x0, 1), "label": label})
 
 out = {
-    "w": W, "h": round(height),
+    "w": W, "h": round(height), "bandTop": BAND_TOP,
+    "bands": bands,
     "types": [{"k": k, "label": lab, "c": col, "glyph": g} for k, lab, col, g, _c in TYPES],
     "tile": TILE, "lineH": LINE_H, "gapLabel": GAP_LABEL, "font": FONT,
     "nodes": [{"id": n["id"], "type": n["type"], "label": n["label"], "lines": n["lines"],
@@ -191,8 +239,20 @@ out = {
                "ax": round(e["ax"], 1), "ay": round(e["ay"], 1), "aa": round(e["aa"], 1)}
               for e in edges],
 }
+# Build id: a short digest of the drawing itself. It goes into every feedback report so a
+# note can be tied to the exact bytes that were on screen when it was written.
+payload = json.dumps(out, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+out["build"] = hashlib.sha256(payload.encode("utf-8")).hexdigest()[:7]
+
 dest = pathlib.Path(__file__).resolve().parent.parent / "site" / "graph.js"
 dest.write_text("window.G=" + json.dumps(out, ensure_ascii=False, separators=(",", ":")) + ";\n",
                 encoding="utf-8")
 print(f"nodes {len(out['nodes'])}  edges {len(out['edges'])}  "
-      f"viewBox {W}x{out['h']}  {dest.stat().st_size / 1024:.1f} KB")
+      f"viewBox {W}x{out['h']}  aspect {W / out['h']:.2f}  build {out['build']}  "
+      f"{dest.stat().st_size / 1024:.1f} KB")
+for c in range(NCOL):
+    if cols[c]:
+        span = (max(nodes[i]['y'] + nodes[i]['h'] / 2 for i in cols[c])
+                - min(nodes[i]['y'] - nodes[i]['h'] / 2 for i in cols[c]))
+        print(f"  col {c}  w {COL_W[c]:>3}  n {len(cols[c]):>2}  span {span:6.1f}  "
+              f"maxlines {max(len(nodes[i]['lines']) for i in cols[c])}")

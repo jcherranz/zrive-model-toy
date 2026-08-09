@@ -9,15 +9,18 @@ TYPES = [
     # key,             label,               colour,    glyph,       column
     ("Programme",      "Programme",         "#9d3f9d", "programme", 0),
     ("Company",        "Company",           "#5f6b7c", "company",   0),
-    ("Instructor",     "Instructor",        "#147eb3", "person",    1),
     ("SessionTemplate","Session template",  "#00a396", "document",  1),
-    ("CohortSession",  "Cohort session",    "#d1980b", "calendar",  2),
-    ("Cohort",         "Cohort",            "#29a634", "cohort",    3),
-    ("StudentGroup",   "Students",          "#8eb125", "stack",     4),
-    ("Enrolment",      "Enrolment",         "#7961db", "link",      5),
-    ("Agreement",      "Agreement",         "#946638", "agreement", 6),
-    ("Charge",         "Charge",            "#d33d17", "coin",      7),
-    ("Claim",          "Claim",             "#db2c6f", "claim",     8),
+    ("Instructor",     "Instructor",        "#147eb3", "person",    2),
+    ("CohortSession",  "Cohort session",    "#d1980b", "calendar",  3),
+    ("Cohort",         "Cohort",            "#29a634", "cohort",    4),
+    ("StudentGroup",   "Students",          "#8eb125", "stack",     5),
+    # The enrolment to claim chain folds over two columns rather than running out over four.
+    # Every one of its edges still joins neighbouring columns, so the chain stays legible
+    # while the drawing keeps a two to one aspect instead of a long empty right half.
+    ("Enrolment",      "Enrolment",         "#7961db", "link",      6),
+    ("Agreement",      "Agreement",         "#946638", "agreement", 7),
+    ("Charge",         "Charge",            "#d33d17", "coin",      6),
+    ("Claim",          "Claim",             "#db2c6f", "claim",     7),
 ]
 
 D = "dummy"
@@ -55,7 +58,7 @@ NODES = [
     {
         "id": "co_col",
         "type": "Company",
-        "col": 2,   # sits beside the sessions it hosts, not beside the employer
+        "col": 3,   # sits beside the sessions it hosts, not beside the employer
         "label": "Aretxa Capital",
         "props": [
             p("role", "empresa colaboradora", D),

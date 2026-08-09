@@ -55,11 +55,65 @@ html, body {
   -webkit-text-size-adjust: 100%;
 }
 
+/* One screen. The shell is a column, the diagram takes what the header and the footer
+   leave, and the drawing scales itself to fit that box in both directions. */
+body {
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+#view-board { display: none; overflow-y: auto; }
+body.board #view-diagram { display: none; }
+body.board #view-board { display: flex; }
+body.board .legend { display: none; }
+
 header {
-  padding: 14px 20px 10px;
+  flex: none;
+  padding: 11px 20px 9px;
   border-bottom: 1px solid var(--rule-muted);
   background: var(--bg-panel);
 }
+
+.hrow {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.htitle { flex: 1 1 auto; min-width: 0; }
+
+.hnav {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-top: 1px;
+}
+
+.linkbtn {
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--i-primary);
+  background: transparent;
+  border: 0;
+  padding: 2px 2px;
+  cursor: pointer;
+  text-decoration: none;
+  border-radius: var(--radius);
+}
+
+.linkbtn:hover { text-decoration: underline; }
+.linkbtn:focus-visible { outline: 2px solid var(--i-primary); outline-offset: 1px; }
+.linkbtn[aria-expanded="true"] { font-weight: 600; }
 
 h1 {
   margin: 0;
@@ -72,7 +126,7 @@ h1 {
   margin: 3px 0 0;
   font-size: var(--fs-sm);
   color: var(--fg-muted);
-  max-width: 78ch;
+  max-width: 96ch;
 }
 
 .warn {
@@ -90,7 +144,7 @@ h1 {
   display: flex;
   flex-wrap: wrap;
   gap: 4px 12px;
-  margin-top: 9px;
+  margin-top: 7px;
 }
 
 .legend span {
@@ -112,16 +166,35 @@ h1 {
 /* ---- canvas ------------------------------------------------------------- */
 
 #canvas {
-  overflow-x: auto;
-  overflow-y: hidden;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 6px 14px 0;
+  overflow: hidden;
   -webkit-overflow-scrolling: touch;
 }
 
 #graph {
   display: block;
   width: 100%;
-  min-width: 1366px;
-  height: auto;
+  height: 100%;
+}
+
+/* ---- column bands -------------------------------------------------------- */
+
+.band {
+  fill: var(--bg-panel);
+  stroke: none;
+  rx: 4;
+}
+
+.band-cap {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  fill: var(--fg-muted);
+  text-anchor: middle;
+  font-family: var(--font-ui);
 }
 
 .edge {
@@ -133,7 +206,7 @@ h1 {
 .arrow { fill: var(--c-gray-3); }
 
 .chip-bg {
-  fill: var(--bg-app);
+  fill: var(--bg-panel);
   stroke: var(--rule-muted);
   stroke-width: 1;
   rx: 3;
@@ -255,13 +328,206 @@ body.panel-open #canvas { margin-right: 320px; }
 #close:hover { background: var(--tint-hover); }
 
 footer {
-  padding: 10px 20px 26px;
+  flex: none;
+  padding: 7px 20px 9px;
   font-size: 11px;
   color: var(--fg-muted);
   border-top: 1px solid var(--rule-muted);
+  background: var(--bg-panel);
 }
 
+/* ---- feedback popover ---------------------------------------------------- */
+
+#fbpop {
+  position: fixed;
+  z-index: 30;
+  width: 320px;
+  max-width: calc(100vw - 24px);
+  background: var(--bg-panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--elev-1);
+  padding: 12px 13px 11px;
+}
+
+#fbpop[hidden] { display: none; }
+
+#fbpop label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--fg-muted);
+  margin-bottom: 3px;
+}
+
+#fbpop textarea,
+#fbpop select {
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--fg-body);
+  background: var(--bg-panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 4px 6px;
+  width: 100%;
+}
+
+#fbpop textarea { resize: vertical; min-height: 62px; margin-bottom: 9px; }
+#fbpop select { margin-bottom: 9px; cursor: pointer; }
+
+#fbpop .fbctx {
+  margin: 0 0 10px;
+  padding: 6px 7px;
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.45;
+  color: var(--fg-muted);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+#fbpop .fbrow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.btn {
+  font: inherit;
+  font-size: var(--fs-sm);
+  border: 1px solid var(--rule);
+  background: var(--bg-panel);
+  color: var(--fg-body);
+  border-radius: var(--radius);
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.btn:hover { background: var(--tint-hover); }
+
+.btn.primary {
+  background: var(--i-primary);
+  border-color: var(--i-primary);
+  color: var(--i-primary-fg);
+  font-weight: 600;
+}
+
+.btn.primary:hover { filter: brightness(.94); }
+
+/* ---- board --------------------------------------------------------------- */
+
+#view-board { padding: 12px 20px 24px; }
+
+.bmeta {
+  flex: none;
+  margin: 0 0 12px;
+  font-size: 11px;
+  color: var(--fg-muted);
+}
+
+.bcols {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+.bcol {
+  flex: 1 1 0;
+  min-width: 200px;
+  background: var(--bg-panel);
+  border: 1px solid var(--rule-muted);
+  border-radius: var(--radius);
+  padding: 9px 9px 10px;
+}
+
+.bcol h2 {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.bcol h2 span { font-weight: 400; }
+
+.bcard {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid var(--rule-muted);
+  border-radius: var(--radius);
+  background: var(--bg-app);
+  padding: 7px 8px;
+  margin-bottom: 7px;
+}
+
+.bcard:last-child { margin-bottom: 0; }
+.bcard:hover { background: var(--tint-hover); }
+
+.bcard .bnum {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--fg-muted);
+}
+
+.bcard .btitle {
+  margin: 1px 0 0;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.bcard .blabels {
+  margin-top: 5px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.chip {
+  padding: 0 5px;
+  border-radius: 2px;
+  font-size: 10px;
+  letter-spacing: .02em;
+  background: var(--tint-neutral);
+  color: var(--fg-muted);
+}
+
+.bempty {
+  font-size: 11px;
+  color: var(--fg-muted);
+  padding: 4px 1px;
+}
+
+.bnote {
+  border: 1px solid var(--rule-muted);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+  padding: 14px 16px;
+  font-size: var(--fs-sm);
+  color: var(--fg-muted);
+  max-width: 68ch;
+}
+
+.bnote b { color: var(--fg-body); font-weight: 600; }
+
 @media (max-width: 760px) {
+  body { height: auto; overflow: visible; }
+  #canvas { overflow-x: auto; overflow-y: hidden; padding: 6px 10px 0; }
+  /* Below the fit-to-screen breakpoint the drawing keeps its designed size and the canvas
+     scrolls sideways, rather than being shrunk until its labels stop being readable. */
+  #graph { min-width: 1230px; height: auto; }
+  .hrow { flex-wrap: wrap; gap: 8px; }
+  .bcols { display: block; }
+  .bcol { min-width: 0; margin-bottom: 10px; }
   #panel {
     width: 100%;
     height: 62%;
