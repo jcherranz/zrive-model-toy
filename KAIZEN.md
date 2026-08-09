@@ -84,7 +84,8 @@ annoying at exactly the moment it matters.
 
 ## What improvement means here, and what it does not
 
-This toy is twenty six nodes and thirty one kilobytes. Improving it does not mean growing it.
+This toy is thirty nodes, four of which are classes that do not exist, and the four files that
+draw it are fifty two kilobytes. Improving it does not mean growing it.
 The most valuable change available at any moment is almost always the one that removes
 something: a type nobody can populate, a column with one node in it, a property that says
 `estimated` and means `guessed`. The wider work behind the diagram lives in
@@ -99,3 +100,18 @@ Two things are worth stating because they are the ways this loop fails quietly:
 - **A verifier is not exempt from verification.** A review of this work once published three
   counts as "did not reproduce" that were artefacts of its own parser. Before a finding is
   reported, the tool that produced it gets the same suspicion as the thing it is reporting on.
+- **A diagram of what exists cannot be read for what is missing.** Twenty six nodes drawn well
+  say nothing about the classes that are not there, and a reader has no way to notice an
+  absence from a picture of presences. Drawing the missing classes was the first change to
+  this page that added nodes rather than removing them, and it was worth it because the
+  absences carry more than any object on the canvas: an object with no class cannot be
+  queried, and a leak that leaves no row cannot be found by looking harder at the rows.
+  The corollary is the constraint, not an exception to it. Four ghosts fitted because the band
+  they belong to was the emptiest part of the drawing and they cost no height; the fifth
+  candidate was dropped for the opposite reason. Where an absence goes is a layout question
+  before it is an ontology question.
+- **An object can exist while its key does not, and the drawing has to be able to say so.**
+  The cohort is a real thing that nothing identifies. Drawing it as a ghost would have been
+  false, and leaving it unmarked would have hidden the sharpest finding on the page, so it
+  keeps its own outline and gains a second, dashed one. A vocabulary that only has "exists"
+  and "does not exist" is too coarse for this model.

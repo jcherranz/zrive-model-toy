@@ -15,6 +15,7 @@ around 650 user units.
 import hashlib
 import json
 import math
+import os
 import pathlib
 import sys
 
@@ -52,13 +53,48 @@ for c, w in enumerate(COL_W):
 W = round(_acc - GAP_X + MARGIN_X)
 
 TYPE_COL = {t[0]: t[4] for t in TYPES}
+
+# ---- text width ------------------------------------------------------------
+# Widths come from build/label_widths.json, which build/measure_labels.py produced by shaping
+# every one of these strings in a real browser, in the exact font stack, size and weight the
+# stylesheet gives it, and keeping the widest across every family in the stack the measuring
+# machine could resolve. The table is committed, so this build reads a file and never opens a
+# browser.
+#
+# estimate_w below is what the layout used before, a per character table written by hand. It
+# is kept as the fallback for any string the table does not hold, so a new label can never
+# crash the build, and every fall back is reported at the end of the run. It is not accurate:
+# on this model it undershoots the widest label by about eight per cent at the weight the
+# labels are drawn, and by about nineteen per cent at the weight a selected label is drawn.
+MAXLINES = 3
+WIDTHS_PATH = pathlib.Path(
+    os.environ.get("ZRIVE_LABEL_WIDTHS", pathlib.Path(__file__).parent / "label_widths.json"))
+try:
+    MEASURED = json.loads(WIDTHS_PATH.read_text(encoding="utf-8"))["widths"]
+except (OSError, ValueError, KeyError) as exc:
+    MEASURED = {}
+    print(f"[layout] no measured widths at {WIDTHS_PATH} ({type(exc).__name__}); "
+          f"every width on this build is estimated", file=sys.stderr)
+
 NARROW, WIDE = set("ijlt.,;:!'|íÍ "), set("mwMW@")
+_fellback = []   # (context, string) for every lookup that missed
+_errors = []     # (measured - estimated, context, string) for every lookup that hit
 
 
-def text_w(s, size=FONT):
+def estimate_w(s, size):
     u = sum(0.30 if c in NARROW else 0.86 if c in WIDE else 0.62 if c.isupper() else 0.53
             for c in s)
     return u * size
+
+
+def text_w(s, size=FONT, weight=400):
+    ctx = f"{size:g}/{weight:g}"
+    tbl = MEASURED.get(ctx)
+    if tbl is not None and s in tbl:
+        _errors.append((tbl[s] - estimate_w(s, size), ctx, s))
+        return tbl[s]
+    _fellback.append((ctx, s))
+    return estimate_w(s, size)
 
 
 def wrap(label, maxw):
@@ -72,7 +108,11 @@ def wrap(label, maxw):
             cur = trial
     if cur:
         lines.append(cur)
-    return lines[:3]
+    if len(lines) > MAXLINES:
+        # Dropping the tail silently would clip the label and the page would look fine.
+        print(f"[layout] TRUNCATED after {MAXLINES} lines, words are lost: {label!r} "
+              f"-> {lines[MAXLINES:]}", file=sys.stderr)
+    return lines[:MAXLINES]
 
 
 nodes = {n["id"]: dict(n) for n in NODES}
@@ -80,9 +120,45 @@ order = [n["id"] for n in NODES]
 for nid, n in nodes.items():
     n["col"] = n.get("col", TYPE_COL[n["type"]])
     n["lines"] = wrap(n["label"], COL_W[n["col"]] - 8)
-    n["lw"] = max(text_w(ln) for ln in n["lines"])
-    n["h"] = TILE + GAP_LABEL + LINE_H * len(n["lines"])
+    # Reserve the bold width, not the regular one. Clicking a node turns its label bold
+    # (.node.sel .lbl), which is about a fifth wider, and the reserved box has to hold the
+    # state the page enters on a click as well as the one it starts in.
+    n["lw"] = max(max(text_w(ln) for ln in n["lines"]),
+                  max(text_w(ln, FONT, 600) for ln in n["lines"]))
+    # A node carrying a mark spends one more line under its label saying what it is missing,
+    # so it reserves the height for it here and the browser only draws.
+    n["nlines"] = len(n["lines"]) + (1 if n.get("mark") else 0)
+    if n.get("mark"):
+        n["lw"] = max(n["lw"], text_w(n["mark"], 9.0))
+    n["h"] = TILE + GAP_LABEL + LINE_H * n["nlines"]
     n["x"] = COLX[n["col"]]
+
+# ---- the gate the measurement exists for -----------------------------------
+# A lane is a band of columns holding one kind of object, and the drawing's whole claim is
+# that a reader can tell the kinds apart by lane. A label wider than its lane breaks that
+# claim, and it breaks it silently: the page still renders. So it is checked here, before a
+# single coordinate is written, against measured widths rather than guessed ones.
+BAND_X = {}
+for _cs, _label in BANDS:
+    _x0 = COLX[_cs[0]] - COL_W[_cs[0]] / 2 - BAND_PAD
+    _x1 = COLX[_cs[-1]] + COL_W[_cs[-1]] / 2 + BAND_PAD
+    for _c in _cs:
+        BAND_X[_c] = (_x0, _x1, _label)
+
+
+def lane_slack(n):
+    x0, x1, _lab = BAND_X[n["col"]]
+    return min(n["x"] - n["lw"] / 2 - x0, x1 - n["x"] - n["lw"] / 2)
+
+
+LANE_TIGHT = min(((lane_slack(n), nid) for nid, n in nodes.items()), default=(0.0, None))
+_over = sorted((lane_slack(n), nid, n["label"], BAND_X[n["col"]][2])
+               for nid, n in nodes.items() if lane_slack(n) < 0)
+if _over:
+    for slack, nid, label, lab in _over:
+        print(f"[layout] LANE OVERFLOW by {-slack:.1f}px: {label!r} ({nid}) leaves the "
+              f"{lab!r} lane", file=sys.stderr)
+    sys.exit("[layout] refusing to write a drawing in which a label crosses a lane boundary")
 
 adj = {nid: [] for nid in nodes}
 for a, b, _v in EDGES:
@@ -169,7 +245,8 @@ for a, b, verb in EDGES:
     d = (f"M {p0[0]:.1f} {p0[1]:.1f} C {p1[0]:.1f} {p1[1]:.1f} "
          f"{p2[0]:.1f} {p2[1]:.1f} {p3[0]:.1f} {p3[1]:.1f}")
     edges.append({"s": a, "t": b, "v": verb, "d": d, "pts": pts,
-                  "rev": nb["col"] < na["col"], "span": span})
+                  "rev": nb["col"] < na["col"], "span": span,
+                  "ghost": bool(na.get("ghost") or nb.get("ghost"))})
 
 # ---- verb chips: slide along the line until a slot free of tiles, labels and
 #      other chips is found -------------------------------------------------
@@ -178,7 +255,7 @@ TS = [0.50, 0.42, 0.58, 0.35, 0.65, 0.28, 0.72, 0.21, 0.79]
 blocked = []
 for n in nodes.values():
     blocked.append((n["x"], tile_y(n), TILE + 4, TILE + 4))
-    lab_h = LINE_H * len(n["lines"])
+    lab_h = LINE_H * n["nlines"]
     blocked.append((n["x"], tile_y(n) + TILE / 2 + GAP_LABEL + lab_h / 2, n["lw"] + 6, lab_h + 3))
 chips = []
 
@@ -227,13 +304,18 @@ for cs, label in BANDS:
 out = {
     "w": W, "h": round(height), "bandTop": BAND_TOP,
     "bands": bands,
-    "types": [{"k": k, "label": lab, "c": col, "glyph": g} for k, lab, col, g, _c in TYPES],
+    "types": [{"k": k, "label": lab, "c": col, "glyph": g,
+               "ghost": 1 if k == "Ghost" else None}
+              for k, lab, col, g, _c in TYPES],
     "tile": TILE, "lineH": LINE_H, "gapLabel": GAP_LABEL, "font": FONT,
     "nodes": [{"id": n["id"], "type": n["type"], "label": n["label"], "lines": n["lines"],
                "x": round(n["x"], 1), "y": round(tile_y(n), 1),
-               "count": n.get("count"), "props": n["props"]}
+               "count": n.get("count"), "props": n["props"],
+               "ghost": 1 if n.get("ghost") else None,
+               "mark": n.get("mark"), "note": n.get("note")}
               for n in (nodes[i] for i in order)],
     "edges": [{"s": e["s"], "t": e["t"], "v": e["v"], "d": e["d"],
+               "ghost": 1 if e["ghost"] else None,
                "cx": round(e["cx"], 1), "cy": round(e["cy"], 1),
                "cw": round(e["cw"], 1), "rev": e["rev"],
                "ax": round(e["ax"], 1), "ay": round(e["ay"], 1), "aa": round(e["aa"], 1)}
@@ -256,3 +338,28 @@ for c in range(NCOL):
                 - min(nodes[i]['y'] - nodes[i]['h'] / 2 for i in cols[c]))
         print(f"  col {c}  w {COL_W[c]:>3}  n {len(cols[c]):>2}  span {span:6.1f}  "
               f"maxlines {max(len(nodes[i]['lines']) for i in cols[c])}")
+
+# ---- what the measurement bought, and whether the drawing holds -------------
+# Two reports and one gate. The reports say how far the old estimate was from the truth and
+# where the widths came from; the gate refuses a drawing in which a label leaves its lane,
+# which is the defect the measurement exists to remove and is not visible in a diff.
+if _errors:
+    worst = max(_errors, key=lambda r: r[0])
+    print(f"widths: {len(_errors)} measured, {len(_fellback)} estimated. "
+          f"Worst estimation error {worst[0]:+.2f}px "
+          f"({worst[0] / (worst[0] + estimate_w(worst[2], float(worst[1].split('/')[0]))) * 100:+.1f}%) "
+          f"at {worst[1]} on {worst[2]!r}")
+if _fellback:
+    seen, uniq = set(), []
+    for ctx, s in _fellback:
+        if (ctx, s) not in seen:
+            seen.add((ctx, s))
+            uniq.append((ctx, s))
+    print(f"[layout] {len(uniq)} string(s) not in {WIDTHS_PATH.name}, estimated instead. "
+          f"Re-run build/measure_labels.py to measure them:", file=sys.stderr)
+    for ctx, s in uniq[:20]:
+        print(f"[layout]   {ctx:<10} {s!r}", file=sys.stderr)
+    if len(uniq) > 20:
+        print(f"[layout]   ... and {len(uniq) - 20} more", file=sys.stderr)
+
+print(f"lanes: tightest label has {LANE_TIGHT[0]:.1f}px of lane to spare ({LANE_TIGHT[1]})")

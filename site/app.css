@@ -687,3 +687,91 @@ body.fb-mode .fb-popover select { cursor: pointer; }
   #panel.open { transform: none; }
   body.panel-open #canvas { margin-right: 0; }
 }
+
+/* ---- ghosts: the classes that do not exist -------------------------------
+   Everything in this block is drawn so that a reader cannot mistake it for an object the
+   company holds: no fill worth the name, a dashed outline, grey, and an empty tile because
+   there is nothing inside one. The marking on the cohort is deliberately a different mark
+   again, since that object exists and only its key does not. */
+
+#ghtoggle {
+  border: 1px dashed var(--c-gray-3);
+  border-radius: var(--radius);
+  padding: 2px 8px;
+  color: var(--fg-muted);
+}
+
+#ghtoggle:hover { text-decoration: none; background: var(--tint-hover); }
+
+#ghtoggle[aria-pressed="true"] {
+  color: var(--fg-body);
+  font-weight: 600;
+  background: var(--tint-neutral);
+}
+
+body.hide-ghosts .ghost { display: none; }
+
+.legend span.ghost i {
+  background: transparent;
+  border: 1.25px dashed var(--c-gray-3);
+}
+
+.node.ghost .tile-bg {
+  stroke-dasharray: 3 2.4;
+  stroke-width: 1.1;
+}
+
+.node.ghost:hover .tile-bg { stroke-width: 1.9; }
+.node.ghost.sel .tile-bg { stroke-width: 1.9; }
+
+.lbl-ghost {
+  fill: var(--fg-muted);
+  font-style: italic;
+}
+
+.edge-ghost {
+  stroke: var(--c-gray-3);
+  stroke-dasharray: 3 3;
+}
+
+.arrow-ghost { fill: var(--c-gray-3); opacity: .8; }
+
+.ghost .chip-bg { stroke-dasharray: 3 2.4; }
+.ghost .chip-tx { font-style: italic; }
+
+/* The cohort keeps its own outline and gains a second, dashed one, with the name of the
+   thing that is missing under the label rather than in a tooltip nobody opens. */
+.ring-missing {
+  fill: none;
+  stroke: var(--c-gray-3);
+  stroke-width: 1;
+  stroke-dasharray: 3 2.4;
+}
+
+.lbl-missing {
+  font-size: 9px;
+  fill: var(--fg-muted);
+  font-style: italic;
+  text-anchor: middle;
+  font-family: var(--font-ui);
+}
+
+/* A third flag beside dummy and estimated. A dummy value stands in for something a system
+   holds; an absent one says no system holds it. */
+.flag.absent {
+  background: transparent;
+  border: 1px dashed var(--c-gray-3);
+  color: var(--fg-muted);
+  padding: 0 4px;
+}
+
+/* A note is content and the relationship list is metadata, so they are two blocks and not
+   one run of text. */
+#panel .pnote-note {
+  display: block;
+  color: var(--fg-body);
+  font-size: var(--fs-sm);
+  margin-bottom: 8px;
+}
+
+#panel .pnote-rel { display: block; }

@@ -25,6 +25,10 @@ TYPES = [
 
 D = "dummy"
 E = "estimated"
+# A third flag, for the rows that record an absence rather than a value. It is not a weaker
+# kind of dummy: a dummy value stands in for something a system holds, and an absent one says
+# no system holds it at all.
+A = "absent"
 
 
 def p(name, value, flag):
@@ -163,8 +167,14 @@ for cid, label, st, tt, when, state, att in COHORT_SESSIONS:
 NODES += [
     {
         "id": "cohort", "type": "Cohort", "label": "Z-IB 1Q26",
+        # The cohort is a real thing and its key is not. It is marked rather than drawn as a
+        # ghost for exactly that reason: the object exists, the identifier does not.
+        "mark": "no cohort_id",
+        "note": ("The cohort exists as a thing and its key does not. No identifier for it is "
+                 "held anywhere, so a cohort can only be picked out as the intersection of a "
+                 "roster, a calendar, a campus group and a record on the website."),
         "props": [
-            p("cohort_id", "ZIB-1Q26", D),
+            p("cohort_id", "no identifier in any system", A),
             p("intake", "1Q26", D),
             p("starts_on", "2026-01-12", D),
             p("sessions_scheduled", "6", D),
@@ -239,3 +249,57 @@ EDGES += [
     ("students", "charge", "pays"),
     ("claim", "charge", "claims against"),
 ]
+
+# ---- ghosts: classes the model needs and no system holds --------------------
+# Everything above is an object that exists. Everything below is one that does not, drawn on
+# the same page because the absences are the part of the shape that a reader cannot infer from
+# what is present. A ghost is a class, not an instance: it has no identifier, no date and no
+# amount, and its note says what the absence costs structurally and nothing more.
+#
+# The ghosts are all in the enrolment to claim band, and that is not a coincidence. It is the
+# band where money is promised, collected and chased, and it is the band with the fewest
+# classes. Two candidates were left out rather than drawn: an Attendance class, which would
+# have to hang off the cohort sessions, the tallest column, and would make the drawing taller
+# for every reader; and a Placement date or an income share schedule, which is detail below
+# the level of this page.
+GHOST_TYPE = ("Ghost", "does not exist in any system", "#8f99a8", "ghost", 6)
+
+
+def g(gid, label, col, verb, target, note):
+    return {
+        "id": gid, "type": "Ghost", "label": label, "col": col, "ghost": True, "note": note,
+        "props": [
+            p("class_exists", "no", A),
+            p("would_attach_to", target, A),
+            p("verb_it_would_carry", verb, A),
+        ],
+    }
+
+
+GHOSTS = [
+    g("g_inst", "Instalment", 6, "expected by", "Agreement",
+      "The schedule of payments an agreement expects is not written down as rows. A payment "
+      "that fails leaves no row at all, and a row that is missing cannot be found without an "
+      "expectation to compare against, so nothing can be queried for what did not arrive."),
+    g("g_place", "Placement", 6, "matures", "Claim",
+      "A graduate taking a job offer is not recorded anywhere. A claim on future income can "
+      "therefore expire, and nothing can make it mature, so the question of which claims are "
+      "collectible today has no answer to read."),
+    g("g_beca", "Beca", 6, "discounts", "Agreement",
+      "A scholarship has no class of its own. A student who owes nothing and a student who "
+      "owes and has not paid are the same row."),
+    g("g_ref", "Refund", 7, "reverses", "Charge",
+      "Money returned to a payer has nowhere to be recorded. A charge that was reversed still "
+      "reads exactly as it did before, so a reversal can only be established off the system."),
+]
+
+GHOST_EDGES = [
+    ("g_inst", "agree", "expected by"),
+    ("g_place", "claim", "matures"),
+    ("g_beca", "agree", "discounts"),
+    ("g_ref", "charge", "reverses"),
+]
+
+TYPES = TYPES + [GHOST_TYPE]
+NODES += GHOSTS
+EDGES += GHOST_EDGES

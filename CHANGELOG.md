@@ -5,8 +5,32 @@ Dates are ISO. Newest first.
 
 ## [Unreleased]
 
-Nothing yet. The five standing defects are on the board, not in this file: see KAIZEN.md and
-the Issues.
+### Added
+
+- Ghost classes on the diagram, for issue #8. Four classes the operating model needs and no
+  system holds are drawn beside the objects that do exist: `Instalment` expected by
+  `Agreement`, `Placement` matures `Claim`, `Beca` discounts `Agreement`, `Refund` reverses
+  `Charge`. A ghost is a dashed, unfilled, empty tile with an italic label and a dashed edge
+  carrying the verb it would carry. The tile is empty because there is nothing in it.
+- A legend entry, `does not exist in any system`, drawn as the same empty dashed box.
+- A marking on the `Cohort` node rather than a ghost of its own, because that object exists
+  and only its key does not: a second dashed outline, the words `no cohort_id` under the
+  label, and a `cohort_id` property whose value says no identifier is held anywhere.
+- A third property flag, `absent`, beside `dummy` and `estimated`. A dummy value stands in for
+  something a system holds; an absent one says no system holds it.
+- Clicking a ghost opens the properties panel like any other node. The panel leads with what
+  the absence costs in two sentences and carries no figure of any kind.
+- A `ghosts` toggle in the header, shown by default, that hides the ghosts, their edges, the
+  legend entry and the cohort marking. Default shown because the absences are the finding;
+  the toggle exists for the times the question is only about what the systems do hold.
+
+### Not added, and why
+
+- An `Attendance` ghost. It would have to attach to the cohort sessions, which are the tallest
+  column in the drawing, and the drawing is sized to one screen. Adding it would have made
+  every node smaller for every reader in exchange for a fifth absence. The other four sit in
+  the enrolment to claim band, which was the emptiest part of the canvas, so they cost no
+  height at all: the viewBox is 1230x574 before and after.
 
 ## [0.2.1] - 2026-08-09
 

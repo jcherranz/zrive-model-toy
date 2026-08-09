@@ -118,7 +118,7 @@
     // A node whose key does not exist keeps its own outline and gains a second, dashed one.
     // The object is real; something about it is missing, and the label below says what.
     if (n.mark) {
-      el('rect', { class: 'ring-missing', x: n.x - R - 3.5, y: n.y - R - 3.5,
+      el('rect', { class: 'ring-missing ghost', x: n.x - R - 3.5, y: n.y - R - 3.5,
                    width: TILE + 7, height: TILE + 7, rx: 8 }, g);
     }
     var tile = el('rect', {
@@ -153,7 +153,7 @@
       t.textContent = line;
     });
     if (n.mark) {
-      var mk = el('text', { class: 'lbl lbl-missing', x: n.x,
+      var mk = el('text', { class: 'lbl lbl-missing ghost', x: n.x,
                             y: ty + n.lines.length * G.lineH }, g);
       mk.textContent = n.mark;
     }
@@ -172,7 +172,10 @@
 
   function paint(id, on) {
     var f = gfxNode[id];
-    f.tile.setAttribute('fill', on ? 'var(--i-primary)' : f.rest);
+    // A selected ghost keeps its dashed outline and stays unfilled. Filling it the way a real
+    // node is filled would make selection the one moment it looks like an object that exists.
+    f.tile.setAttribute('fill', on ? (f.ghost ? 'rgba(45,114,210,0.08)' : 'var(--i-primary)')
+                                   : f.rest);
     f.tile.setAttribute('stroke', on ? 'var(--i-primary)' : f.col);
     f.mark.setAttribute(f.count ? 'fill' : 'stroke', on ? 'var(--i-primary-fg)' : f.col);
     f.g.classList.toggle('sel', on);
@@ -217,11 +220,22 @@
     });
     // A node that carries a note leads with it. On a ghost the note is the whole point of
     // opening the panel, and on the cohort it says which part of a real object is missing.
-    var relText = rel.length + (rel.length === 1 ? ' relationship: ' : ' relationships: ')
-                  + rel.join('; ');
     var pnote = document.getElementById('pnote');
-    pnote.textContent = n.note ? (n.ghost ? n.note : n.note + ' ' + relText) : relText;
-    pnote.classList.toggle('pnote-missing', !!n.note);
+    pnote.textContent = '';
+    if (n.note) {
+      var sn = document.createElement('span');
+      sn.className = 'pnote-note';
+      sn.textContent = n.note;
+      pnote.appendChild(sn);
+    }
+    // A ghost's one relationship is already a property row, so the list is left off there.
+    if (!n.ghost) {
+      var sr = document.createElement('span');
+      sr.className = 'pnote-rel';
+      sr.textContent = rel.length + (rel.length === 1 ? ' relationship: ' : ' relationships: ')
+                       + rel.join('; ');
+      pnote.appendChild(sr);
+    }
 
     var dl = document.getElementById('pprops');
     dl.textContent = '';
