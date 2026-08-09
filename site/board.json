@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-09T16:56:37Z",
+  "generated": "2026-08-09T17:09:36Z",
   "columns": [
     {
       "key": "raw",
@@ -72,6 +72,16 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/1"
+        },
+        {
+          "id": 7,
+          "title": "Label widths are estimated in Python, so a label can leave its lane on another font stack",
+          "labels": [
+            "bug",
+            "layout",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/7"
         }
       ]
     },
