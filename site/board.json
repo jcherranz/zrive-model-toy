@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-09T18:11:41Z",
+  "generated": "2026-08-09T18:12:20Z",
   "columns": [
     {
       "key": "raw",
@@ -92,24 +92,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/1"
-        },
-        {
-          "id": 16,
-          "title": "Board polish: card order, label chips, empty columns, a way back to the issues",
-          "labels": [
-            "enhancement",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/16"
-        },
-        {
-          "id": 17,
-          "title": "The diagram cannot be walked from the keyboard in reading order",
-          "labels": [
-            "enhancement",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/17"
         }
       ]
     },
@@ -170,7 +152,7 @@
           "labels": [
             "bug",
             "layout",
-            "status:in-progress"
+            "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/14"
         },
@@ -179,9 +161,27 @@
           "title": "The header subtitle describes the diagram while the board is showing",
           "labels": [
             "bug",
-            "status:in-progress"
+            "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/15"
+        },
+        {
+          "id": 16,
+          "title": "Board polish: card order, label chips, empty columns, a way back to the issues",
+          "labels": [
+            "enhancement",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/16"
+        },
+        {
+          "id": 17,
+          "title": "The diagram cannot be walked from the keyboard in reading order",
+          "labels": [
+            "enhancement",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/17"
         },
         {
           "id": 18,
