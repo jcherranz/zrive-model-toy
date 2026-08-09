@@ -14,8 +14,8 @@ it is the reason most of what follows exists. Only `site/` is deployed; `TPS.md`
 
 | Pillar | Status | Where |
 |---|---|---|
-| Jidoka, stop the line | `[OK]` best developed | `scripts/check_forbidden.sh`, both workflows |
-| Poka-Yoke, mistake-proofing | `[OK]` | `scripts/check_forbidden.sh`, `scripts/forbidden_names.sha256`, `scripts/sync_board.mjs` |
+| Jidoka, stop the line | `[OK]` best developed | `scripts/check_forbidden.sh`, `scripts/check_repo.sh`, all three workflows |
+| Poka-Yoke, mistake-proofing | `[OK]` | `scripts/check_forbidden.sh`, `scripts/check_repo.sh`, `scripts/forbidden_names.sha256`, `scripts/sync_board.mjs` |
 | Genchi Genbutsu, go and see | `[OK]` learned the hard way | `~/bin/shot`, KAIZEN.md acceptance rule |
 | Standard work | `[OK]` | `build/build_layout.py`, `build/model.py` |
 | Heijunka, level the work | `[OK]` | GitHub Issues, `scripts/sync_board.mjs` |
@@ -47,13 +47,23 @@ real. Between the gate turning red and a person acting, the content is public.
 
 ## Poka-Yoke
 
-Four places where the mistake is made hard rather than remembered against.
+Five places where the mistake is made hard rather than remembered against.
 
 - **The gate reads deployed bytes, not local files.** `check_forbidden.sh` takes its file list
   from `site/` and then fetches each of those paths from the public origin over HTTP, scanning
   what comes back. A gate reading the working tree answers "is the source clean", which is a
   different question from "is the thing the public can read clean", and between the two sit a
   build, an artifact upload, a cache and a CDN.
+- **And a second gate reads the repository, because the first one structurally cannot.** Only
+  `site/` is deployed, so `check_forbidden.sh` has never had an opinion about `build/`,
+  `scripts/` or a line of the documentation. `scripts/check_repo.sh` scans every tracked file
+  against the same hash list, on every push and every pull request. It exists because a real
+  surname sat in `scripts/` for a day, in the script written to keep names out, where no
+  reading of the public origin could have reached it (HANSEI.md, sixth entry). The two answer
+  different questions and neither answer implies the other. `[OPEN]` It scans its own source,
+  so it carries a table of declared self-matches; each is an exact triple of rule, path and
+  string, an entry that stops matching fails the run, and the real-name rule cannot be
+  declared at all, but a table is still a place where something could be parked.
 - **The gate holds no names.** The register of people who have taught for the company must not
   be committed here. `scripts/forbidden_names.sha256` holds one salted, truncated hash per
   name token; the checker folds the deployed bytes the same way and compares. The generator,
@@ -65,12 +75,13 @@ Four places where the mistake is made hard rather than remembered against.
   count, a non-zero byte count and a non-empty hash list, and exits 2 if any of the three
   fails. A gate handed nothing to scan and reporting clean is the loudest lie it can tell, and
   this project has already had a workflow report success on an empty input (HANSEI.md).
-- **The gate is proved armed before it is trusted.** Both workflows run
-  `check_forbidden.sh --self-test` alongside the live check. It builds one synthetic payload
-  per rule and asserts each one trips, asserts the two declared invented figures do not, and
-  asserts an empty directory aborts. The name rule is proved against a synthetic hash list
-  holding one made-up token, so proving the matcher works never requires a real name to exist
-  in this repository, in a temporary file or in a log.
+- **Each gate is proved armed before it is trusted.** Every workflow runs the relevant
+  `--self-test` alongside the live check. Each builds one synthetic payload per rule and
+  asserts it trips, asserts the two declared invented figures do not, and asserts an empty
+  input aborts; `check_repo.sh --self-test` adds probes that its declared self-matches are
+  exact and that the real-name rule ignores every declaration. Both prove the name rule
+  against a synthetic hash list holding one made-up token, so proving the matcher works never
+  requires a real name to exist in this repository, in a temporary file or in a log.
 
 ## Genchi Genbutsu
 
@@ -147,8 +158,8 @@ named because a rejected pillar with no substitute is a hole.
 
 | Pillar | Primary file |
 |---|---|
-| Jidoka | `scripts/check_forbidden.sh`, `.github/workflows/pages.yml`, `.github/workflows/board.yml` |
-| Poka-Yoke | `scripts/check_forbidden.sh`, `scripts/forbidden_lib.sh`, `scripts/gen_forbidden_hashes.sh` |
+| Jidoka | `scripts/check_forbidden.sh`, `scripts/check_repo.sh`, `.github/workflows/pages.yml`, `.github/workflows/board.yml`, `.github/workflows/repo-gate.yml` |
+| Poka-Yoke | `scripts/check_forbidden.sh`, `scripts/check_repo.sh`, `scripts/forbidden_lib.sh`, `scripts/gen_forbidden_hashes.sh` |
 | Genchi Genbutsu | `HANSEI.md`, `KAIZEN.md` acceptance rule |
 | Standard work | `build/model.py`, `build/build_layout.py` |
 | Heijunka, Kanban | `scripts/sync_board.mjs`, `.github/workflows/board.yml` |

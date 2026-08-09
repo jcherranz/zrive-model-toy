@@ -21,6 +21,10 @@ tells the next reader the hole is covered.
 Dates carry a day only where the day is established from a file or a commit. The rest are
 recorded to the month rather than guessed.
 
+Entries are appended and never reordered, so the table is not sorted by date after the first
+few. Code comments cite them by position, as "HANSEI.md, first entry", and a reorder would
+quietly repoint every one of those.
+
 ## The incidents
 
 | date | incident | prevention |
@@ -30,6 +34,7 @@ recorded to the month rather than guessed.
 | 2026-08 | A workflow ran on an empty input and reported success | assertion: `scan_dir` and `fetchIssues` assert their inputs and throw |
 | 2026-08 | A review published three counts as "did not reproduce" that its own parser had invented | none |
 | 2026-08 | A field rename reached 93 notes and not the 12 that shared the schema | none |
+| 2026-08-09 | A real surname sat in the script written to keep real names out | gate: `scripts/check_repo.sh` scans every tracked file, on push and on pull request |
 
 ---
 
@@ -224,3 +229,67 @@ visible as a number rather than as a later surprise.
 **Note.** Same shape as the empty-input entry, one level out. There, a wrong input produced a
 result of the right shape; here, a wrong scope did. In both, the number the run reported was
 plausible, which is the property that made it undetectable.
+
+---
+
+## A real surname sat in the script written to keep real names out
+
+`2026-08-09-gate-scoped-to-the-public-surface` &middot; 2026-08-09
+
+**What happened.** `scripts/gen_forbidden_hashes.sh` is the script that reads the faculty
+register and reduces it to salted hashes, so that this repository can look for real names
+without holding any. Its header explains how a register filename is parsed into a person, and
+it explained it with a real example: a real surname, in plaintext, in a comment. The surname is
+the seller's, and it is the same name that appears in the first entry of this file. It went in
+on the day the whole safety discipline was written, inside the one file whose sole purpose is
+keeping that class of string out of this repository.
+
+**How it was detected.** By an independent scan of tracked files, run by somebody who was not
+the author. Not by `scripts/check_forbidden.sh`, which ran green throughout and was right to.
+That gate fetches deployed bytes; Pages publishes `site/` and nothing else; `scripts/` returns
+404 on the live origin. The gate was not asleep. It was pointed elsewhere, and no number of
+runs would have moved it.
+
+**What it cost.** Not an exposure, and it should not be written up as one. The repository is
+private, the file was never served, and that was checked against the origin rather than
+assumed. The cost is the thing worth recording: a day in which the repository's own safety
+machinery was the only tracked file in it carrying a real name, and nothing in the project
+could have said so. A near miss whose distance from a miss was a deployment boundary that
+nobody had drawn for this purpose.
+
+**Root cause.** The gate's scope was the public surface. The rule it enforces is a property of
+the repository. Those are not the same set and never were: `site/` is a fraction of what is
+tracked. The reasoning that put the gate on deployed bytes was correct and still is, and it
+answered "is what the public reads clean" so convincingly that nobody asked the other question.
+Same shape as this file's first entry, one level in. A question that feels answered is worse
+than one that is open, because nobody goes looking.
+
+**The prevention now in place.** `scripts/check_repo.sh` scans every file `git ls-files`
+reports, against the same salted hash list, and fails the build. It runs on every push and
+every pull request through `.github/workflows/repo-gate.yml`, and in `board.yml` before the
+board commit, which is the one path that reaches `main` carrying `[skip ci]`. The five rules
+are now one copy in `scripts/forbidden_lib.sh`, shared by both gates, so neither can drift out
+of agreement with the other. Where the origin gate prints a name it finds, because that name is
+already public, this one prints the file and the line numbers and withholds the token: a CI log
+is not where a still-private name should first appear. Fed the defect above, it names the file
+and the line and stays silent about the word.
+
+*Prevention kind:* `gate`
+*Named by:* `scripts/check_repo.sh`, `scripts/forbidden_lib.sh`,
+`.github/workflows/repo-gate.yml`, `.github/workflows/board.yml`
+
+**Note, and it is the uncomfortable part.** The author of `gen_forbidden_hashes.sh` had, in
+that same session, found and removed a different real surname from `build/safety_grep.py`, and
+wrote the removal up in CHANGELOG.md under Removed. The failure was therefore not ignorance of
+the rule and not absence of attention to it. The rule was being actively applied, in the same
+hour, to a neighbouring file. Attention was on the file being edited and not on the file being
+written. That is the ordinary way this goes wrong, which is exactly why the answer has to be a
+gate and not a resolution to be more careful.
+
+**Second note.** A gate that scans its own source finds the rules it is made of: the banned
+word table, the currency mark inside the money pattern, the synthetic address in a self-test.
+The answer here is a table of declared self-matches, each an exact triple of rule, path and
+matched string, rather than a list of files the gate skips. Skipping a file is how the next one
+of these hides, and the file it would have hidden in this time is the gate itself. Two
+conditions keep the table from becoming a blanket by other means: an entry that stops matching
+fails the run, and the real-name rule cannot be declared for any path at all.

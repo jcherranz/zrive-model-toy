@@ -1,0 +1,41 @@
+name: repo gate
+
+# Read every tracked file in this repository and fail the build on anything that must never be
+# committed. This is the companion to the gate in pages.yml and board.yml, and it exists
+# because that one cannot see this: Pages publishes site/ and nothing else, so a gate that
+# reads deployed bytes has no opinion about build/, scripts/, or any of the documentation. A
+# real surname sat in scripts/ for a day inside the very script written to keep names out, and
+# no amount of running the origin gate would have found it. HANSEI.md, sixth entry.
+#
+# It runs on pull requests as well as on pushes, because the point of a repository gate is to
+# be in front of the commit rather than behind it.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Its own group, not the `pages` group: this job deploys nothing and must never queue behind a
+# deploy. cancel-in-progress is stated rather than inherited, and false, because a cancelled
+# safety check reads as a check that ran.
+concurrency:
+  group: repo-gate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Jidoka. Prove the gate is armed before believing it when it says clean. A gate that
+      # cannot be shown to fire is not a gate.
+      - name: Prove the repository gate fires
+        run: bash scripts/check_repo.sh --self-test
+
+      - name: Repository gate, over every tracked file
+        run: bash scripts/check_repo.sh

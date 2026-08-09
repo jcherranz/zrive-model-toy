@@ -8,6 +8,76 @@ Dates are ISO. Newest first.
 Nothing yet. The five standing defects are on the board, not in this file: see KAIZEN.md and
 the Issues.
 
+## [0.2.1] - 2026-08-09
+
+The gate learns about the half of the repository it was never able to see.
+
+### Removed
+
+- A real surname from a comment in `scripts/gen_forbidden_hashes.sh`, where it stood as the
+  worked example of how a register filename is split into a person and an employer. The
+  example is now an invented name, and the explanation, which is the useful part, is
+  unchanged. The finding is the irony: the only tracked file in this repository carrying a
+  real name was the script whose sole purpose is keeping them out of it. **Not an exposure.**
+  Pages publishes `site/` and nothing else, `scripts/` returns 404 on the live origin, and that
+  was verified rather than assumed. A near miss, written up as one in HANSEI.md.
+
+### Added
+
+- `scripts/check_repo.sh`, the repository-side gate, and the reason this release exists. It
+  scans every file `git ls-files` reports, not just `site/`, against the same salted hash list
+  in `scripts/forbidden_names.sha256`, and fails the build. It reports a matched name by file
+  and line number with the token withheld, the opposite of the origin gate and for the opposite
+  reason: there the name is already public, here it is not, and a CI log must not be the place
+  it becomes public.
+- `.github/workflows/repo-gate.yml`, which runs it on every push and every pull request. Its
+  own concurrency group, not `pages`: it deploys nothing and must never queue behind a deploy.
+- `scripts/check_repo.sh --self-test`, which the workflow runs first. One synthetic payload per
+  rule that must trip, including a real name against a synthetic hash list; payloads that must
+  not, including the two declared invented figures, a firm name containing the token `Company`,
+  a fractional-second timestamp reading as a Spanish grouped figure, and an ordinary CSS
+  decimal; and probes that the declared self-matches are exact, that a stale declaration fails
+  the run, that a declaration naming the real-name rule is rejected, and that an empty file
+  list aborts instead of reporting clean.
+- A table of declared self-matches in `check_repo.sh`, which is how the gate scans its own
+  source without a blanket exclusion. The gate's files carry the rule literals by construction:
+  the banned-word table, the currency mark inside the money pattern, the self-test's synthetic
+  address and UUID. Each is declared as one exact triple of rule, path and matched string, and
+  a triple licenses only itself: the same word in another file, a second address in the same
+  file, or the same string under another rule all still fail. Skipping the files was rejected,
+  because a skipped file is where the next one of these hides and this one hid in the gate.
+
+### Changed
+
+- The rules themselves (the banned words, the money pattern and its allowed figures, the
+  timestamp mask, the identifier patterns) and the per-file scan that applies them moved into
+  `scripts/forbidden_lib.sh`. Both gates now share one copy, so a rule proved by either
+  self-test is the rule that runs in both, and neither can drift. `check_forbidden.sh` carries
+  no rule literal of its own any more; its behaviour is unchanged and its self-test still
+  passes every case.
+- `.github/workflows/board.yml` runs the repository gate on the rendered tree **before** it
+  commits `site/board.json`. That commit carries `[skip ci]`, so it is the one path that
+  reaches `main` without a push-triggered check, and a board rendered from an issue title had
+  no repository-side gate in front of it until now.
+- `README.md` and `TPS.md` describe three gates rather than two, and TPS.md states the scope
+  limit that caused this: a gate on the public surface answers a different question from a gate
+  on the repository, and the first does not imply the second.
+
+### Fixed
+
+- Both gates' `cleanup` trap ended on a failed test when there was no temporary directory to
+  remove, and a bash EXIT trap hands its own status to the shell. `check_repo.sh` printed
+  `VERDICT: clean` and exited 1 on a clean tree; the same latent defect sat in
+  `check_forbidden.sh`, unreached because every path through it sets the directory first. Both
+  traps now `return 0`. A gate that fails on clean gets switched off by the third person it
+  blocks.
+
+### Security
+
+- The safety gate was scoped to the public surface and not to the repository. `site/` is a
+  fraction of what is tracked, and everything outside it had been in front of no gate at all.
+  Closed by the above.
+
 ## [0.2.0] - 2026-08-09
 
 The discipline arrives: the production system this artefact is built under is written down,

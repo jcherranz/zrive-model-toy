@@ -16,7 +16,7 @@ What is invented: every instructor name, the empresa colaboradora, every identif
 date, every count, and all three money figures. No real person is named. No figure comes from
 the corpus.
 
-Two gates enforce that, one local and one in CI.
+Three gates enforce that: one local, and two in CI that ask different questions.
 
 `build/safety_grep.py` runs against the local `site/` before a push. It reads the vault faculty
 register directly, so it needs the vault, and it scans for any real teacher name, for Notion
@@ -30,6 +30,15 @@ and fails the job on a real name, a euro-formatted figure other than the two inv
 architecture. It holds no names: `scripts/forbidden_names.sha256` carries salted hashes, and
 `scripts/gen_forbidden_hashes.sh` regenerates them locally from the register. Run
 `scripts/check_forbidden.sh --self-test` to see it fire on one synthetic case per rule.
+
+`scripts/check_repo.sh` runs in CI on every push and every pull request and scans **every
+tracked file**, which is the half the deployed-bytes gate cannot reach: Pages publishes `site/`
+and nothing else, so nothing in `build/`, `scripts/` or the documentation was ever in front of
+a gate until this one existed. Same rules, same hash list. Where the origin gate prints a name
+it finds, because it is already public, this one prints the file and the line numbers and
+withholds the token. It scans its own source too, so it carries an explicit table of declared
+self-matches, each an exact triple of rule, path and string; the table is not a list of
+excused files, and an entry that stops matching fails the run rather than lingering.
 
 The repository is private and the site is public. That is deliberate. Read `HANSEI.md` first if
 that combination looks like an accident.
@@ -87,7 +96,8 @@ build/
   safety_grep.py     the local forbidden content gate
 scripts/
   check_forbidden.sh      the CI gate, against deployed bytes
-  forbidden_lib.sh        the folding and hashing rules, shared
+  check_repo.sh           the CI gate, against every tracked file
+  forbidden_lib.sh        the rules, the folding and the scan, shared by both gates
   gen_forbidden_hashes.sh regenerates the hashed name list from the vault
   sync_board.mjs          GitHub Issues -> site/board.json
 ```

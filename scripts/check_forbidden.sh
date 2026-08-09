@@ -13,6 +13,11 @@
 # A file served by the origin that the working tree does not know about is outside its reach.
 # Stated here rather than left for a reader to discover.
 #
+# AND THE ONE IT COULD NOT SEE AT ALL. Only site/ is deployed, so this gate has never had an
+# opinion about any other file in the repository. A real surname sat in scripts/ for a day and
+# this gate was structurally incapable of noticing (HANSEI.md, sixth entry). The repository
+# side is scripts/check_repo.sh; the two are complements and neither replaces the other.
+#
 # Usage:
 #   scripts/check_forbidden.sh [base-url]      fetch and scan the deployed site
 #   scripts/check_forbidden.sh --self-test     prove the gate fires, one synthetic case per rule
@@ -31,33 +36,17 @@ FETCH_ATTEMPTS="${FETCH_ATTEMPTS:-3}"
 FETCH_WAIT="${FETCH_WAIT:-10}"
 HASHES="${FORBIDDEN_HASHES:-$ROOT/scripts/forbidden_names.sha256}"
 
-# The only money strings this toy is allowed to carry. Both figures are invented; EUR is the
-# currency label that sits beside them.
-ALLOWED_MONEY=$'1.000,00\n4.000,00\nEUR'
+# The rules themselves (banned words, the money pattern, the timestamp mask, the identifier
+# patterns, the allowed money figures) live in scripts/forbidden_lib.sh, sourced above, and
+# nowhere else, so this gate and scripts/check_repo.sh cannot drift apart. This file carries
+# no rule literal of its own; the strings below the self-test banner are synthetic payloads.
 
-BANNED_WORDS=(Palantir Foundry Gotham AIP Blueprint "digital twin")
-
-MONEY_RE='(?<![\d.,])\d{1,3}(?:\.\d{3})+(?:,\d{2})?(?![\d.])|(?<![\d.,])\d{1,3}(?:,\d{3})+(?:\.\d{2})?(?![\d,])|\d[\d.,]*\s*(?:EUR|eur|€)|€|\bEUR\b|\beuros?\b'
-ISO_TS_MASK='s/[0-9]{4}-[0-9]{2}-[0-9]{2}[T ][0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:?[0-9]{2})?/ /g'
-UUID_RE='[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
-EMAIL_RE='[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}'
-COLLECTION_RE='collection://'
-
-FAILURES=0
 WORKDIR=""
-cleanup() { [ -n "$WORKDIR" ] && rm -rf "$WORKDIR"; }
+# `return 0` is load-bearing: an EXIT trap ending on a failed command hands its own status to
+# the shell. Latent here, because every path through this script sets WORKDIR first, and fixed
+# anyway rather than left resting on that.
+cleanup() { [ -n "$WORKDIR" ] && rm -rf "$WORKDIR"; return 0; }
 trap cleanup EXIT
-
-fail() {
-  FAILURES=$((FAILURES + 1))
-  echo "  [FORBIDDEN] $*"
-}
-
-# All matches of a pattern in a file, deduplicated. Empty output when there are none, and no
-# non-zero exit: a rule that finds nothing is a normal outcome, not an error.
-collect() {
-  grep -aoP "$1" "$2" | sort -u | head -20 || true
-}
 
 # ---------------------------------------------------------------------------------------
 # The scan. One code path, used by the live check and by the self-test, so the self-test
@@ -82,51 +71,13 @@ scan_dir() {
   echo "scanning $n_files files, $bytes bytes, against $n_hashes name hashes"
   echo
 
-  local f w m hit rel tok h
+  # The five rules are scan_file in scripts/forbidden_lib.sh, shared with the repository gate.
+  # A name that reaches this gate is already public, so FORBIDDEN_NAME_ECHO stays 1 and the
+  # token is printed: naming it is the only way the finding is actionable.
+  local f rel
   while IFS= read -r f; do
     rel="${f#"$dir"/}"
-
-    # 1. words that name the vendor architecture this model was deliberately not written in
-    for w in "${BANNED_WORDS[@]}"; do
-      if grep -aqiP "(?<![A-Za-z])\Q${w}\E(?![A-Za-z])" "$f"; then
-        fail "$rel: banned word: $w"
-      fi
-    done
-
-    # 2. identifiers that would point back at the private corpus
-    hit="$(collect "$COLLECTION_RE" "$f")"
-    while IFS= read -r m; do [ -n "$m" ] && fail "$rel: corpus link: $m"; done <<< "$hit"
-
-    hit="$(collect "$UUID_RE" "$f")"
-    while IFS= read -r m; do [ -n "$m" ] && fail "$rel: uuid: $m"; done <<< "$hit"
-
-    hit="$(collect "$EMAIL_RE" "$f")"
-    while IFS= read -r m; do [ -n "$m" ] && fail "$rel: email address: $m"; done <<< "$hit"
-
-    # 3. money. Anything money-shaped that is not one of the two declared invented figures.
-    # An ISO 8601 instant with fractional seconds reads as a grouped figure to this pattern
-    # (2026-08-09T16:42:46.932Z contains 46.932), and site/board.json carries a timestamp.
-    # Timestamps are blanked out of the copy the money pattern sees, and only that copy: the
-    # mask is fully anchored on digits and separators, so no euro figure can hide inside one.
-    # build/safety_grep.py carries the same rule and the two must be changed together.
-    hit="$(sed -E "$ISO_TS_MASK" "$f" | grep -aoP "$MONEY_RE" | sed 's/[[:space:]]*$//' | sort -u || true)"
-    while IFS= read -r m; do
-      [ -n "$m" ] || continue
-      grep -Fxq "$m" <<< "$ALLOWED_MONEY" || fail "$rel: undeclared money figure: $m"
-    done <<< "$hit"
-
-    # 4. real names. The deployed bytes are folded into tokens and hashed the same way the
-    # register was, so the gate can recognise a name it does not hold. A name that reaches
-    # this branch is already public, so printing it costs nothing and naming it is the only
-    # way the finding is actionable.
-    while IFS= read -r tok; do
-      [ -n "$tok" ] || continue
-      h="$(hash_token "$tok")"
-      if grep -Fxq "$h" "$hashfile"; then
-        fail "$rel: real name from the faculty register: $tok"
-      fi
-    done < <(fold_tokens < "$f")
-
+    scan_file "$f" "$rel" "$hashfile"
   done < <(find "$dir" -type f | sort)
 }
 

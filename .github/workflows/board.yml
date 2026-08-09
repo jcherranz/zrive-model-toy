@@ -54,6 +54,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/sync_board.mjs
 
+      # The repository gate runs on the rendered tree BEFORE the commit, not after it. This
+      # workflow's own commit carries [skip ci], so a board.json written from an issue title
+      # would otherwise reach main and the origin without any repository-side gate having seen
+      # it. Here it is checked while it is still only a working-tree change.
+      - name: Repository gate, before the board is committed
+        run: |
+          bash scripts/check_repo.sh --self-test
+          bash scripts/check_repo.sh
+
       # GH_TOKEN is needed HERE as well as on the render step above, not only there: the
       # rebase-retry path below re-runs sync_board.mjs, which calls `gh`. Two same-group runs
       # fired by one relabel raced on the very first board edit, the loser rebased, and the
