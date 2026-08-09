@@ -34,7 +34,9 @@ trap 'rm -f "$tmp"' EXIT
 
 while IFS= read -r -d '' f; do
   people=$((people + 1))
-  # "Edu Riera - Zrive.md" -> "Edu Riera". The part after " - " is an employer, not a person.
+  # "Ada Kestrelvane - Kestrel Analytics.md" -> "Ada Kestrelvane". The example name is invented,
+  # deliberately: the part after " - " is an employer, not part of the person's name, and that
+  # is the whole point the example has to make. It does not need a real person to make it.
   base="$(basename "$f" .md)"
   person="${base%% - *}"
   printf '%s\n' "$person"
