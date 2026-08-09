@@ -1,0 +1,101 @@
+# The kaizen loop
+
+*Written for somebody who does not read code.*
+
+This repository draws one picture. The picture exists so that the operating model behind it
+can be argued with, which means the picture has to be wrong in ways that are visible and
+fixable rather than wrong in ways nobody can name. The loop below is how a complaint about it
+becomes a change to it.
+
+## The loop
+
+**A defect becomes an issue.** Anything a reader can point at counts: a node in the wrong
+column, a verb on the wrong end of an arrow, a property that claims to be a fact. The issue
+says what is wrong and how you would know it was fixed. It carries no real name, no real
+figure and no link into the private corpus, because issue titles are rendered onto the public
+page through `site/board.json`.
+
+**An issue becomes a card.** A `status:` label puts it in a column: `status:raw`,
+`status:backlog`, `status:in-progress`, `status:done`. An issue with no `status:` label sits in
+Raw, which means nobody has looked at it yet. Nothing infers a column; a person applies the
+label, and `scripts/sync_board.mjs` renders whatever labels are there. There is no triage step
+and no model call anywhere in that path.
+
+**A card becomes a commit.** One card at a time in In progress. One defect per commit, because
+a commit that fixes three things cannot be reverted for the one of the three that turned out
+wrong.
+
+**A commit closes the loop.** Closing the issue moves the card to Done on the next board sync,
+whatever labels it carries. Then the acceptance rule, which is the one that is easy to skip:
+
+> **A change is not reported until a screenshot of the deployed page has been looked at by a
+> human or an agent.** Not a green build, not a diff, not a passing check. The picture.
+
+That rule is bought and paid for. This project once reported a page as broken on the strength
+of a screenshot taken before the JavaScript ran, and on another day shipped a blank one for the
+same reason. HANSEI.md has both.
+
+## The standing backlog
+
+Five things are known to be wrong or known to be constrained. They are issues, they are on the
+board, and none of them is a surprise to anybody.
+
+1. **The diagram does not fit one screen.** The page promises one screen and does not deliver
+   one at an ordinary laptop viewport. The whole argument for an instance diagram is that the
+   model can be taken in at once, so this is the defect that costs the most.
+2. **The right half of the canvas is empty.** Density falls away to the right: the left columns
+   carry the programme, the companies, the instructors and the session templates, while the
+   chain from enrolment onward is one node per column. A type with one instance still gets a
+   full column, which is the fixed column-per-type rule showing through.
+3. **Instructors and session templates are interleaved.** Both types share a column index, so
+   the barycentre sweep orders them together and they alternate. A reader cannot tell at a
+   glance which vertical run is people and which is content.
+4. **Eight object types have no populate route.** For eight of the types the model declares,
+   nothing says where an instance would come from: which system holds the record, who enters
+   it, on what event. A type with no populate route is a drawing rather than a model. Removing
+   the type is a legitimate answer to this and should not be treated as a loss.
+5. **The toy carries no measured values, by design.** Every property is flagged `dummy` or
+   `estimated`. This is on the board as a standing constraint rather than as work, so that the
+   day somebody proposes putting a real figure on the page, the decision is taken deliberately
+   and against the record in HANSEI.md rather than as a small convenience. It is not a defect
+   and it is not closed by adding data.
+
+Defects 1, 2 and 3 are all layout and all have different causes, which is why they are three
+cards. Fixing them as one change would be the batching that Heijunka exists to refuse.
+
+## The reflection step
+
+After each change, before the card moves to Done, two questions in writing, in the commit
+message or on the issue:
+
+- **What did this teach that was not already written down?** If the answer is nothing, say
+  nothing. Most changes teach nothing and a reflection habit that manufactures a lesson every
+  time is worth less than one that is usually silent.
+- **Should the standard work change?** The standard work here is small and nameable: the build
+  is deterministic and computes coordinates ahead of time; the gate runs against deployed bytes
+  after every deploy; a change is not reported without a screenshot somebody looked at. If a
+  change was only possible by stepping outside one of those, that is the finding, and it goes
+  into HANSEI.md rather than into a commit message that scrolls away.
+
+The rule that governs both: **when a check fires and the fix looks like weakening the check,
+read the artefact it fired on and name the line that proves it wrong.** An alarm that is
+inconvenient is not thereby a false alarm. The safety gate's whole value is that it is
+annoying at exactly the moment it matters.
+
+## What improvement means here, and what it does not
+
+This toy is twenty six nodes and thirty one kilobytes. Improving it does not mean growing it.
+The most valuable change available at any moment is almost always the one that removes
+something: a type nobody can populate, a column with one node in it, a property that says
+`estimated` and means `guessed`. The wider work behind the diagram lives in
+`~/projects/pr-zrive-toy/analysis/ontology/` and holds far more than this page shows. That the
+page shows less is the point of the page.
+
+Two things are worth stating because they are the ways this loop fails quietly:
+
+- **A gate that cannot be shown to fire is not a gate.** `scripts/check_forbidden.sh
+  --self-test` runs in CI beside the live check for this reason. It is not there to find bugs
+  in the rules; it is there so that a run reporting clean means the rules ran.
+- **A verifier is not exempt from verification.** A review of this work once published three
+  counts as "did not reproduce" that were artefacts of its own parser. Before a finding is
+  reported, the tool that produced it gets the same suspicion as the thing it is reporting on.

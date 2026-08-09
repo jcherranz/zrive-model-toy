@@ -11,7 +11,10 @@ import unicodedata
 
 FACULTY = pathlib.Path("/home/jcherranz/Obsidian/02_areas/zrive/02_areas/20_academic/faculty")
 
-BANNED_WORDS = ["Palantir", "Foundry", "Gotham", "AIP", "Blueprint", "digital twin", "Riera"]
+# No real name belongs in this list. Every name the gate looks for comes from the faculty
+# register read by teacher_terms() below, so a literal here would add a tracked copy of a real
+# name and no coverage. See scripts/check_forbidden.sh for the CI gate, which holds hashes.
+BANNED_WORDS = ["Palantir", "Foundry", "Gotham", "AIP", "Blueprint", "digital twin"]
 STOP = {"jose", "juan", "maria", "capital", "partners", "company", "group", "real", "para"}
 
 # The only money strings this toy is allowed to carry. All three are invented.
@@ -22,6 +25,11 @@ MONEY = re.compile(r"(?<![\d.,])\d{1,3}(?:\.\d{3})+(?:,\d{2})?(?![\d.])"    # 1.
                    r"|(?<![\d.,])\d{1,3}(?:,\d{3})+(?:\.\d{2})?(?![\d,])"  # 1,000.00
                    r"|\d[\d.,]*\s*(?:EUR|eur|€)"               # any figure with a currency mark
                    r"|€|\bEUR\b|\beuros?\b")
+# An ISO 8601 instant with fractional seconds reads as a grouped figure to the money pattern
+# (2026-08-09T16:42:46.932Z contains 46.932). board.json carries one. Blank timestamps out of
+# the copy the money pattern sees, and only that copy: no euro figure can hide inside one.
+ISO_TS = re.compile(r"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?"
+                    r"(?:Z|[+-]\d{2}:?\d{2})?")
 UUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", re.I)
 NOTION = re.compile(r"\b[0-9a-f]{32}\b|notion\.so|collection://", re.I)
 
@@ -69,7 +77,7 @@ def main():
         for t in terms:
             if re.search(r"\b" + re.escape(fold(t)) + r"\b", low):
                 hits["real teacher name"].append(f"{f}: {t}")
-        for m in MONEY.finditer(text):
+        for m in MONEY.finditer(ISO_TS.sub(lambda t: " " * len(t.group(0)), text)):
             hits["money"].append(f"{f}: {m.group(0).strip()}")
         for rx in (UUID, NOTION):
             for m in rx.finditer(text):

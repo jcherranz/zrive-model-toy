@@ -1,5 +1,11 @@
 name: Deploy site to Pages
 
+# Deploy on a code push, then read the deployed bytes back through the forbidden-content
+# gate. The gate runs AFTER the deploy on purpose: what matters is what the origin serves,
+# not what the working tree holds. If it fails, the job fails and the andon is lit; the page
+# stays up until a person takes it down, because unpublishing is not a step a workflow should
+# take on its own.
+
 on:
   push:
     branches: [main]
@@ -10,12 +16,25 @@ permissions:
   pages: write
   id-token: write
 
+# Shared with board.yml so the two deploys serialise instead of racing. cancel-in-progress is
+# false explicitly rather than by default, because a true value here silently cancels a deploy
+# with zero steps run and the run still reads as finished.
 concurrency:
   group: pages
+  cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Loop guard. board.yml commits site/board.json and then deploys the site itself. That
+    # commit carries [skip ci], which normally stops this workflow from starting at all; this
+    # condition is the second line, in case the marker is ever dropped by a squash, a rebase
+    # or an org policy. Without it, a board commit would deploy twice for one change.
+    if: >-
+      github.event_name != 'push' ||
+      (github.event.head_commit != null &&
+       github.event.head_commit.author.email != '41898282+github-actions[bot]@users.noreply.github.com' &&
+       !contains(github.event.head_commit.message, 'chore(board): sync from issues'))
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -27,3 +46,9 @@ jobs:
           path: site
       - id: deployment
         uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
+
+      - name: Prove the forbidden-content gate fires
+        run: bash scripts/check_forbidden.sh --self-test
+
+      - name: Forbidden-content gate, against deployed bytes
+        run: bash scripts/check_forbidden.sh "${{ steps.deployment.outputs.page_url }}"

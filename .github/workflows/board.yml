@@ -1,0 +1,99 @@
+name: board
+
+# Render GitHub Issues into site/board.json, commit it if it changed, deploy the site, and
+# then read the deployed bytes back through the forbidden-content gate.
+#
+# NO TRIAGE. A label decides a column and nothing infers one. An unlabelled issue lands in
+# Raw and a person moves it. There is no model call anywhere in this workflow.
+#
+# WHY THIS CANNOT RE-TRIGGER ITSELF. The workflow's one side effect is a commit of
+# site/board.json, which is a push. Two things stop that from coming back round:
+#   1. This workflow has no `push` trigger at all. It fires on `issues` events and on manual
+#      dispatch. A push cannot start it, whatever the commit message says. That is the
+#      primary guard and it is structural rather than textual.
+#   2. The bot commit carries `[skip ci]`, which stops the OTHER push-triggered workflow
+#      (pages.yml) from firing on it. Without that, every board update would deploy twice.
+#      pages.yml also refuses to run on a commit authored by this bot, which is the
+#      committer-identity check, kept there because that is the workflow a push can reach.
+# A `labeled` event fired by a human relabelling an issue does start a new run; the sync is
+# idempotent, so that run rewrites the same file, finds no diff, and commits nothing.
+
+on:
+  issues:
+    types: [opened, edited, deleted, labeled, unlabeled, closed, reopened]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write   # commit site/board.json
+  issues: read      # list issues
+  pages: write      # deploy the artifact
+  id-token: write   # required by actions/deploy-pages
+
+# Shared with pages.yml so the two deploys serialise instead of racing. cancel-in-progress is
+# false on purpose: in monetary-lab's history a true value silently cancelled deploys with
+# zero steps run, which looks exactly like a deploy that happened.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  board:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "20"
+
+      - name: Render issues into site/board.json
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/sync_board.mjs
+
+      - name: Commit site/board.json if it changed
+        run: |
+          set -euo pipefail
+          if [ -z "$(git status --porcelain site/board.json)" ]; then
+            echo "board.json unchanged, nothing to commit."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add site/board.json
+          git commit -m "chore(board): sync from issues [skip ci]"
+          for attempt in 1 2 3; do
+            if git push; then exit 0; fi
+            echo "push rejected (attempt ${attempt}/3); rebasing onto origin/main and re-syncing."
+            git reset --hard HEAD~1
+            git fetch origin main
+            git rebase origin/main
+            node scripts/sync_board.mjs
+            if [ -z "$(git status --porcelain site/board.json)" ]; then
+              echo "board.json already current after rebase, nothing to commit."
+              exit 0
+            fi
+            git add site/board.json
+            git commit -m "chore(board): sync from issues [skip ci]"
+            sleep $((attempt * 3))
+          done
+          echo "::error::board.json push rejected three times, giving up."
+          exit 1
+
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
+
+      # Jidoka. The gate is proved armed first, then run against what the origin actually
+      # serves. A gate that cannot be shown to fire is not a gate.
+      - name: Prove the forbidden-content gate fires
+        run: bash scripts/check_forbidden.sh --self-test
+
+      - name: Forbidden-content gate, against deployed bytes
+        run: bash scripts/check_forbidden.sh "${{ steps.deployment.outputs.page_url }}"

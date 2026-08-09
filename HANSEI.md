@@ -1,0 +1,226 @@
+# HANSEI
+
+Reflection on the failures this work has actually had, and the prevention now in place for
+each.
+
+Maintained by hand. There is no generator, so this file and the code can drift, and the only
+thing stopping them is somebody reading both. Say so rather than imply a machine is watching.
+
+## Why this file exists
+
+A commit message says what changed. It does not say what the failure cost, how it was caught,
+or what would have to be undone for it to happen again. Those are the questions asked six
+months later by the person deciding whether a defensive-looking check can be deleted, and a
+repository that cannot answer them loses its defences one reasonable-looking cleanup at a
+time.
+
+Where a prevention does not exist, the entry says so. `none` is a legal value and an honest
+one. A claimed prevention that is not in the code is worse than an admitted hole, because it
+tells the next reader the hole is covered.
+
+Dates carry a day only where the day is established from a file or a commit. The rest are
+recorded to the month rather than guessed.
+
+## The incidents
+
+| date | incident | prevention |
+|---|---|---|
+| 2026-08-09 | A private repository published a public site carrying real commercial data | structural: only invented values ship, plus `scripts/check_forbidden.sh` against deployed bytes |
+| 2026-08-09 | A screenshot reported a working page as broken | tool: `~/bin/shot` sets `--virtual-time-budget` |
+| 2026-08 | A workflow ran on an empty input and reported success | assertion: `scan_dir` and `fetchIssues` assert their inputs and throw |
+| 2026-08 | A review published three counts as "did not reproduce" that its own parser had invented | none |
+| 2026-08 | A field rename reached 93 notes and not the 12 that shared the schema | none |
+
+---
+
+## A private repository published a public site carrying real commercial data
+
+`2026-08-09-private-repo-public-pages` &middot; 2026-08-09
+
+**What happened.** GitHub Pages serves publicly even when the repository behind it is private.
+A build agent was pointed at a private analysis repository, Pages was enabled, and the site
+went live. The deployed payload was 371KB holding roughly 1.538 items flagged `measured`, 105
+euro-formatted figures including turnover over 1,1 million, and a counterparty's surname 22
+times, on a live transaction with a 30 August long-stop.
+
+**How it was detected.** By an adversarial review, not by the author, and not by anything in
+the build. Every step of the publish had reported success, because every step had done exactly
+what it was asked to do.
+
+**What it cost.** Commercial and personal data readable by anyone with the URL, on a live
+transaction, for as long as it stood. The remedy was to delete the Pages configuration, stop
+the build agent, delete the repository and take a local backup. **The CDN kept serving for
+about five minutes after the origin was gone**, which is the part worth carrying forward:
+deleting the source is not the same as the content being unreachable, and there is no lever
+that makes it instant.
+
+**Root cause.** The checks that ran were the checks that had been thought of. Licences and
+trademarks were checked before publishing. **Whether the site would be publicly readable was
+never asked.** The repository's own privacy setting made the question feel answered, and it
+answers a different question: it governs who can read the source, not who can read what the
+source deploys. A false sense of an answer is worse than an open question, because nobody goes
+looking.
+
+**The prevention now in place.** Two things, in order of importance. First and structurally:
+this toy ships only invented values. Every property on the page is flagged `dummy` or
+`estimated`, and there is nothing on it whose disclosure would matter. Second:
+`scripts/check_forbidden.sh` runs after every deploy, in both workflows, and fetches the
+deployed files from the public origin rather than reading the working tree, then fails the job
+on a real name from the teaching register, a euro-formatted figure that is not one of the two
+invented ones, a corpus link, a UUID, an email address, or any of the words that would name
+the vendor architecture. The register itself is never committed; the gate holds salted hashes
+and folds the deployed bytes the same way to compare.
+
+*Prevention kind:* `structural` and `gate`
+*Named by:* `scripts/check_forbidden.sh`, `scripts/forbidden_lib.sh`,
+`scripts/forbidden_names.sha256`, `build/model.py`
+
+**Note.** This repository is also private, and its site is also public. That is now the
+arrangement on purpose and it is stated in TPS.md and README.md, because the failure was never
+the configuration; it was the configuration being a surprise.
+
+---
+
+## A screenshot reported a working page as broken
+
+`2026-08-09-screenshot-before-javascript` &middot; 2026-08-09
+
+**What happened.** Chrome's headless `--screenshot` captures when the document is ready, and a
+page that draws itself in JavaScript is not finished being ready. A verification screenshot of
+the diagram came back blank, the page was reported broken, and the page was working. The same
+mechanism runs in the other direction and did: a genuinely blank page has also been shipped on
+the strength of a screenshot taken at the same wrong moment.
+
+**How it was detected.** By opening the page. Nothing in the screenshot itself distinguishes
+"the page is empty" from "the page had not drawn yet", which is precisely why the tool was
+believed.
+
+**What it cost.** A diagnosis pointed at the wrong layer, and, on the other side of the same
+defect, a broken page reported as shipped. Both cost the same thing: a decision taken on
+evidence that had never been about the question.
+
+**Root cause.** A tool's readiness condition was taken as the artefact's readiness condition.
+The document being parsed is a fact about the browser; the diagram being drawn is a fact about
+the page, and the screenshot tool had no way to know which one anyone cared about.
+
+**The prevention now in place.** `~/bin/shot` passes `--virtual-time-budget`, which advances
+the page's own clock until its scheduled work has run before the frame is captured, and it
+refuses to report success when no image was written. The acceptance rule in KAIZEN.md is built
+on it: a change is not reported until a screenshot has been looked at, by a human or by an
+agent that can see.
+
+*Prevention kind:* `tool`
+*Named by:* `~/bin/shot`, KAIZEN.md acceptance rule
+
+**Note.** The rule that generalises is not about screenshots. A name, a green tick, a file's
+existence and a description of a thing are all evidence about the thing, and none of them is
+the thing. Every other entry in this file is a version of the same sentence.
+
+---
+
+## A workflow ran on an empty input and reported success
+
+`2026-08-empty-input-reported-success` &middot; 2026-08
+
+**What happened.** A JSON-encoded string was passed where an array was expected. A defensive
+fallback caught the type mismatch and substituted an empty list, the loop over that list ran
+zero times, and the run reported completion. Twenty agents that were supposed to run never
+ran.
+
+**How it was detected.** By noticing that nothing had been produced. Not by the workflow, which
+had no opinion about the difference between finishing a hundred items and finishing none.
+
+**What it cost.** A whole run's worth of work not done, and, worse, a green result standing
+where a red one belonged. Time spent afterwards on the assumption that the run had happened.
+
+**Root cause.** A defensive fallback in the wrong place. Coercing a bad input into a valid
+empty one converts a loud type error into a silent no-op, and a no-op is indistinguishable
+from success in every channel the run reports through. The fallback was written to make the
+code robust and it made the code unable to fail.
+
+**The prevention now in place.** In this repository, the two places that consume a list assert
+it and throw. `scripts/sync_board.mjs` refuses a `gh issue list` result that is not an array
+rather than defaulting to `[]`. `scripts/check_forbidden.sh` asserts a non-zero file count, a
+non-zero total byte count and a non-empty hash list before it scans anything, and exits 2 if
+any of the three fails, so the gate cannot report clean on nothing. The self-test includes an
+empty directory as a case that must abort.
+
+*Prevention kind:* `assertion`
+*Named by:* `scripts/sync_board.mjs fetchIssues`, `scripts/check_forbidden.sh scan_dir`
+
+**Note.** The rule: assert the input and throw, never fall back silently. A fallback is only
+honest where the empty case is a real answer to a real question. "Zero issues" is; "zero files
+to scan" is not, because nobody ever wanted to scan nothing.
+
+---
+
+## A review published three counts as "did not reproduce" that its own parser had invented
+
+`2026-08-verifier-artefact-counts` &middot; 2026-08
+
+**What happened.** A review checked three counts claimed in a model document, could not
+reproduce any of them, and published all three as discrepancies. The counts were correct. The
+review's reader took a YAML field as a scalar; on eight notes that field is a list. Every note
+where it was a list was read as one value or as none, and the three totals came out short by
+exactly the amount that misreading accounts for.
+
+**How it was detected.** By re-reading the notes, after the discrepancy looked too tidy: three
+independent counts do not usually disagree in the same direction by a related amount.
+
+**What it cost.** Three false findings published with the authority of a verification, and the
+effort of chasing them. A false negative from a checker costs attention; a false positive
+published as a finding costs trust in every true finding beside it.
+
+**Root cause.** The verifier was exempted from the scrutiny it was applying. A schema was
+assumed rather than read, and the assumption was invisible because the parser produced
+well-formed output on every note, including the eight it was wrong about.
+
+**The prevention now in place.** None in code. The operating rule is that a finding is not
+published until the tool that produced it has been checked against a case where the answer is
+known independently, and that a discrepancy pattern which is suspiciously consistent is first
+treated as evidence about the parser. Written down here and nowhere else, which is a weaker
+prevention than a test and is recorded as such.
+
+*Prevention kind:* `none`
+*Named by:* `nothing yet`
+
+**Note.** The general form is that a check has a schema assumption in it too, and nothing
+checks that one. This repository's own version of the exposure is the safety gate: it has a
+folding rule, a token rule and a stop list, and if any of those were wrong it would report
+clean on content it should have caught. `--self-test` is the partial answer and it is partial
+on purpose. It proves the rules fire on payloads chosen by the same person who wrote them.
+
+---
+
+## A field rename reached 93 notes and not the 12 that shared the schema
+
+`2026-08-rename-by-folder-not-by-schema` &middot; 2026-08
+
+**What happened.** A field was renamed across a corpus of notes. The rename was applied by
+walking a folder, and 93 notes were updated. Twelve notes carrying the same schema sat outside
+that folder and were not touched, so one thing ended up with two names, and every query written
+against either name returned an answer that looked complete.
+
+**How it was detected.** By a query that returned fewer rows than expected, later. Nothing
+reported a partial rename at the time: 93 files changed is exactly what a successful run looks
+like.
+
+**What it cost.** A corpus that disagreed with itself, and a period during which any count over
+that field was silently short. The repair is cheap; finding out that a repair was needed is
+not.
+
+**Root cause.** The rename's scope was a location, and the thing being renamed is a property of
+a schema. Those two coincide until the day they do not, and on the day they do not nothing
+announces it, because a folder walk cannot notice files it was never pointed at.
+
+**The prevention now in place.** None in code. The operating rule is to rename by schema:
+select the set by the field's own presence across the whole corpus, not by where the files
+live, and report the count of notes carrying the field before and after so a partial pass is
+visible as a number rather than as a later surprise.
+
+*Prevention kind:* `none`
+*Named by:* `nothing yet`
+
+**Note.** Same shape as the empty-input entry, one level out. There, a wrong input produced a
+result of the right shape; here, a wrong scope did. In both, the number the run reported was
+plausible, which is the property that made it undetectable.
