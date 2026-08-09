@@ -67,6 +67,84 @@ hash_token() {
   printf '%s%s' "$FORBIDDEN_SALT" "$1" | sha256sum | cut -c1-16
 }
 
+# The same hash, for a whole list of tokens at once: stdin is one token per line, stdout is one
+# hash per line, in the same order.
+#
+# WHY THIS EXISTS. hash_token costs a command substitution and two processes per call, and the
+# name rule called it once per token per file, then grepped the hash list once more for the
+# answer. Over this repository that was 8415 calls and some 34 thousand processes, and it was
+# very nearly the whole runtime of the repository gate, which took over a minute on a warm
+# machine and grew as files times tokens. The rule is unchanged; same salt, same sha256, same 16
+# characters. What changed is the process count, from one hashing pipeline per token to one per
+# file.
+#
+# Note for anyone adding to this comment: the money rule reads this file like any other, so a
+# figure written with thousands separators here is a finding. Write it plainly.
+#
+# The shell fallback is the old loop, kept for a machine with no usable perl. It is slow and
+# correct, and hash_tokens_select proves at run time that the fast path returns what hash_token
+# returns rather than assuming it.
+_hash_tokens_perl() {
+  FORBIDDEN_SALT="$FORBIDDEN_SALT" perl -MDigest::SHA=sha256_hex -ne \
+    'chomp; print substr(sha256_hex($ENV{FORBIDDEN_SALT} . $_), 0, 16), "\n"'
+}
+
+_hash_tokens_shell() {
+  local t
+  while IFS= read -r t; do hash_token "$t"; done
+}
+
+FORBIDDEN_HASHER=""
+
+# Poka-yoke. Two implementations of one hash are two hashes unless something checks. The fast
+# path is asked for a known token and has to answer exactly what hash_token answers, or the gate
+# stops: a hasher that disagrees with the one that wrote scripts/forbidden_names.sha256 would
+# match nothing and report clean, which is the loudest lie this gate can tell. A perl that
+# cannot run at all (no Digest::SHA) prints nothing and is treated as absent, not as wrong.
+hash_tokens_select() {
+  [ -n "$FORBIDDEN_HASHER" ] && return 0
+  local probe=parityprobe expect got
+  expect="$(hash_token "$probe")"
+  if command -v perl >/dev/null 2>&1; then
+    got="$(printf '%s\n' "$probe" | _hash_tokens_perl 2>/dev/null || true)"
+    if [ "$got" = "$expect" ]; then
+      FORBIDDEN_HASHER=perl
+      return 0
+    fi
+    if [ -n "$got" ]; then
+      echo "ASSERTION FAILED: the batch hasher disagrees with hash_token" >&2
+      exit 2
+    fi
+  fi
+  FORBIDDEN_HASHER=shell
+}
+
+hash_tokens() {
+  hash_tokens_select
+  case "$FORBIDDEN_HASHER" in
+    perl) _hash_tokens_perl ;;
+    *)    _hash_tokens_shell ;;
+  esac
+}
+
+# The name hash list, read into memory once rather than grepped once per token. Keyed on the
+# path plus its size and full-precision mtime, so a run that scans against a different list, or
+# against a list rewritten under it, reloads instead of answering from the previous one.
+FORBIDDEN_HASHSET_SRC=""
+declare -A FORBIDDEN_HASHSET=()
+
+load_hashset() {  # hashfile
+  local stamp line
+  stamp="$1|$(stat -c '%s|%y' "$1" 2>/dev/null || echo '?')"
+  [ "$FORBIDDEN_HASHSET_SRC" = "$stamp" ] && return 0
+  FORBIDDEN_HASHSET=()
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in ''|'#'*) continue ;; esac
+    FORBIDDEN_HASHSET["$line"]=1
+  done < "$1"
+  FORBIDDEN_HASHSET_SRC="$stamp"
+}
+
 # ---------------------------------------------------------------------------------------
 # The scan, one file at a time. Both gates call this, so a rule proved by either self-test is
 # the rule that runs in both.
@@ -165,15 +243,35 @@ scan_file() {  # file label hashfile
 
   # 4. real names. The bytes are folded into tokens and hashed the same way the register was,
   # so the gate can recognise a name it does not hold. No exemption is consulted here.
-  while IFS= read -r tok; do
+  #
+  # Every token in the file is hashed in one call and looked up in an in-memory set. The
+  # previous shape was a hashing pipeline and a grep of the hash list per token; the tokens and
+  # the comparison are the same, and the count assertion below refuses to let a short answer
+  # from the batch hasher pass as "no names found".
+  local -a toks=() hs=()
+  local i
+  # Both of these cache, and both are called here rather than inside the pipeline below: the
+  # right-hand side of a pipe is a subshell, so a selection made there would be discarded and
+  # re-probed for every file, and its assertion would abort only the subshell.
+  hash_tokens_select
+  load_hashset "$hashfile"
+  mapfile -t toks < <(fold_tokens < "$f")
+  [ "${#toks[@]}" -gt 0 ] || return 0
+  mapfile -t hs < <(printf '%s\n' "${toks[@]}" | hash_tokens)
+  if [ "${#hs[@]}" -ne "${#toks[@]}" ]; then
+    echo "ASSERTION FAILED: hashed ${#hs[@]} of ${#toks[@]} tokens in $rel" >&2
+    exit 2
+  fi
+  for i in "${!toks[@]}"; do
+    tok="${toks[$i]}"
     [ -n "$tok" ] || continue
-    h="$(hash_token "$tok")"
-    grep -Fxq "$h" "$hashfile" || continue
+    h="${hs[$i]}"
+    [ -n "${FORBIDDEN_HASHSET[$h]:-}" ] || continue
     if [ "$FORBIDDEN_NAME_ECHO" = 1 ]; then
       fail "$rel: real name from the faculty register: $tok"
     else
       lines="$(fold_lines < "$f" | grep -nF "$tok" | cut -d: -f1 | paste -sd, -)"
       fail "$rel: real name from the faculty register, ${#tok} characters, at line(s) ${lines:-?} (token withheld: it is not public and this log must not be where it becomes public)"
     fi
-  done < <(fold_tokens < "$f")
+  done
 }

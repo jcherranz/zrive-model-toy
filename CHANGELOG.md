@@ -91,6 +91,24 @@ Dates are ISO. Newest first.
   because a run that can now wait in the queue can also start after `board.yml` has committed
   `site/board.json`, and the older checkout would publish a site without it.
 
+- The repository gate spent its whole runtime spawning processes, issue #13. The real-name rule
+  hashed one token at a time, each token costing a command substitution, a `sha256sum` pipeline
+  and a `grep` of the hash file. Over this repository that is 8415 token occurrences and some
+  34 thousand processes, and timing the loop on its own accounted for essentially the entire
+  run. A file's tokens are now hashed in one call and looked up in an in-memory set built once
+  from the hash list. Same salt, same sha256, same 16 characters, same tokens, same comparison:
+  no rule changed, no file is skipped, no exemption widened, and the four-character minimum is
+  untouched. Measured on the same warm machine, 70.5 seconds before and 2.9 after. The
+  self-test still passes 27 of 27 and a planted register surname still trips the gate with the
+  token withheld.
+
+- The batch hasher is checked against the single-token one at run time, on a known token, and
+  the gate stops with an assertion if they disagree. Two implementations of one hash are two
+  hashes unless something checks, and a hasher that disagreed with the one that wrote
+  `scripts/forbidden_names.sha256` would match nothing and report clean. Where perl is missing
+  or cannot run, the old per-token loop is still there and still correct; verified by running
+  the whole gate with perl absent, which is slower and reaches the same verdict.
+
 ## [0.2.2] - 2026-08-09
 
 The gate is shown failing on the defect it was written for, and stops reading the wrong bytes.
