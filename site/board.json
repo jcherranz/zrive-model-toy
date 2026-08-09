@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-09T18:07:49Z",
+  "generated": "2026-08-09T18:08:22Z",
   "columns": [
     {
       "key": "raw",
@@ -120,6 +120,15 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/16"
+        },
+        {
+          "id": 17,
+          "title": "The diagram cannot be walked from the keyboard in reading order",
+          "labels": [
+            "enhancement",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/17"
         }
       ]
     },
@@ -173,6 +182,14 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/13"
+        },
+        {
+          "id": 18,
+          "title": "The cohort and students lane is emptier than the others",
+          "labels": [
+            "limitation"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/18"
         }
       ]
     }
