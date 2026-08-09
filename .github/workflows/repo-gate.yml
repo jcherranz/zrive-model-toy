@@ -21,10 +21,13 @@ permissions:
 
 # Its own group, not the `pages` group: this job deploys nothing and must never queue behind a
 # deploy. cancel-in-progress is stated rather than inherited, and false, because a cancelled
-# safety check reads as a check that ran.
+# safety check reads as a check that ran. queue: max for the same reason one step earlier: false
+# only protects a running job, and the default one pending slot lets a second push evict the
+# gate run that has not started yet, which also reads as a check that ran.
 concurrency:
   group: repo-gate-${{ github.ref }}
   cancel-in-progress: false
+  queue: max
 
 jobs:
   gate:

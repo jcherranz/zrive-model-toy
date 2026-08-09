@@ -79,6 +79,18 @@ Dates are ISO. Newest first.
   different advances, and were being sized as upright. They now have their own measured
   contexts.
 
+- Runs in the `pages` concurrency group were being evicted before they started, issue #12.
+  Three of the last six `board` runs are marked cancelled, at 17:38:47, 17:39:07 and 17:43:55,
+  all on rapid issue events and none of them having run a step. `cancel-in-progress: false` was
+  already set and is not what failed: it protects a running job, while the group is capped at
+  one pending run by default and a new same-group trigger evicts the one already waiting. All
+  three workflows now carry `queue: max`, which raises that limit to 100 and processes the
+  queue first in, first out. No board update was lost; a later run rebuilt the same board from
+  the same issues, which is the sync being idempotent covering for the eviction rather than the
+  eviction not happening. `pages.yml` also checks out `main` instead of its triggering sha,
+  because a run that can now wait in the queue can also start after `board.yml` has committed
+  `site/board.json`, and the older checkout would publish a site without it.
+
 ## [0.2.2] - 2026-08-09
 
 The gate is shown failing on the defect it was written for, and stops reading the wrong bytes.

@@ -110,6 +110,16 @@ Two things are worth stating because they are the ways this loop fails quietly:
   they belong to was the emptiest part of the drawing and they cost no height; the fifth
   candidate was dropped for the opposite reason. Where an absence goes is a layout question
   before it is an ontology question.
+- **A setting that protects a running job says nothing about a pending one.** The workflows
+  set `cancel-in-progress: false` and the comment beside it explained, correctly, what that
+  bought. It bought exactly one thing: a job already executing is not killed. A run still
+  waiting to start was being thrown out by the next trigger into the same group, and the
+  difference never showed, because an eviction raises no error and leaves a run that looks
+  like one that was superseded on purpose. Three went that way in five minutes before anybody
+  counted them. The general form is worth more than the fix: a guard is only evidence about
+  the state it names, and the states it does not name are where the quiet failures sit. Read
+  the setting for what it excludes, not for the reassurance in its comment.
+
 - **An object can exist while its key does not, and the drawing has to be able to say so.**
   The cohort is a real thing that nothing identifies. Drawing it as a ghost would have been
   false, and leaving it unmarked would have hidden the sharpest finding on the page, so it

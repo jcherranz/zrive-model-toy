@@ -32,9 +32,27 @@ permissions:
 # Shared with pages.yml so the two deploys serialise instead of racing. cancel-in-progress is
 # false on purpose: in monetary-lab's history a true value silently cancelled deploys with
 # zero steps run, which looks exactly like a deploy that happened.
+#
+# queue: max, and why cancel-in-progress alone was not enough. cancel-in-progress: false
+# protects a RUNNING job and says nothing about a PENDING one. GitHub caps a concurrency group
+# at one pending run by default (queue: single), so a new trigger into the same group evicts the
+# run already waiting there, before it executes a single step, and surfaces no error: the run
+# appears in the list marked cancelled and reads like a run that was somehow superseded. Three
+# of the last six runs of this workflow went that way inside five minutes, at 17:38:47, 17:39:07
+# and 17:43:55, on rapid issue events. Nothing was lost, because a later run rebuilt the same
+# board from the same issues, which is the sync being idempotent covering for the loss rather
+# than the loss not happening. queue: max (GA 2026-05-07) raises the pending limit to 100 and
+# runs them first in, first out, so a same-group trigger can only queue behind a waiting run and
+# never in place of it.
+#
+# Caveat carried over from monetary-lab, where this was fixed first: no released actionlint
+# recognises the queue key inside concurrency and it reports it as an unexpected key. This
+# repository does not lint its workflows, so there is nothing to configure here; if a lint
+# workflow is ever added, it needs the ignore rule and not a smaller concurrency block.
 concurrency:
   group: pages
   cancel-in-progress: false
+  queue: max
 
 jobs:
   board:

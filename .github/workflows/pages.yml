@@ -19,9 +19,20 @@ permissions:
 # Shared with board.yml so the two deploys serialise instead of racing. cancel-in-progress is
 # false explicitly rather than by default, because a true value here silently cancels a deploy
 # with zero steps run and the run still reads as finished.
+#
+# queue: max covers the other half of that, which cancel-in-progress never did: false protects a
+# RUNNING job, while the group is capped at one PENDING run by default (queue: single) and a new
+# same-group trigger evicts the waiting one before it starts, with no error anywhere. See the
+# concurrency comment in board.yml for the runs that went that way here. queue: max (GA
+# 2026-05-07) raises the pending limit to 100 and processes them first in, first out.
+#
+# Caveat: no released actionlint recognises the queue key inside concurrency and it reports it
+# as an unexpected key. This repository does not lint its workflows; a lint workflow added later
+# needs the ignore rule rather than a smaller concurrency block.
 concurrency:
   group: pages
   cancel-in-progress: false
+  queue: max
 
 jobs:
   deploy:
@@ -39,7 +50,14 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      # ref: main, not the sha that fired this run. Now that a run can wait in the queue behind
+      # board.yml instead of being evicted, it can also start after board.yml has committed
+      # site/board.json; a checkout of the older triggering sha would then publish a site
+      # without that commit and undo it. A static site deploy should publish whatever is current
+      # on main at the moment it actually runs.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
