@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-09T23:55:11Z",
+  "generated": "2026-08-09T23:57:23Z",
   "columns": [
     {
       "key": "raw",
@@ -10,16 +10,6 @@
           "title": "The safety gate cannot enumerate the origin, only the files the tree knows about",
           "labels": [],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
-        },
-        {
-          "id": 20,
-          "title": "The detail panel stays open on top of the board view",
-          "labels": [
-            "bug",
-            "layout",
-            "status:raw"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/20"
         },
         {
           "id": 21,
@@ -248,6 +238,16 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/19"
+        },
+        {
+          "id": 20,
+          "title": "The detail panel stays open on top of the board view",
+          "labels": [
+            "bug",
+            "layout",
+            "status:raw"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/20"
         }
       ]
     }
