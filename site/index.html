@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Zrive operating model, toy instance diagram</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<header>
+  <h1>Zrive operating model, one cohort as instances</h1>
+  <p class="sub">
+    Programme Z-IB Investment Banking, cohort 1Q26. Every object here is a named instance, and
+    every edge carries the verb that joins them. This is a shape, not a dataset.
+    <span class="warn">every value is dummy or estimated, nothing is measured</span>
+  </p>
+  <div class="legend" id="legend"></div>
+</header>
+
+<div id="canvas"><svg id="graph" role="img" aria-label="Instance diagram of one cohort"></svg></div>
+
+<footer>
+  Names of instructors and of the empresa colaboradora are invented. Session titles and the
+  programme code are real and published. All identifiers, dates, counts and amounts are
+  invented. Click a node for its properties.
+</footer>
+
+<aside id="panel" aria-live="polite">
+  <button id="close" aria-label="Close">&times;</button>
+  <div class="ptype" id="ptype"></div>
+  <h2 id="pname"></h2>
+  <p class="pnote" id="pnote"></p>
+  <dl id="pprops"></dl>
+</aside>
+
+<script src="graph.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,276 @@
+/*
+ * Design tokens transcribed and adapted from an open source UI toolkit released under the
+ * Apache License, Version 2.0. Licence text: http://www.apache.org/licenses/LICENSE-2.0
+ * Values here have been renamed and modified. This file is not that toolkit, and no
+ * affiliation with or endorsement by its authors is claimed or implied.
+ */
+
+:root {
+  --c-gray-1: #5f6b7c;
+  --c-gray-3: #8f99a8;
+  --c-light-2: #dce0e5;
+  --c-light-3: #e5e8eb;
+  --c-light-5: #f6f7f9;
+  --c-white: #ffffff;
+
+  --i-primary: #2d72d2;
+  --i-primary-fg: #ffffff;
+
+  --bg-app: #f6f7f9;
+  --bg-panel: #ffffff;
+  --bg-elevated: #edeff2;
+  --fg-body: #1c2127;
+  --fg-muted: #5f6b7c;
+  --rule: rgba(17, 20, 24, 0.15);
+  --rule-muted: rgba(17, 20, 24, 0.10);
+  --tint-hover: rgba(143, 153, 168, 0.15);
+  --tint-warning: rgba(200, 118, 25, 0.10);
+  --tint-neutral: rgba(143, 153, 168, 0.15);
+  --fg-warning: #935610;
+
+  --elev-1: 0 0 0 1px rgba(0, 0, 0, .10), 0 1px 3px 0 rgba(0, 0, 0, .10),
+            0 1px 2px -1px rgba(0, 0, 0, .10);
+
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+             Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+               "Liberation Mono", "DejaVu Sans Mono", monospace;
+
+  --fs-sm: 12px;
+  --fs-base: 14px;
+  --lh-ui: 1.28581;
+  --radius: 4px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-app);
+  color: var(--fg-body);
+  font-family: var(--font-ui);
+  font-size: var(--fs-base);
+  line-height: var(--lh-ui);
+  -webkit-text-size-adjust: 100%;
+}
+
+header {
+  padding: 14px 20px 10px;
+  border-bottom: 1px solid var(--rule-muted);
+  background: var(--bg-panel);
+}
+
+h1 {
+  margin: 0;
+  font-size: var(--fs-base);
+  font-weight: 600;
+  letter-spacing: .01em;
+}
+
+.sub {
+  margin: 3px 0 0;
+  font-size: var(--fs-sm);
+  color: var(--fg-muted);
+  max-width: 78ch;
+}
+
+.warn {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 5px;
+  border-radius: var(--radius);
+  background: var(--tint-warning);
+  color: var(--fg-warning);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 9px;
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+
+.legend i {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+/* ---- canvas ------------------------------------------------------------- */
+
+#canvas {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+#graph {
+  display: block;
+  width: 100%;
+  min-width: 1366px;
+  height: auto;
+}
+
+.edge {
+  fill: none;
+  stroke: var(--c-gray-3);
+  stroke-width: 1;
+}
+
+.arrow { fill: var(--c-gray-3); }
+
+.chip-bg {
+  fill: var(--bg-app);
+  stroke: var(--rule-muted);
+  stroke-width: 1;
+  rx: 3;
+}
+
+.chip-tx {
+  font-size: 9px;
+  fill: var(--fg-muted);
+  text-anchor: middle;
+  dominant-baseline: central;
+  font-family: var(--font-ui);
+}
+
+.node { cursor: pointer; }
+.node .tile-bg { stroke-width: 1.25; }
+.node .lbl {
+  font-size: 10px;
+  fill: var(--fg-body);
+  text-anchor: middle;
+  font-family: var(--font-ui);
+}
+.node:hover .tile-bg { stroke-width: 2; }
+
+.node.sel .lbl { font-weight: 600; }
+.node.sel .tile-bg { stroke-width: 1.25; }
+
+.dim { opacity: .16; }
+
+/* ---- panel -------------------------------------------------------------- */
+
+#panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 320px;
+  height: 100%;
+  background: var(--bg-panel);
+  border-left: 1px solid var(--rule);
+  box-shadow: var(--elev-1);
+  padding: 16px 18px 24px;
+  overflow-y: auto;
+  transform: translateX(100%);
+  transition: transform 160ms cubic-bezier(0.4, 1, 0.75, 0.9);
+  z-index: 10;
+}
+
+#panel.open { transform: none; }
+
+body.panel-open #canvas { margin-right: 320px; }
+
+#panel .ptype {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+#panel h2 {
+  margin: 4px 0 2px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+#panel .pnote {
+  margin: 0 0 14px;
+  font-size: 11px;
+  color: var(--fg-muted);
+}
+
+#panel dl { margin: 0; }
+
+#panel dt {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--fg-muted);
+  margin-top: 11px;
+}
+
+#panel dd {
+  margin: 2px 0 0;
+  font-size: var(--fs-sm);
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+#panel dd b { font-weight: 400; }
+
+.flag {
+  flex: none;
+  padding: 0 5px;
+  border-radius: 2px;
+  font-size: 10px;
+  letter-spacing: .02em;
+  background: var(--tint-neutral);
+  color: var(--fg-muted);
+}
+
+.flag.estimated {
+  background: var(--tint-warning);
+  color: var(--fg-warning);
+}
+
+#close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  border: 0;
+  background: transparent;
+  color: var(--fg-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: var(--radius);
+}
+
+#close:hover { background: var(--tint-hover); }
+
+footer {
+  padding: 10px 20px 26px;
+  font-size: 11px;
+  color: var(--fg-muted);
+  border-top: 1px solid var(--rule-muted);
+}
+
+@media (max-width: 760px) {
+  #panel {
+    width: 100%;
+    height: 62%;
+    top: auto;
+    bottom: 0;
+    border-left: 0;
+    border-top: 1px solid var(--rule);
+    transform: translateY(100%);
+  }
+  #panel.open { transform: none; }
+  body.panel-open #canvas { margin-right: 0; }
+}
