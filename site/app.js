@@ -42,8 +42,11 @@
   var legend = document.getElementById('legend');
   G.types.forEach(function (t) {
     var s = document.createElement('span');
+    if (t.ghost) s.className = 'ghost';
     var i = document.createElement('i');
-    i.style.background = t.c;
+    // The ghost swatch is an empty dashed box, the same shape the ghost tiles are drawn in,
+    // so the legend entry and the thing it names are recognisably one mark.
+    if (t.ghost) { i.style.borderColor = t.c; } else { i.style.background = t.c; }
     s.appendChild(i);
     s.appendChild(document.createTextNode(t.label));
     legend.appendChild(s);
@@ -73,14 +76,17 @@
 
   // ---- edges ---------------------------------------------------------------
   G.edges.forEach(function (e, idx) {
-    var g = el('g', {}, gEdge);
-    el('path', { d: e.d, class: 'edge' }, g);
+    // data-edge is the relationship key, the counterpart of data-node above: it is what a
+    // feedback capture on a line or on its verb chip reports back.
+    var key = e.s + '->' + e.t;
+    var g = el('g', { 'data-edge': key, class: e.ghost ? 'ghost' : null }, gEdge);
+    el('path', { d: e.d, class: e.ghost ? 'edge edge-ghost' : 'edge' }, g);
     el('path', {
-      d: 'M0 0 L-6.5 2.6 L-6.5 -2.6 Z', class: 'arrow',
+      d: 'M0 0 L-6.5 2.6 L-6.5 -2.6 Z', class: e.ghost ? 'arrow arrow-ghost' : 'arrow',
       transform: 'translate(' + e.ax + ',' + e.ay + ') rotate(' + e.aa + ')'
     }, g);
 
-    var c = el('g', {}, gChip);
+    var c = el('g', { 'data-edge': key, class: e.ghost ? 'ghost' : null }, gChip);
     el('rect', {
       class: 'chip-bg', x: (e.cx - e.cw / 2).toFixed(1), y: (e.cy - 6.5).toFixed(1),
       width: e.cw.toFixed(1), height: 13
@@ -96,7 +102,10 @@
   // ---- nodes ---------------------------------------------------------------
   G.nodes.forEach(function (n) {
     var col = COLOR[n.type];
-    var g = el('g', { class: 'node', tabindex: 0, role: 'button' }, gNode);
+    // data-node is the instance key. It is what feedback.js reads to say which node a click
+    // landed on, the way monetary-lab's capture reads its own linked-highlight key.
+    var g = el('g', { class: n.ghost ? 'node ghost' : 'node', 'data-node': n.id,
+                      tabindex: 0, role: 'button' }, gNode);
     var titleEl = el('title', {}, g);
     titleEl.textContent = n.label + ' (' + TLABEL[n.type] + ')';
 
@@ -106,13 +115,23 @@
       el('rect', { x: n.x - R + 2.5, y: n.y - R - 2.5, width: TILE - 6, height: TILE - 6,
                    rx: 5, fill: tint(col, 0.12), stroke: tint(col, 0.6) }, g);
     }
+    // A node whose key does not exist keeps its own outline and gains a second, dashed one.
+    // The object is real; something about it is missing, and the label below says what.
+    if (n.mark) {
+      el('rect', { class: 'ring-missing', x: n.x - R - 3.5, y: n.y - R - 3.5,
+                   width: TILE + 7, height: TILE + 7, rx: 8 }, g);
+    }
     var tile = el('rect', {
-      class: 'tile-bg', x: n.x - R, y: n.y - R, width: TILE, height: TILE, rx: 6,
-      fill: tint(col, 0.14), stroke: col
+      class: n.ghost ? 'tile-bg tile-ghost' : 'tile-bg',
+      x: n.x - R, y: n.y - R, width: TILE, height: TILE, rx: 6,
+      fill: n.ghost ? 'rgba(143,153,168,0.07)' : tint(col, 0.14), stroke: col
     }, g);
 
     var mark;
-    if (n.count) {
+    if (n.ghost) {
+      // Deliberately empty. A ghost tile holds no glyph because there is nothing in it.
+      mark = el('g', {}, g);
+    } else if (n.count) {
       mark = el('text', {
         x: n.x, y: n.y + 0.5, 'text-anchor': 'middle', 'dominant-baseline': 'central',
         'font-size': 14, 'font-weight': 600, fill: col
@@ -129,15 +148,22 @@
 
     var ty = n.y + R + G.gapLabel + 4;
     n.lines.forEach(function (line, i) {
-      var t = el('text', { class: 'lbl', x: n.x, y: ty + i * G.lineH }, g);
+      var t = el('text', { class: n.ghost ? 'lbl lbl-ghost' : 'lbl', x: n.x,
+                           y: ty + i * G.lineH }, g);
       t.textContent = line;
     });
+    if (n.mark) {
+      var mk = el('text', { class: 'lbl lbl-missing', x: n.x,
+                            y: ty + n.lines.length * G.lineH }, g);
+      mk.textContent = n.mark;
+    }
 
     g.addEventListener('click', function (ev) { ev.stopPropagation(); select(n.id); });
     g.addEventListener('keydown', function (ev) {
       if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); select(n.id); }
     });
-    gfxNode[n.id] = { g: g, tile: tile, mark: mark, col: col, count: !!n.count };
+    gfxNode[n.id] = { g: g, tile: tile, mark: mark, col: col, count: !!n.count,
+                      ghost: !!n.ghost, rest: tile.getAttribute('fill') };
   });
 
   // ---- selection -----------------------------------------------------------
@@ -146,7 +172,7 @@
 
   function paint(id, on) {
     var f = gfxNode[id];
-    f.tile.setAttribute('fill', on ? 'var(--i-primary)' : tint(f.col, 0.14));
+    f.tile.setAttribute('fill', on ? 'var(--i-primary)' : f.rest);
     f.tile.setAttribute('stroke', on ? 'var(--i-primary)' : f.col);
     f.mark.setAttribute(f.count ? 'fill' : 'stroke', on ? 'var(--i-primary-fg)' : f.col);
     f.g.classList.toggle('sel', on);
@@ -189,8 +215,13 @@
       return e.s === id ? e.v + ' ' + nodeById[e.t].label
                         : nodeById[e.s].label + ' ' + e.v + ' this';
     });
-    document.getElementById('pnote').textContent =
-      rel.length + (rel.length === 1 ? ' relationship: ' : ' relationships: ') + rel.join('; ');
+    // A node that carries a note leads with it. On a ghost the note is the whole point of
+    // opening the panel, and on the cohort it says which part of a real object is missing.
+    var relText = rel.length + (rel.length === 1 ? ' relationship: ' : ' relationships: ')
+                  + rel.join('; ');
+    var pnote = document.getElementById('pnote');
+    pnote.textContent = n.note ? (n.ghost ? n.note : n.note + ' ' + relText) : relText;
+    pnote.classList.toggle('pnote-missing', !!n.note);
 
     var dl = document.getElementById('pprops');
     dl.textContent = '';
@@ -224,9 +255,31 @@
     }, 30);
   }
 
+  // ---- ghosts on or off ----------------------------------------------------
+  // Shown by default. The absences are the finding, so the reader meets them first, and the
+  // toggle is there for the times the question is only about what the systems do hold.
+  var ghBtn = document.getElementById('ghtoggle');
+  if (ghBtn) {
+    ghBtn.addEventListener('click', function () {
+      var next = ghBtn.getAttribute('aria-pressed') !== 'true';
+      ghBtn.setAttribute('aria-pressed', next ? 'true' : 'false');
+      document.body.classList.toggle('hide-ghosts', !next);
+      if (!next && current && nodeById[current].ghost) clear();
+    });
+  }
+
   document.getElementById('close').addEventListener('click', clear);
   svg.addEventListener('click', clear);
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') clear(); });
+
+  // The panel is a fixed overlay and the header runs the full width, so the panel is told
+  // where the header ends. Without it the open panel covers the header's own buttons.
+  var hdr = document.querySelector('header');
+  function measureHeader() {
+    document.documentElement.style.setProperty('--hh', (hdr ? hdr.offsetHeight : 0) + 'px');
+  }
+  measureHeader();
+  window.addEventListener('resize', measureHeader);
 
   // What feedback.js needs in order to say what was on screen when a note was written.
   window.ZT = {

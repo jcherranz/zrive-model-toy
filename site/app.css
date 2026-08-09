@@ -237,12 +237,16 @@ h1 {
 
 /* ---- panel -------------------------------------------------------------- */
 
+/* The panel is a fixed overlay at the right edge and the header runs the full width, so a
+   panel starting at y=0 sits on top of the header's own buttons: with a node selected, the
+   feedback toggle could not be clicked at all. --hh is the measured header height, written by
+   app.js, so the panel begins where the header ends. */
 #panel {
   position: fixed;
-  top: 0;
+  top: var(--hh, 0px);
   right: 0;
   width: 320px;
-  height: 100%;
+  height: calc(100% - var(--hh, 0px));
   background: var(--bg-panel);
   border-left: 1px solid var(--rule);
   box-shadow: var(--elev-1);
@@ -336,47 +340,77 @@ footer {
   background: var(--bg-panel);
 }
 
-/* ---- feedback popover ---------------------------------------------------- */
+/* ---- feedback capture ----------------------------------------------------
+   The interaction is monetary-lab's, the skin is this site's: the same class names and the
+   same box, drawn with the tokens above, one radius and two font weights. */
 
-#fbpop {
+/* The toggle is the entry point to a whole capture mode, so it is a chip with a clear on
+   state rather than another muted header link. */
+#fbtoggle {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 2px 8px;
+  color: var(--fg-muted);
+}
+
+#fbtoggle:hover { text-decoration: none; background: var(--tint-hover); }
+
+#fbtoggle[aria-pressed="true"] {
+  background: var(--i-primary);
+  border-color: var(--i-primary);
+  color: var(--i-primary-fg);
+  font-weight: 600;
+}
+
+/* While capture mode is on, every element on the page is a target and says so. */
+body.fb-mode { cursor: crosshair; }
+
+body.fb-mode *:hover:not(html):not(body) {
+  outline: 1.5px dashed var(--i-primary);
+  outline-offset: 1px;
+}
+
+/* The popover is a real UI, not a capture target: it is exempt from both. */
+body.fb-mode .fb-popover, body.fb-mode .fb-popover * { cursor: auto; }
+body.fb-mode .fb-popover:hover, body.fb-mode .fb-popover *:hover { outline: none; }
+body.fb-mode .fb-popover .linkbtn,
+body.fb-mode .fb-popover a,
+body.fb-mode .fb-popover select { cursor: pointer; }
+
+.fb-popover {
   position: fixed;
   z-index: 30;
-  width: 320px;
-  max-width: calc(100vw - 24px);
+  width: 300px;
+  max-width: calc(100vw - 16px);
   background: var(--bg-panel);
   border: 1px solid var(--rule);
   border-radius: var(--radius);
   box-shadow: var(--elev-1);
-  padding: 12px 13px 11px;
-}
-
-#fbpop[hidden] { display: none; }
-
-#fbpop label {
-  display: block;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--fg-muted);
-  margin-bottom: 3px;
-}
-
-#fbpop textarea,
-#fbpop select {
-  font: inherit;
+  padding: 10px 12px 11px;
   font-size: var(--fs-sm);
   color: var(--fg-body);
-  background: var(--bg-panel);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  padding: 4px 6px;
-  width: 100%;
+  cursor: auto;
 }
 
-#fbpop textarea { resize: vertical; min-height: 62px; margin-bottom: 9px; }
-#fbpop select { margin-bottom: 9px; cursor: pointer; }
+.fb-popover:focus { outline: none; }
 
-#fbpop .fbctx {
-  margin: 0 0 10px;
+.fb-popover .fb-row {
+  font-size: 11px;
+  color: var(--fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 5px;
+}
+
+.fb-popover .fb-el {
+  color: var(--fg-body);
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+.fb-popover .fb-ctx {
+  margin: 0 0 8px;
   padding: 6px 7px;
   border-radius: var(--radius);
   background: var(--bg-elevated);
@@ -388,34 +422,147 @@ footer {
   word-break: break-word;
 }
 
-#fbpop .fbrow {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  justify-content: flex-end;
-}
-
-.btn {
+.fb-popover .fb-note {
+  width: 100%;
+  min-height: 60px;
   font: inherit;
   font-size: var(--fs-sm);
-  border: 1px solid var(--rule);
-  background: var(--bg-panel);
   color: var(--fg-body);
+  background: var(--bg-panel);
+  padding: 6px;
+  border: 1px solid var(--rule);
   border-radius: var(--radius);
-  padding: 4px 10px;
+  resize: vertical;
+  box-sizing: border-box;
+  margin: 0 0 8px;
+}
+
+.fb-popover .fb-gh { margin-bottom: 8px; }
+.fb-popover .fb-gh-row { display: flex; gap: 6px; align-items: center; }
+
+.fb-popover .fb-gh-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: inherit;
+  font-size: 11px;
+  color: var(--fg-body);
+  background: var(--bg-panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 3px 5px;
+}
+
+.fb-popover .fb-gh-note,
+.fb-popover .fb-gh-status {
+  font-size: 10px;
+  line-height: 1.45;
+  color: var(--fg-muted);
+  margin-top: 4px;
+}
+
+.fb-popover .fb-priority-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 11px;
+  color: var(--fg-muted);
+}
+
+.fb-popover .fb-priority-row label { white-space: nowrap; }
+
+.fb-popover .fb-cat,
+.fb-popover .fb-priority {
+  font: inherit;
+  font-size: 11px;
+  color: var(--fg-body);
+  background: var(--bg-panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 2px 4px;
   cursor: pointer;
 }
 
-.btn:hover { background: var(--tint-hover); }
+.fb-popover .fb-cat { flex: 1 1 auto; min-width: 0; }
 
-.btn.primary {
-  background: var(--i-primary);
-  border-color: var(--i-primary);
-  color: var(--i-primary-fg);
-  font-weight: 600;
+.fb-popover .fb-cat:focus-visible,
+.fb-popover .fb-priority:focus-visible,
+.fb-popover .fb-note:focus-visible,
+.fb-popover .fb-gh-input:focus-visible {
+  outline: 2px solid var(--i-primary);
+  outline-offset: 1px;
 }
 
-.btn.primary:hover { filter: brightness(.94); }
+.fb-popover .fb-actions {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+/* the primary action: file straight to the board */
+.fb-popover .fb-file { font-weight: 600; }
+
+.fb-popover .fb-file-result,
+.err-notice .err-notice-result {
+  margin-top: 7px;
+  font-size: 11px;
+  color: var(--fg-muted);
+}
+
+.fb-popover .fb-file-result.ok,
+.err-notice .err-notice-result.ok { color: var(--fg-body); }
+
+.fb-popover .fb-file-result.err,
+.err-notice .err-notice-result.err { color: var(--fg-warning); }
+
+.fb-popover .fb-file-result a,
+.err-notice .err-notice-result a { color: var(--i-primary); }
+
+.fb-popover .fb-hint {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--fg-muted);
+}
+
+.fb-popover .fb-hint .fb-board {
+  color: var(--i-primary);
+  text-decoration: none;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.fb-popover .fb-hint .fb-board:hover { text-decoration: underline; }
+
+/* An uncaught runtime error offers itself to the board. It is never filed without a click. */
+.err-notice {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  z-index: 40;
+  max-width: 340px;
+  background: var(--bg-panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--elev-1);
+  padding: 9px 11px 10px;
+  font-size: var(--fs-sm);
+}
+
+.err-notice .err-notice-row { color: var(--fg-body); }
+
+.err-notice .err-notice-actions {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  margin-top: 4px;
+}
+
+.err-notice .err-report { font-weight: 600; }
 
 /* ---- board --------------------------------------------------------------- */
 
