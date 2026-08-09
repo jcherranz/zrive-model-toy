@@ -58,10 +58,26 @@ their weight.
 
 The whole drawing fits one 1440 by 900 viewport without scrolling. Below 760px it keeps its
 designed size and the canvas scrolls sideways, rather than shrinking until the labels stop
-being readable.
+being readable. With the second cohort switched on it is half as tall again as the viewport
+and the canvas scrolls down it; fitting that one to the box would shrink every label to
+nothing.
 
 Click a node to select it. The clicked node takes a solid fill, everything except its direct
 neighbours dims, and a side panel lists its properties with a flag on each.
+
+The `2nd cohort` switch in the header draws a second cohort, 2Q26, instanced from the same six
+session templates on later dates with two of the six taught by a different instructor. It is
+off by default, because one cohort on one screen is the view that reads at a glance and a
+second roughly doubles the middle column. It is worth having behind a switch because the split
+between a session template and a cohort session is the backbone of the model and one cohort
+cannot show it: with two, the same template objects carry two sets of dated sessions and the
+reason for the split is on the page. The money chain is not repeated, since it hangs off every
+cohort in the same shape.
+
+The two drawings are laid out independently by the build and shipped side by side as
+`window.G` and `window.G2`, and the switch redraws. They are not one drawing with parts hidden
+by CSS: a hidden node still takes up room in a layout, so that arrangement would have moved
+the default view, which is exactly what the switch exists to protect.
 
 Object types shown, one instance at least of each: Programme, Company, Instructor, session
 template, cohort session, Cohort, an aggregate students card, Enrolment, Agreement, Charge,
@@ -75,6 +91,14 @@ from barycentre sweeps, Y relaxed towards the mean of each node's neighbours and
 a minimum gap. Short columns on the right open their gaps until they span a share of the
 height, so the money chain does not read as a clump adrift in a tall empty lane. Verb chips
 slide along their own edge until they find a slot clear of tiles, labels and other chips.
+
+`layout()` runs once per view. The two cohort view asks for two things the default does not.
+Its session column is pinned rather than swept: the barycentre answer there is a real minimum
+of crossings and still wrong to read, because it interleaves the two cohorts and breaks both
+out of date order, and a column of dated things that is not in date order costs a reader more
+than the crossings save. And its template and instructor columns are opened to a share of the
+height, so that a template's two edges to two cohorts leave it as a flat fan rather than a
+near vertical one.
 
 `build_layout.py` also stamps a build id, a short digest of the drawing itself. Every feedback
 report carries it, so a note can be tied to the exact bytes that were on screen.
@@ -91,8 +115,9 @@ site/            what is deployed
   board.js       the board view at #/board
   board.json     generated from GitHub Issues, read by board.js, do not edit by hand
 build/
-  model.py       the 26 objects, their properties and the 32 edges
-  build_layout.py    computes coordinates, writes site/graph.js
+  model.py       the objects, their properties and the edges, in both views
+  build_layout.py    computes coordinates for both views, writes site/graph.js
+  measure_labels.py  measures every label in a real browser -> label_widths.json
   safety_grep.py     the local forbidden content gate
 scripts/
   check_forbidden.sh      the CI gate, against deployed bytes

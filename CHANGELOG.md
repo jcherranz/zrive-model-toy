@@ -7,6 +7,38 @@ Dates are ISO. Newest first.
 
 ### Added
 
+- A second cohort behind a header switch, for issue #19. `Z-IB 2Q26` is instanced from the
+  same six session templates as 1Q26, on later dates, with two of the six taught by a
+  different instructor: `Intro to economics & financial markets` moves from Nerea Iribarren to
+  Rubén Arizmendi and `Why we value companies?` from Bruno Belaunde to Celia Vandellós. It
+  brings its own aggregate students card, 27 against 34. The point is the template versus
+  instance split, which is the backbone of the model and which one cohort cannot show: with
+  two, the same template objects carry two sets of dated sessions and the reason they are
+  different objects is on the page rather than in a document.
+- The switch is off by default and the default drawing is unchanged, byte for byte. The two
+  views are laid out independently by the build and shipped side by side as `window.G` and
+  `window.G2`; the switch redraws rather than hiding nodes with CSS, because a hidden node
+  still takes up room in a layout and would have moved the view the switch exists to protect.
+  Verified by diffing the generated `window.G` against the deployed bytes: identical, build id
+  `5703ece` before and after.
+- Two layout facilities used only by the second view. A column may be pinned, which states its
+  order and takes it out of the barycentre sweep, and a column may be opened to a share of the
+  drawing's height. The session column is pinned because the sweep's answer there is a real
+  minimum of crossings and still unreadable: it interleaves the two cohorts and breaks both out
+  of date order. The template and instructor columns are opened so a template's two edges leave
+  it as a flat fan instead of a near vertical one.
+- `build/measure_labels.py` now measures the union of both views, so the opt-in drawing is
+  laid out from measured widths rather than the fallback estimate. 82 strings added to
+  `build/label_widths.json`; no existing entry changed.
+
+### Not added, and why
+
+- A second enrolment to claim chain. It hangs off every cohort in the same shape, so a second
+  copy would have added nine nodes and no relationship the first copy does not already carry.
+  The 2Q26 students card therefore has one edge, and its note says why.
+- A new instructor for the second cohort. Reassigning two sessions among the five already on
+  the page shows substitution across cohorts, which is the thing worth seeing, and adds no node.
+
 - Ghost classes on the diagram, for issue #8. Four classes the operating model needs and no
   system holds are drawn beside the objects that do exist: `Instalment` expected by
   `Agreement`, `Placement` matures `Claim`, `Beca` discounts `Agreement`, `Refund` reverses

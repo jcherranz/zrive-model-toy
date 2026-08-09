@@ -53,132 +53,146 @@
   });
 
   // ---- svg scaffolding -----------------------------------------------------
+  // The page holds two drawings, laid out independently by the build: G is one cohort and G2
+  // is two. They are separate coordinate sets rather than one drawing with parts hidden,
+  // because a hidden node still takes up room in a layout and would have moved the default
+  // view. Switching between them therefore means redrawing, not toggling a class.
   var svg = document.getElementById('graph');
-  svg.setAttribute('viewBox', '0 0 ' + G.w + ' ' + G.h);
   svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 
-  // Column bands. One lane per kind of thing, captioned, so that instructors and session
-  // templates are told apart by where they sit and not only by tile colour.
-  var gBand = el('g', {}, svg);
-  (G.bands || []).forEach(function (b) {
-    el('rect', { class: 'band', x: b.x, y: G.bandTop, width: b.w, height: G.h - G.bandTop - 4 },
-       gBand);
-    var t = el('text', { class: 'band-cap', x: b.x + b.w / 2, y: G.bandTop - 7 }, gBand);
-    t.textContent = b.label;
-  });
+  var nodeById, edgesOf, gfxNode, gfxEdge;
 
-  var gEdge = el('g', {}, svg);
-  var gChip = el('g', {}, svg);
-  var gNode = el('g', {}, svg);
+  function draw(g) {
+    G = g;
+    svg.textContent = '';
+    svg.setAttribute('viewBox', '0 0 ' + G.w + ' ' + G.h);
+    if (window.ZT) window.ZT.build = G.build || 'unknown';
 
-  var nodeById = {}, edgesOf = {}, gfxNode = {}, gfxEdge = [];
-  G.nodes.forEach(function (n) { nodeById[n.id] = n; edgesOf[n.id] = []; });
-
-  // ---- edges ---------------------------------------------------------------
-  G.edges.forEach(function (e, idx) {
-    // data-edge is the relationship key, the counterpart of data-node above: it is what a
-    // feedback capture on a line or on its verb chip reports back.
-    var key = e.s + '->' + e.t;
-    var g = el('g', { 'data-edge': key, class: e.ghost ? 'ghost' : null }, gEdge);
-    el('path', { d: e.d, class: e.ghost ? 'edge edge-ghost' : 'edge' }, g);
-    el('path', {
-      d: 'M0 0 L-6.5 2.6 L-6.5 -2.6 Z', class: e.ghost ? 'arrow arrow-ghost' : 'arrow',
-      transform: 'translate(' + e.ax + ',' + e.ay + ') rotate(' + e.aa + ')'
-    }, g);
-
-    var c = el('g', { 'data-edge': key, class: e.ghost ? 'ghost' : null }, gChip);
-    el('rect', {
-      class: 'chip-bg', x: (e.cx - e.cw / 2).toFixed(1), y: (e.cy - 6.5).toFixed(1),
-      width: e.cw.toFixed(1), height: 13
-    }, c);
-    var tx = el('text', { class: 'chip-tx', x: e.cx, y: e.cy }, c);
-    tx.textContent = e.v;
-
-    gfxEdge.push({ e: e, g: g, c: c });
-    edgesOf[e.s].push(idx);
-    edgesOf[e.t].push(idx);
-  });
-
-  // ---- nodes ---------------------------------------------------------------
-  // Drawn in reading order rather than in the order the model declares them: rows first, then
-  // left to right inside a row. Nothing else depends on the order, since no two nodes overlap,
-  // and the tab order is the document order, so ordering the drawing is the whole of the
-  // keyboard navigation. A band of ROWH holds nodes at nearly the same height in one row,
-  // which is what the eye does with a drawing whose rows are not ruled.
-  var ROWH = 27;
-  var byY = G.nodes.slice().sort(function (a, b) { return a.y - b.y || a.x - b.x; });
-  var rowTop = null;
-  var reading = byY.map(function (n) {
-    if (rowTop === null || n.y - rowTop > ROWH) rowTop = n.y;
-    return { n: n, row: rowTop };
-  }).sort(function (a, b) { return a.row - b.row || a.n.x - b.n.x; })
-    .map(function (r) { return r.n; });
-
-  reading.forEach(function (n) {
-    var col = COLOR[n.type];
-    // data-node is the instance key. It is what feedback.js reads to say which node a click
-    // landed on, the way monetary-lab's capture reads its own linked-highlight key.
-    var g = el('g', { class: n.ghost ? 'node ghost' : 'node', 'data-node': n.id,
-                      tabindex: 0, role: 'button' }, gNode);
-    var titleEl = el('title', {}, g);
-    titleEl.textContent = n.label + ' (' + TLABEL[n.type] + ')';
-
-    if (n.count) {
-      el('rect', { x: n.x - R + 5, y: n.y - R - 5, width: TILE - 6, height: TILE - 6,
-                   rx: 5, fill: tint(col, 0.10), stroke: tint(col, 0.45) }, g);
-      el('rect', { x: n.x - R + 2.5, y: n.y - R - 2.5, width: TILE - 6, height: TILE - 6,
-                   rx: 5, fill: tint(col, 0.12), stroke: tint(col, 0.6) }, g);
-    }
-    // A node whose key does not exist keeps its own outline and gains a second, dashed one.
-    // The object is real; something about it is missing, and the label below says what.
-    if (n.mark) {
-      el('rect', { class: 'ring-missing ghost', x: n.x - R - 3.5, y: n.y - R - 3.5,
-                   width: TILE + 7, height: TILE + 7, rx: 8 }, g);
-    }
-    var tile = el('rect', {
-      class: n.ghost ? 'tile-bg tile-ghost' : 'tile-bg',
-      x: n.x - R, y: n.y - R, width: TILE, height: TILE, rx: 6,
-      fill: n.ghost ? 'rgba(143,153,168,0.07)' : tint(col, 0.14), stroke: col
-    }, g);
-
-    var mark;
-    if (n.ghost) {
-      // Deliberately empty. A ghost tile holds no glyph because there is nothing in it.
-      mark = el('g', {}, g);
-    } else if (n.count) {
-      mark = el('text', {
-        x: n.x, y: n.y + 0.5, 'text-anchor': 'middle', 'dominant-baseline': 'central',
-        'font-size': 14, 'font-weight': 600, fill: col
-      }, g);
-      mark.textContent = n.count;
-    } else {
-      mark = el('g', {
-        transform: 'translate(' + (n.x - 8) + ',' + (n.y - 8) + ')',
-        fill: 'none', stroke: col, 'stroke-width': 1.35,
-        'stroke-linecap': 'round', 'stroke-linejoin': 'round'
-      }, g);
-      PATHS[GLYPH[n.type]].forEach(function (d) { el('path', { d: d }, mark); });
-    }
-
-    var ty = n.y + R + G.gapLabel + 4;
-    n.lines.forEach(function (line, i) {
-      var t = el('text', { class: n.ghost ? 'lbl lbl-ghost' : 'lbl', x: n.x,
-                           y: ty + i * G.lineH }, g);
-      t.textContent = line;
+    // Column bands. One lane per kind of thing, captioned, so that instructors and session
+    // templates are told apart by where they sit and not only by tile colour.
+    var gBand = el('g', {}, svg);
+    (G.bands || []).forEach(function (b) {
+      el('rect', { class: 'band', x: b.x, y: G.bandTop, width: b.w, height: G.h - G.bandTop - 4 },
+         gBand);
+      var t = el('text', { class: 'band-cap', x: b.x + b.w / 2, y: G.bandTop - 7 }, gBand);
+      t.textContent = b.label;
     });
-    if (n.mark) {
-      var mk = el('text', { class: 'lbl lbl-missing ghost', x: n.x,
-                            y: ty + n.lines.length * G.lineH }, g);
-      mk.textContent = n.mark;
-    }
 
-    g.addEventListener('click', function (ev) { ev.stopPropagation(); select(n.id); });
-    g.addEventListener('keydown', function (ev) {
-      if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); select(n.id); }
+    var gEdge = el('g', {}, svg);
+    var gChip = el('g', {}, svg);
+    var gNode = el('g', {}, svg);
+
+    nodeById = {}; edgesOf = {}; gfxNode = {}; gfxEdge = [];
+    G.nodes.forEach(function (n) { nodeById[n.id] = n; edgesOf[n.id] = []; });
+
+    // ---- edges ---------------------------------------------------------------
+    G.edges.forEach(function (e, idx) {
+      // data-edge is the relationship key, the counterpart of data-node above: it is what a
+      // feedback capture on a line or on its verb chip reports back.
+      var key = e.s + '->' + e.t;
+      var g = el('g', { 'data-edge': key, class: e.ghost ? 'ghost' : null }, gEdge);
+      el('path', { d: e.d, class: e.ghost ? 'edge edge-ghost' : 'edge' }, g);
+      el('path', {
+        d: 'M0 0 L-6.5 2.6 L-6.5 -2.6 Z', class: e.ghost ? 'arrow arrow-ghost' : 'arrow',
+        transform: 'translate(' + e.ax + ',' + e.ay + ') rotate(' + e.aa + ')'
+      }, g);
+
+      var c = el('g', { 'data-edge': key, class: e.ghost ? 'ghost' : null }, gChip);
+      el('rect', {
+        class: 'chip-bg', x: (e.cx - e.cw / 2).toFixed(1), y: (e.cy - 6.5).toFixed(1),
+        width: e.cw.toFixed(1), height: 13
+      }, c);
+      var tx = el('text', { class: 'chip-tx', x: e.cx, y: e.cy }, c);
+      tx.textContent = e.v;
+
+      gfxEdge.push({ e: e, g: g, c: c });
+      edgesOf[e.s].push(idx);
+      edgesOf[e.t].push(idx);
     });
-    gfxNode[n.id] = { g: g, tile: tile, mark: mark, col: col, count: !!n.count,
-                      ghost: !!n.ghost, rest: tile.getAttribute('fill') };
-  });
+
+    // ---- nodes ---------------------------------------------------------------
+    // Drawn in reading order rather than in the order the model declares them: rows first, then
+    // left to right inside a row. Nothing else depends on the order, since no two nodes overlap,
+    // and the tab order is the document order, so ordering the drawing is the whole of the
+    // keyboard navigation. A band of ROWH holds nodes at nearly the same height in one row,
+    // which is what the eye does with a drawing whose rows are not ruled.
+    var ROWH = 27;
+    var byY = G.nodes.slice().sort(function (a, b) { return a.y - b.y || a.x - b.x; });
+    var rowTop = null;
+    var reading = byY.map(function (n) {
+      if (rowTop === null || n.y - rowTop > ROWH) rowTop = n.y;
+      return { n: n, row: rowTop };
+    }).sort(function (a, b) { return a.row - b.row || a.n.x - b.n.x; })
+      .map(function (r) { return r.n; });
+
+    reading.forEach(function (n) {
+      var col = COLOR[n.type];
+      // data-node is the instance key. It is what feedback.js reads to say which node a click
+      // landed on, the way monetary-lab's capture reads its own linked-highlight key.
+      var g = el('g', { class: n.ghost ? 'node ghost' : 'node', 'data-node': n.id,
+                        tabindex: 0, role: 'button' }, gNode);
+      var titleEl = el('title', {}, g);
+      titleEl.textContent = n.label + ' (' + TLABEL[n.type] + ')';
+
+      if (n.count) {
+        el('rect', { x: n.x - R + 5, y: n.y - R - 5, width: TILE - 6, height: TILE - 6,
+                     rx: 5, fill: tint(col, 0.10), stroke: tint(col, 0.45) }, g);
+        el('rect', { x: n.x - R + 2.5, y: n.y - R - 2.5, width: TILE - 6, height: TILE - 6,
+                     rx: 5, fill: tint(col, 0.12), stroke: tint(col, 0.6) }, g);
+      }
+      // A node whose key does not exist keeps its own outline and gains a second, dashed one.
+      // The object is real; something about it is missing, and the label below says what.
+      if (n.mark) {
+        el('rect', { class: 'ring-missing ghost', x: n.x - R - 3.5, y: n.y - R - 3.5,
+                     width: TILE + 7, height: TILE + 7, rx: 8 }, g);
+      }
+      var tile = el('rect', {
+        class: n.ghost ? 'tile-bg tile-ghost' : 'tile-bg',
+        x: n.x - R, y: n.y - R, width: TILE, height: TILE, rx: 6,
+        fill: n.ghost ? 'rgba(143,153,168,0.07)' : tint(col, 0.14), stroke: col
+      }, g);
+
+      var mark;
+      if (n.ghost) {
+        // Deliberately empty. A ghost tile holds no glyph because there is nothing in it.
+        mark = el('g', {}, g);
+      } else if (n.count) {
+        mark = el('text', {
+          x: n.x, y: n.y + 0.5, 'text-anchor': 'middle', 'dominant-baseline': 'central',
+          'font-size': 14, 'font-weight': 600, fill: col
+        }, g);
+        mark.textContent = n.count;
+      } else {
+        mark = el('g', {
+          transform: 'translate(' + (n.x - 8) + ',' + (n.y - 8) + ')',
+          fill: 'none', stroke: col, 'stroke-width': 1.35,
+          'stroke-linecap': 'round', 'stroke-linejoin': 'round'
+        }, g);
+        PATHS[GLYPH[n.type]].forEach(function (d) { el('path', { d: d }, mark); });
+      }
+
+      var ty = n.y + R + G.gapLabel + 4;
+      n.lines.forEach(function (line, i) {
+        var t = el('text', { class: n.ghost ? 'lbl lbl-ghost' : 'lbl', x: n.x,
+                             y: ty + i * G.lineH }, g);
+        t.textContent = line;
+      });
+      if (n.mark) {
+        var mk = el('text', { class: 'lbl lbl-missing ghost', x: n.x,
+                              y: ty + n.lines.length * G.lineH }, g);
+        mk.textContent = n.mark;
+      }
+
+      g.addEventListener('click', function (ev) { ev.stopPropagation(); select(n.id); });
+      g.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); select(n.id); }
+      });
+      gfxNode[n.id] = { g: g, tile: tile, mark: mark, col: col, count: !!n.count,
+                        ghost: !!n.ghost, rest: tile.getAttribute('fill') };
+    });
+  }
+
+  draw(window.G);
 
   // ---- selection -----------------------------------------------------------
   var panel = document.getElementById('panel');
@@ -281,6 +295,42 @@
       var max = svg.getBoundingClientRect().width - canvas.clientWidth;
       canvas.scrollLeft = Math.max(0, Math.min(want, Math.max(0, max)));
     }, 30);
+  }
+
+  // ---- the second cohort on or off -----------------------------------------
+  // Off by default. One cohort on one screen is the view that reads at a glance, and a second
+  // cohort roughly doubles the column in the middle. It is worth having because the split
+  // between a session template and a cohort session is the backbone of the model and one
+  // cohort cannot show it: with two, the same six template objects carry two sets of dated
+  // sessions taught by people who are not quite the same people, and the reason for the split
+  // is on the page rather than in a document.
+  //
+  // Switching redraws from the other coordinate set and drops the selection with it, because
+  // the two drawings do not hold all the same nodes and a selection cannot survive that.
+  var TITLES = {
+    off: ['Zrive operating model, one cohort as instances',
+          'Programme Z-IB Investment Banking, cohort 1Q26, drawn as named instances joined by '
+          + 'the verbs that relate them.'],
+    on: ['Zrive operating model, two cohorts as instances',
+         'Programme Z-IB Investment Banking, cohorts 1Q26 and 2Q26 off the same six session '
+         + 'templates, drawn as named instances joined by the verbs that relate them.']
+  };
+  var c2Btn = document.getElementById('c2toggle');
+  if (c2Btn && window.G2) {
+    c2Btn.addEventListener('click', function () {
+      var next = c2Btn.getAttribute('aria-pressed') !== 'true';
+      c2Btn.setAttribute('aria-pressed', next ? 'true' : 'false');
+      document.body.classList.toggle('two-cohorts', next);
+      clear();
+      draw(next ? window.G2 : window.G);
+      var t = TITLES[next ? 'on' : 'off'];
+      var h1 = document.getElementById('h1'), sub = document.getElementById('subtext');
+      if (h1) h1.textContent = t[0];
+      if (sub) sub.textContent = t[1];
+      measureHeader();
+    });
+  } else if (c2Btn) {
+    c2Btn.hidden = true;
   }
 
   // ---- ghosts on or off ----------------------------------------------------

@@ -80,7 +80,8 @@ body.board .legend { display: none; }
 .sub-board { display: none; }
 body.board .sub-diagram { display: none; }
 body.board .sub-board { display: inline; }
-body.board #ghtoggle { display: none; }
+body.board #ghtoggle,
+body.board #c2toggle { display: none; }
 
 header {
   flex: none;
@@ -185,6 +186,12 @@ h1 {
   width: 100%;
   height: 100%;
 }
+
+/* The one cohort drawing is sized to fit the viewport, so it is fitted to the box. The two
+   cohort drawing is half as tall again as the screen and fitting it would shrink every label
+   to nothing, so there it keeps the full width and the canvas scrolls down it instead. */
+body.two-cohorts #canvas { overflow-y: auto; }
+body.two-cohorts #graph { height: auto; }
 
 /* ---- column bands -------------------------------------------------------- */
 
@@ -716,16 +723,25 @@ body.fb-mode .fb-popover select { cursor: pointer; }
    there is nothing inside one. The marking on the cohort is deliberately a different mark
    again, since that object exists and only its key does not. */
 
-#ghtoggle {
+/* The two view switches carry the same mark. Both say the same kind of thing, that a part of
+   the drawing is being added to it or taken out of it, so they are one control in two copies
+   and not two controls. #c2toggle is solid rather than dashed because what it adds is objects
+   that exist, where the dashes on #ghtoggle are the ghosts' own mark. */
+#ghtoggle,
+#c2toggle {
   border: 1px dashed var(--c-gray-3);
   border-radius: var(--radius);
   padding: 2px 8px;
   color: var(--fg-muted);
 }
 
-#ghtoggle:hover { text-decoration: none; background: var(--tint-hover); }
+#c2toggle { border-style: solid; }
 
-#ghtoggle[aria-pressed="true"] {
+#ghtoggle:hover,
+#c2toggle:hover { text-decoration: none; background: var(--tint-hover); }
+
+#ghtoggle[aria-pressed="true"],
+#c2toggle[aria-pressed="true"] {
   color: var(--fg-body);
   font-weight: 600;
   background: var(--tint-neutral);

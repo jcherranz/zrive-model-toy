@@ -12,18 +12,21 @@
 <header>
   <div class="hrow">
     <div class="htitle">
-      <h1>Zrive operating model, one cohort as instances</h1>
+      <h1 id="h1">Zrive operating model, one cohort as instances</h1>
       <!-- One sentence per view. The header sits above both, so it says what is on screen and
-           not what is on the other page. -->
+           not what is on the other page. The title and the sentence are swapped by app.js when
+           the second cohort is switched on, for the same reason. -->
       <p class="sub">
-        <span class="sub-diagram">Programme Z-IB Investment Banking, cohort 1Q26, drawn as named
-        instances joined by the verbs that relate them.<span class="warn">every value is dummy or
-        estimated, nothing is measured</span></span>
+        <span class="sub-diagram"><span id="subtext">Programme Z-IB Investment Banking, cohort
+        1Q26, drawn as named instances joined by the verbs that relate them.</span><span
+        class="warn">every value is dummy or estimated, nothing is measured</span></span>
         <span class="sub-board">The work on this drawing, one card per issue, in the column its
         status label puts it in.</span>
       </p>
     </div>
     <nav class="hnav">
+      <button id="c2toggle" class="linkbtn" type="button" aria-pressed="false"
+              title="draw a second cohort off the same six session templates">2nd cohort</button>
       <button id="ghtoggle" class="linkbtn" type="button" aria-pressed="true"
               title="show or hide the classes that do not exist in any system">ghosts</button>
       <button id="fbtoggle" class="linkbtn" type="button" aria-pressed="false"

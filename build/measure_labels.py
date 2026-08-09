@@ -30,7 +30,12 @@ import tempfile
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
 sys.path.insert(0, str(HERE))
-from model import NODES, EDGES  # noqa: E402
+from model import with_second_cohort  # noqa: E402
+
+# The union of both views. The opt-in second cohort is laid out by the same build from the
+# same table, so its strings have to be in the table too or that view would fall back to the
+# estimate this script exists to remove.
+NODES, EDGES = with_second_cohort()
 
 CSS = ROOT / "site" / "app.css"
 OUT = HERE / "label_widths.json"
