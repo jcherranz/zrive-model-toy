@@ -125,3 +125,11 @@ Two things are worth stating because they are the ways this loop fails quietly:
   false, and leaving it unmarked would have hidden the sharpest finding on the page, so it
   keeps its own outline and gains a second, dashed one. A vocabulary that only has "exists"
   and "does not exist" is too coarse for this model.
+
+- **A collision counter drives a layout away; a penetration depth nudges it.** The verb chips
+  scored a position by counting the boxes it hit, so clipping a padding margin by one pixel
+  cost exactly what printing a verb across a person's name cost, and the cheapest way out of
+  either was to leave the line altogether. One chip ended 134px from the edge it named. Scoring
+  by how far a box penetrates, and pricing the ways out separately, keeps the placement local:
+  the same drawing, the same obstacles, and the worst chip is now 6px from its line. Where a
+  layout is allowed to escape, the escape has to cost more than the crowding it escapes.

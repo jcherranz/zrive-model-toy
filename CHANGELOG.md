@@ -109,6 +109,33 @@ Dates are ISO. Newest first.
   or cannot run, the old per-token loop is still there and still correct; verified by running
   the whole gate with perl absent, which is slower and reaches the same verdict.
 
+### Fixed, verb chips
+
+- Verb chips are placed on their own edges again, issue #14. The old search offered the chip
+  nine fixed points along the curve, took whichever collided least, and if none was clean
+  stepped it vertically until it cleared everything. `claims against` finished 133.8px below
+  its own edge, alone in white space between the Charge tile and the bottom of the lane, where
+  it named nothing; `pays` sat on its curve but the search had put it there by luck. Measured
+  from the shipped `site/graph.js` and not from the builder's intentions: worst distance from a
+  chip's centre to the nearest point on the edge it names was 133.8px before and 6.0px after,
+  and 6.5px is half a chip's height, so every verb now has its own line running through it.
+- Each chip starts at the midpoint of its edge by arc length, which is the point that reads as
+  the middle of a curve whatever the curve does near its ends. 19 of 36 sit exactly there.
+  Where a chip would land on a tile, on a label or on another chip it slides along its own path
+  first, because a chip that has moved along its line is still unambiguously on that line, and
+  steps off the line only when sliding cannot clear the obstruction. Worst slide along the
+  path, 60px on `instance of` for `cs2->st2`, whose midpoint lands on an instructor's name;
+  worst offset from the midpoint before, 134.4px, on the chip that had left its edge entirely.
+- The choice is a cost, not a rule: 20 per px of overlap, 1 per px slid along the path, 3 per px
+  stepped off it, and overlap counted as depth of penetration rather than as a count of boxes
+  hit. Counting boxes is what made the old placement brittle, since clipping a padding margin
+  by a pixel scored the same as printing a verb across a name, and the cheapest escape from
+  either was to leave.
+- A build gate refuses to write a drawing in which any chip centre is further from its own edge
+  than half a chip height, and the build prints the two worst chips by name. This is the same
+  class of defect as a label leaving its lane: the page renders either way, so a diff cannot
+  catch it and only a measurement can.
+
 ## [0.2.2] - 2026-08-09
 
 The gate is shown failing on the defect it was written for, and stops reading the wrong bytes.

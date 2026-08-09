@@ -265,43 +265,103 @@ for a, b, verb in EDGES:
                   "rev": nb["col"] < na["col"], "span": span,
                   "ghost": bool(na.get("ghost") or nb.get("ghost"))})
 
-# ---- verb chips: slide along the line until a slot free of tiles, labels and
-#      other chips is found -------------------------------------------------
-CH, PADX = 12.0, 5.0
-TS = [0.50, 0.42, 0.58, 0.35, 0.65, 0.28, 0.72, 0.21, 0.79]
+# ---- verb chips ------------------------------------------------------------
+# A chip carries the verb, so the drawing is a data model and not a picture, and a verb that
+# floats free of its line does not say which edge it names. Each chip is therefore anchored to
+# the midpoint of its own path by arc length, which is the one point on a curve that reads as
+# the middle of that line whatever the curve does near its ends.
+#
+# Where a chip would land on a tile, on a label or on another chip it slides along its own
+# path first: a chip that has moved along its line is still unambiguously on that line, while
+# one that has moved off it is not. Stepping off the line is the last resort and is capped at
+# CHIP_PERP, which is under one chip height, so no chip can end up adrift the way the old
+# greedy search let 'claims against' end up 134px below its own edge.
+CH, PADX = 13.0, 5.0
+CHIP_SLIDE = 0.34    # a chip never slides past this share of the arc length from the midpoint
+CHIP_STEP = 4.0      # granularity of the slide
+# The cap on stepping off the line is under half a chip height, so the line still passes
+# through the chip box whatever the placement does. That is the invariant the gate checks:
+# not that the chip is near its line, but that its line runs through it.
+CHIP_PERP = 6.0
+# Cost per px of overlap, per px slid along the path (1, implicitly) and per px stepped off
+# it. Overlap is dear because a verb printed over a name is unreadable, and sliding is cheap
+# because it costs nothing but distance from the middle.
+W_OVER, W_PERP = 20.0, 3.0
+
 blocked = []
 for n in nodes.values():
-    blocked.append((n["x"], tile_y(n), TILE + 4, TILE + 4))
+    blocked.append((n["x"], tile_y(n), TILE + 6, TILE + 6))
     lab_h = LINE_H * n["nlines"]
-    blocked.append((n["x"], tile_y(n) + TILE / 2 + GAP_LABEL + lab_h / 2, n["lw"] + 6, lab_h + 3))
+    blocked.append((n["x"], tile_y(n) + TILE / 2 + GAP_LABEL + lab_h / 2, n["lw"] + 6, lab_h + 2))
 chips = []
 
 
-def hits(x, y, w, boxes):
-    return sum(1 for bx, by, bw, bh in boxes
-               if abs(x - bx) < (w + bw) / 2 + 3 and abs(y - by) < (CH + bh) / 2 + 2)
+def arc_table(pts, n=240):
+    xs = [bez(pts, i / n) for i in range(n + 1)]
+    cum = [0.0]
+    for i in range(1, n + 1):
+        cum.append(cum[-1] + math.hypot(xs[i][0] - xs[i - 1][0], xs[i][1] - xs[i - 1][1]))
+    return xs, cum
 
 
-for e in sorted(edges, key=lambda e: -e["span"]):
+def at_s(xs, cum, s):
+    """Point and unit tangent at arc length s along the path, clamped to its ends."""
+    s = min(max(s, 0.0), cum[-1])
+    lo, hi = 1, len(cum) - 1
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if cum[mid] < s:
+            lo = mid + 1
+        else:
+            hi = mid
+    seg = cum[lo] - cum[lo - 1] or 1e-9
+    f = (s - cum[lo - 1]) / seg
+    (x0, y0), (x1, y1) = xs[lo - 1], xs[lo]
+    tx, ty = x1 - x0, y1 - y0
+    m = math.hypot(tx, ty) or 1e-9
+    return (x0 + f * tx, y0 + f * ty), (tx / m, ty / m)
+
+
+def overlap(x, y, w, boxes):
+    """Total penetration depth in px of one chip box against a list of boxes.
+
+    A depth rather than a count, so that clipping a padding margin by a pixel is cheap and
+    sitting on top of a label is not. That is the difference between a chip that nudges and
+    one that runs away.
+    """
+    tot = 0.0
+    for bx, by, bw, bh in boxes:
+        ox = (w + bw) / 2 - abs(x - bx)
+        oy = (CH + bh) / 2 - abs(y - by)
+        if ox > 0 and oy > 0:
+            tot += min(ox, oy)
+    return tot
+
+
+for e in sorted(edges, key=lambda e: (-e["span"], e["s"], e["t"])):
     e["cw"] = text_w(e["v"], 9.0, 400, e["ghost"]) + 2 * PADX
-    best, best_n = None, 1e9
-    for t in TS:
-        x, y = bez(e["pts"], t)
-        n_hit = hits(x, y, e["cw"], blocked + chips)
-        if n_hit == 0:
-            best, best_n = (x, y), 0
+    xs, cum = arc_table(e["pts"])
+    L = cum[-1]
+    e["mid"], _ = at_s(xs, cum, L / 2)
+    reach = CHIP_SLIDE * L
+    slides = [0.0]
+    k = 1
+    while k * CHIP_STEP <= reach:
+        slides += [k * CHIP_STEP, -k * CHIP_STEP]
+        k += 1
+    best, best_cost = None, None
+    for ds in slides:
+        (px, py), (tx, ty) = at_s(xs, cum, L / 2 + ds)
+        for perp in (0.0, CHIP_PERP / 2, -CHIP_PERP / 2, CHIP_PERP, -CHIP_PERP):
+            x, y = px - ty * perp, py + tx * perp
+            cost = (W_OVER * overlap(x, y, e["cw"] + 4, blocked + chips)
+                    + abs(ds) + W_PERP * abs(perp))
+            if best_cost is None or cost < best_cost:
+                best, best_cost = (x, y), cost
+        if best_cost == 0.0 and ds == 0.0:
             break
-        if n_hit < best_n:
-            best, best_n = (x, y), n_hit
-    if best_n:  # no clean slot on the line: step off it, smallest offset that clears
-        x, y = best
-        for cand in [y + s * k * (CH + 3) for k in range(1, 12) for s in (-1, 1)]:
-            if hits(x, cand, e["cw"], blocked + chips) == 0:
-                y = cand
-                break
-        best = (x, y)
     e["cx"], e["cy"] = best
-    chips.append((e["cx"], e["cy"], e["cw"] + 2, CH))
+    chips.append((e["cx"], e["cy"], e["cw"] + 4, CH))
 
 for e in edges:
     p0, p1, p2, p3 = e["pts"]
@@ -311,6 +371,27 @@ for e in edges:
 
 height = max(height, max(e["cy"] for e in edges) + 26,
              *[bez(e["pts"], 0.5)[1] + 26 for e in edges if e["span"] >= 3])
+
+# ---- the gate on the chips -------------------------------------------------
+# A chip off its line is the defect this placement exists to remove, and like a label leaving
+# its lane it is invisible in a diff: the page still renders. So it is measured here, against
+# the coordinates about to be written, and the build refuses rather than publishes.
+CHIP_MAX_OFF = CHIP_PERP + 0.5   # half a chip height, so the line crosses the chip
+
+
+def dist_to_path(pt, pts, n=400):
+    return min(math.hypot(pt[0] - x, pt[1] - y)
+               for x, y in (bez(pts, i / n) for i in range(n + 1)))
+
+
+chip_off = [(dist_to_path((e["cx"], e["cy"]), e["pts"]), e) for e in edges]
+chip_mid = [(math.hypot(e["cx"] - e["mid"][0], e["cy"] - e["mid"][1]), e) for e in edges]
+_adrift = [(d, e) for d, e in chip_off if d > CHIP_MAX_OFF]
+if _adrift:
+    for d, e in sorted(_adrift, reverse=True, key=lambda r: r[0]):
+        print(f"[layout] CHIP ADRIFT by {d:.1f}px: {e['v']!r} on {e['s']}->{e['t']}",
+              file=sys.stderr)
+    sys.exit("[layout] refusing to write a drawing in which a verb floats free of its line")
 
 bands = []
 for cs, label in BANDS:
@@ -379,3 +460,11 @@ if _fellback:
         print(f"[layout]   ... and {len(uniq) - 20} more", file=sys.stderr)
 
 print(f"lanes: tightest label has {LANE_TIGHT[0]:.1f}px of lane to spare ({LANE_TIGHT[1]})")
+
+_wo, _we = max(chip_off, key=lambda r: r[0])
+_wm, _wme = max(chip_mid, key=lambda r: r[0])
+_on_mid = sum(1 for d, _e in chip_mid if d < 0.5)
+print(f"chips: {len(edges)} verbs, {_on_mid} sitting on the exact midpoint of their edge. "
+      f"Worst offset from the midpoint {_wm:.1f}px ({_wme['v']!r} on "
+      f"{_wme['s']}->{_wme['t']}); worst distance from the line itself {_wo:.1f}px "
+      f"({_we['v']!r} on {_we['s']}->{_we['t']}), cap {CHIP_MAX_OFF:.1f}px")
