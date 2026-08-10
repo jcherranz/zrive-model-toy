@@ -76,9 +76,8 @@ main {
 #view-board { display: none; overflow-y: auto; }
 body.board #view-diagram { display: none; }
 body.board #view-board { display: flex; }
-body.board .legend { display: none; }
-/* The subtitle, the legend and the ghost toggle all describe the drawing, so on the board they
-   are not dimmed or reworded, they are gone. */
+/* The subtitle and the ghost toggle both describe the drawing, so on the board they are not
+   dimmed or reworded, they are gone. */
 .sub-board { display: none; }
 body.board .sub-diagram { display: none; }
 body.board .sub-board { display: inline; }
@@ -161,29 +160,6 @@ h1 {
   color: var(--fg-warning);
   font-size: 11px;
   font-weight: 600;
-}
-
-.legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 12px;
-  margin-top: 7px;
-}
-
-.legend span {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  color: var(--fg-muted);
-  white-space: nowrap;
-}
-
-.legend i {
-  width: 9px;
-  height: 9px;
-  border-radius: 2px;
-  display: inline-block;
 }
 
 /* ---- canvas ------------------------------------------------------------- */
@@ -850,11 +826,6 @@ body.fb-mode .fb-popover select { cursor: pointer; }
 }
 
 body.hide-ghosts .ghost { display: none; }
-
-.legend span.ghost i {
-  background: transparent;
-  border: 1.25px dashed var(--c-gray-3);
-}
 
 .node.ghost .tile-bg {
   stroke-dasharray: 3 2.4;

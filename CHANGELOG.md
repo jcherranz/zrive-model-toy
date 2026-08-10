@@ -60,6 +60,28 @@ Dates are ISO. Newest first.
     all. It frames the group rather than the tile, which is the wrong shape and the right trade
     at that moment.
 
+### Removed
+
+- The header legend, #32. Twelve swatches naming the twelve tile colours, filed twice by the
+  owner as redundant. It was: the panel names the type of any node on a click, in that node's
+  own colour, the tooltip on a tile carries the same words without one, and the band captions
+  name the lanes standing. The colour was the least of what identified a tile and the legend
+  was the most expensive way the page said it. **What is no longer explained anywhere is the
+  key as a key**, that is, the whole colour-to-type mapping readable at a glance without
+  touching anything, and with it the one line that named the dashed empty tile in words, `does
+  not exist in any system`. Per node both are still recoverable, from the panel and from the
+  tooltip, and each ghost's panel note says in a sentence what its absence costs; the `ghosts`
+  button's own title attribute carries the phrase for anyone hovering it. That is a decision
+  for the owner and not one taken here: nothing was invented to replace the legend elsewhere.
+  The space is simply given back to the drawing. The header loses a row at every width and four
+  of them at 390px: it measures 79px down to 58px at 1440x900, and 177px down to 119px at
+  390x844, all of it going to the canvas, which is the height the standing defect about fitting
+  one screen is fought over. Driven at both widths: no horizontal page overflow
+  (`scrollWidth === clientWidth`), every header control still reachable by `elementFromPoint`
+  at its own centre rather than merely present, the board view unchanged at four columns, and
+  no console errors. `G.types` is still read, for the colour, the type name and the glyph of
+  each tile; the model and the drawing are untouched.
+
 ### Added
 
 - The board refreshes itself while it is on screen, and draws from the GitHub API directly when a

@@ -38,19 +38,10 @@
     return 'rgba(' + (v >> 16 & 255) + ',' + (v >> 8 & 255) + ',' + (v & 255) + ',' + a + ')';
   }
 
-  // ---- legend --------------------------------------------------------------
-  var legend = document.getElementById('legend');
-  G.types.forEach(function (t) {
-    var s = document.createElement('span');
-    if (t.ghost) s.className = 'ghost';
-    var i = document.createElement('i');
-    // The ghost swatch is an empty dashed box, the same shape the ghost tiles are drawn in,
-    // so the legend entry and the thing it names are recognisably one mark.
-    if (t.ghost) { i.style.borderColor = t.c; } else { i.style.background = t.c; }
-    s.appendChild(i);
-    s.appendChild(document.createTextNode(t.label));
-    legend.appendChild(s);
-  });
+  // There is no legend. It was twelve swatches restating what the panel says on a click and
+  // what the band captions say standing, and it cost the drawing a header row at every width
+  // and four of them at 390px. Issue 32. G.types is still read above, for the colour, the type
+  // name and the glyph of each tile.
 
   // ---- svg scaffolding -----------------------------------------------------
   // The page holds two drawings, laid out independently by the build: G is one cohort and G2
