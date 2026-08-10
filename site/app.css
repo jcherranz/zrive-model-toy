@@ -126,6 +126,15 @@ header {
 .linkbtn:focus-visible { outline: 2px solid var(--i-primary); outline-offset: 1px; }
 .linkbtn[aria-expanded="true"] { font-weight: 600; }
 
+/* A disabled control says so before it is clicked. It keeps its place in the row, because a
+   control that vanishes and reappears is harder to find than one that greys out. */
+.linkbtn:disabled {
+  color: var(--c-gray-3);
+  cursor: default;
+}
+
+.linkbtn:disabled:hover { text-decoration: none; }
+
 h1 {
   margin: 0;
   font-size: var(--fs-base);
@@ -711,11 +720,25 @@ body.fb-mode .fb-popover select { cursor: pointer; }
      100%, which is what the box should be when no drawing has been laid into it. */
   #graph { min-width: var(--drawing-w, 100%); height: auto; }
   .hrow { flex-wrap: wrap; gap: 8px; }
+  /* The nav has to wrap here, not only the row that holds it. The feedback toggle grows when
+     the mode is on, from "feedback" to "feedback: on (Esc to exit)", and a nav that cannot
+     wrap answers that by pushing the board link off the right edge: at 360px and below the
+     link ends up entirely outside the viewport, reachable only by scrolling the page
+     sideways. The mode that widens the control is the one in which the header has to stay
+     usable, so this is the same requirement as issue 22 on the other axis. Wrapping alone is
+     not enough: the nav keeps `flex: none` from the desktop rule, so it is sized to its own
+     max-content width and its children never meet an edge to wrap at. It is given the row
+     here, and then wraps inside it. */
+  .hnav { flex: 1 1 100%; flex-wrap: wrap; row-gap: 6px; }
   .bcols { display: block; }
   .bcol { min-width: 0; margin-bottom: 10px; }
+  /* One number, used twice. The sheet's height and the room reserved under the drawing for it
+     are the same measurement, and writing it twice is how they come to disagree. It is on the
+     root because the panel is a sibling of the diagram, not a descendant of it. */
+  :root { --sheet-h: 62vh; }
   #panel {
     width: 100%;
-    height: 62%;
+    height: var(--sheet-h);
     top: auto;
     bottom: 0;
     border-left: 0;
@@ -723,7 +746,14 @@ body.fb-mode .fb-popover select { cursor: pointer; }
     transform: translateY(100%);
   }
   #panel.open { transform: none; }
-  body.panel-open #canvas { margin-right: 0; }
+  /* The sheet covers the bottom of the screen, and reveal() answers that by scrolling the node
+     up out of it. That only works if there is somewhere to scroll to: the page here is barely
+     taller than the viewport, so without this the scroll runs out after a few dozen pixels and
+     the lowest two thirds of the drawing can never be brought out from under the panel. While
+     the panel is open the canvas reserves the sheet's own height underneath the drawing, which
+     is the room reveal() then uses. It is behind the sheet, so nothing shows in it, and it
+     goes away with the selection. */
+  body.panel-open #canvas { margin-right: 0; padding-bottom: var(--sheet-h); }
 }
 
 /* ---- ghosts: the classes that do not exist -------------------------------

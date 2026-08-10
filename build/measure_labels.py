@@ -53,8 +53,11 @@ CHROME_CANDIDATES = [
 ]
 
 # The band captions are laid out by build_layout.py from the column widths, not from their own
-# text, so they are measured for the overflow check rather than for wrapping.
-BANDS = ["programme and employer", "session templates", "instructors", "cohort sessions",
+# text, so they are measured for the overflow check rather than for wrapping. A caption that
+# runs to more than one line is measured line by line, because that is how the check reads it:
+# a caption is only legal if every line of it fits the lane on its own.
+BANDS = ["programme and employer", "session templates", "instructors",
+         "cohort sessions", "and the visit host",
          "cohort and students", "enrolment to claim"]
 
 # Not named by the stylesheet, but a plausible resolution of its final `sans-serif` on a

@@ -25,8 +25,7 @@ from model import TYPES, NODES, EDGES, with_second_cohort  # noqa: E402
 
 COL_W = [166, 232, 122, 124, 80, 102, 92, 92]
 GAP_X, MARGIN_X = 18, 22
-BAND_TOP, BAND_PAD, BAND_GAP = 21, 9, 10
-MARGIN_Y = BAND_TOP + 16
+BAND_PAD, BAND_GAP = 9, 10
 TILE, GAP_LABEL, LINE_H, FONT = 34, 7, 11.5, 10.0
 MIN_GAP = 26
 NCOL = len(COL_W)
@@ -35,14 +34,28 @@ NCOL = len(COL_W)
 # with its own caption. The instructors and the session templates sit in bands of their own
 # for exactly this reason: they are different kinds of object and the drawing should say so
 # without relying on tile colour.
+#
+# A caption is a claim about the type of everything under it, so it has to hold for every tile
+# in the lane and not merely for most of them. The cohort sessions lane also holds the empresa
+# colaboradora, whose visit attaches at session level, and that placement is right: the finde
+# presencial is a session level event and the "hosts visit" edge leaves from beside the
+# sessions it is about. The caption is therefore the thing that had to change. Captions are
+# written as a tuple of lines rather than one string because a lane is only as wide as the
+# columns under it and a longer caption has nowhere to go sideways.
 BANDS = [
-    ([0], "programme and employer"),
-    ([1], "session templates"),
-    ([2], "instructors"),
-    ([3], "cohort sessions"),
-    ([4, 5], "cohort and students"),
-    ([6, 7], "enrolment to claim"),
+    ([0], ("programme and employer",)),
+    ([1], ("session templates",)),
+    ([2], ("instructors",)),
+    ([3], ("cohort sessions", "and the visit host")),
+    ([4, 5], ("cohort and students",)),
+    ([6, 7], ("enrolment to claim",)),
 ]
+
+# The last caption line sits CAP_GAP above the top of the bands and any line before it stacks
+# above that, so the drawing gains headroom only if some lane actually needs a second line.
+CAP_LH, CAP_GAP = 11.0, 7
+BAND_TOP = 21 + round(CAP_LH * (max(len(lines) for _cs, lines in BANDS) - 1))
+MARGIN_Y = BAND_TOP + 16
 
 COLX, _acc = [], MARGIN_X
 _band_of = {c: i for i, (cs, _l) in enumerate(BANDS) for c in cs}
@@ -128,22 +141,24 @@ def wrap(label, maxw, italic=False):
 # claim, and it breaks it silently: the page still renders. So it is checked here, before a
 # single coordinate is written, against measured widths rather than guessed ones.
 BAND_X = {}
-for _cs, _label in BANDS:
+for _cs, _lines in BANDS:
     _x0 = COLX[_cs[0]] - COL_W[_cs[0]] / 2 - BAND_PAD
     _x1 = COLX[_cs[-1]] + COL_W[_cs[-1]] / 2 + BAND_PAD
     for _c in _cs:
-        BAND_X[_c] = (_x0, _x1, _label)
+        BAND_X[_c] = (_x0, _x1, " ".join(_lines))
 
 # The caption over a lane is sized by the columns under it, not by its own text, so it can
-# outgrow the lane it names without anything noticing. It depends on no node, so it is checked
-# once rather than once per drawing.
+# outgrow the lane it names without anything noticing. Every line is checked, not the caption
+# as a whole: a caption that is only legal because it was split has to be legal line by line.
+# It depends on no node, so it is checked once rather than once per drawing.
 CAP_OVER = []
-for _cs, _label in BANDS:
+for _cs, _lines in BANDS:
     _x0 = BAND_X[_cs[0]][0]
     _x1 = BAND_X[_cs[-1]][1]
-    _cap = text_w(_label, 9.0, 600, False, True)
-    if _cap > _x1 - _x0:
-        CAP_OVER.append((_x1 - _x0 - _cap, "band", _label, _label))
+    for _line in _lines:
+        _cap = text_w(_line, 9.0, 600, False, True)
+        if _cap > _x1 - _x0:
+            CAP_OVER.append((_x1 - _x0 - _cap, "band", _line, " ".join(_lines)))
 
 
 SPREAD, SPREAD_FROM = 0.42, 4
@@ -416,13 +431,15 @@ def layout(model_nodes, model_edges, tag, spread_share=None):
         sys.exit("[layout] refusing to write a drawing in which a verb floats free of its line")
 
     bands = []
-    for cs, label in BANDS:
+    for cs, lines in BANDS:
         x0 = COLX[cs[0]] - COL_W[cs[0]] / 2 - BAND_PAD
         x1 = COLX[cs[-1]] + COL_W[cs[-1]] / 2 + BAND_PAD
-        bands.append({"x": round(x0, 1), "w": round(x1 - x0, 1), "label": label})
+        bands.append({"x": round(x0, 1), "w": round(x1 - x0, 1),
+                      "label": " ".join(lines), "lines": list(lines)})
 
     out = {
         "w": W, "h": round(height), "bandTop": BAND_TOP,
+        "capLineH": CAP_LH, "capGap": CAP_GAP,
         "bands": bands,
         "types": [{"k": k, "label": lab, "c": col, "glyph": g,
                    "ghost": 1 if k == "Ghost" else None}

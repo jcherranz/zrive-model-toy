@@ -28,6 +28,10 @@
   var fbMode = false;
   var popoverEl = null;
   var items = [];                   // accumulated FEEDBACK blocks this session, for "copy all"
+  // Typed but unfiled notes, keyed by the descriptor of the element they are about. A note
+  // survives every way of closing the popover, so the Escape that leaves capture mode and the
+  // 3 that closes the box are no longer ways of losing a sentence somebody wrote.
+  var drafts = {};
 
   // ---- context ---------------------------------------------------------------------------
   // monetary-lab pins a note to a permalink encoding the whole model state. The equivalent
@@ -298,24 +302,56 @@
   }
 
   // ---- popover ---------------------------------------------------------------------------
+  // Closing keeps the note. _saveDraft is written by openPopover and is the only thing that
+  // knows which textarea belongs to this box, so every close goes through here: the button,
+  // the 3 shortcut, the Escape that leaves capture mode, and the close that precedes opening
+  // the next popover.
   function closePopover() {
-    if (popoverEl) { popoverEl.remove(); popoverEl = null; }
+    if (popoverEl) {
+      if (popoverEl._saveDraft) { try { popoverEl._saveDraft(); } catch (e) { /* never block */ } }
+      popoverEl.remove();
+      popoverEl = null;
+    }
   }
 
+  // The box is placed in the band between the header and the footer, never over either.
+  //
+  // The header is not ordinary furniture here: its own toggle is the one element capture mode
+  // exempts from capture, so that the mode can be turned off. A popover drawn across it takes
+  // that exemption back, which is what issue 22 was. Both edges are read from live rects and
+  // not from offsetHeight, because below the breakpoint the page scrolls and neither the
+  // header nor the footer is pinned to the viewport: a header scrolled out of view reserves
+  // nothing, and a footer below the fold reserves nothing either.
   function positionNear(box, x, y) {
     box.style.left = '0px';
     box.style.top = '0px';
+    box.style.maxHeight = '';
     var w = box.offsetWidth || 300;
     var h = box.offsetHeight || 200;
-    // Reserve the footer so the popover never sits under the disclaimer line.
-    var footer = document.querySelector('footer');
-    var reserve = ((footer && footer.offsetHeight) || 0) + 8;
+
+    var hdrEl = document.querySelector('header');
+    var hr = hdrEl ? hdrEl.getBoundingClientRect() : null;
+    var floor = (hr && hr.bottom > 8) ? hr.bottom + 6 : 8;
+    var ftrEl = document.querySelector('footer');
+    var fr = ftrEl ? ftrEl.getBoundingClientRect() : null;
+    var ceil = window.innerHeight - 8;
+    if (fr && fr.top < window.innerHeight) ceil = Math.min(ceil, fr.top - 6);
+    if (ceil - floor < 120) ceil = Math.min(window.innerHeight - 8, floor + 120);
+
+    // Once the box is taller than the band it has to fit in, it scrolls inside itself rather
+    // than growing past one of the two edges. A note half off the screen cannot be filed.
+    if (h > ceil - floor) {
+      box.style.maxHeight = (ceil - floor) + 'px';
+      box.style.overflowY = 'auto';
+      h = box.offsetHeight;
+    }
+
     var left = x + 12;
     var top = y + 12;
-    if (left + w > window.innerWidth - 8) left = Math.max(8, window.innerWidth - w - 8);
-    if (top + h > window.innerHeight - reserve) {
-      top = Math.max(8, window.innerHeight - reserve - h);
-    }
+    if (left + w > window.innerWidth - 8) left = window.innerWidth - w - 8;
+    if (left < 8) left = 8;
+    if (top + h > ceil) top = ceil - h;
+    if (top < floor) top = floor;
     box.style.left = left + 'px';
     box.style.top = top + 'px';
   }
@@ -410,8 +446,12 @@
         '<button type="button" class="linkbtn fb-file" title="file straight to GitHub if ' +
           'connected, else open a prefilled issue form">file to board</button>' +
         '<button type="button" class="linkbtn fb-copy">copy</button>' +
-        '<button type="button" class="linkbtn fb-copyall">copy all ' +
-          '(<span class="fb-count">' + items.length + '</span>)</button>' +
+        // Disabled while nothing has been copied. An enabled control that writes an empty
+        // clipboard and reports success is a lie about what the reader now holds, and one
+        // that does nothing at all is worse than one that is not there.
+        '<button type="button" class="linkbtn fb-copyall"' +
+          (items.length ? '' : ' disabled title="nothing copied yet in this session"') +
+          '>copy all (<span class="fb-count">' + items.length + '</span>)</button>' +
         '<button type="button" class="linkbtn fb-close">close</button>' +
       '</div>' +
       '<div class="fb-file-result" style="display:none"></div>' +
@@ -430,18 +470,38 @@
     box.setAttribute('tabindex', '-1');
     box.focus();
 
+    // Anything that changes the box's height has to re-clamp it, or the clamp is computed
+    // against a height the box no longer has. The GitHub section below is the reason: it is
+    // rendered after the first placement and is the tallest block in the box, so without this
+    // the popover was placed as though it were a hundred pixels shorter than it is and could
+    // then run off the bottom of the screen.
+    var reclamp = function () {
+      if (popoverEl === box) positionNear(box, box._at.x, box._at.y);
+    };
+
     var refreshGh = function () {
       var ghEl = box.querySelector('.fb-gh');
       ghEl.innerHTML = ghSectionHtml(!!getToken());
       wireGh(ghEl, refreshGh);
+      reclamp();
     };
     refreshGh();
+
+    // A note typed about this element and not filed is put back when the element is clicked
+    // again, however the box was closed the first time.
+    if (drafts[descriptor]) ta.value = drafts[descriptor];
+    box._saveDraft = function () {
+      if (ta.value.trim()) drafts[descriptor] = ta.value;
+      else delete drafts[descriptor];
+    };
 
     var doCopy = function () {
       var block = buildBlock(descriptor, context, ta.value);
       items.push(block);
       var countEl = box.querySelector('.fb-count');
       if (countEl) countEl.textContent = String(items.length);
+      var all = box.querySelector('.fb-copyall');
+      if (all) { all.disabled = false; all.removeAttribute('title'); }
       copyText(block, box.querySelector('.fb-copy'));
     };
     var doCopyAll = function () {
@@ -460,6 +520,7 @@
 
     var result = function (text, kind, url) {
       showResultIn(box.querySelector('.fb-file-result'), 'fb-file-result', text, kind, url);
+      reclamp();
     };
 
     var doFile = function () {
@@ -473,9 +534,15 @@
       }
       result('filing…', '');
       return fileIssue(descriptor, context, note, priority, category).then(function (r) {
-        if (r.ok) result('filed #' + r.number + ' ✓', 'ok', r.url);
-        else result('couldn’t file directly (' + r.error + '); opening the prefilled ' +
-                    'form instead.', 'err');
+        if (r.ok) {
+          // Filed, so the draft has become an issue and is no longer a draft. On every other
+          // outcome it is kept: the note still exists only here.
+          delete drafts[descriptor];
+          result('filed #' + r.number + ' ✓', 'ok', r.url);
+        } else {
+          result('couldn’t file directly (' + r.error + '); opening the prefilled ' +
+                 'form instead.', 'err');
+        }
       });
     };
 

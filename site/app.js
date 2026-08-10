@@ -81,8 +81,19 @@
     (G.bands || []).forEach(function (b) {
       el('rect', { class: 'band', x: b.x, y: G.bandTop, width: b.w, height: G.h - G.bandTop - 4 },
          gBand);
-      var t = el('text', { class: 'band-cap', x: b.x + b.w / 2, y: G.bandTop - 7 }, gBand);
-      t.textContent = b.label;
+      // A caption can run to more than one line, because a lane is only as wide as the columns
+      // under it and a caption that has to say more has nowhere to go sideways. The lines are
+      // stacked upwards from the top of the band, so the last one always sits the same
+      // distance above the lane whatever the caption above it does. The build reserves the
+      // headroom and refuses to write a drawing in which any one line is wider than its lane.
+      var lines = b.lines || [b.label];
+      lines.forEach(function (line, i) {
+        var t = el('text', {
+          class: 'band-cap', x: b.x + b.w / 2,
+          y: G.bandTop - (G.capGap || 7) - (lines.length - 1 - i) * (G.capLineH || 11)
+        }, gBand);
+        t.textContent = line;
+      });
     });
 
     var gEdge = el('g', {}, svg);
@@ -293,19 +304,55 @@
     reveal(n);
   }
 
-  // Keep the selected node visible once the panel has taken its bite of the width.
-  // Both the offset and the limit are read off the element that actually scrolls. The drawing
-  // does not start at the canvas's scroll origin, because the canvas is padded, and the scroll
-  // extent is the canvas's own scrollWidth and not the width of the drawing inside it: taking
-  // either from the svg box left the last few pixels of the drawing out of reach.
+  // Keep the selected node visible once the panel has taken its bite of the screen.
+  //
+  // The panel takes that bite on a different axis at each width. Above the breakpoint it is a
+  // rail down the right, so the horizontal pass below is the whole of the job. Below it the
+  // panel is a sheet across the bottom, and the node the sheet describes is usually underneath
+  // it: at 390px, 22 of the 30 tiles sit in the sheet's band. So both axes are handled here.
+  //
+  // Horizontal: both the offset and the limit are read off the element that actually scrolls.
+  // The drawing does not start at the canvas's scroll origin, because the canvas is padded,
+  // and the scroll extent is the canvas's own scrollWidth and not the width of the drawing
+  // inside it: taking either from the svg box left the last few pixels out of reach.
+  //
+  // Vertical: the free band is the viewport minus the header and minus the sheet. The sheet is
+  // recognised by its computed position rather than by a copy of the breakpoint in JavaScript,
+  // and its height is read from offsetHeight rather than from a rect, because the panel is
+  // still sliding when this runs and a transform moves the rect while the transition plays.
+  // Whichever element can scroll vertically is the one that is scrolled: the canvas when it
+  // has its own overflow (the two cohort view), otherwise the page.
   function reveal(n) {
     setTimeout(function () {
       var sr = svg.getBoundingClientRect(), cr = canvas.getBoundingClientRect();
       var scale = sr.width / G.w;
+
       var at = (sr.left - cr.left) + canvas.scrollLeft + n.x * scale;
       var want = at - canvas.clientWidth / 2;
       var max = canvas.scrollWidth - canvas.clientWidth;
       canvas.scrollLeft = Math.max(0, Math.min(want, Math.max(0, max)));
+
+      var top = 0;
+      var hr = hdr ? hdr.getBoundingClientRect() : null;
+      if (hr && hr.bottom > 0) top = hr.bottom;
+      var bottom = window.innerHeight;
+      // A panel that spans the width is the sheet across the bottom and obstructs this axis;
+      // one that does not is the right hand rail, which takes width and not height. The test
+      // is the panel's own geometry rather than a copy of the breakpoint in JavaScript, and
+      // offsetHeight rather than a rect, because the sheet is still sliding up when this runs
+      // and a transform moves the rect while the transition plays.
+      if (panel.classList.contains('open') && panel.offsetWidth >= window.innerWidth - 1) {
+        bottom = Math.max(0, window.innerHeight - panel.offsetHeight);
+      }
+      if (bottom - top < TILE + 8) return;
+
+      var y = sr.top + n.y * scale;
+      var half = (TILE / 2) * scale + 6;
+      if (y - half >= top && y + half <= bottom) return;
+      var delta = y - (top + bottom) / 2;
+      var vmax = canvas.scrollHeight - canvas.clientHeight;
+      if (vmax > 1) canvas.scrollTop = Math.max(0, Math.min(canvas.scrollTop + delta, vmax));
+      else window.scrollBy(0, delta);
     }, 30);
   }
 

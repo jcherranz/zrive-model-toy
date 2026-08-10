@@ -5,6 +5,98 @@ Dates are ISO. Newest first.
 
 ## [Unreleased]
 
+### Fixed
+
+- `copy all` no longer looks alive while it is not, for issue #23. It is disabled while the
+  count is zero and comes back the moment a block is copied. Disabling was preferred to making
+  it work on an empty list: a clipboard write of nothing that reports `copied` is a lie about
+  what the reader now holds, and there is no honest thing for the control to do. The `2`
+  shortcut already stood down on the empty case and still does. Driven at 1440x900: with the
+  count at zero the button reports `disabled: true`; after one `copy` the count reads 1, the
+  button reports `disabled: false`, and clicking it changes the label to `copied`.
+
+- The capture popover is placed in the band between the header and the footer, for issue #22.
+  It used to reserve the footer and nothing else, so a click in the header opened the box on
+  top of the header, over the feedback toggle that capture mode deliberately exempts so the
+  mode can be turned off. Escape still recovered, so it was never a trap, but the exemption
+  was defeated by the geometry and the fix belongs in the placement. Both edges are read from
+  live rects rather than from `offsetHeight`, because below the breakpoint the page scrolls and
+  neither the header nor the footer is pinned to the viewport: a header scrolled out of view
+  reserves nothing. Where the box is taller than the band, it scrolls inside itself rather than
+  growing past either edge. Driven at 390x844, clicking `ghosts` with the mode on: the popover
+  top is 182.8 against a header bottom of 176.8, and `elementFromPoint` at the centre of all
+  four header controls reaches the control.
+
+- The same fix corrects a second defect found while measuring it. The popover was positioned
+  before its GitHub connect section was rendered into it, so the clamp was computed against a
+  height about a hundred pixels short of the real one and the box could then run off the
+  bottom of the screen. Anything that changes the box's height now re-clamps it: the connect
+  section, connecting and disconnecting, and the result line after a file. Driven at 390x844
+  with a click low on the page: the box bottom is 763.3 in an 844 viewport, where it was
+  846.5 before.
+
+- Below the 760px breakpoint the detail panel no longer opens on top of the node it describes,
+  for issue #21. `reveal()` now handles both axes. The free band is the viewport minus the
+  header and minus the sheet; the sheet is recognised by its own geometry rather than by a copy
+  of the breakpoint in JavaScript, and its height is read from `offsetHeight` rather than from
+  a rect, because the panel is still sliding when `reveal()` runs and a transform moves the
+  rect while the transition plays. Whichever element can scroll vertically is the one scrolled:
+  the canvas where it has its own overflow, otherwise the page.
+
+- Handling the axis was necessary and not sufficient, which is the part worth recording. At
+  390px the page is barely taller than the viewport, about 36px of scroll in total, so there
+  was nowhere to scroll to and the vertical pass moved nothing. While the panel is open the
+  canvas now reserves the sheet's own height underneath the drawing, which is the room
+  `reveal()` uses; the reserve is behind the sheet, so nothing shows in it, and it goes with
+  the selection. One number, `--sheet-h`, sizes the sheet and the reserve, because writing that
+  measurement twice is how the two come to disagree. Driven at 390x844 over all 30 nodes in
+  turn: 28 of 30 were covered by the panel before, 0 of 30 after, each one measured clear of
+  both the sheet and the header.
+
+- A typed but unfiled note survives every way of closing the popover, for issue #25. Escape,
+  which is also how capture mode is left, and the `3` shortcut both destroyed it silently.
+  Notes are held per element and put back when that element is clicked again; a note that has
+  been filed stops being a draft. Driven at 1440x900: a note typed, Escape pressed, the mode
+  re-entered and the same node clicked reads back the sentence that was typed, and the same
+  for `3`, while a different element still opens empty.
+
+- Capture mode no longer pushes the `board` link off the right edge below 400px, for issue #26.
+  Turning the mode on widens its own toggle, and `.hnav` kept `flex: none`, so it was sized to
+  its own max-content width and its children never met an edge to wrap at. The nav is given the
+  row below the breakpoint and wraps inside it. Driven at 320, 360, 390, 414, 760, 1024 and
+  1440 with the mode on: every header control is inside the viewport and reachable at every
+  width, and the page no longer gains a horizontal scroll it does not otherwise have. Before,
+  at 320px, the link sat 71px outside the viewport.
+
+### Changed
+
+- The lane captioned `cohort sessions` now reads `cohort sessions and the visit host`, for
+  issue #24. A Company sat in that lane in both drawings and the placement is right: the
+  company is the empresa colaboradora, its `hosts visit` edge attaches at session level, and
+  the finde presencial is a session-level event. Moving the tile into the companies lane would
+  have made the diagram tidier and less true, so the caption was the thing that had to change.
+
+  Of the three ways to make the lane honest, widening the caption was chosen over a sub-caption
+  and over marking the one tile. A caption is the drawing's own statement of what a lane holds,
+  so a lane that holds one more kind of thing should say so in the same place a reader already
+  looks; a sub-caption would have added a second kind of type assertion to learn, and marking
+  the tile would have left the caption still asserting a type the lane does not hold. The
+  wording names the visit rather than the sessions because the company hosts one visit and does
+  not host the six sessions, and it echoes the `hosts visit` chip on the edge, which is what
+  the reader sees next. The edge is untouched and still reads at a glance.
+
+- Band captions may run to more than one line, which is what let the caption widen at all: a
+  lane is only as wide as the columns under it, so a longer caption has nowhere to go sideways.
+  Lines stack upwards from the top of the band, so the last line sits the same distance above
+  every lane whatever the caption above it does, and the drawing only gains headroom if some
+  lane actually needs a second line. The existing lane-overflow gate now checks every line
+  rather than the caption as a whole: a caption that is only legal because it was split has to
+  be legal line by line. `build/measure_labels.py` measures the lines, so the check still runs
+  on measured widths and not on the fallback estimate. The one cohort viewBox goes from
+  1230x574 to 1230x586. Diffed against the deployed drawing: every x coordinate is identical,
+  every band x and width is identical, and every y moves by exactly 11, the one line of
+  headroom the second caption line needs.
+
 ### Added
 
 - A second cohort behind a header switch, for issue #19. `Z-IB 2Q26` is instanced from the

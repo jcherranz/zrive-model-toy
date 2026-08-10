@@ -171,3 +171,35 @@ Two things are worth stating because they are the ways this loop fails quietly:
   exactly like a clipped right edge. Two rounds of work went at a defect that was not there.
   Before measuring a viewport-dependent fault, make the harness state the viewport it actually
   got, and prefer a container the harness controls over a window the tool negotiates.
+
+- **A caption that asserts a type must match what the lane holds, or the drawing lies about its
+  own structure.** A lane captioned `cohort sessions` held six cohort sessions and one company,
+  and the company was in the right place: its edge attaches at session level, which is a real
+  fact about the model. The tempting repair is to move the tile, which would have made the
+  drawing tidier and less true. The caption is a claim about every tile under it, so it is the
+  claim that has to be corrected, not the exception that has to be hidden. Where a placement is
+  right and a label is wrong, fix the label; a drawing that has been tidied into agreement with
+  its own captions has lost the thing it was drawn to show.
+
+- **Fixing the axis is not the same as fixing the defect.** The panel opened on top of the node
+  it described because `reveal()` handled only the horizontal axis, so the obvious fix was to
+  handle the vertical one too. It changed nothing: at 390px the page is about 36px taller than
+  the viewport, so there was nowhere to scroll to and the correct new code moved zero pixels.
+  The fix needed the room as well as the code, in the form of a reserve under the drawing the
+  size of the sheet. When a fix is written against a diagnosis rather than against a
+  measurement, drive it and read the number: a scroll that runs out looks exactly like a scroll
+  that was never asked for.
+
+- **A control that responds and reports nothing is worse than one that is absent.** `copy all`
+  answered a click with no clipboard write, no label change and no result line, in a row where
+  every other button answers. Two honest repairs existed, doing the empty thing and saying so,
+  or refusing the click; the second was right, because a clipboard write of nothing that reports
+  success is a lie about what the reader now holds. Prefer disabling to inventing a success.
+
+- **The mode that widens a control is the mode in which its neighbours have to stay reachable.**
+  Capture mode's toggle grows when the mode is on, and twice in one pass that growth broke the
+  header: once because the popover was placed over it, once because the nav could not wrap and
+  pushed the board link off the screen. Both were invisible above 400px and neither is visible
+  in a screenshot, because the link was still drawn, just outside the viewport. Assert reach
+  rather than presence: `elementFromPoint` at the centre of every control, at every width the
+  page claims to support.
