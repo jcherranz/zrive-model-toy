@@ -34,9 +34,17 @@ Dates are ISO. Newest first.
   `repository_dispatch` excepted, so the labels this workflow writes do not reach `board.yml` and
   the board would have gone on drawing the old column while every run went green. The workflow
   therefore dispatches `board.yml` itself, through the one trigger type the suppression exempts,
-  and only when a label actually changed. To be driven against the real repository and the
-  observed transitions recorded here before this entry is finished; nothing above has been
-  confirmed live yet. Permissions are `issues: write`, `contents: read` and `actions: write` for the dispatch, and
+  and only when a label actually changed. Driven against the real repository rather than reasoned
+  about, on a throwaway issue that was deleted afterwards: filing it wrote no label and started no
+  run of this workflow; assignment gave `[nothing] -> [status:in-progress]`; unassignment gave
+  `[status:in-progress] -> [status:backlog]`; closing as completed gave `[status:backlog] ->
+  [status:done]`, the run reading `state CLOSED, reason COMPLETED` off the API rather than off the
+  payload. The suppression showed itself exactly where it was predicted to: each of those three
+  label writes was followed by a `board` run whose event is `workflow_dispatch` and by no `board`
+  run whose event is `issues`, so without the dispatch the labels would have moved and the board
+  would not have. The one `board` run on `issues` in the whole sequence came from the human close,
+  and it queued alongside the dispatched one rather than evicting it, which is `queue: max` doing
+  what board.yml's comment says it does. Permissions are `issues: write`, `contents: read` and `actions: write` for the dispatch, and
   nothing else; the workflow is in its own concurrency group and not in `pages`, because it
   deploys nothing and must never wait behind a deploy, with one group across both jobs so that
   two runs cannot read the same labels and write back over each other.
