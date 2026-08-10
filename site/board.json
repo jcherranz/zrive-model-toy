@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T16:27:39Z",
+  "generated": "2026-08-10T16:40:11Z",
   "columns": [
     {
       "key": "raw",
@@ -101,18 +101,7 @@
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": [
-        {
-          "id": 46,
-          "title": "Make the diagram an infinite canvas: dot grid, pan and zoom",
-          "labels": [
-            "feedback",
-            "idea",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/46"
-        }
-      ]
+      "cards": []
     },
     {
       "key": "done",
@@ -127,6 +116,16 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/49"
+        },
+        {
+          "id": 46,
+          "title": "Make the diagram an infinite canvas: dot grid, pan and zoom",
+          "labels": [
+            "feedback",
+            "idea",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/46"
         },
         {
           "id": 45,
@@ -187,18 +186,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/26"
-        },
-        {
-          "id": 25,
-          "title": "Escape and the 3 shortcut destroy a typed but unfiled note",
-          "labels": [
-            "bug",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/25"
         }
       ],
-      "hidden": 22,
+      "hidden": 23,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
