@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T21:41:13Z",
+  "generated": "2026-08-10T21:41:43Z",
   "columns": [
     {
       "key": "raw",
@@ -64,6 +64,11 @@
     {
       "key": "in_progress",
       "title": "In progress",
+      "cards": []
+    },
+    {
+      "key": "done",
+      "title": "Done",
       "cards": [
         {
           "id": 55,
@@ -74,13 +79,7 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/55"
-        }
-      ]
-    },
-    {
-      "key": "done",
-      "title": "Done",
-      "cards": [
+        },
         {
           "id": 54,
           "title": "Documents are cited by position, so appending to one silently repoints the citations",
@@ -149,19 +148,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/46"
-        },
-        {
-          "id": 45,
-          "title": "Remove the selection frame drawn around a selected node",
-          "labels": [
-            "feedback",
-            "layout",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/45"
         }
       ],
-      "hidden": 31,
+      "hidden": 32,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
