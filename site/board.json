@@ -1,10 +1,20 @@
 {
-  "generated": "2026-08-10T12:20:09Z",
+  "generated": "2026-08-10T12:26:57Z",
   "columns": [
     {
       "key": "raw",
       "title": "Raw",
-      "cards": []
+      "cards": [
+        {
+          "id": 34,
+          "title": "Black box around selected nodes framing wrong and horrible",
+          "labels": [
+            "feedback",
+            "layout"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/34"
+        }
+      ]
     },
     {
       "key": "backlog",
