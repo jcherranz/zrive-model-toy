@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T17:58:28Z",
+  "generated": "2026-08-10T18:11:22Z",
   "columns": [
     {
       "key": "raw",
@@ -24,6 +24,12 @@
             "limitation"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
+        },
+        {
+          "id": 52,
+          "title": "zz-throwaway: a commit citation must not move this card",
+          "labels": [],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/52"
         }
       ]
     },
