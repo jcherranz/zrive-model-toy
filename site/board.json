@@ -1,35 +1,10 @@
 {
-  "generated": "2026-08-10T12:09:32Z",
+  "generated": "2026-08-10T12:10:11Z",
   "columns": [
     {
       "key": "raw",
       "title": "Raw",
-      "cards": [
-        {
-          "id": 6,
-          "title": "The safety gate cannot enumerate the origin, only the files the tree knows about",
-          "labels": [],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
-        },
-        {
-          "id": 32,
-          "title": "Remove (redundant / not needed)",
-          "labels": [
-            "bug",
-            "feedback"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/32"
-        },
-        {
-          "id": 33,
-          "title": "Remove (redundant / not needed)",
-          "labels": [
-            "feedback",
-            "layout"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/33"
-        }
-      ]
+      "cards": []
     },
     {
       "key": "backlog",
@@ -54,6 +29,26 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/5"
+        },
+        {
+          "id": 6,
+          "title": "The safety gate cannot enumerate the origin, only the files the tree knows about",
+          "labels": [
+            "documentation",
+            "limitation",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
+        },
+        {
+          "id": 32,
+          "title": "Remove the header legend, redundant / not needed",
+          "labels": [
+            "feedback",
+            "layout",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/32"
         }
       ]
     },
@@ -132,7 +127,7 @@
           "labels": [
             "bug",
             "layout",
-            "status:raw"
+            "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/10"
         },
@@ -204,7 +199,8 @@
           "id": 18,
           "title": "The cohort and students lane is emptier than the others",
           "labels": [
-            "limitation"
+            "limitation",
+            "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/18"
         },
@@ -224,7 +220,7 @@
           "labels": [
             "bug",
             "layout",
-            "status:raw"
+            "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/20"
         },
@@ -285,6 +281,15 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/26"
+        },
+        {
+          "id": 33,
+          "title": "Remove (redundant / not needed)",
+          "labels": [
+            "feedback",
+            "layout"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/33"
         }
       ]
     }
