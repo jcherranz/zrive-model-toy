@@ -563,6 +563,21 @@
   // draw this element at all, scrolling exactly as it did. The diagram view itself has nothing
   // to scroll: the page is one screen tall at every width and the canvas does not overflow.
   //
+  // This listener was moved to the document and back during the work, and the round trip is
+  // worth a sentence because the evidence for moving it looked overwhelming and was noise.
+  // Driven over CDP at 1536x839, a wheel over a `rect.band` reached nothing, six times out of
+  // six, while the same gesture over bare svg three hundred pixels away worked six times out of
+  // six. That reads exactly like a container listener being deaf over its own children, and it
+  // is not: the wheel is hit tested against the browser's real widget while the dispatched event
+  // carries the emulated viewport's coordinates, and headless Chrome's widget is 800 by 600
+  // whatever the emulation reports. Every drop was a point the widget did not contain, and
+  // enlarging the widget past the viewport broke it again from the other side. Opening a real
+  // window of exactly the viewport's size and emulating nothing lands 12 wheels out of 12, over
+  // band rects and label text included. Same lesson as KAIZEN.md's entry on the 500px floor,
+  // from a new direction: make the harness state the size it actually got, and where a
+  // measurement depends on a coordinate, the size that matters is the widget's and not the
+  // page's.
+  //
   // ctrlKey is how a trackpad pinch arrives, at small deltas and a much higher rate than a
   // mouse wheel, so it gets its own multiplier. Both paths end in the same anchored zoom.
   canvas.addEventListener('wheel', function (e) {
