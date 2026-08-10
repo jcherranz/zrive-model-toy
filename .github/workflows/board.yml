@@ -1,65 +1,106 @@
 name: board
 
-# Render GitHub Issues into site/board.json, commit it if it changed, deploy the site, and
-# then read the deployed bytes back through the forbidden-content gate.
+# Render GitHub Issues into site/board.json and commit it if it changed. This workflow does not
+# deploy. When, and only when, it has committed something, it wakes pages.yml, which is the one
+# path in this repository that publishes.
 #
 # NO TRIAGE. A label decides a column and nothing infers one. An unlabelled issue lands in
 # Raw and a person moves it. There is no model call anywhere in this workflow.
 #
-# WHY THIS CANNOT RE-TRIGGER ITSELF. The workflow's one side effect is a commit of
-# site/board.json, which is a push. Two things stop that from coming back round:
+# ---------------------------------------------------------------------------------------------
+# WHY THE DEPLOY IS NOT HERE. Issue 39.
+#
+# board.yml and pages.yml used to share the `pages` concurrency group, so their RUNS serialised,
+# and they did. The collision was one level down, between the DEPLOYMENTS those runs create: the
+# Pages service holds a deployment open past the end of the run that created it, so a correctly
+# queued run can still meet a live deployment and fail with `Deployment request failed ... due to
+# in progress deployment`. Two board runs died that way. pages.yml, over 32 runs, never has.
+#
+# It started biting because the traffic rose, and the traffic was mostly waste. This workflow had
+# run 283 times and created a Pages deployment on every one of them, while site/board.json changed
+# 63 times in the whole life of the repository: most issue events do not change a column, the sync
+# is idempotent, and the run then uploaded and published bytes that were already live. Making the
+# deploy conditional on the commit removes roughly four deployments in five, and moving it out of
+# here leaves one workflow creating Pages deployments instead of two.
+#
+# The alternatives lost on their own terms. A retry around the deploy step would leave the same
+# number of deployments racing and would turn a collision into a delay that nothing counts, which
+# is the wrong direction for a repository whose andon is a red run. Debouncing board runs would
+# make the board lag the label by however long the debounce is, and the label following the work
+# closely enough to be believed is the whole value of the automation.
+#
+# ---------------------------------------------------------------------------------------------
+# WHY THIS CANNOT RE-TRIGGER ITSELF, and why the two loop guards are untouched.
 #   1. This workflow has no `push` trigger at all. It fires on `issues` events and on manual
-#      dispatch. A push cannot start it, whatever the commit message says. That is the
-#      primary guard and it is structural rather than textual.
-#   2. The bot commit carries `[skip ci]`, which stops the OTHER push-triggered workflow
-#      (pages.yml) from firing on it. Without that, every board update would deploy twice.
-#      pages.yml also refuses to run on a commit authored by this bot, which is the
-#      committer-identity check, kept there because that is the workflow a push can reach.
+#      dispatch. A push cannot start it, whatever the commit message says. That is the primary
+#      guard and it is structural rather than textual.
+#   2. The bot commit still carries `[skip ci]`, and pages.yml still refuses to run on a commit
+#      authored by this bot. Neither is loosened here, and neither is now redundant: together they
+#      are what keeps the board commit from starting a deploy on its own, which is what would make
+#      the wake-up below a second deploy instead of the only one.
+#   3. The wake-up is a `workflow_dispatch`, the same mechanism and the same documented exception
+#      that issue-status.yml uses to reach this workflow. Events raised with GITHUB_TOKEN start no
+#      run, and dispatch is one of the two types exempted. pages.yml writes no file and pushes
+#      nothing, so that arrow runs one way and stops.
 # A `labeled` event fired by a human relabelling an issue does start a new run; the sync is
-# idempotent, so that run rewrites the same file, finds no diff, and commits nothing.
+# idempotent, so that run rewrites the same file, finds no diff, commits nothing, and now also
+# deploys nothing.
+#
+# ---------------------------------------------------------------------------------------------
+# WHAT THIS COSTS, stated here rather than discovered later. The forbidden-content gate against
+# deployed bytes no longer runs in this workflow, because there is no deployment here to read
+# back. It runs in pages.yml after every deploy, and every board change reaches the origin through
+# pages.yml, so the deployed bytes are still gated after every deploy that happens; what moves is
+# where the andon lights, from the board run to the pages run. The repository gate below still
+# runs here and still runs before the commit, which is the check this workflow uniquely needs,
+# because its commit carries `[skip ci]` and is the one path that reaches main with no other
+# repository-side gate in front of it.
 
 on:
   issues:
     types: [opened, edited, deleted, labeled, unlabeled, closed, reopened]
   workflow_dispatch: {}
 
+# The minimum, and smaller than it was. `contents: write` to commit site/board.json, `issues: read`
+# to list them, `actions: write` for the pages.yml dispatch. `pages: write` and `id-token: write`
+# are gone with the deploy that needed them.
 permissions:
-  contents: write   # commit site/board.json
-  issues: read      # list issues
-  pages: write      # deploy the artifact
-  id-token: write   # required by actions/deploy-pages
+  contents: write
+  issues: read
+  actions: write
 
-# Shared with pages.yml so the two deploys serialise instead of racing. cancel-in-progress is
-# false on purpose: in monetary-lab's history a true value silently cancelled deploys with
-# zero steps run, which looks exactly like a deploy that happened.
+# Its own group, and no longer the `pages` group. This workflow deploys nothing now, so queueing
+# it behind a Pages deploy would buy nothing and would delay the redraw a reader is waiting for.
+# That is the same argument repo-gate.yml and issue-status.yml already make for their own groups.
+# It still serialises against itself, because two runs racing on the push of site/board.json is a
+# real collision and the rebase-retry path below is the expensive way to find out about it.
 #
-# queue: max, and why cancel-in-progress alone was not enough. cancel-in-progress: false
-# protects a RUNNING job and says nothing about a PENDING one. GitHub caps a concurrency group
-# at one pending run by default (queue: single), so a new trigger into the same group evicts the
-# run already waiting there, before it executes a single step, and surfaces no error: the run
-# appears in the list marked cancelled and reads like a run that was somehow superseded. Three
-# of the last six runs of this workflow went that way inside five minutes, at 17:38:47, 17:39:07
-# and 17:43:55, on rapid issue events. Nothing was lost, because a later run rebuilt the same
-# board from the same issues, which is the sync being idempotent covering for the loss rather
-# than the loss not happening. queue: max (GA 2026-05-07) raises the pending limit to 100 and
-# runs them first in, first out, so a same-group trigger can only queue behind a waiting run and
-# never in place of it.
+# cancel-in-progress is false on purpose: in monetary-lab's history a true value silently cancelled
+# work with zero steps run, which looks exactly like work that happened.
+#
+# queue: max, and why cancel-in-progress alone was not enough. cancel-in-progress: false protects a
+# RUNNING job and says nothing about a PENDING one. GitHub caps a concurrency group at one pending
+# run by default (queue: single), so a new trigger into the same group evicts the run already
+# waiting there, before it executes a single step, and surfaces no error: the run appears in the
+# list marked cancelled and reads like a run that was somehow superseded. Three of six runs of this
+# workflow went that way inside five minutes, at 17:38:47, 17:39:07 and 17:43:55, on rapid issue
+# events. Nothing was lost, because a later run rebuilt the same board from the same issues, which
+# is the sync being idempotent covering for the loss rather than the loss not happening. queue: max
+# (GA 2026-05-07) raises the pending limit to 100 and runs them first in, first out, so a
+# same-group trigger can only queue behind a waiting run and never in place of it.
 #
 # Caveat carried over from monetary-lab, where this was fixed first: no released actionlint
 # recognises the queue key inside concurrency and it reports it as an unexpected key. This
 # repository does not lint its workflows, so there is nothing to configure here; if a lint
 # workflow is ever added, it needs the ignore rule and not a smaller concurrency block.
 concurrency:
-  group: pages
+  group: board
   cancel-in-progress: false
   queue: max
 
 jobs:
   board:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -87,48 +128,64 @@ jobs:
       # re-sync died with "set the GH_TOKEN environment variable". It failed loudly rather
       # than committing an empty board, which is the assertion in fetchIssues working, but the
       # run was red for a reason that had nothing to do with the board.
+      #
+      # `committed` is the whole of the change this job makes to the deploy story. It is written
+      # once, at the end, from a variable rather than from several branches, because a step output
+      # written twice is a claim that depends on which write GitHub keeps.
       - name: Commit site/board.json if it changed
+        id: commit
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+
+          # nothing: there was no diff, or a rebase found the origin already carried it.
+          # pushed:  a commit of ours reached main and the origin now needs republishing.
+          # gaveup:  three pushes were rejected. That is a failure and the run goes red.
+          outcome=nothing
+
           if [ -z "$(git status --porcelain site/board.json)" ]; then
             echo "board.json unchanged, nothing to commit."
-            exit 0
-          fi
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add site/board.json
-          git commit -m "chore(board): sync from issues [skip ci]"
-          for attempt in 1 2 3; do
-            if git push; then exit 0; fi
-            echo "push rejected (attempt ${attempt}/3); rebasing onto origin/main and re-syncing."
-            git reset --hard HEAD~1
-            git fetch origin main
-            git rebase origin/main
-            node scripts/sync_board.mjs
-            if [ -z "$(git status --porcelain site/board.json)" ]; then
-              echo "board.json already current after rebase, nothing to commit."
-              exit 0
-            fi
+          else
+            git config user.name  "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add site/board.json
             git commit -m "chore(board): sync from issues [skip ci]"
-            sleep $((attempt * 3))
-          done
-          echo "::error::board.json push rejected three times, giving up."
-          exit 1
+            outcome=gaveup
+            for attempt in 1 2 3; do
+              if git push; then outcome=pushed; break; fi
+              echo "push rejected (attempt ${attempt}/3); rebasing onto origin/main and re-syncing."
+              git reset --hard HEAD~1
+              git fetch origin main
+              git rebase origin/main
+              node scripts/sync_board.mjs
+              if [ -z "$(git status --porcelain site/board.json)" ]; then
+                echo "board.json already current after rebase, nothing to commit."
+                outcome=nothing
+                break
+              fi
+              git add site/board.json
+              git commit -m "chore(board): sync from issues [skip ci]"
+              sleep $((attempt * 3))
+            done
+          fi
 
-      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
-      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
-        with:
-          path: site
-      - id: deployment
-        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
+          committed=no
+          if [ "$outcome" = pushed ]; then committed=yes; fi
+          echo "committed=$committed" >> "$GITHUB_OUTPUT"
 
-      # Jidoka. The gate is proved armed first, then run against what the origin actually
-      # serves. A gate that cannot be shown to fire is not a gate.
-      - name: Prove the forbidden-content gate fires
-        run: bash scripts/check_forbidden.sh --self-test
+          if [ "$outcome" = gaveup ]; then
+            echo "::error::board.json push rejected three times, giving up."
+            exit 1
+          fi
 
-      - name: Forbidden-content gate, against deployed bytes
-        run: bash scripts/check_forbidden.sh "${{ steps.deployment.outputs.page_url }}"
+      # The deploy lives in pages.yml and is woken from here, because the board commit carries
+      # [skip ci] and pages.yml refuses the board bot's commits, which is deliberate and is what
+      # stops one change deploying twice. A run that committed nothing wakes nothing: the bytes on
+      # the origin are already the bytes this run would have published.
+      - name: Wake the deploy, and only when the board actually changed
+        if: steps.commit.outputs.committed == 'yes'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh workflow run pages.yml

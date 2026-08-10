@@ -35,7 +35,8 @@ and `scripts/` are not.
 The line stops on a defect rather than passing it on. Here the defect that matters is a real name
 or a real figure reaching a public page, and the line is the deploy.
 
-`scripts/check_forbidden.sh` runs after every deploy, in both workflows, and fails the job on any
+`scripts/check_forbidden.sh` runs after every deploy, in `pages.yml`, which since issue 39 is the
+only workflow that deploys, and fails the job on any
 of: one of the words that would name the vendor architecture this model was deliberately not
 written in; a real name from the teaching register; a euro-formatted figure that is not one of
 the two invented ones; a corpus link; a UUID; an email address. A failure marks the run red and
@@ -120,7 +121,8 @@ which cards are open.
 
 The board is GitHub Issues, rendered. `scripts/sync_board.mjs` maps a `status:` label to one of
 four columns and writes `site/board.json`; `.github/workflows/board.yml` runs it on every issue
-event and deploys. **There is no triage step and no model call.** A label decides a column;
+event, commits the file when it changed, and wakes `pages.yml`, which is the only workflow that
+deploys. **There is no triage step and no model call.** A label decides a column;
 nothing infers one. An issue nobody has labelled lands in Raw, which is the honest answer to "we
 have not looked at this yet".
 

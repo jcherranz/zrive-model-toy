@@ -58,7 +58,7 @@ answer is worse than an open question, because nobody goes looking.
 
 **The prevention now in place.** Structurally first: this toy ships only invented values, every
 property flagged `dummy` or `estimated`, nothing on the page that would matter if disclosed. Then
-`scripts/check_forbidden.sh`, after every deploy in both workflows, which fetches the deployed
+`scripts/check_forbidden.sh`, after every deploy, which fetches the deployed
 files from the public origin rather than reading the working tree and fails the job on a real
 name from the teaching register, a euro-formatted figure that is not one of the two invented
 ones, a corpus link, a UUID, an email address, or a word that would name the vendor architecture.

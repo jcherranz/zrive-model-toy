@@ -5,6 +5,12 @@ name: Deploy site to Pages
 # not what the working tree holds. If it fails, the job fails and the andon is lit; the page
 # stays up until a person takes it down, because unpublishing is not a step a workflow should
 # take on its own.
+#
+# THIS IS THE ONLY WORKFLOW THAT CREATES A PAGES DEPLOYMENT. board.yml used to create one too,
+# on every run, and the two collided at the deployment level even though their runs serialised
+# correctly (issue 39, and board.yml's header carries the argument). board.yml now commits
+# site/board.json and dispatches this workflow when, and only when, it committed something, so a
+# board change still reaches the origin promptly and an unchanged board publishes nothing at all.
 
 on:
   push:
@@ -16,9 +22,11 @@ permissions:
   pages: write
   id-token: write
 
-# Shared with board.yml so the two deploys serialise instead of racing. cancel-in-progress is
-# false explicitly rather than by default, because a true value here silently cancels a deploy
-# with zero steps run and the run still reads as finished.
+# One group, and now one workflow in it: board.yml left when it stopped deploying. It is kept as a
+# named group rather than folded away, because it is the queue every Pages deploy in this
+# repository passes through and the next thing that wants to deploy belongs in it too.
+# cancel-in-progress is false explicitly rather than by default, because a true value here silently
+# cancels a deploy with zero steps run and the run still reads as finished.
 #
 # queue: max covers the other half of that, which cancel-in-progress never did: false protects a
 # RUNNING job, while the group is capped at one PENDING run by default (queue: single) and a new
@@ -37,10 +45,12 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # Loop guard. board.yml commits site/board.json and then deploys the site itself. That
-    # commit carries [skip ci], which normally stops this workflow from starting at all; this
-    # condition is the second line, in case the marker is ever dropped by a squash, a rebase
-    # or an org policy. Without it, a board commit would deploy twice for one change.
+    # Loop guard, and it still earns its place now that board.yml wakes this workflow by hand.
+    # board.yml commits site/board.json and then dispatches this workflow. Its commit carries
+    # [skip ci], which normally stops the push from starting this workflow at all; this condition
+    # is the second line, in case the marker is ever dropped by a squash, a rebase or an org
+    # policy. Without the pair, one board change would deploy twice, once from the dispatch and
+    # once from the push.
     if: >-
       github.event_name != 'push' ||
       (github.event.head_commit != null &&

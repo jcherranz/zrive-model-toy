@@ -51,6 +51,11 @@ of what changed and when, and it is meant to be scannable.
   cannot run out. `app.js` still writes `--drawing-w` and `build_layout.py` still refuses to build
   while a copy of the number sits in the stylesheet; nothing reads the property today, and
   removing that machinery belongs in its own commit.
+- `board.yml` commits `site/board.json` and no longer deploys, #39: it wakes `pages.yml` when and
+  only when it committed, so one workflow creates Pages deployments instead of two and an
+  unchanged board publishes nothing. The two loop guards, `[skip ci]` on the board commit and the
+  committer check in `pages.yml`, are untouched and are what keeps the dispatch from becoming a
+  second deploy. Deployment counts and the alternatives that lost are in `board.yml`'s header.
 - The canvas window is measured off `getBoundingClientRect` rather than `clientWidth` and
   `clientHeight`, which round to whole pixels: at 1536x839 the box is 735.58px tall while
   `clientHeight` says 736, so the browser was asked to fit 736 pixels of drawing into 735.58 and
