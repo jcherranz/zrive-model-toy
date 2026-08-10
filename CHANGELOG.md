@@ -12,22 +12,21 @@ of what changed and when, and it is meant to be scannable.
 ### Added
 
 - The diagram is an infinite canvas, #46: a dot grid ground, pan by dragging, zoom by wheel and
-  by pinch anchored on the pointer, and a visible way home. The card's note contradicted itself
-  as written, so the code was read rather than guessed at: there was no grid, no pan and no zoom,
-  which settles which half of the sentence was the ask. Three numbers are the whole of the
-  state, the drawing point under the top left corner and the pixels per drawing unit, and the
-  `viewBox`, the grid and the zoom readout are three renderings of them written together, so
-  they cannot drift apart. The view moves through the `viewBox` and not through a wrapper group,
-  because `feedback.js` describes a clicked element partly by a five deep `tag>tag>tag` path and
-  a wrapper would have silently changed every descriptor this page can produce: seven of them
-  were captured through the real capture mode before and after and are identical. The grid is a
-  background on the canvas box rather than a pattern in the drawing, so the dot stays a fixed
-  size in screen pixels while the spacing, a power of two multiple of 32 drawing units held
-  between 22 and 44 pixels, carries the zoom and the pan. Fit frames the build's own `G.w` by
-  `G.h`, which is what the old fixed `viewBox` framed, so the page still opens on the screen it
-  always had; `fit`, the `0` key, and a readout in which 100% is the whole drawing say where
-  home is and go bold and blue the moment the view is not there. Measurements in the commit
-  message.
+  by pinch anchored on the pointer, and a visible way home. The card's note contradicted itself,
+  so the code was read rather than guessed at: there was no grid, no pan and no zoom, which
+  settles which half of the sentence was the ask. Three numbers are the whole of the state, the
+  drawing point under the top left corner and the pixels per drawing unit, and the `viewBox`, the
+  grid and the zoom readout are three renderings of them written together, so they cannot drift.
+  The view moves through the `viewBox` rather than a wrapper group, because `feedback.js`
+  describes a clicked element partly by a five deep `tag>tag>tag` path and a wrapper would have
+  silently changed every descriptor this page can produce; seven were captured through real
+  capture mode before and after and are identical. The grid is a background on the canvas box
+  rather than a pattern in the drawing, so the dot stays a fixed size in screen pixels while the
+  spacing, a power of two multiple of 32 drawing units held between 22 and 44 pixels, carries the
+  zoom and the pan. Fit frames the build's own `G.w` by `G.h`, which is what the old fixed
+  `viewBox` framed, so the page still opens on the screen it always had; `fit`, the `0` key and a
+  readout in which 100% is the whole drawing say where home is, and all three go bold and blue
+  the moment the view is not there. Measurements in the commit message.
 - A drag is separated from a click by 5px of movement, or 3px once held for 250ms, and the click
   a drag leaves behind is stopped on `window` in the capture phase, which runs before
   `feedback.js`'s document listener whatever order the scripts load in. **A pan therefore cannot
@@ -37,19 +36,19 @@ of what changed and when, and it is meant to be scannable.
 ### Changed
 
 - Below 760px the diagram no longer scrolls, #46: the body rule that scrolled the page at narrow
-  widths is now scoped to the board, which is untouched, and the diagram is one screen at every
-  width with the drawing moving inside it. `#graph { min-width: var(--drawing-w) }` goes, since
-  pan and zoom is that sideways scroll on both axes and at any scale, and so does the reserve of
-  the sheet's height under the drawing that #21 needed, since `ensureVisible()` pans and a canvas
-  cannot run out. `app.js` still writes `--drawing-w` and `build_layout.py` still refuses to
-  build while a copy of the number sits in the stylesheet: nothing reads the property today, and
-  removing that machinery belongs in its own commit rather than this one.
-- The canvas window is measured off `getBoundingClientRect` and not off `clientWidth` and
-  `clientHeight`. Those round to whole pixels, and at 1536x839 the box is 735.58px tall while
-  `clientHeight` says 736, so the browser was being asked to fit 736 pixels of drawing into
-  735.58 and was scaling everything by 0.94 of a per mille to oblige. `getScreenCTM` read back
-  1.1734 where the view said 1.1741 and the anchored zoom drifted a fifth of a pixel a step.
-  Fifth time here that a measured value has beaten a rounded copy of one.
+  widths is scoped to the board, which is untouched, and the diagram is one screen at every width
+  with the drawing moving inside it. `#graph { min-width: var(--drawing-w) }` goes, since pan and
+  zoom is that sideways scroll on both axes and at any scale, and so does the reserve of the
+  sheet's height under the drawing that #21 needed, since `ensureVisible()` pans and a canvas
+  cannot run out. `app.js` still writes `--drawing-w` and `build_layout.py` still refuses to build
+  while a copy of the number sits in the stylesheet; nothing reads the property today, and
+  removing that machinery belongs in its own commit.
+- The canvas window is measured off `getBoundingClientRect` rather than `clientWidth` and
+  `clientHeight`, which round to whole pixels: at 1536x839 the box is 735.58px tall while
+  `clientHeight` says 736, so the browser was asked to fit 736 pixels of drawing into 735.58 and
+  scaled everything by 0.94 of a per mille to oblige. `getScreenCTM` read back 1.1734 where the
+  view said 1.1741, and the anchored zoom drifted a fifth of a pixel a step. Fifth time here that
+  a measured value has beaten a rounded copy of one; KAIZEN.md carries the general form.
 
 ### Removed
 
@@ -61,7 +60,6 @@ of what changed and when, and it is meant to be scannable.
   default drawing neither paid for the other view nor gains from its removal: `window.G` is
   byte-identical either side and every measurement at three viewports is unchanged, because the
   two views were always laid out separately. Lesson in KAIZEN.md, last entry.
-- `--tint-select`, which `b4e65d0` added for the selection frame's fill and nothing else read.
 - The frame drawn around a selected node, #45, filed from the live site. A click already inverts
   the tile, bolds the label, dims everything unrelated and opens the panel; the frame was a fifth
   statement of the same fact and the only one that added a shape. **`.node:focus { outline: none }`
@@ -70,6 +68,7 @@ of what changed and when, and it is meant to be scannable.
   running document with `CSS.getMatchedStylesForNode`, since a screenshot cannot separate "our
   frame is gone" from "the browser's ring is back". The rect survives as `.focus-frame` on
   `:focus-visible` only, so keyboard focus keeps a mark.
+- `--tint-select`, which `b4e65d0` added for the selection frame's fill and nothing else read.
 
 ### Fixed
 
@@ -97,7 +96,8 @@ of what changed and when, and it is meant to be scannable.
   colour-to-type mapping readable at a glance, and with it the line naming the dashed empty tile
   as `does not exist in any system`; per node both are still recoverable from the panel and the
   tooltip. Nothing was invented to replace it and the space goes back to the drawing: the header
-  falls from 79px to 58px at 1440x900 and from 177px to 119px at 390x844.
+  falls from 79px to 58px at 1440x900 and from 177px to 119px at 390x844. `G.types` is still
+  read and the model is untouched.
 
 ### Added
 
@@ -550,8 +550,8 @@ board is real, and the safety gate reads what the public reads.
 ### Fixed
 
 - The gate fired on the first `site/board.json` ever written, and was right to: a full ISO
-  timestamp ends `...46.932Z`, which is a grouped figure in Spanish money notation, so the money
-  rule read the board's own `generated` field as an undeclared amount. Two changes, in this order:
+  timestamp ends `...46.932Z`, whose fractional second reads as a grouped figure in Spanish money
+  notation, so the money rule read the board's own `generated` field as an undeclared amount. Two changes, in this order:
   `sync_board.mjs` emits second precision, dropping a field nobody needs rather than loosening a
   safety rule for a cosmetic one; and both gates blank timestamps out of the copy the money
   pattern sees, anchored on digits and separators so no figure can hide inside one.
