@@ -17,9 +17,10 @@ page through `site/board.json`.
 
 **An issue becomes a card.** A `status:` label puts it in a column: `status:raw`,
 `status:backlog`, `status:in-progress`, `status:done`. An issue with no `status:` label sits in
-Raw, which means nobody has looked at it yet. Nothing infers a column; a person applies the
-label, and `scripts/sync_board.mjs` renders whatever labels are there. There is no triage step
-and no model call anywhere in that path.
+Raw, which means nobody has looked at it yet. Nothing infers a column: `scripts/sync_board.mjs`
+renders whatever labels are there, and the labels are written from events GitHub already raises,
+never from a judgement about what a card is about. There is no triage step and no model call
+anywhere in that path. The next section is the whole of how a label gets written.
 
 **A card becomes a commit.** One card at a time in In progress. One defect per commit, because
 a commit that fixes three things cannot be reverted for the one of the three that turned out
@@ -34,6 +35,44 @@ whatever labels it carries. Then the acceptance rule, which is the one that is e
 That rule is bought and paid for. This project once reported a page as broken on the strength
 of a screenshot taken before the JavaScript ran, and on another day shipped a blank one for the
 same reason. HANSEI.md has both.
+
+## Taking an issue means assigning it
+
+Nobody edits a `status:` label by hand any more, and nobody should.
+
+**Taking an issue means assigning it to yourself.** That is the entire interface. GitHub already
+raises an assignment as an event, so it is a signal that exists whether or not anybody remembers
+to use it, and `.github/workflows/issue-status.yml` turns it into the label the board reads.
+Exactly one `status:` label is on an issue at a time, or none:
+
+| What a person does | What the label becomes |
+|---|---|
+| assigns the issue to somebody | `status:in-progress` |
+| unassigns the last person on it | `status:backlog` |
+| unassigns one of two people | nothing changes; it is still being worked |
+| closes it as completed | `status:done` |
+| closes it as not planned | no `status:` label at all |
+| reopens it | `status:in-progress` if somebody is on it, `status:backlog` if nobody is |
+| files it | nothing is written |
+
+Three of those rows cost a sentence each.
+
+**Closing as not planned leaves no label.** A duplicate, a wontfix and an obsolete card are not
+outstanding work and are not finished work, so `sync_board.mjs` draws them in no column at all. A
+`status:` label on a card that nothing draws is a claim with nothing on the page to check it
+against, which is the quiet kind of wrong this repository keeps buying lessons about.
+
+**Filing an issue writes nothing.** An issue with no `status:` label already sits in Raw, because
+Raw is the default column and Raw means nobody has looked at this yet. Writing the label that the
+default already means would buy no behaviour at all and would add a second place for one fact to
+be wrong.
+
+**Work that starts without an assignment has a backstop, and it is not the interface.** A push
+whose commit messages name issues by number marks each open one it names `status:in-progress`. It
+skips the ones the commit closes with `closes #12` or its family, because GitHub closes those
+itself and the closing rule then owns them, and it ignores the board bot's own commits, which
+mention every issue on the repository by construction. It exists for the day somebody starts
+typing before they think about the board. Assign the issue.
 
 ## The standing backlog
 
@@ -203,3 +242,15 @@ Two things are worth stating because they are the ways this loop fails quietly:
   in a screenshot, because the link was still drawn, just outside the viewport. Assert reach
   rather than presence: `elementFromPoint` at the centre of every control, at every width the
   page claims to support.
+
+- **What one robot writes, the robot beside it cannot see, and that failure looks like success.**
+  GitHub raises no workflow run from an event caused by the default token, so a label written by
+  `issue-status.yml` reaches `board.yml` as silence. Every step would still have gone green: the
+  label moves, the run succeeds, and the picture keeps showing the old column until some
+  unrelated event happens to rebuild it. That is worse than the feature not working, because the
+  label would be right and the board would be confidently wrong, and nothing red would ever
+  appear to say so. So a design has to state which of its own effects are visible to what, and
+  where the answer is nothing, the wake-up is sent deliberately: here a `workflow_dispatch`,
+  which is the one trigger type the suppression exempts. The general form is the one this
+  repository keeps meeting from new directions: a green run is evidence that the steps ran, and
+  evidence about nothing downstream of them.

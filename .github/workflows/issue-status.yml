@@ -1,0 +1,287 @@
+name: issue status
+
+# Keep the `status:` labels true without anybody remembering to manage them. Taking an issue
+# means assigning it: GitHub already emits that as an event, so the board can follow the work
+# instead of following somebody's memory of relabelling it afterwards.
+#
+# NO TRIAGE, still. Nothing here reads a title, infers a category or calls a model. Every rule
+# below is a mapping from an event GitHub raised to a label, and the mapping is written out in
+# full so it can be argued with:
+#
+#   assigned    -> status:in-progress, and only while the issue is open.
+#   unassigned  -> status:backlog, and only while the issue is open and nobody is left on it. An
+#                  issue with two people on it that loses one is still being worked.
+#   closed      -> status:done when the closure reason is COMPLETED. NO status label at all when
+#                  it is NOT_PLANNED. That second half is not symmetry for its own sake:
+#                  `columnFor` in scripts/sync_board.mjs returns null for a NOT_PLANNED closure,
+#                  so the card is drawn in no column, and a status label on a card nothing draws
+#                  is a claim with nothing on the page to check it against. It was checked in the
+#                  script before this rule was written, not assumed from the changelog.
+#   reopened    -> status:in-progress if somebody is on it, status:backlog if nobody is.
+#   opened      -> nothing, which is why `opened` is not in the trigger list below. An issue with
+#                  no status label lands in Raw already: `DEFAULT_COLUMN` in sync_board.mjs is
+#                  `raw`, and Raw means nobody has looked at this yet. Writing the label the
+#                  default already means would buy no new behaviour and would add a second place
+#                  for the same fact to be wrong.
+#
+# The backstop job at the bottom covers the case the assignment rule cannot see: work that starts
+# without anybody assigning anything, which announces itself in a commit message instead.
+#
+# ---------------------------------------------------------------------------------------------
+# WHY THIS CANNOT RE-TRIGGER ITSELF.
+#
+# This workflow's one side effect is a label write, and a label write raises `labeled` and
+# `unlabeled`. Three things stop that from coming back round:
+#   1. It does not listen for `labeled` or `unlabeled` at all. Those two types are exactly the
+#      loop, so the guard is structural rather than textual, the same shape as board.yml having
+#      no `push` trigger: whatever this workflow writes, no label event can start it.
+#   2. Every write is conditional. scripts/set_status.sh reads the labels an issue carries,
+#      computes the set it should carry, and calls the API only if the two differ. A second run
+#      over the same issue writes nothing, whatever the first one did.
+#   3. The push job ignores the board bot's own commits, by author address and by message, the
+#      same two tests pages.yml makes. board.yml's commit also carries `[skip ci]`, which stops a
+#      push-triggered workflow from starting at all; the explicit test is the second line, for
+#      the day a squash, a rebase or an org policy drops the marker.
+#
+# It DOES start board.yml, which is intended and is the point: board.yml fires on `issues`
+# events including `labeled`, the board must redraw when a card changes column, and board.yml
+# writes no labels, so that arrow runs one way and stops.
+#
+# ---------------------------------------------------------------------------------------------
+# AND THE OPPOSITE PROBLEM, which is the one that would have made this feature useless.
+#
+# GitHub does not raise workflow runs from events caused by the default GITHUB_TOKEN. The
+# documented rule, in "Triggering a workflow from a workflow", is that when a workflow uses the
+# repository's GITHUB_TOKEN to perform a task, events triggered by that token will not create a
+# new workflow run, with `workflow_dispatch` and `repository_dispatch` named as the only
+# exceptions. So the `labeled` and `unlabeled` events this workflow raises do NOT reach
+# board.yml. Left there, the label would move and the picture would not: site/board.json would
+# keep showing the old column until some unrelated issue event happened to rebuild it, which is
+# a worse failure than not moving the label at all, because the label would be right and the
+# board would be confidently wrong.
+#
+# The fix is the documented exception rather than a guess about it: when, and only when, a label
+# actually changed, this workflow dispatches board.yml itself. That is `workflow_dispatch`, which
+# is reachable with GITHUB_TOKEN, and it is why `actions: write` is in the permissions block
+# below; board.yml already declares `workflow_dispatch: {}` and needs no change. Two properties
+# make this safe to be wrong about in either direction. If the suppression applies, as documented,
+# the dispatch is the only thing that redraws the board and the feature works. If it ever stops
+# applying, the cost is one extra board run: the sync is idempotent, so the second run rewrites
+# the same file, finds no diff and commits nothing, and board.yml's concurrency group takes
+# `queue: max`, so a second same-group trigger queues behind the first rather than evicting it.
+# The dispatch is skipped entirely when nothing changed, so a run that decided to leave the
+# labels alone wakes nothing.
+
+on:
+  issues:
+    types: [assigned, unassigned, closed, reopened]
+  push:
+    branches: [main]
+
+# The minimum. `issues: write` to move a label, `contents: read` for the checkout that brings
+# scripts/set_status.sh, `actions: write` for the board.yml dispatch described above and for
+# nothing else. Nothing here needs `pages` or `id-token`: this workflow deploys nothing.
+permissions:
+  contents: read
+  issues: write
+  actions: write
+
+# NOT the `pages` group. This workflow deploys nothing, and the whole value of it is that the
+# label follows the assignment closely enough to be believed, which it would stop doing the
+# first time it sat behind a Pages deploy. The board run it dispatches joins the `pages` group
+# on its own account, which is where that work belongs.
+#
+# One group for the whole workflow rather than one per issue. Both jobs read an issue's labels
+# and then write them back, and two of those interleaved over the same issue would each compute
+# a desired set against the same before-state and one would quietly undo the other. On a
+# repository with one author, serialising the workflow costs seconds and removes the
+# read-modify-write race outright.
+#
+# cancel-in-progress is stated rather than inherited, and false, because a cancelled run reads
+# exactly like a run that decided to do nothing. queue: max for the reason board.yml gives at
+# length: false protects a RUNNING job and says nothing about a PENDING one, and the default
+# single pending slot lets the next event evict a run that has not started a step, with no error
+# anywhere. Caveat carried with it: no released actionlint recognises the queue key inside
+# concurrency and reports it as an unexpected key. This repository does not lint its workflows.
+concurrency:
+  group: issue-status
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  # -------------------------------------------------------------------------------------------
+  # The rule proper: an issue event moves the label.
+  label:
+    if: github.event_name == 'issues'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Decide the status label, and write it only if it is not already there
+        id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          ACTION: ${{ github.event.action }}
+          NUMBER: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+
+          # The issue is read live rather than off the webhook payload. A payload is a snapshot of
+          # the moment the event fired, and this workflow serialises, so by the time a run starts
+          # the issue may already have been assigned to somebody else, closed, or reopened. Every
+          # rule below therefore asks the API what is true now, and the payload contributes only
+          # the action word, which is the one thing the API cannot tell us.
+          info=$(gh issue view "$NUMBER" --json state,stateReason,assignees --jq \
+            '[(.state | ascii_upcase),
+              ((.stateReason // "") | ascii_upcase | if . == "" then "NONE" else . end),
+              (.assignees | length)] | @tsv')
+          IFS=$'\t' read -r state reason assignees <<< "$info"
+          echo "#$NUMBER on '$ACTION': state $state, reason $reason, $assignees assignee(s)"
+
+          # An empty `desired` means no rule applies and the labels are left exactly as they are.
+          # That is a real outcome and not a fallthrough: an assignment on a closed issue, and an
+          # unassignment that leaves somebody else on the card, both land here on purpose.
+          desired=""
+          case "$ACTION" in
+            assigned)
+              [ "$state" = OPEN ] && desired="status:in-progress"
+              ;;
+            unassigned)
+              if [ "$state" = OPEN ] && [ "$assignees" -eq 0 ]; then desired="status:backlog"; fi
+              ;;
+            closed)
+              # NOT_PLANNED gets no label, for the reason set out at the top of this file. Any
+              # other reason, including the empty one, is treated as completed, which is the same
+              # test columnFor makes in sync_board.mjs: not-planned is the special case there too
+              # and everything else closed goes to Done.
+              if [ "$state" = CLOSED ]; then
+                if [ "$reason" = NOT_PLANNED ]; then desired="none"; else desired="status:done"; fi
+              fi
+              ;;
+            reopened)
+              if [ "$state" = OPEN ]; then
+                if [ "$assignees" -gt 0 ]; then desired="status:in-progress"; else desired="status:backlog"; fi
+              fi
+              ;;
+          esac
+
+          if [ -z "$desired" ]; then
+            echo "no rule applies; the labels are left alone."
+            echo "changed=no" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          verdict=$(bash scripts/set_status.sh "$NUMBER" "$desired" | tail -n1)
+          if [ "$verdict" = changed ]; then
+            echo "changed=yes" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=no" >> "$GITHUB_OUTPUT"
+          fi
+
+      # See the long note at the top. A label written with GITHUB_TOKEN raises an event that
+      # starts nothing, so the board is woken here by hand, through the one trigger type the
+      # suppression exempts.
+      - name: Wake the board, because a label written with GITHUB_TOKEN does not
+        if: steps.decide.outputs.changed == 'yes'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh workflow run board.yml
+
+  # -------------------------------------------------------------------------------------------
+  # The backstop: work that started without an assignment.
+  #
+  # Somebody who writes `#12` into a commit message has told us what they are working on just as
+  # plainly as an assignment would have, and this is the only signal available when nobody
+  # assigned anything. It sets status:in-progress and nothing else; it never moves a card
+  # backwards and never closes anything.
+  #
+  # TWO THINGS IT MUST NOT ACT ON.
+  #   - A reference carrying a closing keyword, `closes #12` and its family. GitHub closes that
+  #     issue itself, the `closed` handler above then owns it, and marking it in progress on the
+  #     way past would be a write that the next event immediately undoes. Both sets are collected
+  #     and the closing ones subtracted, so `fixes #12, and while in #14` marks #14 and leaves
+  #     #12 to the close.
+  #   - The board bot's own commits. site/board.json is rewritten from every issue on the
+  #     repository, so a board sync commit can mention any number at all; acting on those would
+  #     put the entire board in progress. Filtered per commit, by author address and by message,
+  #     rather than by the job-level test on head_commit that pages.yml can afford, because a
+  #     push carries up to twenty commits and its head is only the last of them.
+  from-commits:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set status:in-progress on the issues this push mentions
+        id: backstop
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          BOT_EMAIL: "41898282+github-actions[bot]@users.noreply.github.com"
+          COMMITS: ${{ toJSON(github.event.commits) }}
+        run: |
+          set -euo pipefail
+
+          # COMMITS arrives through the environment, never through an expression interpolated into
+          # the script body. A commit message is text somebody else wrote, and an expression in a
+          # run: block is pasted into the shell before the shell has any chance to treat what it
+          # holds as data. Through the environment it is a value from first to last. The same
+          # reason keeps the issue number and the action word in env: above rather than inline.
+          msgs=$(printf '%s' "$COMMITS" | jq -r --arg bot "$BOT_EMAIL" '
+            (. // [])
+            | map(select((.author.email // "") != $bot and (.committer.email // "") != $bot))
+            | map(select((.message | test("chore\\(board\\): sync from issues")) | not))
+            | .[].message')
+
+          if [ -z "$msgs" ]; then
+            echo "no commits in this push to read (all of them are the board bot's, or there are none)."
+            echo "changed=no" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Every `#<number>`, and then the ones a closing keyword owns, subtracted. The keyword
+          # list is GitHub's own: close, closes, closed, fix, fixes, fixed, resolve, resolves,
+          # resolved, case insensitive. The leading \b matters: without it `disclosed #5` reads as
+          # `closed #5` and the backstop would skip an issue it should have marked.
+          all=$(printf '%s\n' "$msgs" | grep -oE '#[0-9]+' | tr -d '#' | sort -u || true)
+          closing=$(printf '%s\n' "$msgs" \
+            | grep -oiE '\b(close[sd]?|fix(e[sd])?|resolve[sd]?)\b:?[[:space:]]+#[0-9]+' \
+            | grep -oE '[0-9]+' | sort -u || true)
+          targets=$(comm -23 <(printf '%s\n' "$all" | sed '/^$/d') \
+                             <(printf '%s\n' "$closing" | sed '/^$/d'))
+
+          if [ -z "$targets" ]; then
+            echo "this push references no open work by number, or only closes."
+            echo "changed=no" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          changed=no
+          for n in $targets; do
+            # A `#<number>` in prose can be a pull request, a reference to another repository, or
+            # a number that means something else entirely. Anything this repository cannot read
+            # as an issue is skipped and said out loud rather than failing the run.
+            if ! state=$(gh issue view "$n" --json state --jq '.state | ascii_upcase' 2>&1); then
+              echo "#$n cannot be read as an issue here; skipping."
+              continue
+            fi
+            if [ "$state" != OPEN ]; then
+              echo "#$n is $state; the closed handler owns it."
+              continue
+            fi
+            # "not already status:in-progress" is not tested here on purpose. It is exactly what
+            # set_status.sh's conditional write means, and one owner for that rule is the whole
+            # reason the write lives in a script instead of in two copies of a workflow.
+            verdict=$(bash scripts/set_status.sh "$n" status:in-progress | tail -n1)
+            if [ "$verdict" = changed ]; then changed=yes; fi
+          done
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+
+      - name: Wake the board, because a label written with GITHUB_TOKEN does not
+        if: steps.backstop.outputs.changed == 'yes'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh workflow run board.yml

@@ -14,12 +14,12 @@ it is the reason most of what follows exists. Only `site/` is deployed; `TPS.md`
 
 | Pillar | Status | Where |
 |---|---|---|
-| Jidoka, stop the line | `[OK]` best developed | `scripts/check_forbidden.sh`, `scripts/check_repo.sh`, all three workflows |
+| Jidoka, stop the line | `[OK]` best developed | `scripts/check_forbidden.sh`, `scripts/check_repo.sh`, and the three workflows that deploy or gate. `issue-status.yml` runs neither gate and is the one workflow that writes no file and publishes nothing |
 | Poka-Yoke, mistake-proofing | `[OK]` | `scripts/check_forbidden.sh`, `scripts/check_repo.sh`, `scripts/forbidden_names.sha256`, `scripts/sync_board.mjs` |
 | Genchi Genbutsu, go and see | `[OK]` learned the hard way | `~/bin/shot`, KAIZEN.md acceptance rule |
 | Standard work | `[OK]` | `build/build_layout.py`, `build/model.py` |
 | Heijunka, level the work | `[OK]` | GitHub Issues, `scripts/sync_board.mjs` |
-| Kanban | `[OK]` | `scripts/sync_board.mjs`, `.github/workflows/board.yml`, `site/board.json` |
+| Kanban | `[OK]` | `scripts/sync_board.mjs`, `scripts/set_status.sh`, `.github/workflows/board.yml`, `.github/workflows/issue-status.yml`, `site/board.json` |
 | Hansei | `[OK]` | `HANSEI.md` |
 | Kaizen | `[OK]` | `KAIZEN.md` |
 | Andon | `[OK]` partial | a red workflow run; no second channel |
@@ -125,12 +125,24 @@ The board is GitHub Issues, rendered. `scripts/sync_board.mjs` maps a `status:` 
 of four columns and writes `site/board.json`; `.github/workflows/board.yml` runs it on every
 issue event and deploys. **There is no triage step and no model call.** A label decides a
 column; nothing infers one. An issue nobody has labelled lands in Raw, which is the honest
-answer to "we have not looked at this yet" and is a place a person moves it out of.
+answer to "we have not looked at this yet".
+
+**The label itself is no longer typed by a person.** `.github/workflows/issue-status.yml` writes
+it from events GitHub already raises, and the signal for taking a card is assignment:
+assigned means `status:in-progress`, unassigning the last person means `status:backlog`, closing
+means `status:done` or, on a not-planned closure, no label at all. That is still not triage. Each
+rule is a mapping from one event to one label, the mapping is written out in the workflow, and
+nothing reads a title. `scripts/set_status.sh` owns the write and makes it only when the set of
+labels an issue carries differs from the set it should carry, which is what keeps a workflow that
+listens to issue events and writes labels from feeding itself. KAIZEN.md carries the rule in full.
 
 The board is deliberately thinner than the one it was copied from. monetary-lab's version
 carries an LLM triage pass, a commit-trailer directive language and a queueing discipline for
-racing deploys. All three earn their place there and none of them does here: five cards do not
-need classifying, and a repository with one active author does not race itself.
+racing deploys. The queueing discipline has since been earned here, twice over, and the reading
+of commit messages is now taken in the narrowest form it has: a bare `#12` marks that issue in
+progress and nothing else, which is a backstop for work that started without an assignment rather
+than a language for instructing the board. The LLM triage pass is still refused: five cards do
+not need classifying.
 
 ## Andon
 
@@ -162,7 +174,7 @@ named because a rejected pillar with no substitute is a hole.
 | Poka-Yoke | `scripts/check_forbidden.sh`, `scripts/check_repo.sh`, `scripts/forbidden_lib.sh`, `scripts/gen_forbidden_hashes.sh` |
 | Genchi Genbutsu | `HANSEI.md`, `KAIZEN.md` acceptance rule |
 | Standard work | `build/model.py`, `build/build_layout.py` |
-| Heijunka, Kanban | `scripts/sync_board.mjs`, `.github/workflows/board.yml` |
+| Heijunka, Kanban | `scripts/sync_board.mjs`, `scripts/set_status.sh`, `.github/workflows/board.yml`, `.github/workflows/issue-status.yml` |
 | Hansei | `HANSEI.md` |
 
 Re-read and correct this document whenever a claim in it stops being true.

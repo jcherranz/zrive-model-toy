@@ -5,6 +5,42 @@ Dates are ISO. Newest first.
 
 ## [Unreleased]
 
+### Added
+
+- The `status:` labels are now written from events rather than typed by a person, and taking an
+  issue means assigning it. `.github/workflows/issue-status.yml` keeps exactly one `status:`
+  label on an issue at a time, or none: assignment sets `status:in-progress` while the issue is
+  open, unassigning the last person sets `status:backlog` while a card that still has somebody on
+  it is left alone, closing sets `status:done`, reopening sets `status:in-progress` or
+  `status:backlog` according to whether anybody is on it, and filing writes nothing at all,
+  because an unlabelled issue already sits in Raw and writing the label the default column
+  already means would only add a second place for one fact to be wrong. A closure as `NOT_PLANNED`
+  is given no label at all, which was checked against `columnFor` in `scripts/sync_board.mjs`
+  rather than assumed: a not-planned closure is drawn in no column, so a status label on it would
+  be a claim with nothing on the page to check it against. `scripts/set_status.sh` owns every
+  write, reads the labels an issue carries, computes the set it should carry and calls the API
+  only on a difference, so a second run over the same issue writes nothing; that conditional
+  write, plus the workflow never listening for `labeled` or `unlabeled`, is what keeps a workflow
+  that both hears issue events and writes labels from feeding itself. A second job is the
+  backstop for work that starts without an assignment: a push whose commit messages name issues
+  by number marks each open one `status:in-progress`, subtracting the references a closing
+  keyword owns, since GitHub closes those itself and the closing rule then owns them, and
+  ignoring the board bot's own commits, which mention every issue on the repository by
+  construction. The commit payload is read out of the environment and never out of an
+  interpolated expression, because a commit message is text somebody else wrote.
+
+  The part that would have made this useless, and what was done about it: GitHub raises no
+  workflow run from an event caused by the default `GITHUB_TOKEN`, `workflow_dispatch` and
+  `repository_dispatch` excepted, so the labels this workflow writes do not reach `board.yml` and
+  the board would have gone on drawing the old column while every run went green. The workflow
+  therefore dispatches `board.yml` itself, through the one trigger type the suppression exempts,
+  and only when a label actually changed. To be driven against the real repository and the
+  observed transitions recorded here before this entry is finished; nothing above has been
+  confirmed live yet. Permissions are `issues: write`, `contents: read` and `actions: write` for the dispatch, and
+  nothing else; the workflow is in its own concurrency group and not in `pages`, because it
+  deploys nothing and must never wait behind a deploy, with one group across both jobs so that
+  two runs cannot read the same labels and write back over each other.
+
 ### Fixed
 
 - An issue closed as not planned no longer lands in Done. GitHub closes an issue for one of two
