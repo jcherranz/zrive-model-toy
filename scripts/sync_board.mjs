@@ -22,6 +22,17 @@ const REPO = process.env.REPO || "jcherranz/zrive-model-toy";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const BOARD_PATH = join(ROOT, "site", "board.json");
 
+// MIRRORED IN site/board.js, WHICH MUST CHANGE WITH THIS FILE. When a reader has connected
+// their own token in the browser, the page builds the board straight from the GitHub API rather
+// than from this script's output, and it reproduces every rule below: these four columns and
+// their labels, the default column, a closed issue going to Done, a NOT_PLANNED closure
+// appearing in no column at all, DONE_VISIBLE, Done drawn newest first, and the arithmetic that
+// closed equals drawn plus hidden. The two copies cannot be made one: this script is not
+// deployed, only site/ is, and the page loads classic scripts, so neither side can import the
+// other without a build step this repository does not have. Change a rule here without changing
+// it there and the published board and the live board will say different things about the same
+// issues, which is worse than either being wrong on its own.
+//
 // The columns, in the order the page draws them, and the label that puts a card in each.
 const COLUMNS = [
   { key: "raw", title: "Raw", label: "status:raw" },

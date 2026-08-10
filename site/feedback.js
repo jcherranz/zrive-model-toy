@@ -662,6 +662,22 @@
     });
   }
 
+  // ---- shared with the board ---------------------------------------------------------------
+  // board.js reaches the same API, to draw the board from Issues directly instead of from the
+  // published snapshot, and it must not grow a second copy of what a refusal means. GitHub
+  // answering 404 rather than 403 for a private repository a token cannot reach is the one
+  // thing about this API a reader cannot guess, and two copies of that sentence is one copy
+  // that goes stale. Published on window.ZMT the way app.js publishes window.ZT, and read by
+  // board.js at call time rather than at load time, because index.html loads board.js first.
+  //
+  // The token is shared as a reader and not as a value. Anything running on this origin can
+  // already read localStorage, so this adds no reach; nothing prints it, writes it to a file or
+  // puts it in a URL, on either side.
+  window.ZMT = window.ZMT || {};
+  window.ZMT.repo = REPO;
+  window.ZMT.token = getToken;
+  window.ZMT.explainStatus = explainStatus;
+
   // ---- wiring ----------------------------------------------------------------------------
   var toggle = document.getElementById(TOGGLE_ID);
   if (toggle) toggle.onclick = function () { setMode(!fbMode); };

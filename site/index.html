@@ -49,6 +49,11 @@
 <main id="view-board">
   <p class="bmeta" id="bmeta">The board reflects GitHub Issues. GitHub is the source of truth:
     nothing here is editable and there is no drag and drop.</p>
+  <!-- Which source the board is reading and how fresh it is, written by board.js. Empty until
+       there is something true to say, and hidden by the stylesheet while it is empty. It is
+       deliberately not an aria-live region: the age in it moves every second and a screen
+       reader would read the whole line out again each time. -->
+  <p class="bstatus" id="bstatus"></p>
   <div id="bbody"></div>
 </main>
 

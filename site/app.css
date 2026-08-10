@@ -608,6 +608,20 @@ body.fb-mode .fb-popover select { cursor: pointer; }
   color: var(--fg-muted);
 }
 
+/* Which source the board is reading and how fresh it is. The smallest type on the page, the
+   same muted grey as the line above it, and no box of its own: on a board that is behaving it
+   says nothing a reader has to act on, and it earns its place only on the day the answer stops
+   being "live". It is empty before the first answer arrives, and an empty paragraph that still
+   reserves a line would read as a gap under the heading. */
+.bstatus {
+  flex: none;
+  margin: -8px 0 12px;
+  font-size: 10px;
+  color: var(--fg-muted);
+}
+
+.bstatus:empty { display: none; }
+
 .bcols {
   display: flex;
   align-items: flex-start;

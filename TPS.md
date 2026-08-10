@@ -23,7 +23,7 @@ it is the reason most of what follows exists. Only `site/` is deployed; `TPS.md`
 | Hansei | `[OK]` | `HANSEI.md` |
 | Kaizen | `[OK]` | `KAIZEN.md` |
 | Andon | `[OK]` partial | a red workflow run; no second channel |
-| Muda, Muri, Mura | `[OK]` | one build step, no framework, no CDN, no web font; on load the page makes one same origin fetch of `board.json` and no third party request; one `POST` to `api.github.com` is possible, only when a visitor has stored their own token and deliberately files |
+| Muda, Muri, Mura | `[OK]` | one build step, no framework, no CDN, no web font; the diagram makes no request at all, and the board view fetches `board.json` on a timer while it is on screen and stops the moment it is not or the tab is hidden; a visitor who has stored their own token is served from `api.github.com` instead, conditionally, so an unchanged board costs a 304 and no rate limit; one `POST` there is possible, only when they deliberately file |
 | Just-In-Time | `[OPEN]` nothing pulls | the board is filled by hand |
 | Nemawashi | `[FLAG]` rejected, see below | none |
 | Konnyaku stone | `[OPEN]` no analogue here | none |

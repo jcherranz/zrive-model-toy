@@ -254,3 +254,13 @@ Two things are worth stating because they are the ways this loop fails quietly:
   which is the one trigger type the suppression exempts. The general form is the one this
   repository keeps meeting from new directions: a green run is evidence that the steps ran, and
   evidence about nothing downstream of them.
+
+- **A delay of zero is a statement about the timer queue, not about the document.** The board's
+  first fetch has to happen after `feedback.js` has run, because that is where the reader's
+  stored token is published from, and `index.html` loads the board before it. Deferring the
+  fetch to a zero delay timer looked like enough and is not: the parser yields between script
+  tags, the timer fires in the gap, and the board draws the published snapshot for somebody who
+  had connected a token and then waits a whole interval before it notices. It fails only for
+  readers who have a token, never on a reload from cache, and never in a screenshot, because the
+  board it draws is a real board. Where the requirement is "after the rest of the page", say so:
+  `DOMContentLoaded` is that statement and a timer is a guess about scheduling.
