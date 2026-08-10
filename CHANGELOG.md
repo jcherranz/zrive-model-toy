@@ -7,6 +7,22 @@ Dates are ISO. Newest first.
 
 ### Fixed
 
+- The GitHub connect note names the order the token form imposes, not only the token it wants.
+  GitHub preselects `Repository access: Public repositories (read-only)`, and while that radio
+  is selected the form does not offer the Issues permission at all, so a reader who fills in
+  only the permissions section produces a token that cannot reach this private repository and
+  meets a 404 here. The note now says to set `Only select repositories` first and why. Found by
+  filing from the deployed site with a token made from the old note; confirmed against the API.
+  The 404 explanation in `explainStatus` is unchanged and still lists what to check, because it
+  serves the tokens that were made before the note was read. HANSEI.md, ninth entry.
+
+- The connected filing path has now been exercised end to end against the deployed site, which
+  closes the caveat that its success half had only ever been driven against a stubbed `fetch`.
+  A headless CDP driver put a token into `localStorage`, turned capture mode on, clicked a node
+  and filed: the issue was created on the real repository with the title, body, context block
+  and labels the code builds, and was then deleted. No token value is recorded anywhere in this
+  repository, and none was needed to record the result.
+
 - `copy all` no longer looks alive while it is not, for issue #23. It is disabled while the
   count is zero and comes back the moment a block is copied. Disabling was preferred to making
   it work on an empty list: a clipboard write of nothing that reports `copied` is a lie about

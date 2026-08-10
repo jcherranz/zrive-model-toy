@@ -359,6 +359,13 @@
   // The connect affordance inside the popover: an inline field and a save button while nothing
   // is stored, a connected line with a disconnect once something is. Re-rendered from
   // localStorage after every save and disconnect rather than computed once.
+  //
+  // The note names the trap in the token form rather than only the end state it wants. GitHub
+  // preselects "Repository access: Public repositories (read-only)", and while that radio is
+  // selected the form does not offer the Issues permission at all, so a reader who fills in
+  // only the permissions section produces a token that cannot reach this private repository
+  // and meets a 404 here. Telling them the order of the two fields is cheaper than explaining
+  // the failure afterwards, which is what `explainStatus` is left to do.
   function ghSectionHtml(connected) {
     if (connected) {
       return '<div class="fb-gh-status">connected · ' +
@@ -373,6 +380,10 @@
            '<div class="fb-gh-note">Connect to file straight to GitHub, with no form page in ' +
            'between. Use a fine-grained PAT scoped to only "Issues: Read and write" on only ' +
            'this repo. It is stored in this browser only, and sent only to api.github.com.' +
+           '<br><b>Set "Repository access" to "Only select repositories" first.</b> GitHub ' +
+           'preselects "Public repositories (read-only)", and while that is selected it will ' +
+           'not offer you the Issues permission at all, so the token comes out unable to reach ' +
+           'this repo and fails here with a 404.' +
            '</div></div>';
   }
 

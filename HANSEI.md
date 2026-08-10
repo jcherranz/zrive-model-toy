@@ -37,6 +37,7 @@ quietly repoint every one of those.
 | 2026-08-09 | A real surname sat in the script written to keep real names out | gate: `scripts/check_repo.sh` scans every tracked file, on push and on pull request |
 | 2026-08-09 | The gate built to catch that surname reported the tree clean while it was still in the repository | gate: `scan_snapshots` reads the index and HEAD, not only the disk; probes in `--self-test` |
 | 2026-08-09 | A file split agreed in prose did not hold, and a commit carried a third party's work | discipline: stage explicit paths, never the working tree |
+| 2026-08-10 | A token form's default silently removed the one permission the token needed | poka-yoke: the connect note names the field order, `site/feedback.js` |
 
 ---
 
@@ -409,3 +410,57 @@ agent, which makes the collision impossible instead of merely visible.
 *Prevention kind:* `discipline`
 *Named by:* none. This one is a habit, and it is recorded here precisely because nothing
 enforces it.
+
+---
+
+## A token form's default silently removed the one permission the token needed
+
+`2026-08-10-token-form-default-hid-the-permission` &middot; 2026-08-10
+
+**What happened.** A fine-grained personal access token was created for the connect affordance
+in the feedback popover, following the note under the field, which asks for a token scoped to
+`Issues: Read and write` on this repository and nothing else. Filing failed with a 404. The
+token had been made without the Issues permission, and not by oversight: GitHub's fine-grained
+token form preselects `Repository access: Public repositories (read-only)`, and while that
+radio is selected the form does not offer the Issues permission at all. A reader who fills in
+the permissions section without changing the access section above it cannot produce the token
+the note asks for, and the form does not say so.
+
+**How it was detected.** By exercising the connected path for real, against the deployed site,
+with a token a person had just made. That run also closes a caveat this repository had been
+carrying: until it, the success path had only ever been driven against a stubbed `fetch`, so
+the only end to end evidence for filing was the fallback that opens a prefilled issue form. A
+headless CDP driver put a token into `localStorage` under `zmt.gh.token`, turned capture mode
+on, clicked a node, typed a note and filed it. The issue was created on the real repository
+with the title, body, context block and labels the code builds, and was deleted afterwards.
+The connected path is now a thing that has been observed working rather than a thing that
+type-checks.
+
+**What it cost.** One person's afternoon spent on a token they had made correctly by the
+note's description and incorrectly by the form's order, and a 404 that reads like a bug in the
+site. Nothing shipped wrong; the failure was in what the reader was told, which is where this
+class of defect usually is.
+
+**Root cause.** The note described the end state it wanted and not the order the form imposes
+to reach it. Between the two sits a default that removes an option rather than presetting one,
+which is the kind a reader cannot see: an unchosen radio at the top of a form does not look
+like the reason a permission is missing from the middle of it. `explainStatus` already named
+the three things to check on a 404, but that text arrives after the token has been made, and a
+correction that arrives after the mistake is not mistake-proofing.
+
+**The prevention now in place.** The connect note names the trap in the order it is met: set
+`Repository access` to `Only select repositories` first, because GitHub preselects
+`Public repositories (read-only)` and will not offer the Issues permission while it stands. It
+is three lines of text against a failure that costs an hour, and it is the cheap end of
+poka-yoke: make the wrong path visible at the moment it is taken, rather than diagnosable
+afterwards. The 404 explanation stays where it is, for the tokens made before anyone read the
+note.
+
+*Prevention kind:* `poka-yoke`
+*Named by:* `site/feedback.js ghSectionHtml`
+
+**Note.** The general form is the one this file keeps arriving at from a new direction. The
+instruction was true and the reader still could not follow it, because a true description of a
+destination says nothing about a road that is closed. Where a procedure runs through somebody
+else's interface, the order that interface imposes is part of the procedure, and leaving it out
+is leaving out the part that fails.
