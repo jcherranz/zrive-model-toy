@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T16:25:09Z",
+  "generated": "2026-08-10T16:26:58Z",
   "columns": [
     {
       "key": "raw",
@@ -41,6 +41,15 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
         },
         {
+          "id": 39,
+          "title": "Pages deploy conflicts now that every label move dispatches a board run",
+          "labels": [
+            "bug",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/39"
+        },
+        {
           "id": 43,
           "title": "Extend the toy beyond Investment Banking to Big Law and Strategy Consulting",
           "labels": [
@@ -74,15 +83,6 @@
       "key": "in_progress",
       "title": "In progress",
       "cards": [
-        {
-          "id": 39,
-          "title": "Pages deploy conflicts now that every label move dispatches a board run",
-          "labels": [
-            "bug",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/39"
-        },
         {
           "id": 46,
           "title": "Make the diagram an infinite canvas: dot grid, pan and zoom",
