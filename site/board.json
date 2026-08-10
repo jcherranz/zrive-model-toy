@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T21:08:16Z",
+  "generated": "2026-08-10T21:13:43Z",
   "columns": [
     {
       "key": "raw",
@@ -58,16 +58,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/4"
         },
         {
-          "id": 54,
-          "title": "Documents are cited by position, so appending to one silently repoints the citations",
-          "labels": [
-            "bug",
-            "documentation",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/54"
-        },
-        {
           "id": 55,
           "title": "A dark theme for low light",
           "labels": [
@@ -83,6 +73,16 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 54,
+          "title": "Documents are cited by position, so appending to one silently repoints the citations",
+          "labels": [
+            "bug",
+            "documentation",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/54"
+        },
         {
           "id": 51,
           "title": "Clicking the alumnos card should disaggregate into individual students",
@@ -151,18 +151,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/45"
-        },
-        {
-          "id": 44,
-          "title": "Card titles truncate mid-word",
-          "labels": [
-            "bug",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/44"
         }
       ],
-      "hidden": 29,
+      "hidden": 30,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
