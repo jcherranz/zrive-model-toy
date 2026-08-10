@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T18:31:11Z",
+  "generated": "2026-08-10T18:37:27Z",
   "columns": [
     {
       "key": "raw",
@@ -59,6 +59,16 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/47"
+        },
+        {
+          "id": 54,
+          "title": "Documents are cited by position, so appending to one silently repoints the citations",
+          "labels": [
+            "bug",
+            "documentation",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/54"
         }
       ]
     },
