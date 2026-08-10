@@ -1,20 +1,10 @@
 {
-  "generated": "2026-08-10T17:45:58Z",
+  "generated": "2026-08-10T17:47:45Z",
   "columns": [
     {
       "key": "raw",
       "title": "Raw",
-      "cards": [
-        {
-          "id": 51,
-          "title": "Think about the design and user interface for this so that when I clic",
-          "labels": [
-            "feedback",
-            "idea"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/51"
-        }
-      ]
+      "cards": []
     },
     {
       "key": "backlog",
@@ -95,6 +85,17 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/50"
+        },
+        {
+          "id": 51,
+          "title": "Clicking the alumnos card should disaggregate into individual students",
+          "labels": [
+            "feedback",
+            "idea",
+            "model",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/51"
         }
       ]
     },
