@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T20:54:47Z",
+  "generated": "2026-08-10T20:55:15Z",
   "columns": [
     {
       "key": "raw",
@@ -50,16 +50,6 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/43"
-        },
-        {
-          "id": 55,
-          "title": "A dark theme for low light",
-          "labels": [
-            "feedback",
-            "layout",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/55"
         }
       ]
     },
@@ -85,6 +75,16 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/54"
+        },
+        {
+          "id": 55,
+          "title": "A dark theme for low light",
+          "labels": [
+            "feedback",
+            "layout",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/55"
         }
       ]
     },
