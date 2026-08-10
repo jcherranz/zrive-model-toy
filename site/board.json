@@ -1,20 +1,10 @@
 {
-  "generated": "2026-08-10T15:57:22Z",
+  "generated": "2026-08-10T15:58:10Z",
   "columns": [
     {
       "key": "raw",
       "title": "Raw",
-      "cards": [
-        {
-          "id": 48,
-          "title": "Employers of teachers or instructors should only appear when they are",
-          "labels": [
-            "feedback",
-            "layout"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/48"
-        }
-      ]
+      "cards": []
     },
     {
       "key": "backlog",
@@ -86,6 +76,16 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/47"
+        },
+        {
+          "id": 48,
+          "title": "An instructor's employer should appear only when the instructor is clicked",
+          "labels": [
+            "feedback",
+            "layout",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/48"
         }
       ]
     },
