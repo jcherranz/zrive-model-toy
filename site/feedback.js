@@ -34,10 +34,48 @@
   var drafts = {};
 
   // ---- context ---------------------------------------------------------------------------
-  // monetary-lab pins a note to a permalink encoding the whole model state. The equivalent
-  // here is the state of the drawing: which node was selected, which view was on screen, the
-  // viewport it was drawn into, and the build id of the drawing itself, which is a digest of
-  // the geometry, so a report can be tied to the exact bytes that produced it.
+  // monetary-lab pins a note to a permalink encoding the whole model state. The equivalent here
+  // is the state of the drawing: which node was selected, which view was on screen, the viewport
+  // it was drawn into, and, above all, the commit the page was deployed from, because the whole
+  // point of the context block is that a reader of the report can go and look at the code the
+  // reporter saw.
+  //
+  // ISSUE 47. That last line used to read `build: 469ad3c`, a seven character digest of the
+  // drawing's geometry. It looks exactly like an abbreviated commit, so it invited one action,
+  // and that action failed: `git cat-file -t 469ad3c` answers "not a valid object name". Worse,
+  // it moved only when the layout was regenerated, so four cards filed across two deploys of
+  // real code all carried the same value, and on #41 a stamp that looked stale was briefly taken
+  // as evidence that the reporter was on a cached page, which they were not.
+  //
+  // The commit is now written at deploy time into site/version.js and read from window.ZV here,
+  // directly rather than through window.ZT, because the runtime-error notice below files reports
+  // in exactly the runs where app.js has thrown and window.ZT may never have been published.
+  //
+  // The full forty characters, not an abbreviation. It is the value a reader will paste into
+  // `git show`, and at full length nothing else in this block can be mistaken for it: the
+  // drawing digest stays, under a name that says what it is and with its algorithm in front of
+  // it, because it still answers the one question the commit cannot, whether two pages are
+  // drawing the same geometry.
+  function commitLine() {
+    var zv = window.ZV || {};
+    if (!zv.commit) {
+      // Honest rather than blank, and honest rather than plausible. No commit exists for a page
+      // that no deploy published: a local copy of site/, a file opened from disk, or a deploy
+      // whose stamping step did not run. Saying "unknown" would leave a reader to guess which.
+      return 'none. This page was not published by the deploy workflow, so there is no commit ' +
+             'it can name: it is a local or unstamped copy of the site' +
+             (zv.source ? ' (' + zv.source + ')' : '');
+    }
+    return zv.commit + (zv.deployedAt ? ', deployed ' + zv.deployedAt : '');
+  }
+
+  function drawingLine() {
+    var zt = window.ZT || {};
+    var d = zt.drawingDigest;
+    if (!d) return 'unknown, the drawing did not report one';
+    return 'sha256:' + d + ', a digest of the drawing and not a commit';
+  }
+
   function contextPairs() {
     var zt = window.ZT || {};
     var sel = typeof zt.selected === 'function' ? zt.selected() : null;
@@ -45,7 +83,8 @@
       ['selected node', sel ? sel.label + ' (' + sel.type + ', id ' + sel.id + ')' : 'none'],
       ['view', document.body.classList.contains('board') ? 'board' : 'diagram'],
       ['viewport', window.innerWidth + ' by ' + window.innerHeight],
-      ['build', zt.build || 'unknown'],
+      ['commit', commitLine()],
+      ['drawing', drawingLine()],
       ['page', location.href]
     ];
   }
@@ -684,10 +723,13 @@
     return String(stack || '').split('\n').slice(0, lines || 6).join('\n').slice(0, 2000);
   }
 
+  // One line on screen, so the commit is abbreviated here where the report carries it whole. Seven
+  // characters of a real sha resolve, which is the difference this issue was about; the full value
+  // travels in the context block of anything filed from the notice.
   function breadcrumb() {
-    var zt = window.ZT || {};
+    var zv = window.ZV || {};
     var view = document.body.classList.contains('board') ? 'board' : 'diagram';
-    return view + ' · build ' + (zt.build || 'unknown');
+    return view + ' · ' + (zv.commit ? 'commit ' + String(zv.commit).slice(0, 7) : 'no deploy stamp');
   }
 
   function dismissErrorNotice() {

@@ -106,7 +106,7 @@
     // build while a copy of the number is sitting in the stylesheet, because that guard is
     // about the number and not about the rule that happened to need it.
     canvas.style.setProperty('--drawing-w', G.w + 'px');
-    if (window.ZT) window.ZT.build = G.build || 'unknown';
+    if (window.ZT) window.ZT.drawingDigest = G.drawingDigest || 'unknown';
 
     // Column bands. One lane per kind of thing, captioned, so that instructors and session
     // templates are told apart by where they sit and not only by tile colour.
@@ -968,8 +968,9 @@
   // the other showing them.
   //
   // Every row is invented. The rows come from the drawing's own generated file, so they are
-  // covered by the build digest that every feedback note carries, and nothing in this file
-  // knows a student's name.
+  // covered by both values a feedback note carries: the commit, which pins every byte of the
+  // deployed site, and the drawing digest, which pins the geometry and the rows inside it.
+  // Nothing in this file knows a student's name.
   //
   // It is an overlay and not a third main. The board replaces the diagram, which takes the
   // canvas off the screen and hands its ResizeObserver a box of nothing; that is a path this
@@ -1124,7 +1125,14 @@
   // anchored zoom is a claim about arithmetic and the only honest way to check it is to take the
   // numbers off the running page before and after.
   window.ZT = {
-    build: G.build || 'unknown',
+    // The digest of the drawing, under a name that cannot be read as a revision, and the commit
+    // the page was deployed from, which is the value that answers "what code was this". The
+    // commit is read from window.ZV, written by the deploy workflow into site/version.js, and is
+    // null on anything that was not published by it. Issue 47. Both are here for a driver to read
+    // off the running page; feedback.js reads window.ZV itself rather than through this object,
+    // because it has to be able to name the commit in a run where this file threw.
+    drawingDigest: G.drawingDigest || 'unknown',
+    commit: (window.ZV && window.ZV.commit) || null,
     selected: function () {
       if (!current) return null;
       var n = nodeById[current];

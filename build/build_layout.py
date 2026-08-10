@@ -479,20 +479,26 @@ def layout(model_nodes, model_edges, tag):
                   for e in edges],
         # The cohort as rows, for the sheet at #/students, which is the view that answers "who
         # is in it" where the drawing answers "what shape is a student". It is carried in the
-        # drawing's own file and covered by the build digest for one reason: it is the model,
+        # drawing's own file and covered by the drawing digest for one reason: it is the model,
         # not page furniture, and a reader who files a note about a row is filing it against a
-        # build id that pins the bytes the row came from. owner names the node the sheet belongs
-        # to, so nothing in the browser holds the id 'students' as a literal.
+        # commit and a digest that pin the bytes the row came from. owner names the node the
+        # sheet belongs to, so nothing in the browser holds the id 'students' as a literal.
         "roster": {"n": COHORT_HEADCOUNT, "drawn": DRAWN_STUDENTS, "owner": "students",
                    "rows": ROSTER_ROWS},
     }
-    # Build id: a short digest of the drawing itself. It goes into every feedback report so a
-    # note can be tied to the exact bytes that were on screen when it was written.
+    # A short digest of the drawing itself, and it is called drawingDigest because that is what
+    # it is. It was called "build" and it went into every feedback report on its own, where seven
+    # lowercase hex characters read as an abbreviated commit to every engineer alive: the one
+    # action the value invited, looking the revision up, failed with "not a valid object name",
+    # and a report could not say what code the reporter saw. Issue 47. The commit now comes from
+    # site/version.js, written at deploy time, and this stays for the one question it can answer,
+    # whether two pages are drawing the same geometry.
     payload = json.dumps(out, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-    out["build"] = hashlib.sha256(payload.encode("utf-8")).hexdigest()[:7]
+    out["drawingDigest"] = hashlib.sha256(payload.encode("utf-8")).hexdigest()[:7]
 
     print(f"[{tag}] nodes {len(out['nodes'])}  edges {len(out['edges'])}  "
-          f"viewBox {W}x{out['h']}  aspect {W / out['h']:.2f}  build {out['build']}")
+          f"viewBox {W}x{out['h']}  aspect {W / out['h']:.2f}  "
+          f"drawing digest {out['drawingDigest']}")
     for c in range(NCOL):
         if cols[c]:
             span = (max(nodes[i]['y'] + nodes[i]['h'] / 2 for i in cols[c])

@@ -69,6 +69,45 @@ jobs:
         with:
           ref: main
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      # THE DEPLOY STAMP. Issue 47. A feedback report has to name the code the reporter saw, and
+      # it used to carry a seven character digest of the drawing under the name "build", which
+      # reads as an abbreviated commit, is not one, and moved only when the layout was rebuilt.
+      # The value is written here, in the job that publishes, because that is the only place that
+      # knows what is being published, and it is written into site/version.js rather than into
+      # site/graph.js because graph.js has to stay byte for byte what build/build_layout.py
+      # reproduces. site/version.js is the one file in site/ whose deployed bytes are deliberately
+      # not the bytes in the tree, and the copy in the tree names no commit, which is the truth
+      # about a working tree.
+      #
+      # The sha comes from the checkout, not from github.sha. This job checks out main at the
+      # moment it runs and that is deliberately not always the sha that triggered it, so
+      # github.sha can name a commit this deploy is not publishing. git rev-parse HEAD names the
+      # tree in the artifact, which is the only claim the stamp is allowed to make.
+      #
+      # The assertion is the poka-yoke this file already applies elsewhere: a stamping step that
+      # silently wrote nothing would leave the published page saying "no deploy stamp", which is
+      # honest but useless, and it would read as a page nobody deployed.
+      - name: Stamp the deployed commit into site/version.js
+        id: stamp
+        run: |
+          set -euo pipefail
+          sha="$(git rev-parse HEAD)"
+          now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          {
+            echo "// Written by .github/workflows/pages.yml at deploy time. The copy of this file"
+            echo "// in the repository names no commit; this one names the commit that was"
+            echo "// published, and the sha is the tree that went into the artifact. Issue 47."
+            printf 'window.ZV = { commit: "%s", deployedAt: "%s", source: "github pages" };\n' \
+              "$sha" "$now"
+          } > site/version.js
+          cat site/version.js
+          grep -qE 'commit: "[0-9a-f]{40}"' site/version.js || {
+            echo "::error::the deploy stamp does not carry a 40 character commit sha"
+            exit 2
+          }
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: site
@@ -80,3 +119,35 @@ jobs:
 
       - name: Forbidden-content gate, against deployed bytes
         run: bash scripts/check_forbidden.sh "${{ steps.deployment.outputs.page_url }}"
+
+      # Jidoka, and for the same reason the gate above reads the origin rather than the disk: a
+      # stamp written into the workspace proves nothing about what the public is served. This
+      # fetches the stamp back and fails the job unless the page names the commit that was just
+      # published, so the defect in issue 47, a value that does not track the deploy, cannot come
+      # back without lighting the andon. Retried because the origin can serve the previous
+      # deployment for a moment after deploy-pages returns, the same reason the gate above has
+      # FETCH_ATTEMPTS.
+      - name: Prove the deployed page names the commit that was deployed
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+          DEPLOYED_SHA: ${{ steps.stamp.outputs.sha }}
+        run: |
+          set -euo pipefail
+          url="${PAGE_URL%/}/version.js"
+          body=""
+          for attempt in 1 2 3 4 5; do
+            body="$(curl -sS -L "$url" || true)"
+            case "$body" in *"$DEPLOYED_SHA"*) break ;; esac
+            echo "  attempt $attempt/5: the origin does not name $DEPLOYED_SHA yet"
+            # An if, not `[ ... ] && sleep`: under set -e a trailing AND-list that ends false
+            # takes the step down on the last attempt, with no message and before the check below
+            # can say what went wrong.
+            if [ "$attempt" -lt 5 ]; then sleep 10; fi
+          done
+          echo "origin:   $url"
+          echo "$body"
+          echo "deployed: $DEPLOYED_SHA"
+          case "$body" in
+            *"$DEPLOYED_SHA"*) echo "the deployed page reports the deployed commit" ;;
+            *) echo "::error::the deployed page does not report $DEPLOYED_SHA"; exit 1 ;;
+          esac

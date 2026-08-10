@@ -108,6 +108,22 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- A feedback report now names the commit the reporter was looking at, #47. It used to carry a
+  seven character digest of the drawing, written into `site/graph.js` by `build/build_layout.py`
+  under the name `build`: a string that reads as an abbreviated sha to everyone who meets one and
+  is not one, so `git cat-file -t 469ad3c` answers `not a valid object name`, and one that moved
+  only when the layout was regenerated, so four cards filed across two deploys of real code all
+  carried the same value and #41 was nearly diagnosed as a cached page. The commit is stamped at
+  deploy time into `site/version.js`, the one file in `site/` whose deployed bytes are
+  deliberately not the bytes in the tree, from `git rev-parse HEAD` rather than `github.sha`
+  because this job checks out `main` at the moment it runs. It is not in `graph.js` for the
+  reason it cannot be: that file has to stay byte for byte what the builder reproduces, which it
+  does. The report prints the full forty characters, so nothing beside it can be mistaken for a
+  revision; the digest stays as `drawingDigest`, printed `sha256:…` and labelled as not a commit,
+  because it still answers whether two pages are drawing the same geometry. The tree copy names
+  no commit and the report says so in a sentence rather than showing a blank, since a working
+  tree is not a deployment. `pages.yml` reads the stamp back off the origin after deploying and
+  fails the job unless the served page names the sha it published.
 - The count stack on the students tile, #41, two defects at once in `site/app.js`, both dating
   from the first commit. The cards were `TILE - 6` across and positioned from the tile's corner,
   so they were not a stack; they are now tile-sized on a constant 2.5 unit step. And they showed
