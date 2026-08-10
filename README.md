@@ -71,8 +71,13 @@ second one, 2Q26, off the same six session templates; it is removed. The page sh
 coordinate set, `window.G`, and holds no state that could put it into another.
 
 Object types shown, one instance at least of each: Programme, Company, Instructor, session
-template, cohort session, Cohort, an aggregate students card, Enrolment, Agreement, Charge,
-Claim.
+template, cohort session, Cohort, an aggregate students card, Student, Enrolment, Agreement,
+Charge, Claim.
+
+Two kinds of tile are laid out and not painted until they are asked for. Selecting an instructor
+brings out the employer at the other end of its `employed by` edge; selecting the students card
+brings out four Students, with a line under the card saying how many of the cohort it did not
+draw. Both fade in where the build already put them, so nothing on the page moves.
 
 ## Layout
 

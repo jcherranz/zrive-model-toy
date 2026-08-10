@@ -11,6 +11,15 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- Student is an object type, and clicking the students card draws four of them, Issue 51. They
+  fade into space the build already keeps for them, with `and 30 more, not drawn` under the card
+  and the number computed from the roster, so four tiles cannot quietly stand in for thirty four
+  people. The rule that hides them is issue 48's, generalised to a table of verbs rather than
+  copied: one mechanism, `member of` and `employed by`, and the two reveals cannot interfere.
+  `individual_records` on the students card no longer says "not in this repo", because that
+  stopped being true. HANSEI.md, twelfth entry, for the thirteen invented names that turned out
+  to be real ones.
+
 - The diagram is an infinite canvas, #46: a dot grid ground, pan by dragging, zoom by wheel and
   by pinch anchored on the pointer, and a visible way home. The card's note contradicted itself,
   so the code was read rather than guessed at: there was no grid, no pan and no zoom, which

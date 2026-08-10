@@ -1,9 +1,10 @@
 # TPS: the Toyota Production System, applied to this artefact
 
 This repository builds one page: a toy instance diagram of the Zrive operating data model,
-carrying invented values only. Thirty objects of eleven types and thirty six edges exist; four
+carrying invented values only. Thirty four objects of twelve types and forty edges exist; four
 classes the model needs and no system holds are drawn as absences, with the four edges they would
-carry, so the page draws thirty four nodes and forty edges. Everything below is about that page.
+carry, so the page draws thirty eight nodes and forty four edges. Everything below is about that
+page.
 Where a Toyota principle changed a real decision here it gets a section; where it did not, it
 gets a row and no more.
 

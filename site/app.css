@@ -953,11 +953,13 @@ body.hide-ghosts .ghost { display: none; }
   padding: 0 4px;
 }
 
-/* ---- employers, painted only for the instructor they employ ----------------
-   An employer tile, its 'employed by' line and that line's verb chip sit exactly where the
-   build put them and are not painted until the instructor at the other end of the line is
-   selected. Which nodes these are is decided in app.js off the link and not off the type, since
-   the lane also holds a company that employs nobody. Issue 48.
+/* ---- the parts of the drawing that are painted only on demand ----------------
+   An employer tile, while the instructor it employs is selected (issue 48), and the four
+   Student tiles the cohort card stands for, while that card or one of them is selected
+   (issue 51). Each sits exactly where the build put it, together with its edge, that edge's
+   arrowhead and its verb chip, and none of them is painted until it is asked for. Which nodes
+   these are is decided in app.js off the link and never off the type, since the same lane holds
+   a company that employs nobody. One rule for both, because two copies of it would drift.
 
    visibility and opacity rather than display, for three reasons. display cannot be faded. A
    `visibility: hidden` subtree is out of the tab order and out of the hit test, so the keyboard
@@ -969,18 +971,35 @@ body.hide-ghosts .ghost { display: none; }
    visibility flip is held back until the fade has finished, or there would be nothing to watch
    fade, and for those 120ms the tile is still a hit target unless something says otherwise.
 
-   Two classes rather than one, so the rule beats `.dim` on specificity wherever a hidden
-   employer is also dimmed, which is every selection that is not one end of its own link. */
-.employer {
+   Two classes rather than one, so the rule beats `.dim` on specificity wherever a hidden node is
+   also dimmed, which is every selection that is not one end of its own link. */
+.veil {
   transition: opacity 120ms linear, visibility 0s linear 0s;
 }
 
-.employer.employer-hidden {
+.veil.veil-hidden {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
   transition-delay: 0s, 120ms;
 }
+
+/* The line under a card that stands for many, saying how many of them the drawing did not draw.
+   Set like the missing-key caption under the cohort and upright rather than italic, because
+   italic in this drawing means a ghost and nothing here is absent: the thirty are on the page at
+   #/students. It fades in with the tiles it is counting. */
+.lbl-tail {
+  font-size: 9px;
+  fill: var(--fg-muted);
+  text-anchor: middle;
+  font-family: var(--font-ui);
+}
+
+/* Selecting a card turns its label bold, and the marker under it is not part of the label: it
+   is a sentence about the picture. Without this it would be bold while the group is selected
+   and regular while one of the members is, which is a weight that changes for no reason a
+   reader could name. */
+.node.sel .lbl-tail { font-weight: 400; }
 
 /* A note is content and the relationship list is metadata, so they are two blocks and not
    one run of text. */

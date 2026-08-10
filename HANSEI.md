@@ -35,6 +35,7 @@ thing stopping them is somebody reading both.
 | 9 | 2026-08-10 | a form's default silently removed the permission the instructions asked for | the connect note names the field order, `site/feedback.js` |
 | 10 | 2026-08-10 | a commit message citing an issue was read as a claim to be working on it | the commit-message path is deleted; assignment is the only signal, `.github/workflows/issue-status.yml` |
 | 11 | 2026-08-10 | a commit message that quoted the CI skip marker was obeyed as one, and every gate stayed silent | none. Discipline: name the marker, never spell it, in a commit message |
+| 12 | 2026-08-10 | invented names collided with the register, and the note explaining that collided with it again | `build/model.py` hashes every string the model ships and refuses the build on a hit |
 
 ---
 
@@ -438,3 +439,50 @@ nothing like a push that produced a failing one, and the first guess was that th
 broken the workflows, which is the more interesting explanation and was the wrong one. Where a
 mechanism has an off switch, "it did not run" deserves to be checked before "it ran and went
 wrong".
+
+---
+
+## Thirty four invented names, thirteen of them real, and the fix wrote a fourteenth
+
+`2026-08-10-invented-names-are-not-thereby-safe-names` &middot; 2026-08-10
+
+**What happened.** Issue 51 asked for a cohort of thirty four students on the page, every value
+invented. Thirty four Spanish names were written by hand and `scripts/check_repo.sh` came back
+with twenty nine findings across `build/model.py`, `site/graph.js` and `build/label_widths.json`:
+thirteen of the invented given names hashed into the register of real names the gate holds. A
+register of teachers is full of ordinary Spanish first names, and an invented one of those is
+spelled exactly like a real one. A university did it as well, because a Spanish institution can
+be named after a person and one of them was. Nothing had been committed, HEAD was clean and the
+deployed bytes were clean; the whole of it was in the working tree.
+
+**And then the repair repeated the original.** The comment written to explain the collision used
+a real given name as its worked example, in the file the collision was being removed from. That
+is HANSEI's sixth entry exactly: a real name inside the work of keeping real names out. The gate
+found it on the next run, in a comment, which is a place no rule about data values would have
+looked.
+
+**Root cause.** "It is invented" was treated as a property of the value when it is a property of
+its provenance. An invented name and a real name are the same string, and the only thing that can
+tell them apart is a list of the real ones, which is what the gate holds and what nobody had
+consulted before writing thirty four of them. The second half has the same shape one level in:
+prose about names is made of names.
+
+**The prevention now in place.** `build/model.py` folds and salted-hashes every string this model
+ships, the roster first and then labels, property keys and values, notes, marks, the tail and the
+verbs, and refuses to build on a hit. The parameters are read out of `scripts/forbidden_lib.sh`
+rather than copied, so there is still one salt and one stop list; the folding is a Python copy,
+which `build/safety_grep.py` already records as a thing that can drift, and it was checked token
+for token against the shell pipeline's own output rather than assumed. It reports the row and the
+token length and withholds the token. It fires in one second, locally, where the two existing
+gates fire on a push and after a deploy.
+
+The first version of that check looked at the names only, and the university went straight
+through it. That is why it now looks at everything: a check scoped to where the last defect was
+found is scoped to the wrong thing.
+
+*Prevention kind:* `gate`
+*Named by:* `build/model.py _check_names`, `scripts/forbidden_lib.sh`
+
+**Note.** The names that replaced them were not chosen more carefully. They were generated as
+candidates and put through the gate's own folding and hashing before being used, which is the
+only method that ends with a number rather than with a feeling.

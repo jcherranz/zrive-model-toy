@@ -56,7 +56,12 @@ BANDS = [
     ([1], ("session templates",)),
     ([2], ("instructors",)),
     ([3], ("cohort sessions", "and the visit host")),
-    ([4, 5], ("cohort and students",)),
+    # Two lines since issue 51, for the same reason the programme lane grew one in issue 48: the
+    # lane holds four Student tiles that nothing paints until the students card is clicked, and a
+    # caption naming only what is on screen would hide that the lane holds anything else. It
+    # costs no height, since BAND_TOP reserves for the longest caption and another lane already
+    # runs to two lines.
+    ([4, 5], ("cohort and students", "individuals appear on click")),
     ([6, 7], ("enrolment to claim",)),
 ]
 
@@ -280,10 +285,16 @@ def layout(model_nodes, model_edges, tag):
         n["lw"] = max(max(text_w(ln, FONT, 400, it) for ln in n["lines"]),
                       max(text_w(ln, FONT, 600, it) for ln in n["lines"]))
         # A node carrying a mark spends one more line under its label saying what it is
-        # missing, so it reserves the height for it here and the browser only draws.
-        n["nlines"] = len(n["lines"]) + (1 if n.get("mark") else 0)
+        # missing, so it reserves the height for it here and the browser only draws. A tail is
+        # the same arithmetic for a different sentence: a line about the drawing rather than
+        # about the object, and the students card carries one saying how many members it did not
+        # draw. The line is reserved whether or not anything is painted in it, which is the whole
+        # point: the marker appears with the reveal and nothing moves to make room for it.
+        n["nlines"] = len(n["lines"]) + (1 if n.get("mark") else 0) + (1 if n.get("tail") else 0)
         if n.get("mark"):
             n["lw"] = max(n["lw"], text_w(n["mark"], 9.0))
+        if n.get("tail"):
+            n["lw"] = max(n["lw"], text_w(n["tail"], 9.0))
         n["h"] = TILE + GAP_LABEL + LINE_H * n["nlines"]
         n["x"] = COLX[n["col"]]
 
@@ -457,7 +468,7 @@ def layout(model_nodes, model_edges, tag):
                    "x": round(n["x"], 1), "y": round(tile_y(n), 1),
                    "count": n.get("count"), "props": n["props"],
                    "ghost": 1 if n.get("ghost") else None,
-                   "mark": n.get("mark"), "note": n.get("note")}
+                   "mark": n.get("mark"), "tail": n.get("tail"), "note": n.get("note")}
                   for n in (nodes[i] for i in order)],
         "edges": [{"s": e["s"], "t": e["t"], "v": e["v"], "d": e["d"],
                    "ghost": 1 if e["ghost"] else None,

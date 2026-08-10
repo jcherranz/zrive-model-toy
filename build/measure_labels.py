@@ -63,7 +63,7 @@ CHROME_CANDIDATES = [
 # widths at the end of every run.
 BANDS = ["programme", "employers appear on click", "session templates", "instructors",
          "cohort sessions", "and the visit host",
-         "cohort and students", "enrolment to claim"]
+         "cohort and students", "individuals appear on click", "enrolment to claim"]
 
 # Not named by the stylesheet, but a plausible resolution of its final `sans-serif` on a
 # machine that is not this one. Included so the envelope covers them where they are installed.
@@ -116,9 +116,11 @@ def collect():
     node_strings = set()
     for n in NODES:
         node_strings |= runs(n["label"])
-    # The 9px context holds the edge verbs and any mark a node carries under its label; both
-    # are drawn at the chip size.
-    small = {v for _s, _t, v in EDGES} | {n["mark"] for n in NODES if n.get("mark")}
+    # The 9px context holds the edge verbs, any mark a node carries under its label and any
+    # tail it carries under that; all three are drawn at the chip size.
+    small = ({v for _s, _t, v in EDGES}
+             | {n["mark"] for n in NODES if n.get("mark")}
+             | {n["tail"] for n in NODES if n.get("tail")})
 
     # A ghost is drawn in italic (.lbl-ghost, .ghost .chip-tx). Italic is a different face with
     # different advances, so it gets its own contexts rather than borrowing the upright ones.

@@ -4,6 +4,7 @@
 # the session titles (published on the company's own public website) and the names of firms
 # that are companies rather than people. All teacher names are invented. All identifiers,
 # dates, counts and money figures are invented. No value in this file is measured.
+import pathlib
 
 TYPES = [
     # key,             label,               colour,    glyph,       column
@@ -14,6 +15,15 @@ TYPES = [
     ("CohortSession",  "Cohort session",    "#d1980b", "calendar",  3),
     ("Cohort",         "Cohort",            "#29a634", "cohort",    4),
     ("StudentGroup",   "Students",          "#8eb125", "stack",     5),
+    # A Student is a member of that group, so it is drawn in the group's own lane and in the
+    # colour family the group already owns, one shade down. The column is 4 and not 5, which is
+    # the column the group itself sits in, for a reason that is geometric and not conceptual:
+    # this layout draws an edge between two columns and has no shape for an edge inside one, so
+    # four members stacked under the card they belong to would each need a line from a tile to
+    # the tile above it. Column 4 is the other half of the same lane, it holds one node, and the
+    # 'member of' edges then run left to right into the group exactly like every other edge on
+    # the page. The lane caption, "cohort and students", is true of both columns either way.
+    ("Student",        "Student",           "#5f7d1f", "cap",       4),
     # The enrolment to claim chain folds over two columns rather than running out over four.
     # Every one of its edges still joins neighbouring columns, so the chain stays legible
     # while the drawing keeps a two to one aspect instead of a long empty right half.
@@ -33,6 +43,149 @@ A = "absent"
 
 def p(name, value, flag):
     return {"k": name, "v": value, "f": flag}
+
+
+# ---- the cohort, one row per student ----------------------------------------
+# INVENTED, ALL OF IT, AND IT HAS TO STAY THAT WAY. This page is served publicly by GitHub
+# Pages even though the repository behind it is private, and a roster is the one table on it
+# that would matter if it were real: a named person, where they studied, roughly how old they
+# are and whether they owe money. Every one of the thirty four people below is made up, every
+# row is flagged `dummy` on the page, and nothing is imported from any Zrive system, ever.
+# HANSEI.md's first entry is this project publishing real commercial data on a public page; do
+# not be the second. If a real cohort ever has to be looked at, that is a different deployment
+# and not this one.
+#
+# The universities are real institutions, which is a different kind of statement: naming a
+# university names nobody, and this model already names McKinsey and Bain. What must never
+# happen is an invented person paired with anything that could be read as a real record.
+#
+# A year of birth and not a date of birth, deliberately, and the decision is issue 51's own: a
+# public page showing a named person with a birth date models a practice worth not modelling,
+# and the year says everything the data model needs to say about the field existing.
+COHORT_HEADCOUNT = 34
+DRAWN_STUDENTS = 4      # how many of them get a tile on the canvas; the rest are in the sheet
+
+# name, university, year of birth, charge state
+ROSTER = [
+    ("Olalla Verdiales",    "ICADE",      "2003", "unpaid"),
+    ("Aitor Melguizo",      "UAM",        "2002", "paid"),
+    ("Naiara Berruezo",     "CUNEF",      "2003", "paid"),
+    ("Unai Olabarri",       "Deusto",     "2001", "unpaid"),
+    ("Casilda Quintanar",   "ICADE",      "2003", "paid"),
+    ("Eneko Zarauz",        "ESADE",      "2002", "unpaid"),
+    ("Itziar Malumbres",    "UAM",        "2004", "paid"),
+    ("Brais Cerecedo",      "CUNEF",      "2002", "paid"),
+    ("Amaranta Ibaseta",    "Deusto",     "2003", "unpaid"),
+    ("Julen Peñalba",       "ICADE",      "2001", "paid"),
+    ("Ariadna Estival",     "ESADE",      "2003", "paid"),
+    ("Iago Villaécija",     "UAM",        "2002", "unpaid"),
+    ("Leire Redondela",     "CUNEF",      "2003", "paid"),
+    ("Asier Baigorri",      "Deusto",     "2002", "paid"),
+    ("Uxue Larrea",         "ICADE",      "2004", "unpaid"),
+    ("Mikel Trujillano",    "ESADE",      "2001", "paid"),
+    ("Ximena Membrado",     "UAM",        "2003", "paid"),
+    ("Gorka Anguiano",      "CUNEF",      "2002", "unpaid"),
+    ("Idoia Sotomonte",     "ICADE",      "2003", "paid"),
+    ("Ander Escorihuela",   "Deusto",     "2002", "paid"),
+    ("Nekane Zabaleta",     "UAM",        "2004", "paid"),
+    ("Aritz Ferrandis",     "ESADE",      "2001", "unpaid"),
+    ("Maialen Barandica",   "CUNEF",      "2003", "paid"),
+    ("Oier Alberdi",        "Deusto",     "2002", "paid"),
+    ("Berenice Cascante",   "ICADE",      "2003", "unpaid"),
+    ("Anxo Berciano",       "UAM",        "2002", "paid"),
+    ("Ainara Otaduy",       "ESADE",      "2004", "paid"),
+    ("Damián Codolar",      "CUNEF",      "2001", "paid"),
+    ("Leocadia Manterola",  "Deusto",     "2003", "unpaid"),
+    ("Koldo Ozaeta",        "ICADE",      "2002", "paid"),
+    ("Amaia Cendoya",       "UAM",        "2003", "paid"),
+    ("Beñat Iraizoz",       "ESADE",      "2002", "paid"),
+    ("Eulalia Villalpando", "CUNEF",      "2004", "unpaid"),
+    ("Xabier Aristimuño",   "Deusto",     "2001", "paid"),
+]
+
+# The count is not typed anywhere twice. The headcount on the students card, the number in its
+# tile, the cohort's students_enrolled, the marker under the card saying how many are not drawn
+# and the sheet's own heading are all this list's length, or this list's length less the four
+# that are drawn. A roster and a headcount that disagree is the defect the marker exists to make
+# impossible, so neither is allowed to be a literal.
+if len(ROSTER) != COHORT_HEADCOUNT:
+    raise SystemExit(f"model: ROSTER holds {len(ROSTER)} rows, COHORT_HEADCOUNT says "
+                     f"{COHORT_HEADCOUNT}")
+NOT_DRAWN = COHORT_HEADCOUNT - DRAWN_STUDENTS
+
+
+# ---- the model has to pass the name gate before it is a model ---------------
+# Thirty four invented Spanish names is thirty four chances to write down somebody real, and the
+# first draft of this list did it thirteen times over: a register of teachers is full of ordinary
+# Spanish given names, and an invented one of those is spelled exactly like a real one. A
+# university did it too, because a Spanish institution can be named after a person. The gate
+# caught all of it in the working tree, before anything was committed or deployed, and the fix
+# was to change the invented values and not the rule.
+#
+# What is written here is the other half of that fix, so the next person to add a student cannot
+# repeat it: the same folding and the same salted hash the gate uses, run at import over every
+# string this model ships, refusing the build on a hit. It fires here, in one second, instead of
+# in a CI log after a push. Over every string and not only over the names, because the thing that
+# got through the first version of this check was the column beside them.
+#
+# The parameters are read out of scripts/forbidden_lib.sh and never copied into this file. The
+# salt, the minimum token length and the stop list live there, one copy, shared by both gates,
+# and a copy of them here would be a fourth. What this does duplicate is the folding, in Python,
+# which build/safety_grep.py already does and which is recorded there as a thing that can drift;
+# it is checked against the shell pipeline's own output rather than assumed. A hit prints the row
+# and the length and withholds the token: this file is not where a name that is not public
+# becomes public.
+def _forbidden_hits(labelled):    # [(where, string)] -> [(where, token length)]
+    import hashlib
+    import re as _re
+    import unicodedata
+
+    lib = pathlib.Path(__file__).resolve().parent.parent / "scripts" / "forbidden_lib.sh"
+    hashes = pathlib.Path(__file__).resolve().parent.parent / "scripts" / "forbidden_names.sha256"
+    try:
+        rules = lib.read_text(encoding="utf-8")
+        known = {ln.strip() for ln in hashes.read_text(encoding="utf-8").splitlines()
+                 if ln.strip() and not ln.startswith("#")}
+    except OSError as exc:
+        raise SystemExit(f"model: cannot read the name gate's rules ({exc}). The roster is not "
+                         f"checkable without them, and an unchecked roster is not shippable.")
+    # An empty list would pass everything, which is the loudest lie a gate can tell.
+    if not known:
+        raise SystemExit("model: the name hash list is empty; refusing to call the roster clean")
+
+    def rule(name, pattern):
+        m = _re.search(pattern, rules)
+        if not m:
+            raise SystemExit(f"model: scripts/forbidden_lib.sh no longer defines {name}")
+        return m.group(1)
+
+    salt = rule("FORBIDDEN_SALT", r'FORBIDDEN_SALT="([^"]*)"')
+    minlen = int(rule("FORBIDDEN_MIN_TOKEN", r"FORBIDDEN_MIN_TOKEN=(\d+)"))
+    stop = set(rule("FORBIDDEN_STOP", r'FORBIDDEN_STOP="([^"]*)"').split())
+
+    hits = []
+    for where, s in labelled:
+        flat = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode().lower()
+        for tok in _re.split(r"[^a-z]+", flat):
+            if len(tok) < minlen or tok in stop:
+                continue
+            if hashlib.sha256((salt + tok).encode("utf-8")).hexdigest()[:16] in known:
+                hits.append((where, len(tok)))
+    return hits
+
+
+def _check_names(labelled):
+    hits = _forbidden_hits(labelled)
+    if not hits:
+        return
+    for where, n in hits:
+        print(f"[model] {where} carries a {n} character token that is a real name in the "
+              f"register the safety gate holds (token withheld). Change the invented value.")
+    raise SystemExit("[model] refusing to build a model that collides with the name register")
+
+
+_check_names([(f"ROSTER row {i + 1}", v)
+              for i, row in enumerate(ROSTER) for v in row])
 
 
 NODES = [
@@ -260,16 +413,33 @@ NODES += [
             p("intake", "1Q26", D),
             p("starts_on", "2026-01-12", D),
             p("sessions_scheduled", "6", D),
-            p("students_enrolled", "34", D),
+            p("students_enrolled", str(COHORT_HEADCOUNT), D),
         ],
     },
     {
         "id": "students", "type": "StudentGroup", "label": "Alumnos Z-IB 1Q26",
-        "count": "34",
+        "count": str(COHORT_HEADCOUNT),
+        # The line under the label, and it is not decoration. Four tiles are not a cohort, and a
+        # drawing that reveals four individuals without saying how many it left out has quietly
+        # replaced thirty four people with four. Same discipline as the count of Done cards the
+        # board draws under the ones it shows. It appears and disappears with the four tiles,
+        # because a marker about a reveal has nothing to say while nothing is revealed, and the
+        # number in it is computed and never typed.
+        "tail": f"and {NOT_DRAWN} more, not drawn",
+        "note": ("One card standing for the whole cohort. Clicking it draws four of the thirty "
+                 "four as individual Student objects, in space the layout already keeps for "
+                 "them, with the count of the ones it did not draw underneath. Every person in "
+                 "this cohort is invented, here and in the full list: no roster of real "
+                 "students is imported into this repository or published on this page."),
         "props": [
-            p("headcount", "34", D),
-            p("representation", "one card standing for 34 individuals", E),
-            p("individual_records", "not shown, and not in this repo", E),
+            p("headcount", str(COHORT_HEADCOUNT), D),
+            p("representation", f"one card for {COHORT_HEADCOUNT}, {DRAWN_STUDENTS} drawn on "
+                                f"click", E),
+            # This row used to read "not shown, and not in this repo", which stopped being true
+            # the moment the four tiles and the full list arrived. It is not softened: it says
+            # what is now in the repository and what is still not, which is any real person.
+            p("individual_records", f"{COHORT_HEADCOUNT} invented rows, no real roster", D),
+            p("not_drawn", str(NOT_DRAWN), D),
             p("completion_rate", "not modelled", D),
         ],
     },
@@ -277,7 +447,7 @@ NODES += [
         "id": "enrol", "type": "Enrolment", "label": "Enrolment 0001",
         "props": [
             p("enrolment_id", "ENR-0001", D),
-            p("stands_for", "34 enrolments, one drawn", E),
+            p("stands_for", f"{COHORT_HEADCOUNT} enrolments, one drawn", E),
             p("enrolled_on", "2026-01-05", D),
             p("status", "active", D),
         ],
@@ -297,7 +467,11 @@ NODES += [
             p("charge_id", "CHG-0001", D),
             p("amount", "1.000,00 EUR", D),
             p("due_on", "2026-02-01", D),
-            p("state", "unpaid", D),
+            # The drawn charge is the first student's charge, so its state is read off that
+            # student's row rather than typed here. Two places saying "unpaid" is one place to
+            # forget when the roster changes, and the disagreement would be invisible: the tile
+            # and the card would each look right on their own.
+            p("state", ROSTER[0][3], D),
             p("payer_identity", "not resolved", E),
         ],
     },
@@ -335,6 +509,49 @@ EDGES += [
     ("students", "charge", "pays"),
     ("claim", "charge", "claims against"),
 ]
+
+# ---- the four students that are drawn ---------------------------------------
+# Issue 51. The students card carried two recorded decisions, "one card standing for 34
+# individuals" and "individual records: not shown, and not in this repo", and this block retires
+# the second of them: Student is a first class object type now, with its own colour, its own
+# properties and its own link, and four instances of it exist on the page.
+#
+# Four and not thirty four. The whole drawing is thirty four nodes; exploding one lane into
+# thirty four tiles would double it and teach nothing that four do not, because what a reader
+# has to see here is the shape of a Student record and the fact that it joins the rest of the
+# model. The cohort as a population is a different question with a different answer, and the
+# answer is the full list, which is the sheet at #/students and holds all thirty four rows.
+#
+# ONE VERB, AND THE REVEAL KEYS ON IT. 'member of' belongs to these four edges and to nothing
+# else on the page, which is what lets app.js derive the hidden set by walking the edges rather
+# than by holding a list of ids or by keying on the Student type. A fifth student added here
+# joins the rule by existing. Same reasoning as the 'employed by' rule in issue 48, and the
+# reason it is worth repeating is that keying on the type worked there too, right up until a
+# Company turned out to be playing two roles.
+STUDENT_IDS = [f"s{i}" for i in range(1, DRAWN_STUDENTS + 1)]
+
+for _i, (_name, _uni, _yob, _state) in enumerate(ROSTER[:DRAWN_STUDENTS], start=1):
+    # Enrolment 0001 and charge 0001 are the ones the drawing carries as nodes; the other
+    # thirty three of each exist in the model and are not drawn, which the row says rather than
+    # leaving the reader to assume that ENR-0002 is missing.
+    _drawn = ", drawn" if _i == 1 else ", not drawn"
+    NODES.append({
+        "id": f"s{_i}", "type": "Student", "label": _name,
+        "note": ("An invented person. This card exists to show that a Student is an object with "
+                 "properties and links and not a name inside a headcount, and every value on it "
+                 "is made up: no real student, no real cohort, nothing imported from any Zrive "
+                 "system, on a page anyone with the URL can read."),
+        "props": [
+            p("name", "invented", D),
+            p("university", _uni, D),
+            # year and not date, on purpose: see the note above ROSTER.
+            p("year_of_birth", _yob, D),
+            p("recorded_as", f"ENR-{_i:04d}{_drawn}", D),
+            p("charge", f"CHG-{_i:04d}{_drawn}", D),
+            p("charge_state", _state, D),
+        ],
+    })
+    EDGES.append((f"s{_i}", "students", "member of"))
 
 # ---- ghosts: classes the model needs and no system holds --------------------
 # Everything above is an object that exists. Everything below is one that does not, drawn on
@@ -389,3 +606,22 @@ GHOST_EDGES = [
 TYPES = TYPES + [GHOST_TYPE]
 NODES += GHOSTS
 EDGES += GHOST_EDGES
+
+# ---- and the whole of it, once it is assembled ------------------------------
+# Every string this model puts on the page, through the same check the roster went through
+# above: labels, property keys and values, notes, marks, the tail, the verbs, the type names.
+# The roster is checked on its own first so that a bad name is reported as a row number rather
+# than as a node id, and everything is checked here so that nothing gets through by not being a
+# name. Comments are not in this set and do not need to be: the repository gate reads the file
+# whole, which is how a real name in a comment in this very block was caught.
+_strings = [("TYPES", t[1]) for t in TYPES]
+for _n in NODES:
+    _w = f"node {_n['id']}"
+    _strings.append((_w, _n["label"]))
+    for _k in ("note", "mark", "tail"):
+        if _n.get(_k):
+            _strings.append((f"{_w} {_k}", _n[_k]))
+    for _pr in _n["props"]:
+        _strings += [(f"{_w} prop {_pr['k']}", _pr["k"]), (f"{_w} prop {_pr['k']}", _pr["v"])]
+_strings += [(f"edge {_s}->{_t}", _v) for _s, _t, _v in EDGES]
+_check_names(_strings)

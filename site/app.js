@@ -23,7 +23,12 @@
     agreement: ['M4 2h8v12H4z', 'M6 5h4', 'M6 7.6h4',
                 'M8 9.6a1.6 1.6 0 1 1 0 3.2 1.6 1.6 0 0 1 0-3.2'],
     coin:      ['M8 3a5 5 0 1 1 0 10A5 5 0 0 1 8 3', 'M6.2 6.7h3.6', 'M6.2 9.3h3.6'],
-    claim:     ['M8 2.6 14 13.4H2z', 'M8 6.6v3.2', 'M8 11.4v.6']
+    claim:     ['M8 2.6 14 13.4H2z', 'M8 6.6v3.2', 'M8 11.4v.6'],
+    // A student, drawn as a cap over a head rather than as a second person: the person glyph
+    // belongs to the instructors and the two types sit two lanes apart, so at 16 by 16 the only
+    // thing telling them apart would be the tile colour.
+    cap:       ['M1.9 6.5 8 3.9l6.1 2.6L8 9.1z',
+                'M4.7 7.8v3c0 .9 1.5 1.6 3.3 1.6s3.3-.7 3.3-1.6v-3']
   };
 
   function el(name, attrs, parent) {
@@ -56,10 +61,36 @@
 
   var nodeById, edgesOf, gfxNode, gfxEdge;
 
-  // The verb that makes a company an employer. It is a relationship and not a type, and that
-  // distinction is the whole of the rule below; see the block that builds empBy.
-  var EMPLOY_VERB = 'employed by';
-  var empBy, empEdges;
+  // ---- what the drawing paints only on demand ---------------------------------
+  // Two kinds of node are laid out, kept out of the picture, and faded in when the reader asks
+  // for them: an employer, while the instructor it employs is selected (issue 48), and the four
+  // students the cohort card stands for, while that card or one of them is selected (issue 51).
+  // One mechanism, one stylesheet rule and one table, because two copies of it would be two
+  // things to keep in step, and the second was written by generalising the first rather than
+  // beside it.
+  //
+  // EVERY RULE KEYS ON A VERB AND NEVER ON A TYPE. Six nodes here are of type Company and only
+  // five are employers: Aretxa Capital hosts a visit, employs nobody, and a rule reading
+  // `type === 'Company'` would take it off the page along with the five and delete exactly the
+  // distinction this toy exists to show, that one type is playing two roles. The same discipline
+  // is kept for the students even though Student plays one role today, because that is what
+  // Company looked like before it played two. A sixth instructor, or a fifth student, joins the
+  // rule by existing: nothing below holds a list of ids to forget to extend.
+  //
+  //   verb      the relationship that puts a node under the rule
+  //   hide      which end of that edge is the node that is not painted
+  //   by        which end is the node whose selection paints it
+  //   together  members revealed by one node come and go as a set, so selecting one of the four
+  //             students keeps its three siblings and the "and 30 more" marker on screen. An
+  //             employer is alone at its end of the link and wants the opposite: moving to
+  //             another instructor takes the first employer away again, so at most one is ever
+  //             on the page.
+  var VEIL_RULES = [
+    { verb: 'employed by', hide: 't', by: 's', together: false },
+    { verb: 'member of',   hide: 's', by: 't', together: true }
+  ];
+  // id -> { by: {id: true}, edges: [index], group: id or null }. Rebuilt by draw().
+  var veiled;
 
   function draw(g) {
     G = g;
@@ -221,6 +252,17 @@
                               y: ty + n.lines.length * G.lineH }, g);
         mk.textContent = n.mark;
       }
+      // The line under the label that says how many of a group's members the drawing did not
+      // draw. It is written here and painted only while those members are on screen, and the
+      // build reserved its line whether or not anything is in it, so nothing moves when it
+      // arrives. Kept out of <title> and out of the panel: it is a statement about this picture,
+      // not a property of the object.
+      var tail = null;
+      if (n.tail) {
+        tail = el('text', { class: 'lbl lbl-tail', x: n.x,
+                            y: ty + (n.lines.length + (n.mark ? 1 : 0)) * G.lineH }, g);
+        tail.textContent = n.tail;
+      }
 
       // The rect a keyboard focus is drawn as. It is inserted directly after the title, so it
       // sits behind the tile, the count stack and the label rather than over them, and it
@@ -248,55 +290,72 @@
         if (vis) ensureVisible(n);
       });
       gfxNode[n.id] = { g: g, tile: tile, mark: mark, col: col, count: !!n.count, frame: frame,
-                        ghost: !!n.ghost, rest: tile.getAttribute('fill') };
+                        ghost: !!n.ghost, rest: tile.getAttribute('fill'), tail: tail };
     });
 
-    // ---- who is an employer ---------------------------------------------------
-    // Derived from the links and never from the type, and that is the load bearing part of
-    // issue 48. Six nodes in this drawing are of type Company and only five of them are
-    // employers: the sixth, Aretxa Capital, is an empresa colaboradora that hosts a visit,
-    // employs nobody and hangs off the cohort rather than off any instructor. A rule reading
-    // `type === 'Company'` would take it off the page along with the five and would delete
-    // exactly the distinction this toy exists to make visible, that one type is playing two
-    // roles. Keying on the verb also means the next instructor somebody adds brings their
-    // employer under the rule by existing: nothing here holds a list of ids to forget to extend.
-    empBy = {}; empEdges = {};
+    // ---- who is painted on demand ---------------------------------------------
+    // Read off the edges, once, against the table at the top of this file.
+    veiled = {};
     gfxEdge.forEach(function (x, i) {
-      if (x.e.v !== EMPLOY_VERB) return;
-      var emp = x.e.t;
-      if (!empBy[emp]) { empBy[emp] = {}; empEdges[emp] = []; }
-      empBy[emp][x.e.s] = true;
-      empEdges[emp].push(i);
-      x.g.classList.add('employer');
-      x.c.classList.add('employer');
+      VEIL_RULES.forEach(function (r) {
+        if (x.e.v !== r.verb) return;
+        var hid = r.hide === 't' ? x.e.t : x.e.s;
+        var by = r.by === 't' ? x.e.t : x.e.s;
+        var rec = veiled[hid] || (veiled[hid] = { by: {}, edges: [], group: null });
+        rec.by[by] = true;
+        if (r.together) rec.group = by;
+        rec.edges.push(i);
+        // An edge to nothing must not be drawn, so the line, its arrowhead and its verb chip
+        // carry the same class as the tile they land on and come and go with it. Without this
+        // the drawing would keep an arrow pointing into an empty lane, which is a stronger
+        // claim than it means.
+        x.g.classList.add('veil');
+        x.c.classList.add('veil');
+      });
     });
-    Object.keys(empBy).forEach(function (id) {
-      if (gfxNode[id]) gfxNode[id].g.classList.add('employer');
+    // Members of one group are revealed together, so each of them counts as a revealer of the
+    // others. Done once here rather than tested on every selection.
+    Object.keys(veiled).forEach(function (id) {
+      var grp = veiled[id].group;
+      if (!grp) return;
+      Object.keys(veiled).forEach(function (other) {
+        if (veiled[other].group === grp) veiled[id].by[other] = true;
+      });
     });
-    veilEmployers();
+    Object.keys(veiled).forEach(function (id) {
+      if (gfxNode[id]) gfxNode[id].g.classList.add('veil');
+    });
+    // The marker under a group's own card is part of the reveal and not part of the card.
+    Object.keys(gfxNode).forEach(function (id) {
+      if (gfxNode[id].tail) gfxNode[id].tail.classList.add('veil');
+    });
+    veil();
   }
 
-  // ---- employers, on the instructor they employ -------------------------------
-  // Which employers are painted. One at a time, and only while the selection is one end of the
-  // 'employed by' link that makes it an employer. Clicking a second instructor therefore takes
-  // the first employer away again: a reveal that accumulated would end an ordinary reading
-  // session with all five on the page, which is the state this card exists to remove, and the
-  // reader would have no way back to the quiet drawing short of a reload. Selecting the revealed
-  // employer itself keeps it on screen and opens its panel like any other node, because the
-  // selection is then the other end of the same link.
+  // ---- painting the on demand nodes -------------------------------------------
+  // Which of them are on the page. Only while the selection is the node itself or one of the
+  // nodes the table says reveals it, so a reveal never accumulates: an ordinary reading session
+  // would otherwise end with all five employers and all four students on the page, which is the
+  // state issues 48 and 51 exist to remove, and the reader would have no way back to the quiet
+  // drawing short of a reload. Clearing the selection is the way back, and moving it from an
+  // instructor to the students card and back behaves by construction, because the whole set is
+  // recomputed from the current selection every time rather than toggled.
   //
   // Nothing here moves the drawing. The layout is generated for the full node set, so a hidden
-  // employer keeps the coordinates the build gave it and is simply not painted; revealing it
-  // paints it into space it already owns, and the drawing's extent, which is what fit() frames,
-  // is the same number before and after. Laying the drawing out again without the hidden nodes
-  // was the alternative and is worse twice over: every tile on the page would move on every
-  // click, and the coordinates would stop being a pure function of the model.
-  function veilEmployers() {
-    Object.keys(empBy).forEach(function (id) {
-      var show = !!current && (current === id || empBy[id][current] === true);
+  // node keeps the coordinates the build gave it and is simply not painted; revealing it paints
+  // it into space it already owns, and the drawing's extent, which is what fit() frames, is the
+  // same number before and after. Laying the drawing out again without the hidden nodes was the
+  // alternative and is worse twice over: every tile on the page would move on every click, and
+  // the coordinates would stop being a pure function of the model.
+  function veil() {
+    var shown = {};     // group id -> is any member of it on screen
+    Object.keys(veiled).forEach(function (id) {
+      var show = !!current && (current === id || veiled[id].by[current] === true);
+      var grp = veiled[id].group;
+      if (grp) shown[grp] = shown[grp] || show;
       var f = gfxNode[id];
       if (f) {
-        f.g.classList.toggle('employer-hidden', !show);
+        f.g.classList.toggle('veil-hidden', !show);
         // Out of the tab order and out of the accessibility tree as well as out of the picture.
         // The stylesheet's `visibility: hidden` already does both, and doing it here as well is
         // the belt: what must never happen is a keyboard landing on a tile nobody can see, or a
@@ -310,13 +369,18 @@
           f.g.setAttribute('aria-hidden', 'true');
         }
       }
-      // An edge to nothing must not be drawn, so the line, its arrowhead and its verb chip go
-      // with the node they land on. Without this the drawing would carry an 'employed by' arrow
-      // pointing into an empty lane, which is a stronger claim of absence than the drawing means.
-      (empEdges[id] || []).forEach(function (i) {
-        gfxEdge[i].g.classList.toggle('employer-hidden', !show);
-        gfxEdge[i].c.classList.toggle('employer-hidden', !show);
+      veiled[id].edges.forEach(function (i) {
+        gfxEdge[i].g.classList.toggle('veil-hidden', !show);
+        gfxEdge[i].c.classList.toggle('veil-hidden', !show);
       });
+    });
+    // The marker saying how many members were not drawn. It belongs to the group's own card, is
+    // reserved a line by the build whether or not anything is painted in it, and is on screen
+    // exactly while the members are: four tiles with no count beside them would quietly stand in
+    // for thirty four people, which is the defect it exists to prevent.
+    Object.keys(shown).forEach(function (grp) {
+      var f = gfxNode[grp];
+      if (f && f.tail) f.tail.classList.toggle('veil-hidden', !shown[grp]);
     });
   }
 
@@ -762,7 +826,7 @@
   function clear() {
     if (current) paint(current, false);
     current = null;
-    veilEmployers();
+    veil();
     Object.keys(gfxNode).forEach(function (k) { gfxNode[k].g.classList.remove('dim'); });
     gfxEdge.forEach(function (x) { x.g.classList.remove('dim'); x.c.classList.remove('dim'); });
     panel.classList.remove('open');
@@ -774,7 +838,7 @@
     if (current) paint(current, false);
     current = id;
     paint(id, true);
-    veilEmployers();
+    veil();
 
     var keep = {};
     keep[id] = true;

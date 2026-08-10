@@ -112,10 +112,11 @@ moment it matters.
 
 ## What improvement means here, and what it does not
 
-This toy is thirty four nodes, four of which are classes that do not exist, and the four files
-that draw it, `index.html`, `app.css`, `app.js` and the generated `graph.js`, are ninety five
-kilobytes. They were fifty two when that sentence was written, a hundred and one on the commit
-before the second cohort came out, and seventy just after it. Improving it does not mean growing
+This toy is thirty eight nodes, four of which are classes that do not exist, and the four files
+that draw it, `index.html`, `app.css`, `app.js` and the generated `graph.js`, are a hundred and
+eleven kilobytes. They were fifty two when that sentence was written, a hundred and one on the
+commit before the second cohort came out, seventy just after it, and ninety five before the
+cohort was drawn as people. Improving it does not mean growing
 it, and these two figures are maintained by hand, so read them as of the last time somebody
 checked. The most valuable change available at any moment is almost always the one that removes
 something: a type nobody can populate, a column with one node in it, a property that says
