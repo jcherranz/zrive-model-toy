@@ -35,6 +35,14 @@ of what changed and when, and it is meant to be scannable.
 
 ### Changed
 
+- An instructor's employer is painted only while that instructor is selected, #48. The hidden set
+  is the target of an `employed by` edge and never the `Company` type, so Aretxa Capital, the
+  colaboradora that hosts a visit and employs nobody, keeps behaving as it did, and a sixth
+  instructor's employer would join the rule by existing. The tile, its line and its verb chip
+  fade over 120ms into the space the build already gave them: nothing reflows, the view does not
+  move, and a hidden employer is out of the tab order and out of the hit test, so capture mode
+  cannot file a card about one. The lane caption gains a second line, `employers appear on click`,
+  at no cost in height. Lesson in KAIZEN.md, last entry; measurements in the commit message.
 - Below 760px the diagram no longer scrolls, #46: the body rule that scrolled the page at narrow
   widths is scoped to the board, which is untouched, and the diagram is one screen at every width
   with the drawing moving inside it. `#graph { min-width: var(--drawing-w) }` goes, since pan and

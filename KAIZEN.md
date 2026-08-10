@@ -261,3 +261,12 @@ this page shows. That the page shows less is the point of the page.
   where they disagree the answer comes from the reader and not from the record. The cheap tell is
   that the argument for adding was made here, in the file where this project reasons with itself,
   and the argument against arrived from outside it in twenty words.
+- **Hiding a node in the browser is wrong when the hidden thing is a second view and right when it
+  is this one.** The second cohort could not be drawn and hidden, because a node nobody can see
+  still occupies the layout, so every coordinate in the default drawing would have moved to pay
+  for a view nobody had asked for. An employer hidden until its instructor is clicked is the same
+  mechanism and the opposite case: it belongs to this drawing and is one click from the screen, so
+  the space it occupies is the space it appears in, and laying the drawing out again without it
+  would move every tile on the page on every click and make the coordinates a function of the
+  selection. The question is not whether a hidden node costs the layout something. It is whether
+  what it costs buys the reader the drawing in front of them.

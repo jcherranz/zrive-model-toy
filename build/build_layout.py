@@ -44,8 +44,15 @@ NCOL = len(COL_W)
 # columns under it and a longer caption has nowhere to go sideways.
 BANDS = [
     # Plural since issue 49: the lane held one employer and now holds five, and a caption is a
-    # claim about everything under it.
-    ([0], ("programme and employers",)),
+    # claim about everything under it. Two lines since issue 48, which stopped painting those
+    # five until the instructor each of them employs is clicked. A lane captioned only
+    # "programme", holding one tile in a tall empty strip, would be true of what is on screen and
+    # would hide that there is anything else in it; a lane still captioned "programme and
+    # employers" with no employer under it reads as five tiles that failed to load. The second
+    # line is the affordance, so the emptiness is legible as a state rather than as a fault. It
+    # costs no height: the cohort sessions lane below already runs to two lines, and BAND_TOP
+    # reserves headroom for the longest caption rather than for each one.
+    ([0], ("programme", "employers appear on click")),
     ([1], ("session templates",)),
     ([2], ("instructors",)),
     ([3], ("cohort sessions", "and the visit host")),

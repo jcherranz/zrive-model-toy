@@ -56,6 +56,11 @@
 
   var nodeById, edgesOf, gfxNode, gfxEdge;
 
+  // The verb that makes a company an employer. It is a relationship and not a type, and that
+  // distinction is the whole of the rule below; see the block that builds empBy.
+  var EMPLOY_VERB = 'employed by';
+  var empBy, empEdges;
+
   function draw(g) {
     G = g;
     svg.textContent = '';
@@ -244,6 +249,74 @@
       });
       gfxNode[n.id] = { g: g, tile: tile, mark: mark, col: col, count: !!n.count, frame: frame,
                         ghost: !!n.ghost, rest: tile.getAttribute('fill') };
+    });
+
+    // ---- who is an employer ---------------------------------------------------
+    // Derived from the links and never from the type, and that is the load bearing part of
+    // issue 48. Six nodes in this drawing are of type Company and only five of them are
+    // employers: the sixth, Aretxa Capital, is an empresa colaboradora that hosts a visit,
+    // employs nobody and hangs off the cohort rather than off any instructor. A rule reading
+    // `type === 'Company'` would take it off the page along with the five and would delete
+    // exactly the distinction this toy exists to make visible, that one type is playing two
+    // roles. Keying on the verb also means the next instructor somebody adds brings their
+    // employer under the rule by existing: nothing here holds a list of ids to forget to extend.
+    empBy = {}; empEdges = {};
+    gfxEdge.forEach(function (x, i) {
+      if (x.e.v !== EMPLOY_VERB) return;
+      var emp = x.e.t;
+      if (!empBy[emp]) { empBy[emp] = {}; empEdges[emp] = []; }
+      empBy[emp][x.e.s] = true;
+      empEdges[emp].push(i);
+      x.g.classList.add('employer');
+      x.c.classList.add('employer');
+    });
+    Object.keys(empBy).forEach(function (id) {
+      if (gfxNode[id]) gfxNode[id].g.classList.add('employer');
+    });
+    veilEmployers();
+  }
+
+  // ---- employers, on the instructor they employ -------------------------------
+  // Which employers are painted. One at a time, and only while the selection is one end of the
+  // 'employed by' link that makes it an employer. Clicking a second instructor therefore takes
+  // the first employer away again: a reveal that accumulated would end an ordinary reading
+  // session with all five on the page, which is the state this card exists to remove, and the
+  // reader would have no way back to the quiet drawing short of a reload. Selecting the revealed
+  // employer itself keeps it on screen and opens its panel like any other node, because the
+  // selection is then the other end of the same link.
+  //
+  // Nothing here moves the drawing. The layout is generated for the full node set, so a hidden
+  // employer keeps the coordinates the build gave it and is simply not painted; revealing it
+  // paints it into space it already owns, and the drawing's extent, which is what fit() frames,
+  // is the same number before and after. Laying the drawing out again without the hidden nodes
+  // was the alternative and is worse twice over: every tile on the page would move on every
+  // click, and the coordinates would stop being a pure function of the model.
+  function veilEmployers() {
+    Object.keys(empBy).forEach(function (id) {
+      var show = !!current && (current === id || empBy[id][current] === true);
+      var f = gfxNode[id];
+      if (f) {
+        f.g.classList.toggle('employer-hidden', !show);
+        // Out of the tab order and out of the accessibility tree as well as out of the picture.
+        // The stylesheet's `visibility: hidden` already does both, and doing it here as well is
+        // the belt: what must never happen is a keyboard landing on a tile nobody can see, or a
+        // capture-mode click filing a card about one.
+        if (show) {
+          f.g.setAttribute('tabindex', '0');
+          f.g.removeAttribute('aria-hidden');
+        } else {
+          if (document.activeElement === f.g && f.g.blur) f.g.blur();
+          f.g.removeAttribute('tabindex');
+          f.g.setAttribute('aria-hidden', 'true');
+        }
+      }
+      // An edge to nothing must not be drawn, so the line, its arrowhead and its verb chip go
+      // with the node they land on. Without this the drawing would carry an 'employed by' arrow
+      // pointing into an empty lane, which is a stronger claim of absence than the drawing means.
+      (empEdges[id] || []).forEach(function (i) {
+        gfxEdge[i].g.classList.toggle('employer-hidden', !show);
+        gfxEdge[i].c.classList.toggle('employer-hidden', !show);
+      });
     });
   }
 
@@ -689,6 +762,7 @@
   function clear() {
     if (current) paint(current, false);
     current = null;
+    veilEmployers();
     Object.keys(gfxNode).forEach(function (k) { gfxNode[k].g.classList.remove('dim'); });
     gfxEdge.forEach(function (x) { x.g.classList.remove('dim'); x.c.classList.remove('dim'); });
     panel.classList.remove('open');
@@ -700,6 +774,7 @@
     if (current) paint(current, false);
     current = id;
     paint(id, true);
+    veilEmployers();
 
     var keep = {};
     keep[id] = true;

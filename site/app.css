@@ -953,6 +953,35 @@ body.hide-ghosts .ghost { display: none; }
   padding: 0 4px;
 }
 
+/* ---- employers, painted only for the instructor they employ ----------------
+   An employer tile, its 'employed by' line and that line's verb chip sit exactly where the
+   build put them and are not painted until the instructor at the other end of the line is
+   selected. Which nodes these are is decided in app.js off the link and not off the type, since
+   the lane also holds a company that employs nobody. Issue 48.
+
+   visibility and opacity rather than display, for three reasons. display cannot be faded. A
+   `visibility: hidden` subtree is out of the tab order and out of the hit test, so the keyboard
+   cannot land on a tile nobody can see and capture mode cannot file a card about one. And the
+   node keeps its box in the drawing, which is the point: it reappears where it always was
+   instead of pushing the drawing around.
+
+   pointer-events carries no delay while visibility does, and that gap is deliberate. The
+   visibility flip is held back until the fade has finished, or there would be nothing to watch
+   fade, and for those 120ms the tile is still a hit target unless something says otherwise.
+
+   Two classes rather than one, so the rule beats `.dim` on specificity wherever a hidden
+   employer is also dimmed, which is every selection that is not one end of its own link. */
+.employer {
+  transition: opacity 120ms linear, visibility 0s linear 0s;
+}
+
+.employer.employer-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition-delay: 0s, 120ms;
+}
+
 /* A note is content and the relationship list is metadata, so they are two blocks and not
    one run of text. */
 #panel .pnote-note {
