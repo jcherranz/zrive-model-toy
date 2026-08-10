@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T13:03:47Z",
+  "generated": "2026-08-10T13:29:10Z",
   "columns": [
     {
       "key": "raw",
@@ -54,33 +54,32 @@
     {
       "key": "in_progress",
       "title": "In progress",
+      "cards": []
+    },
+    {
+      "key": "done",
+      "title": "Done",
       "cards": [
-        {
-          "id": 32,
-          "title": "Remove the header legend, redundant / not needed",
-          "labels": [
-            "feedback",
-            "layout",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/32"
-        },
         {
           "id": 34,
           "title": "Black box around selected nodes framing wrong and horrible",
           "labels": [
             "feedback",
             "layout",
-            "status:in-progress"
+            "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/34"
-        }
-      ]
-    },
-    {
-      "key": "done",
-      "title": "Done",
-      "cards": [
+        },
+        {
+          "id": 32,
+          "title": "Remove the header legend, redundant / not needed",
+          "labels": [
+            "feedback",
+            "layout",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/32"
+        },
         {
           "id": 26,
           "title": "Capture mode pushes the board link off the right edge below 400px",
@@ -138,29 +137,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/21"
-        },
-        {
-          "id": 20,
-          "title": "The detail panel stays open on top of the board view",
-          "labels": [
-            "bug",
-            "layout",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/20"
-        },
-        {
-          "id": 19,
-          "title": "The template versus instance split is asserted, not shown",
-          "labels": [
-            "enhancement",
-            "model",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/19"
         }
       ],
-      "hidden": 16,
+      "hidden": 18,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
