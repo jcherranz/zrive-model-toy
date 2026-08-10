@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-09T23:57:23Z",
+  "generated": "2026-08-10T00:24:58Z",
   "columns": [
     {
       "key": "raw",
@@ -49,6 +49,25 @@
             "status:raw"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/24"
+        },
+        {
+          "id": 25,
+          "title": "Escape and the 3 shortcut destroy a typed but unfiled note",
+          "labels": [
+            "bug",
+            "status:raw"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/25"
+        },
+        {
+          "id": 26,
+          "title": "Capture mode pushes the board link off the right edge below 400px",
+          "labels": [
+            "bug",
+            "layout",
+            "status:raw"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/26"
         }
       ]
     },
