@@ -1,10 +1,31 @@
 {
-  "generated": "2026-08-10T17:50:37Z",
+  "generated": "2026-08-10T17:58:28Z",
   "columns": [
     {
       "key": "raw",
       "title": "Raw",
-      "cards": []
+      "cards": [
+        {
+          "id": 5,
+          "title": "The toy carries no measured values, by design",
+          "labels": [
+            "constraint",
+            "documentation",
+            "limitation"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/5"
+        },
+        {
+          "id": 6,
+          "title": "The safety gate cannot enumerate the origin, only the files the tree knows about",
+          "labels": [
+            "constraint",
+            "documentation",
+            "limitation"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
+        }
+      ]
     },
     {
       "key": "backlog",
@@ -19,26 +40,6 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/4"
-        },
-        {
-          "id": 5,
-          "title": "The toy carries no measured values, by design",
-          "labels": [
-            "documentation",
-            "limitation",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/5"
-        },
-        {
-          "id": 6,
-          "title": "The safety gate cannot enumerate the origin, only the files the tree knows about",
-          "labels": [
-            "documentation",
-            "limitation",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
         },
         {
           "id": 39,
