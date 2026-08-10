@@ -38,7 +38,9 @@ a gate until this one existed. Same rules, same hash list. Where the origin gate
 it finds, because it is already public, this one prints the file and the line numbers and
 withholds the token. It scans its own source too, so it carries an explicit table of declared
 self-matches, each an exact triple of rule, path and string; the table is not a list of
-excused files, and an entry that stops matching fails the run rather than lingering.
+excused files, and an entry that stops matching fails the run rather than lingering. It also
+checks the documentation's citations: `HANSEI.md` and `KAIZEN.md` entries carry slugs, everything
+that cites one names the slug, and a citation naming a slug no entry carries fails the build.
 
 The repository is private and the site is public. That is deliberate. Read `HANSEI.md` first if
 that combination looks like an accident.

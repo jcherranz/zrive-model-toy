@@ -51,7 +51,8 @@ name: issue status
 #
 # And the direction of the error settles it. A missed in-progress is visible to whoever tries to
 # pick the card up, and costs them a question. A false in-progress makes a free card look claimed,
-# and that is the state that stops a board being usable at all. Issue 50, HANSEI.md tenth entry.
+# and that is the state that stops a board being usable at all. Issue 50, HANSEI.md
+# `2026-08-10-citation-read-as-a-claim`.
 #
 # A bare `#N` in a commit message is therefore completely inert as far as the board is concerned.
 # GitHub still records the cross-reference on the issue's own timeline, which is a citation doing

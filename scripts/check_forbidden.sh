@@ -5,8 +5,9 @@
 # WHY THE LIVE URL AND NOT THE WORKING TREE. A gate that reads local files answers "is the
 # source clean", which is not the question. The question is "is the thing the public can read
 # clean", and between the two sit a build step, an artifact upload, a cache and a CDN. This
-# project's own record (HANSEI.md, first entry) is a site that was public when the repository
-# was private, so the only reading that settles anything is a reading of the served bytes.
+# project's own record (HANSEI.md `2026-08-09-private-repo-public-pages`) is a site that was
+# public when the repository was private, so the only reading that settles anything is a reading
+# of the served bytes.
 #
 # WHAT IT CANNOT DO. GitHub Pages exposes no directory listing, so the file list comes from
 # the local site/ directory: the gate checks the files the repository believes it published.
@@ -15,8 +16,9 @@
 #
 # AND THE ONE IT COULD NOT SEE AT ALL. Only site/ is deployed, so this gate has never had an
 # opinion about any other file in the repository. A real surname sat in scripts/ for a day and
-# this gate was structurally incapable of noticing (HANSEI.md, sixth entry). The repository
-# side is scripts/check_repo.sh; the two are complements and neither replaces the other.
+# this gate was structurally incapable of noticing
+# (HANSEI.md `2026-08-09-gate-scoped-to-the-public-surface`). The repository side is
+# scripts/check_repo.sh; the two are complements and neither replaces the other.
 #
 # Usage:
 #   scripts/check_forbidden.sh [base-url]      fetch and scan the deployed site

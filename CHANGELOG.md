@@ -22,8 +22,8 @@ of what changed and when, and it is meant to be scannable.
   people. The rule that hides them is issue 48's, generalised to a table of verbs rather than
   copied: one mechanism, `member of` and `employed by`, and the two reveals cannot interfere.
   `individual_records` on the students card no longer says "not in this repo", because that
-  stopped being true. HANSEI.md, twelfth entry, for the thirteen invented names that turned out
-  to be real ones.
+  stopped being true. HANSEI.md `2026-08-10-invented-names-are-not-thereby-safe-names`, for the
+  thirteen invented names that turned out to be real ones.
 
 - The diagram is an infinite canvas, #46: a dot grid ground, pan by dragging, zoom by wheel and
   by pinch anchored on the pointer, and a visible way home. The card's note contradicted itself,
@@ -41,11 +41,11 @@ of what changed and when, and it is meant to be scannable.
   `viewBox` framed, so the page still opens on the screen it always had; `fit`, the `0` key and a
   readout in which 100% is the whole drawing say where home is, and all three go bold and blue
   the moment the view is not there. Measurements in the commit message.
-- HANSEI.md gains an eleventh entry. A commit message that quoted the CI skip marker while
-  explaining what the marker is for was obeyed as one, so a push changing three workflow files ran
-  no gate, no deploy and no workflow at all. No prevention in code, and the hole is structural: a
-  marker whose effect is that nothing runs cannot be caught by anything that runs. The discipline
-  is to name the marker in a commit message and never spell it.
+- HANSEI.md gains `2026-08-10-quoting-the-skip-marker-skipped-ci`. A commit message that quoted the
+  CI skip marker while explaining what the marker is for was obeyed as one, so a push changing three
+  workflow files ran no gate, no deploy and no workflow at all. No prevention in code, and the hole
+  is structural: a marker whose effect is that nothing runs cannot be caught by anything that runs.
+  The discipline is to name the marker in a commit message and never spell it.
 - A drag is separated from a click by 5px of movement, or 3px once held for 250ms, and the click
   a drag leaves behind is stopped on `window` in the capture phase, which runs before
   `feedback.js`'s document listener whatever order the scripts load in. **A pan therefore cannot
@@ -54,6 +54,19 @@ of what changed and when, and it is meant to be scannable.
 
 ### Changed
 
+- Entries are cited by slug and no longer by position, #54. KAIZEN.md's lessons gain slugs in
+  HANSEI.md's form, in a `kaizen-` namespace and undated because no date for them is established,
+  and every positional citation in the tree is repointed at the entry it named: 30 of them, not
+  the 12 the card counted, across CHANGELOG.md, TPS.md, KAIZEN.md, HANSEI.md, both gate scripts,
+  two workflows and `build/model.py`. Two had already rotted, both into KAIZEN, whose list is not
+  append-only, so "last entry" moves every time it grows; a third was right only by being the
+  most recent. Nothing was reordered and nothing renumbered. `scripts/check_repo.sh` now fails
+  the build on a citation naming a slug no entry carries, self-test 32 probes up from 27, with
+  the two ways that check could be hollow proved shut: a definition written outside HANSEI.md and
+  KAIZEN.md defines nothing, and an empty list of defined slugs aborts rather than judging every
+  citation against it. Driven failing on a real dangling citation before it was trusted. Lesson
+  in KAIZEN.md `kaizen-a-scanner-cannot-tell-use-from-mention`, which is the one an agent
+  withheld rather than break two citations by appending it.
 - An instructor's employer is painted only while that instructor is selected, #48. The hidden set
   is the target of an `employed by` edge and never the `Company` type, so Aretxa Capital, the
   colaboradora that hosts a visit and employs nobody, keeps behaving as it did, and a sixth
@@ -61,7 +74,8 @@ of what changed and when, and it is meant to be scannable.
   fade over 120ms into the space the build already gave them: nothing reflows, the view does not
   move, and a hidden employer is out of the tab order and out of the hit test, so capture mode
   cannot file a card about one. The lane caption gains a second line, `employers appear on click`,
-  at no cost in height. Lesson in KAIZEN.md, last entry; measurements in the commit message.
+  at no cost in height. Lesson in KAIZEN.md `kaizen-a-hidden-node-in-this-view-and-in-another`;
+  measurements in the commit message.
 - Below 760px the diagram no longer scrolls, #46: the body rule that scrolled the page at narrow
   widths is scoped to the board, which is untouched, and the diagram is one screen at every width
   with the drawing moving inside it. `#graph { min-width: var(--drawing-w) }` goes, since pan and
@@ -91,7 +105,8 @@ of what changed and when, and it is meant to be scannable.
   rather than reasoned. `graph.js` 51.1KB to 20.8KB, `label_widths.json` 500 strings to 418. The
   default drawing neither paid for the other view nor gains from its removal: `window.G` is
   byte-identical either side and every measurement at three viewports is unchanged, because the
-  two views were always laid out separately. Lesson in KAIZEN.md, last entry.
+  two views were always laid out separately. Lesson in KAIZEN.md
+  `kaizen-a-demonstration-is-a-cost-to-the-reader`.
 - The frame drawn around a selected node, #45, filed from the live site. A click already inverts
   the tile, bolds the label, dims everything unrelated and opens the panel; the frame was a fifth
   statement of the same fact and the only one that added a shape. **`.node:focus { outline: none }`
@@ -104,7 +119,8 @@ of what changed and when, and it is meant to be scannable.
 - The commit-message backstop in `issue-status.yml`, and with it that workflow's `push` trigger,
   #50. In the thirteen pushes it ever saw it wrote four labels and all four read a citation as a
   claim of work; assignment is now the only signal and a bare `#N` moves nothing. Incident in
-  HANSEI.md, tenth entry; the narrowing that was rejected is argued in the workflow's header.
+  HANSEI.md `2026-08-10-citation-read-as-a-claim`; the narrowing that was rejected is argued in
+  the workflow's header.
 
 ### Fixed
 
@@ -216,8 +232,8 @@ of what changed and when, and it is meant to be scannable.
   because a cap that reads as the whole list would be worse than the long column it replaced. An
   older `board.json` carrying neither field still draws.
 - The GitHub connect note names the order the token form imposes, not only the token it wants.
-  HANSEI.md, ninth entry. The 404 explanation in `explainStatus` is unchanged, because it serves
-  the tokens made before the note was read.
+  HANSEI.md `2026-08-10-token-form-default-hid-the-permission`. The 404 explanation in
+  `explainStatus` is unchanged, because it serves the tokens made before the note was read.
 - The connected filing path has been exercised end to end against the deployed site, closing the
   caveat that its success half had only ever been driven against a stubbed `fetch`. No token value
   is recorded anywhere in this repository.
@@ -458,7 +474,7 @@ The gate is shown failing on the defect it was written for, and stops reading th
 - **`scripts/check_repo.sh` reported `VERDICT: clean` on a repository that still carried a real
   surname.** The name rule was never at fault; the gate was reading the disk, which is the one
   copy of a tracked file that is not the repository. A false assurance, not a gap, and worse than
-  a gap. HANSEI.md, seventh entry.
+  a gap. HANSEI.md `2026-08-09-gate-read-the-disk-not-the-repository`.
 - `scan_snapshots` closes it: for every tracked path whose index copy differs from the disk, the
   index copy is scanned too, and likewise HEAD's, and a finding names which snapshot it came from.
 - A tracked path deleted from the disk took the whole gate down with exit 123, because
@@ -468,9 +484,9 @@ The gate is shown failing on the defect it was written for, and stops reading th
 
 ### Added
 
-- Three permanent probes in `scripts/check_repo.sh --self-test`, one per way this defect could
-  come back, listed in HANSEI.md's seventh entry. Every name in every probe is invented. The
-  self-test is 27 cases, up from 24.
+- Three permanent probes in `scripts/check_repo.sh --self-test`, one per way this defect could come
+  back, listed in HANSEI.md `2026-08-09-gate-read-the-disk-not-the-repository`. Every name in every
+  probe is invented. The self-test is 27 cases, up from 24.
 - `probe_at`, which runs a probe as though its payload sat at a named path, so a probe can prove
   that being one of the gate's own files licenses nothing. That was the excuse this defect nearly
   got away with.
@@ -490,7 +506,7 @@ The gate is shown failing on the defect it was written for, and stops reading th
 
 - The rule this leaves behind, and the one worth carrying to the next repository: **a gate is not
   accepted until it has been demonstrated failing on the real defect it was written for.**
-  HANSEI.md, seventh entry.
+  HANSEI.md `2026-08-09-gate-read-the-disk-not-the-repository`.
 - **Still open.** The surname remains in nine ancestor commits of `main`, and an earlier one in the
   first commit. `HEAD`, the index and the working tree are clean and the gate covers all three, so
   nothing new can be committed carrying a name. Rewriting history is a decision with a blast radius
@@ -505,7 +521,8 @@ The gate learns about the half of the repository it was never able to see.
 - A real surname from a comment in `scripts/gen_forbidden_hashes.sh`, where it stood as the worked
   example of how a register filename is split. The example is now an invented name and the
   explanation is unchanged. Not an exposure: Pages publishes `site/` and nothing else, and that
-  was verified against the origin rather than assumed. HANSEI.md, sixth entry.
+  was verified against the origin rather than assumed.
+  HANSEI.md `2026-08-09-gate-scoped-to-the-public-surface`.
 
 ### Added
 
@@ -526,7 +543,8 @@ The gate learns about the half of the repository it was never able to see.
 - A table of declared self-matches in `check_repo.sh`, which is how the gate scans its own source
   without a blanket exclusion. Each is one exact triple of rule, path and matched string, and a
   triple licenses only itself. Skipping the files was rejected, because a skipped file is where
-  the next one of these hides and this one hid in the gate. HANSEI.md, sixth entry.
+  the next one of these hides and this one hid in the gate.
+  HANSEI.md `2026-08-09-gate-scoped-to-the-public-surface`.
 
 ### Changed
 
@@ -626,7 +644,8 @@ board is real, and the safety gate reads what the public reads.
 
 - The gate now reads deployed bytes rather than local files. A gate reading the working tree
   answers whether the source is clean, and between the source and the reader sit a build, an
-  artifact upload, a cache and a CDN. HANSEI.md's first entry is what that gap costs.
+  artifact upload, a cache and a CDN. HANSEI.md `2026-08-09-private-repo-public-pages` is what
+  that gap costs.
 
 ## [0.1.0] - 2026-08-09
 

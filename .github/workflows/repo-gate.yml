@@ -5,7 +5,8 @@ name: repo gate
 # because that one cannot see this: Pages publishes site/ and nothing else, so a gate that
 # reads deployed bytes has no opinion about build/, scripts/, or any of the documentation. A
 # real surname sat in scripts/ for a day inside the very script written to keep names out, and
-# no amount of running the origin gate would have found it. HANSEI.md, sixth entry.
+# no amount of running the origin gate would have found it.
+# HANSEI.md `2026-08-09-gate-scoped-to-the-public-surface`.
 #
 # It runs on pull requests as well as on pushes, because the point of a repository gate is to
 # be in front of the commit rather than behind it.

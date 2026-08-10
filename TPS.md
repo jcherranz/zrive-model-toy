@@ -51,7 +51,7 @@ the content is public.
 
 ## Poka-Yoke
 
-Five places where the mistake is made hard rather than remembered against.
+Six places where the mistake is made hard rather than remembered against.
 
 - **The gate reads deployed bytes, not local files.** `check_forbidden.sh` takes its file list
   from `site/` and then fetches each of those paths from the public origin over HTTP. A gate
@@ -60,13 +60,13 @@ Five places where the mistake is made hard rather than remembered against.
   cache and a CDN.
 - **And a second gate reads the repository, because the first one structurally cannot.** Only
   `site/` is deployed, so `check_forbidden.sh` has never had an opinion about `build/`, `scripts/`
-  or a line of the documentation. `scripts/check_repo.sh` scans every tracked file against the
-  same hash list, on every push and every pull request. It exists because a real surname sat in
+  or a line of the documentation. `scripts/check_repo.sh` scans every tracked file against the same
+  hash list, on every push and every pull request. It exists because a real surname sat in
   `scripts/` for a day, in the script written to keep names out, where no reading of the public
-  origin could have reached it (HANSEI.md, sixth entry). `[OPEN]` It scans its own source, so it
-  carries a table of declared self-matches; each is an exact triple of rule, path and string, an
-  entry that stops matching fails the run, and the real-name rule cannot be declared at all, but a
-  table is still a place where something could be parked.
+  origin could have reached it (HANSEI.md `2026-08-09-gate-scoped-to-the-public-surface`). `[OPEN]`
+  It scans its own source, so it carries a table of declared self-matches; each is an exact triple
+  of rule, path and string, an entry that stops matching fails the run, and the real-name rule
+  cannot be declared at all, but a table is still a place where something could be parked.
 - **The gate holds no names.** `scripts/forbidden_names.sha256` holds one salted, truncated hash
   per name token; the checker folds the deployed bytes the same way and compares.
   `scripts/gen_forbidden_hashes.sh` runs locally against the vault and is the only thing that ever
@@ -76,7 +76,14 @@ Five places where the mistake is made hard rather than remembered against.
 - **An empty input aborts instead of reporting clean.** `scan_dir` asserts a non-zero file count,
   a non-zero byte count and a non-empty hash list, and exits 2 if any of the three fails. A gate
   handed nothing to scan and reporting clean is the loudest lie it can tell, and this project has
-  already had a workflow report success on an empty input (HANSEI.md).
+  already had a workflow report success on an empty input
+  (HANSEI.md `2026-08-empty-input-reported-success`).
+- **A citation names a slug, not a position.** HANSEI.md and KAIZEN.md entries carry slugs and
+  are cited by them, and `check_repo.sh` fails the build on a cited slug no entry carries. The
+  form it replaced, "HANSEI.md, sixth entry", was safe only while a document was append-only, and
+  KAIZEN is not: two changelog entries citing its last lesson already meant two different ones,
+  and the cost was an agent withholding a lesson rather than repointing them by adding it, issue
+  54.
 - **Each gate is proved armed before it is trusted.** Every workflow runs the relevant
   `--self-test` alongside the live check. Each builds one synthetic payload per rule and asserts
   it trips, asserts the two declared invented figures do not, and asserts an empty input aborts;
@@ -140,8 +147,8 @@ an LLM triage pass, a commit-trailer directive language and a queueing disciplin
 deploys. The queueing discipline has since been earned here, twice over. The reading of commit messages was
 tried in the narrowest form it has, a bare `#12` marking that issue in progress, and is now
 removed: in thirteen pushes it wrote four labels and every one read a citation as a claim of work
-(HANSEI.md, tenth entry). Nothing in this repository reads a commit message. The LLM triage pass is
-still refused: a board this size does not need classifying.
+(HANSEI.md `2026-08-10-citation-read-as-a-claim`). Nothing in this repository reads a commit
+message. The LLM triage pass is still refused: a board this size does not need classifying.
 
 ## Andon
 
@@ -156,12 +163,12 @@ affect before it is proposed. This artefact has one author, one reviewer and no 
 every consultation would be the author agreeing with himself, and the ceremony would produce
 exactly the thing this project has already been burned by: the appearance of review.
 
-Read HANSEI.md's first entry carefully and it is not a consultation failure. Licences and
-trademarks were checked, and the question that mattered, whether the site would be publicly
-readable, was simply never asked. More people in the room does not generate an unasked question.
-What did generate it was an adversarial review, whose job is to disagree, and that is the opposite
-of consensus-building rather than a cheap version of it. The substitute is named because a
-rejected pillar with no substitute is a hole.
+Read HANSEI.md `2026-08-09-private-repo-public-pages` carefully and it is not a consultation
+failure. Licences and trademarks were checked, and the question that mattered, whether the site
+would be publicly readable, was simply never asked. More people in the room does not generate an
+unasked question. What did generate it was an adversarial review, whose job is to disagree, and that
+is the opposite of consensus-building rather than a cheap version of it. The substitute is named
+because a rejected pillar with no substitute is a hole.
 
 ## Where to look
 

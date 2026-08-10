@@ -9,7 +9,7 @@
 # the discipline was installed, a real surname was sitting in scripts/gen_forbidden_hashes.sh,
 # in the header of the script whose only purpose is keeping real names out of this repository,
 # and the origin gate could not have found it however often it ran. It was found by an
-# independent scan of tracked files. HANSEI.md, sixth entry.
+# independent scan of tracked files. HANSEI.md `2026-08-09-gate-scoped-to-the-public-surface`.
 #
 # The two gates are complements. This one answers "is the repository clean", that one answers
 # "is what the public reads clean", and neither answer implies the other.
@@ -31,6 +31,16 @@
 #   - the real-name rule has no entry and can have none. An entry naming it is rejected by an
 #     assertion rather than ignored. That rule is the reason this gate was written and there is
 #     no file in this repository where a name from the register is expected.
+#
+# THE CITATION RULE, which is about documentation rather than about content. HANSEI.md and
+# KAIZEN.md entries are cited from prose and from code, and until issue 54 they were cited by
+# ordinal: "HANSEI.md, sixth entry". HANSEI is append-only, so an ordinal into it only rots
+# slowly. KAIZEN is not, and two changelog entries citing "KAIZEN.md, last entry" already meant
+# two different lessons, so appending one bullet repointed both, with nothing failing and no
+# diff on either citing line. Entries carry slugs now and citations name the slug, and this
+# gate checks that every slug cited anywhere in the repository resolves to an entry that
+# exists. See scan_citations below for what counts as a definition and what counts as a
+# citation.
 #
 # Usage:
 #   scripts/check_repo.sh            scan every tracked file
@@ -61,8 +71,8 @@ ALLOWED_MONEY="$ALLOWED_MONEY"$'\neuro\neuros'
 # ---------------------------------------------------------------------------------------
 # DECLARED SELF-MATCHES.  rule|path|exact matched string
 #
-# rule is one of: banned-word, corpus-link, uuid, email, money.  There is deliberately no
-# real-name rule here and an assertion below refuses one.
+# rule is one of: banned-word, corpus-link, uuid, email, money, citation.  There is
+# deliberately no real-name rule here and an assertion below refuses one.
 # ---------------------------------------------------------------------------------------
 FORBIDDEN_EXEMPT=(
   # scripts/forbidden_lib.sh declares the rules. Every literal below IS a rule.
@@ -100,8 +110,8 @@ FORBIDDEN_EXEMPT=(
 
   # Documentation of the rules and of the incidents. These are figures in English prose, not
   # money: 46.932 is the fractional-second timestamp that once tripped the money rule, and
-  # 1.538 is an item count from the first incident. Both are declared per file, so the same
-  # string appearing anywhere else in the repository still fails.
+  # 1.538 is an item count from `2026-08-09-private-repo-public-pages`. Both are declared per
+  # file, so the same string appearing anywhere else in the repository still fails.
   #
   # CHANGELOG.md no longer needs the 46.932 declaration and no longer has it. The entry that
   # tells that story used to print the figure on its own as well as inside the timestamp it came
@@ -137,6 +147,14 @@ FORBIDDEN_EXEMPT=(
   "money|scripts/check_repo.sh|2.750,00"
   "money|scripts/check_repo.sh|1.000.000"
   "money|scripts/check_repo.sh|500 EUR"
+
+  # The citation self-test needs slugs that resolve and slugs that do not, and it has to spell
+  # them in this file for the probes to carry them. Each is declared at this path and nowhere
+  # else, so the same invented slug cited from a document still fails, which is the case that
+  # matters. Nothing here is a real entry in either document and nothing here ever should be.
+  "citation|scripts/check_repo.sh|2026-08-10-a-real-entry"
+  "citation|scripts/check_repo.sh|2026-08-10-no-such-entry"
+  "citation|scripts/check_repo.sh|kaizen-no-such-lesson"
 )
 
 WORKDIR=""
@@ -148,7 +166,7 @@ trap cleanup EXIT
 
 # ---------------------------------------------------------------------------------------
 # Poka-yoke. A gate handed nothing to scan reports clean, which is the loudest lie it can
-# tell (HANSEI.md, "A workflow ran on an empty input and reported success").
+# tell (HANSEI.md `2026-08-empty-input-reported-success`).
 # ---------------------------------------------------------------------------------------
 assert_scan_inputs() {  # n_files bytes n_hashes
   [ "$1" -gt 0 ] || { echo "ASSERTION FAILED: no tracked files to scan" >&2; exit 2; }
@@ -161,7 +179,7 @@ assert_table_well_formed() {
   for e in ${FORBIDDEN_EXEMPT[@]+"${FORBIDDEN_EXEMPT[@]}"}; do
     rule="${e%%|*}"
     case "$rule" in
-      banned-word|corpus-link|uuid|email|money) ;;
+      banned-word|corpus-link|uuid|email|money|citation) ;;
       *) echo "ASSERTION FAILED: declared self-match names an unknown rule: $e" >&2; exit 2 ;;
     esac
     [ "$(grep -c '|' <<< "$e")" -ge 1 ] || { echo "ASSERTION FAILED: malformed entry: $e" >&2; exit 2; }
@@ -202,7 +220,8 @@ scan_worktree() {  # hashfile
 # in `scripts/gen_forbidden_hashes.sh` at HEAD, and a correction to it existed only as an
 # uncommitted working-tree edit. The gate read the disk, found the corrected copy, and printed
 # VERDICT: clean while the name sat in every commit anyone could clone. Nothing was wrong with
-# the name rule; it was pointed at the wrong bytes. HANSEI.md, seventh entry.
+# the name rule; it was pointed at the wrong bytes.
+# HANSEI.md `2026-08-09-gate-read-the-disk-not-the-repository`.
 #
 # So: for every tracked path whose index copy differs from the disk, the index copy is scanned
 # too, and likewise HEAD's, and a finding says which. The label passed to the scan is the plain
@@ -242,6 +261,72 @@ scan_snapshots() {  # hashfile
   echo "snapshots scanned beyond the disk: $n"
 }
 
+# ---------------------------------------------------------------------------------------
+# Citations of HANSEI.md and KAIZEN.md entries.
+#
+# A DEFINITION is a slug in backticks immediately followed by " &middot;", and only in the two
+# documents named below. That is exactly the form each entry already prints under its title, so
+# nothing had to be invented for the checker to read; and because no other file can define one,
+# a slug that appears only in citations resolves nowhere and fails. A citation cannot vouch for
+# itself, which is the property that makes this check worth having rather than circular.
+#
+# A CITATION is a slug in backticks anywhere in any tracked file, and the shape is deliberately
+# narrow: a date prefix, which is what HANSEI's entries carry, or the `kaizen-` namespace, which
+# is what KAIZEN's lessons carry. So an ordinary hyphenated word in backticks is not read as a
+# citation, and every real citation is, whatever prose surrounds it. A definition is also a
+# citation of itself and resolves trivially, which costs nothing.
+#
+# This gate's own source cites entries in its header and spells invented slugs in its self-test
+# payloads. The header's citations resolve like anybody else's; the invented ones are declared
+# self-matches under the rule `citation`, so they are licensed at this path and nowhere else,
+# and the staleness check applies to them like every other declaration.
+CITATION_DOCS=(HANSEI.md KAIZEN.md)
+CITATION_SLUG='(?:20[0-9]{2}-[0-9]{2}(?:-[0-9]{2})?|kaizen)-[a-z0-9][a-z0-9-]*'
+CITATION_DEF_RE="\`${CITATION_SLUG}\` &middot;"
+CITATION_USE_RE="\`${CITATION_SLUG}\`"
+
+# The defined slugs, one per line, from the two documents and from nowhere else.
+citation_defs() {
+  local d
+  for d in "${CITATION_DOCS[@]}"; do
+    [ -f "$d" ] || continue
+    grep -aoP "$CITATION_DEF_RE" "$d" | sed 's/^`//; s/` &middot;$//'
+  done | sort -u
+}
+
+# Counted apart from the content findings, because the two want different sentences at the end
+# of a run: a real name is removed from the tree and then reckoned with in the history, while a
+# dangling citation is repointed at the slug the entry carries.
+CITATION_FAILURES=0
+
+scan_citations_file() {  # file label defsfile
+  local f="$1" rel="$2" defs="$3" slug
+  while IFS= read -r slug; do
+    [ -n "$slug" ] || continue
+    grep -Fxq "$slug" "$defs" && continue
+    forbidden_exempt citation "$rel" "$slug" && continue
+    fail "$rel: citation of an entry that does not exist: $slug"
+    CITATION_FAILURES=$((CITATION_FAILURES + 1))
+  done < <(grep -aoP "$CITATION_USE_RE" "$f" | tr -d '`' | sort -u)
+}
+
+# Working tree only, unlike the name rule, and the difference is deliberate: a name in the index
+# is already an exposure, while a citation that dangles only in a staged copy costs nothing until
+# it is committed, at which point the next run of this gate is looking straight at it.
+scan_citations() {  # defsfile
+  local defs="$1" f n
+  n="$(grep -c . "$defs" || true)"
+  # Same poka-yoke as the name rule: a checker handed an empty reference list would report every
+  # citation clean, so an empty one aborts rather than passing everything.
+  [ "$n" -gt 0 ] || {
+    echo "ASSERTION FAILED: no entry slugs defined in ${CITATION_DOCS[*]}" >&2; exit 2; }
+  echo "citations checked against $n entry slugs defined in ${CITATION_DOCS[*]}"
+  while IFS= read -r f; do
+    [ -f "$f" ] || continue
+    scan_citations_file "$f" "$f" "$defs"
+  done < <(git ls-files)
+}
+
 scan_repo() {
   local n_files n_hashes bytes f
 
@@ -265,13 +350,17 @@ scan_repo() {
 
   scan_worktree "$HASHES"
   scan_snapshots "$HASHES"
+
+  citation_defs > "$WORKDIR/citation_defs"
+  scan_citations "$WORKDIR/citation_defs"
 }
 
 # ---------------------------------------------------------------------------------------
-# Self-test. Every probe runs the same scan_file the real scan runs.
+# Self-test. Every probe runs the same scan_file, or the same scan_citations_file, that the
+# real scan runs.
 # ---------------------------------------------------------------------------------------
 self_test() {
-  local tmp fake_hashes pass=0 total=0
+  local tmp fake_hashes fake_defs pass=0 total=0
   WORKDIR="$(mktemp -d)"; tmp="$WORKDIR"
   fake_hashes="$tmp/hashes"
   # The name rule is proved against a synthetic register holding one invented token. Proving
@@ -305,6 +394,31 @@ self_test() {
   probe_at() {  # path name expect payload [exempt-entry ...]
     local rel="$1"; shift
     PROBE_REL="$rel"; probe "$@"; PROBE_REL=""
+  }
+
+  # The citation rule is proved against a synthetic set of defined slugs, for the same reason
+  # the name rule is proved against a synthetic register: a probe must not depend on what the
+  # real documents happen to hold today, or a lesson being renamed silently rewrites the test.
+  fake_defs="$tmp/citedefs"
+  printf '%s\n' "2026-08-10-a-real-entry" > "$fake_defs"
+
+  cite_probe() {  # name expect payload [exempt-entry ...]
+    local name="$1" expect="$2" payload="$3"; shift 3
+    local table=("$@") rc=0 rel="${PROBE_REL:-probe.txt}"
+    total=$((total + 1))
+    printf '%s\n' "$payload" > "$tmp/probe.txt"
+    (
+      FORBIDDEN_EXEMPT=(${table[@]+"${table[@]}"})
+      FAILURES=0
+      scan_citations_file "$tmp/probe.txt" "$rel" "$fake_defs" >/dev/null 2>&1
+      [ "$FAILURES" -eq 0 ]
+    ) || rc=$?
+    if { [ "$expect" = trip ] && [ "$rc" -ne 0 ]; } || { [ "$expect" = pass ] && [ "$rc" -eq 0 ]; }; then
+      echo "  [OK]   $name"
+      pass=$((pass + 1))
+    else
+      echo "  [MISS] $name"
+    fi
   }
 
   echo "self-test: the probes below MUST trip the gate"
@@ -364,6 +478,20 @@ self_test() {
   probe "Company inside a firm name"        'pass' 'Kestrel Analytics Company Limited, a supplier'
   probe "the bare English words euro/euros" 'pass' 'the euro figures, priced in euros, in prose'
   probe "an ordinary decimal, not grouped"  'pass' 'stroke-width 1.28581 and ratio 0.75'
+
+  echo
+  echo "self-test: citations must resolve to an entry that exists"
+  cite_probe "a citation of an entry that exists"  'pass' \
+        'the gate was written for this: HANSEI.md `2026-08-10-a-real-entry`, in full'
+  cite_probe "a citation of an entry that does not exist" 'trip' \
+        'the gate was written for this: HANSEI.md `2026-08-10-no-such-entry`, in full'
+  cite_probe "a KAIZEN lesson slug that resolves to nothing" 'trip' \
+        'Lesson in KAIZEN.md `kaizen-no-such-lesson`; measurements in the commit message.'
+  # A slug is defined by the two documents and by nothing else, so a file that both writes a
+  # definition line and cites it is still citing nothing. Without this, a dangling citation
+  # could be legalised by writing the definition next to it.
+  cite_probe "a definition written outside the two documents defines nothing" 'trip' \
+        '`2026-08-10-no-such-entry` &middot; 2026-08-10 ... and see `2026-08-10-no-such-entry`'
 
   echo
   echo "self-test: the structural guards"
@@ -445,6 +573,19 @@ self_test() {
     echo "  [MISS] an empty file list did not abort (exit $rc)"
   fi
 
+  # And the same for the citation rule's reference list. A checker holding no slugs would find
+  # every citation dangling, or, if it shrugged instead, would find none, and either way the
+  # answer would be about the list rather than about the repository.
+  total=$((total + 1))
+  rc=0
+  ( : > "$tmp/emptydefs"; scan_citations "$tmp/emptydefs" >/dev/null 2>&1 ) || rc=$?
+  if [ "$rc" -eq 2 ]; then
+    echo "  [OK]   an empty list of defined slugs aborted instead of judging citations"
+    pass=$((pass + 1))
+  else
+    echo "  [MISS] an empty list of defined slugs did not abort (exit $rc)"
+  fi
+
   echo
   echo "self-test: $pass/$total"
   [ "$pass" -eq "$total" ]
@@ -479,8 +620,16 @@ main() {
     echo "VERDICT: clean"
     exit 0
   fi
-  echo "VERDICT: FORBIDDEN CONTENT IS COMMITTED ($FAILURES findings)"
-  echo "Remove it from the working tree first; then decide what the history needs."
+
+  local content=$((FAILURES - CITATION_FAILURES))
+  if [ "$content" -gt 0 ]; then
+    echo "VERDICT: FORBIDDEN CONTENT IS COMMITTED ($content findings)"
+    echo "Remove it from the working tree first; then decide what the history needs."
+  fi
+  if [ "$CITATION_FAILURES" -gt 0 ]; then
+    echo "VERDICT: $CITATION_FAILURES citation(s) name an entry that does not exist"
+    echo "Cite the slug the entry carries, or add the entry the citation was written about."
+  fi
   exit 1
 }
 

@@ -67,8 +67,8 @@ There was one: a push whose commit messages named issues by number marked each o
 citations rather than claims of work, which is what `#N` in prose usually is. It is deleted rather
 than narrowed to a marker, because a marker only fires for somebody who was already thinking about
 the board, and that person can assign the issue instead. Write `#12` in a commit message as freely
-as anywhere else: it records a cross-reference on the issue and moves no card. HANSEI.md, tenth
-entry.
+as anywhere else: it records a cross-reference on the issue and moves no card. HANSEI.md
+`2026-08-10-citation-read-as-a-claim`.
 
 ## The standing work
 
@@ -126,150 +126,177 @@ this page shows. That the page shows less is the point of the page.
 
 ## The lessons, in the order they were bought
 
-- **A gate that cannot be shown to fire is not a gate.** `scripts/check_forbidden.sh --self-test`
-  runs in CI beside the live check, not to find bugs in the rules but so that a run reporting
-  clean means the rules ran.
-- **A verifier is not exempt from verification.** A review of this work once published three
-  counts as "did not reproduce" that were artefacts of its own parser. Before a finding is
-  reported, the tool that produced it gets the same suspicion as the thing it reports on.
-- **A diagram of what exists cannot be read for what is missing.** Twenty six nodes drawn well say
-  nothing about the classes that are not there, and a reader has no way to notice an absence from
-  a picture of presences. An object with no class cannot be queried, and a leak that leaves no row
-  cannot be found by looking harder at the rows. The corollary is the constraint and not an
-  exception to it: four ghosts fitted because the band they belong to was the emptiest part of the
-  drawing and cost no height, and the fifth candidate was dropped for the opposite reason. Where
-  an absence goes is a layout question before it is an ontology question.
-- **A setting that protects a running job says nothing about a pending one.** `cancel-in-progress:
-  false` bought exactly one thing, that a job already executing is not killed, while a run still
-  waiting to start was being thrown out by the next trigger into the same group. Three went that
-  way in five minutes before anybody counted them, because an eviction raises no error. A guard is
-  only evidence about the state it names; read it for what it excludes, not for the reassurance in
-  its comment.
-- **An object can exist while its key does not, and the drawing has to be able to say so.** The
-  cohort is a real thing that nothing identifies. Drawing it as a ghost would have been false and
-  leaving it unmarked would have hidden the sharpest finding on the page, so it keeps its own
-  outline and gains a second, dashed one. A vocabulary of "exists" and "does not exist" is too
-  coarse for this model.
-- **A collision counter drives a layout away; a penetration depth nudges it.** The verb chips
-  scored a position by counting the boxes it hit, so clipping a padding margin by one pixel cost
-  what printing a verb across a person's name cost, and the cheapest way out of either was to
-  leave the line altogether: one chip ended 134px from the edge it named. Scoring by how far a box
-  penetrates, and pricing the ways out separately, keeps the placement local, and the worst chip
-  is now 6px from its line. Where a layout is allowed to escape, the escape has to cost more than
-  the crowding it escapes.
-- **Painting order is not occlusion, and a coordinate in the source is not a distance on screen.**
-  Every tile is filled with a fourteen per cent tint, so a shape drawn behind one is layered and
-  not hidden, and the cards standing for the count behind the students tile showed straight
-  through it. The source says only which element is appended after which, which is a true
-  statement about z-order and a false one about what a reader sees. The same change carried the
-  other half: the two cards were written `+5, -5` and `+2.5, -2.5` and arrived on screen at
-  `+2, -8` and `-0.5, -5.5`, because the shape those offsets moved was also six units smaller, so
-  a step written from a corner became a different step from a centre. Where a defect is geometric,
-  take the numbers off the running page.
-- **A relationship the reader has to take on trust is not drawn yet.** With one cohort on the
-  page, the split between a session template and a cohort session was two tile colours and a
-  caption: the drawing asserted the split and showed nothing that required it. For each
-  relationship the model says is load bearing, ask what on the canvas would look different if it
-  were false; where the answer is nothing, the relationship is documentation with a colour, and
-  the fix is usually one more instance rather than one more legend entry. The second cohort was
-  the answer here and was later removed on the owner's reading, issue 42, which is the last lesson
-  in this list.
-- **An opt-in view has to cost the default view nothing, and the only proof of that is a diff.**
-  The cheap way to add a second cohort is to draw it always and hide it with CSS, and it would
-  have been wrong: a hidden node still occupies the layout, so every coordinate in the default
-  drawing would have moved while every screenshot still looked plausible. Laying the two views out
-  separately made the claim checkable, and it was checked by diffing the generated bytes of the
-  default view against the deployed ones.
-- **A minimum of crossings is not a minimum of effort for the reader.** The barycentre sweep put
-  the two cohorts' sessions in the order that crosses fewest edges, which interleaved them and
-  left neither in date order. A column of dated things carries an order the reader already knows,
-  and breaking it to save crossings spends something the layout cannot see to buy something it
-  can.
-- **A value the build computes must never be typed into a second file.** The narrow viewport rule
-  carried `min-width: 1230px`, which is the width `build_layout.py` computes, and nothing tied
-  them: the day a column changed width the stylesheet would have gone on scrolling to the old
-  number, on phones only, with no error anywhere. The build now writes the value, the stylesheet
-  reads it through a custom property, and the build refuses to run while a copy of it sits in the
-  stylesheet. Third time in this repository, after the label widths and the header height.
-- **A tool that quietly refuses the size you asked for will confirm any layout bug you suspect.**
-  Headless Chrome runs pages in a window no narrower than 500px whatever `--window-size` says, but
-  captures the screenshot at the width requested, so a page scrolled by its own JavaScript stops
-  at the wide window's maximum and is then photographed narrow, which looks exactly like a clipped
-  right edge. Two rounds of work went at a defect that was not there. Make the harness state the
-  viewport it actually got, and prefer a container the harness controls over a window the tool
-  negotiates.
-- **A caption that asserts a type must match what the lane holds, or the drawing lies about its
-  own structure.** A lane captioned `cohort sessions` held six cohort sessions and one company,
-  and the company was in the right place, because its edge attaches at session level. The tempting
-  repair is to move the tile, which would have made the drawing tidier and less true. Where a
-  placement is right and a label is wrong, fix the label: a drawing tidied into agreement with its
-  own captions has lost the thing it was drawn to show.
-- **Fixing the axis is not the same as fixing the defect.** The panel opened on top of the node it
-  described because `reveal()` handled only the horizontal axis, so the obvious fix was to handle
-  the vertical one too, and it changed nothing: at 390px the page is about 36px taller than the
-  viewport, so there was nowhere to scroll to and the correct new code moved zero pixels. The fix
-  needed the room as well as the code. When a fix is written against a diagnosis rather than
-  against a measurement, drive it and read the number: a scroll that runs out looks exactly like a
-  scroll that was never asked for.
-- **A control that responds and reports nothing is worse than one that is absent.** `copy all`
-  answered a click with no clipboard write, no label change and no result line, in a row where
-  every other button answers. Two honest repairs existed, doing the empty thing and saying so, or
-  refusing the click; the second was right, because a clipboard write of nothing that reports
-  success is a lie about what the reader now holds. Prefer disabling to inventing a success.
-- **The mode that widens a control is the mode in which its neighbours have to stay reachable.**
-  Capture mode's toggle grows when the mode is on, and twice in one pass that growth broke the
-  header, once by placing the popover over it and once by pushing the board link off the screen.
-  Both were invisible above 400px and neither is visible in a screenshot, because the link was
-  still drawn, just outside the viewport. Assert reach rather than presence: `elementFromPoint` at
-  the centre of every control, at every width the page claims to support.
-- **What one robot writes, the robot beside it cannot see, and that failure looks like success.**
-  GitHub raises no workflow run from an event caused by the default token, so a label written by
-  `issue-status.yml` reaches `board.yml` as silence: every step goes green, the label moves, and
-  the picture keeps showing the old column until some unrelated event rebuilds it. That is worse
-  than the feature not working, because the label would be right and the board confidently wrong.
-  A design has to state which of its own effects are visible to what, and where the answer is
-  nothing the wake-up is sent deliberately, here a `workflow_dispatch`, which is the one trigger
-  type the suppression exempts.
-- **An override is only evidence about the selector it names, and a browser's default need not use
-  the selector you assumed.** Every selected node wore a five pixel black box for as long as the
-  page existed, while the stylesheet held a deliberate, correct focus rule the whole time: it was
-  written against `:focus-visible`, which is what a browser uses on an HTML element, while
-  Chrome's default for a focusable SVG element is keyed on `:focus`. A mouse click matches the
-  second and not the first, so the override never ran for readers with a mouse and ran perfectly
-  for anyone testing with the keyboard. Where a default is being replaced, get the answer from the
-  running document, and where a state has two ways in, drive both.
-- **A mark whose size is read is right in the cases nobody enumerated.** The frame that replaced
-  that box is padded around `getBBox()` at the moment it is shown, so it fits the count stack
-  leaning out above one tile, the second dashed ring on another, the caption under that ring, and
-  the same caption vanishing when the ghosts are switched off, none of which was reasoned about.
-  The arithmetic version would have needed a branch per case and would have been wrong the first
-  time a fifth appeared. Fourth time here that a measured value beat a computed copy of one, and
-  the first where the win was cases rather than staleness.
-- **A delay of zero is a statement about the timer queue, not about the document.** The board's
-  first fetch has to happen after `feedback.js` has run, because that is where the reader's stored
-  token is published from, and `index.html` loads the board first. Deferring to a zero delay timer
-  is not enough: the parser yields between script tags, the timer fires in the gap, and the board
-  draws the published snapshot for somebody who had connected a token. It fails only for readers
-  who have a token, never on a reload from cache, and never in a screenshot. Where the requirement
-  is "after the rest of the page", say so: `DOMContentLoaded` is that statement and a timer is a
-  guess about scheduling.
-- **A demonstration is a cost to the reader even when the argument for it is right, and the reader
-  is the one who prices it.** The second cohort was added because the template versus instance
-  split was asserted and not shown, and that argument still reads as correct. It was removed
-  anyway, on one sentence from the person the page is drawn for: every time he opens it, it must
-  be one cohort. A switch is not free merely because it is off, since a reader who meets a control
-  has to decide about it, and the thing being demonstrated was a property of the schema rather
-  than a fact about the business the page exists to argue with. An addition justified by what it
-  proves still has to be justified by what it costs to look at; those are different questions, and
-  where they disagree the answer comes from the reader and not from the record. The cheap tell is
-  that the argument for adding was made here, in the file where this project reasons with itself,
-  and the argument against arrived from outside it in twenty words.
-- **Hiding a node in the browser is wrong when the hidden thing is a second view and right when it
-  is this one.** The second cohort could not be drawn and hidden, because a node nobody can see
-  still occupies the layout, so every coordinate in the default drawing would have moved to pay
-  for a view nobody had asked for. An employer hidden until its instructor is clicked is the same
-  mechanism and the opposite case: it belongs to this drawing and is one click from the screen, so
-  the space it occupies is the space it appears in, and laying the drawing out again without it
-  would move every tile on the page on every click and make the coordinates a function of the
-  selection. The question is not whether a hidden node costs the layout something. It is whether
-  what it costs buys the reader the drawing in front of them.
+Each lesson carries a slug and is cited by it. This list is not append-only, so an ordinal into it
+repoints the moment a lesson is added or removed: two changelog entries citing "KAIZEN.md, last
+entry" already meant two different lessons, which is issue 54. `scripts/check_repo.sh` fails the
+build on a cited slug that resolves to nothing.
+
+- `kaizen-gate-shown-to-fire` &middot; **A gate that cannot be shown to fire is not a gate.**
+  `scripts/check_forbidden.sh --self-test` runs in CI beside the live check, not to find bugs in the
+  rules but so that a run reporting clean means the rules ran.
+- `kaizen-verifier-not-exempt-from-verification` &middot; **A verifier is not exempt from
+  verification.** A review of this work once published three counts as "did not reproduce" that were
+  artefacts of its own parser. Before a finding is reported, the tool that produced it gets the same
+  suspicion as the thing it reports on.
+- `kaizen-a-diagram-of-presences-hides-absences` &middot; **A diagram of what exists cannot be read
+  for what is missing.** Twenty six nodes drawn well say nothing about the classes that are not
+  there, and a reader has no way to notice an absence from a picture of presences. An object with no
+  class cannot be queried, and a leak that leaves no row cannot be found by looking harder at the
+  rows. The corollary is the constraint and not an exception to it: four ghosts fitted because the
+  band they belong to was the emptiest part of the drawing and cost no height, and the fifth
+  candidate was dropped for the opposite reason. Where an absence goes is a layout question before
+  it is an ontology question.
+- `kaizen-a-guard-covers-only-the-state-it-names` &middot; **A setting that protects a running job
+  says nothing about a pending one.** `cancel-in-progress: false` bought exactly one thing, that a
+  job already executing is not killed, while a run still waiting to start was being thrown out by
+  the next trigger into the same group. Three went that way in five minutes before anybody counted
+  them, because an eviction raises no error. A guard is only evidence about the state it names; read
+  it for what it excludes, not for the reassurance in its comment.
+- `kaizen-an-object-exists-while-its-key-does-not` &middot; **An object can exist while its key does
+  not, and the drawing has to be able to say so.** The cohort is a real thing that nothing
+  identifies. Drawing it as a ghost would have been false and leaving it unmarked would have hidden
+  the sharpest finding on the page, so it keeps its own outline and gains a second, dashed one. A
+  vocabulary of "exists" and "does not exist" is too coarse for this model.
+- `kaizen-penetration-depth-not-a-collision-count` &middot; **A collision counter drives a layout
+  away; a penetration depth nudges it.** The verb chips scored a position by counting the boxes it
+  hit, so clipping a padding margin by one pixel cost what printing a verb across a person's name
+  cost, and the cheapest way out of either was to leave the line altogether: one chip ended 134px
+  from the edge it named. Scoring by how far a box penetrates, and pricing the ways out separately,
+  keeps the placement local, and the worst chip is now 6px from its line. Where a layout is allowed
+  to escape, the escape has to cost more than the crowding it escapes.
+- `kaizen-painting-order-is-not-occlusion` &middot; **Painting order is not occlusion, and a
+  coordinate in the source is not a distance on screen.** Every tile is filled with a fourteen per
+  cent tint, so a shape drawn behind one is layered and not hidden, and the cards standing for the
+  count behind the students tile showed straight through it. The source says only which element is
+  appended after which, which is a true statement about z-order and a false one about what a reader
+  sees. The same change carried the other half: the two cards were written `+5, -5` and `+2.5, -2.5`
+  and arrived on screen at `+2, -8` and `-0.5, -5.5`, because the shape those offsets moved was also
+  six units smaller, so a step written from a corner became a different step from a centre. Where a
+  defect is geometric, take the numbers off the running page.
+- `kaizen-a-relationship-taken-on-trust-is-not-drawn` &middot; **A relationship the reader has to
+  take on trust is not drawn yet.** With one cohort on the page, the split between a session
+  template and a cohort session was two tile colours and a caption: the drawing asserted the split
+  and showed nothing that required it. For each relationship the model says is load bearing, ask
+  what on the canvas would look different if it were false; where the answer is nothing, the
+  relationship is documentation with a colour, and the fix is usually one more instance rather than
+  one more legend entry. The second cohort was the answer here and was later removed on the owner's
+  reading, issue 42; the lesson that came out of that is
+  `kaizen-a-demonstration-is-a-cost-to-the-reader`.
+- `kaizen-an-opt-in-view-costs-the-default-nothing` &middot; **An opt-in view has to cost the
+  default view nothing, and the only proof of that is a diff.** The cheap way to add a second cohort
+  is to draw it always and hide it with CSS, and it would have been wrong: a hidden node still
+  occupies the layout, so every coordinate in the default drawing would have moved while every
+  screenshot still looked plausible. Laying the two views out separately made the claim checkable,
+  and it was checked by diffing the generated bytes of the default view against the deployed ones.
+- `kaizen-fewest-crossings-is-not-least-effort` &middot; **A minimum of crossings is not a minimum
+  of effort for the reader.** The barycentre sweep put the two cohorts' sessions in the order that
+  crosses fewest edges, which interleaved them and left neither in date order. A column of dated
+  things carries an order the reader already knows, and breaking it to save crossings spends
+  something the layout cannot see to buy something it can.
+- `kaizen-a-computed-value-is-never-typed-twice` &middot; **A value the build computes must never be
+  typed into a second file.** The narrow viewport rule carried `min-width: 1230px`, which is the
+  width `build_layout.py` computes, and nothing tied them: the day a column changed width the
+  stylesheet would have gone on scrolling to the old number, on phones only, with no error anywhere.
+  The build now writes the value, the stylesheet reads it through a custom property, and the build
+  refuses to run while a copy of it sits in the stylesheet. Third time in this repository, after the
+  label widths and the header height.
+- `kaizen-a-tool-that-refuses-the-size-you-asked-for` &middot; **A tool that quietly refuses the
+  size you asked for will confirm any layout bug you suspect.** Headless Chrome runs pages in a
+  window no narrower than 500px whatever `--window-size` says, but captures the screenshot at the
+  width requested, so a page scrolled by its own JavaScript stops at the wide window's maximum and
+  is then photographed narrow, which looks exactly like a clipped right edge. Two rounds of work
+  went at a defect that was not there. Make the harness state the viewport it actually got, and
+  prefer a container the harness controls over a window the tool negotiates.
+- `kaizen-a-caption-must-match-what-the-lane-holds` &middot; **A caption that asserts a type must
+  match what the lane holds, or the drawing lies about its own structure.** A lane captioned `cohort
+  sessions` held six cohort sessions and one company, and the company was in the right place,
+  because its edge attaches at session level. The tempting repair is to move the tile, which would
+  have made the drawing tidier and less true. Where a placement is right and a label is wrong, fix
+  the label: a drawing tidied into agreement with its own captions has lost the thing it was drawn
+  to show.
+- `kaizen-fixing-the-axis-is-not-fixing-the-defect` &middot; **Fixing the axis is not the same as
+  fixing the defect.** The panel opened on top of the node it described because `reveal()` handled
+  only the horizontal axis, so the obvious fix was to handle the vertical one too, and it changed
+  nothing: at 390px the page is about 36px taller than the viewport, so there was nowhere to scroll
+  to and the correct new code moved zero pixels. The fix needed the room as well as the code. When a
+  fix is written against a diagnosis rather than against a measurement, drive it and read the
+  number: a scroll that runs out looks exactly like a scroll that was never asked for.
+- `kaizen-a-control-that-answers-with-nothing` &middot; **A control that responds and reports
+  nothing is worse than one that is absent.** `copy all` answered a click with no clipboard write,
+  no label change and no result line, in a row where every other button answers. Two honest repairs
+  existed, doing the empty thing and saying so, or refusing the click; the second was right, because
+  a clipboard write of nothing that reports success is a lie about what the reader now holds. Prefer
+  disabling to inventing a success.
+- `kaizen-a-widened-control-keeps-its-neighbours-reachable` &middot; **The mode that widens a
+  control is the mode in which its neighbours have to stay reachable.** Capture mode's toggle grows
+  when the mode is on, and twice in one pass that growth broke the header, once by placing the
+  popover over it and once by pushing the board link off the screen. Both were invisible above 400px
+  and neither is visible in a screenshot, because the link was still drawn, just outside the
+  viewport. Assert reach rather than presence: `elementFromPoint` at the centre of every control, at
+  every width the page claims to support.
+- `kaizen-one-robot-cannot-see-what-another-writes` &middot; **What one robot writes, the robot
+  beside it cannot see, and that failure looks like success.** GitHub raises no workflow run from an
+  event caused by the default token, so a label written by `issue-status.yml` reaches `board.yml` as
+  silence: every step goes green, the label moves, and the picture keeps showing the old column
+  until some unrelated event rebuilds it. That is worse than the feature not working, because the
+  label would be right and the board confidently wrong. A design has to state which of its own
+  effects are visible to what, and where the answer is nothing the wake-up is sent deliberately,
+  here a `workflow_dispatch`, which is the one trigger type the suppression exempts.
+- `kaizen-an-override-covers-only-the-selector-it-names` &middot; **An override is only evidence
+  about the selector it names, and a browser's default need not use the selector you assumed.**
+  Every selected node wore a five pixel black box for as long as the page existed, while the
+  stylesheet held a deliberate, correct focus rule the whole time: it was written against
+  `:focus-visible`, which is what a browser uses on an HTML element, while Chrome's default for a
+  focusable SVG element is keyed on `:focus`. A mouse click matches the second and not the first, so
+  the override never ran for readers with a mouse and ran perfectly for anyone testing with the
+  keyboard. Where a default is being replaced, get the answer from the running document, and where a
+  state has two ways in, drive both.
+- `kaizen-a-measured-mark-fits-the-cases-nobody-listed` &middot; **A mark whose size is read is
+  right in the cases nobody enumerated.** The frame that replaced that box is padded around
+  `getBBox()` at the moment it is shown, so it fits the count stack leaning out above one tile, the
+  second dashed ring on another, the caption under that ring, and the same caption vanishing when
+  the ghosts are switched off, none of which was reasoned about. The arithmetic version would have
+  needed a branch per case and would have been wrong the first time a fifth appeared. Fourth time
+  here that a measured value beat a computed copy of one, and the first where the win was cases
+  rather than staleness.
+- `kaizen-a-zero-delay-is-about-the-timer-queue` &middot; **A delay of zero is a statement about the
+  timer queue, not about the document.** The board's first fetch has to happen after `feedback.js`
+  has run, because that is where the reader's stored token is published from, and `index.html` loads
+  the board first. Deferring to a zero delay timer is not enough: the parser yields between script
+  tags, the timer fires in the gap, and the board draws the published snapshot for somebody who had
+  connected a token. It fails only for readers who have a token, never on a reload from cache, and
+  never in a screenshot. Where the requirement is "after the rest of the page", say so:
+  `DOMContentLoaded` is that statement and a timer is a guess about scheduling.
+- `kaizen-a-demonstration-is-a-cost-to-the-reader` &middot; **A demonstration is a cost to the
+  reader even when the argument for it is right, and the reader is the one who prices it.** The
+  second cohort was added because the template versus instance split was asserted and not shown, and
+  that argument still reads as correct. It was removed anyway, on one sentence from the person the
+  page is drawn for: every time he opens it, it must be one cohort. A switch is not free merely
+  because it is off, since a reader who meets a control has to decide about it, and the thing being
+  demonstrated was a property of the schema rather than a fact about the business the page exists to
+  argue with. An addition justified by what it proves still has to be justified by what it costs to
+  look at; those are different questions, and where they disagree the answer comes from the reader
+  and not from the record. The cheap tell is that the argument for adding was made here, in the file
+  where this project reasons with itself, and the argument against arrived from outside it in twenty
+  words.
+- `kaizen-a-hidden-node-in-this-view-and-in-another` &middot; **Hiding a node in the browser is
+  wrong when the hidden thing is a second view and right when it is this one.** The second cohort
+  could not be drawn and hidden, because a node nobody can see still occupies the layout, so every
+  coordinate in the default drawing would have moved to pay for a view nobody had asked for. An
+  employer hidden until its instructor is clicked is the same mechanism and the opposite case: it
+  belongs to this drawing and is one click from the screen, so the space it occupies is the space it
+  appears in, and laying the drawing out again without it would move every tile on the page on every
+  click and make the coordinates a function of the selection. The question is not whether a hidden
+  node costs the layout something. It is whether what it costs buys the reader the drawing in front
+  of them.
+- `kaizen-a-scanner-cannot-tell-use-from-mention` &middot; **A mechanism that reads prose cannot
+  tell a use of a token from a mention of it, and the documentation is where the two collide.**
+  Twice in one day. `#48` in a sentence about issue 48 was read as a claim to be working on it and
+  put a card nobody was on into In progress; and a commit message explaining that the board bot's
+  own commit still carries the CI skip marker was obeyed as one, so a push changing three workflow
+  files ran no gate, no deploy and nothing at all. Both mechanisms were right about the string and
+  wrong about the sentence, and both were reading the place where this repository writes about its
+  own machinery, which is the place it is most worth writing well. So the question to ask of a
+  scanner is not how precise its pattern is. It is whether the text it reads is ever about that
+  pattern, and where the answer is yes there are two honest moves and no third: delete the scanner,
+  or stop the text from being able to spell the thing. Both were taken here, one each.

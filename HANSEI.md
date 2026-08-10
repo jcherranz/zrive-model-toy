@@ -14,8 +14,10 @@ later by the person deciding whether a defensive-looking check can be deleted.
 Three conventions. Where a prevention does not exist the entry says so, because `none` is a
 legal value and an honest one, and a claimed prevention that is not in the code is worse than an
 admitted hole. Dates carry a day only where the day is established from a file or a commit.
-Entries are appended and never reordered: code comments cite them by position, as "HANSEI.md,
-sixth entry", and a reorder would quietly repoint every one of those.
+Entries are appended and never reordered, and each carries a slug on the line under its title.
+Everything that cites an entry, in prose or in a code comment, names that slug, so a citation
+survives insertion, deletion and reordering; `scripts/check_repo.sh` fails the build on a cited
+slug that resolves to no entry.
 
 Maintained by hand. There is no generator, so this file and the code can drift, and the only
 thing stopping them is somebody reading both.
@@ -196,10 +198,10 @@ as a number rather than as a later surprise.
 **What happened.** `scripts/gen_forbidden_hashes.sh` reduces the faculty register to salted
 hashes, so that this repository can look for real names without holding any. Its header
 explained how a register filename is parsed into a person using a real surname in plaintext, the
-seller's, the same name as in this file's first entry: on the day the safety discipline was
-written, inside the one file whose sole purpose is keeping that class of string out. Found by an
-independent scan of tracked files run by somebody who was not the author, and not by
-`scripts/check_forbidden.sh`, which ran green throughout and was right to, since that gate
+seller's, the same name as in `2026-08-09-private-repo-public-pages`: on the day the safety
+discipline was written, inside the one file whose sole purpose is keeping that class of string
+out. Found by an independent scan of tracked files run by somebody who was not the author, and
+not by `scripts/check_forbidden.sh`, which ran green throughout and was right to, since that gate
 fetches deployed bytes, Pages publishes `site/` and nothing else, and `scripts/` returns 404 on
 the live origin. Not an exposure: the file was never served, checked against the origin rather
 than assumed. What is worth recording is the day in which the repository's own safety machinery
@@ -208,7 +210,8 @@ was the only tracked file carrying a real name, and nothing in the project could
 **Root cause.** The gate's scope was the public surface; the rule it enforces is a property of
 the repository, and `site/` is a fraction of what is tracked. Putting the gate on deployed bytes
 was correct and still is, and it answered "is what the public reads clean" so convincingly that
-nobody asked the other question. Same shape as the first entry, one level in.
+nobody asked the other question. Same shape as `2026-08-09-private-repo-public-pages`, one level
+in.
 
 **The prevention now in place.** `scripts/check_repo.sh` scans every file `git ls-files` reports
 against the same salted hash list and fails the build: on every push and every pull request
@@ -242,9 +245,10 @@ declared for any path at all.
 
 `2026-08-09-gate-read-the-disk-not-the-repository` &middot; 2026-08-09
 
-**What happened.** Two things, and the second is the serious one. First, the fix recorded in the
-entry above was reported complete and was not made: the surname was removed from the working copy
-and never committed, so the repository, which is what a clone gets, still carried the name.
+**What happened.** Two things, and the second is the serious one. First, the fix recorded in
+`2026-08-09-gate-scoped-to-the-public-surface` was reported complete and was not made: the
+surname was removed from the working copy and never committed, so the repository, which is what
+a clone gets, still carried the name.
 Second, `scripts/check_repo.sh`, the gate written for exactly this defect, was run against that
 repository and printed `VERDICT: clean` and exited 0. Not a gap but a false assurance, which is
 worse, because a gap leaves the risk visible and an assurance closes the question. Found by an
@@ -417,11 +421,12 @@ something. Not an exposure: both gates had been run against a clean worktree of 
 commit before it was pushed, and both were clean. What it cost was the verification, which had to
 be driven by hand afterwards through a dispatch and through a real card closing.
 
-**Root cause.** The same shape as the entry above it, one layer out. A mechanism read prose as an
-instruction: there `#48` in a sentence about issue 48 was read as a claim to be working on it,
-here `[skip ci]` in a sentence about the marker was read as the marker. Neither mechanism has any
-way to tell a use from a mention, and a commit message is the place where a repository writes
-about its own machinery, so the two collide exactly where the documentation is best.
+**Root cause.** The same shape as `2026-08-10-citation-read-as-a-claim`, one layer out. A
+mechanism read prose as an instruction: there `#48` in a sentence about issue 48 was read as a
+claim to be working on it, here `[skip ci]` in a sentence about the marker was read as the
+marker. Neither mechanism has any way to tell a use from a mention, and a commit message is the
+place where a repository writes about its own machinery, so the two collide exactly where the
+documentation is best.
 
 **The prevention now in place.** None in code, and the hole is structural rather than an
 oversight: a marker whose effect is that nothing runs cannot be caught by anything that runs. A
@@ -457,9 +462,9 @@ deployed bytes were clean; the whole of it was in the working tree.
 
 **And then the repair repeated the original.** The comment written to explain the collision used
 a real given name as its worked example, in the file the collision was being removed from. That
-is HANSEI's sixth entry exactly: a real name inside the work of keeping real names out. The gate
-found it on the next run, in a comment, which is a place no rule about data values would have
-looked.
+is `2026-08-09-gate-scoped-to-the-public-surface` exactly: a real name inside the work of keeping
+real names out. The gate found it on the next run, in a comment, which is a place no rule about
+data values would have looked.
 
 **Root cause.** "It is invented" was treated as a property of the value when it is a property of
 its provenance. An invented name and a real name are the same string, and the only thing that can

@@ -51,9 +51,9 @@ def p(name, value, flag):
 # that would matter if it were real: a named person, where they studied, roughly how old they
 # are and whether they owe money. Every one of the thirty four people below is made up, every
 # row is flagged `dummy` on the page, and nothing is imported from any Zrive system, ever.
-# HANSEI.md's first entry is this project publishing real commercial data on a public page; do
-# not be the second. If a real cohort ever has to be looked at, that is a different deployment
-# and not this one.
+# HANSEI.md `2026-08-09-private-repo-public-pages` is this project publishing real commercial
+# data on a public page; do not be the second. If a real cohort ever has to be looked at, that
+# is a different deployment and not this one.
 #
 # The universities are real institutions, which is a different kind of statement: naming a
 # university names nobody, and this model already names McKinsey and Bain. What must never
