@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T12:26:57Z",
+  "generated": "2026-08-10T12:40:22Z",
   "columns": [
     {
       "key": "raw",
@@ -65,7 +65,16 @@
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": []
+      "cards": [
+        {
+          "id": 35,
+          "title": "zz-throwaway probe for the assignment to status label rule",
+          "labels": [
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/35"
+        }
+      ]
     },
     {
       "key": "done",
