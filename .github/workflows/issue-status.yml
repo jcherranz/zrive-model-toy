@@ -24,8 +24,38 @@ name: issue status
 #                  default already means would buy no new behaviour and would add a second place
 #                  for the same fact to be wrong.
 #
-# The backstop job at the bottom covers the case the assignment rule cannot see: work that starts
-# without anybody assigning anything, which announces itself in a commit message instead.
+# ---------------------------------------------------------------------------------------------
+# AND NOTHING HERE READS A COMMIT MESSAGE, WHICH IS A DECISION AND NOT AN OVERSIGHT.
+#
+# A second job used to. It scanned every pushed commit message for `#<number>` and marked each
+# open issue it found `status:in-progress`, as a backstop for work that starts without anybody
+# assigning anything. It is deleted, and the reasoning is kept here because the shape recurs.
+#
+# What the record says. Over the thirteen pushes that job ever saw it wrote four labels, and all
+# four were wrong. Three came from one documentation push, which cited issues in prose and put
+# #4, #5 and #39 in progress with nobody on them; #4 and #5 are standing constraints that will
+# never be in progress at all. The fourth came from a commit whose subject line said `Issue 49.`
+# and whose body cited #48 twice in passing, so the card that moved was not the card being
+# worked. In the same thirteen pushes it marked nothing that was not already marked. Zero true
+# positives, four false ones, and every author had already begun writing `Issue 45.` without a
+# hash to stay out of its way, which is a workaround carried by people in place of a mechanism
+# that is correct.
+#
+# Why it was deleted rather than narrowed. The alternative on the table was an explicit trailer,
+# `Starts #N`, with a bare `#N` inert. It fails on what the backstop was for. It existed for the
+# day somebody starts work without thinking about the board, and a trailer only ever fires for
+# somebody who did think about the board; that person can assign the issue, which is one click
+# and is already the interface. A marker would not be a backstop. It would be a second way to say
+# a thing that is already said, and a second place for one fact to be wrong, which is the same
+# argument that keeps `opened` out of the trigger list above.
+#
+# And the direction of the error settles it. A missed in-progress is visible to whoever tries to
+# pick the card up, and costs them a question. A false in-progress makes a free card look claimed,
+# and that is the state that stops a board being usable at all. Issue 50, HANSEI.md tenth entry.
+#
+# A bare `#N` in a commit message is therefore completely inert as far as the board is concerned.
+# GitHub still records the cross-reference on the issue's own timeline, which is a citation doing
+# exactly what a citation should do and nothing else.
 #
 # ---------------------------------------------------------------------------------------------
 # WHY THIS CANNOT RE-TRIGGER ITSELF.
@@ -38,10 +68,10 @@ name: issue status
 #   2. Every write is conditional. scripts/set_status.sh reads the labels an issue carries,
 #      computes the set it should carry, and calls the API only if the two differ. A second run
 #      over the same issue writes nothing, whatever the first one did.
-#   3. The push job ignores the board bot's own commits, by author address and by message, the
-#      same two tests pages.yml makes. board.yml's commit also carries `[skip ci]`, which stops a
-#      push-triggered workflow from starting at all; the explicit test is the second line, for
-#      the day a squash, a rebase or an org policy drops the marker.
+#   3. It has no `push` trigger either, now that the commit-message job is gone. Nothing anybody
+#      commits can start this workflow, so the filters that job carried, ignoring the board bot
+#      by author address and by message, are not weakened by their removal; there is no longer a
+#      path for them to guard.
 #
 # It DOES start board.yml, which is intended and is the point: board.yml fires on `issues`
 # events including `labeled`, the board must redraw when a card changes column, and board.yml
@@ -75,8 +105,6 @@ name: issue status
 on:
   issues:
     types: [assigned, unassigned, closed, reopened]
-  push:
-    branches: [main]
 
 # The minimum. `issues: write` to move a label, `contents: read` for the checkout that brings
 # scripts/set_status.sh, `actions: write` for the board.yml dispatch described above and for
@@ -91,11 +119,10 @@ permissions:
 # first time it sat behind a Pages deploy. The board run it dispatches joins the `pages` group
 # on its own account, which is where that work belongs.
 #
-# One group for the whole workflow rather than one per issue. Both jobs read an issue's labels
-# and then write them back, and two of those interleaved over the same issue would each compute
-# a desired set against the same before-state and one would quietly undo the other. On a
-# repository with one author, serialising the workflow costs seconds and removes the
-# read-modify-write race outright.
+# One group for the workflow rather than one per issue. The job reads an issue's labels and then
+# writes them back, and two of those interleaved over the same issue would each compute a desired
+# set against the same before-state and one would quietly undo the other. On a repository with one
+# author, serialising the workflow costs seconds and removes the read-modify-write race outright.
 #
 # cancel-in-progress is stated rather than inherited, and false, because a cancelled run reads
 # exactly like a run that decided to do nothing. queue: max for the reason board.yml gives at
@@ -110,9 +137,8 @@ concurrency:
 
 jobs:
   # -------------------------------------------------------------------------------------------
-  # The rule proper: an issue event moves the label.
+  # The rule proper, and now the only one: an issue event moves the label.
   label:
-    if: github.event_name == 'issues'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -184,103 +210,6 @@ jobs:
       # suppression exempts.
       - name: Wake the board, because a label written with GITHUB_TOKEN does not
         if: steps.decide.outputs.changed == 'yes'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: gh workflow run board.yml
-
-  # -------------------------------------------------------------------------------------------
-  # The backstop: work that started without an assignment.
-  #
-  # Somebody who writes `#12` into a commit message has told us what they are working on just as
-  # plainly as an assignment would have, and this is the only signal available when nobody
-  # assigned anything. It sets status:in-progress and nothing else; it never moves a card
-  # backwards and never closes anything.
-  #
-  # TWO THINGS IT MUST NOT ACT ON.
-  #   - A reference carrying a closing keyword, `closes #12` and its family. GitHub closes that
-  #     issue itself, the `closed` handler above then owns it, and marking it in progress on the
-  #     way past would be a write that the next event immediately undoes. Both sets are collected
-  #     and the closing ones subtracted, so `fixes #12, and while in #14` marks #14 and leaves
-  #     #12 to the close.
-  #   - The board bot's own commits. site/board.json is rewritten from every issue on the
-  #     repository, so a board sync commit can mention any number at all; acting on those would
-  #     put the entire board in progress. Filtered per commit, by author address and by message,
-  #     rather than by the job-level test on head_commit that pages.yml can afford, because a
-  #     push carries up to twenty commits and its head is only the last of them.
-  from-commits:
-    if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Set status:in-progress on the issues this push mentions
-        id: backstop
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          BOT_EMAIL: "41898282+github-actions[bot]@users.noreply.github.com"
-          COMMITS: ${{ toJSON(github.event.commits) }}
-        run: |
-          set -euo pipefail
-
-          # COMMITS arrives through the environment, never through an expression interpolated into
-          # the script body. A commit message is text somebody else wrote, and an expression in a
-          # run: block is pasted into the shell before the shell has any chance to treat what it
-          # holds as data. Through the environment it is a value from first to last. The same
-          # reason keeps the issue number and the action word in env: above rather than inline.
-          msgs=$(printf '%s' "$COMMITS" | jq -r --arg bot "$BOT_EMAIL" '
-            (. // [])
-            | map(select((.author.email // "") != $bot and (.committer.email // "") != $bot))
-            | map(select((.message | test("chore\\(board\\): sync from issues")) | not))
-            | .[].message')
-
-          if [ -z "$msgs" ]; then
-            echo "no commits in this push to read (all of them are the board bot's, or there are none)."
-            echo "changed=no" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          # Every `#<number>`, and then the ones a closing keyword owns, subtracted. The keyword
-          # list is GitHub's own: close, closes, closed, fix, fixes, fixed, resolve, resolves,
-          # resolved, case insensitive. The leading \b matters: without it `disclosed #5` reads as
-          # `closed #5` and the backstop would skip an issue it should have marked.
-          all=$(printf '%s\n' "$msgs" | grep -oE '#[0-9]+' | tr -d '#' | sort -u || true)
-          closing=$(printf '%s\n' "$msgs" \
-            | grep -oiE '\b(close[sd]?|fix(e[sd])?|resolve[sd]?)\b:?[[:space:]]+#[0-9]+' \
-            | grep -oE '[0-9]+' | sort -u || true)
-          targets=$(comm -23 <(printf '%s\n' "$all" | sed '/^$/d') \
-                             <(printf '%s\n' "$closing" | sed '/^$/d'))
-
-          if [ -z "$targets" ]; then
-            echo "this push references no open work by number, or only closes."
-            echo "changed=no" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          changed=no
-          for n in $targets; do
-            # A `#<number>` in prose can be a pull request, a reference to another repository, or
-            # a number that means something else entirely. Anything this repository cannot read
-            # as an issue is skipped and said out loud rather than failing the run.
-            if ! state=$(gh issue view "$n" --json state --jq '.state | ascii_upcase' 2>&1); then
-              echo "#$n cannot be read as an issue here; skipping."
-              continue
-            fi
-            if [ "$state" != OPEN ]; then
-              echo "#$n is $state; the closed handler owns it."
-              continue
-            fi
-            # "not already status:in-progress" is not tested here on purpose. It is exactly what
-            # set_status.sh's conditional write means, and one owner for that rule is the whole
-            # reason the write lives in a script instead of in two copies of a workflow.
-            verdict=$(bash scripts/set_status.sh "$n" status:in-progress | tail -n1)
-            if [ "$verdict" = changed ]; then changed=yes; fi
-          done
-          echo "changed=$changed" >> "$GITHUB_OUTPUT"
-
-      - name: Wake the board, because a label written with GITHUB_TOKEN does not
-        if: steps.backstop.outputs.changed == 'yes'
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}

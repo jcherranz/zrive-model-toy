@@ -77,6 +77,10 @@ of what changed and when, and it is meant to be scannable.
   frame is gone" from "the browser's ring is back". The rect survives as `.focus-frame` on
   `:focus-visible` only, so keyboard focus keeps a mark.
 - `--tint-select`, which `b4e65d0` added for the selection frame's fill and nothing else read.
+- The commit-message backstop in `issue-status.yml`, and with it that workflow's `push` trigger,
+  #50. In the thirteen pushes it ever saw it wrote four labels and all four read a citation as a
+  claim of work; assignment is now the only signal and a bare `#N` moves nothing. Incident in
+  HANSEI.md, tenth entry; the narrowing that was rejected is argued in the workflow's header.
 
 ### Fixed
 
@@ -96,6 +100,10 @@ of what changed and when, and it is meant to be scannable.
   ring deliberately restored under forced colours. Lesson in KAIZEN.md. Two apparent zero-sized
   frames during the drive were the harness clicking outside the viewport; the probe now scrolls
   the tile in and asserts it is there first.
+- Card titles cut mid-word, #44: #42 arrived titled "…it must be one c". A title now ends on a
+  boundary the writer put there, the first line or the last sentence ending inside seventy
+  characters, else on a word boundary with an ellipsis and no dangling connector; only a word
+  longer than the whole line is still cut hard. Both filing paths were driven to the same title.
 
 ### Removed
 

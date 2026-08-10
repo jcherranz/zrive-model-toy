@@ -61,12 +61,14 @@ against.
 **Filing an issue writes nothing.** An unlabelled issue already sits in Raw, and writing the label
 the default already means would buy no behaviour and add a second place for one fact to be wrong.
 
-**Work that starts without an assignment has a backstop, and it is not the interface.** A push
-whose commit messages name issues by number marks each open one it names `status:in-progress`. It
-skips the ones the commit closes with `closes #12` or its family, because GitHub closes those
-itself, and it ignores the board bot's own commits, which mention every issue on the repository by
-construction. It exists for the day somebody starts typing before they think about the board.
-Assign the issue.
+**A commit message writes nothing, and work that starts without an assignment has no backstop.**
+There was one: a push whose commit messages named issues by number marked each open one
+`status:in-progress`. In the thirteen pushes it ever saw it wrote four labels and all four were
+citations rather than claims of work, which is what `#N` in prose usually is. It is deleted rather
+than narrowed to a marker, because a marker only fires for somebody who was already thinking about
+the board, and that person can assign the issue instead. Write `#12` in a commit message as freely
+as anywhere else: it records a cross-reference on the issue and moves no card. HANSEI.md, tenth
+entry.
 
 ## The standing work
 

@@ -134,11 +134,11 @@ carries the rule in full.
 
 The board is deliberately thinner than the one it was copied from. monetary-lab's version carries
 an LLM triage pass, a commit-trailer directive language and a queueing discipline for racing
-deploys. The queueing discipline has since been earned here, twice over, and the reading of commit
-messages is now taken in the narrowest form it has: a bare `#12` marks that issue in progress and
-nothing else, which is a backstop for work that started without an assignment rather than a
-language for instructing the board. The LLM triage pass is still refused: a board this size does
-not need classifying.
+deploys. The queueing discipline has since been earned here, twice over. The reading of commit messages was
+tried in the narrowest form it has, a bare `#12` marking that issue in progress, and is now
+removed: in thirteen pushes it wrote four labels and every one read a citation as a claim of work
+(HANSEI.md, tenth entry). Nothing in this repository reads a commit message. The LLM triage pass is
+still refused: a board this size does not need classifying.
 
 ## Andon
 

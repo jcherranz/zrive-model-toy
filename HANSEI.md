@@ -33,6 +33,7 @@ thing stopping them is somebody reading both.
 | 7 | 2026-08-09 | the gate read the disk and reported clean while the name sat in the index and in HEAD | `scan_snapshots` reads the index and HEAD too, with three probes in `--self-test` |
 | 8 | 2026-08-09 | a file split agreed in prose, and a commit that carried another agent's work | discipline: stage explicit paths, never the working tree |
 | 9 | 2026-08-10 | a form's default silently removed the permission the instructions asked for | the connect note names the field order, `site/feedback.js` |
+| 10 | 2026-08-10 | a commit message citing an issue was read as a claim to be working on it | the commit-message path is deleted; assignment is the only signal, `.github/workflows/issue-status.yml` |
 
 ---
 
@@ -355,3 +356,45 @@ explanation stays where it is, for the tokens made before anyone read the note.
 **Note.** Where a procedure runs through somebody else's interface, the order that interface
 imposes is part of the procedure, and leaving it out is leaving out the part that fails. A true
 description of a destination says nothing about a road that is closed.
+
+---
+
+## A backstop read a citation as a claim of work and put four free cards in progress
+
+`2026-08-10-citation-read-as-a-claim` &middot; 2026-08-10
+
+**What happened.** `.github/workflows/issue-status.yml` carried a second job that scanned every
+pushed commit message for `#<number>` and marked each open issue it found `status:in-progress`. It
+was there as a backstop for work that starts without an assignment. A documentation push whose
+commits cited issue numbers in prose put #4, #5 and #39 in progress with no assignee and nobody
+working on them, and #4 and #5 are standing constraints that will never be in progress at all. A
+fourth card, #48, had been moved the same way an hour earlier by a commit whose subject said
+`Issue 49.` and whose body cited #48 twice in passing, so the card that moved was not the card
+being worked. Repaired by hand, which is itself a small cost: each repair is two label events, and
+every label event redraws and republishes the board.
+
+**Root cause.** The job inferred an intention from prose. A `#N` in a commit message is
+overwhelmingly a citation, and a commit message is mostly prose, so the signal it read is not the
+signal it wanted. The record says so plainly and was read rather than assumed: over the thirteen
+pushes the job ever saw it wrote four labels, all four wrong, and marked nothing that assignment
+had not already marked. The tell was there before the incident. Authors had started writing
+`Issue 45.` without a hash to keep out of its way, which is a workaround being carried by people
+in place of a mechanism that works.
+
+**The prevention now in place.** The job and the `push` trigger are deleted. Assignment is the
+only signal that moves a card, and a bare `#N` is inert; GitHub still records the cross-reference
+on the issue's timeline, which is the citation doing what a citation should. The narrowing that
+was considered instead, an explicit `Starts #N` trailer, was rejected on what the backstop was
+for: it existed for the day somebody starts work without thinking about the board, and a trailer
+only fires for somebody who did think about the board, who can assign the issue in one click. That
+would not be a backstop but a second way to say the same thing, and a second place for one fact to
+be wrong.
+
+*Prevention kind:* `structural`
+*Named by:* `.github/workflows/issue-status.yml`
+
+**Note, and it is the general form.** The two error directions are not worth the same. A missed
+in-progress is visible to whoever tries to pick the card up and costs them a question. A false
+in-progress makes a free card look claimed, and a board whose free cards look claimed has stopped
+doing the one thing it is for. A guard is worth keeping only where the error it prevents is worse
+than the error it makes, and this one had the comparison backwards.
