@@ -11,6 +11,32 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- A dark theme, #55: one `@media (prefers-color-scheme: dark)` block redefining the palette on
+  `:root` and nothing else, so every surface follows from one place and none of them can be
+  forgotten. It answers the operating system rather than a switch in the header, because a switch
+  is markup and script and neither was this card's to write; an explicit override is a card of its
+  own. The values are not the light ones inverted: each was measured on the surface it lands on,
+  body text at 13.5:1 on the panel and 15.1:1 on the canvas ground, muted text at 6.8:1 on the
+  panel and 5.9:1 on the elevated fill under the captured context, which is exactly where the
+  mirrored muted grey fails at 4.4:1 and is why the dark one is a step further up the ramp. The
+  translucent tokens carry the lightness step they take in the light theme rather than their
+  alpha, so the rules, the hover wash and the grid keep their weights against a ground at the
+  other end of the scale. `color-scheme: dark` is in the block because the scrollbars of the
+  panel, the board and the student list, and the menu the browser draws for the two selects in the
+  capture popover, are reachable from nothing else in a stylesheet. The scrim behind the student
+  list was the one colour literal outside `:root` and is `--scrim` now, the same value in light.
+  Light mode is unchanged and proved so: eighteen screenshots, three widths by eight surfaces, are
+  pixel identical before and after. Measurements in the commit message.
+- The drawing does not glow on a dark page, and the measurement says why, #55. `tint()` returns an
+  `rgba`, so a tile fill composites over the band plate it sits on rather than mixing toward
+  white: sampled from real pixels, light fills are 1.06 to 1.23 darker than their plate and dark
+  fills are 1.10 to 1.27 lighter than the same plate, the same step in the other direction. What
+  the type colours do not survive is being a stroke at full opacity. Against the plate, Programme
+  `#9d3f9d` falls from 5.78 to 2.50, Company `#5f6b7c` from 5.41 to 2.67 and Agreement `#946638`
+  from 4.98 to 2.90, all three under the 3:1 a drawn outline needs, and the panel's type label,
+  which is the same colour as 11px text, is under 4.5:1 for eight of the thirteen. Those colours
+  are written by the model into `site/graph.js`, so no stylesheet can reach them and the repair is
+  a card of its own. `[OPEN]`
 - `#/students` lists the whole cohort, Issue 51: a route of its own beside `#/board`, reached
   from the header and from the students card's panel, listing all 34 rows with the four the
   canvas draws marked. The rows come from the build, so the list and the drawing cannot disagree
