@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T18:38:29Z",
+  "generated": "2026-08-10T20:51:40Z",
   "columns": [
     {
       "key": "raw",
@@ -50,13 +50,19 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/43"
-        },
+        }
+      ]
+    },
+    {
+      "key": "in_progress",
+      "title": "In progress",
+      "cards": [
         {
           "id": 47,
           "title": "The build id in a feedback report does not identify the deployed code",
           "labels": [
             "bug",
-            "status:backlog"
+            "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/47"
         },
@@ -66,16 +72,11 @@
           "labels": [
             "bug",
             "documentation",
-            "status:backlog"
+            "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/54"
         }
       ]
-    },
-    {
-      "key": "in_progress",
-      "title": "In progress",
-      "cards": []
     },
     {
       "key": "done",
