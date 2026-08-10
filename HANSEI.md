@@ -34,6 +34,7 @@ thing stopping them is somebody reading both.
 | 8 | 2026-08-09 | a file split agreed in prose, and a commit that carried another agent's work | discipline: stage explicit paths, never the working tree |
 | 9 | 2026-08-10 | a form's default silently removed the permission the instructions asked for | the connect note names the field order, `site/feedback.js` |
 | 10 | 2026-08-10 | a commit message citing an issue was read as a claim to be working on it | the commit-message path is deleted; assignment is the only signal, `.github/workflows/issue-status.yml` |
+| 11 | 2026-08-10 | a commit message that quoted the CI skip marker was obeyed as one, and every gate stayed silent | none. Discipline: name the marker, never spell it, in a commit message |
 
 ---
 
@@ -398,3 +399,42 @@ in-progress is visible to whoever tries to pick the card up and costs them a que
 in-progress makes a free card look claimed, and a board whose free cards look claimed has stopped
 doing the one thing it is for. A guard is worth keeping only where the error it prevents is worse
 than the error it makes, and this one had the comparison backwards.
+
+---
+
+## A commit message explaining the CI skip marker was obeyed as one
+
+`2026-08-10-quoting-the-skip-marker-skipped-ci` &middot; 2026-08-10
+
+**What happened.** The commit that moved the Pages deploy out of `board.yml` explains, in its
+body, that the board bot's own commit still carries `[skip ci]` and that this is one of the two
+loop guards. GitHub reads the whole of the head commit's message for that marker, not the subject
+line, so the push was skipped entirely: no repository gate, no deploy, no run of any kind on a
+commit that changed three workflow files. Found by looking for the runs the push should have
+produced and finding zero, which is two minutes of thinking the change itself had broken
+something. Not an exposure: both gates had been run against a clean worktree of exactly that
+commit before it was pushed, and both were clean. What it cost was the verification, which had to
+be driven by hand afterwards through a dispatch and through a real card closing.
+
+**Root cause.** The same shape as the entry above it, one layer out. A mechanism read prose as an
+instruction: there `#48` in a sentence about issue 48 was read as a claim to be working on it,
+here `[skip ci]` in a sentence about the marker was read as the marker. Neither mechanism has any
+way to tell a use from a mention, and a commit message is the place where a repository writes
+about its own machinery, so the two collide exactly where the documentation is best.
+
+**The prevention now in place.** None in code, and the hole is structural rather than an
+oversight: a marker whose effect is that nothing runs cannot be caught by anything that runs. A
+server-side check would have to be the thing the marker switched off. The operating rule is
+therefore a discipline, and a narrow one: **in a commit message, name the marker and never spell
+it.** Write "the CI skip marker" or "the marker on the board bot's commit". Spelling it out is
+safe in a tracked file, which is where both workflows explain it at length and where nothing reads
+it, and is safe on an issue; it is unsafe in exactly one place.
+
+*Prevention kind:* `none`
+*Named by:* `nothing yet`
+
+**Note.** The tell was available and was not read. A push that produces no run at all looks
+nothing like a push that produced a failing one, and the first guess was that the change had
+broken the workflows, which is the more interesting explanation and was the wrong one. Where a
+mechanism has an off switch, "it did not run" deserves to be checked before "it ran and went
+wrong".

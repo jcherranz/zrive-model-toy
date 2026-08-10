@@ -27,6 +27,11 @@ of what changed and when, and it is meant to be scannable.
   `viewBox` framed, so the page still opens on the screen it always had; `fit`, the `0` key and a
   readout in which 100% is the whole drawing say where home is, and all three go bold and blue
   the moment the view is not there. Measurements in the commit message.
+- HANSEI.md gains an eleventh entry. A commit message that quoted the CI skip marker while
+  explaining what the marker is for was obeyed as one, so a push changing three workflow files ran
+  no gate, no deploy and no workflow at all. No prevention in code, and the hole is structural: a
+  marker whose effect is that nothing runs cannot be caught by anything that runs. The discipline
+  is to name the marker in a commit message and never spell it.
 - A drag is separated from a click by 5px of movement, or 3px once held for 250ms, and the click
   a drag leaves behind is stopped on `window` in the capture phase, which runs before
   `feedback.js`'s document listener whatever order the scripts load in. **A pan therefore cannot
