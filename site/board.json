@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T18:14:29Z",
+  "generated": "2026-08-10T18:29:27Z",
   "columns": [
     {
       "key": "raw",
@@ -68,15 +68,6 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/47"
-        },
-        {
-          "id": 50,
-          "title": "The commit-message backstop reads a citation as a claim of work",
-          "labels": [
-            "bug",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/50"
         }
       ]
     },
@@ -101,6 +92,15 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 50,
+          "title": "The commit-message backstop reads a citation as a claim of work",
+          "labels": [
+            "bug",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/50"
+        },
         {
           "id": 49,
           "title": "Give the other four instructors real employer nodes and edges",
@@ -169,19 +169,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/41"
-        },
-        {
-          "id": 34,
-          "title": "Black box around selected nodes framing wrong and horrible",
-          "labels": [
-            "feedback",
-            "layout",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/34"
         }
       ],
-      "hidden": 25,
+      "hidden": 26,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
