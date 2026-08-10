@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T17:47:45Z",
+  "generated": "2026-08-10T17:50:37Z",
   "columns": [
     {
       "key": "raw",
@@ -85,7 +85,13 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/50"
-        },
+        }
+      ]
+    },
+    {
+      "key": "in_progress",
+      "title": "In progress",
+      "cards": [
         {
           "id": 51,
           "title": "Clicking the alumnos card should disaggregate into individual students",
@@ -93,16 +99,11 @@
             "feedback",
             "idea",
             "model",
-            "status:backlog"
+            "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/51"
         }
       ]
-    },
-    {
-      "key": "in_progress",
-      "title": "In progress",
-      "cards": []
     },
     {
       "key": "done",
