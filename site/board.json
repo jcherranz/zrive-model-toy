@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T12:44:23Z",
+  "generated": "2026-08-10T12:54:54Z",
   "columns": [
     {
       "key": "raw",
@@ -59,6 +59,15 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/32"
+        },
+        {
+          "id": 39,
+          "title": "Pages deploy conflicts now that every label move dispatches a board run",
+          "labels": [
+            "bug",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/39"
         }
       ]
     },
