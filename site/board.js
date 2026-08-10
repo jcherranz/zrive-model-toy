@@ -33,7 +33,9 @@
 
   // Cards are ordered by issue number, ascending, which is the order they were filed in. It is
   // the only order the board holds that means anything: board.json carries no dates, and a
-  // number never changes, so the same issues always land in the same places.
+  // number never changes, so the same issues always land in the same places. Done is the one
+  // exception and is drawn newest first, because a column of finished work is read at the end
+  // that just moved.
   function byNumber(a, b) {
     var x = a && typeof a.id === 'number' ? a.id : Infinity;
     var y = b && typeof b.id === 'number' ? b.id : Infinity;
@@ -70,6 +72,31 @@
     return a;
   }
 
+  // An address out of board.json is only followed if it is an issues list on github.com, the
+  // same rule the board link below obeys, so the page cannot be pointed somewhere else by an
+  // edit to board.json. An address that fails the test costs the reader the link, not the line.
+  function issuesHref(url) {
+    return (typeof url === 'string' &&
+      /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/issues(\?[\w%+=:.-]*)?$/.test(url)) ? url : null;
+  }
+
+  // The Done column is capped by the generator, so the cards it holds are not all the cards it
+  // has. The remainder is printed under them, as a line rather than a card, because it names
+  // work that is finished and off the board. An older board.json carries neither field, and a
+  // board with nothing hidden carries a zero; both draw nothing.
+  function more(col) {
+    var n = col && typeof col.hidden === 'number' ? col.hidden : 0;
+    if (!(n > 0)) return null;
+    var href = issuesHref(col.hiddenUrl);
+    var e = document.createElement(href ? 'a' : 'p');
+    e.className = 'bmore';
+    // The phrase carries no noun, so it is already right at one and needs no plural branch:
+    // "and 1 more done" and "and 16 more done" both read.
+    e.textContent = 'and ' + n + ' more done';
+    if (href) { e.href = href; e.target = '_blank'; e.rel = 'noopener noreferrer'; }
+    return e;
+  }
+
   function column(col) {
     var d = document.createElement('div');
     d.className = 'bcol';
@@ -89,8 +116,13 @@
       e.textContent = 'no issues';
       d.appendChild(e);
     } else {
-      cards.slice().sort(byNumber).forEach(function (c) { d.appendChild(card(c)); });
+      // Done arrives newest first from the generator and stays in the order it arrives in; the
+      // other columns are sorted here so a hand-edited board.json still draws in filing order.
+      var list = col && col.key === 'done' ? cards.slice() : cards.slice().sort(byNumber);
+      list.forEach(function (c) { d.appendChild(card(c)); });
     }
+    var rest = more(col);
+    if (rest) d.appendChild(rest);
     return d;
   }
 

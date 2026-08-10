@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T12:10:11Z",
+  "generated": "2026-08-10T12:16:17Z",
   "columns": [
     {
       "key": "raw",
@@ -62,215 +62,13 @@
       "title": "Done",
       "cards": [
         {
-          "id": 1,
-          "title": "The diagram does not fit one screen",
+          "id": 33,
+          "title": "Remove (redundant / not needed)",
           "labels": [
-            "bug",
-            "layout",
-            "status:done"
+            "feedback",
+            "layout"
           ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/1"
-        },
-        {
-          "id": 2,
-          "title": "The right half of the canvas is empty",
-          "labels": [
-            "bug",
-            "layout",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/2"
-        },
-        {
-          "id": 3,
-          "title": "Instructors and session templates are interleaved in one column",
-          "labels": [
-            "bug",
-            "layout",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/3"
-        },
-        {
-          "id": 7,
-          "title": "Label widths are estimated in Python, so a label can leave its lane on another font stack",
-          "labels": [
-            "bug",
-            "layout",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/7"
-        },
-        {
-          "id": 8,
-          "title": "The classes that do not exist are the finding, and the diagram only draws what does",
-          "labels": [
-            "enhancement",
-            "model",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/8"
-        },
-        {
-          "id": 9,
-          "title": "On a narrow viewport the drawing is cut off at the right edge instead of scaling to fit",
-          "labels": [
-            "bug",
-            "layout",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/9"
-        },
-        {
-          "id": 10,
-          "title": "The narrow-viewport CSS hardcodes the drawing width the build computes",
-          "labels": [
-            "bug",
-            "layout",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/10"
-        },
-        {
-          "id": 11,
-          "title": "The repository gate reported clean while a real name was still committed",
-          "labels": [
-            "bug",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/11"
-        },
-        {
-          "id": 12,
-          "title": "Workflow runs in the pages concurrency group are evicted before they start",
-          "labels": [
-            "bug",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/12"
-        },
-        {
-          "id": 13,
-          "title": "The repository gate spends its whole runtime spawning one process per token",
-          "labels": [
-            "bug",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/13"
-        },
-        {
-          "id": 14,
-          "title": "Verb chips are placed greedily and some sit off the line they name",
-          "labels": [
-            "bug",
-            "layout",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/14"
-        },
-        {
-          "id": 15,
-          "title": "The header subtitle describes the diagram while the board is showing",
-          "labels": [
-            "bug",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/15"
-        },
-        {
-          "id": 16,
-          "title": "Board polish: card order, label chips, empty columns, a way back to the issues",
-          "labels": [
-            "enhancement",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/16"
-        },
-        {
-          "id": 17,
-          "title": "The diagram cannot be walked from the keyboard in reading order",
-          "labels": [
-            "enhancement",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/17"
-        },
-        {
-          "id": 18,
-          "title": "The cohort and students lane is emptier than the others",
-          "labels": [
-            "limitation",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/18"
-        },
-        {
-          "id": 19,
-          "title": "The template versus instance split is asserted, not shown",
-          "labels": [
-            "enhancement",
-            "model",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/19"
-        },
-        {
-          "id": 20,
-          "title": "The detail panel stays open on top of the board view",
-          "labels": [
-            "bug",
-            "layout",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/20"
-        },
-        {
-          "id": 21,
-          "title": "Below the breakpoint the panel opens on top of the node it describes",
-          "labels": [
-            "bug",
-            "layout",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/21"
-        },
-        {
-          "id": 22,
-          "title": "The capture popover covers the header controls at narrow widths",
-          "labels": [
-            "bug",
-            "layout",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/22"
-        },
-        {
-          "id": 23,
-          "title": "copy all answers nothing when nothing has been copied yet",
-          "labels": [
-            "bug",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/23"
-        },
-        {
-          "id": 24,
-          "title": "A company sits in the lane captioned cohort sessions",
-          "labels": [
-            "layout",
-            "model",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/24"
-        },
-        {
-          "id": 25,
-          "title": "Escape and the 3 shortcut destroy a typed but unfiled note",
-          "labels": [
-            "bug",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/25"
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/33"
         },
         {
           "id": 26,
@@ -283,15 +81,66 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/26"
         },
         {
-          "id": 33,
-          "title": "Remove (redundant / not needed)",
+          "id": 25,
+          "title": "Escape and the 3 shortcut destroy a typed but unfiled note",
           "labels": [
-            "feedback",
-            "layout"
+            "bug",
+            "status:done"
           ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/33"
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/25"
+        },
+        {
+          "id": 24,
+          "title": "A company sits in the lane captioned cohort sessions",
+          "labels": [
+            "layout",
+            "model",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/24"
+        },
+        {
+          "id": 23,
+          "title": "copy all answers nothing when nothing has been copied yet",
+          "labels": [
+            "bug",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/23"
+        },
+        {
+          "id": 22,
+          "title": "The capture popover covers the header controls at narrow widths",
+          "labels": [
+            "bug",
+            "layout",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/22"
+        },
+        {
+          "id": 21,
+          "title": "Below the breakpoint the panel opens on top of the node it describes",
+          "labels": [
+            "bug",
+            "layout",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/21"
+        },
+        {
+          "id": 20,
+          "title": "The detail panel stays open on top of the board view",
+          "labels": [
+            "bug",
+            "layout",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/20"
         }
-      ]
+      ],
+      "hidden": 16,
+      "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
 }

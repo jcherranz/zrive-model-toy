@@ -694,6 +694,22 @@ body.fb-mode .fb-popover select { cursor: pointer; }
   padding: 4px 1px;
 }
 
+/* The Done cards the generator did not draw, counted under the ones it did. It is set like the
+   empty-column line rather than like a card, because it stands for work that is finished and
+   off the board, and a card would put it back on. Muted, so it does not compete with the cards
+   above it, and underlined only on hover so that it still reads as the link it is. */
+.bmore {
+  display: block;
+  margin: 0;
+  padding: 4px 1px 0;
+  font-size: 11px;
+  color: var(--fg-muted);
+  text-decoration: none;
+}
+
+.bmore:hover { text-decoration: underline; }
+.bmore:focus-visible { outline: 2px solid var(--i-primary); outline-offset: 1px; }
+
 .bmeta a { color: var(--i-primary); }
 
 .bnote {

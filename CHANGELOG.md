@@ -7,6 +7,22 @@ Dates are ISO. Newest first.
 
 ### Fixed
 
+- The Done column is bounded at eight cards and says how many it is not showing. Every closed
+  issue lands in Done and nothing takes one out again, so it grew without limit: at twenty eight
+  issues, twenty four of them closed, Done held twenty four cards and the board read as ninety
+  percent finished work while the four cards that wanted attention sat beside it. The column now
+  keeps the eight highest-numbered cards and reads newest first, because the useful end of a
+  column of finished work is what has just moved into it. The other three columns are untouched
+  and stay ascending by number, which is the order they were filed in. The remainder is not
+  swallowed: `sync_board.mjs` writes `hidden` and `hiddenUrl` on the done column, and the page
+  prints a muted `and 16 more done` under the cards, linked to the repository's closed issues. A
+  cap that reads as the whole list would be a worse defect than the long column it replaced,
+  because the long column was at least true. The board still draws from an older `board.json`
+  that carries neither field, and the link is only followed if it is an issues list on
+  github.com, the same rule the existing board link obeys. Driven at 1440x900 and at 390x844
+  against a real board: Raw 0, Backlog 4, In progress 0, Done 8 with `hidden` 16, the line
+  reachable by `elementFromPoint` at both widths, nothing clipped and no horizontal overflow.
+
 - The GitHub connect note names the order the token form imposes, not only the token it wants.
   GitHub preselects `Repository access: Public repositories (read-only)`, and while that radio
   is selected the form does not offer the Issues permission at all, so a reader who fills in

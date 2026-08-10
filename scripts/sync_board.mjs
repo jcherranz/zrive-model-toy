@@ -31,6 +31,20 @@ const COLUMNS = [
 ];
 const DEFAULT_COLUMN = "raw";
 
+// The Done column is bounded, and the other three are not. Every closed issue lands in Done and
+// nothing ever takes one out again, so on a project that is being worked on it grows without
+// limit and ends up being most of the board: at twenty seven issues, twenty four of them closed,
+// Done held twenty four cards in twenty seven and the three that wanted attention were lost
+// inside a wall of finished work. A board is a picture of the work in hand. Eight is about a
+// screen of finished cards, which is enough to see what has just landed and not enough to bury
+// the rest.
+const DONE_VISIBLE = 8;
+
+// Where the cards the cap does not draw can be read in full. Built from REPO rather than typed,
+// so a run against another repository links to that repository's closed issues and not to this
+// one's.
+const CLOSED_ISSUES_URL = `https://github.com/${REPO}/issues?q=is%3Aissue+is%3Aclosed`;
+
 function fetchIssues() {
   const out = execFileSync(
     "gh",
@@ -72,13 +86,29 @@ function toCard(iss) {
 
 function build(issues) {
   const cards = issues.map(toCard).sort((a, b) => a.id - b.id);
-  return COLUMNS.map((col) => ({
-    key: col.key,
-    title: col.title,
-    cards: cards
-      .filter((c) => c.column === col.key)
-      .map(({ id, title, labels, url }) => ({ id, title, labels, url })),
-  }));
+  return COLUMNS.map((col) => {
+    const own = cards.filter((c) => c.column === col.key);
+    // Done is read newest first: on a column of finished work the useful end is what has just
+    // been done, and the oldest closed issue is the least interesting card on the board. The
+    // other three columns keep the filing order, ascending by number, which is the only order
+    // board.json carries that means anything.
+    const ordered = col.key === "done" ? own.slice().reverse() : own;
+    const drawn = col.key === "done" ? ordered.slice(0, DONE_VISIBLE) : ordered;
+    const out = {
+      key: col.key,
+      title: col.title,
+      cards: drawn.map(({ id, title, labels, url }) => ({ id, title, labels, url })),
+    };
+    if (col.key === "done") {
+      // What the cap drops is counted and carried, never swallowed. A capped column that says
+      // nothing about the cap reads as "this is everything", which is a worse defect than the
+      // long column it replaced, because the long column was at least true. The count and the
+      // address of the full list travel with the column and the page prints them.
+      out.hidden = ordered.length - drawn.length;
+      out.hiddenUrl = CLOSED_ISSUES_URL;
+    }
+    return out;
+  });
 }
 
 function main() {
