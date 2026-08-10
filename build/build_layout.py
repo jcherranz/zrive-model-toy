@@ -21,7 +21,8 @@ import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
-from model import TYPES, NODES, EDGES  # noqa: E402
+from model import (TYPES, NODES, EDGES, ROSTER_ROWS, COHORT_HEADCOUNT,  # noqa: E402
+                   DRAWN_STUDENTS)
 
 COL_W = [166, 232, 122, 124, 80, 102, 92, 92]
 GAP_X, MARGIN_X = 18, 22
@@ -476,6 +477,14 @@ def layout(model_nodes, model_edges, tag):
                    "cw": round(e["cw"], 1), "rev": e["rev"],
                    "ax": round(e["ax"], 1), "ay": round(e["ay"], 1), "aa": round(e["aa"], 1)}
                   for e in edges],
+        # The cohort as rows, for the sheet at #/students, which is the view that answers "who
+        # is in it" where the drawing answers "what shape is a student". It is carried in the
+        # drawing's own file and covered by the build digest for one reason: it is the model,
+        # not page furniture, and a reader who files a note about a row is filing it against a
+        # build id that pins the bytes the row came from. owner names the node the sheet belongs
+        # to, so nothing in the browser holds the id 'students' as a literal.
+        "roster": {"n": COHORT_HEADCOUNT, "drawn": DRAWN_STUDENTS, "owner": "students",
+                   "rows": ROSTER_ROWS},
     }
     # Build id: a short digest of the drawing itself. It goes into every feedback report so a
     # note can be tied to the exact bytes that were on screen when it was written.

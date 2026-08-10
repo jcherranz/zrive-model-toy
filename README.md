@@ -175,6 +175,18 @@ and would fail the job on one.
 The body carries a context block the page fills in: the selected node, the view, the viewport
 size and the build id.
 
+## The cohort in full
+
+`#/students` lists all thirty four students as rows, over the drawing, from the roster the build
+writes into `site/graph.js`. It is a view of its own, reached from `students` in the header or
+from the students card's own panel, and the drawing is not a way to reach part of it: the diagram
+answers what shape a student record is and this answers who is in the cohort. Escape, the close
+button and a click outside all dismiss it, and it closes itself on the way to the board.
+
+**Every person in it is invented, and the build refuses to publish a roster that is not.**
+`build/model.py` puts every string this model ships through the same salted hash the safety gates
+use and stops the build on a hit. The universities are real institutions, which names nobody.
+
 ## Board
 
 `#/board` renders `site/board.json`, which is generated from GitHub Issues. The board reflects

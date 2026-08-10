@@ -11,6 +11,11 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- `#/students` lists the whole cohort, Issue 51: a route of its own beside `#/board`, reached
+  from the header and from the students card's panel, listing all 34 rows with the four the
+  canvas draws marked. The rows come from the build, so the list and the drawing cannot disagree
+  about who they are, and the counts in its heading are read off the rows. The diagram stays a
+  diagram and this is where completeness lives.
 - Student is an object type, and clicking the students card draws four of them, Issue 51. They
   fade into space the build already keeps for them, with `and 30 more, not drawn` under the card
   and the number computed from the roster, so four tiles cannot quietly stand in for thirty four

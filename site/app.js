@@ -799,6 +799,9 @@
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' ||
                 t.isContentEditable)) return;
       if (document.querySelector('.fb-popover')) return;
+      // The student list is over the canvas and the canvas is behind it. A digit typed there is
+      // not an instruction to move a drawing the reader cannot see.
+      if (rosterOpen()) return;
       if (e.key === '0') { e.preventDefault(); fit(); }
       else if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomStep(1.3); }
       else if (e.key === '-' || e.key === '_') { e.preventDefault(); zoomStep(1 / 1.3); }
@@ -897,6 +900,22 @@
       dl.appendChild(dt);
       dl.appendChild(dd);
     });
+    // A node that stands for a list says where the list is. Only one node does, and which one is
+    // named by the build rather than by an id written here, so a second aggregate would arrive
+    // with its own link and this code would not have to learn about it.
+    var pmore = document.getElementById('pmore');
+    pmore.textContent = '';
+    if (G.roster && G.roster.owner === id) {
+      var a = document.createElement('a');
+      a.className = 'linkbtn pmore-link';
+      a.href = ROSTER_ROUTE;
+      a.textContent = 'see all ' + G.roster.n + ' students';
+      pmore.appendChild(a);
+      var hint = document.createElement('span');
+      hint.className = 'pmore-hint';
+      hint.textContent = G.roster.drawn + ' of them are drawn here; the list has every row.';
+      pmore.appendChild(hint);
+    }
     panel.classList.add('open');
     document.body.classList.add('panel-open');
     reveal(n);
@@ -940,6 +959,157 @@
   // about. This listener only ever sees the Escapes that capture mode did not want.
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') clear(); });
 
+  // ---- the whole cohort, as a list -------------------------------------------
+  // The drawing answers "what shape is a student" and draws four of the thirty four, because a
+  // model diagram that drew all of them would be a register with arrows. This view answers the
+  // other question, "who is in the cohort", and answers it completely. It is a route of its own
+  // beside the board's, not a way out of a limitation: the count under the students card and
+  // this list are two halves of the same honesty, one saying how many the picture left out and
+  // the other showing them.
+  //
+  // Every row is invented. The rows come from the drawing's own generated file, so they are
+  // covered by the build digest that every feedback note carries, and nothing in this file
+  // knows a student's name.
+  //
+  // It is an overlay and not a third main. The board replaces the diagram, which takes the
+  // canvas off the screen and hands its ResizeObserver a box of nothing; that is a path this
+  // page already walks and survives, and there was no reason to walk it twice. Over the top, the
+  // canvas keeps its size and its view, and the backdrop makes it inert while the list is up:
+  // the wheel listener is on the canvas and never sees an event over the backdrop.
+  var ROSTER_ROUTE = '#/students';
+  var rosterEl = document.getElementById('roster');
+  var rosterBuilt = false;
+  var rosterReturn = null;        // what had focus when the list was opened
+
+  function rosterOpen() { return !!rosterEl && !rosterEl.hidden; }
+
+  function cell(row, text, cls) {
+    var td = document.createElement('td');
+    if (cls) td.className = cls;
+    td.textContent = text;
+    row.appendChild(td);
+    return td;
+  }
+
+  function buildRoster() {
+    if (rosterBuilt || !rosterEl || !G.roster) return;
+    rosterBuilt = true;
+    var r = G.roster, rows = r.rows || [];
+
+    document.getElementById('rostertitle').textContent =
+      'The cohort, all ' + r.n + ' students';
+
+    // Counted off the rows rather than written down, so the summary cannot disagree with the
+    // table under it, and so it stays true if a row changes.
+    var states = {}, order = [];
+    rows.forEach(function (x) {
+      if (states[x.state] === undefined) { states[x.state] = 0; order.push(x.state); }
+      states[x.state]++;
+    });
+    var sub = document.getElementById('rostersub');
+    sub.textContent = rows.length + ' rows · ' + r.drawn + ' of them drawn on the canvas · ' +
+      order.map(function (s) { return states[s] + ' ' + s; }).join(', ');
+    var warn = document.createElement('span');
+    warn.className = 'warn';
+    warn.textContent = 'every person here is invented';
+    sub.appendChild(warn);
+
+    var table = document.createElement('table');
+    table.className = 'roster-table';
+    var thead = document.createElement('thead');
+    var hr = document.createElement('tr');
+    ['student', 'name', 'university', 'born', 'enrolment', 'charge', 'on the canvas']
+      .forEach(function (h) {
+        var th = document.createElement('th');
+        th.textContent = h;
+        hr.appendChild(th);
+      });
+    thead.appendChild(hr);
+    table.appendChild(thead);
+
+    var tb = document.createElement('tbody');
+    rows.forEach(function (x) {
+      var tr = document.createElement('tr');
+      if (x.node) tr.className = 'roster-drawn';
+      cell(tr, x.id, 'r-id');
+      cell(tr, x.name, 'r-name');
+      cell(tr, x.uni);
+      cell(tr, x.yob, 'r-num');
+      cell(tr, x.enrol, 'r-id');
+      cell(tr, x.state, 'r-state');
+      // The four the drawing carries say which tile they are, in the key a feedback note would
+      // report, so the list and the canvas can be talked about in the same words.
+      cell(tr, x.node ? 'drawn as ' + x.node : '', 'r-drawn');
+      tb.appendChild(tr);
+    });
+    table.appendChild(tb);
+    var host = document.getElementById('rosterrows');
+    host.textContent = '';
+    host.appendChild(table);
+  }
+
+  function showRoster(on) {
+    if (!rosterEl || rosterOpen() === on) return;
+    if (on) {
+      buildRoster();
+      rosterReturn = document.activeElement;
+      rosterEl.hidden = false;
+      var close = document.getElementById('rosterclose');
+      if (close && close.focus) close.focus();
+    } else {
+      // Focus is put back where it came from, unless it has already moved on or the element it
+      // came from is a node that is no longer painted.
+      rosterEl.hidden = true;
+      if (rosterReturn && rosterReturn.focus && document.contains(rosterReturn) &&
+          rosterReturn.getAttribute && rosterReturn.getAttribute('tabindex') !== null) {
+        rosterReturn.focus();
+      }
+      rosterReturn = null;
+    }
+    var nav = document.getElementById('navstudents');
+    if (nav) {
+      if (on) nav.setAttribute('aria-current', 'page');
+      else nav.removeAttribute('aria-current');
+    }
+  }
+
+  // Closing is a navigation, because opening was one. replaceState rather than another hash
+  // write: the entry that is being left is the list, so replacing it means the back button goes
+  // to whatever the reader was on before they opened it rather than back into the list they just
+  // closed. It fires no hashchange, so the close is done here rather than waiting for one.
+  function closeRoster() {
+    if (location.hash === ROSTER_ROUTE) {
+      try {
+        history.replaceState(null, '', location.pathname + location.search + '#/');
+      } catch (err) {
+        location.hash = '#/';   // a file:// URL, where replaceState throws
+      }
+    }
+    showRoster(false);
+  }
+
+  function rosterRoute() { showRoster(location.hash === ROSTER_ROUTE); }
+
+  if (rosterEl) {
+    document.getElementById('rosterclose').addEventListener('click', closeRoster);
+    document.getElementById('rosterback').addEventListener('click', closeRoster);
+    // Escape, in the capture phase, so it beats the bubble listener below that clears the
+    // selection: closing the list must not also throw away the node the reader had open behind
+    // it. Capture mode is left alone deliberately. While it is on, Escape is how a reader leaves
+    // it, feedback.js takes that Escape in its own capture listener, and a list that also
+    // grabbed the key would make the way out of capture mode depend on what else is open.
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape' || !rosterOpen()) return;
+      if (document.body.classList.contains('fb-mode')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      closeRoster();
+    }, true);
+    // The board is the other route and owns the whole page, so arriving there closes this.
+    window.addEventListener('hashchange', rosterRoute);
+    rosterRoute();
+  }
+
   // The panel is a fixed overlay and the header runs the full width, so the panel is told
   // where the header ends. Without it the open panel covers the header's own buttons.
   var hdr = document.querySelector('header');
@@ -961,6 +1131,19 @@
       return { id: n.id, label: n.label, type: TLABEL[n.type] };
     },
     view: function () { return { x: view.x, y: view.y, k: view.k, w: vw, h: vh }; },
-    fit: fit
+    fit: fit,
+    // Which nodes the drawing is not painting, for the same reason view() is here: whether a
+    // reveal put exactly the intended set on screen is a claim a driver should be able to read
+    // off the running page rather than infer from a screenshot. Derived from the rule table, so
+    // it cannot report a set the stylesheet is not acting on.
+    veiled: function () {
+      var out = { hidden: [], shown: [] };
+      Object.keys(veiled).forEach(function (id) {
+        (gfxNode[id].g.classList.contains('veil-hidden') ? out.hidden : out.shown).push(id);
+      });
+      out.hidden.sort(); out.shown.sort();
+      return out;
+    },
+    roster: function () { return rosterOpen(); }
   };
 })();

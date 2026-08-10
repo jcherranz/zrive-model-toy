@@ -553,6 +553,22 @@ for _i, (_name, _uni, _yob, _state) in enumerate(ROSTER[:DRAWN_STUDENTS], start=
     })
     EDGES.append((f"s{_i}", "students", "member of"))
 
+# The full cohort as rows, for the sheet at #/students. It is the same list the four tiles come
+# off, so the sheet cannot disagree with the drawing about who the first four are, and the four
+# carry the id of the node they are drawn as. Everything here is invented; see ROSTER.
+ROSTER_ROWS = [
+    {
+        "id": f"STU-{_i:04d}",
+        "name": _name,
+        "uni": _uni,
+        "yob": _yob,
+        "enrol": f"ENR-{_i:04d}",
+        "state": _state,
+        "node": f"s{_i}" if _i <= DRAWN_STUDENTS else None,
+    }
+    for _i, (_name, _uni, _yob, _state) in enumerate(ROSTER, start=1)
+]
+
 # ---- ghosts: classes the model needs and no system holds --------------------
 # Everything above is an object that exists. Everything below is one that does not, drawn on
 # the same page because the absences are the part of the shape that a reader cannot infer from
@@ -624,4 +640,6 @@ for _n in NODES:
     for _pr in _n["props"]:
         _strings += [(f"{_w} prop {_pr['k']}", _pr["k"]), (f"{_w} prop {_pr['k']}", _pr["v"])]
 _strings += [(f"edge {_s}->{_t}", _v) for _s, _t, _v in EDGES]
+_strings += [(f"roster {_r['id']}", _r[_f])
+             for _r in ROSTER_ROWS for _f in ("name", "uni", "state")]
 _check_names(_strings)

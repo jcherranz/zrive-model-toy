@@ -1001,6 +1001,185 @@ body.hide-ghosts .ghost { display: none; }
    reader could name. */
 .node.sel .lbl-tail { font-weight: 400; }
 
+/* ---- the way from a card that stands for many to the list of them ------------ */
+.pmore {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rule-muted);
+}
+
+.pmore-link { padding: 0; font-weight: 600; }
+
+.pmore-hint {
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--fg-muted);
+}
+
+/* ---- the cohort, all of it ---------------------------------------------------
+   A view of its own on its own route, #/students, and the reason it is an overlay rather than a
+   third main is that the board already takes that path: swapping the diagram out takes the
+   canvas off the screen and hands its ResizeObserver a box of nothing, which this page survives
+   but need not do twice. Over the top, the canvas keeps its size, its view and its selection.
+
+   The backdrop is not decoration. It is what makes the canvas inert while the list is up: a
+   click on it closes the list rather than reaching a node, and the wheel listener, which is on
+   the canvas, never sees an event over it, so nothing zooms behind the reader's back. */
+.roster {
+  position: fixed;
+  inset: 0;
+  z-index: 20;              /* over the detail panel at 10, under the capture popover at 30 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.roster[hidden] { display: none; }
+
+.roster-back {
+  position: absolute;
+  inset: 0;
+  background: rgba(17, 20, 24, 0.28);
+}
+
+.roster-sheet {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(780px, 100%);
+  max-height: 100%;
+  background: var(--bg-panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--elev-1);
+  overflow: hidden;
+}
+
+.roster-head {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--rule-muted);
+}
+
+.roster-head h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.roster-sub {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--fg-muted);
+}
+
+#rosterclose {
+  margin-left: auto;
+  font-size: 18px;
+  line-height: 1;
+  padding: 2px 6px;
+  color: var(--fg-muted);
+}
+
+#rosterclose:hover { text-decoration: none; background: var(--tint-hover); }
+
+/* The rows scroll, and they scroll here rather than on the page: the diagram is one screen at
+   every width and a list long enough to move it would be a second thing to scroll. */
+.roster-rows {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.roster-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+
+.roster-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-elevated);
+  text-align: left;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  padding: 6px 10px;
+  white-space: nowrap;
+}
+
+.roster-table td {
+  padding: 5px 10px;
+  border-top: 1px solid var(--rule-muted);
+  white-space: nowrap;
+}
+
+.roster-table tbody tr:hover { background: var(--tint-hover); }
+
+.roster-table .r-id,
+.roster-table .r-num,
+.roster-table .r-drawn {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--fg-muted);
+}
+
+.roster-table .r-name { font-weight: 600; }
+.roster-table .r-state { color: var(--fg-muted); }
+
+/* The four the canvas carries are marked and not highlighted. They are not more important rows;
+   they are the same rows, seen twice. */
+.roster-table .roster-drawn .r-drawn { color: var(--i-primary); }
+
+@media (max-width: 760px) {
+  .roster { padding: 0; align-items: stretch; }
+  .roster-sheet { width: 100%; border: 0; border-radius: 0; }
+
+  /* Seven columns do not fit a phone, and a table that scrolls sideways inside itself hides
+     the charge state, which is one of the two columns somebody opens this to read. Each row
+     becomes a block instead: the name on its own line and the rest of the record under it as
+     one wrapped run. Same cells, same order, no second markup. */
+  .roster-table thead { display: none; }
+  .roster-table, .roster-table tbody { display: block; }
+
+  .roster-table tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 5px;
+    padding: 7px 12px;
+    border-top: 1px solid var(--rule-muted);
+  }
+
+  .roster-table td {
+    padding: 0;
+    border: 0;
+    white-space: nowrap;
+  }
+
+  .roster-table td.r-name {
+    order: -1;
+    flex: 1 0 100%;
+    font-size: var(--fs-sm);
+  }
+
+  /* A separator before every cell but the first of the run. An empty one, which is the
+     "on the canvas" cell on the thirty rows that are not drawn, takes its separator with it. */
+  .roster-table td:empty { display: none; }
+  .roster-table td::before { content: '·'; margin-right: 5px; color: var(--c-gray-3); }
+  .roster-table td.r-name::before,
+  .roster-table td.r-id:first-child::before { content: none; }
+}
+
 /* A note is content and the relationship list is metadata, so they are two blocks and not
    one run of text. */
 #panel .pnote-note {

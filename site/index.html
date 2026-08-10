@@ -28,6 +28,11 @@
               title="show or hide the classes that do not exist in any system">ghosts</button>
       <button id="fbtoggle" class="linkbtn" type="button" aria-pressed="false"
               title="visual feedback mode: click any element to capture it with what was on screen">feedback</button>
+      <!-- The cohort in full, as its own route, beside the board's. The drawing shows four of
+           the thirty four students because it is a model diagram and not a register; this is
+           where the whole list lives, and it is a first class view rather than a way out of a
+           limitation. -->
+      <a id="navstudents" class="linkbtn" href="#/students">students</a>
       <a id="navview" class="linkbtn" href="#/board">board</a>
     </nav>
   </div>
@@ -57,8 +62,9 @@
     programme code are real and published. All identifiers, dates, counts and amounts are
     invented, including every person in the cohort. Click a node for its properties; clicking an
     instructor also brings out the employer that instructor works for, and clicking the students
-    card draws four of the thirty four as individuals. Drag the canvas to move it, scroll or
-    pinch to zoom, and <b>fit</b> brings the whole drawing back.
+    card draws four of the thirty four as individuals. <b>students</b> in the header lists all
+    thirty four. Drag the canvas to move it, scroll or pinch to zoom, and <b>fit</b> brings the
+    whole drawing back.
   </footer>
 </main>
 
@@ -79,7 +85,27 @@
   <h2 id="pname"></h2>
   <p class="pnote" id="pnote"></p>
   <dl id="pprops"></dl>
+  <!-- Written by app.js for the one node that stands for a list, and empty for every other. -->
+  <div class="pmore" id="pmore"></div>
 </aside>
+
+<!-- The cohort in full. The rows are not written here: they are in the drawing's own generated
+     file, because they are the model and not page furniture, and app.js builds this the first
+     time the view is opened. Hidden until then, which also keeps it out of the tab order. -->
+<div id="roster" class="roster" hidden>
+  <div class="roster-back" id="rosterback"></div>
+  <section class="roster-sheet" role="dialog" aria-modal="true" aria-labelledby="rostertitle">
+    <div class="roster-head">
+      <div>
+        <h2 id="rostertitle"></h2>
+        <p class="roster-sub" id="rostersub"></p>
+      </div>
+      <button id="rosterclose" class="linkbtn" type="button" aria-label="Close the student list"
+              title="close (Esc)">&times;</button>
+    </div>
+    <div class="roster-rows" id="rosterrows"></div>
+  </section>
+</div>
 
 <script src="graph.js"></script>
 <script src="app.js"></script>
