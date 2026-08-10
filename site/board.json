@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T18:13:42Z",
+  "generated": "2026-08-10T18:14:29Z",
   "columns": [
     {
       "key": "raw",
@@ -59,15 +59,6 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/43"
-        },
-        {
-          "id": 44,
-          "title": "Card titles truncate mid-word",
-          "labels": [
-            "bug",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/44"
         },
         {
           "id": 47,
@@ -151,6 +142,15 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/45"
         },
         {
+          "id": 44,
+          "title": "Card titles truncate mid-word",
+          "labels": [
+            "bug",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/44"
+        },
+        {
           "id": 42,
           "title": "Remove the second cohort; the toy should always show exactly one",
           "labels": [
@@ -179,19 +179,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/34"
-        },
-        {
-          "id": 32,
-          "title": "Remove the header legend, redundant / not needed",
-          "labels": [
-            "feedback",
-            "layout",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/32"
         }
       ],
-      "hidden": 24,
+      "hidden": 25,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
