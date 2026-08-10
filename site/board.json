@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T18:37:27Z",
+  "generated": "2026-08-10T18:38:02Z",
   "columns": [
     {
       "key": "raw",
@@ -75,6 +75,11 @@
     {
       "key": "in_progress",
       "title": "In progress",
+      "cards": []
+    },
+    {
+      "key": "done",
+      "title": "Done",
       "cards": [
         {
           "id": 51,
@@ -86,13 +91,7 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/51"
-        }
-      ]
-    },
-    {
-      "key": "done",
-      "title": "Done",
-      "cards": [
+        },
         {
           "id": 50,
           "title": "The commit-message backstop reads a citation as a claim of work",
@@ -160,19 +159,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/42"
-        },
-        {
-          "id": 41,
-          "title": "Looks wrong, not aligned etc.",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/41"
         }
       ],
-      "hidden": 27,
+      "hidden": 28,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
