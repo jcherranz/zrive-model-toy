@@ -1,29 +1,10 @@
 {
-  "generated": "2026-08-10T15:07:10Z",
+  "generated": "2026-08-10T15:09:56Z",
   "columns": [
     {
       "key": "raw",
       "title": "Raw",
-      "cards": [
-        {
-          "id": 45,
-          "title": "Remove this. Redundant.",
-          "labels": [
-            "feedback",
-            "layout"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/45"
-        },
-        {
-          "id": 46,
-          "title": "I would like this to look like an infinite canvas instead of this infi",
-          "labels": [
-            "feedback",
-            "idea"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/46"
-        }
-      ]
+      "cards": []
     },
     {
       "key": "backlog",
@@ -96,6 +77,26 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/44"
+        },
+        {
+          "id": 45,
+          "title": "Remove the selection frame drawn around a selected node",
+          "labels": [
+            "feedback",
+            "layout",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/45"
+        },
+        {
+          "id": 46,
+          "title": "Make the diagram an infinite canvas: dot grid, pan and zoom",
+          "labels": [
+            "feedback",
+            "idea",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/46"
         },
         {
           "id": 47,
