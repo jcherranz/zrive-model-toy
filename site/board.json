@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T00:28:27Z",
+  "generated": "2026-08-10T11:41:21Z",
   "columns": [
     {
       "key": "raw",
@@ -10,6 +10,33 @@
           "title": "The safety gate cannot enumerate the origin, only the files the tree knows about",
           "labels": [],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
+        },
+        {
+          "id": 28,
+          "title": "[connectivity test] category: data model",
+          "labels": [
+            "data model",
+            "feedback"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/28"
+        },
+        {
+          "id": 29,
+          "title": "[connectivity test] category: layout",
+          "labels": [
+            "feedback",
+            "layout"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/29"
+        },
+        {
+          "id": 30,
+          "title": "[connectivity test] category: idea",
+          "labels": [
+            "feedback",
+            "idea"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/30"
         }
       ]
     },
