@@ -24,6 +24,8 @@
   --rule: rgba(17, 20, 24, 0.15);
   --rule-muted: rgba(17, 20, 24, 0.10);
   --tint-hover: rgba(143, 153, 168, 0.15);
+  --tint-select: rgba(45, 114, 210, 0.07);
+  --rule-select: rgba(45, 114, 210, 0.45);
   --tint-warning: rgba(200, 118, 25, 0.10);
   --tint-neutral: rgba(143, 153, 168, 0.15);
   --fg-warning: #935610;
@@ -248,12 +250,43 @@ body.two-cohorts #graph { height: auto; }
 }
 
 .node { cursor: pointer; }
-/* Keyboard focus. Tab moves through the nodes in reading order, which is the order they are
-   drawn in, and the ring is the same blue the header buttons use. */
-.node:focus-visible {
-  outline: 2px solid var(--i-primary);
-  outline-offset: 2px;
+
+/* Selection and keyboard focus are one mark in two strengths, and the mark is a rect this
+   file styles rather than an outline the browser draws.
+   Chrome's user agent stylesheet answers :focus on a focusable SVG element with
+   `outline: auto 5px -webkit-focus-ring-color`. On an SVG element that rule is :focus, where
+   on an HTML element it is :focus-visible, so the override that used to live here never ran
+   on a mouse click and the browser's own ring was what a reader saw on every selected node:
+   five pixels of near black around the group's bounding box, which is the tile and its label
+   together, so its width was the width of the name. Issue 34. `outline: none` is the whole of
+   the repair; the frame below is what takes its place. */
+.node:focus { outline: none; }
+
+/* Empty until app.js measures it, so a node that has never been selected draws nothing. */
+.node .sel-frame { fill: none; stroke: none; }
+
+/* Focused and not selected: the outline alone. Tabbing through the drawing should not look
+   like selecting everything on the way to the node the reader wants. */
+.node:focus-visible .sel-frame {
+  stroke: var(--rule-select);
+  stroke-width: 1;
 }
+
+/* Selected: the same frame at full strength, over the faintest wash the tokens hold. The tile
+   also inverts, so the frame says which object and the fill says it is the current one. */
+.node.sel .sel-frame {
+  fill: var(--tint-select);
+  stroke: var(--i-primary);
+  stroke-width: 1;
+}
+
+/* A forced colours mode replaces the fill and the stroke above with the reader's own palette
+   and can leave the frame invisible, so there the browser's ring is asked back. It frames the
+   group rather than the tile, which is the wrong shape and the right trade at that moment. */
+@media (forced-colors: active) {
+  .node:focus-visible { outline: 2px solid; outline-offset: 2px; }
+}
+
 .node .tile-bg { stroke-width: 1.25; }
 .node .lbl {
   font-size: 10px;

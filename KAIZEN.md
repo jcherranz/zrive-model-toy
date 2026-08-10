@@ -255,6 +255,26 @@ Two things are worth stating because they are the ways this loop fails quietly:
   repository keeps meeting from new directions: a green run is evidence that the steps ran, and
   evidence about nothing downstream of them.
 
+- **An override is only evidence about the selector it names, and a browser's default need not
+  use the selector you assumed.** Every selected node wore a five pixel black box for as long
+  as the page has existed, and the stylesheet held a deliberate, correct focus rule the whole
+  time: it was written against `:focus-visible`, which is what a browser uses on an HTML
+  element, while Chrome's default for a focusable SVG element is keyed on `:focus`. A mouse
+  click matches the second and not the first, so the override never ran for the readers who
+  meet the page with a mouse, and it ran perfectly for anyone testing with the keyboard. The
+  fix took a minute; finding it took asking the page which rules were actually matching rather
+  than reading the file that should have won. Where a default is being replaced, get the answer
+  from the running document, and where a state has two ways in, drive both of them.
+
+- **A mark whose size is read is right in the cases nobody enumerated.** The frame that
+  replaced that box is padded around `getBBox()` at the moment it is shown, so it fits the
+  count stack leaning out above one tile, the second dashed ring on another, the caption under
+  that ring, and the same caption vanishing when the ghosts are switched off, none of which was
+  reasoned about. The arithmetic version would have needed a branch per case and would have
+  been wrong the first time a fifth case appeared. This is the fourth time in this repository
+  that a measured value beat a computed copy of one, and the first where the win was cases
+  rather than staleness.
+
 - **A delay of zero is a statement about the timer queue, not about the document.** The board's
   first fetch has to happen after `feedback.js` has run, because that is where the reader's
   stored token is published from, and `index.html` loads the board before it. Deferring the

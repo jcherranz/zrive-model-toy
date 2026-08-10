@@ -5,6 +5,61 @@ Dates are ISO. Newest first.
 
 ## [Unreleased]
 
+### Fixed
+
+- The black box around a selected node, #34. Clicking a node drew a five pixel near-black
+  rounded box around it, with no gap at all, so the label's glyphs touched the border on both
+  ends, and its width was the width of whatever name the node carried: 42 units on `McKinsey`
+  and 188 on `All about recruiting in Investment Banking`. **This repository did not draw it.**
+  Chrome's user agent stylesheet answers `:focus` on a focusable SVG element with
+  `outline: auto 5px -webkit-focus-ring-color`, where on an HTML element the equivalent rule is
+  keyed on `:focus-visible`, and `app.css` had overridden only `:focus-visible`. A mouse click
+  does not match `:focus-visible`, so on every click the site's rule stood down and the
+  browser's own ring was the whole of what a reader saw. Read off the running page rather than
+  inferred: `CSS.getMatchedStylesForNode` on the selected node returned exactly one rule
+  carrying an outline, `origin=user-agent`, selector `:focus`, and the computed value was
+  `rgb(16, 16, 16) auto 5px`, while the same element reported `matches(':focus-visible')` as
+  `false`. Tabbing to a node, which does match `:focus-visible`, drew the site's own blue 2px
+  ring, which is why the defect was only ever there for a reader using a mouse and never for
+  one using the keyboard. The framing was wrong for a second reason underneath the first: an
+  `outline` on an SVG `g` frames the group's bounding box, and the group is the tile *and* its
+  label, so the box could never have framed the tile whatever colour it was.
+  - **The repair is `outline: none` on `.node:focus`, and a rect that this stylesheet owns.**
+    Each node now carries a `.sel-frame` rounded rect, drawn behind the tile, empty until it is
+    asked for. Selected, it is a 1 unit `--i-primary` outline over `--tint-select`, the
+    faintest wash in the token set; focused and not selected, it is the outline alone at
+    `--rule-select`, so tabbing through the drawing does not look like selecting everything on
+    the way. The tile still inverts on selection, so the frame says which object and the fill
+    says it is the current one.
+  - **Its geometry is measured and never estimated.** `frameNode()` reads `getBBox()` on the
+    node group and pads it by five units, which makes the frame right for free in the four
+    cases a formula would have had to enumerate one at a time: the count stack that leans out
+    above the students tile, the second dashed ring on the cohort, the extra `no cohort_id`
+    caption under it, and that same caption disappearing when the ghosts are switched off. The
+    frame is taken out of the drawing while the reading is taken, because a frame that lives
+    inside the group it measures is part of the next measurement and would grow the node by one
+    padding every time it was framed.
+  - **Driven, and the screenshots looked at.** Six nodes covering every shape the drawing has,
+    at label widths from 20 to 199 CSS px: `co_emp`, `t5`, `st6`, `students` (the count stack),
+    `cohort` (the missing-key ring and a second caption line) and `g_beca` (a ghost). At
+    1440x900 and at 390x844, the second through `Emulation.setDeviceMetricsOverride` rather
+    than a window size, and the viewport the harness actually got printed beside the one it
+    asked for. The frame is centred on every node at both widths: on the longest label the gap
+    is 72.89 units left and 72.89 right at 1440, 82.2 and 82.1 at 390. `outlineStyle` reads
+    `none` on every selected node. Also driven: the ghosts toggle, where the cohort's frame
+    correctly shrinks from 58.7x64.5 to 47.9x51.1 as the ring and the caption go; the second
+    cohort, which redraws from the other coordinate set and comes back with 38 frames for 38
+    nodes; and the board view. No console errors at either width.
+  - **Two readings in the harness were the harness.** A probe reported a zero-sized frame on
+    two nodes; both were clicks dispatched at coordinates outside the viewport, which are
+    swallowed and leave the node unselected, which looks exactly like a selection mark that
+    failed to paint. The probe now scrolls the tile into view and asserts it is there before it
+    clicks. HANSEI already carries the general form of this and it cost twenty minutes anyway.
+  - **A forced colours mode gets the browser's ring back**, because the fill and the stroke
+    above are replaced by the reader's palette there and the frame can stop being visible at
+    all. It frames the group rather than the tile, which is the wrong shape and the right trade
+    at that moment.
+
 ### Added
 
 - The board refreshes itself while it is on screen, and draws from the GitHub API directly when a

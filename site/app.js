@@ -201,13 +201,55 @@
         mk.textContent = n.mark;
       }
 
+      // The rect a selection and a keyboard focus are drawn as. It is inserted directly after
+      // the title, so it sits behind the tile, the count stack and the label rather than over
+      // them, and it carries no geometry until frameNode() measures one.
+      var frame = el('rect', { class: 'sel-frame', rx: 7 });
+      g.insertBefore(frame, titleEl.nextSibling);
+
       g.addEventListener('click', function (ev) { ev.stopPropagation(); select(n.id); });
       g.addEventListener('keydown', function (ev) {
         if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); select(n.id); }
       });
-      gfxNode[n.id] = { g: g, tile: tile, mark: mark, col: col, count: !!n.count,
+      // Measured on focus as well as on selection, because the stylesheet shows the frame on
+      // :focus-visible too and a tab arriving at a node it has never framed would show an
+      // empty rect at the drawing's origin.
+      g.addEventListener('focus', function () { frameNode(gfxNode[n.id]); });
+      gfxNode[n.id] = { g: g, tile: tile, mark: mark, col: col, count: !!n.count, frame: frame,
                         ghost: !!n.ghost, rest: tile.getAttribute('fill') };
     });
+  }
+
+  // ---- the selection frame ---------------------------------------------------
+  // Chrome's user agent stylesheet answers :focus on a focusable SVG element with
+  // `outline: auto 5px -webkit-focus-ring-color`. On an SVG element that rule is :focus and
+  // not :focus-visible, which is the HTML case, so the site's own :focus-visible override
+  // never ran on a mouse click and every selected node wore the browser's own ring: a five
+  // pixel near-black box around the group's bounding box. The group is the tile and its
+  // label, so the box was 34 units wide on a short name and 188 on the longest session
+  // template, and it touched the glyphs on both ends. That is issue 34. The ring is turned
+  // off in the stylesheet and this rect replaces it.
+  //
+  // Its geometry is measured and never estimated. A node's extent on screen is the extent of
+  // the text the browser drew, and a second opinion about that width is a mistake this
+  // repository has already bought twice, in the layout and in the stylesheet. Measuring also
+  // makes the frame right for free in the cases a formula would have to enumerate: the count
+  // stack that leans out above the tile, the second dashed ring on the cohort, the extra
+  // caption under it, and that same caption disappearing when the ghosts are switched off.
+  //
+  // The frame is taken out of the drawing while the reading is taken. A frame that lives
+  // inside the group it measures is part of the next measurement, so leaving it in grows the
+  // node by one padding every time it is framed.
+  var FRAME_PAD = 5;
+
+  function frameNode(f) {
+    f.frame.setAttribute('display', 'none');
+    var b = f.g.getBBox();
+    f.frame.removeAttribute('display');
+    f.frame.setAttribute('x', (b.x - FRAME_PAD).toFixed(1));
+    f.frame.setAttribute('y', (b.y - FRAME_PAD).toFixed(1));
+    f.frame.setAttribute('width', (b.width + FRAME_PAD * 2).toFixed(1));
+    f.frame.setAttribute('height', (b.height + FRAME_PAD * 2).toFixed(1));
   }
 
   draw(window.G);
@@ -218,6 +260,7 @@
 
   function paint(id, on) {
     var f = gfxNode[id];
+    if (on) frameNode(f);
     // A selected ghost keeps its dashed outline and stays unfilled. Filling it the way a real
     // node is filled would make selection the one moment it looks like an object that exists.
     f.tile.setAttribute('fill', on ? (f.ghost ? 'rgba(45,114,210,0.08)' : 'var(--i-primary)')
