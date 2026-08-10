@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T18:12:31Z",
+  "generated": "2026-08-10T18:13:06Z",
   "columns": [
     {
       "key": "raw",
@@ -109,14 +109,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/51"
-        },
-        {
-          "id": 53,
-          "title": "zz-throwaway: the assignment path end to end",
-          "labels": [
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/53"
         }
       ]
     },
@@ -124,6 +116,14 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 53,
+          "title": "zz-throwaway: the assignment path end to end",
+          "labels": [
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/53"
+        },
         {
           "id": 49,
           "title": "Give the other four instructors real employer nodes and edges",
@@ -193,19 +193,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/34"
-        },
-        {
-          "id": 32,
-          "title": "Remove the header legend, redundant / not needed",
-          "labels": [
-            "feedback",
-            "layout",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/32"
         }
       ],
-      "hidden": 24,
+      "hidden": 25,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
