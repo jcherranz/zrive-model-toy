@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T16:26:58Z",
+  "generated": "2026-08-10T16:27:39Z",
   "columns": [
     {
       "key": "raw",
@@ -76,6 +76,25 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/47"
+        },
+        {
+          "id": 48,
+          "title": "An instructor's employer should appear only when the instructor is clicked",
+          "labels": [
+            "feedback",
+            "layout",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/48"
+        },
+        {
+          "id": 50,
+          "title": "The commit-message backstop reads a citation as a claim of work",
+          "labels": [
+            "bug",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/50"
         }
       ]
     },
@@ -92,16 +111,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/46"
-        },
-        {
-          "id": 48,
-          "title": "An instructor's employer should appear only when the instructor is clicked",
-          "labels": [
-            "feedback",
-            "layout",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/48"
         }
       ]
     },
