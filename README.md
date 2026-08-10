@@ -120,7 +120,7 @@ scripts/
 | file | what it holds |
 |---|---|
 | `TPS.md` | the Toyota principles as they apply to this artefact, including the one rejected |
-| `KAIZEN.md` | the improvement loop, the five standing defects, the reflection step |
+| `KAIZEN.md` | the improvement loop, the reflection step, and the lessons in the order they were bought |
 | `HANSEI.md` | the failures this work has actually had, and what stops each recurring |
 | `CHANGELOG.md` | what changed and when |
 
