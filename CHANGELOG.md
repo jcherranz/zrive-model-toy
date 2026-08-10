@@ -7,6 +7,55 @@ Dates are ISO. Newest first.
 
 ### Removed
 
+- The second cohort, #42, filed against the `2nd cohort` switch: "every time I see something,
+  it must be one cohort". Not the switch, the cohort. There is now no route into a two cohort
+  view at all, and the page ships one coordinate set.
+  - **What went.** The `#c2toggle` button and its title and subtitle swap in
+    `site/index.html`; the switch handler, the `TITLES` table and the `window.G2` branch in
+    `site/app.js`; `body.two-cohorts`, the `#c2toggle` rules and the `--tint-select` token in
+    `site/app.css`; `COHORT2`, `COHORT2_SESSIONS`, `COHORT2_NODES`, `COHORT2_EDGES`,
+    `COHORT2_PROPS`, `COHORT2_PINS` and `with_second_cohort()` in `build/model.py`; the second
+    `layout()` call, the `spread_share` argument and the pinned-column branch it was the only
+    caller of in `build/build_layout.py`; and the `window.G2` line in `site/graph.js`. The ids
+    `h1` and `subtext` went with the swap that was the only thing reading them.
+  - **Nothing dangles.** `two-cohort`, `c2toggle`, `cohort2`, `COHORT2`, `with_second_cohort`,
+    `spread_share`, `G2`, `subtext` and `2Q26` return nothing across `site/`, `build/` and
+    `scripts/`. The only surviving mention anywhere is the issue title inside
+    `site/board.json`, which is the card for this work.
+  - **And no state, fragment or stored preference survives either**, which was driven rather
+    than reasoned: `window.G2` is `undefined` and the page exposes exactly one coordinate set;
+    no header control names a cohort; `localStorage` is empty on a first visit, the only key
+    the site ever writes being the reader's own GitHub token; forcing `body.two-cohorts` on by
+    hand from the console now changes nothing, because the rules it drove are gone; and
+    `#/`, `#/board`, `#/two`, `#/c2` and `#/cohorts=2` all land on the same 30 node one cohort
+    drawing under the same title. The two views never shared a stored setting: the switch held
+    its state in `aria-pressed` on the button and in nothing else, so there was never anything
+    to clear.
+  - **Regenerated, not hand-edited.** `python3 build/build_layout.py` writes `site/graph.js`,
+    and the diff against the shipped file is one deleted line, the `window.G2` one. The
+    `window.G` line is byte-identical, 21327 bytes either side, and the build stamp is still
+    `469ad3c`, which is the proof that this drawing never paid for the other one: they were
+    laid out independently, exactly as KAIZEN.md said an opt-in view has to be.
+    `build/label_widths.json` was regenerated the same way: 500 strings to 418, the 82 second
+    cohort strings gone, and not one width on a retained string moved. `graph.js` is 51.1KB to
+    20.8KB.
+  - **There is no space to reclaim, and that is measured rather than assumed.** The premise
+    that removing a cohort frees vertical room does not hold here, for the same reason the
+    byte-identical `window.G` does not: the second cohort was a separate drawing and this one
+    never made room for it. Driven before and after at all three viewports, every number is
+    identical to the decimal: the header is 58px at 1536x839 and at 1440x900 and 119px at
+    390x844; the canvas box is 1536x749.7, 1440x810.7 and 390x592; the drawing covers
+    1476.1x706.4, 1382.2x662 and 1204x576 on screen. The header closes its own hole, because
+    the nav is a flex row with a gap and the three remaining controls simply move left. The
+    slack that does exist inside the canvas, 142.7px of unused height at 1440x900, is the
+    drawing's 2.10 aspect against a shorter box; it was there before this change, it is the
+    first two items of the standing backlog in KAIZEN.md, and folding a re-layout into this
+    commit is the batching Heijunka exists to refuse.
+  - **Driven and the screenshots looked at**, at 1536x839, 1440x900 and 390x844, with the
+    viewport the harness actually got printed beside the one it asked for.
+    `scrollWidth === clientWidth` at each width and no console error beyond the pre-existing
+    favicon 404.
+
 - The frame drawn around a selected node, #45, filed from the live site against the rect
   itself. Clicking a node already says four things: the tile inverts to solid primary, the
   label goes bold, everything the node is not related to dims to 16 per cent, and the panel

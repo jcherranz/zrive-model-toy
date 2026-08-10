@@ -44,10 +44,12 @@
   // name and the glyph of each tile.
 
   // ---- svg scaffolding -----------------------------------------------------
-  // The page holds two drawings, laid out independently by the build: G is one cohort and G2
-  // is two. They are separate coordinate sets rather than one drawing with parts hidden,
-  // because a hidden node still takes up room in a layout and would have moved the default
-  // view. Switching between them therefore means redrawing, not toggling a class.
+  // One drawing, one cohort, and no way into any other view. The page used to carry a second
+  // coordinate set for a two cohort drawing on a header switch; issue 42 took it out, and it
+  // was taken out of the build rather than hidden in the browser, so there is nothing left here
+  // to switch to. draw() still takes its drawing as an argument because everything below reads
+  // G rather than reaching for a global, which is what kept the two views from moving each
+  // other and is worth keeping now that only one of them is left.
   var svg = document.getElementById('graph');
   var canvas = document.getElementById('canvas');
   svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
@@ -60,9 +62,8 @@
     svg.setAttribute('viewBox', '0 0 ' + G.w + ' ' + G.h);
     // The width of the drawing is a number the build computes, so the stylesheet reads it from
     // here rather than holding a copy of it. Below the fit-to-screen breakpoint app.css sets
-    // min-width: var(--drawing-w), which is why this is written on every draw and not once:
-    // the two cohort view is laid out separately and need not be the same width as the one
-    // cohort view.
+    // min-width: var(--drawing-w), and it is written from the drawing that is actually on
+    // screen rather than once at load, so the two cannot disagree.
     canvas.style.setProperty('--drawing-w', G.w + 'px');
     if (window.ZT) window.ZT.build = G.build || 'unknown';
 
@@ -377,8 +378,10 @@
   // recognised by its computed position rather than by a copy of the breakpoint in JavaScript,
   // and its height is read from offsetHeight rather than from a rect, because the panel is
   // still sliding when this runs and a transform moves the rect while the transition plays.
-  // Whichever element can scroll vertically is the one that is scrolled: the canvas when it
-  // has its own overflow (the two cohort view), otherwise the page.
+  // Whichever element can scroll vertically is the one that is scrolled: the canvas where it
+  // has its own overflow, otherwise the page. The drawing fits the box at every width it is
+  // fitted at, so today that is always the page; the canvas branch is kept because which of
+  // the two scrolls is a fact about the running layout and not one this file should assume.
   function reveal(n) {
     setTimeout(function () {
       var sr = svg.getBoundingClientRect(), cr = canvas.getBoundingClientRect();
@@ -411,42 +414,6 @@
       if (vmax > 1) canvas.scrollTop = Math.max(0, Math.min(canvas.scrollTop + delta, vmax));
       else window.scrollBy(0, delta);
     }, 30);
-  }
-
-  // ---- the second cohort on or off -----------------------------------------
-  // Off by default. One cohort on one screen is the view that reads at a glance, and a second
-  // cohort roughly doubles the column in the middle. It is worth having because the split
-  // between a session template and a cohort session is the backbone of the model and one
-  // cohort cannot show it: with two, the same six template objects carry two sets of dated
-  // sessions taught by people who are not quite the same people, and the reason for the split
-  // is on the page rather than in a document.
-  //
-  // Switching redraws from the other coordinate set and drops the selection with it, because
-  // the two drawings do not hold all the same nodes and a selection cannot survive that.
-  var TITLES = {
-    off: ['Zrive operating model, one cohort as instances',
-          'Programme Z-IB Investment Banking, cohort 1Q26, drawn as named instances joined by '
-          + 'the verbs that relate them.'],
-    on: ['Zrive operating model, two cohorts as instances',
-         'Programme Z-IB Investment Banking, cohorts 1Q26 and 2Q26 off the same six session '
-         + 'templates, drawn as named instances joined by the verbs that relate them.']
-  };
-  var c2Btn = document.getElementById('c2toggle');
-  if (c2Btn && window.G2) {
-    c2Btn.addEventListener('click', function () {
-      var next = c2Btn.getAttribute('aria-pressed') !== 'true';
-      c2Btn.setAttribute('aria-pressed', next ? 'true' : 'false');
-      document.body.classList.toggle('two-cohorts', next);
-      clear();
-      draw(next ? window.G2 : window.G);
-      var t = TITLES[next ? 'on' : 'off'];
-      var h1 = document.getElementById('h1'), sub = document.getElementById('subtext');
-      if (h1) h1.textContent = t[0];
-      if (sub) sub.textContent = t[1];
-      measureHeader();
-    });
-  } else if (c2Btn) {
-    c2Btn.hidden = true;
   }
 
   // ---- ghosts on or off ----------------------------------------------------

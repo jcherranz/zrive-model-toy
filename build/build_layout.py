@@ -21,7 +21,7 @@ import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
-from model import TYPES, NODES, EDGES, with_second_cohort  # noqa: E402
+from model import TYPES, NODES, EDGES  # noqa: E402
 
 COL_W = [166, 232, 122, 124, 80, 102, 92, 92]
 GAP_X, MARGIN_X = 18, 22
@@ -249,14 +249,15 @@ def dist_to_path(pt, pts, n=400):
                for x, y in (bez(pts, i / n) for i in range(n + 1)))
 
 
-def layout(model_nodes, model_edges, tag, spread_share=None):
+def layout(model_nodes, model_edges, tag):
     """Lay one model out and return the object the browser draws.
 
-    Called once per view. The columns, the bands and the measured widths are shared; nothing
-    that follows touches module state, so the two views cannot move each other. That is the
-    whole reason this is a function: the default drawing has to be unchanged by the existence
-    of the opt-in one, and the cheapest way to guarantee it is to lay it out from the same
-    inputs it always had.
+    It is a function rather than module-level code because it once laid out two drawings, a
+    one cohort view and an opt-in two cohort one, and the property that mattered was that
+    neither could move the other: the columns, the bands and the measured widths are shared
+    and nothing in here touches module state. The second cohort is gone (issue 42) and the
+    isolation is kept, because it is what makes "the drawing is a pure function of the model"
+    a statement that can be checked by running the build twice rather than a claim.
     """
     nodes = {n["id"]: dict(n) for n in model_nodes}
     order = [n["id"] for n in model_nodes]
@@ -312,14 +313,6 @@ def layout(model_nodes, model_edges, tag, spread_share=None):
         gap = MIN_GAP
         if 1 < k < 4 and c >= SPREAD_FROM:
             gap = max(MIN_GAP, (SPREAD * H - hs) / (k - 1))
-        elif spread_share and c in spread_share and k > 1:
-            # A drawing whose tallest column is twice the height of the others leaves the short
-            # ones as a clump in the middle of a tall white lane, and every edge out of that
-            # clump leaves it at a steep angle. Opening a column to a share of the height
-            # flattens those edges, which is what makes the fan out of one template to two
-            # cohorts readable as a fan. Only the columns that feed the tall one are opened:
-            # the money chain and the programme are read as chains and want to stay compact.
-            gap = max(MIN_GAP, (spread_share[c] * H - hs) / (k - 1))
         total = hs + gap * (k - 1)
         y = (H - total) / 2
         for nid in ordering:
@@ -334,19 +327,11 @@ def layout(model_nodes, model_edges, tag, spread_share=None):
         for c in rng:
             if not cols[c]:
                 continue
-            if all("pin" in nodes[nid] for nid in cols[c]):
-                # A pinned column states its own order and the sweep leaves it alone. It is used
-                # for the two cohort view's session column, where the barycentre answer is a
-                # legitimate minimum of crossings and still wrong to read: it interleaves the two
-                # cohorts and breaks both out of date order, and a column of dated things that is
-                # not in date order costs the reader more than the crossings save.
-                cols[c].sort(key=lambda n: nodes[n]["pin"])
-            else:
-                want = {}
-                for nid in cols[c]:
-                    ys = [nodes[m]["y"] for m in adj[nid] if nodes[m]["col"] != c]
-                    want[nid] = sum(ys) / len(ys) if ys else nodes[nid]["y"]
-                cols[c].sort(key=lambda n: (want[n], order.index(n)))
+            want = {}
+            for nid in cols[c]:
+                ys = [nodes[m]["y"] for m in adj[nid] if nodes[m]["col"] != c]
+                want[nid] = sum(ys) / len(ys) if ys else nodes[nid]["y"]
+            cols[c].sort(key=lambda n: (want[n], order.index(n)))
             pack(cols[c], c)
 
     top = min(n["y"] - n["h"] / 2 for n in nodes.values())
@@ -482,33 +467,31 @@ def layout(model_nodes, model_edges, tag, spread_share=None):
     return out
 
 
-# ---- the two views ---------------------------------------------------------
-# window.G is the drawing the page opens on and is laid out from exactly the inputs it always
-# had. window.G2 is the opt-in two cohort view. They are separate objects rather than one
-# drawing with things hidden by CSS, because a hidden node still occupies the layout and would
-# have moved the default view.
+# ---- the one view -----------------------------------------------------------
+# window.G is the drawing, and there is exactly one. There was a second, an opt-in two cohort
+# view on a header switch, and it is gone: the toy shows one cohort, always, which is the whole
+# of issue 42. Its removal cost this drawing nothing, and that is checkable rather than
+# asserted, because the two were always laid out independently: the bytes of window.G are
+# identical either side of the change.
 base = layout(NODES, EDGES, "one cohort")
-two = layout(*with_second_cohort(), tag="two cohorts", spread_share={1: 0.92, 2: 0.82})
 
 site = pathlib.Path(__file__).resolve().parent.parent / "site"
 
-# The width of each drawing is computed here and read by the stylesheet through the
-# --drawing-w custom property that app.js writes. If it is ever typed into app.css as well the
-# two will disagree the first time a column changes width, and the symptom is quiet: on a
-# narrow viewport the canvas would stop short of the drawing or scroll past it into blank
-# space. So refuse to build while a copy of the number is sitting in the stylesheet.
+# The width of the drawing is computed here and read by the stylesheet through the --drawing-w
+# custom property that app.js writes. If it is ever typed into app.css as well the two will
+# disagree the first time a column changes width, and the symptom is quiet: on a narrow
+# viewport the canvas would stop short of the drawing or scroll past it into blank space. So
+# refuse to build while a copy of the number is sitting in the stylesheet.
 _css = (site / "app.css").read_text(encoding="utf-8")
-for _view, _g in (("one cohort", base), ("two cohorts", two)):
-    # Not \b: in "1230px" there is no word boundary between the 0 and the p, so \b would let
-    # the very form the number takes in a stylesheet through untouched.
-    if re.search(r"(?<![\d.])" + str(_g["w"]) + r"(?![\d.])", _css):
-        sys.exit(f"[layout] app.css contains the literal {_g['w']}, the width of the "
-                 f"{_view} drawing. The stylesheet must read var(--drawing-w) instead.")
+# Not \b: in "1230px" there is no word boundary between the 0 and the p, so \b would let the
+# very form the number takes in a stylesheet through untouched.
+if re.search(r"(?<![\d.])" + str(base["w"]) + r"(?![\d.])", _css):
+    sys.exit(f"[layout] app.css contains the literal {base['w']}, the width of the drawing. "
+             f"The stylesheet must read var(--drawing-w) instead.")
 
 dest = site / "graph.js"
 dest.write_text(
-    "window.G=" + json.dumps(base, ensure_ascii=False, separators=(",", ":")) + ";\n"
-    "window.G2=" + json.dumps(two, ensure_ascii=False, separators=(",", ":")) + ";\n",
+    "window.G=" + json.dumps(base, ensure_ascii=False, separators=(",", ":")) + ";\n",
     encoding="utf-8")
 print(f"wrote {dest.name}  {dest.stat().st_size / 1024:.1f} KB")
 

@@ -124,7 +124,9 @@ annoying at exactly the moment it matters.
 ## What improvement means here, and what it does not
 
 This toy is thirty nodes, four of which are classes that do not exist, and the four files that
-draw it are fifty two kilobytes. Improving it does not mean growing it.
+draw it, `index.html`, `app.css`, `app.js` and the generated `graph.js`, are seventy
+kilobytes. They were fifty two when that sentence was written and a hundred and one on the
+commit before the second cohort came out. Improving it does not mean growing it.
 The most valuable change available at any moment is almost always the one that removes
 something: a type nobody can populate, a column with one node in it, a property that says
 `estimated` and means `guessed`. The wider work behind the diagram lives in
@@ -194,7 +196,8 @@ Two things are worth stating because they are the ways this loop fails quietly:
   thing that makes it a picture rather than a claim. The general form: for each relationship
   the model says is load bearing, ask what on the canvas would look different if it were false.
   Where the answer is nothing, the relationship is documentation with a colour, and the fix is
-  usually one more instance rather than one more legend entry.
+  usually one more instance rather than one more legend entry. The second cohort was removed on
+  the owner's reading, issue 42; the last bullet in this list is what that taught.
 
 - **An opt-in view has to cost the default view nothing, and the only proof of that is a diff.**
   The cheap way to add a second cohort is to draw it always and hide it with CSS, and it would
@@ -298,3 +301,17 @@ Two things are worth stating because they are the ways this loop fails quietly:
   readers who have a token, never on a reload from cache, and never in a screenshot, because the
   board it draws is a real board. Where the requirement is "after the rest of the page", say so:
   `DOMContentLoaded` is that statement and a timer is a guess about scheduling.
+
+- **A demonstration is a cost to the reader even when the argument for it is right, and the
+  reader is the one who prices it.** The second cohort was added because the split between a
+  session template and a cohort session was asserted and not shown, and that argument still
+  reads as correct. It was removed anyway, on one sentence from the person the page is drawn
+  for: every time he opens it, it must be one cohort. Nothing about the argument turned out to
+  be wrong; what it left out was that a switch is not free merely because it is off, since a
+  reader who meets a control has to decide about it, and the thing being demonstrated was a
+  property of the schema rather than a fact about the business the page exists to argue with.
+  The rule this leaves: an addition justified by what it proves still has to be justified by
+  what it costs to look at, those are different questions, and where they disagree the answer
+  comes from the reader and not from the record. The cheap tell is that the argument for
+  adding was made here, in the file where this project reasons with itself, and the argument
+  against arrived from outside it in twenty words.
