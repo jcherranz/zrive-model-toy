@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T18:11:22Z",
+  "generated": "2026-08-10T18:12:31Z",
   "columns": [
     {
       "key": "raw",
@@ -109,6 +109,14 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/51"
+        },
+        {
+          "id": 53,
+          "title": "zz-throwaway: the assignment path end to end",
+          "labels": [
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/53"
         }
       ]
     },
