@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T12:41:34Z",
+  "generated": "2026-08-10T12:42:24Z",
   "columns": [
     {
       "key": "raw",
@@ -59,14 +59,6 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/32"
-        },
-        {
-          "id": 35,
-          "title": "zz-throwaway probe for the assignment to status label rule",
-          "labels": [
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/35"
         }
       ]
     },
@@ -79,6 +71,14 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 35,
+          "title": "zz-throwaway probe for the assignment to status label rule",
+          "labels": [
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/35"
+        },
         {
           "id": 26,
           "title": "Capture mode pushes the board link off the right edge below 400px",
@@ -146,19 +146,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/20"
-        },
-        {
-          "id": 19,
-          "title": "The template versus instance split is asserted, not shown",
-          "labels": [
-            "enhancement",
-            "model",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/19"
         }
       ],
-      "hidden": 16,
+      "hidden": 17,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
