@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T11:49:37Z",
+  "generated": "2026-08-10T12:07:31Z",
   "columns": [
     {
       "key": "raw",
@@ -10,6 +10,24 @@
           "title": "The safety gate cannot enumerate the origin, only the files the tree knows about",
           "labels": [],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
+        },
+        {
+          "id": 32,
+          "title": "Remove (redundant / not needed)",
+          "labels": [
+            "bug",
+            "feedback"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/32"
+        },
+        {
+          "id": 33,
+          "title": "Remove (redundant / not needed)",
+          "labels": [
+            "feedback",
+            "layout"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/33"
         }
       ]
     },
