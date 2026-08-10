@@ -59,8 +59,114 @@
   }
 
   // ---- issue shaping ---------------------------------------------------------------------
+  // A card's title is the only thing a board column shows. board.js paints it as the .btitle
+  // line and lets it wrap inside a column whose minimum is 200px, so about thirty characters of
+  // that 12px type fit on a line and seventy characters are two and a half lines: seventy is
+  // kept as the limit, because the length was never what was wrong. Where the cut fell was.
+  //
+  // Issue 44: card #42 arrived titled "Remove the second cohort. Every time I see something, it
+  // must be one c", cut in the middle of a word at exactly seventy characters, because the title
+  // was the note's first line sliced to a fixed length with nothing looked at but the count. A
+  // title that stops mid-word reads as damage; one that stops on a boundary reads as a headline.
+  // So the boundaries the writer already put there are used first, in the order they carry
+  // meaning: a line break, then a sentence end. Only when the note offers neither inside the
+  // limit is it cut on a word boundary, and then it is marked with an ellipsis so it is visibly
+  // a fragment rather than a complete but strange title.
+  var TITLE_MAX = 70;
+  var ELLIPSIS = '…';
+
+  // Dots that do not end a sentence. These are the ones a note actually contains; a decimal
+  // needs no entry, because a sentence end here must be followed by whitespace or by the end of
+  // the note and the dot in "3.5" is followed by a digit.
+  var NOT_SENTENCE_END = {
+    'e.g': 1, 'i.e': 1, 'etc': 1, 'vs': 1, 'cf': 1, 'al': 1, 'fig': 1, 'approx': 1,
+    'mr': 1, 'mrs': 1, 'ms': 1, 'dr': 1, 'prof': 1, 'st': 1, 'jr': 1, 'sr': 1,
+    'inc': 1, 'ltd': 1, 'co': 1
+  };
+
+  // Words a truncated title must not end on. Left dangling in front of an ellipsis they read as
+  // a sentence that lost its object, which is the same defect as a mid-word cut wearing a space.
+  var DANGLING = {
+    'a': 1, 'an': 1, 'the': 1, 'and': 1, 'or': 1, 'but': 1, 'of': 1, 'to': 1, 'in': 1, 'on': 1,
+    'at': 1, 'by': 1, 'for': 1, 'from': 1, 'with': 1, 'as': 1, 'into': 1, 'onto': 1, 'over': 1,
+    'under': 1, 'than': 1, 'that': 1, 'which': 1, 'while': 1, 'when': 1, 'if': 1, 'is': 1,
+    'are': 1, 'was': 1, 'were': 1, 'be': 1, 'been': 1, 'it': 1, 'its': 1, 'this': 1, 'these': 1,
+    'those': 1, 'their': 1, 'my': 1, 'our': 1, 'your': 1, 'not': 1, 'so': 1, 'then': 1,
+    'per': 1, 'via': 1
+  };
+
+  // Trailing punctuation and trailing whitespace, stripped before an ellipsis is added.
+  var TAIL_JUNK = /[\s,;:.!?\/&|\-–—…(\[{"'‘“]+$/;
+
+  // The first line, with runs of whitespace flattened. Somebody who pressed Enter has already
+  // said where the headline ends, so a line break outranks every rule below it.
+  function titleSource(s) {
+    return String(s == null ? '' : s).trim().split(/[\r\n]/)[0].replace(/\s+/g, ' ').trim();
+  }
+
+  // Where each sentence ends, one past its closing punctuation. A candidate is rejected when the
+  // token in front of it is a known abbreviation, a bare initial or list marker, or is dotted by
+  // hand like "e.g" and "U.S": that rejection is the whole difference from splitting naively on
+  // the full stop, which cuts inside the abbreviation instead of after the sentence.
+  function sentenceEnds(text) {
+    var re = /[.!?]+["'’”)\]]*(?=\s|$)/g;
+    var ends = [];
+    var m;
+    while ((m = re.exec(text))) {
+      var token = (text.slice(0, m.index).match(/\S+$/) || [''])[0];
+      if (!token) continue;
+      if (NOT_SENTENCE_END[token.toLowerCase()]) continue;
+      if (token.length === 1) continue;
+      if (/[A-Za-z]\.[A-Za-z]$/.test(token)) continue;
+      ends.push(m.index + m[0].length);
+    }
+    return ends;
+  }
+
+  function wordTruncate(text, max) {
+    var room = max - ELLIPSIS.length;
+    var hard = text.slice(0, room);
+    var head = hard;
+    // Back off to the last space only when the limit landed inside a word. Landing exactly on a
+    // space is already a word boundary and giving back another word would be a second cut.
+    if (!/\s/.test(text.charAt(room))) {
+      var sp = head.lastIndexOf(' ');
+      if (sp > 0) head = head.slice(0, sp);
+    }
+    var cut = head.replace(TAIL_JUNK, '');
+    var guard = 0;
+    while (guard++ < 4) {
+      var last = cut.match(/(^|\s)(\S+)$/);
+      if (!last || !DANGLING[last[2].toLowerCase()]) break;
+      cut = cut.slice(0, cut.length - last[2].length).replace(TAIL_JUNK, '');
+    }
+    // The word-boundary cut is right until the word that overflowed is longer than the whole
+    // line, a pasted URL being the case that produced this: then no boundary can show it, and
+    // backing off to the previous space throws the line away to protect a word nobody will ever
+    // read whole. "Bug: https://…" as an eight character card is worse than a URL cut short. So
+    // when the boundary keeps less than a third of the room, or erases the line completely, as a
+    // run of punctuation does, the hard cut is used instead. That is the only place a word is
+    // ever broken, and the ellipsis says so.
+    if (cut && cut.length >= room / 3) return cut + ELLIPSIS;
+    return (hard.replace(TAIL_JUNK, '') || hard) + ELLIPSIS;
+  }
+
   function cardTitle(descriptor, note) {
-    return ((note || '').trim().split('\n')[0] || descriptor).slice(0, 70);
+    // The note titles the card; the descriptor is the fallback for a card filed without one,
+    // which is how the runtime-error notice files. Unchanged, and it is truncated by the same
+    // rules, since a descriptor carrying a text snippet and a DOM path also runs past the limit.
+    var text = titleSource(note) || titleSource(descriptor);
+    // Neither, which the Issues API answers with a 422 and the prefilled form with an unusable
+    // card, so the control names itself rather than filing an empty title.
+    if (!text) return 'feedback note';
+    if (text.length <= TITLE_MAX) return text;
+    // The last sentence ending inside the limit. When only one fits that is the first sentence,
+    // which is the case #42 needed; when two short ones fit, both are more useful than one.
+    var ends = sentenceEnds(text);
+    var end = 0;
+    for (var i = 0; i < ends.length; i++) { if (ends[i] <= TITLE_MAX) end = ends[i]; }
+    if (end) return text.slice(0, end).trim();
+    return wordTruncate(text, TITLE_MAX);
   }
 
   // The same field shape on both paths ("### Label\n\nvalue"), so a direct API POST and a
