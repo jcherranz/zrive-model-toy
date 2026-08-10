@@ -7,6 +7,66 @@ Dates are ISO. Newest first.
 
 ### Fixed
 
+- The count stack on the students tile, #41, filed from the live site as "looks wrong, not
+  aligned etc." against the tile's own rect. It was two things at once and both of them were
+  in `site/app.js`, untouched since the first commit.
+  - **The cards were not a stack.** A count is drawn as cards behind the tile, one card
+    standing for the many individuals it represents, and a stack reads as a stack only if
+    every card is the same card moved by the same step. These were `TILE - 6` across, that is
+    28 units against the tile's 34, and they were positioned from the tile's own corner, so
+    the step a reader saw was measured from a corner and not from a centre. Measured off the
+    deployed page at the reporter's viewport: the far card sat at `+2, -8` from the tile's
+    centre and the near one at `-0.5, -5.5`, on opposite sides of the centre line, and the two
+    ledges above the tile were therefore not even parallel to each other. Nothing peeked out
+    on the right at all, because the far card's right edge fell **one unit inside** the tile's
+    own. The cards are the size of the tile now and each is one constant 2.5 unit step up and
+    to the right: measured after, `+5, -5` and `+2.5, -2.5`, peeking exactly 5 and 2.5 on the
+    top and on the right and 0 on the left and the bottom.
+  - **And they were showing through the tile.** A tile is filled with a 14 per cent tint, so
+    it is translucent, and the parts of the cards that a stack hides were visible straight
+    through it as a rounded outline crossing the inside of the tile, around the `34`. That is
+    the part a coordinate change alone would not have fixed, and on the screenshots it is the
+    more obvious of the two. There is now a backdrop rect between the cards and the tile,
+    filled with `--bg-panel`, which is the band colour every tile in this drawing is already
+    composited over, so the tile renders exactly as it did before and the cards stop at its
+    edge.
+  - **The reporter was on the current page, and the build stamp cannot say so.** `window.ZT.build`
+    reads `G.build`, which `build/build_layout.py` writes as a seven character digest of the
+    drawing's own payload. It is not a commit: `git cat-file -t 469ad3c` reports it is not a
+    valid object name. It changes when the drawing changes and stays put through any number of
+    deploys that do not move a coordinate, which is why two later fixes to `site/app.js` and
+    `site/app.css` left it reading `469ad3c`. Established instead by fetching the deployed
+    `app.js` and comparing it: it is byte-identical to `HEAD` at `b022487`, sha256
+    `b313eaf2…`. So the defect was reproduced on exactly the bytes the reporter had, and
+    "they were looking at a cached older page" was never available. The stamp's own defect is
+    #47 and is not touched here.
+  - **Neither of the two later commits caused it, and that was checked by rendering and not
+    only by reading.** `bd578ff`, the tree immediately before `b4e65d0` and `b022487`, was
+    checked out into a worktree and driven: the students cards measure `+2, -8` and
+    `-0.5, -5.5` at 28x28 there too, identical to the deployed page. The block dates from
+    `d1b9a43`, the first commit, and `git log -S` finds no later commit touching it.
+  - **Driven and the screenshots looked at**, at 1536x839 (the reporter's own viewport),
+    1440x900 and 390x844, through `Emulation.setDeviceMetricsOverride` rather than a window
+    size, with the viewport the harness actually got printed beside the one it asked for. The
+    stack measures the same at all three. The four neighbours on the row are unmoved and agree
+    with the students tile as they did before: `cohort` at 818, 294.8 and `students` at
+    927, 294.8 share a tile centre line exactly, `co_col` at 688, 300.5 and `enrol` at
+    1052, 300.5 share the other one, and that 5.7 unit difference is the drawing aligning node
+    boxes rather than tiles, which is what it does everywhere. Every label on all ten nodes
+    probed is centred on its own tile to within half a unit. `scrollWidth === clientWidth` at
+    each width, and no console error beyond the pre-existing favicon 404. Also driven: the
+    selection, where the measured frame is unchanged at 68.8 by 73.9 because the label was
+    always wider than the stack; the second cohort view, whose two counted nodes both carry
+    the corrected steps; and the ghosts toggle.
+  - **The layout was not the cause and is not changed.** `build/build_layout.py` reproduces
+    `site/graph.js` byte for byte after this change, with 384 label widths measured and none
+    estimated, so this repository's recurring trap, a Python guess at a string's width standing
+    in for what the browser draws, is not what this was: a tile's rect is `TILE` and a column
+    centre, and no label width reaches it. The stack now reaches 5 units further right than the
+    40 by 40 box the layout reserves around a tile, so the clearance was measured rather than
+    assumed: in both views the nearest verb chip, `recorded as`, is 8.95 units clear, and the
+    lane has 38 units to spare on that side.
+
 - The black box around a selected node, #34. Clicking a node drew a five pixel near-black
   rounded box around it, with no gap at all, so the label's glyphs touched the border on both
   ends, and its width was the width of whatever name the node carried: 42 units on `McKinsey`

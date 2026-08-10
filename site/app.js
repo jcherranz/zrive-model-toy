@@ -143,11 +143,30 @@
       var titleEl = el('title', {}, g);
       titleEl.textContent = n.label + ' (' + TLABEL[n.type] + ')';
 
+      // A count is drawn as a stack of cards behind the tile, one card standing for the many
+      // individuals the tile represents. A stack reads as a stack only if every card is the
+      // same card moved by the same step, and these were neither. They were TILE-6 across and
+      // positioned from the tile's own corner, so the step a reader saw was measured from a
+      // corner and not from a centre: +5 on x became +2 once the card was 6 units narrower,
+      // -5 on y became -8, and the two cards came to rest at +2 and -0.5, on opposite sides of
+      // the tile's centre line. Nothing peeked out on the right at all, because the far card's
+      // right edge fell one unit inside the tile's own. What a reader saw was two lopsided
+      // ledges above the tile and no stack. Issue 41. The cards are the size of the tile now
+      // and each is one constant step up and to the right of the one in front of it.
+      //
+      // The backdrop is the other half of the repair, and it is why this is not simply a
+      // coordinate change. A tile is filled with a 14 per cent tint, so it is translucent, and
+      // the parts of the cards that a stack hides were showing straight through it as a
+      // rounded outline crossing the inside of the tile. The backdrop is the band's own
+      // colour, which is what every tile in this drawing is already composited over, so the
+      // tile renders exactly as it did and the cards now stop at its edge.
       if (n.count) {
-        el('rect', { x: n.x - R + 5, y: n.y - R - 5, width: TILE - 6, height: TILE - 6,
-                     rx: 5, fill: tint(col, 0.10), stroke: tint(col, 0.45) }, g);
-        el('rect', { x: n.x - R + 2.5, y: n.y - R - 2.5, width: TILE - 6, height: TILE - 6,
-                     rx: 5, fill: tint(col, 0.12), stroke: tint(col, 0.6) }, g);
+        el('rect', { x: n.x - R + 5, y: n.y - R - 5, width: TILE, height: TILE,
+                     rx: 6, fill: tint(col, 0.10), stroke: tint(col, 0.45) }, g);
+        el('rect', { x: n.x - R + 2.5, y: n.y - R - 2.5, width: TILE, height: TILE,
+                     rx: 6, fill: tint(col, 0.12), stroke: tint(col, 0.6) }, g);
+        el('rect', { x: n.x - R, y: n.y - R, width: TILE, height: TILE, rx: 6,
+                     fill: 'var(--bg-panel)', stroke: 'none' }, g);
       }
       // A node whose key does not exist keeps its own outline and gains a second, dashed one.
       // The object is real; something about it is missing, and the label below says what.

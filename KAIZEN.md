@@ -173,6 +173,20 @@ Two things are worth stating because they are the ways this loop fails quietly:
   the same drawing, the same obstacles, and the worst chip is now 6px from its line. Where a
   layout is allowed to escape, the escape has to cost more than the crowding it escapes.
 
+- **Painting order is not occlusion, and a coordinate in the source is not a distance on
+  screen.** Every tile in this drawing is filled with a fourteen per cent tint, so a shape
+  drawn behind one is layered and not hidden. The cards standing for the count behind the
+  students tile were showing straight through it as a rounded outline across the middle of the
+  tile, around the number. Nothing in the source said so, because the source says only which
+  element is appended after which, which is a true statement about z-order and a false one
+  about what a reader sees. The same change carried the other half of the lesson in its
+  numbers: the two cards were written `+5, -5` and `+2.5, -2.5`, which reads as a symmetric
+  step, and arrived on screen at `+2, -8` and `-0.5, -5.5`, because the shape those offsets
+  moved was also six units smaller, so a step written from a corner became a different step
+  from a centre. Where a defect is geometric, take the numbers off the running page, from
+  `getBBox` and the rect's own attributes, and treat the source as a description of the
+  drawing rather than as the drawing.
+
 - **A relationship the reader has to take on trust is not drawn yet.** The split between a
   session template and a cohort session is the backbone of this model, and with one cohort on
   the page it was two tile colours and a caption: the drawing asserted the split and showed
