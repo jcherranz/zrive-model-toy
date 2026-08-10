@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T21:40:35Z",
+  "generated": "2026-08-10T21:41:13Z",
   "columns": [
     {
       "key": "raw",
@@ -33,6 +33,15 @@
             "model"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/56"
+        },
+        {
+          "id": 57,
+          "title": "A theme control in the header, so a reader can override the operating system",
+          "labels": [
+            "idea",
+            "layout"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/57"
         }
       ]
     },
@@ -56,16 +65,6 @@
       "key": "in_progress",
       "title": "In progress",
       "cards": [
-        {
-          "id": 4,
-          "title": "Eight object types in the model have no populate route",
-          "labels": [
-            "enhancement",
-            "model",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/4"
-        },
         {
           "id": 55,
           "title": "A dark theme for low light",
@@ -162,7 +161,7 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/45"
         }
       ],
-      "hidden": 30,
+      "hidden": 31,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
