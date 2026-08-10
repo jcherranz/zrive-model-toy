@@ -1,20 +1,10 @@
 {
-  "generated": "2026-08-10T15:03:32Z",
+  "generated": "2026-08-10T15:04:27Z",
   "columns": [
     {
       "key": "raw",
       "title": "Raw",
-      "cards": [
-        {
-          "id": 42,
-          "title": "Remove the second cohort. Every time I see something, it must be one c",
-          "labels": [
-            "feedback",
-            "layout"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/42"
-        }
-      ]
+      "cards": []
     },
     {
       "key": "backlog",
@@ -58,6 +48,26 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/39"
+        },
+        {
+          "id": 42,
+          "title": "Remove the second cohort; the toy should always show exactly one",
+          "labels": [
+            "feedback",
+            "layout",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/42"
+        },
+        {
+          "id": 43,
+          "title": "Extend the toy beyond Investment Banking to Big Law and Strategy Consulting",
+          "labels": [
+            "enhancement",
+            "model",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/43"
         }
       ]
     },
