@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T00:24:58Z",
+  "generated": "2026-08-10T00:28:27Z",
   "columns": [
     {
       "key": "raw",
@@ -10,64 +10,6 @@
           "title": "The safety gate cannot enumerate the origin, only the files the tree knows about",
           "labels": [],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
-        },
-        {
-          "id": 21,
-          "title": "Below the breakpoint the panel opens on top of the node it describes",
-          "labels": [
-            "bug",
-            "layout",
-            "status:raw"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/21"
-        },
-        {
-          "id": 22,
-          "title": "The capture popover covers the header controls at narrow widths",
-          "labels": [
-            "bug",
-            "layout",
-            "status:raw"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/22"
-        },
-        {
-          "id": 23,
-          "title": "copy all answers nothing when nothing has been copied yet",
-          "labels": [
-            "bug",
-            "status:raw"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/23"
-        },
-        {
-          "id": 24,
-          "title": "A company sits in the lane captioned cohort sessions",
-          "labels": [
-            "layout",
-            "model",
-            "status:raw"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/24"
-        },
-        {
-          "id": 25,
-          "title": "Escape and the 3 shortcut destroy a typed but unfiled note",
-          "labels": [
-            "bug",
-            "status:raw"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/25"
-        },
-        {
-          "id": 26,
-          "title": "Capture mode pushes the board link off the right edge below 400px",
-          "labels": [
-            "bug",
-            "layout",
-            "status:raw"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/26"
         }
       ]
     },
@@ -267,6 +209,64 @@
             "status:raw"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/20"
+        },
+        {
+          "id": 21,
+          "title": "Below the breakpoint the panel opens on top of the node it describes",
+          "labels": [
+            "bug",
+            "layout",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/21"
+        },
+        {
+          "id": 22,
+          "title": "The capture popover covers the header controls at narrow widths",
+          "labels": [
+            "bug",
+            "layout",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/22"
+        },
+        {
+          "id": 23,
+          "title": "copy all answers nothing when nothing has been copied yet",
+          "labels": [
+            "bug",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/23"
+        },
+        {
+          "id": 24,
+          "title": "A company sits in the lane captioned cohort sessions",
+          "labels": [
+            "layout",
+            "model",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/24"
+        },
+        {
+          "id": 25,
+          "title": "Escape and the 3 shortcut destroy a typed but unfiled note",
+          "labels": [
+            "bug",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/25"
+        },
+        {
+          "id": 26,
+          "title": "Capture mode pushes the board link off the right edge below 400px",
+          "labels": [
+            "bug",
+            "layout",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/26"
         }
       ]
     }
