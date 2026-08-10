@@ -34,11 +34,29 @@
 </header>
 
 <main id="view-diagram">
-  <div id="canvas"><svg id="graph" role="img" aria-label="Instance diagram of one cohort"></svg></div>
+  <!-- The canvas is a viewport onto a plane. The drawing is moved by app.js through the svg's
+       viewBox, and the dot grid is a background on this box, driven from the same numbers. The
+       view control sits inside the canvas because it acts on the canvas, and because being
+       inside it means the board view, which does not draw this main at all, needs no rule to
+       hide it. -->
+  <div id="canvas">
+    <svg id="graph" role="img" aria-label="Instance diagram of one cohort"></svg>
+    <div class="zoomctl" id="zoomctl" role="group" aria-label="view">
+      <button id="zoomout" class="zbtn" type="button" aria-label="zoom out"
+              title="zoom out (minus key)">&minus;</button>
+      <span class="zlevel" id="zoomlevel"
+            title="zoom, where 100% is the whole drawing on screen">100%</span>
+      <button id="zoomin" class="zbtn" type="button" aria-label="zoom in"
+              title="zoom in (plus key)">+</button>
+      <button id="zoomfit" class="zbtn" type="button"
+              title="bring the whole drawing back into view (0 key)">fit</button>
+    </div>
+  </div>
   <footer>
     Names of instructors and of the empresa colaboradora are invented. Session titles and the
     programme code are real and published. All identifiers, dates, counts and amounts are
-    invented. Click a node for its properties.
+    invented. Click a node for its properties; drag the canvas to move it, scroll or pinch to
+    zoom, and <b>fit</b> brings the whole drawing back.
   </footer>
 </main>
 

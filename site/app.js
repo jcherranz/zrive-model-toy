@@ -59,11 +59,16 @@
   function draw(g) {
     G = g;
     svg.textContent = '';
-    svg.setAttribute('viewBox', '0 0 ' + G.w + ' ' + G.h);
+    // The viewBox is not set here any more. It is the view, and the view moves: the canvas
+    // section below owns it and writes it on every pan, every zoom and every resize. Issue 46.
+    // What is still fixed is the drawing's own extent, G.w by G.h, which is what fit() frames.
+    //
     // The width of the drawing is a number the build computes, so the stylesheet reads it from
-    // here rather than holding a copy of it. Below the fit-to-screen breakpoint app.css sets
-    // min-width: var(--drawing-w), and it is written from the drawing that is actually on
-    // screen rather than once at load, so the two cannot disagree.
+    // here rather than holding a copy of it. Nothing in app.css reads --drawing-w today: the
+    // rule that did was the sideways scroll under the drawing on a narrow viewport, which pan
+    // and zoom replaced. The property is still written and build_layout.py still refuses to
+    // build while a copy of the number is sitting in the stylesheet, because that guard is
+    // about the number and not about the rule that happened to need it.
     canvas.style.setProperty('--drawing-w', G.w + 'px');
     if (window.ZT) window.ZT.build = G.build || 'unknown';
 
@@ -224,7 +229,19 @@
       });
       // Measured on focus, which is the only state that draws it. A tab arriving at a node this
       // has never measured would otherwise show an empty rect at the drawing's origin.
-      g.addEventListener('focus', function () { frameNode(gfxNode[n.id]); });
+      //
+      // A tab also brings the node onto the screen. On a canvas the reader can have left the
+      // node anywhere, including off the plane's visible part, and a focus ring drawn where
+      // nobody can see it is worse than none: the keyboard walk would silently stop being a
+      // walk through the drawing. Only for :focus-visible, which is the keyboard's own state
+      // and is exactly the state that draws the ring; a mouse click does not match it and is
+      // already handled by select(), which reveals the node it opens the panel for.
+      g.addEventListener('focus', function () {
+        frameNode(gfxNode[n.id]);
+        var vis = true;
+        try { vis = g.matches(':focus-visible'); } catch (err) { /* older engine: always */ }
+        if (vis) ensureVisible(n);
+      });
       gfxNode[n.id] = { g: g, tile: tile, mark: mark, col: col, count: !!n.count, frame: frame,
                         ghost: !!n.ghost, rest: tile.getAttribute('fill') };
     });
@@ -268,7 +285,376 @@
     f.frame.setAttribute('height', (b.height + FRAME_PAD * 2).toFixed(1));
   }
 
+  // ---- the canvas ------------------------------------------------------------
+  // The drawing sits on a plane and the page is a window onto it. Three numbers are the whole
+  // of the state: view.x and view.y are the point of the drawing under the top left corner of
+  // the window, in the drawing's own units, and view.k is how many screen pixels one of those
+  // units is worth. Everything else is derived from them and nothing else is stored, so the
+  // viewBox, the dot grid and the zoom readout cannot drift apart: they are three renderings of
+  // the same three numbers, written together in applyView().
+  //
+  // WHY THE VIEWBOX AND NOT A TRANSFORM ON A WRAPPER GROUP. Both are correct SVG. A wrapper
+  // group would have put one more element between every node and the svg, and feedback.js
+  // describes a clicked element by walking up to five ancestors into a `tag>tag>tag` path. Every
+  // report ever filed against this drawing carries that path, and a wrapper would have silently
+  // changed all of them. The viewBox moves the view without touching the tree, so a node's path,
+  // its data-node key, its getBBox and its focus frame are the same bytes at every zoom.
+  //
+  // The viewBox is always the same shape as the box it is drawn into, width/k by height/k, so
+  // preserveAspectRatio never has anything to letterbox and the mapping between the screen and
+  // the drawing stays a straight multiply. That is what makes the anchored zoom below exact
+  // rather than nearly right.
+  var view = { x: 0, y: 0, k: 1 };
+  var vw = 1, vh = 1;               // the window, in CSS pixels
+  var fitted = false;               // has a real measurement been framed yet
+  var K_MAX = 8;                    // one tile 34 units wide fills 272px: far past useful
+  var K_MIN = 0.1;                  // the whole drawing at 123px: far past useful the other way
+  // Breathing room around a fitted drawing, in screen pixels, and it is not only breathing
+  // room. The drawing's lanes are filled with the panel colour and they are opaque, so at a
+  // tight fit they tile the whole window and the ground is visible only in the ten pixel
+  // gutters between them: the page would open looking exactly like the page it replaced, and a
+  // reader would have to move something before anything told them they could. The margin is the
+  // frame of canvas the drawing sits on when it is at home.
+  var FIT_MARGIN = 24;
+  var GRID_UNIT = 32;               // the grid's base spacing, in the drawing's units
+  var GRID_MIN_PX = 22;             // and the range it is kept inside on screen, by doubling
+  // Click or drag. Two thresholds, because one of them cannot tell the two apart on its own.
+  // The distance threshold is the ordinary case: a hand shakes by a pixel or two while clicking,
+  // and this drawing's tiles are 34 units wide, so a few pixels of slop costs a reader nothing.
+  // The time threshold is for the other case, a small deliberate nudge of the canvas: 3px moved
+  // slowly is somebody pushing the plane, 3px moved inside a quarter second is somebody clicking
+  // a node and missing by 3px. Whichever fires first wins, and the gesture is a drag from that
+  // moment on.
+  var DRAG_PX = 5, SLOW_PX = 3, SLOW_MS = 250;
+
+  function clampK(k) { return Math.max(K_MIN, Math.min(K_MAX, k)); }
+
+  // The window, measured off the rect and not off clientWidth and clientHeight. Those two are
+  // rounded to whole pixels, and the rounding is not cosmetic here: at 1536x839 the canvas is
+  // 735.58px tall and clientHeight says 736, so a viewBox computed from it asks the browser to
+  // fit 736 pixels' worth of drawing into 735.58, and the browser obliges by scaling everything
+  // by 0.94 of a per mille. The scale on screen is then not the scale this file thinks it is,
+  // and an anchored zoom drifts by a fifth of a pixel per step, growing with the zoom. Driven
+  // and measured rather than reasoned: getScreenCTM read back 1.173395 where view.k said
+  // 1.174061. Fifth time in this repository that a measured value beat a rounded copy of one.
+  function measure() {
+    var r = canvas.getBoundingClientRect();
+    vw = Math.max(1, r.width);
+    vh = Math.max(1, r.height);
+  }
+
+  // The scale at which the whole drawing sits inside the window. G.w and G.h are the build's
+  // own numbers for the drawing's extent, which is the same pair the old fixed viewBox used, so
+  // a fitted view frames exactly what this page framed before it could be moved at all.
+  function fitScale() {
+    var k = Math.min((vw - FIT_MARGIN * 2) / G.w, (vh - FIT_MARGIN * 2) / G.h);
+    return (k > 0 && isFinite(k)) ? k : 1;
+  }
+
+  function fitView() {
+    var k = clampK(fitScale());
+    return { k: k, x: G.w / 2 - vw / (2 * k), y: G.h / 2 - vh / (2 * k) };
+  }
+
+  // Is the view anywhere other than home? Read off the difference between the view and the one
+  // fit() would produce, in screen pixels, so it answers the reader's question ("have I moved?")
+  // and not an arithmetic one about floating point.
+  function away() {
+    var f = fitView();
+    return Math.abs(view.k - f.k) > f.k * 0.01 ||
+           Math.abs(view.x - f.x) * view.k > 2 ||
+           Math.abs(view.y - f.y) * view.k > 2;
+  }
+
+  var levelEl = document.getElementById('zoomlevel');
+  var fitBtn = document.getElementById('zoomfit');
+
+  function applyView() {
+    if (!(view.k > 0) || !isFinite(view.k)) return;
+    // Three decimals rather than two: the attribute is a string, so its precision is the
+    // precision of the scale the browser actually renders at, and the anchored zoom is only as
+    // exact as that. Three places puts the residual under a thousandth of a pixel.
+    svg.setAttribute('viewBox', view.x.toFixed(3) + ' ' + view.y.toFixed(3) + ' ' +
+                     (vw / view.k).toFixed(3) + ' ' + (vh / view.k).toFixed(3));
+
+    // The grid's spacing is a power of two multiple of GRID_UNIT, picked so that what lands on
+    // screen is between GRID_MIN_PX and twice that, whatever the zoom. The dots therefore never
+    // crowd into a grey wash or thin out into nothing, and because the spacing is measured in
+    // the drawing's units the ground moves with the drawing rather than sitting still behind it.
+    // Bounded rather than a bare while: a scale this cannot reach in thirty steps is a bug
+    // upstream, and a stylesheet is not the place to find out.
+    var step = GRID_UNIT, px = step * view.k, guard = 0;
+    while (px < GRID_MIN_PX && guard++ < 30) { step *= 2; px = step * view.k; }
+    guard = 0;
+    while (px >= GRID_MIN_PX * 2 && guard++ < 30) { step /= 2; px = step * view.k; }
+    var ox = -view.x * view.k, oy = -view.y * view.k;
+    canvas.style.setProperty('--grid-step', px.toFixed(3) + 'px');
+    canvas.style.setProperty('--grid-x', (ox - Math.floor(ox / px) * px).toFixed(3) + 'px');
+    canvas.style.setProperty('--grid-y', (oy - Math.floor(oy / px) * px).toFixed(3) + 'px');
+
+    // 100% is the whole drawing on screen, not one drawing unit per pixel. The drawing has no
+    // natural size in pixels, so an absolute percentage would be a number about the build's
+    // coordinate system rather than about anything a reader can see; measured from the fit, the
+    // readout answers the one question a canvas raises, which is how far in you are.
+    if (levelEl) levelEl.textContent = Math.round(view.k / fitScale() * 100) + '%';
+    if (fitBtn) fitBtn.classList.toggle('away', away());
+  }
+
+  function fit() {
+    var f = fitView();
+    view.x = f.x; view.y = f.y; view.k = f.k;
+    applyView();
+  }
+
+  // Zoom about a point on the screen, so that whatever is under the cursor stays under it. The
+  // drawing point under the cursor is read at the old scale and put back at the new one; the
+  // subtraction is exact because the viewBox always matches the box's own shape.
+  function zoomAt(cx, cy, factor) {
+    if (!(factor > 0) || !isFinite(factor)) return;
+    var k1 = clampK(view.k * factor);
+    if (k1 === view.k) return;
+    var r = svg.getBoundingClientRect();
+    var px = cx - r.left, py = cy - r.top;
+    var ux = view.x + px / view.k, uy = view.y + py / view.k;
+    view.k = k1;
+    view.x = ux - px / k1;
+    view.y = uy - py / k1;
+    applyView();
+  }
+
+  function zoomStep(factor) {
+    var r = svg.getBoundingClientRect();
+    zoomAt(r.left + vw / 2, r.top + vh / 2, factor);
+  }
+
+  // ---- one gesture at a time -------------------------------------------------
+  // Pointer events rather than mouse plus touch, so a finger, a mouse and a pen are one code
+  // path. Nothing is captured to an element: a captured pointer retargets the compatibility
+  // mouse events too, and the click that selects a node is one of those. The moves and the
+  // release are taken off the window instead, for the length of the gesture only.
+  var ptrs = {};                    // live pointers, by pointerId
+  var nptr = 0;
+  var gest = null;
+  var suppressUntil = 0;            // a click arriving before this is the end of a drag
+
+  function dist(a, b) {
+    var dx = a.x - b.x, dy = a.y - b.y;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  function now() { return window.performance ? performance.now() : Date.now(); }
+
+  function startPan(x, y, isDrag) {
+    gest = { mode: 'pan', sx: x, sy: y, vx: view.x, vy: view.y, t0: now(),
+             far: 0, drag: !!isDrag };
+    if (isDrag) canvas.classList.add('panning');
+  }
+
+  function startPinch() {
+    var ids = Object.keys(ptrs);
+    var a = ptrs[ids[0]], b = ptrs[ids[1]];
+    gest = { mode: 'pinch', d: dist(a, b), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2, drag: true };
+    canvas.classList.add('panning');
+  }
+
+  function onDown(e) {
+    // Only the primary button. A right click is the browser's, and a middle click is not this
+    // page's to interpret either.
+    if (e.button) return;
+    // The view control is a control, not a piece of canvas to drag.
+    if (e.target && e.target.closest && e.target.closest('#zoomctl')) return;
+    if (!ptrs[e.pointerId]) nptr++;
+    ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+    suppressUntil = 0;
+    if (nptr === 1) {
+      startPan(e.clientX, e.clientY, false);
+      window.addEventListener('pointermove', onMove, true);
+      window.addEventListener('pointerup', onUp, true);
+      window.addEventListener('pointercancel', onUp, true);
+    } else if (nptr === 2) {
+      startPinch();
+    }
+  }
+
+  function onMove(e) {
+    var p = ptrs[e.pointerId];
+    if (!p || !gest) return;
+    p.x = e.clientX; p.y = e.clientY;
+
+    if (gest.mode === 'pinch') {
+      var ids = Object.keys(ptrs);
+      if (ids.length < 2) return;
+      var a = ptrs[ids[0]], b = ptrs[ids[1]];
+      var d = dist(a, b), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      // Two fingers do both jobs at once: the distance between them is the zoom, anchored on
+      // the point between them, and the movement of that point is the pan. Stepwise from the
+      // last frame rather than from the start of the gesture, so a pinch that also travels
+      // across the screen does not fight itself.
+      if (gest.d > 0 && d > 0) zoomAt(mx, my, d / gest.d);
+      if (mx !== gest.mx || my !== gest.my) {
+        view.x -= (mx - gest.mx) / view.k;
+        view.y -= (my - gest.my) / view.k;
+        applyView();
+      }
+      gest.d = d; gest.mx = mx; gest.my = my;
+      return;
+    }
+
+    var dx = e.clientX - gest.sx, dy = e.clientY - gest.sy;
+    var far = Math.sqrt(dx * dx + dy * dy);
+    if (far > gest.far) gest.far = far;
+    if (!gest.drag &&
+        (gest.far >= DRAG_PX || (gest.far >= SLOW_PX && now() - gest.t0 >= SLOW_MS))) {
+      gest.drag = true;
+      canvas.classList.add('panning');
+    }
+    if (!gest.drag) return;
+    // Measured from where the gesture started rather than accumulated frame by frame, so the
+    // drawing sits exactly under the finger however many events arrived on the way.
+    view.x = gest.vx - dx / view.k;
+    view.y = gest.vy - dy / view.k;
+    applyView();
+  }
+
+  function onUp(e) {
+    if (ptrs[e.pointerId]) { delete ptrs[e.pointerId]; nptr = Math.max(0, nptr - 1); }
+    // A gesture that moved the canvas swallows the click it is about to produce. The window is
+    // short so that a drag which never produces a click, which is the ordinary case on a touch
+    // screen, cannot leave a trap for an unrelated click minutes later.
+    if (gest && gest.drag) suppressUntil = now() + 500;
+    if (nptr === 1) {
+      // A pinch that lost a finger goes on as a pan under the finger that is left, and it is a
+      // drag from the start: two fingers have already been on the glass and nothing about that
+      // was a click.
+      var p = ptrs[Object.keys(ptrs)[0]];
+      startPan(p.x, p.y, true);
+      return;
+    }
+    if (nptr === 0) endGesture();
+  }
+
+  function endGesture() {
+    gest = null; ptrs = {}; nptr = 0;
+    canvas.classList.remove('panning');
+    window.removeEventListener('pointermove', onMove, true);
+    window.removeEventListener('pointerup', onUp, true);
+    window.removeEventListener('pointercancel', onUp, true);
+  }
+
+  // The click a drag leaves behind is stopped here, on the window, in the capture phase. That
+  // is deliberately the earliest point there is: the capture phase runs window, then document,
+  // then down the tree, so this listener runs before feedback.js's document level capture
+  // whatever order the scripts happen to load in. stopImmediatePropagation, not
+  // stopPropagation, because feedback.js listens on a different node and would otherwise still
+  // be reached. A pan therefore cannot select a node, cannot clear a selection, and cannot file
+  // a card while capture mode is on.
+  window.addEventListener('click', function (e) {
+    if (!suppressUntil || now() > suppressUntil) return;
+    suppressUntil = 0;
+    e.stopImmediatePropagation();
+    e.preventDefault();
+  }, true);
+
+  // ---- the wheel -------------------------------------------------------------
+  // Registered on the canvas and nowhere else, and not passive, because it always calls
+  // preventDefault: over this box the wheel is always a zoom, so there is no case in which the
+  // event is looked at and handed back. Off the box it is untouched, which is what keeps the
+  // detail panel scrolling with the wheel and the board view, a different route that does not
+  // draw this element at all, scrolling exactly as it did. The diagram view itself has nothing
+  // to scroll: the page is one screen tall at every width and the canvas does not overflow.
+  //
+  // ctrlKey is how a trackpad pinch arrives, at small deltas and a much higher rate than a
+  // mouse wheel, so it gets its own multiplier. Both paths end in the same anchored zoom.
+  canvas.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    var dy = e.deltaY;
+    if (e.deltaMode === 1) dy *= 16;            // lines
+    else if (e.deltaMode === 2) dy *= vh;       // pages
+    var f = Math.exp(-dy * ((e.ctrlKey || e.metaKey) ? 0.01 : 0.0022));
+    zoomAt(e.clientX, e.clientY, Math.max(0.2, Math.min(5, f)));
+  }, { passive: false });
+
+  // ---- bringing a node back --------------------------------------------------
+  // The band of screen the drawing actually has: the canvas, less the header where it overlaps
+  // it, less the detail panel where the panel is a sheet across the bottom. Where the panel is
+  // the right hand rail the canvas has already been inset for it in the stylesheet, so there is
+  // nothing to subtract. Read from live rects, and from offsetHeight for the sheet, because the
+  // sheet is still sliding when this runs and a transform moves its rect while it plays.
+  function band() {
+    var r = canvas.getBoundingClientRect();
+    var b = { top: r.top, bottom: r.bottom, left: r.left, right: r.right };
+    var hr = hdr ? hdr.getBoundingClientRect() : null;
+    if (hr && hr.bottom > b.top) b.top = Math.min(hr.bottom, b.bottom);
+    if (panel && panel.classList.contains('open') &&
+        panel.offsetWidth >= window.innerWidth - 1) {
+      b.bottom = Math.max(b.top, Math.min(b.bottom, window.innerHeight - panel.offsetHeight));
+    }
+    return b;
+  }
+
+  // Pan, if the node is not already inside that band, until it is in the middle of it. Each axis
+  // is decided on its own: a node hidden behind the sheet should not also be moved sideways.
+  function ensureVisible(n) {
+    if (!n) return;
+    var r = svg.getBoundingClientRect(), b = band();
+    var pad = (TILE / 2) * view.k + 8;
+    var sx = r.left + (n.x - view.x) * view.k, sy = r.top + (n.y - view.y) * view.k;
+    var moved = false;
+    if (b.right - b.left > pad * 2 && (sx - pad < b.left || sx + pad > b.right)) {
+      view.x += (sx - (b.left + b.right) / 2) / view.k;
+      moved = true;
+    }
+    if (b.bottom - b.top > pad * 2 && (sy - pad < b.top || sy + pad > b.bottom)) {
+      view.y += (sy - (b.top + b.bottom) / 2) / view.k;
+      moved = true;
+    }
+    if (moved) applyView();
+  }
+
+  // ---- wiring ----------------------------------------------------------------
+  function initView() {
+    measure();
+    fit();
+    fitted = vw > 2 && vh > 2;
+    canvas.addEventListener('pointerdown', onDown);
+
+    var onBox = function () {
+      measure();
+      // The first real measurement frames the drawing. Every later one keeps the view where the
+      // reader put it and only changes how much of the plane is on screen, which is what makes
+      // opening the detail panel take a bite out of the window rather than move the drawing.
+      if (!fitted && vw > 2 && vh > 2) { fitted = true; fit(); return; }
+      applyView();
+    };
+    if (window.ResizeObserver) new ResizeObserver(onBox).observe(canvas);
+    else window.addEventListener('resize', onBox);
+
+    var btn = function (id, f) {
+      var el = document.getElementById(id);
+      if (el) el.addEventListener('click', f);
+    };
+    btn('zoomin', function () { zoomStep(1.3); });
+    btn('zoomout', function () { zoomStep(1 / 1.3); });
+    btn('zoomfit', fit);
+
+    // 0 is home, + and - step the zoom about the middle of the screen. Bubble phase and heavily
+    // guarded: the board is a different view, a modifier means the key belongs to the browser,
+    // a field is somebody typing, and while the capture popover is open the digits are its own.
+    document.addEventListener('keydown', function (e) {
+      if (document.body.classList.contains('board')) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      var t = e.target;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' ||
+                t.isContentEditable)) return;
+      if (document.querySelector('.fb-popover')) return;
+      if (e.key === '0') { e.preventDefault(); fit(); }
+      else if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomStep(1.3); }
+      else if (e.key === '-' || e.key === '_') { e.preventDefault(); zoomStep(1 / 1.3); }
+    });
+  }
+
   draw(window.G);
+  initView();
 
   // ---- selection -----------------------------------------------------------
   var panel = document.getElementById('panel');
@@ -362,58 +748,21 @@
     reveal(n);
   }
 
-  // Keep the selected node visible once the panel has taken its bite of the screen.
+  // Keep the selected node visible once the panel has taken its bite of the screen. The panel
+  // takes that bite on a different axis at each width: above the breakpoint it is a rail down
+  // the right and the canvas is inset for it, below the breakpoint it is a sheet across the
+  // bottom and the node it describes is usually underneath it, since at 390px 22 of the 30
+  // tiles sit in the sheet's band.
   //
-  // The panel takes that bite on a different axis at each width. Above the breakpoint it is a
-  // rail down the right, so the horizontal pass below is the whole of the job. Below it the
-  // panel is a sheet across the bottom, and the node the sheet describes is usually underneath
-  // it: at 390px, 22 of the 30 tiles sit in the sheet's band. So both axes are handled here.
-  //
-  // Horizontal: both the offset and the limit are read off the element that actually scrolls.
-  // The drawing does not start at the canvas's scroll origin, because the canvas is padded,
-  // and the scroll extent is the canvas's own scrollWidth and not the width of the drawing
-  // inside it: taking either from the svg box left the last few pixels out of reach.
-  //
-  // Vertical: the free band is the viewport minus the header and minus the sheet. The sheet is
-  // recognised by its computed position rather than by a copy of the breakpoint in JavaScript,
-  // and its height is read from offsetHeight rather than from a rect, because the panel is
-  // still sliding when this runs and a transform moves the rect while the transition plays.
-  // Whichever element can scroll vertically is the one that is scrolled: the canvas where it
-  // has its own overflow, otherwise the page. The drawing fits the box at every width it is
-  // fitted at, so today that is always the page; the canvas branch is kept because which of
-  // the two scrolls is a fact about the running layout and not one this file should assume.
+  // This used to be a scroll on whichever of the canvas and the page could take one, and it was
+  // the awkward part of issue 21: below the breakpoint the page was barely taller than the
+  // viewport, so the scroll ran out and the room had to be manufactured by reserving the sheet's
+  // own height under the drawing. A canvas cannot run out. ensureVisible() pans the view, which
+  // is the same motion at both widths and needs no room reserved anywhere, and the reserve is
+  // gone from the stylesheet with it. The delay is still there and is still about the sheet:
+  // its height is only true once the class is on the panel.
   function reveal(n) {
-    setTimeout(function () {
-      var sr = svg.getBoundingClientRect(), cr = canvas.getBoundingClientRect();
-      var scale = sr.width / G.w;
-
-      var at = (sr.left - cr.left) + canvas.scrollLeft + n.x * scale;
-      var want = at - canvas.clientWidth / 2;
-      var max = canvas.scrollWidth - canvas.clientWidth;
-      canvas.scrollLeft = Math.max(0, Math.min(want, Math.max(0, max)));
-
-      var top = 0;
-      var hr = hdr ? hdr.getBoundingClientRect() : null;
-      if (hr && hr.bottom > 0) top = hr.bottom;
-      var bottom = window.innerHeight;
-      // A panel that spans the width is the sheet across the bottom and obstructs this axis;
-      // one that does not is the right hand rail, which takes width and not height. The test
-      // is the panel's own geometry rather than a copy of the breakpoint in JavaScript, and
-      // offsetHeight rather than a rect, because the sheet is still sliding up when this runs
-      // and a transform moves the rect while the transition plays.
-      if (panel.classList.contains('open') && panel.offsetWidth >= window.innerWidth - 1) {
-        bottom = Math.max(0, window.innerHeight - panel.offsetHeight);
-      }
-      if (bottom - top < TILE + 8) return;
-
-      var y = sr.top + n.y * scale;
-      var half = (TILE / 2) * scale + 6;
-      if (y - half >= top && y + half <= bottom) return;
-      var delta = y - (top + bottom) / 2;
-      var vmax = canvas.scrollHeight - canvas.clientHeight;
-      if (vmax > 1) canvas.scrollTop = Math.max(0, Math.min(canvas.scrollTop + delta, vmax));
-      else window.scrollBy(0, delta);
-    }, 30);
+    setTimeout(function () { ensureVisible(n); }, 30);
   }
 
   // ---- ghosts on or off ----------------------------------------------------
@@ -446,13 +795,18 @@
   measureHeader();
   window.addEventListener('resize', measureHeader);
 
-  // What feedback.js needs in order to say what was on screen when a note was written.
+  // What feedback.js needs in order to say what was on screen when a note was written, plus the
+  // view, which is here for a driver to read and assert against rather than for the page: an
+  // anchored zoom is a claim about arithmetic and the only honest way to check it is to take the
+  // numbers off the running page before and after.
   window.ZT = {
     build: G.build || 'unknown',
     selected: function () {
       if (!current) return null;
       var n = nodeById[current];
       return { id: n.id, label: n.label, type: TLABEL[n.type] };
-    }
+    },
+    view: function () { return { x: view.x, y: view.y, k: view.k, w: vw, h: vh }; },
+    fit: fit
   };
 })();

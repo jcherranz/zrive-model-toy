@@ -3,774 +3,395 @@
 All notable changes to this repository. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Dates are ISO. Newest first.
 
+An entry says what changed and points at where the reasoning lives: HANSEI.md for an incident,
+KAIZEN.md for a general lesson, the commit message for the measurements. This file is the record
+of what changed and when, and it is meant to be scannable.
+
 ## [Unreleased]
+
+### Added
+
+- The diagram is an infinite canvas, #46: a dot grid ground, pan by dragging, zoom by wheel and
+  by pinch anchored on the pointer, and a visible way home. The card's note contradicted itself
+  as written, so the code was read rather than guessed at: there was no grid, no pan and no zoom,
+  which settles which half of the sentence was the ask. Three numbers are the whole of the
+  state, the drawing point under the top left corner and the pixels per drawing unit, and the
+  `viewBox`, the grid and the zoom readout are three renderings of them written together, so
+  they cannot drift apart. The view moves through the `viewBox` and not through a wrapper group,
+  because `feedback.js` describes a clicked element partly by a five deep `tag>tag>tag` path and
+  a wrapper would have silently changed every descriptor this page can produce: seven of them
+  were captured through the real capture mode before and after and are identical. The grid is a
+  background on the canvas box rather than a pattern in the drawing, so the dot stays a fixed
+  size in screen pixels while the spacing, a power of two multiple of 32 drawing units held
+  between 22 and 44 pixels, carries the zoom and the pan. Fit frames the build's own `G.w` by
+  `G.h`, which is what the old fixed `viewBox` framed, so the page still opens on the screen it
+  always had; `fit`, the `0` key, and a readout in which 100% is the whole drawing say where
+  home is and go bold and blue the moment the view is not there. Measurements in the commit
+  message.
+- A drag is separated from a click by 5px of movement, or 3px once held for 250ms, and the click
+  a drag leaves behind is stopped on `window` in the capture phase, which runs before
+  `feedback.js`'s document listener whatever order the scripts load in. **A pan therefore cannot
+  file a card**, driven with capture mode on at two widths, from the background and from a node,
+  with the repository's issue count unchanged either side.
+
+### Changed
+
+- Below 760px the diagram no longer scrolls, #46: the body rule that scrolled the page at narrow
+  widths is now scoped to the board, which is untouched, and the diagram is one screen at every
+  width with the drawing moving inside it. `#graph { min-width: var(--drawing-w) }` goes, since
+  pan and zoom is that sideways scroll on both axes and at any scale, and so does the reserve of
+  the sheet's height under the drawing that #21 needed, since `ensureVisible()` pans and a canvas
+  cannot run out. `app.js` still writes `--drawing-w` and `build_layout.py` still refuses to
+  build while a copy of the number sits in the stylesheet: nothing reads the property today, and
+  removing that machinery belongs in its own commit rather than this one.
+- The canvas window is measured off `getBoundingClientRect` and not off `clientWidth` and
+  `clientHeight`. Those round to whole pixels, and at 1536x839 the box is 735.58px tall while
+  `clientHeight` says 736, so the browser was being asked to fit 736 pixels of drawing into
+  735.58 and was scaling everything by 0.94 of a per mille to oblige. `getScreenCTM` read back
+  1.1734 where the view said 1.1741 and the anchored zoom drifted a fifth of a pixel a step.
+  Fifth time here that a measured value has beaten a rounded copy of one.
 
 ### Removed
 
-- The second cohort, #42, filed against the `2nd cohort` switch: "every time I see something,
-  it must be one cohort". Not the switch, the cohort. There is now no route into a two cohort
-  view at all, and the page ships one coordinate set.
-  - **What went.** The `#c2toggle` button and its title and subtitle swap in
-    `site/index.html`; the switch handler, the `TITLES` table and the `window.G2` branch in
-    `site/app.js`; `body.two-cohorts`, the `#c2toggle` rules and the `--tint-select` token in
-    `site/app.css`; `COHORT2`, `COHORT2_SESSIONS`, `COHORT2_NODES`, `COHORT2_EDGES`,
-    `COHORT2_PROPS`, `COHORT2_PINS` and `with_second_cohort()` in `build/model.py`; the second
-    `layout()` call, the `spread_share` argument and the pinned-column branch it was the only
-    caller of in `build/build_layout.py`; and the `window.G2` line in `site/graph.js`. The ids
-    `h1` and `subtext` went with the swap that was the only thing reading them.
-  - **Nothing dangles.** `two-cohort`, `c2toggle`, `cohort2`, `COHORT2`, `with_second_cohort`,
-    `spread_share`, `G2`, `subtext` and `2Q26` return nothing across `site/`, `build/` and
-    `scripts/`. The only surviving mention anywhere is the issue title inside
-    `site/board.json`, which is the card for this work.
-  - **And no state, fragment or stored preference survives either**, which was driven rather
-    than reasoned: `window.G2` is `undefined` and the page exposes exactly one coordinate set;
-    no header control names a cohort; `localStorage` is empty on a first visit, the only key
-    the site ever writes being the reader's own GitHub token; forcing `body.two-cohorts` on by
-    hand from the console now changes nothing, because the rules it drove are gone; and
-    `#/`, `#/board`, `#/two`, `#/c2` and `#/cohorts=2` all land on the same 30 node one cohort
-    drawing under the same title. The two views never shared a stored setting: the switch held
-    its state in `aria-pressed` on the button and in nothing else, so there was never anything
-    to clear.
-  - **Regenerated, not hand-edited.** `python3 build/build_layout.py` writes `site/graph.js`,
-    and the diff against the shipped file is one deleted line, the `window.G2` one. The
-    `window.G` line is byte-identical, 21327 bytes either side, and the build stamp is still
-    `469ad3c`, which is the proof that this drawing never paid for the other one: they were
-    laid out independently, exactly as KAIZEN.md said an opt-in view has to be.
-    `build/label_widths.json` was regenerated the same way: 500 strings to 418, the 82 second
-    cohort strings gone, and not one width on a retained string moved. `graph.js` is 51.1KB to
-    20.8KB.
-  - **There is no space to reclaim, and that is measured rather than assumed.** The premise
-    that removing a cohort frees vertical room does not hold here, for the same reason the
-    byte-identical `window.G` does not: the second cohort was a separate drawing and this one
-    never made room for it. Driven before and after at all three viewports, every number is
-    identical to the decimal: the header is 58px at 1536x839 and at 1440x900 and 119px at
-    390x844; the canvas box is 1536x749.7, 1440x810.7 and 390x592; the drawing covers
-    1476.1x706.4, 1382.2x662 and 1204x576 on screen. The header closes its own hole, because
-    the nav is a flex row with a gap and the three remaining controls simply move left. The
-    slack that does exist inside the canvas, 142.7px of unused height at 1440x900, is the
-    drawing's 2.10 aspect against a shorter box; it was there before this change, it is the
-    first two items of the standing backlog in KAIZEN.md, and folding a re-layout into this
-    commit is the batching Heijunka exists to refuse.
-  - **Driven and the screenshots looked at**, at 1536x839, 1440x900 and 390x844, with the
-    viewport the harness actually got printed beside the one it asked for.
-    `scrollWidth === clientWidth` at each width and no console error beyond the pre-existing
-    favicon 404.
-
-- The frame drawn around a selected node, #45, filed from the live site against the rect
-  itself. Clicking a node already says four things: the tile inverts to solid primary, the
-  label goes bold, everything the node is not related to dims to 16 per cent, and the panel
-  opens naming it. The frame was a fifth statement of the same fact and it was the only one
-  that added a shape to the drawing, so it goes and the other four stay. Nothing is drawn
-  around a selected node now.
-  - **The rule that made the frame necessary is not part of what went with it, and that is the
-    whole difficulty of this change.** `b4e65d0` did two things: it turned off Chrome's own
-    focus ring on the node groups, and it added the frame. Only the frame is being removed. On
-    a focusable SVG element Chrome's user agent stylesheet keys its ring on `:focus`, not on
-    `:focus-visible`, so a mouse click matches it, and `.node:focus { outline: none }` is the
-    only thing standing between a click and the near-black five pixel box of #34. Reverting
-    the commit would have brought that box straight back.
-  - **Proved the way #34 was diagnosed, from the running document rather than from the file.**
-    A real mouse press and release was dispatched at the centre of the `t4` tile over CDP, and
-    `CSS.getMatchedStylesForNode` was then read on the group. At all three viewports the
-    user-agent rule `:focus { outline-style: auto; outline-width: 5px; outline-color:
-    -webkit-focus-ring-color }` still appears in the matched list, still matching, and the
-    author rule `.node:focus { outline: none }` still appears beside it and still wins:
-    computed `outline-style` is `none` and computed `outline-width` resolves to the initial
-    3px that a style of `none` never paints. The node is `:focus` and is not `:focus-visible`,
-    which is the same asymmetry #34 turned on. The frame rect itself computes to
-    `fill: none; stroke: none` on that click, so the group paints no box of any kind. A
-    screenshot alone could not have separated "our frame is gone" from "the browser's ring is
-    back", and the two are the same colourless picture at a distance.
-  - **Keyboard focus keeps a mark, because "where am I" and "what is selected" are different
-    questions.** The measured rect stays, renamed `.focus-frame`, and is now shown only on
-    `:focus-visible`, at `--rule-select` and one unit of stroke. Tabbing into the drawing was
-    driven at all three viewports on a document nothing had been clicked on: the first node
-    reached matches `:focus-visible`, its frame computes to
-    `stroke: rgba(45, 114, 210, 0.45)` at `1px`, and the box is measured from `getBBox()` as
-    before, so it still fits the count stack, the cohort's dashed missing-key ring and the
-    caption under it. The forced-colours fallback, which asks for the browser's ring back when
-    a reader's palette would hide the stroke, is unchanged.
-  - **Driven and the screenshots looked at**, at 1536x839 (the reporter's own viewport),
-    1440x900 and 390x844, through `Emulation.setDeviceMetricsOverride` with the viewport the
-    harness actually got printed beside the one it asked for. `scrollWidth === clientWidth` at
-    each width and no console error beyond the pre-existing favicon 404. Capture mode was
-    driven on the same node: the popover opens and the descriptor still resolves to
-    `ancestor [data-node="t4"]`, with the context block still naming the selected instance.
-    Its tail moved from `rect` to `path`, because the click now reaches the tile's own glyph
-    where it used to land on the selection frame that covered it.
-  - `--tint-select` went with the frame. It was added by `b4e65d0` for the frame's fill and
-    nothing else reads it.
+- The second cohort, #42, and with it every route into a two-cohort view: the `#c2toggle` switch
+  and its title swap, `body.two-cohorts`, the `COHORT2*` tables, `with_second_cohort()`, the
+  second `layout()` call with the `spread_share` argument and the pinned-column branch it was the
+  only caller of, and `window.G2`. Nothing dangles and no stored state survives, both driven
+  rather than reasoned. `graph.js` 51.1KB to 20.8KB, `label_widths.json` 500 strings to 418. The
+  default drawing neither paid for the other view nor gains from its removal: `window.G` is
+  byte-identical either side and every measurement at three viewports is unchanged, because the
+  two views were always laid out separately. Lesson in KAIZEN.md, last entry.
+- `--tint-select`, which `b4e65d0` added for the selection frame's fill and nothing else read.
+- The frame drawn around a selected node, #45, filed from the live site. A click already inverts
+  the tile, bolds the label, dims everything unrelated and opens the panel; the frame was a fifth
+  statement of the same fact and the only one that added a shape. **`.node:focus { outline: none }`
+  stays and must stay**: reverting `b4e65d0` would bring back the near-black five pixel ring of
+  #34, because Chrome keys its own ring on `:focus` for a focusable SVG element. Proved from the
+  running document with `CSS.getMatchedStylesForNode`, since a screenshot cannot separate "our
+  frame is gone" from "the browser's ring is back". The rect survives as `.focus-frame` on
+  `:focus-visible` only, so keyboard focus keeps a mark.
 
 ### Fixed
 
-- The count stack on the students tile, #41, filed from the live site as "looks wrong, not
-  aligned etc." against the tile's own rect. It was two things at once and both of them were
-  in `site/app.js`, untouched since the first commit.
-  - **The cards were not a stack.** A count is drawn as cards behind the tile, one card
-    standing for the many individuals it represents, and a stack reads as a stack only if
-    every card is the same card moved by the same step. These were `TILE - 6` across, that is
-    28 units against the tile's 34, and they were positioned from the tile's own corner, so
-    the step a reader saw was measured from a corner and not from a centre. Measured off the
-    deployed page at the reporter's viewport: the far card sat at `+2, -8` from the tile's
-    centre and the near one at `-0.5, -5.5`, on opposite sides of the centre line, and the two
-    ledges above the tile were therefore not even parallel to each other. Nothing peeked out
-    on the right at all, because the far card's right edge fell **one unit inside** the tile's
-    own. The cards are the size of the tile now and each is one constant 2.5 unit step up and
-    to the right: measured after, `+5, -5` and `+2.5, -2.5`, peeking exactly 5 and 2.5 on the
-    top and on the right and 0 on the left and the bottom.
-  - **And they were showing through the tile.** A tile is filled with a 14 per cent tint, so
-    it is translucent, and the parts of the cards that a stack hides were visible straight
-    through it as a rounded outline crossing the inside of the tile, around the `34`. That is
-    the part a coordinate change alone would not have fixed, and on the screenshots it is the
-    more obvious of the two. There is now a backdrop rect between the cards and the tile,
-    filled with `--bg-panel`, which is the band colour every tile in this drawing is already
-    composited over, so the tile renders exactly as it did before and the cards stop at its
-    edge.
-  - **The reporter was on the current page, and the build stamp cannot say so.** `window.ZT.build`
-    reads `G.build`, which `build/build_layout.py` writes as a seven character digest of the
-    drawing's own payload. It is not a commit: `git cat-file -t 469ad3c` reports it is not a
-    valid object name. It changes when the drawing changes and stays put through any number of
-    deploys that do not move a coordinate, which is why two later fixes to `site/app.js` and
-    `site/app.css` left it reading `469ad3c`. Established instead by fetching the deployed
-    `app.js` and comparing it: it is byte-identical to `HEAD` at `b022487`, sha256
-    `b313eaf2…`. So the defect was reproduced on exactly the bytes the reporter had, and
-    "they were looking at a cached older page" was never available. The stamp's own defect is
-    #47 and is not touched here.
-  - **Neither of the two later commits caused it, and that was checked by rendering and not
-    only by reading.** `bd578ff`, the tree immediately before `b4e65d0` and `b022487`, was
-    checked out into a worktree and driven: the students cards measure `+2, -8` and
-    `-0.5, -5.5` at 28x28 there too, identical to the deployed page. The block dates from
-    `d1b9a43`, the first commit, and `git log -S` finds no later commit touching it.
-  - **Driven and the screenshots looked at**, at 1536x839 (the reporter's own viewport),
-    1440x900 and 390x844, through `Emulation.setDeviceMetricsOverride` rather than a window
-    size, with the viewport the harness actually got printed beside the one it asked for. The
-    stack measures the same at all three. The four neighbours on the row are unmoved and agree
-    with the students tile as they did before: `cohort` at 818, 294.8 and `students` at
-    927, 294.8 share a tile centre line exactly, `co_col` at 688, 300.5 and `enrol` at
-    1052, 300.5 share the other one, and that 5.7 unit difference is the drawing aligning node
-    boxes rather than tiles, which is what it does everywhere. Every label on all ten nodes
-    probed is centred on its own tile to within half a unit. `scrollWidth === clientWidth` at
-    each width, and no console error beyond the pre-existing favicon 404. Also driven: the
-    selection, where the measured frame is unchanged at 68.8 by 73.9 because the label was
-    always wider than the stack; the second cohort view, whose two counted nodes both carry
-    the corrected steps; and the ghosts toggle.
-  - **The layout was not the cause and is not changed.** `build/build_layout.py` reproduces
-    `site/graph.js` byte for byte after this change, with 384 label widths measured and none
-    estimated, so this repository's recurring trap, a Python guess at a string's width standing
-    in for what the browser draws, is not what this was: a tile's rect is `TILE` and a column
-    centre, and no label width reaches it. The stack now reaches 5 units further right than the
-    40 by 40 box the layout reserves around a tile, so the clearance was measured rather than
-    assumed: in both views the nearest verb chip, `recorded as`, is 8.95 units clear, and the
-    lane has 38 units to spare on that side.
-
-- The black box around a selected node, #34. Clicking a node drew a five pixel near-black
-  rounded box around it, with no gap at all, so the label's glyphs touched the border on both
-  ends, and its width was the width of whatever name the node carried: 42 units on `McKinsey`
-  and 188 on `All about recruiting in Investment Banking`. **This repository did not draw it.**
-  Chrome's user agent stylesheet answers `:focus` on a focusable SVG element with
-  `outline: auto 5px -webkit-focus-ring-color`, where on an HTML element the equivalent rule is
-  keyed on `:focus-visible`, and `app.css` had overridden only `:focus-visible`. A mouse click
-  does not match `:focus-visible`, so on every click the site's rule stood down and the
-  browser's own ring was the whole of what a reader saw. Read off the running page rather than
-  inferred: `CSS.getMatchedStylesForNode` on the selected node returned exactly one rule
-  carrying an outline, `origin=user-agent`, selector `:focus`, and the computed value was
-  `rgb(16, 16, 16) auto 5px`, while the same element reported `matches(':focus-visible')` as
-  `false`. Tabbing to a node, which does match `:focus-visible`, drew the site's own blue 2px
-  ring, which is why the defect was only ever there for a reader using a mouse and never for
-  one using the keyboard. The framing was wrong for a second reason underneath the first: an
-  `outline` on an SVG `g` frames the group's bounding box, and the group is the tile *and* its
-  label, so the box could never have framed the tile whatever colour it was.
-  - **The repair is `outline: none` on `.node:focus`, and a rect that this stylesheet owns.**
-    Each node now carries a `.sel-frame` rounded rect, drawn behind the tile, empty until it is
-    asked for. Selected, it is a 1 unit `--i-primary` outline over `--tint-select`, the
-    faintest wash in the token set; focused and not selected, it is the outline alone at
-    `--rule-select`, so tabbing through the drawing does not look like selecting everything on
-    the way. The tile still inverts on selection, so the frame says which object and the fill
-    says it is the current one.
-  - **Its geometry is measured and never estimated.** `frameNode()` reads `getBBox()` on the
-    node group and pads it by five units, which makes the frame right for free in the four
-    cases a formula would have had to enumerate one at a time: the count stack that leans out
-    above the students tile, the second dashed ring on the cohort, the extra `no cohort_id`
-    caption under it, and that same caption disappearing when the ghosts are switched off. The
-    frame is taken out of the drawing while the reading is taken, because a frame that lives
-    inside the group it measures is part of the next measurement and would grow the node by one
-    padding every time it was framed.
-  - **Driven, and the screenshots looked at.** Six nodes covering every shape the drawing has,
-    at label widths from 20 to 199 CSS px: `co_emp`, `t5`, `st6`, `students` (the count stack),
-    `cohort` (the missing-key ring and a second caption line) and `g_beca` (a ghost). At
-    1440x900 and at 390x844, the second through `Emulation.setDeviceMetricsOverride` rather
-    than a window size, and the viewport the harness actually got printed beside the one it
-    asked for. The frame is centred on every node at both widths: on the longest label the gap
-    is 72.89 units left and 72.89 right at 1440, 82.2 and 82.1 at 390. `outlineStyle` reads
-    `none` on every selected node. Also driven: the ghosts toggle, where the cohort's frame
-    correctly shrinks from 58.7x64.5 to 47.9x51.1 as the ring and the caption go; the second
-    cohort, which redraws from the other coordinate set and comes back with 38 frames for 38
-    nodes; and the board view. No console errors at either width.
-  - **Two readings in the harness were the harness.** A probe reported a zero-sized frame on
-    two nodes; both were clicks dispatched at coordinates outside the viewport, which are
-    swallowed and leave the node unselected, which looks exactly like a selection mark that
-    failed to paint. The probe now scrolls the tile into view and asserts it is there before it
-    clicks. HANSEI already carries the general form of this and it cost twenty minutes anyway.
-  - **A forced colours mode gets the browser's ring back**, because the fill and the stroke
-    above are replaced by the reader's palette there and the frame can stop being visible at
-    all. It frames the group rather than the tile, which is the wrong shape and the right trade
-    at that moment.
+- The count stack on the students tile, #41, two defects at once in `site/app.js`, both dating
+  from the first commit. The cards were `TILE - 6` across and positioned from the tile's corner,
+  so they were not a stack; they are now tile-sized on a constant 2.5 unit step. And they showed
+  through the tile's fourteen per cent tint as an outline across it, which no coordinate change
+  would have fixed; there is now a `--bg-panel` backdrop rect between the cards and the tile. The
+  layout was not the cause and `graph.js` reproduces byte for byte. Lesson in KAIZEN.md. That the
+  reporter was on the current bytes had to be established by fetching the deployed `app.js`,
+  because the build stamp cannot say so, which is #47.
+- The black box around a selected node, #34. This repository did not draw it: Chrome answers
+  `:focus` on a focusable SVG element with `outline: auto 5px`, `app.css` had overridden only
+  `:focus-visible`, and a mouse click matches the first and not the second. Read off the running
+  page rather than inferred. Repaired with `outline: none` on `.node:focus` plus a `.sel-frame`
+  rect this stylesheet owns, padded around `getBBox()` rather than computed, with the browser's
+  ring deliberately restored under forced colours. Lesson in KAIZEN.md. Two apparent zero-sized
+  frames during the drive were the harness clicking outside the viewport; the probe now scrolls
+  the tile in and asserts it is there first.
 
 ### Removed
 
-- The header legend, #32. Twelve swatches naming the twelve tile colours, filed twice by the
-  owner as redundant. It was: the panel names the type of any node on a click, in that node's
-  own colour, the tooltip on a tile carries the same words without one, and the band captions
-  name the lanes standing. The colour was the least of what identified a tile and the legend
-  was the most expensive way the page said it. **What is no longer explained anywhere is the
-  key as a key**, that is, the whole colour-to-type mapping readable at a glance without
-  touching anything, and with it the one line that named the dashed empty tile in words, `does
-  not exist in any system`. Per node both are still recoverable, from the panel and from the
-  tooltip, and each ghost's panel note says in a sentence what its absence costs; the `ghosts`
-  button's own title attribute carries the phrase for anyone hovering it. That is a decision
-  for the owner and not one taken here: nothing was invented to replace the legend elsewhere.
-  The space is simply given back to the drawing. The header loses a row at every width and four
-  of them at 390px: it measures 79px down to 58px at 1440x900, and 177px down to 119px at
-  390x844, all of it going to the canvas, which is the height the standing defect about fitting
-  one screen is fought over. Driven at both widths: no horizontal page overflow
-  (`scrollWidth === clientWidth`), every header control still reachable by `elementFromPoint`
-  at its own centre rather than merely present, the board view unchanged at four columns, and
-  no console errors. `G.types` is still read, for the colour, the type name and the glyph of
-  each tile; the model and the drawing are untouched.
+- The header legend, #32, twelve swatches naming the twelve tile colours, filed twice by the
+  owner as redundant. **What is no longer explained anywhere is the key as a key**, the whole
+  colour-to-type mapping readable at a glance, and with it the line naming the dashed empty tile
+  as `does not exist in any system`; per node both are still recoverable from the panel and the
+  tooltip. Nothing was invented to replace it and the space goes back to the drawing: the header
+  falls from 79px to 58px at 1440x900 and from 177px to 119px at 390x844.
 
 ### Added
 
 - The board refreshes itself while it is on screen, and draws from the GitHub API directly when a
-  token is connected in the browser. It used to fetch `board.json` once at load and never again,
-  so watching work move meant reloading the page, and even a reload was a minute or two behind:
-  `board.json` is regenerated by a workflow on an issue event and then published through Pages,
-  and both of those take time. There are now two sources and the page says which one it is
-  reading. Without a token it re-fetches the published snapshot every thirty seconds, which is
-  as often as that file can change. With one it goes to `api.github.com` every ten seconds and
-  builds the four columns itself, which removes the workflow and the CDN from the path entirely.
-  Measured against the real repository, with no page reload: an issue created with `gh` appeared
-  on the board 3.1 seconds after the command returned, and disappeared 6.7 seconds after it was
-  deleted, both inside one poll interval. The live board was compared card for card against the
-  published `board.json` in the same browser, including titles, labels, links, the Done cap and
-  the hidden count, and the two are identical.
-  - **The column rule now exists in two places and the two comments say so.** `site/board.js`
-    reproduces what `scripts/sync_board.mjs` does: the four columns and their labels, an
-    unlabelled issue landing in Raw, a closed issue going to Done, a `NOT_PLANNED` closure
-    appearing in no column at all, the eight newest completed cards drawn newest first, and the
-    arithmetic that closed equals drawn plus hidden, asserted on both sides rather than trusted.
-    The two copies cannot be made one without a build step: the generator is not deployed, only
-    `site/` is, and the page loads classic scripts, so neither side can import the other. Each
-    file now carries a comment naming the other as the thing that must change with it, because
-    the failure this invites is quiet: the published board and the live board would show
-    different things about the same issues, and nobody would see both at once.
-  - **A poll that finds nothing new writes nothing.** The payload is reduced to two signatures,
-    one for the column contents and one for the header line, and a poll that matches both leaves
-    the DOM alone: rebuilding identical cards every ten seconds would throw away the reader's
-    scroll position and make the board blink to report that nothing had happened. Proved rather
-    than asserted, with a MutationObserver over `#bbody` and `#bmeta` across three live polls
-    with nothing moving on GitHub: zero mutations on both, and the first card node and the
-    columns container were the same objects afterwards as before.
-  - **An unchanged board costs a 304 and not a request.** The API path keeps the ETag and sends
-    it back as `If-None-Match`, and the issues are asked for in order of when they were last
-    touched, so any change to any issue lands on the first page and that page's ETag is a sound
-    test of whether the board has moved. Three consecutive polls with nothing happening returned
-    304 with the rate limit reading 4961, 4961 and 4960, so GitHub charged nothing for two of
-    them. The walk over further pages was driven by temporarily asking for five issues a page:
-    six requests, and the board it assembled was identical to the one page of a hundred produces.
-  - **Nothing is polled that nobody is looking at.** Polling stops dead on `visibilitychange`
-    when the tab is hidden and on leaving the board for the diagram, and both resume with an
-    immediate fetch rather than waiting out the interval. Driven: no requests at all in the 45
-    seconds a background tab was hidden, none in 40 seconds on the diagram, and a fetch inside a
-    frame of coming back to either.
-  - **A refusal falls back to the snapshot and says so.** On 401, 403 or 404 the board drops to
-    `board.json` on the next turn of the loop and the status line carries the first sentence of
-    `explainStatus`, with the whole hint on the title attribute. That function is
-    `feedback.js`'s and is now shared through `window.ZMT` rather than copied, the way `app.js`
-    publishes `window.ZT`: GitHub answering 404 rather than 403 for a private repository a token
-    cannot reach is the one thing about this API a reader cannot guess, and a second copy of that
-    sentence is one copy that goes stale. Driven with a token this repository will not accept:
-    the board drew from the snapshot, kept polling it, never retried the API, and read `published
-    snapshot, updated 3s ago · live mode off, GitHub API 401: Bad credentials.`
-  - **A failed refresh never blanks a board that is already drawn.** With `board.json` made
-    unreachable mid-session the thirteen cards stayed on screen and the line read `last refresh
-    failed (Failed to fetch), showing the last good one`. A board that quietly stops updating
-    looks exactly like a board where nothing is happening, which is why the failure is printed
-    rather than swallowed. A rate limit running low is treated the same way and is not a failure:
-    the board slows to one check every two minutes and says that too, which was driven by
-    rewriting the rate-limit header on the way in rather than by spending the limit to reach it.
-  - **The status line is the only new furniture**, one line of the smallest muted type under the
-    header line, reading `live from the GitHub API, updated 3s ago` or `published snapshot,
-    updated 2m ago`. It is not a spinner and does not move on every poll; its clock rewrites the
-    text only when the text changes, and it is hidden entirely until there is something true to
-    say. An older `board.json` carrying neither `hidden` nor `hiddenUrl` still draws, checked by
-    stripping both fields from the response. Driven at 1440x900 and at 390x844 in both modes:
-    the line sits under the header line, is reachable by `elementFromPoint` at the narrow width,
-    and neither it nor the page overflows sideways.
-  - **What this taught.** A zero delay timer is not a way to wait for the other scripts on the
-    page. `index.html` loads `board.js` before `feedback.js`, which is where the token reader
-    comes from, and the first fetch was made from a `setTimeout(..., 0)` on the assumption that
-    the parser would not be interrupted. It is: the timer fired in the gap between the two script
-    tags, saw no token, and drew the published snapshot for a reader who had connected one, who
-    then waited a full snapshot interval for the live board. Both the original synchronous call
-    and the timer were measured doing it before `DOMContentLoaded` was used instead. The general
-    form is the one this repository keeps meeting: a delay of zero is a statement about the timer
-    queue and not about the document.
-
-- The `status:` labels are now written from events rather than typed by a person, and taking an
-  issue means assigning it. `.github/workflows/issue-status.yml` keeps exactly one `status:`
-  label on an issue at a time, or none: assignment sets `status:in-progress` while the issue is
-  open, unassigning the last person sets `status:backlog` while a card that still has somebody on
-  it is left alone, closing sets `status:done`, reopening sets `status:in-progress` or
-  `status:backlog` according to whether anybody is on it, and filing writes nothing at all,
-  because an unlabelled issue already sits in Raw and writing the label the default column
-  already means would only add a second place for one fact to be wrong. A closure as `NOT_PLANNED`
-  is given no label at all, which was checked against `columnFor` in `scripts/sync_board.mjs`
-  rather than assumed: a not-planned closure is drawn in no column, so a status label on it would
-  be a claim with nothing on the page to check it against. `scripts/set_status.sh` owns every
-  write, reads the labels an issue carries, computes the set it should carry and calls the API
-  only on a difference, so a second run over the same issue writes nothing; that conditional
-  write, plus the workflow never listening for `labeled` or `unlabeled`, is what keeps a workflow
-  that both hears issue events and writes labels from feeding itself. A second job is the
-  backstop for work that starts without an assignment: a push whose commit messages name issues
-  by number marks each open one `status:in-progress`, subtracting the references a closing
-  keyword owns, since GitHub closes those itself and the closing rule then owns them, and
-  ignoring the board bot's own commits, which mention every issue on the repository by
-  construction. The commit payload is read out of the environment and never out of an
-  interpolated expression, because a commit message is text somebody else wrote.
-
-  The part that would have made this useless, and what was done about it: GitHub raises no
-  workflow run from an event caused by the default `GITHUB_TOKEN`, `workflow_dispatch` and
-  `repository_dispatch` excepted, so the labels this workflow writes do not reach `board.yml` and
-  the board would have gone on drawing the old column while every run went green. The workflow
-  therefore dispatches `board.yml` itself, through the one trigger type the suppression exempts,
-  and only when a label actually changed. Driven against the real repository rather than reasoned
-  about, on a throwaway issue that was deleted afterwards: filing it wrote no label and started no
-  run of this workflow; assignment gave `[nothing] -> [status:in-progress]`; unassignment gave
-  `[status:in-progress] -> [status:backlog]`; closing as completed gave `[status:backlog] ->
-  [status:done]`, the run reading `state CLOSED, reason COMPLETED` off the API rather than off the
-  payload. The suppression showed itself exactly where it was predicted to: each of those three
-  label writes was followed by a `board` run whose event is `workflow_dispatch` and by no `board`
-  run whose event is `issues`, so without the dispatch the labels would have moved and the board
-  would not have. The one `board` run on `issues` in the whole sequence came from the human close,
-  and it queued alongside the dispatched one rather than evicting it, which is `queue: max` doing
-  what board.yml's comment says it does. Permissions are `issues: write`, `contents: read` and `actions: write` for the dispatch, and
-  nothing else; the workflow is in its own concurrency group and not in `pages`, because it
-  deploys nothing and must never wait behind a deploy, with one group across both jobs so that
-  two runs cannot read the same labels and write back over each other.
-
-  One thing this bought that was not intended, recorded here because it went red where nobody was
-  looking for it. A Pages deploy failed with `Deployment request failed ... due to in progress
-  deployment`, the first failed run of any workflow in the last hundred. The two runs were
-  correctly serialised: the board run that preceded it had finished before the deploy started, and
-  the `pages` concurrency group did exactly what its comment claims. The conflict was not between
-  the runs, it was between the deployments those runs create, and the Pages service still held the
-  earlier one open after the run that made it had exited green. So the group serialises the thing
-  it names, GitHub Actions runs, and the Pages deployment lifecycle continues past the end of the
-  run that started it, which is the same shape as the pending-run eviction that `queue: max` was
-  added for: a guard is evidence about the state it names and about nothing beyond it. The
-  mechanism predates this change; what this change contributes is traffic, since every label move
-  now dispatches a board run and every board run deploys. Cleared by re-running the failed job,
-  which went green through both gate steps against the deployed bytes. Left as a known edge rather
-  than repaired here, because the repair belongs in board.yml and pages.yml and wants its own
-  change.
+  reader has connected their own token. Without a token it re-fetches `board.json` every thirty
+  seconds, which is as often as that file can change; with one it polls `api.github.com` every ten
+  seconds and builds the columns itself, removing the workflow and the CDN from the path. Measured
+  against the real repository with no reload: an issue appeared 3.1 seconds after `gh` returned
+  and disappeared 6.7 seconds after deletion, and the live board matched the published one card
+  for card.
+  - **The column rule now exists in two places, and each file names the other in a comment.**
+    `site/board.js` reproduces `scripts/sync_board.mjs`, and they cannot be made one without a
+    build step, because the generator is not deployed and the page loads classic scripts. The
+    failure this invites is quiet: two boards disagreeing about the same issues with nobody seeing
+    both at once.
+  - A poll that finds nothing new writes nothing, proved with a MutationObserver over three live
+    polls; an unchanged board costs a 304 through `If-None-Match` and no rate limit; polling stops
+    on `visibilitychange` and on leaving the board, and resumes with an immediate fetch; a 401,
+    403 or 404 falls back to the snapshot and says so through `explainStatus`, shared through
+    `window.ZMT` rather than copied; a failed refresh keeps the drawn board and prints the
+    failure; a low rate limit slows to one check every two minutes and says that too. One new
+    status line under the header, hidden until it has something true to say.
+  - The first fetch moved to `DOMContentLoaded`, because a zero delay timer fired in the gap
+    between two script tags and drew the snapshot for a reader who had connected a token. Lesson
+    in KAIZEN.md.
+- The `status:` labels are written from events rather than typed by a person, and taking an issue
+  means assigning it. `.github/workflows/issue-status.yml` keeps exactly one `status:` label on an
+  issue at a time, or none, and `scripts/set_status.sh` owns every write and calls the API only on
+  a difference, which is what keeps a workflow that hears issue events and writes labels from
+  feeding itself. A second job is the backstop for work that starts without an assignment: a push
+  whose commit messages name issues marks each open one in progress, subtracting the references a
+  closing keyword owns and ignoring the board bot's own commits. The commit payload is read out of
+  the environment and never out of an interpolated expression. The full rule table is in KAIZEN.md.
+  - **The part that would have made this useless.** GitHub raises no workflow run from an event
+    caused by the default `GITHUB_TOKEN`, so these labels would never have reached `board.yml` and
+    the board would have gone on drawing the old column with every run green. The workflow
+    therefore dispatches `board.yml` itself through `workflow_dispatch`, the one trigger type the
+    suppression exempts, and only when a label actually changed. Driven against the real
+    repository on a throwaway issue, where each of the three label writes was followed by a board
+    run on `workflow_dispatch` and by none on `issues`. Lesson in KAIZEN.md.
+  - One thing this bought that was not intended: a Pages deploy failed with `Deployment request
+    failed ... due to in progress deployment`, because the `pages` concurrency group serialises
+    Actions runs while the Pages deployment lifecycle continues past the end of the run that
+    started it. The mechanism predates this change; what this change contributes is traffic, since
+    every label move now dispatches a board run and every board run deploys. Cleared by re-running
+    the job and left as a known edge, now #39.
 
 ### Fixed
 
-- An issue closed as not planned no longer lands in Done. GitHub closes an issue for one of two
-  reasons and the board read only the state, so a duplicate, a wontfix and a finished card were
-  the same fact to it. #33 was closed as a duplicate, and because Done reads newest first it
-  became the top card of the column: the loudest thing on the board was an assertion that a
-  duplicate had been completed, and every future duplicate would have done the same. The
-  generator now asks `gh issue list` for `stateReason`, whose values were read off the real
-  repository rather than assumed (`COMPLETED`, `NOT_PLANNED`, and an empty string on an open
-  issue), and gives a `NOT_PLANNED` closure no column at all. It is not outstanding work and it
-  is not finished work, so no column on this board is true of it. It is not dropped either: the
-  Done column's `hidden` is now the whole closed set minus the eight cards actually drawn, so
-  visible plus hidden accounts for every closed issue with nothing lost and nothing counted
-  twice, and the generator asserts both halves of that arithmetic and fails the run rather than
-  publishing a count that does not add up. The page says `and 16 more closed` where it used to
-  say `more done`, because the count now covers duplicates as well as finished cards and calling
-  those done would be the same false claim in a quieter place. `hiddenUrl` still points at the
-  repository's closed issues, which is where both kinds can be read. `DONE_VISIBLE` stays at
-  eight and still selects the eight highest-numbered completed issues, newest first. board.js
-  reads no new field, so an older `board.json` that carries neither `hidden` nor `hiddenUrl`
-  still draws. Regenerated against the real repository: 28 issues, 24 closed, 22 completed and 2
-  not planned (#33 and #18); Done draws #26 down to #19, all `COMPLETED`, #33 and #18 appear in
-  no column, and 8 drawn plus 16 hidden equals the 24 closed. Driven at 1440x900 and 390x844:
-  the line renders as `and 16 more closed`, its href is the closed-issues list, it is reachable
-  by `elementFromPoint` at both widths once scrolled to, it sits inside its column, and neither
-  the line nor the page overflows horizontally.
-
+- An issue closed as not planned no longer lands in Done, #33 having become the top card of the
+  column as a duplicate asserted to be complete. `sync_board.mjs` now reads `stateReason` and
+  gives a `NOT_PLANNED` closure no column at all, since it is neither outstanding nor finished
+  work. It is not dropped: `hidden` is the whole closed set minus the eight cards drawn, the
+  generator asserts that arithmetic and fails the run rather than publishing a count that does not
+  add up, and the page says `and 16 more closed` rather than `more done`.
 - The Done column is bounded at eight cards and says how many it is not showing. Every closed
-  issue lands in Done and nothing takes one out again, so it grew without limit: at twenty eight
-  issues, twenty four of them closed, Done held twenty four cards and the board read as ninety
-  percent finished work while the four cards that wanted attention sat beside it. The column now
-  keeps the eight highest-numbered cards and reads newest first, because the useful end of a
-  column of finished work is what has just moved into it. The other three columns are untouched
-  and stay ascending by number, which is the order they were filed in. The remainder is not
-  swallowed: `sync_board.mjs` writes `hidden` and `hiddenUrl` on the done column, and the page
-  prints a muted `and 16 more done` under the cards, linked to the repository's closed issues. A
-  cap that reads as the whole list would be a worse defect than the long column it replaced,
-  because the long column was at least true. The board still draws from an older `board.json`
-  that carries neither field, and the link is only followed if it is an issues list on
-  github.com, the same rule the existing board link obeys. Driven at 1440x900 and at 390x844
-  against a real board: Raw 0, Backlog 4, In progress 0, Done 8 with `hidden` 16, the line
-  reachable by `elementFromPoint` at both widths, nothing clipped and no horizontal overflow.
-
+  issue lands there and nothing takes one out, so at twenty four closed issues the board read as
+  ninety percent finished work. It keeps the eight highest-numbered cards, newest first, while the
+  other three columns stay ascending by number; the remainder is linked as `and 16 more done`,
+  because a cap that reads as the whole list would be worse than the long column it replaced. An
+  older `board.json` carrying neither field still draws.
 - The GitHub connect note names the order the token form imposes, not only the token it wants.
-  GitHub preselects `Repository access: Public repositories (read-only)`, and while that radio
-  is selected the form does not offer the Issues permission at all, so a reader who fills in
-  only the permissions section produces a token that cannot reach this private repository and
-  meets a 404 here. The note now says to set `Only select repositories` first and why. Found by
-  filing from the deployed site with a token made from the old note; confirmed against the API.
-  The 404 explanation in `explainStatus` is unchanged and still lists what to check, because it
-  serves the tokens that were made before the note was read. HANSEI.md, ninth entry.
-
-- The connected filing path has now been exercised end to end against the deployed site, which
-  closes the caveat that its success half had only ever been driven against a stubbed `fetch`.
-  A headless CDP driver put a token into `localStorage`, turned capture mode on, clicked a node
-  and filed: the issue was created on the real repository with the title, body, context block
-  and labels the code builds, and was then deleted. No token value is recorded anywhere in this
-  repository, and none was needed to record the result.
-
-- `copy all` no longer looks alive while it is not, for issue #23. It is disabled while the
-  count is zero and comes back the moment a block is copied. Disabling was preferred to making
-  it work on an empty list: a clipboard write of nothing that reports `copied` is a lie about
-  what the reader now holds, and there is no honest thing for the control to do. The `2`
-  shortcut already stood down on the empty case and still does. Driven at 1440x900: with the
-  count at zero the button reports `disabled: true`; after one `copy` the count reads 1, the
-  button reports `disabled: false`, and clicking it changes the label to `copied`.
-
-- The capture popover is placed in the band between the header and the footer, for issue #22.
-  It used to reserve the footer and nothing else, so a click in the header opened the box on
-  top of the header, over the feedback toggle that capture mode deliberately exempts so the
-  mode can be turned off. Escape still recovered, so it was never a trap, but the exemption
-  was defeated by the geometry and the fix belongs in the placement. Both edges are read from
-  live rects rather than from `offsetHeight`, because below the breakpoint the page scrolls and
-  neither the header nor the footer is pinned to the viewport: a header scrolled out of view
-  reserves nothing. Where the box is taller than the band, it scrolls inside itself rather than
-  growing past either edge. Driven at 390x844, clicking `ghosts` with the mode on: the popover
-  top is 182.8 against a header bottom of 176.8, and `elementFromPoint` at the centre of all
-  four header controls reaches the control.
-
-- The same fix corrects a second defect found while measuring it. The popover was positioned
-  before its GitHub connect section was rendered into it, so the clamp was computed against a
-  height about a hundred pixels short of the real one and the box could then run off the
-  bottom of the screen. Anything that changes the box's height now re-clamps it: the connect
-  section, connecting and disconnecting, and the result line after a file. Driven at 390x844
-  with a click low on the page: the box bottom is 763.3 in an 844 viewport, where it was
-  846.5 before.
-
+  HANSEI.md, ninth entry. The 404 explanation in `explainStatus` is unchanged, because it serves
+  the tokens made before the note was read.
+- The connected filing path has been exercised end to end against the deployed site, closing the
+  caveat that its success half had only ever been driven against a stubbed `fetch`. No token value
+  is recorded anywhere in this repository.
+- `copy all` no longer looks alive while it is not, #23. It is disabled while the count is zero
+  rather than made to work on an empty list, because a clipboard write of nothing that reports
+  `copied` is a lie about what the reader now holds. Lesson in KAIZEN.md.
+- The capture popover is placed in the band between the header and the footer, #22. It used to
+  reserve the footer only, so a click in the header opened the box over the feedback toggle that
+  capture mode deliberately exempts. Both edges are read from live rects rather than
+  `offsetHeight`, because below the breakpoint neither header nor footer is pinned, and a box
+  taller than the band scrolls inside itself.
+- The same fix corrects a second defect found while measuring it: the popover was positioned
+  before its connect section was rendered into it, so the clamp used a height about a hundred
+  pixels short and the box could run off the bottom. Anything that changes the box's height now
+  re-clamps it.
 - Below the 760px breakpoint the detail panel no longer opens on top of the node it describes,
-  for issue #21. `reveal()` now handles both axes. The free band is the viewport minus the
-  header and minus the sheet; the sheet is recognised by its own geometry rather than by a copy
-  of the breakpoint in JavaScript, and its height is read from `offsetHeight` rather than from
-  a rect, because the panel is still sliding when `reveal()` runs and a transform moves the
-  rect while the transition plays. Whichever element can scroll vertically is the one scrolled:
-  the canvas where it has its own overflow, otherwise the page.
-
-- Handling the axis was necessary and not sufficient, which is the part worth recording. At
-  390px the page is barely taller than the viewport, about 36px of scroll in total, so there
-  was nowhere to scroll to and the vertical pass moved nothing. While the panel is open the
-  canvas now reserves the sheet's own height underneath the drawing, which is the room
-  `reveal()` uses; the reserve is behind the sheet, so nothing shows in it, and it goes with
-  the selection. One number, `--sheet-h`, sizes the sheet and the reserve, because writing that
-  measurement twice is how the two come to disagree. Driven at 390x844 over all 30 nodes in
-  turn: 28 of 30 were covered by the panel before, 0 of 30 after, each one measured clear of
-  both the sheet and the header.
-
-- A typed but unfiled note survives every way of closing the popover, for issue #25. Escape,
-  which is also how capture mode is left, and the `3` shortcut both destroyed it silently.
-  Notes are held per element and put back when that element is clicked again; a note that has
-  been filed stops being a draft. Driven at 1440x900: a note typed, Escape pressed, the mode
-  re-entered and the same node clicked reads back the sentence that was typed, and the same
-  for `3`, while a different element still opens empty.
-
-- Capture mode no longer pushes the `board` link off the right edge below 400px, for issue #26.
-  Turning the mode on widens its own toggle, and `.hnav` kept `flex: none`, so it was sized to
-  its own max-content width and its children never met an edge to wrap at. The nav is given the
-  row below the breakpoint and wraps inside it. Driven at 320, 360, 390, 414, 760, 1024 and
-  1440 with the mode on: every header control is inside the viewport and reachable at every
-  width, and the page no longer gains a horizontal scroll it does not otherwise have. Before,
-  at 320px, the link sat 71px outside the viewport.
+  #21. `reveal()` handles both axes; the sheet is recognised by its own geometry rather than by a
+  copy of the breakpoint in JavaScript, its height is read from `offsetHeight` because a transform
+  moves the rect while the transition plays, and whichever element can scroll is the one scrolled.
+- Handling the axis was necessary and not sufficient. At 390px the page is about 36px taller than
+  the viewport, so there was nowhere to scroll to and the correct new code moved zero pixels. The
+  canvas now reserves the sheet's own height under the drawing while the panel is open, sized by
+  one `--sheet-h`. Driven over all 30 nodes: 28 of 30 covered before, 0 of 30 after. Lesson in
+  KAIZEN.md.
+- A typed but unfiled note survives every way of closing the popover, #25. Escape and the `3`
+  shortcut both destroyed it silently; notes are now held per element and put back when that
+  element is clicked again, and a filed note stops being a draft.
+- Capture mode no longer pushes the `board` link off the right edge below 400px, #26. Turning the
+  mode on widens its own toggle and `.hnav` kept `flex: none`, so its children never met an edge
+  to wrap at; the nav is given the row below the breakpoint. At 320px the link had sat 71px
+  outside the viewport. Lesson in KAIZEN.md.
 
 ### Changed
 
-- The lane captioned `cohort sessions` now reads `cohort sessions and the visit host`, for
-  issue #24. A Company sat in that lane in both drawings and the placement is right: the
-  company is the empresa colaboradora, its `hosts visit` edge attaches at session level, and
-  the finde presencial is a session-level event. Moving the tile into the companies lane would
-  have made the diagram tidier and less true, so the caption was the thing that had to change.
-
-  Of the three ways to make the lane honest, widening the caption was chosen over a sub-caption
-  and over marking the one tile. A caption is the drawing's own statement of what a lane holds,
-  so a lane that holds one more kind of thing should say so in the same place a reader already
-  looks; a sub-caption would have added a second kind of type assertion to learn, and marking
-  the tile would have left the caption still asserting a type the lane does not hold. The
-  wording names the visit rather than the sessions because the company hosts one visit and does
-  not host the six sessions, and it echoes the `hosts visit` chip on the edge, which is what
-  the reader sees next. The edge is untouched and still reads at a glance.
-
-- Band captions may run to more than one line, which is what let the caption widen at all: a
-  lane is only as wide as the columns under it, so a longer caption has nowhere to go sideways.
-  Lines stack upwards from the top of the band, so the last line sits the same distance above
-  every lane whatever the caption above it does, and the drawing only gains headroom if some
-  lane actually needs a second line. The existing lane-overflow gate now checks every line
-  rather than the caption as a whole: a caption that is only legal because it was split has to
-  be legal line by line. `build/measure_labels.py` measures the lines, so the check still runs
-  on measured widths and not on the fallback estimate. The one cohort viewBox goes from
-  1230x574 to 1230x586. Diffed against the deployed drawing: every x coordinate is identical,
-  every band x and width is identical, and every y moves by exactly 11, the one line of
-  headroom the second caption line needs.
+- The lane captioned `cohort sessions` now reads `cohort sessions and the visit host`, #24. A
+  Company sits in that lane and the placement is right, because its `hosts visit` edge attaches at
+  session level, so the caption was the thing that had to change. Widening the caption was chosen
+  over a sub-caption and over marking the one tile, and the wording names the visit rather than
+  the sessions because the company hosts one visit and not the six sessions. Lesson in KAIZEN.md.
+- Band captions may run to more than one line, which is what let that caption widen at all, since
+  a lane is only as wide as the columns under it. Lines stack upwards from the top of the band, so
+  the last line sits the same distance above every lane, and the lane-overflow gate now checks
+  every line rather than the caption as a whole. The one cohort viewBox goes from 1230x574 to
+  1230x586: every x is identical and every y moves by exactly 11.
 
 ### Added
 
-- A second cohort behind a header switch, for issue #19. `Z-IB 2Q26` is instanced from the
-  same six session templates as 1Q26, on later dates, with two of the six taught by a
-  different instructor: `Intro to economics & financial markets` moves from Nerea Iribarren to
-  Rubén Arizmendi and `Why we value companies?` from Bruno Belaunde to Celia Vandellós. It
-  brings its own aggregate students card, 27 against 34. The point is the template versus
-  instance split, which is the backbone of the model and which one cohort cannot show: with
-  two, the same template objects carry two sets of dated sessions and the reason they are
-  different objects is on the page rather than in a document.
-- The switch is off by default and the default drawing is unchanged, byte for byte. The two
-  views are laid out independently by the build and shipped side by side as `window.G` and
-  `window.G2`; the switch redraws rather than hiding nodes with CSS, because a hidden node
-  still takes up room in a layout and would have moved the view the switch exists to protect.
-  Verified by diffing the generated `window.G` against the deployed bytes: identical, build id
-  `5703ece` before and after.
-- Two layout facilities used only by the second view. A column may be pinned, which states its
+- A second cohort behind a header switch, #19. `Z-IB 2Q26` is instanced from the same six session
+  templates as 1Q26, on later dates, with two sessions moved to different instructors, and brings
+  its own aggregate students card, 27 against 34. The point is the template versus instance split,
+  which one cohort cannot show. Removed later, #42, at the top of this file.
+- The switch is off by default and the default drawing is unchanged byte for byte. The two views
+  are laid out independently and shipped side by side as `window.G` and `window.G2`, and the
+  switch redraws rather than hiding nodes with CSS, because a hidden node still takes up room in a
+  layout. Verified by diffing the generated `window.G` against the deployed bytes. Lesson in
+  KAIZEN.md.
+- Two layout facilities used only by the second view: a column may be pinned, which states its
   order and takes it out of the barycentre sweep, and a column may be opened to a share of the
   drawing's height. The session column is pinned because the sweep's answer there is a real
-  minimum of crossings and still unreadable: it interleaves the two cohorts and breaks both out
-  of date order. The template and instructor columns are opened so a template's two edges leave
-  it as a flat fan instead of a near vertical one.
-- `build/measure_labels.py` now measures the union of both views, so the opt-in drawing is
-  laid out from measured widths rather than the fallback estimate. 82 strings added to
+  minimum of crossings and still unreadable. Lesson in KAIZEN.md.
+- `build/measure_labels.py` measures the union of both views, so the opt-in drawing is laid out
+  from measured widths rather than the fallback estimate. 82 strings added to
   `build/label_widths.json`; no existing entry changed.
 
 ### Not added, and why
 
-- A second enrolment to claim chain. It hangs off every cohort in the same shape, so a second
-  copy would have added nine nodes and no relationship the first copy does not already carry.
-  The 2Q26 students card therefore has one edge, and its note says why.
-- A new instructor for the second cohort. Reassigning two sessions among the five already on
-  the page shows substitution across cohorts, which is the thing worth seeing, and adds no node.
+- A second enrolment to claim chain. It hangs off every cohort in the same shape, so a second copy
+  would have added nine nodes and no relationship the first already carries.
+- A new instructor for the second cohort. Reassigning two sessions among the five already on the
+  page shows substitution across cohorts and adds no node.
 
-- Ghost classes on the diagram, for issue #8. Four classes the operating model needs and no
-  system holds are drawn beside the objects that do exist: `Instalment` expected by
-  `Agreement`, `Placement` matures `Claim`, `Beca` discounts `Agreement`, `Refund` reverses
-  `Charge`. A ghost is a dashed, unfilled, empty tile with an italic label and a dashed edge
-  carrying the verb it would carry. The tile is empty because there is nothing in it.
+### Added
+
+- Ghost classes on the diagram, #8. Four classes the operating model needs and no system holds are
+  drawn beside the objects that do exist: `Instalment` expected by `Agreement`, `Placement`
+  matures `Claim`, `Beca` discounts `Agreement`, `Refund` reverses `Charge`. A ghost is a dashed,
+  unfilled, empty tile with an italic label and a dashed edge carrying the verb it would carry.
+  Lesson in KAIZEN.md.
 - A legend entry, `does not exist in any system`, drawn as the same empty dashed box.
-- A marking on the `Cohort` node rather than a ghost of its own, because that object exists
-  and only its key does not: a second dashed outline, the words `no cohort_id` under the
-  label, and a `cohort_id` property whose value says no identifier is held anywhere.
+- A marking on the `Cohort` node rather than a ghost of its own, because that object exists and
+  only its key does not: a second dashed outline, the words `no cohort_id` under the label, and a
+  `cohort_id` property whose value says no identifier is held anywhere. Lesson in KAIZEN.md.
 - A third property flag, `absent`, beside `dummy` and `estimated`. A dummy value stands in for
   something a system holds; an absent one says no system holds it.
-- Clicking a ghost opens the properties panel like any other node. The panel leads with what
-  the absence costs in two sentences and carries no figure of any kind.
+- Clicking a ghost opens the properties panel like any other node. The panel leads with what the
+  absence costs in two sentences and carries no figure of any kind.
 - A `ghosts` toggle in the header, shown by default, that hides the ghosts, their edges, the
-  legend entry and the cohort marking. Default shown because the absences are the finding;
-  the toggle exists for the times the question is only about what the systems do hold.
+  legend entry and the cohort marking. Default shown because the absences are the finding.
 
 ### Not added, and why
 
 - An `Attendance` ghost. It would have to attach to the cohort sessions, which are the tallest
-  column in the drawing, and the drawing is sized to one screen. Adding it would have made
-  every node smaller for every reader in exchange for a fifth absence. The other four sit in
-  the enrolment to claim band, which was the emptiest part of the canvas, so they cost no
-  height at all: the viewBox is 1230x574 before and after.
+  column, and the drawing is sized to one screen, so it would have made every node smaller for
+  every reader in exchange for a fifth absence. The other four sit in the emptiest band and cost
+  no height: the viewBox is 1230x574 before and after.
 
 ### Changed
 
-- Label widths are measured in a browser instead of guessed in Python, for issue #7. The
-  layout used a per character width table written by hand, and because the browser only draws
-  what the build already decided, that guess was baked into the shipped coordinates. It was
-  out by up to 8.3 per cent on a label as drawn and 19.3 per cent on a label while selected,
-  in the direction that matters: the true width was the larger one. Widest miss, `All about
-  recruiting in Investment Banking`, guessed 194.10px against a measured 240.66px at the
-  selected weight.
-- `build/measure_labels.py` renders every string the layout measures as an SVG `text` in the
-  exact stack, size, weight and style the stylesheet gives it, reads `getComputedTextLength`
-  for each, and writes `build/label_widths.json`. 417 strings, seven contexts: the label
-  weight and the selected weight, the same two italic for ghosts, the verb chips, the ghost
-  verb chips, and the uppercased letter-spaced band captions. Every contiguous run of words in
-  a label is measured, not only the finished lines, because which lines a label wraps to is
-  what the widths decide.
-- A width is the widest the string takes across every family in the site's font stack that the
-  measuring machine can resolve, four distinct faces here, not the width on the machine that
-  ran the measurement. The stack resolves differently on different machines and the drawing
-  has to hold on all of them. Faces the machine does not hold cannot be measured and are not
-  covered; the file records which were.
+- Label widths are measured in a browser instead of guessed in Python, #7. The layout used a
+  hand-written per character table, and because the browser only draws what the build decided,
+  that guess was baked into the shipped coordinates: out by up to 8.3 per cent as drawn and 19.3
+  per cent selected, always in the direction where the true width was larger. Widest miss, `All
+  about recruiting in Investment Banking`, guessed 194.10px against a measured 240.66px.
+- `build/measure_labels.py` renders every string as an SVG `text` in the exact stack, size, weight
+  and style the stylesheet gives it, reads `getComputedTextLength` and writes
+  `build/label_widths.json`. 417 strings, seven contexts. Every contiguous run of words in a label
+  is measured, not only the finished lines, because which lines a label wraps to is what the
+  widths decide.
+- A width is the widest the string takes across every family in the site's font stack the
+  measuring machine can resolve, four distinct faces here, not the width on that machine. Faces
+  the machine does not hold cannot be measured and are not covered; the file records which were.
 - `build/label_widths.json` is committed, so the build reads a file and never opens a browser.
-  `python3 build/measure_labels.py` regenerates it; `--check` re-measures and reports drift
-  without writing.
-- The per character estimate stays as the fallback for any string not in the table, so a new
-  label cannot crash a build, and every fall back is named on stderr with the command that
-  would measure it.
-- Two labels now wrap where they did not. `Agreement 0001` measures 84.17px against the 84px
-  its column allows, and `Alumnos Z-IB 1Q26` 96.78px against 94px. Both were drawn on one line
-  because the estimate said they fitted. The column widths are unchanged: the labels genuinely
-  do not fit them.
+  `python3 build/measure_labels.py` regenerates it; `--check` re-measures and reports drift.
+- The per character estimate stays as the fallback for any string not in the table, so a new label
+  cannot crash a build, and every fall back is named on stderr with the command that would measure
+  it.
+- Two labels now wrap where they did not: `Agreement 0001` at 84.17px against the 84px its column
+  allows, and `Alumnos Z-IB 1Q26` at 96.78px against 94px. The column widths are unchanged; the
+  labels genuinely do not fit them.
 
 ### Added
 
-- A build gate that refuses to write a drawing in which a label, or a band caption, crosses a
-  lane boundary, checked against measured widths at both the drawn and the selected weight
-  before a coordinate is written. The build now also prints how much lane the tightest label
-  has to spare, currently 4.7px of 250 for `All about recruiting in Investment Banking`.
+- A build gate that refuses to write a drawing in which a label or a band caption crosses a lane
+  boundary, checked against measured widths at both weights before a coordinate is written. The
+  build prints how much lane the tightest label has to spare, currently 4.7px of 250.
 - A loud warning when wrapping would drop words past the three line cap. It used to truncate
   silently, which produces a page that looks correct and says less than it should.
 
 ### Fixed
 
-- The detail panel stayed open on top of the board, issue #20. The route already hides the
-  legend, the subtitle and the two diagram toggles because they all describe the drawing; the
-  panel describes it too and was the one thing left behind, so a panel about a node the reader
-  could no longer see sat over eight of the nineteen cards at 1440 and over the lower 62 per
-  cent of the board at 390. It is now hidden rather than closed, so the selection survives the
-  round trip and the panel and its node come back together. Found by driving the controls, not
-  by looking at them: no screenshot of either view on its own shows it.
-
-- Ghost labels and ghost verb chips are drawn in italic, which is a different face with
-  different advances, and were being sized as upright. They now have their own measured
-  contexts.
-
-- Runs in the `pages` concurrency group were being evicted before they started, issue #12.
-  Three of the last six `board` runs are marked cancelled, at 17:38:47, 17:39:07 and 17:43:55,
-  all on rapid issue events and none of them having run a step. `cancel-in-progress: false` was
-  already set and is not what failed: it protects a running job, while the group is capped at
-  one pending run by default and a new same-group trigger evicts the one already waiting. All
-  three workflows now carry `queue: max`, which raises that limit to 100 and processes the
-  queue first in, first out. No board update was lost; a later run rebuilt the same board from
-  the same issues, which is the sync being idempotent covering for the eviction rather than the
-  eviction not happening. `pages.yml` also checks out `main` instead of its triggering sha,
-  because a run that can now wait in the queue can also start after `board.yml` has committed
-  `site/board.json`, and the older checkout would publish a site without it.
-
-- The repository gate spent its whole runtime spawning processes, issue #13. The real-name rule
-  hashed one token at a time, each token costing a command substitution, a `sha256sum` pipeline
-  and a `grep` of the hash file. Over this repository that is 8415 token occurrences and some
-  34 thousand processes, and timing the loop on its own accounted for essentially the entire
-  run. A file's tokens are now hashed in one call and looked up in an in-memory set built once
-  from the hash list. Same salt, same sha256, same 16 characters, same tokens, same comparison:
-  no rule changed, no file is skipped, no exemption widened, and the four-character minimum is
-  untouched. Measured on the same warm machine, 70.5 seconds before and 2.9 after. The
-  self-test still passes 27 of 27 and a planted register surname still trips the gate with the
-  token withheld.
-
-- The batch hasher is checked against the single-token one at run time, on a known token, and
-  the gate stops with an assertion if they disagree. Two implementations of one hash are two
-  hashes unless something checks, and a hasher that disagreed with the one that wrote
-  `scripts/forbidden_names.sha256` would match nothing and report clean. Where perl is missing
-  or cannot run, the old per-token loop is still there and still correct; verified by running
-  the whole gate with perl absent, which is slower and reaches the same verdict.
+- The detail panel stayed open on top of the board, #20. The route already hid the legend, the
+  subtitle and the two diagram toggles; the panel describes the drawing too and was the one thing
+  left behind, covering eight of nineteen cards at 1440 and the lower 62 per cent of the board at
+  390. It is now hidden rather than closed, so the selection survives the round trip. Found by
+  driving the controls: no screenshot of either view on its own shows it.
+- Ghost labels and ghost verb chips are drawn in italic, which is a different face with different
+  advances, and were being sized as upright. They now have their own measured contexts.
+- Runs in the `pages` concurrency group were being evicted before they started, #12: three of the
+  last six board runs cancelled without running a step. `cancel-in-progress: false` protects a
+  running job, while the group is capped at one pending run and a new same-group trigger evicts
+  the one waiting. All three workflows now carry `queue: max`, first in first out. No board update
+  was lost, which is the sync being idempotent covering for the eviction rather than the eviction
+  not happening. `pages.yml` also checks out `main` rather than its triggering sha, because a run
+  that can wait in the queue can start after `board.yml` has committed. Lesson in KAIZEN.md.
+- The repository gate spent its whole runtime spawning processes, #13. The real-name rule hashed
+  one token at a time, which over this repository is 8415 token occurrences and some 34 thousand
+  processes. A file's tokens are now hashed in one call and looked up in an in-memory set built
+  once. Same salt, same sha256, same 16 characters, same tokens, same comparison: no rule changed,
+  no file skipped, no exemption widened. 70.5 seconds before and 2.9 after on the same warm
+  machine, self-test still 27 of 27, and a planted register surname still trips the gate.
+- The batch hasher is checked against the single-token one at run time, on a known token, and the
+  gate stops with an assertion if they disagree, because two implementations of one hash are two
+  hashes unless something checks. Where perl is missing the old per-token loop is still there and
+  still correct, verified by running the whole gate with perl absent.
 
 ### Fixed, verb chips
 
-- Verb chips are placed on their own edges again, issue #14. The old search offered the chip
-  nine fixed points along the curve, took whichever collided least, and if none was clean
-  stepped it vertically until it cleared everything. `claims against` finished 133.8px below
-  its own edge, alone in white space between the Charge tile and the bottom of the lane, where
-  it named nothing; `pays` sat on its curve but the search had put it there by luck. Measured
-  from the shipped `site/graph.js` and not from the builder's intentions: worst distance from a
-  chip's centre to the nearest point on the edge it names was 133.8px before and 6.0px after,
-  and 6.5px is half a chip's height, so every verb now has its own line running through it.
-- Each chip starts at the midpoint of its edge by arc length, which is the point that reads as
-  the middle of a curve whatever the curve does near its ends. 19 of 36 sit exactly there.
-  Where a chip would land on a tile, on a label or on another chip it slides along its own path
-  first, because a chip that has moved along its line is still unambiguously on that line, and
-  steps off the line only when sliding cannot clear the obstruction. Worst slide along the
-  path, 60px on `instance of` for `cs2->st2`, whose midpoint lands on an instructor's name;
-  worst offset from the midpoint before, 134.4px, on the chip that had left its edge entirely.
+- Verb chips are placed on their own edges again, #14. The old search offered nine fixed points
+  along the curve, took whichever collided least, and stepped vertically when none was clean, so
+  `claims against` finished 133.8px below its own edge naming nothing. Measured from the shipped
+  `graph.js`: worst distance from a chip's centre to its own edge was 133.8px before and 6.0px
+  after, against a half chip height of 6.5px.
+- Each chip starts at the midpoint of its edge by arc length, and 19 of 36 sit exactly there.
+  Where a chip would land on a tile, a label or another chip it slides along its own path first,
+  because a chip that has moved along its line is still unambiguously on that line, and steps off
+  the line only when sliding cannot clear the obstruction.
 - The choice is a cost, not a rule: 20 per px of overlap, 1 per px slid along the path, 3 per px
-  stepped off it, and overlap counted as depth of penetration rather than as a count of boxes
-  hit. Counting boxes is what made the old placement brittle, since clipping a padding margin
-  by a pixel scored the same as printing a verb across a name, and the cheapest escape from
-  either was to leave.
+  stepped off it, with overlap counted as depth of penetration rather than as a count of boxes
+  hit. Lesson in KAIZEN.md.
 - A build gate refuses to write a drawing in which any chip centre is further from its own edge
-  than half a chip height, and the build prints the two worst chips by name. This is the same
-  class of defect as a label leaving its lane: the page renders either way, so a diff cannot
-  catch it and only a measurement can.
+  than half a chip height, and the build prints the two worst chips by name. Same class as a label
+  leaving its lane: the page renders either way, so only a measurement can catch it.
 
 ### Changed, header and board
 
-- The header subtitle is per view, issue #15. It sits above both views and only ever described
-  the drawing. One sentence each now, and the dummy-values badge, the type legend and the
-  `ghosts` toggle are dropped on the board rather than reworded, since all three qualify the
-  drawing and nothing on the board.
-- Board cards are ordered by issue number ascending, issue #16, which is the order they were
-  filed in and the only order `board.json` supports: it carries no dates, and a number never
-  changes, so the same issues land in the same places on every build.
-- Label chips use the page's own neutral token instead of a hue hashed from the label text. The
-  hash invented a colour per label from a palette nothing else on the page uses, and a colour
-  that means nothing is a colour a reader has to learn and then discard.
-- A card no longer reprints its `status:` label. That label is what put the card in its column,
-  so printing it again says the same thing twice and offers a second place to check it. The
-  column heading owns the fact.
-- An empty column keeps its heading and its zero and says `no issues`, on a dashed outline with
-  no panel fill, so that a column holding nothing does not read as a card that failed to load.
+- The header subtitle is per view, #15. It sat above both views and only ever described the
+  drawing. The dummy-values badge, the type legend and the `ghosts` toggle are dropped on the
+  board rather than reworded, since all three qualify the drawing and nothing on the board.
+- Board cards are ordered by issue number ascending, #16, which is the order they were filed in
+  and the only order `board.json` supports: it carries no dates, and a number never changes.
+- Label chips use the page's own neutral token instead of a hue hashed from the label text. A
+  colour that means nothing is a colour a reader has to learn and then discard.
+- A card no longer reprints its `status:` label. That label is what put the card in its column, so
+  printing it again offers a second place to check one fact. The column heading owns it.
+- An empty column keeps its heading and its zero and says `no issues`, on a dashed outline with no
+  panel fill, so that a column holding nothing does not read as a card that failed to load.
 - The meta line links back to the issue list, taken from a card's own URL and only if it is a
   `github.com` issue address, so the link cannot be redirected by editing `board.json`. It also
-  states plainly what the view is: nothing here is editable and there is no drag and drop.
+  states plainly that nothing here is editable and there is no drag and drop.
 
 ### Added, keyboard
 
-- The diagram is walked from the keyboard in reading order, issue #17. Nodes are drawn in rows
-  and left to right inside a row, which is also the tab order, since tab order is document
-  order and no two nodes overlap. Enter or Space selects, Escape clears, and the focus ring is
-  the blue the header buttons already use.
-- Escape is untouched in the capture phase. `feedback.js` takes Escape there while its capture
-  mode is on and stops it, so the Escape that leaves capture mode never also throws away the
-  selection the note is about; the diagram's own handler stays in the bubble phase and only
-  ever sees the Escapes capture mode did not want.
+- The diagram is walked from the keyboard in reading order, #17. Nodes are drawn in rows and left
+  to right inside a row, which is also the tab order, since tab order is document order and no two
+  nodes overlap. Enter or Space selects, Escape clears.
+- Escape is untouched in the capture phase. `feedback.js` takes Escape there while capture mode is
+  on and stops it, so the Escape that leaves capture mode never also throws away the selection the
+  note is about.
 
 ### Considered and not done
 
-- The `cohort and students` lane is visibly emptier than its neighbours: two nodes against five
-  to seven. It stays, issue #18, closed as not planned. Merging it into `enrolment to claim`
-  would close the gap and change what the drawing asserts, because a lane is the claim that
-  everything inside it is one kind of thing, and a cohort and a student group are not part of
-  the money chain. The emptiness is honest. That stage of the model really is thin, and a
-  reader who notices the gap has read something true off the page. Recorded here so that it is
-  not refiled as a defect the next time somebody looks at the drawing.
+- The `cohort and students` lane is visibly emptier than its neighbours, two nodes against five to
+  seven. It stays, #18, closed as not planned. Merging it into `enrolment to claim` would close
+  the gap and change what the drawing asserts, because a lane is the claim that everything inside
+  it is one kind of thing, and a cohort and a student group are not part of the money chain. The
+  emptiness is honest: that stage of the model really is thin.
 
 ### Fixed, narrow viewport
 
-- `site/app.css` no longer holds a copy of the drawing's width, issue #10. `app.js` writes
-  `--drawing-w` on `#canvas` from `G.w` on every draw, and the narrow viewport rule reads
-  `min-width: var(--drawing-w, 100%)`. Written per draw rather than once because the two
-  cohort view is laid out separately and need not be the same width as the default one.
-  Proved against a copy of `graph.js` with the two widths changed to 1500 and 1700: at 390px
-  the canvas's scroll extent followed to 1520 and 1720, and the stylesheet was not touched.
-  The fallback is `100%`, which is the right box for a canvas with no drawing laid into it.
+- `site/app.css` no longer holds a copy of the drawing's width, #10. `app.js` writes `--drawing-w`
+  on `#canvas` from `G.w` on every draw and the narrow viewport rule reads it, with `100%` as the
+  fallback. Proved against a copy of `graph.js` with the widths changed. Lesson in KAIZEN.md.
 - `build/build_layout.py` refuses to write `site/graph.js` while `site/app.css` contains the
-  literal width of either drawing. Proved in both directions: with `min-width: 1230px` put
-  back the build exits 1 and names the view, with the custom property it exits 0 and
-  `graph.js` is byte identical. The check does not use `\b`, because in `1230px` there is no
-  word boundary between the `0` and the `p` and the first version of it passed the very form
-  the number takes in a stylesheet.
-- The scroll that keeps a selected node in view took both its offset and its limit from the
-  svg box instead of the canvas, issue #9. The drawing does not start at the canvas's scroll
-  origin, since the canvas is padded, and the scroll extent is the canvas's own `scrollWidth`.
-  At 390px the computed maximum was 855 against a real 875, so through that path the last 20px
-  of the drawing could not be reached. Both numbers now come from the element that scrolls.
+  literal width of either drawing, proved in both directions. The check does not use `\b`, because
+  in `1230px` there is no word boundary between the `0` and the `p` and the first version of it
+  passed the very form the number takes in a stylesheet.
+- The scroll that keeps a selected node in view took both its offset and its limit from the svg
+  box instead of the canvas, #9. The drawing does not start at the canvas's scroll origin and the
+  extent is the canvas's own `scrollWidth`; at 390px the computed maximum was 855 against a real
+  875, so the last 20px could not be reached through that path.
 
 ### Measured, not changed
 
-- Issue #9, the drawing cut off at the right edge on a narrow viewport, does not reproduce.
-  The canvas has scrolled sideways below the 760px breakpoint since 38a53fb, which is the tree
-  the issue was verified against. Scrolled fully right, the rightmost drawn element sits at
-  352px inside a 375px canvas, at 390x844, with the second cohort off and on; the same holds
-  at every width from 320px to 1440px. The issue reports what a screenshot of a scrolling
-  canvas looks like, since a screenshot cannot scroll.
-- The screenshots that appeared to confirm it are a headless Chrome artefact and not a layout
-  fault. `--dump-dom` and JavaScript run in a window no narrower than 500px whatever
-  `--window-size` says, while `--screenshot` captures at the requested width. A scroll driven
-  from the page therefore lands at the 500px maximum and the capture then relays out at 390px,
-  leaving the drawing 100px short of its right edge. Measuring instead inside an iframe fixed
-  at 390px puts the scroll and the capture in one layout, and the right edge is whole.
+- Issue #9, the drawing cut off at the right edge on a narrow viewport, does not reproduce. The
+  canvas has scrolled sideways below the 760px breakpoint since 38a53fb, the tree the issue was
+  verified against, and scrolled fully right the rightmost drawn element sits at 352px inside a
+  375px canvas at 390x844, and at every width from 320px to 1440px.
+- The screenshots that appeared to confirm it are a headless Chrome artefact, not a layout fault.
+  Measuring inside an iframe fixed at 390px puts the scroll and the capture in one layout, and the
+  right edge is whole. Lesson in KAIZEN.md.
 
 ## [0.2.2] - 2026-08-09
 
@@ -779,62 +400,45 @@ The gate is shown failing on the defect it was written for, and stops reading th
 ### Fixed
 
 - **`scripts/check_repo.sh` reported `VERDICT: clean` on a repository that still carried a real
-  surname.** The name rule was never at fault: the token was in the hash list, the salt and the
-  truncation are one shared copy, `.sh` files are scanned like any other, and folding leaves the
-  token intact. The gate was reading the wrong bytes. `git ls-files` names paths and everything
-  after it read those paths off the **disk**, which is the one copy of a tracked file that is
-  not the repository. The index is what the next commit carries and HEAD is what the repository
-  already carries; a correction that lives only as an uncommitted edit makes all three disagree,
-  and that was the state. The gate answered "these files are clean" and was read as answering
-  "this repository is clean". A false assurance, not a gap, and worse than a gap. HANSEI.md,
-  seventh entry.
-- `scan_snapshots` closes it. For every tracked path whose index copy differs from the disk, the
-  index copy is scanned too, and likewise HEAD's, and a finding names which snapshot it came
-  from. In CI the three are identical after a checkout, so it finds nothing there; the false
-  clean happened locally, which is where a gate is read most often and trusted most casually.
+  surname.** The name rule was never at fault; the gate was reading the disk, which is the one
+  copy of a tracked file that is not the repository. A false assurance, not a gap, and worse than
+  a gap. HANSEI.md, seventh entry.
+- `scan_snapshots` closes it: for every tracked path whose index copy differs from the disk, the
+  index copy is scanned too, and likewise HEAD's, and a finding names which snapshot it came from.
 - A tracked path deleted from the disk took the whole gate down with exit 123, because
-  `git ls-files -z | xargs -0 stat` fails and `set -e` does the rest. The byte total is now
-  summed file by file, and the deleted path is caught through its index copy, which is the copy
-  that matters.
+  `git ls-files -z | xargs -0 stat` fails and `set -e` does the rest. The byte total is now summed
+  file by file, and the deleted path is caught through its index copy, which is the copy that
+  matters.
 
 ### Added
 
 - Three permanent probes in `scripts/check_repo.sh --self-test`, one per way this defect could
-  come back. A real name in the worked example in `gen_forbidden_hashes.sh`, scanned as that
-  path with that file's declarations active. A real name in `check_repo.sh` itself. And a name
-  staged for commit while absent from the disk, in a throwaway repository the test builds,
-  asserting both halves: that the disk scan finds nothing and that the snapshot scan finds it.
-  Every name in every probe is invented. The self-test is 27 cases, up from 24.
+  come back, listed in HANSEI.md's seventh entry. Every name in every probe is invented. The
+  self-test is 27 cases, up from 24.
 - `probe_at`, which runs a probe as though its payload sat at a named path, so a probe can prove
-  that being one of the gate's own files licenses nothing. That was the excuse this defect
-  nearly got away with.
-- `FORBIDDEN_ORIGIN` in `scripts/forbidden_lib.sh`, the prefix that makes a finding say whether
-  it came off the disk, out of the index, or out of HEAD.
+  that being one of the gate's own files licenses nothing. That was the excuse this defect nearly
+  got away with.
+- `FORBIDDEN_ORIGIN` in `scripts/forbidden_lib.sh`, the prefix that makes a finding say whether it
+  came off the disk, out of the index, or out of HEAD.
 
 ### Changed
 
-- `README.md` and `TPS.md` described a page that makes no outbound request. Since the feedback
-  port in `2093f4e` that is false. Corrected precisely rather than hedged: on load the page
-  makes one same origin fetch of `board.json` and no third party request; a visitor who has
-  stored **their own** fine grained token in **their own** browser and deliberately files causes
-  exactly one `POST`, to `api.github.com` and no other host; with no token stored the flow
-  degrades to a prefilled `github.com` issue URL in a new tab. No credential is shipped in the
-  source, and `scripts/check_forbidden.sh` would fail the deploy on one. A doctrine file that
-  overstates its own safety is the same class of defect as a gate that reports clean while a
-  name is in the tree.
+- `README.md` and `TPS.md` described a page that makes no outbound request, which the feedback
+  port in `2093f4e` made false. Corrected precisely rather than hedged: one same origin fetch of
+  `board.json` on load and no third party request; exactly one `POST` to `api.github.com` when a
+  visitor who has stored their own token deliberately files; a prefilled `github.com` issue URL
+  otherwise. A doctrine file that overstates its own safety is the same class of defect as a gate
+  that reports clean while a name is in the tree.
 
 ### Security
 
-- The rule this leaves behind, and it is the one worth carrying to the next repository: **a gate
-  is not accepted until it has been demonstrated failing on the real defect it was written for**.
-  Not on a synthetic payload resembling it. On the actual bytes, restored into a scratch copy,
-  exiting non-zero and naming what it found. A gate that has only ever been observed passing has
-  not been observed at all.
-- **Still open.** The surname remains in nine ancestor commits of `main`, and an earlier one in
-  the first commit. `HEAD`, the index and the working tree are clean and the gate now covers all
-  three, so nothing new can be committed carrying a name. Rewriting history is a decision with a
-  blast radius that belongs to a person; it is recorded here and in HANSEI.md rather than done
-  quietly.
+- The rule this leaves behind, and the one worth carrying to the next repository: **a gate is not
+  accepted until it has been demonstrated failing on the real defect it was written for.**
+  HANSEI.md, seventh entry.
+- **Still open.** The surname remains in nine ancestor commits of `main`, and an earlier one in the
+  first commit. `HEAD`, the index and the working tree are clean and the gate covers all three, so
+  nothing new can be committed carrying a name. Rewriting history is a decision with a blast radius
+  that belongs to a person; it is recorded rather than done quietly.
 
 ## [0.2.1] - 2026-08-09
 
@@ -842,63 +446,53 @@ The gate learns about the half of the repository it was never able to see.
 
 ### Removed
 
-- A real surname from a comment in `scripts/gen_forbidden_hashes.sh`, where it stood as the
-  worked example of how a register filename is split into a person and an employer. The
-  example is now an invented name, and the explanation, which is the useful part, is
-  unchanged. The finding is the irony: the only tracked file in this repository carrying a
-  real name was the script whose sole purpose is keeping them out of it. **Not an exposure.**
-  Pages publishes `site/` and nothing else, `scripts/` returns 404 on the live origin, and that
-  was verified rather than assumed. A near miss, written up as one in HANSEI.md.
+- A real surname from a comment in `scripts/gen_forbidden_hashes.sh`, where it stood as the worked
+  example of how a register filename is split. The example is now an invented name and the
+  explanation is unchanged. Not an exposure: Pages publishes `site/` and nothing else, and that
+  was verified against the origin rather than assumed. HANSEI.md, sixth entry.
 
 ### Added
 
-- `scripts/check_repo.sh`, the repository-side gate, and the reason this release exists. It
-  scans every file `git ls-files` reports, not just `site/`, against the same salted hash list
-  in `scripts/forbidden_names.sha256`, and fails the build. It reports a matched name by file
-  and line number with the token withheld, the opposite of the origin gate and for the opposite
-  reason: there the name is already public, here it is not, and a CI log must not be the place
-  it becomes public.
-- `.github/workflows/repo-gate.yml`, which runs it on every push and every pull request. Its
-  own concurrency group, not `pages`: it deploys nothing and must never queue behind a deploy.
-- `scripts/check_repo.sh --self-test`, which the workflow runs first. One synthetic payload per
+- `scripts/check_repo.sh`, the repository-side gate and the reason this release exists. It scans
+  every file `git ls-files` reports, not just `site/`, against the same salted hash list, and
+  fails the build. It reports a matched name by file and line number with the token withheld, the
+  opposite of the origin gate and for the opposite reason: there the name is already public, here
+  it is not, and a CI log must not be the place it becomes public.
+- `.github/workflows/repo-gate.yml`, which runs it on every push and every pull request, in its
+  own concurrency group and not `pages`, because it deploys nothing and must never queue behind a
+  deploy.
+- `scripts/check_repo.sh --self-test`, which the workflow runs first: one synthetic payload per
   rule that must trip, including a real name against a synthetic hash list; payloads that must
-  not, including the two declared invented figures, a firm name containing the token `Company`,
-  a fractional-second timestamp reading as a Spanish grouped figure, and an ordinary CSS
-  decimal; and probes that the declared self-matches are exact, that a stale declaration fails
-  the run, that a declaration naming the real-name rule is rejected, and that an empty file
-  list aborts instead of reporting clean.
-- A table of declared self-matches in `check_repo.sh`, which is how the gate scans its own
-  source without a blanket exclusion. The gate's files carry the rule literals by construction:
-  the banned-word table, the currency mark inside the money pattern, the self-test's synthetic
-  address and UUID. Each is declared as one exact triple of rule, path and matched string, and
-  a triple licenses only itself: the same word in another file, a second address in the same
-  file, or the same string under another rule all still fail. Skipping the files was rejected,
-  because a skipped file is where the next one of these hides and this one hid in the gate.
+  not, including the two declared invented figures, a firm name containing the token `Company`, a
+  fractional-second timestamp reading as a Spanish grouped figure, and an ordinary CSS decimal;
+  and probes that the declared self-matches are exact, that a stale declaration fails the run,
+  that a declaration naming the real-name rule is rejected, and that an empty file list aborts.
+- A table of declared self-matches in `check_repo.sh`, which is how the gate scans its own source
+  without a blanket exclusion. Each is one exact triple of rule, path and matched string, and a
+  triple licenses only itself. Skipping the files was rejected, because a skipped file is where
+  the next one of these hides and this one hid in the gate. HANSEI.md, sixth entry.
 
 ### Changed
 
-- The rules themselves (the banned words, the money pattern and its allowed figures, the
-  timestamp mask, the identifier patterns) and the per-file scan that applies them moved into
-  `scripts/forbidden_lib.sh`. Both gates now share one copy, so a rule proved by either
-  self-test is the rule that runs in both, and neither can drift. `check_forbidden.sh` carries
-  no rule literal of its own any more; its behaviour is unchanged and its self-test still
-  passes every case.
-- `.github/workflows/board.yml` runs the repository gate on the rendered tree **before** it
-  commits `site/board.json`. That commit carries `[skip ci]`, so it is the one path that
-  reaches `main` without a push-triggered check, and a board rendered from an issue title had
-  no repository-side gate in front of it until now.
-- `README.md` and `TPS.md` describe three gates rather than two, and TPS.md states the scope
-  limit that caused this: a gate on the public surface answers a different question from a gate
-  on the repository, and the first does not imply the second.
+- The rules themselves, the banned words, the money pattern and its allowed figures, the timestamp
+  mask and the identifier patterns, plus the per-file scan that applies them, moved into
+  `scripts/forbidden_lib.sh`. Both gates share one copy, so a rule proved by either self-test is
+  the rule that runs in both, and neither can drift. `check_forbidden.sh` carries no rule literal
+  of its own any more and its behaviour is unchanged.
+- `.github/workflows/board.yml` runs the repository gate on the rendered tree **before** it commits
+  `site/board.json`. That commit carries `[skip ci]`, so it is the one path that reaches `main`
+  without a push-triggered check.
+- `README.md` and `TPS.md` describe three gates rather than two, and TPS.md states the scope limit
+  that caused this: a gate on the public surface answers a different question from a gate on the
+  repository, and the first does not imply the second.
 
 ### Fixed
 
 - Both gates' `cleanup` trap ended on a failed test when there was no temporary directory to
-  remove, and a bash EXIT trap hands its own status to the shell. `check_repo.sh` printed
-  `VERDICT: clean` and exited 1 on a clean tree; the same latent defect sat in
-  `check_forbidden.sh`, unreached because every path through it sets the directory first. Both
-  traps now `return 0`. A gate that fails on clean gets switched off by the third person it
-  blocks.
+  remove, and a bash EXIT trap hands its own status to the shell, so `check_repo.sh` printed
+  `VERDICT: clean` and exited 1 on a clean tree. The same latent defect sat in
+  `check_forbidden.sh`, unreached. Both traps now `return 0`. A gate that fails on clean gets
+  switched off by the third person it blocks.
 
 ### Security
 
@@ -908,75 +502,69 @@ The gate learns about the half of the repository it was never able to see.
 
 ## [0.2.0] - 2026-08-09
 
-The discipline arrives: the production system this artefact is built under is written down,
-the board is real, and the safety gate reads what the public reads.
+The discipline arrives: the production system this artefact is built under is written down, the
+board is real, and the safety gate reads what the public reads.
 
 ### Added
 
-- `TPS.md`, `KAIZEN.md`, `HANSEI.md` and this file. TPS.md states which Toyota principles
-  changed a decision here and which one was rejected and why. KAIZEN.md is the improvement
-  loop, the five standing defects and the reflection step. HANSEI.md is five incidents written
-  up honestly, the first of which is why any of this exists.
+- `TPS.md`, `KAIZEN.md`, `HANSEI.md` and this file. TPS.md states which Toyota principles changed
+  a decision here and which one was rejected and why. KAIZEN.md is the improvement loop and the
+  reflection step. HANSEI.md is five incidents written up honestly, the first of which is why any
+  of this exists.
 - `scripts/check_forbidden.sh`, the andon cord. It runs after every deploy, takes its file list
-  from `site/`, fetches each of those paths from the public origin over HTTP, and fails the job
-  on a real name from the teaching register, a euro-formatted figure other than the two
-  invented ones, `collection://`, a UUID, an email address, or any of the words that would name
-  a vendor architecture. It asserts a non-zero file count, a non-zero byte count and a
-  non-empty hash list before it scans, so it cannot report clean on nothing.
+  from `site/`, fetches each of those paths from the public origin over HTTP, and fails the job on
+  a real name from the teaching register, a euro-formatted figure other than the two invented
+  ones, `collection://`, a UUID, an email address, or any of the words that would name a vendor
+  architecture. It asserts a non-zero file count, a non-zero byte count and a non-empty hash list
+  before it scans, so it cannot report clean on nothing.
 - `scripts/check_forbidden.sh --self-test`, one synthetic payload per rule, each of which must
   trip the gate, plus a payload that must not and an empty directory that must abort. Both
   workflows run it beside the live check, so a run reporting clean also means the rules ran.
-- `scripts/forbidden_lib.sh` and `scripts/gen_forbidden_hashes.sh`. The names of people who
-  have taught for the company are never committed here. The generator reads the vault register
-  locally and writes `scripts/forbidden_names.sha256`, one salted truncated hash per name
-  token; the checker folds the deployed bytes the same way and compares. 87 people, 137 tokens.
-  What that buys is obscurity rather than secrecy, and the generator says so in its own header.
+- `scripts/forbidden_lib.sh` and `scripts/gen_forbidden_hashes.sh`. The names of people who have
+  taught for the company are never committed here: the generator reads the vault register locally
+  and writes `scripts/forbidden_names.sha256`, one salted truncated hash per name token, and the
+  checker folds the deployed bytes the same way. 87 people, 137 tokens. What that buys is
+  obscurity rather than secrecy, and the generator says so in its own header.
 - `scripts/sync_board.mjs`, which renders GitHub Issues into `site/board.json` as four columns:
-  Raw, Backlog, In progress, Done. A `status:` label decides the column and nothing infers one;
-  an unlabelled issue lands in Raw. No triage step, no model call, no external dependency.
+  Raw, Backlog, In progress, Done. A `status:` label decides the column and nothing infers one. No
+  triage step, no model call, no external dependency.
 - `.github/workflows/board.yml`. Fires on issue events and manual dispatch, syncs, commits
   `site/board.json` with `[skip ci]` if it changed, deploys Pages, then runs the gate. Actions
   pinned by SHA. Concurrency group `pages` shared with the deploy workflow, with
-  `cancel-in-progress: false`, because a true value there silently cancels deploys with zero
-  steps run and the run still reads as finished.
-- Five issues for the five standing defects, labelled and on the board: the diagram does not
-  fit one screen, the right half of the canvas is empty, instructors and session templates are
-  interleaved, eight object types have no populate route, and the toy carries no measured
-  values by design. The last of those is a constraint on the board rather than work, so that
-  changing it is a decision somebody takes rather than a convenience somebody reaches for.
+  `cancel-in-progress: false`, because a true value there silently cancels deploys with zero steps
+  run and the run still reads as finished.
+- Five issues for the five defects and constraints known at the time, labelled and on the board:
+  the diagram does not fit one screen, the right half of the canvas is empty, instructors and
+  session templates are interleaved, eight object types have no populate route, and the toy
+  carries no measured values by design. The last is a constraint rather than work.
 - Labels `status:raw`, `status:backlog`, `status:in-progress`, `status:done`, plus `layout`,
   `model` and `limitation`.
 
 ### Changed
 
-- `.github/workflows/pages.yml` runs the gate after the deploy, states its concurrency
-  behaviour explicitly instead of inheriting it, and refuses to run on the board bot's own
-  commit. `[skip ci]` on that commit is the primary guard; the committer check is the second
-  line, for the day the marker is dropped by a squash or a policy.
+- `.github/workflows/pages.yml` runs the gate after the deploy, states its concurrency behaviour
+  explicitly instead of inheriting it, and refuses to run on the board bot's own commit.
+  `[skip ci]` on that commit is the primary guard; the committer check is the second line, for the
+  day the marker is dropped by a squash or a policy.
 
 ### Fixed
 
-- The gate fired on the first `site/board.json` ever written, and was right to. A full ISO
-  timestamp ends `...46.932Z`, and `46.932` is a grouped figure in Spanish money notation, so
-  the money rule read the board's own `generated` field as an undeclared euro amount. Two
-  changes, in this order: `sync_board.mjs` emits second precision, dropping a field nobody
-  needs rather than loosening a safety rule to let a cosmetic one through; and both gates now
-  blank timestamps out of the copy the money pattern sees, so the rule cannot be tripped by a
-  timestamp anywhere else either. The mask is anchored on digits and separators, so no euro
-  figure can hide inside one, and the self-test proves that in both directions.
-
-- The board workflow's rebase-retry path re-runs `sync_board.mjs`, which calls `gh`, and the
-  token was scoped to the render step only. Two runs fired by one relabel raced on the first
-  board edit ever made; the loser rebased and the re-sync died for want of the token. It failed
-  loudly rather than committing an empty board, which is the assertion in `fetchIssues` doing
-  its job, but the run was red for a reason unrelated to the board. The token is now on both
-  steps.
+- The gate fired on the first `site/board.json` ever written, and was right to: a full ISO
+  timestamp ends `...46.932Z`, which is a grouped figure in Spanish money notation, so the money
+  rule read the board's own `generated` field as an undeclared amount. Two changes, in this order:
+  `sync_board.mjs` emits second precision, dropping a field nobody needs rather than loosening a
+  safety rule for a cosmetic one; and both gates blank timestamps out of the copy the money
+  pattern sees, anchored on digits and separators so no figure can hide inside one.
+- The board workflow's rebase-retry path re-runs `sync_board.mjs`, which calls `gh`, and the token
+  was scoped to the render step only, so two runs fired by one relabel raced and the loser's
+  re-sync died for want of the token. It failed loudly rather than committing an empty board,
+  which is the assertion in `fetchIssues` doing its job. The token is now on both steps.
 
 ### Removed
 
-- One real surname from `BANNED_WORDS` in `build/safety_grep.py`. It was already produced by
-  the faculty register that the same function reads, so the literal added no coverage and did
-  add a real name to a tracked file.
+- One real surname from `BANNED_WORDS` in `build/safety_grep.py`. It was already produced by the
+  faculty register that the same function reads, so the literal added no coverage and did add a
+  real name to a tracked file.
 
 ### Security
 
@@ -989,6 +577,6 @@ the board is real, and the safety gate reads what the public reads.
 Initial commit. A toy instance diagram of the Zrive operating data model: 11 object types, 26
 objects, 32 edges, one screen, invented values only. Coordinates computed at build time by a
 degenerate Sugiyama layout in `build/build_layout.py` and shipped as data, so the browser only
-draws and every reader sees the same picture. No framework, no build step for the site itself,
-no CDN, no web font, no runtime request of any kind. `build/safety_grep.py` is the local gate
-that runs against `site/` before a push.
+draws and every reader sees the same picture. No framework, no build step for the site itself, no
+CDN, no web font, no runtime request of any kind. `build/safety_grep.py` is the local gate that
+runs against `site/` before a push.

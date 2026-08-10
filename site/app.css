@@ -23,6 +23,13 @@
   --fg-muted: #5f6b7c;
   --rule: rgba(17, 20, 24, 0.15);
   --rule-muted: rgba(17, 20, 24, 0.10);
+  /* The dots of the canvas ground. Quieter than --rule-muted on purpose: the grid has to say
+     "this plane continues" and nothing else, and a grid a reader can count is a grid competing
+     with the drawing on it. One token, because the day this site grows a dark theme the grid
+     follows it from here and from nowhere else. There is no dark theme today: no rule in this
+     file answers prefers-color-scheme, so a second palette for the grid alone would be the only
+     dark thing on a light page. */
+  --grid-dot: rgba(17, 20, 24, 0.17);
   --tint-hover: rgba(143, 153, 168, 0.15);
   --rule-select: rgba(45, 114, 210, 0.45);
   --tint-warning: rgba(200, 118, 25, 0.10);
@@ -162,19 +169,105 @@ h1 {
 
 /* ---- canvas ------------------------------------------------------------- */
 
+/* The canvas is a viewport onto a plane, not a box holding a picture. It never scrolls: what
+   used to be a scroll is now the view moving over the drawing, which is what app.js writes into
+   the svg's viewBox. Everything below follows from that.
+
+   The dot grid is drawn here rather than inside the svg, and that is the whole reason it reads
+   as canvas at every zoom. A pattern inside the drawing would be in the drawing's own units, so
+   zooming in would fatten the dots until they were blobs and zooming out would thin them to
+   nothing. Here the dot is a fixed size in screen pixels and only the spacing moves:
+   --grid-step is the spacing app.js chooses so the dots stay between 22 and 44 pixels apart at
+   every zoom, and --grid-x/--grid-y are the pan, so the ground translates with the drawing on
+   it. Both are written from the same three numbers as the viewBox, so the grid and the drawing
+   cannot disagree about where the plane is.
+
+   touch-action: none is what makes one finger pan rather than scroll the page. It is scoped to
+   this box: the header, the footer, the detail panel and the whole board view keep the
+   browser's own touch behaviour. user-select: none is for the mouse: without it a drag across
+   the drawing selects the label text it passes over. */
 #canvas {
   flex: 1 1 auto;
   min-height: 0;
-  padding: 6px 14px 0;
+  position: relative;
+  padding: 0;
   overflow: hidden;
-  -webkit-overflow-scrolling: touch;
+  cursor: grab;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  --grid-step: 32px;
+  --grid-x: 0px;
+  --grid-y: 0px;
+  background-image: radial-gradient(circle at center,
+    var(--grid-dot) 0, var(--grid-dot) 1px, transparent 1.15px);
+  background-size: var(--grid-step) var(--grid-step);
+  background-position: var(--grid-x) var(--grid-y);
 }
+
+#canvas.panning { cursor: grabbing; }
+
+/* Capture mode owns the cursor everywhere, and the grab hand above is specific enough to have
+   taken this box back off it. Say so here rather than let the two fight. */
+body.fb-mode #canvas { cursor: crosshair; }
 
 #graph {
   display: block;
   width: 100%;
   height: 100%;
 }
+
+/* ---- the view control ----------------------------------------------------
+   The way back. An infinite canvas with no way home is the classic defect of the feature, so
+   the control is on the canvas rather than in the header: it sits in the corner of the thing it
+   acts on, it is visible before anybody is lost, and `fit` says in a word what it does. The
+   readout beside it is the distance from home, where 100% is the whole drawing on screen, and
+   `fit` goes bold and blue the moment the view is anywhere else, which is the state a reader
+   needs a way out of. It is inside #canvas, so it is gone with the diagram on the board view
+   and needs no rule of its own there. */
+.zoomctl {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  background: var(--bg-panel);
+  border: 1px solid var(--rule-muted);
+  border-radius: var(--radius);
+  box-shadow: var(--elev-1);
+  overflow: hidden;
+}
+
+.zbtn {
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--fg-muted);
+  background: transparent;
+  border: 0;
+  padding: 3px 9px;
+  cursor: pointer;
+  line-height: 1.3;
+}
+
+.zbtn:hover { background: var(--tint-hover); color: var(--fg-body); }
+.zbtn:focus-visible { outline: 2px solid var(--i-primary); outline-offset: -2px; }
+
+.zlevel {
+  padding: 3px 2px;
+  min-width: 42px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+#zoomfit {
+  border-left: 1px solid var(--rule-muted);
+  padding: 3px 10px;
+}
+
+#zoomfit.away { color: var(--i-primary); font-weight: 600; }
 
 /* ---- column bands -------------------------------------------------------- */
 
@@ -735,16 +828,20 @@ body.fb-mode .fb-popover select { cursor: pointer; }
 .bnote b { color: var(--fg-body); font-weight: 600; }
 
 @media (max-width: 760px) {
-  body { height: auto; overflow: visible; }
-  #canvas { overflow-x: auto; overflow-y: hidden; padding: 6px 10px 0; }
-  /* Below the fit-to-screen breakpoint the drawing keeps its designed size and the canvas
-     scrolls sideways, rather than being shrunk until its labels stop being readable.
-     --drawing-w is the width the build computed for the drawing on screen, written on #canvas
-     by app.js on every draw. The number is not repeated here: a copy of it would go stale the
-     first time a column changes width, and the symptom would be a canvas that stops short of
-     the drawing or scrolls past it into blank space, on narrow viewports only. The fallback is
-     100%, which is what the box should be when no drawing has been laid into it. */
-  #graph { min-width: var(--drawing-w, 100%); height: auto; }
+  /* The page scrolls on the board and not on the diagram, and that split is new. The diagram is
+     a canvas at every width now: it holds one screen, the drawing moves inside it, and a page
+     that also scrolled would be a second way to move the same thing with no way to tell which
+     one a drag had asked for. The board is a column of cards and scrolls as it always has, so
+     the rule keeps its old form there and nothing about that view changes.
+
+     What went with it is the sideways scroll under the drawing. Below this breakpoint the
+     canvas used to keep the drawing at its designed size and scroll to it, reading
+     `min-width: var(--drawing-w)` off the number the build computes. Pan and zoom is that
+     mechanism generalised to both axes and to any scale, so the rule would now be a second,
+     worse way to reach the same pixels. app.js still writes --drawing-w and build_layout.py
+     still refuses to build while a copy of the number is sitting in this file; nothing in the
+     stylesheet reads the property today. Issue 46. */
+  body.board { height: auto; overflow: visible; }
   .hrow { flex-wrap: wrap; gap: 8px; }
   /* The nav has to wrap here, not only the row that holds it. The feedback toggle grows when
      the mode is on, from "feedback" to "feedback: on (Esc to exit)", and a nav that cannot
@@ -772,14 +869,13 @@ body.fb-mode .fb-popover select { cursor: pointer; }
     transform: translateY(100%);
   }
   #panel.open { transform: none; }
-  /* The sheet covers the bottom of the screen, and reveal() answers that by scrolling the node
-     up out of it. That only works if there is somewhere to scroll to: the page here is barely
-     taller than the viewport, so without this the scroll runs out after a few dozen pixels and
-     the lowest two thirds of the drawing can never be brought out from under the panel. While
-     the panel is open the canvas reserves the sheet's own height underneath the drawing, which
-     is the room reveal() then uses. It is behind the sheet, so nothing shows in it, and it
-     goes away with the selection. */
-  body.panel-open #canvas { margin-right: 0; padding-bottom: var(--sheet-h); }
+  /* The sheet covers the bottom of the screen, and reveal() answers that by bringing the node
+     up out of it. It used to do that by scrolling the page, which needed somewhere to scroll
+     to, so the canvas reserved the sheet's own height underneath the drawing. A canvas has
+     nowhere to run out of: the view pans and the plane goes on, so the reserve is gone and the
+     rule keeps only the part that was never about scrolling, which is cancelling the desktop
+     inset for the right hand rail. Issue 46, on top of issue 21. */
+  body.panel-open #canvas { margin-right: 0; }
 }
 
 /* ---- ghosts: the classes that do not exist -------------------------------
