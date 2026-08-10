@@ -43,7 +43,9 @@ NCOL = len(COL_W)
 # written as a tuple of lines rather than one string because a lane is only as wide as the
 # columns under it and a longer caption has nowhere to go sideways.
 BANDS = [
-    ([0], ("programme and employer",)),
+    # Plural since issue 49: the lane held one employer and now holds five, and a caption is a
+    # claim about everything under it.
+    ([0], ("programme and employers",)),
     ([1], ("session templates",)),
     ([2], ("instructors",)),
     ([3], ("cohort sessions", "and the visit host")),
@@ -327,11 +329,25 @@ def layout(model_nodes, model_edges, tag):
         for c in rng:
             if not cols[c]:
                 continue
-            want = {}
+            # Two nodes can want the same row exactly, and the tie used to be broken by the
+            # order they are declared in the model, which is arbitrary as far as the drawing is
+            # concerned. Issue 49 made that bite: with an employer behind every instructor, t2
+            # and t3 came out wanting exactly the same row, declaration order put t2 above t3,
+            # and the two 'teaches' edges then crossed with their midpoints on the same point,
+            # so their two verb chips were placed on top of each other.
+            #
+            # The tie is now broken by where the node's downstream neighbours sit. The drawing
+            # reads left to right, so of two nodes that want the same row the one whose
+            # right hand neighbours are higher belongs higher, and the pair of edges leaves
+            # parallel instead of crossed. It fires on exact ties only, so it can reorder
+            # nothing that the barycentre had already decided.
+            want, downstream = {}, {}
             for nid in cols[c]:
                 ys = [nodes[m]["y"] for m in adj[nid] if nodes[m]["col"] != c]
                 want[nid] = sum(ys) / len(ys) if ys else nodes[nid]["y"]
-            cols[c].sort(key=lambda n: (want[n], order.index(n)))
+                rs = [nodes[m]["y"] for m in adj[nid] if nodes[m]["col"] > c]
+                downstream[nid] = sum(rs) / len(rs) if rs else want[nid]
+            cols[c].sort(key=lambda n: (want[n], downstream[n], order.index(n)))
             pack(cols[c], c)
 
     top = min(n["y"] - n["h"] / 2 for n in nodes.values())
@@ -464,6 +480,27 @@ def layout(model_nodes, model_edges, tag):
           f"Worst offset from the midpoint {_wm:.1f}px ({_wme['v']!r} on "
           f"{_wme['s']}->{_wme['t']}); worst distance from the line itself {_wo:.1f}px "
           f"({_we['v']!r} on {_we['s']}->{_we['t']}), cap {CHIP_MAX_OFF:.1f}px")
+    # Chips are placed one at a time against the ones already down, and the placement can still
+    # be forced into a pile: if two edges cross at their own midpoints there may be nowhere for
+    # the second chip to go inside the slide and step off caps, and it settles for the least bad
+    # overlap. A verb printed over another verb is unreadable and the page still renders, so the
+    # worst pair is measured here rather than left for a reader to find. Not a gate: the cure for
+    # a pile is to stop the two lines crossing at that point, which is a layout question and not
+    # something a build should refuse over.
+    pile = []
+    for _i, _a in enumerate(edges):
+        for _b in edges[_i + 1:]:
+            _ox = (_a["cw"] + _b["cw"]) / 2 + 4 - abs(_a["cx"] - _b["cx"])
+            _oy = CH - abs(_a["cy"] - _b["cy"])
+            if _ox > 0 and _oy > 0:
+                pile.append((min(_ox, _oy), _a, _b))
+    if pile:
+        _d, _a, _b = max(pile, key=lambda r: r[0])
+        print(f"[layout:{tag}] {len(pile)} chip pair(s) overlap. Worst {_d:.1f}px: "
+              f"{_a['v']!r} on {_a['s']}->{_a['t']} against {_b['v']!r} on "
+              f"{_b['s']}->{_b['t']}", file=sys.stderr)
+    else:
+        print("  chips: no two verb chips overlap")
     return out
 
 

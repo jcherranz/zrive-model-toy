@@ -49,10 +49,92 @@ NODES = [
             p("owner", "academic team", E),
         ],
     },
+    # The five employers. Every instructor has one, and until issue 49 only t1's was drawn as a
+    # node: the other four carried their employer as a property with no node and no edge, so
+    # clicking t1 reached an object and clicking t2 to t5 reached a string. That asymmetry was
+    # in the data and not in the reader's head, and it is removed here by giving all five the
+    # same shape: a Company node in column 0 and one 'employed by' edge, same type, same three
+    # property keys in the same order, same provenance flags.
+    #
+    # co_emp keeps its id rather than becoming co_emp1. An id is the handle a feedback note
+    # writes into an issue, and issue 48 already points at [data-node="co_emp"]; renaming it
+    # would break that reference and buy nothing. The four new ones are numbered for the
+    # instructor they employ, so co_empN employs tN and co_emp employs t1.
     {
         "id": "co_emp",
         "type": "Company",
         "label": "McKinsey",
+        "props": [
+            p("role", "employer of an instructor", E),
+            p("relationship", "none commercial in this toy", D),
+            p("instructors_supplied", "1", D),
+        ],
+    },
+    {
+        "id": "co_emp2",
+        "type": "Company",
+        "label": "Houlihan Lokey",
+        "props": [
+            p("role", "employer of an instructor", E),
+            p("relationship", "none commercial in this toy", D),
+            p("instructors_supplied", "1", D),
+        ],
+    },
+    {
+        "id": "co_emp3",
+        "type": "Company",
+        "label": "Bain & Company",
+        "props": [
+            p("role", "employer of an instructor", E),
+            p("relationship", "none commercial in this toy", D),
+            p("instructors_supplied", "1", D),
+        ],
+    },
+    # The one that is not like the others. t4's employer is Zrive, the company that runs the
+    # programme the whole drawing is about, so this node is both an employer of an instructor
+    # and the operator of everything else on the page.
+    #
+    # The choice made here, deliberately: draw it as a Company exactly like the other four,
+    # with the same type and the same 'employed by' verb, and carry the difference in the data
+    # instead of in the geometry. Three reasons.
+    #
+    # First, uniformity is the point of this change and it is what the reveal rule in issue 48
+    # keys on: that rule keys on the 'employed by' link rather than on the Company type,
+    # precisely so that Aretxa Capital, a Company that hosts a visit and employs nobody, keeps
+    # behaving as it does. A fifth employer wearing a different verb or a different type would
+    # put t4 straight back into the special case this card exists to remove.
+    #
+    # Second, the difference is already recorded and stays recorded. fee_per_session on t4
+    # reads 'in scope of salary' where the other four read 'not modelled', which is the whole
+    # of what in house means here in money terms, and the role and relationship rows below say
+    # it in words rather than leaving the fee row to imply it.
+    #
+    # Third, the mark mechanism was considered for a visual distinction and rejected. A mark
+    # draws a dashed ring and a second label line, and in this model its vocabulary is
+    # missingness: the cohort carries 'no cohort_id' because its key does not exist. Nothing
+    # about Zrive is missing, so marking it would make the drawing say something false in
+    # order to say something true. A distinction drawn in the tile itself would need a new
+    # affordance in the renderer, which is app.js and not this card.
+    {
+        "id": "co_emp4",
+        "type": "Company",
+        "label": "Zrive",
+        "note": ("Zrive is the operator of the programme, not a third party like the other four "
+                 "employers. It is drawn as a Company and carries the same 'employed by' edge "
+                 "so that all five instructors read the same way, and the difference is in the "
+                 "data: this instructor is in house, which is also why fee_per_session on "
+                 "Rubén Arizmendi reads in scope of salary where the other four read not "
+                 "modelled."),
+        "props": [
+            p("role", "employer of an instructor, and the operator of the programme", E),
+            p("relationship", "runs the programme, so this instructor is in house", E),
+            p("instructors_supplied", "1", D),
+        ],
+    },
+    {
+        "id": "co_emp5",
+        "type": "Company",
+        "label": "Uría",
         "props": [
             p("role", "employer of an instructor", E),
             p("relationship", "none commercial in this toy", D),
@@ -235,7 +317,11 @@ NODES += [
 EDGES = []
 for tid, *_ in TEMPLATES:
     EDGES.append(("prog", tid, "includes"))
-EDGES.append(("t1", "co_emp", "employed by"))
+# One verb for all five, so a rule that hides an employer until its instructor is clicked can
+# key on the link and reach every one of them.
+for _t, _co in (("t1", "co_emp"), ("t2", "co_emp2"), ("t3", "co_emp3"),
+                ("t4", "co_emp4"), ("t5", "co_emp5")):
+    EDGES.append((_t, _co, "employed by"))
 for cid, _l, st, tt, *_ in COHORT_SESSIONS:
     EDGES.append((tt, cid, "teaches"))
     EDGES.append((cid, st, "instance of"))

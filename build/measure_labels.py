@@ -56,7 +56,7 @@ CHROME_CANDIDATES = [
 # text, so they are measured for the overflow check rather than for wrapping. A caption that
 # runs to more than one line is measured line by line, because that is how the check reads it:
 # a caption is only legal if every line of it fits the lane on its own.
-BANDS = ["programme and employer", "session templates", "instructors",
+BANDS = ["programme and employers", "session templates", "instructors",
          "cohort sessions", "and the visit host",
          "cohort and students", "enrolment to claim"]
 
