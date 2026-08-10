@@ -1,20 +1,10 @@
 {
-  "generated": "2026-08-10T14:53:16Z",
+  "generated": "2026-08-10T14:59:12Z",
   "columns": [
     {
       "key": "raw",
       "title": "Raw",
-      "cards": [
-        {
-          "id": 41,
-          "title": "Looks wrong, not aligned etc.",
-          "labels": [
-            "bug",
-            "feedback"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/41"
-        }
-      ]
+      "cards": []
     },
     {
       "key": "backlog",
@@ -64,7 +54,18 @@
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": []
+      "cards": [
+        {
+          "id": 41,
+          "title": "Looks wrong, not aligned etc.",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/41"
+        }
+      ]
     },
     {
       "key": "done",
