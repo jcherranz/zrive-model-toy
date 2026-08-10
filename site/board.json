@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T15:40:39Z",
+  "generated": "2026-08-10T15:45:02Z",
   "columns": [
     {
       "key": "raw",
@@ -69,16 +69,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/44"
         },
         {
-          "id": 46,
-          "title": "Make the diagram an infinite canvas: dot grid, pan and zoom",
-          "labels": [
-            "feedback",
-            "idea",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/46"
-        },
-        {
           "id": 47,
           "title": "The build id in a feedback report does not identify the deployed code",
           "labels": [
@@ -92,7 +82,18 @@
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": []
+      "cards": [
+        {
+          "id": 46,
+          "title": "Make the diagram an infinite canvas: dot grid, pan and zoom",
+          "labels": [
+            "feedback",
+            "idea",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/46"
+        }
+      ]
     },
     {
       "key": "done",
