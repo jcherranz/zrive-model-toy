@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T16:00:39Z",
+  "generated": "2026-08-10T16:24:27Z",
   "columns": [
     {
       "key": "raw",
@@ -76,16 +76,6 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/47"
-        },
-        {
-          "id": 48,
-          "title": "An instructor's employer should appear only when the instructor is clicked",
-          "labels": [
-            "feedback",
-            "layout",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/48"
         }
       ]
     },
@@ -104,14 +94,14 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/46"
         },
         {
-          "id": 49,
-          "title": "Give the other four instructors real employer nodes and edges",
+          "id": 48,
+          "title": "An instructor's employer should appear only when the instructor is clicked",
           "labels": [
-            "enhancement",
-            "model",
+            "feedback",
+            "layout",
             "status:in-progress"
           ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/49"
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/48"
         }
       ]
     },
@@ -119,6 +109,16 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 49,
+          "title": "Give the other four instructors real employer nodes and edges",
+          "labels": [
+            "enhancement",
+            "model",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/49"
+        },
         {
           "id": 45,
           "title": "Remove the selection frame drawn around a selected node",
@@ -187,19 +187,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/25"
-        },
-        {
-          "id": 24,
-          "title": "A company sits in the lane captioned cohort sessions",
-          "labels": [
-            "layout",
-            "model",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/24"
         }
       ],
-      "hidden": 21,
+      "hidden": 22,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
