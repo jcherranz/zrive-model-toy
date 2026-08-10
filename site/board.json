@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T16:43:17Z",
+  "generated": "2026-08-10T17:07:18Z",
   "columns": [
     {
       "key": "raw",
@@ -91,18 +91,7 @@
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": [
-        {
-          "id": 48,
-          "title": "An instructor's employer should appear only when the instructor is clicked",
-          "labels": [
-            "feedback",
-            "layout",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/48"
-        }
-      ]
+      "cards": []
     },
     {
       "key": "done",
@@ -117,6 +106,16 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/49"
+        },
+        {
+          "id": 48,
+          "title": "An instructor's employer should appear only when the instructor is clicked",
+          "labels": [
+            "feedback",
+            "layout",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/48"
         },
         {
           "id": 46,
@@ -177,19 +176,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/32"
-        },
-        {
-          "id": 26,
-          "title": "Capture mode pushes the board link off the right edge below 400px",
-          "labels": [
-            "bug",
-            "layout",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/26"
         }
       ],
-      "hidden": 23,
+      "hidden": 24,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
