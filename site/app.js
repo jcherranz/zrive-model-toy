@@ -886,9 +886,21 @@
 
     var dl = document.getElementById('pprops');
     dl.textContent = '';
-    n.props.forEach(function (p) {
+    n.props.forEach(function (p, i) {
       var dt = document.createElement('dt');
       dt.textContent = p.k;
+      // The first n.route rows answer how this type gets filled at all; the rest are what it
+      // would hold. Two different questions in one list, so a hairline separates them, and the
+      // build says where it goes by counting rather than by the browser recognising a key.
+      //
+      // Inline rather than a class, and that is the only reason worth stating: the stylesheet is
+      // not this card's to change, and a rule set from here is one fewer file two people are
+      // editing at once. It reads the same custom property the stylesheet's own rules read, so
+      // it follows the theme rather than pinning a colour.
+      if (n.route && i === n.route) {
+        dt.style.borderTop = '1px solid var(--rule-muted)';
+        dt.style.paddingTop = '11px';
+      }
       var dd = document.createElement('dd');
       var b = document.createElement('b');
       b.textContent = p.v;

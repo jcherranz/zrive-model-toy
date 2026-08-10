@@ -11,6 +11,35 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- Every type says how it gets filled, Issue 4. Four rows in front of each node's own properties,
+  `route_system`, `route_entered_by` and `route_event`, plus `route_source` naming the file the
+  answer was read in, grounded in the 55 entity ontology, five adversarial reviews and the read of
+  the company's workspace, none of which is in this repository. The card was reframed by the
+  owner's destination, a management tool showing every element of the funnel, which turns a
+  populate route from tidiness into the line between a type that can appear in the tool and one
+  that can only appear in a drawing of it. Of 17 classes, 8 have a route and 9 have none; nothing
+  is removed, because a management tool needs every one. `absent` covers two different absences
+  and the row text tells them apart: "none" and "no row is created" are findings, "not recorded"
+  is the analysis being silent, and nothing here is guessed to fill a gap. No person is named in a
+  role, so a route that ends when somebody leaves cannot be written down. The tile of a type no
+  system holds carries `no system holds it` under its label, derived from `route_system` and never
+  typed, so the drawing and the panel cannot disagree; 14 tiles carry it. The four ghosts get the
+  four rows and no mark, since an unfilled dashed tile whose type reads "does not exist in any
+  system" already says it twice. It costs the drawing nothing: 1230x586 before and after, because
+  the marks land in the programme, template, cohort and agreement lanes and the height is set by
+  the cohort sessions lane, which Notion holds a calendar for. The full table is on the issue.
+- The cohort's mark reads `no system holds it` and not `no cohort_id`, Issue 4. With a mark under
+  every unhoused tile, the cohort would have been the one marked tile not carrying that sentence,
+  and a reader comparing marks would have read that as the cohort having a system, which is the
+  worst single thing this page could say. The missing key is still a property row, still the first
+  line of the note, and now also the `route_system` row.
+- The barycentre tie-break fires on near ties, Issue 4, where it fired only on exact ones. Putting
+  a mark under six employer-lane tiles moved that lane by a few pixels, `t2` and `t3` came out
+  5.75px apart instead of equal, and the two `teaches` chips issue 49 separated landed back on top
+  of each other, 7.0px deep. The tolerance is `MIN_GAP`, argued rather than tuned: two tiles can
+  never sit closer than that, so a smaller difference is not a preference about rows. One adjacent
+  pass and not a re-sort, because near-tie is not transitive and a comparator built on it is not
+  an ordering. No two chips overlap again.
 - A dark theme, #55: one `@media (prefers-color-scheme: dark)` block redefining the palette on
   `:root` and nothing else, so every surface follows from one place and none of them can be
   forgotten. It answers the operating system rather than a switch in the header, because a switch

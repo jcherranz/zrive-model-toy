@@ -45,6 +45,156 @@ def p(name, value, flag):
     return {"k": name, "v": value, "f": flag}
 
 
+# ---- the populate route, one per type -----------------------------------------
+# Issue 4, reframed by the owner's stated destination: a management tool showing every item and
+# every element of the funnel. Under that objective the question a drawing of object types has to
+# answer first is not what an object's fields are. It is whether the object can be got hold of at
+# all. So every type on this page now carries three answers, and they are answered in the model
+# rather than in prose beside it, because a fact kept beside the drawing drifts from it.
+#
+#   route_system      which system holds the row.
+#   route_entered_by  who puts it there, BY ROLE and never by name.
+#   route_event       what has to happen for the row to come into existence.
+#
+# Plus route_source, which is where the answer was read. That row is not decoration. Half of what
+# is written below is an absence, an absence is the easiest thing in the world to assert and the
+# hardest to check, and a reader who cannot see where a claim came from has to take all of it or
+# none of it.
+#
+# THE THREE FLAGS DO REAL WORK HERE AND THE DIFFERENCE BETWEEN TWO OF THEM IS THE POINT OF THE
+# CARD. `estimated` is a route that was found: a system, a role or a moment the analysis records.
+# `absent` is a row that records an absence, and it covers two different absences which the text
+# of the row has to tell apart:
+#
+#   "none", "no row is created", "nobody"   the analysis establishes that nothing holds it. This
+#                                           is a finding and it is the useful half.
+#   "not recorded"                          the analysis does not say. NOT the same claim, and
+#                                           writing a plausible answer here instead would be
+#                                           worse than leaving it blank, because the whole use of
+#                                           this table is telling the two apart.
+#
+# Nothing below is guessed. Where the corpus is silent the row says so.
+#
+# WHERE IT COMES FROM. An ontology of 55 entities, five adversarial reviews and a read of the
+# company's own workspace, none of which lives in this repository: `analysis/ontology/` and
+# `analysis/notion/` in the private analysis repo, plus the company notes in the vault. The
+# route_source rows name the file and the entity, so any one of them can be gone back to.
+#
+# NO PERSON IS NAMED IN A ROLE. The sources name individuals on nearly every route. Every one is
+# written here as the role, which is what a tool has to be built against anyway: a route that
+# says a named person does it is a route that ends when they leave, and the analysis records
+# people leaving these roles. The name gate at the foot of this file would refuse the build in
+# any case, and it is right to.
+NO_SYSTEM = "no system holds it"
+
+
+def route(system, entered_by, event, source):
+    """Four rows, in the order the questions get asked, ready to sit in front of a node's own."""
+    return [p("route_system", system[0], system[1]),
+            p("route_entered_by", entered_by[0], entered_by[1]),
+            p("route_event", event[0], event[1]),
+            p("route_source", source, E)]
+
+
+# Keyed by type. A node whose instances play more than one role overrides it by id, below: the
+# five Company tiles that employ an instructor and the one that hosts a visit are the same type
+# and are not the same object, and issue 49 deliberately gave them one type and one verb. The
+# difference between them lives here, in the data, which is where that card said it would live.
+ROUTES = {
+    "Programme": route(
+        ("no registry. Four lists of programmes disagree with each other", A),
+        ("not recorded", A),
+        ("no row is created. A programme appears when last quarter's folder is copied", A),
+        "ontology.yaml, Programme, finding F25"),
+    "Company": route(
+        ("no company record. A firm is a free text name in a Notion select", A),
+        ("not recorded", A),
+        ("not recorded. No moment creates a company row", A),
+        "ontology.yaml, Company, identity key"),
+    "SessionTemplate": route(
+        ("no template object. The template is last quarter's calendar rows, copied", A),
+        ("operations", E),
+        ("when the quarter's folder is duplicated at promotion setup", E),
+        "notion 01_runbooks, Duplicar la anterior"),
+    "Instructor": route(
+        ("Notion. A collaborator directory row, and a select option on the calendar", E),
+        ("operations keeps the calendar. Who confirms an instructor is not recorded", E),
+        ("when a session is scheduled. The directory row has no recorded event", E),
+        "ontology.yaml, Instructor, finding F7"),
+    "CohortSession": route(
+        ("Notion, one session calendar per programme per quarter", E),
+        ("operations", E),
+        ("on duplicating last quarter's calendar at setup, then edited by hand", E),
+        "ontology.yaml, Session; notion 01_runbooks"),
+    "Cohort": route(
+        ("none. A cohort is the intersection of a roster, a calendar, a campus "
+         "group and a website record", A),
+        ("not recorded. Nobody is named as the owner of setting a cohort up", A),
+        ("no row is created", A),
+        "ontology.yaml, Cohort, finding F26"),
+    "StudentGroup": route(
+        ("the learning platform. A private campus group per intake, with its course", E),
+        ("not recorded. The campus manual names no owner and says we throughout", A),
+        ("created by hand, once per intake. There is no duplicate button", E),
+        "notion 01_runbooks, campus creation"),
+    "Student": route(
+        ("the applicant tracker holds an application. No person record spans the systems", E),
+        ("the student", E),
+        ("on submitting the application form", E),
+        "vault Data model, six identity spaces"),
+    "Enrolment": route(
+        ("Notion, one roster database per quarter", E),
+        ("operations, by hand", E),
+        ("when the candidate is marked hired and the roster row is typed", E),
+        "ontology.yaml, Enrolment, finding F3"),
+    "Agreement": route(
+        ("none for a standard enrolment. An income share contract is a file on a Notion row", A),
+        ("not recorded for a standard enrolment", A),
+        ("no row is created. Nothing anywhere stores what a student owes", A),
+        "ontology.yaml, PaymentPlan, finding F16"),
+    "Charge": route(
+        ("Stripe. A payment made by bank transfer leaves no row there", E),
+        ("nobody types it. Stripe writes the row when the student pays", E),
+        ("on payment through the link the acceptance email carries", E),
+        "ontology.yaml, Charge, finding F4"),
+    "Claim": route(
+        ("Notion. Hand built exception lists, one of them for two intakes. No ledger", E),
+        ("operations, row by row", E),
+        ("when operations decides to chase. There is no ageing rule", E),
+        "ontology.yaml, Listado de impagados"),
+}
+
+# Per node, where one type carries two different objects, and for every ghost, since a ghost is
+# a class of its own and four of them share one type only because they share one way of failing.
+ROUTE_BY_ID = {
+    "co_col": route(
+        ("Notion, one page per invitation. Not a database, and the visit is not recorded", E),
+        ("operations", E),
+        ("when operations invites firms for the in person weekend", E),
+        "notion 07_universities, Visitas a empresas"),
+    "g_inst": route(
+        ("none. A paid instalment is an ordinary charge; the expected schedule is nowhere", A),
+        ("nobody. Nothing writes down an expectation", A),
+        ("no row is created. A failed card leaves no row at all", A),
+        "ontology.yaml, Instalment"),
+    "g_place": route(
+        ("none, and the analysis attests it from both directions", A),
+        ("the student, under the income share contract. Nothing collects it", A),
+        ("no row is created", A),
+        "ontology.yaml, Placement, finding F38"),
+    "g_beca": route(
+        ("none. The learning platform holds an action that sends an email, not a register", A),
+        ("operations presses the action. Who presses it is not recorded", A),
+        ("on the action at acceptance. No award row is created", A),
+        "ontology.yaml, Scholarship, finding F17"),
+    "g_ref": route(
+        ("none. The processor executes them and the payment export cannot see them", A),
+        ("the student elects; operations executes and types a free text row", A),
+        ("on the student asking. It ran once as a campaign, not as a standing process", A),
+        "ontology.yaml, Refund, finding F18"),
+}
+
+
 # ---- the cohort, one row per student ----------------------------------------
 # INVENTED, ALL OF IT, AND IT HAS TO STAY THAT WAY. This page is served publicly by GitHub
 # Pages even though the repository behind it is private, and a roster is the one table on it
@@ -404,7 +554,20 @@ NODES += [
         "id": "cohort", "type": "Cohort", "label": "Z-IB 1Q26",
         # The cohort is a real thing and its key is not. It is marked rather than drawn as a
         # ghost for exactly that reason: the object exists, the identifier does not.
-        "mark": "no cohort_id",
+        #
+        # ITS MARK USED TO READ "no cohort_id" AND IT IS NOT HAND WRITTEN ANY MORE. Issue 4 put a
+        # mark under every tile whose type no system holds, all of them saying the same sentence,
+        # and this was the one tile already carrying a different one. Two marks in the same slot
+        # saying different kinds of absence is bad enough. The version of it that was actually
+        # dangerous is that the cohort would then have been the only marked tile NOT saying "no
+        # system holds it", and a reader comparing the drawing's marks would have read that as the
+        # cohort having a system, which is the single most wrong thing this page could say: the
+        # cohort having no system of record is the central finding of the whole analysis.
+        #
+        # Nothing is lost by the change. The missing key is still a property row of its own two
+        # lines below, still the first sentence of the note, and now also the route_system row,
+        # which says what the cohort is instead of a record. The mark is set by the route loop at
+        # the foot of this file, like every other one.
         "note": ("The cohort exists as a thing and its key does not. No identifier for it is "
                  "held anywhere, so a cohort can only be picked out as the intersection of a "
                  "roster, a calendar, a campus group and a record on the website."),
@@ -622,6 +785,42 @@ GHOST_EDGES = [
 TYPES = TYPES + [GHOST_TYPE]
 NODES += GHOSTS
 EDGES += GHOST_EDGES
+
+# ---- the route goes on every node, and the tiles with none say so -------------
+# In front of the object's own properties and not after them. Under the management tool objective
+# the first question about any tile is whether it can be filled at all, and the second is what it
+# would hold; a panel that answers them the other way round buries the one that decides whether
+# the second question is worth asking.
+#
+# THE MARK IS DERIVED AND NEVER TYPED. A tile carries "no system holds it" exactly when its own
+# route_system row is flagged absent, so the drawing and the panel cannot disagree about which
+# types have nowhere to live. Editing the row moves the mark; there is no second place to forget.
+#
+# GHOSTS ARE EXEMPT, AND NOT FOR TIDINESS. A ghost tile is already the strongest statement this
+# drawing makes: unfilled, dashed, italic, and its type reads "does not exist in any system" at
+# the head of the panel, which is the same sentence the mark carries. Marking it as well would
+# print the claim three times on one tile. It still gets all four route rows, because "nobody
+# writes down an expectation" and "the student, under the income share contract" are answers, and
+# a ghost with no answers recorded would be indistinguishable from a ghost nobody looked into.
+#
+# What this costs the drawing: nothing measurable. The marks land in the programme, template,
+# cohort and agreement lanes, and the drawing's height is set by the cohort sessions lane, which
+# is the tallest and carries no mark because Notion holds a session calendar.
+for _n in NODES:
+    _r = ROUTE_BY_ID.get(_n["id"]) or ROUTES.get(_n["type"])
+    if _r is None:
+        raise SystemExit(f"model: node {_n['id']} ({_n['type']}) has no populate route. Every "
+                         f"type needs one, and 'unknown' is written as a route and not omitted.")
+    if _n.get("mark"):
+        raise SystemExit(f"model: node {_n['id']} carries a hand written mark. The mark says "
+                         f"whether a system holds the type and is derived from route_system.")
+    _n["props"] = _r + _n["props"]
+    # How many of the rows at the front of the list are the route, so the panel can rule a line
+    # under them. A count and not a name: the browser never has to know that a key beginning
+    # "route_" is special, and renaming a row here cannot silently move the line.
+    _n["route"] = len(_r)
+    if _r[0]["f"] == A and not _n.get("ghost"):
+        _n["mark"] = NO_SYSTEM
 
 # ---- and the whole of it, once it is assembled ------------------------------
 # Every string this model puts on the page, through the same check the roster went through

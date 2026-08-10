@@ -29,6 +29,9 @@ GAP_X, MARGIN_X = 18, 22
 BAND_PAD, BAND_GAP = 9, 10
 TILE, GAP_LABEL, LINE_H, FONT = 34, 7, 11.5, 10.0
 MIN_GAP = 26
+# Two nodes in a column can never sit closer than this, so a barycentre difference smaller than
+# it is not a preference about rows. The near-tie repair in layout() reads it as its tolerance.
+NEAR = MIN_GAP
 NCOL = len(COL_W)
 
 # Column bands. Each is a run of columns holding one kind of thing, drawn as its own lane
@@ -358,8 +361,27 @@ def layout(model_nodes, model_edges, tag):
             # The tie is now broken by where the node's downstream neighbours sit. The drawing
             # reads left to right, so of two nodes that want the same row the one whose
             # right hand neighbours are higher belongs higher, and the pair of edges leaves
-            # parallel instead of crossed. It fires on exact ties only, so it can reorder
-            # nothing that the barycentre had already decided.
+            # parallel instead of crossed.
+            #
+            # AND IT FIRES ON NEAR TIES TOO, WHICH IT DID NOT UNTIL ISSUE 4. Restricting it to
+            # exact equality was the cautious reading and it was too narrow: putting a mark under
+            # six tiles in the employers lane moved that lane's rows by a few pixels, t2 and t3
+            # came out wanting rows 5.75px apart instead of the same row, the tie-break did not
+            # fire, and the same two 'teaches' chips landed on top of each other that issue 49
+            # had separated. A rule that only holds when two floats are bit for bit equal is a
+            # rule that stops working the next time anything anywhere moves.
+            #
+            # NEAR is MIN_GAP, in the units want is measured in, and that is the whole argument
+            # rather than a tuned constant: MIN_GAP is the closest two tiles in a column are ever
+            # allowed to sit, so a difference smaller than it cannot be a preference about which
+            # row a node belongs in. It is noise inside one row, and inside one row the downstream
+            # neighbours are the only thing with an opinion worth acting on.
+            #
+            # One adjacent pass and not a re-sort, on purpose. Near-tie is not transitive, so a
+            # comparator built on it is not an ordering and sorted() may do anything with it. A
+            # single left to right pass over neighbouring pairs is well defined, only ever swaps
+            # two nodes the barycentre had already placed side by side, and cannot move a node
+            # past one the barycentre genuinely separated it from.
             want, downstream = {}, {}
             for nid in cols[c]:
                 ys = [nodes[m]["y"] for m in adj[nid] if nodes[m]["col"] != c]
@@ -367,6 +389,10 @@ def layout(model_nodes, model_edges, tag):
                 rs = [nodes[m]["y"] for m in adj[nid] if nodes[m]["col"] > c]
                 downstream[nid] = sum(rs) / len(rs) if rs else want[nid]
             cols[c].sort(key=lambda n: (want[n], downstream[n], order.index(n)))
+            for _i in range(len(cols[c]) - 1):
+                _a, _b = cols[c][_i], cols[c][_i + 1]
+                if want[_b] - want[_a] < NEAR and downstream[_b] < downstream[_a]:
+                    cols[c][_i], cols[c][_i + 1] = _b, _a
             pack(cols[c], c)
 
     top = min(n["y"] - n["h"] / 2 for n in nodes.values())
@@ -467,7 +493,7 @@ def layout(model_nodes, model_edges, tag):
         "tile": TILE, "lineH": LINE_H, "gapLabel": GAP_LABEL, "font": FONT,
         "nodes": [{"id": n["id"], "type": n["type"], "label": n["label"], "lines": n["lines"],
                    "x": round(n["x"], 1), "y": round(tile_y(n), 1),
-                   "count": n.get("count"), "props": n["props"],
+                   "count": n.get("count"), "props": n["props"], "route": n["route"],
                    "ghost": 1 if n.get("ghost") else None,
                    "mark": n.get("mark"), "tail": n.get("tail"), "note": n.get("note")}
                   for n in (nodes[i] for i in order)],
