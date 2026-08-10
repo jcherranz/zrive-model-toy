@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T15:20:11Z",
+  "generated": "2026-08-10T15:39:57Z",
   "columns": [
     {
       "key": "raw",
@@ -102,16 +102,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/42"
-        },
-        {
-          "id": 45,
-          "title": "Remove the selection frame drawn around a selected node",
-          "labels": [
-            "feedback",
-            "layout",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/45"
         }
       ]
     },
@@ -119,6 +109,16 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 45,
+          "title": "Remove the selection frame drawn around a selected node",
+          "labels": [
+            "feedback",
+            "layout",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/45"
+        },
         {
           "id": 41,
           "title": "Looks wrong, not aligned etc.",
@@ -186,19 +186,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/23"
-        },
-        {
-          "id": 22,
-          "title": "The capture popover covers the header controls at narrow widths",
-          "labels": [
-            "bug",
-            "layout",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/22"
         }
       ],
-      "hidden": 19,
+      "hidden": 20,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
