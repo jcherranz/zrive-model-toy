@@ -7,6 +7,31 @@ Dates are ISO. Newest first.
 
 ### Fixed
 
+- An issue closed as not planned no longer lands in Done. GitHub closes an issue for one of two
+  reasons and the board read only the state, so a duplicate, a wontfix and a finished card were
+  the same fact to it. #33 was closed as a duplicate, and because Done reads newest first it
+  became the top card of the column: the loudest thing on the board was an assertion that a
+  duplicate had been completed, and every future duplicate would have done the same. The
+  generator now asks `gh issue list` for `stateReason`, whose values were read off the real
+  repository rather than assumed (`COMPLETED`, `NOT_PLANNED`, and an empty string on an open
+  issue), and gives a `NOT_PLANNED` closure no column at all. It is not outstanding work and it
+  is not finished work, so no column on this board is true of it. It is not dropped either: the
+  Done column's `hidden` is now the whole closed set minus the eight cards actually drawn, so
+  visible plus hidden accounts for every closed issue with nothing lost and nothing counted
+  twice, and the generator asserts both halves of that arithmetic and fails the run rather than
+  publishing a count that does not add up. The page says `and 16 more closed` where it used to
+  say `more done`, because the count now covers duplicates as well as finished cards and calling
+  those done would be the same false claim in a quieter place. `hiddenUrl` still points at the
+  repository's closed issues, which is where both kinds can be read. `DONE_VISIBLE` stays at
+  eight and still selects the eight highest-numbered completed issues, newest first. board.js
+  reads no new field, so an older `board.json` that carries neither `hidden` nor `hiddenUrl`
+  still draws. Regenerated against the real repository: 28 issues, 24 closed, 22 completed and 2
+  not planned (#33 and #18); Done draws #26 down to #19, all `COMPLETED`, #33 and #18 appear in
+  no column, and 8 drawn plus 16 hidden equals the 24 closed. Driven at 1440x900 and 390x844:
+  the line renders as `and 16 more closed`, its href is the closed-issues list, it is reachable
+  by `elementFromPoint` at both widths once scrolled to, it sits inside its column, and neither
+  the line nor the page overflows horizontally.
+
 - The Done column is bounded at eight cards and says how many it is not showing. Every closed
   issue lands in Done and nothing takes one out again, so it grew without limit: at twenty eight
   issues, twenty four of them closed, Done held twenty four cards and the board read as ninety

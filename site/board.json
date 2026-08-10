@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T12:16:17Z",
+  "generated": "2026-08-10T12:20:09Z",
   "columns": [
     {
       "key": "raw",
@@ -61,15 +61,6 @@
       "key": "done",
       "title": "Done",
       "cards": [
-        {
-          "id": 33,
-          "title": "Remove (redundant / not needed)",
-          "labels": [
-            "feedback",
-            "layout"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/33"
-        },
         {
           "id": 26,
           "title": "Capture mode pushes the board link off the right edge below 400px",
@@ -137,6 +128,16 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/20"
+        },
+        {
+          "id": 19,
+          "title": "The template versus instance split is asserted, not shown",
+          "labels": [
+            "enhancement",
+            "model",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/19"
         }
       ],
       "hidden": 16,

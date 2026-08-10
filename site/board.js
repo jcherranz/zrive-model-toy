@@ -80,10 +80,13 @@
       /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/issues(\?[\w%+=:.-]*)?$/.test(url)) ? url : null;
   }
 
-  // The Done column is capped by the generator, so the cards it holds are not all the cards it
-  // has. The remainder is printed under them, as a line rather than a card, because it names
-  // work that is finished and off the board. An older board.json carries neither field, and a
-  // board with nothing hidden carries a zero; both draw nothing.
+  // The Done column is capped by the generator, and the generator also keeps issues closed as
+  // not planned off the board altogether, so the cards the column holds are not all the closed
+  // issues it stands for. The remainder is printed under them, as a line rather than a card,
+  // because it names work that is off the board. It says "closed" and not "done": the count
+  // covers duplicates and wontfixes as well as finished cards, and calling those done would be
+  // the same false claim the column used to make by drawing them. An older board.json carries
+  // neither field, and a board with nothing hidden carries a zero; both draw nothing.
   function more(col) {
     var n = col && typeof col.hidden === 'number' ? col.hidden : 0;
     if (!(n > 0)) return null;
@@ -91,8 +94,8 @@
     var e = document.createElement(href ? 'a' : 'p');
     e.className = 'bmore';
     // The phrase carries no noun, so it is already right at one and needs no plural branch:
-    // "and 1 more done" and "and 16 more done" both read.
-    e.textContent = 'and ' + n + ' more done';
+    // "and 1 more closed" and "and 16 more closed" both read.
+    e.textContent = 'and ' + n + ' more closed';
     if (href) { e.href = href; e.target = '_blank'; e.rel = 'noopener noreferrer'; }
     return e;
   }

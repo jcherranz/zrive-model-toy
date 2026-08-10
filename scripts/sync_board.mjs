@@ -49,7 +49,7 @@ function fetchIssues() {
   const out = execFileSync(
     "gh",
     ["issue", "list", "--repo", REPO, "--state", "all", "--limit", "200",
-      "--json", "number,title,state,labels,url"],
+      "--json", "number,title,state,labels,url,stateReason"],
     { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }
   );
   const parsed = JSON.parse(out || "[]");
@@ -62,8 +62,23 @@ function fetchIssues() {
   return parsed;
 }
 
-function columnFor(labels, state) {
-  if (String(state || "").toLowerCase() === "closed") return "done";
+// GitHub closes an issue for one of two reasons, and until now the board read only the state
+// and sent both to Done. `gh issue list --json stateReason` returns COMPLETED, NOT_PLANNED or
+// an empty string on an open issue, in that casing; the values here were read off the real
+// repository rather than assumed, and the comparison uppercases anyway.
+//
+// A NOT_PLANNED closure is a duplicate, a wontfix or an obsolete card. It is not outstanding
+// work and it is not finished work, so no column on this board is true of it and it is given
+// none: columnFor returns null and nothing draws it. Done reads newest first, so #33, closed
+// as a duplicate, had become the loudest card on the column and the board was asserting that
+// a duplicate had been completed. The count it leaves behind is not dropped; see build().
+const NOT_PLANNED = "NOT_PLANNED";
+
+function columnFor(labels, state, stateReason) {
+  if (String(state || "").toLowerCase() === "closed") {
+    if (String(stateReason || "").toUpperCase() === NOT_PLANNED) return null;
+    return "done";
+  }
   for (const col of COLUMNS) {
     if (labels.includes(col.label)) return col.key;
   }
@@ -80,12 +95,22 @@ function toCard(iss) {
     title: String(iss.title || "").trim(),
     labels,
     url: iss.url || "",
-    column: columnFor(labels, iss.state),
+    // Carried for the arithmetic in build() and stripped before anything is written, because a
+    // card in no column still has to be counted somewhere.
+    closed: String(iss.state || "").toLowerCase() === "closed",
+    column: columnFor(labels, iss.state, iss.stateReason),
   };
 }
 
 function build(issues) {
   const cards = issues.map(toCard).sort((a, b) => a.id - b.id);
+  // The whole closed set, and the part of it that is in no column at all. The arithmetic the
+  // Done column has to satisfy is closed = drawn + hidden, where drawn is the eight newest
+  // completed issues and hidden is everything else that is closed, whichever way it closed.
+  // Written this way rather than as ordered.length - drawn.length, which counted the completed
+  // remainder only and would have lost the not-planned ones off the board without saying so.
+  const closedTotal = cards.filter((c) => c.closed).length;
+  const notPlannedTotal = cards.filter((c) => c.closed && c.column === null).length;
   return COLUMNS.map((col) => {
     const own = cards.filter((c) => c.column === col.key);
     // Done is read newest first: on a column of finished work the useful end is what has just
@@ -100,12 +125,25 @@ function build(issues) {
       cards: drawn.map(({ id, title, labels, url }) => ({ id, title, labels, url })),
     };
     if (col.key === "done") {
-      // What the cap drops is counted and carried, never swallowed. A capped column that says
-      // nothing about the cap reads as "this is everything", which is a worse defect than the
-      // long column it replaced, because the long column was at least true. The count and the
-      // address of the full list travel with the column and the page prints them.
-      out.hidden = ordered.length - drawn.length;
+      // What the cap drops, and what the not-planned rule excludes, is counted and carried,
+      // never swallowed. A board that hides a card without saying so reads as "this is
+      // everything", which is a worse defect than the long column it replaced, because the
+      // long column was at least true. One count covers both kinds and the page says "closed"
+      // rather than "done", because a duplicate is in it and a duplicate was never done. The
+      // count and the address of the full list travel with the column and the page prints them.
+      out.hidden = closedTotal - drawn.length;
       out.hiddenUrl = CLOSED_ISSUES_URL;
+      // Assert the two halves of the arithmetic rather than trusting them. The first says the
+      // column accounts for every closed issue exactly once; the second says the closed set is
+      // the completed ones plus the not-planned ones and nothing else has crept in.
+      if (drawn.length + out.hidden !== closedTotal ||
+          ordered.length + notPlannedTotal !== closedTotal) {
+        throw new Error(
+          `done column does not account for every closed issue: drawn ${drawn.length} + ` +
+          `hidden ${out.hidden} vs closed ${closedTotal}, completed ${ordered.length} + ` +
+          `not planned ${notPlannedTotal}`
+        );
+      }
     }
     return out;
   });
@@ -140,7 +178,11 @@ function main() {
   writeFileSync(BOARD_PATH, JSON.stringify({ generated, columns }, null, 2) + "\n", "utf8");
 
   console.log(`board sync: ${issues.length} issues -> ${BOARD_PATH}`);
-  for (const c of columns) console.log(`  ${c.title.padEnd(12)} ${c.cards.length}`);
+  for (const c of columns) {
+    // The run says what it is not drawing, for the same reason the page does.
+    const rest = typeof c.hidden === "number" && c.hidden > 0 ? ` (+${c.hidden} closed, hidden)` : "";
+    console.log(`  ${c.title.padEnd(12)} ${c.cards.length}${rest}`);
+  }
 }
 
 main();
