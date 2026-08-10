@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T15:58:10Z",
+  "generated": "2026-08-10T16:00:39Z",
   "columns": [
     {
       "key": "raw",
@@ -102,6 +102,16 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/46"
+        },
+        {
+          "id": 49,
+          "title": "Give the other four instructors real employer nodes and edges",
+          "labels": [
+            "enhancement",
+            "model",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/49"
         }
       ]
     },
