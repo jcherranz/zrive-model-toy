@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T12:07:31Z",
+  "generated": "2026-08-10T12:09:32Z",
   "columns": [
     {
       "key": "raw",
@@ -72,7 +72,7 @@
           "labels": [
             "bug",
             "layout",
-            "status:in-progress"
+            "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/1"
         },
@@ -82,7 +82,7 @@
           "labels": [
             "bug",
             "layout",
-            "status:backlog"
+            "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/2"
         },
@@ -92,7 +92,7 @@
           "labels": [
             "bug",
             "layout",
-            "status:backlog"
+            "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/3"
         },
@@ -122,7 +122,7 @@
           "labels": [
             "bug",
             "layout",
-            "status:backlog"
+            "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/9"
         },
