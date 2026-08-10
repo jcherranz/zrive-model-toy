@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T15:39:57Z",
+  "generated": "2026-08-10T15:40:39Z",
   "columns": [
     {
       "key": "raw",
@@ -92,18 +92,7 @@
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": [
-        {
-          "id": 42,
-          "title": "Remove the second cohort; the toy should always show exactly one",
-          "labels": [
-            "feedback",
-            "layout",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/42"
-        }
-      ]
+      "cards": []
     },
     {
       "key": "done",
@@ -118,6 +107,16 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/45"
+        },
+        {
+          "id": 42,
+          "title": "Remove the second cohort; the toy should always show exactly one",
+          "labels": [
+            "feedback",
+            "layout",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/42"
         },
         {
           "id": 41,
@@ -177,18 +176,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/24"
-        },
-        {
-          "id": 23,
-          "title": "copy all answers nothing when nothing has been copied yet",
-          "labels": [
-            "bug",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/23"
         }
       ],
-      "hidden": 20,
+      "hidden": 21,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
