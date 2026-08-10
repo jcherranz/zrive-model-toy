@@ -1133,6 +1133,9 @@
     // because it has to be able to name the commit in a run where this file threw.
     drawingDigest: G.drawingDigest || 'unknown',
     commit: (window.ZV && window.ZV.commit) || null,
+    // When that commit was published, which is the other half of "is this reader on a stale
+    // page": the commit says which code and this says how long the origin has been serving it.
+    deployedAt: (window.ZV && window.ZV.deployedAt) || null,
     selected: function () {
       if (!current) return null;
       var n = nodeById[current];

@@ -56,12 +56,18 @@
   // drawing digest stays, under a name that says what it is and with its algorithm in front of
   // it, because it still answers the one question the commit cannot, whether two pages are
   // drawing the same geometry.
+  // Honest rather than blank, and honest rather than plausible, in three states rather than two.
+  // A stamp that loaded and names no commit is an unpublished copy of the site, which is an
+  // ordinary thing to be. No stamp at all is a different report: site/version.js did not load,
+  // so the page is either older than this mechanism or served incompletely, and a reader chasing
+  // it needs to know that the file is missing rather than that it said nothing.
   function commitLine() {
-    var zv = window.ZV || {};
+    var zv = window.ZV;
+    if (!zv) {
+      return 'none, and this page carries no deploy stamp at all: version.js did not load, so ' +
+             'the page is either older than the stamp or was served without it';
+    }
     if (!zv.commit) {
-      // Honest rather than blank, and honest rather than plausible. No commit exists for a page
-      // that no deploy published: a local copy of site/, a file opened from disk, or a deploy
-      // whose stamping step did not run. Saying "unknown" would leave a reader to guess which.
       return 'none. This page was not published by the deploy workflow, so there is no commit ' +
              'it can name: it is a local or unstamped copy of the site' +
              (zv.source ? ' (' + zv.source + ')' : '');
