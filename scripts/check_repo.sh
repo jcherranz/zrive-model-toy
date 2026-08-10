@@ -102,8 +102,15 @@ FORBIDDEN_EXEMPT=(
   # money: 46.932 is the fractional-second timestamp that once tripped the money rule, and
   # 1.538 is an item count from the first incident. Both are declared per file, so the same
   # string appearing anywhere else in the repository still fails.
+  #
+  # CHANGELOG.md no longer needs the 46.932 declaration and no longer has it. The entry that
+  # tells that story used to print the figure on its own as well as inside the timestamp it came
+  # from; an editing pass left only the timestamp, `...46.932Z`, which the money rule does not
+  # read as a figure because a digit preceded by a dot is not the start of a grouped amount. The
+  # declaration then matched nothing, and this gate fails on that rather than shrugging: an entry
+  # that matches nothing is a hole waiting for something to fall into it. If a bare 46.932 ever
+  # comes back to that file the gate will say so, loudly, which is the right direction to fail in.
   "corpus-link|CHANGELOG.md|collection://"
-  "money|CHANGELOG.md|46.932"
   "money|HANSEI.md|1.538"
   "corpus-link|README.md|collection://"
   "money|scripts/sync_board.mjs|46.932"
