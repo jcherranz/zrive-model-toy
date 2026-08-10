@@ -1,10 +1,20 @@
 {
-  "generated": "2026-08-10T15:04:27Z",
+  "generated": "2026-08-10T15:05:04Z",
   "columns": [
     {
       "key": "raw",
       "title": "Raw",
-      "cards": []
+      "cards": [
+        {
+          "id": 45,
+          "title": "Remove this. Redundant.",
+          "labels": [
+            "feedback",
+            "layout"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/45"
+        }
+      ]
     },
     {
       "key": "backlog",
@@ -68,6 +78,15 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/43"
+        },
+        {
+          "id": 44,
+          "title": "Card titles truncate mid-word",
+          "labels": [
+            "bug",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/44"
         }
       ]
     },
