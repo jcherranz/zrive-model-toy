@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T20:51:40Z",
+  "generated": "2026-08-10T20:53:34Z",
   "columns": [
     {
       "key": "raw",
@@ -24,6 +24,15 @@
             "limitation"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
+        },
+        {
+          "id": 55,
+          "title": "Create a dark version for the site for low light.",
+          "labels": [
+            "feedback",
+            "layout"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/55"
         }
       ]
     },
