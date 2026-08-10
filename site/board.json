@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T15:09:56Z",
+  "generated": "2026-08-10T15:20:11Z",
   "columns": [
     {
       "key": "raw",
@@ -50,16 +50,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/39"
         },
         {
-          "id": 42,
-          "title": "Remove the second cohort; the toy should always show exactly one",
-          "labels": [
-            "feedback",
-            "layout",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/42"
-        },
-        {
           "id": 43,
           "title": "Extend the toy beyond Investment Banking to Big Law and Strategy Consulting",
           "labels": [
@@ -77,16 +67,6 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/44"
-        },
-        {
-          "id": 45,
-          "title": "Remove the selection frame drawn around a selected node",
-          "labels": [
-            "feedback",
-            "layout",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/45"
         },
         {
           "id": 46,
@@ -114,14 +94,24 @@
       "title": "In progress",
       "cards": [
         {
-          "id": 41,
-          "title": "Looks wrong, not aligned etc.",
+          "id": 42,
+          "title": "Remove the second cohort; the toy should always show exactly one",
           "labels": [
-            "bug",
             "feedback",
+            "layout",
             "status:in-progress"
           ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/41"
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/42"
+        },
+        {
+          "id": 45,
+          "title": "Remove the selection frame drawn around a selected node",
+          "labels": [
+            "feedback",
+            "layout",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/45"
         }
       ]
     },
@@ -129,6 +119,16 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 41,
+          "title": "Looks wrong, not aligned etc.",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/41"
+        },
         {
           "id": 34,
           "title": "Black box around selected nodes framing wrong and horrible",
@@ -196,19 +196,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/22"
-        },
-        {
-          "id": 21,
-          "title": "Below the breakpoint the panel opens on top of the node it describes",
-          "labels": [
-            "bug",
-            "layout",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/21"
         }
       ],
-      "hidden": 18,
+      "hidden": 19,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
