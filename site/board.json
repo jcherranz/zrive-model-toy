@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-10T21:13:43Z",
+  "generated": "2026-08-10T21:40:35Z",
   "columns": [
     {
       "key": "raw",
@@ -24,6 +24,15 @@
             "limitation"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
+        },
+        {
+          "id": 56,
+          "title": "The thirteen type colours are one light palette; three strokes fall under 3:1 in dark mode",
+          "labels": [
+            "layout",
+            "model"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/56"
         }
       ]
     },
