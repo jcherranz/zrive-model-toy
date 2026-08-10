@@ -211,36 +211,41 @@
         mk.textContent = n.mark;
       }
 
-      // The rect a selection and a keyboard focus are drawn as. It is inserted directly after
-      // the title, so it sits behind the tile, the count stack and the label rather than over
-      // them, and it carries no geometry until frameNode() measures one.
-      var frame = el('rect', { class: 'sel-frame', rx: 7 });
+      // The rect a keyboard focus is drawn as. It is inserted directly after the title, so it
+      // sits behind the tile, the count stack and the label rather than over them, and it
+      // carries no geometry until frameNode() measures one.
+      var frame = el('rect', { class: 'focus-frame', rx: 7 });
       g.insertBefore(frame, titleEl.nextSibling);
 
       g.addEventListener('click', function (ev) { ev.stopPropagation(); select(n.id); });
       g.addEventListener('keydown', function (ev) {
         if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); select(n.id); }
       });
-      // Measured on focus as well as on selection, because the stylesheet shows the frame on
-      // :focus-visible too and a tab arriving at a node it has never framed would show an
-      // empty rect at the drawing's origin.
+      // Measured on focus, which is the only state that draws it. A tab arriving at a node this
+      // has never measured would otherwise show an empty rect at the drawing's origin.
       g.addEventListener('focus', function () { frameNode(gfxNode[n.id]); });
       gfxNode[n.id] = { g: g, tile: tile, mark: mark, col: col, count: !!n.count, frame: frame,
                         ghost: !!n.ghost, rest: tile.getAttribute('fill') };
     });
   }
 
-  // ---- the selection frame ---------------------------------------------------
-  // Chrome's user agent stylesheet answers :focus on a focusable SVG element with
-  // `outline: auto 5px -webkit-focus-ring-color`. On an SVG element that rule is :focus and
-  // not :focus-visible, which is the HTML case, so the site's own :focus-visible override
-  // never ran on a mouse click and every selected node wore the browser's own ring: a five
-  // pixel near-black box around the group's bounding box. The group is the tile and its
-  // label, so the box was 34 units wide on a short name and 188 on the longest session
-  // template, and it touched the glyphs on both ends. That is issue 34. The ring is turned
-  // off in the stylesheet and this rect replaces it.
+  // ---- the keyboard focus frame ----------------------------------------------
+  // Nothing is drawn around a selected node. A click selects, the tile inverts, the unrelated
+  // parts of the drawing dim and the panel opens, and that is the whole of the feedback; a
+  // frame on top of it said the same thing a fourth time. Issue 45. This rect is now only the
+  // keyboard's "where am I", shown on :focus-visible, which a mouse click does not match.
   //
-  // Its geometry is measured and never estimated. A node's extent on screen is the extent of
+  // Removing the frame is not removing the rule that made it necessary. Chrome's user agent
+  // stylesheet answers :focus on a focusable SVG element with
+  // `outline: auto 5px -webkit-focus-ring-color`. On an SVG element that rule is :focus and
+  // not :focus-visible, which is the HTML case, so a mouse click matches it and every selected
+  // node wore the browser's own ring: a five pixel near-black box around the group's bounding
+  // box, which is the tile and its label together, so it was 34 units wide on a short name and
+  // 188 on the longest session template. That is issue 34, and `.node:focus { outline: none }`
+  // in the stylesheet is what holds it off. Take that away with the frame and the black box is
+  // back on the next click.
+  //
+  // The geometry is measured and never estimated. A node's extent on screen is the extent of
   // the text the browser drew, and a second opinion about that width is a mistake this
   // repository has already bought twice, in the layout and in the stylesheet. Measuring also
   // makes the frame right for free in the cases a formula would have to enumerate: the count
@@ -270,7 +275,6 @@
 
   function paint(id, on) {
     var f = gfxNode[id];
-    if (on) frameNode(f);
     // A selected ghost keeps its dashed outline and stays unfilled. Filling it the way a real
     // node is filled would make selection the one moment it looks like an object that exists.
     f.tile.setAttribute('fill', on ? (f.ghost ? 'rgba(45,114,210,0.08)' : 'var(--i-primary)')

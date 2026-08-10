@@ -5,6 +5,53 @@ Dates are ISO. Newest first.
 
 ## [Unreleased]
 
+### Removed
+
+- The frame drawn around a selected node, #45, filed from the live site against the rect
+  itself. Clicking a node already says four things: the tile inverts to solid primary, the
+  label goes bold, everything the node is not related to dims to 16 per cent, and the panel
+  opens naming it. The frame was a fifth statement of the same fact and it was the only one
+  that added a shape to the drawing, so it goes and the other four stay. Nothing is drawn
+  around a selected node now.
+  - **The rule that made the frame necessary is not part of what went with it, and that is the
+    whole difficulty of this change.** `b4e65d0` did two things: it turned off Chrome's own
+    focus ring on the node groups, and it added the frame. Only the frame is being removed. On
+    a focusable SVG element Chrome's user agent stylesheet keys its ring on `:focus`, not on
+    `:focus-visible`, so a mouse click matches it, and `.node:focus { outline: none }` is the
+    only thing standing between a click and the near-black five pixel box of #34. Reverting
+    the commit would have brought that box straight back.
+  - **Proved the way #34 was diagnosed, from the running document rather than from the file.**
+    A real mouse press and release was dispatched at the centre of the `t4` tile over CDP, and
+    `CSS.getMatchedStylesForNode` was then read on the group. At all three viewports the
+    user-agent rule `:focus { outline-style: auto; outline-width: 5px; outline-color:
+    -webkit-focus-ring-color }` still appears in the matched list, still matching, and the
+    author rule `.node:focus { outline: none }` still appears beside it and still wins:
+    computed `outline-style` is `none` and computed `outline-width` resolves to the initial
+    3px that a style of `none` never paints. The node is `:focus` and is not `:focus-visible`,
+    which is the same asymmetry #34 turned on. The frame rect itself computes to
+    `fill: none; stroke: none` on that click, so the group paints no box of any kind. A
+    screenshot alone could not have separated "our frame is gone" from "the browser's ring is
+    back", and the two are the same colourless picture at a distance.
+  - **Keyboard focus keeps a mark, because "where am I" and "what is selected" are different
+    questions.** The measured rect stays, renamed `.focus-frame`, and is now shown only on
+    `:focus-visible`, at `--rule-select` and one unit of stroke. Tabbing into the drawing was
+    driven at all three viewports on a document nothing had been clicked on: the first node
+    reached matches `:focus-visible`, its frame computes to
+    `stroke: rgba(45, 114, 210, 0.45)` at `1px`, and the box is measured from `getBBox()` as
+    before, so it still fits the count stack, the cohort's dashed missing-key ring and the
+    caption under it. The forced-colours fallback, which asks for the browser's ring back when
+    a reader's palette would hide the stroke, is unchanged.
+  - **Driven and the screenshots looked at**, at 1536x839 (the reporter's own viewport),
+    1440x900 and 390x844, through `Emulation.setDeviceMetricsOverride` with the viewport the
+    harness actually got printed beside the one it asked for. `scrollWidth === clientWidth` at
+    each width and no console error beyond the pre-existing favicon 404. Capture mode was
+    driven on the same node: the popover opens and the descriptor still resolves to
+    `ancestor [data-node="t4"]`, with the context block still naming the selected instance.
+    Its tail moved from `rect` to `path`, because the click now reaches the tile's own glyph
+    where it used to land on the selection frame that covered it.
+  - `--tint-select` went with the frame. It was added by `b4e65d0` for the frame's fill and
+    nothing else reads it.
+
 ### Fixed
 
 - The count stack on the students tile, #41, filed from the live site as "looks wrong, not
