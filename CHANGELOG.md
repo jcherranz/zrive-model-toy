@@ -49,6 +49,22 @@ Dates are ISO. Newest first.
   deploys nothing and must never wait behind a deploy, with one group across both jobs so that
   two runs cannot read the same labels and write back over each other.
 
+  One thing this bought that was not intended, recorded here because it went red where nobody was
+  looking for it. A Pages deploy failed with `Deployment request failed ... due to in progress
+  deployment`, the first failed run of any workflow in the last hundred. The two runs were
+  correctly serialised: the board run that preceded it had finished before the deploy started, and
+  the `pages` concurrency group did exactly what its comment claims. The conflict was not between
+  the runs, it was between the deployments those runs create, and the Pages service still held the
+  earlier one open after the run that made it had exited green. So the group serialises the thing
+  it names, GitHub Actions runs, and the Pages deployment lifecycle continues past the end of the
+  run that started it, which is the same shape as the pending-run eviction that `queue: max` was
+  added for: a guard is evidence about the state it names and about nothing beyond it. The
+  mechanism predates this change; what this change contributes is traffic, since every label move
+  now dispatches a board run and every board run deploys. Cleared by re-running the failed job,
+  which went green through both gate steps against the deployed bytes. Left as a known edge rather
+  than repaired here, because the repair belongs in board.yml and pages.yml and wants its own
+  change.
+
 ### Fixed
 
 - An issue closed as not planned no longer lands in Done. GitHub closes an issue for one of two
