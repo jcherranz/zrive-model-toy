@@ -250,6 +250,45 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- **The header could not be clicked while a sheet was open, #86.** He filed "feedback must be
+  available when I am in this subpage", and he filed it from outside the subpage, because he had
+  to. The sheets were `inset: 0` with a backdrop at z-index 20 and the header set none, so
+  `elementFromPoint` at the centre of every control in that row returned `#termback`, `#rosterback`
+  or the sheet's own head, on all seventeen sheet addresses, in both themes, at three widths.
+  Nothing was disabled and nothing was hidden: theme, ghosts, feedback, students and board were
+  present, enabled and 26 by 26 the whole time, which is why no gate had anything to say.
+- **The line is issue 57's and the repair enforces it rather than raising a number.** That card put
+  the theme first in the row as "the only item here that belongs to the page rather than to a
+  view", and feedback is the same kind of thing, more so, since it is how anything on this page
+  gets reported at all. So the two page level controls stay reachable over a sheet; `students` and
+  `board` stay with them, because a sheet is a place and those are the visible way out of one; and
+  `ghosts` is withdrawn on the five sheet addresses the way it already goes on the board, since it
+  marks a drawing that is behind an opaque box. The programme picker needed no rule: it lives in
+  the heading, which those routes already swap.
+- **Two mechanisms, two claims, and the second was found by trying to prove the first.** The sheets
+  now begin at `top: var(--hh)`, the measured header height, which is where `#panel` has begun
+  since a panel at y=0 ate the same feedback toggle. The header carries a rank of its own for the
+  first time. Neither substitutes for the other: with the header raised and the sheet still at
+  `inset: 0` every hit test passes, because painting over something is not the same as not covering
+  it, and below 760px that page puts five live controls over the middle of a full bleed opaque box.
+  Both are asserted separately. `KAIZEN.md kaizen-a-modal-has-to-say-what-it-may-not-cover`.
+- **Seven z-index values in one documented scale, with the reason for each rung.** Canvas 5, panel
+  10, popovers 15, sheet 20, header 25, capture 30, error notice 40, written as tokens at the top
+  of `site/app.css` where the palette is, because the numbers were scattered across the rules that
+  used them and nothing said what the ladder was. The order is the argument: a sheet covers every
+  view of the artefact, the header is not a view, capture reaches over anything it can name, and
+  the error notice is the last thing a page that has thrown can speak with.
+- **`aria-modal` is gone from both sheets and `role="dialog"` stays.** It says content outside is
+  inert, and a screen reader acts on that by refusing to leave; with the header deliberately
+  outside and deliberately live it was a claim the page does not implement, and the one control it
+  put out of reach was the one this card exists to make reachable. Measured after the change: the
+  tab order out of an open sheet runs its own controls, then the header, `theme`, `feedback`,
+  `students`, `board`, and nothing takes focus back off any of them.
+- **A report filed from inside a sheet said `view: diagram`.** It named the view behind the sheet
+  the reader was reading, on all five sheet addresses, and #86 is what makes that answer reachable
+  at all. `feedback.js` reads the route off the body's own classes now, so a capture from
+  `#/outline/ZSC` names the outline and the address it was filed from. Driven end to end: the
+  element it captures reads `ancestor #termrows`, a row of the sheet, and not the backdrop.
 - A Strategy Consulting session template was labelled with a venue and a start time, so the
   drawing put an instance on the template side of its own split, #78. `sc_st6` on `#/p/ZSC` read
   " ATTICO @ 10.15h - All you need to know about recruiting in Strategy Consulting", verbatim from

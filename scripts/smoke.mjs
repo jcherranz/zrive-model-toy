@@ -220,7 +220,7 @@ const PHASES = {
   'students':             { count: 11, when: 'behavioural' },
   'term':                 { count: 26, when: 'behavioural' },
   'canvas':               { count: 7, when: 'behavioural' },
-  'capture':              { count: 5, when: 'behavioural' },
+  'capture':              { count: 14, when: 'behavioural' },
   'board':                { count: 13, when: 'behavioural' },
   'console and requests': { count: 2, when: 'every' }
 };
@@ -249,7 +249,24 @@ const PHASES = {
 // never have had; that both of the two lane headings are controls and not one; that a press and
 // drag over one is still a pan; and that the invented agenda is off until it is asked for and
 // carries its flag on every line when it is on.
-const EXPECTED_ASSERTIONS = 97;
+// 97 until issue 86, which took `capture` from 5 to 14. The nine are one claim each and every one
+// of them is a hit test or a read of what a report would have said, because the defect that card
+// fixed left every queryable property intact: the header's five controls were present, enabled,
+// visible and 26 by 26 under a modal backdrop whose top edge was y=0, and a driver could have
+// checked all of that and seen nothing wrong. So: that feedback answers elementFromPoint at its
+// own centre on every one of the seventeen addresses that opens a sheet, read off the page rather
+// than constructed; that no sheet starts above the line the header ends on, which is a separate
+// claim from the one before it and was found by trying to prove it: with the header ranked above
+// the sheet and the sheet still at `inset: 0`, every hit test here passes and the header simply
+// paints over an opaque box; that theme, students and board are reachable too, which is the line issue 57 drew between
+// a control about the artefact and a control about a view; that `ghosts` is withdrawn over a sheet
+// AND is back on the diagram, asserted in both directions so that deleting it could not pass; that
+// everything kept live still clears #77's 24 by 24; that a scoped outline address exists to file
+// from; that a capture driven from inside that sheet names a row of it and no backdrop, which is
+// the half of this card worth more than the reachable button; that the report names the reading it
+// was filed from, which said `diagram` on all five sheet addresses until this card; and that one
+// Escape leaves capture mode with the sheet still open and the next one closes it.
+const EXPECTED_ASSERTIONS = 106;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -1883,12 +1900,232 @@ async function checkCapture(page) {
   await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
   await page.waitFor(`!document.body.classList.contains('fb-mode')`, 'capture mode to turn off');
 
+  await checkCaptureOverASheet(page);
+
   const net = await page.evaluate('JSON.stringify(window.__smoke)');
   const rec = JSON.parse(net);
   assert('nothing in the whole capture pass filed an issue',
     rec.calls.every(c => c.method === 'GET') && rec.opens.length === 0,
     'every recorded request a GET, and no issue form opened',
     `calls ${JSON.stringify(rec.calls)}, opens ${JSON.stringify(rec.opens)}`);
+}
+
+// ---- issue 86: the header over an open sheet, and a capture taken from inside one ---------------
+// WHAT THIS PHASE IS FOR. He filed "feedback must be available when I am in this subpage", and he
+// filed it from outside the subpage, because he had to. The sheets are fixed at inset 0 with a
+// backdrop whose top edge was y=0, so `elementFromPoint` at the centre of every control in the
+// header returned #termback, #rosterback or the sheet's own head, on all five sheet addresses and
+// at all three widths. Nothing was disabled and nothing was hidden: all five were present, enabled
+// and 26 by 26 the whole time. The page had a header that could not be clicked.
+//
+// SO THE ASSERTION IS A HIT TEST AND NOT A QUERY. Every property this defect left intact is one a
+// driver would have checked: present, visible, enabled, the right size, the right aria state. The
+// only reading that saw it is the one a reader's pointer takes, which is what document
+// .elementFromPoint answers, and it is asserted for each control at the centre of its own rect.
+//
+// AND THE SECOND HALF IS WORTH MORE THAN THE FIRST. A reachable button that files a card naming
+// the backdrop over the thing the reader meant is worse than a button that cannot be pressed: the
+// first wastes the report as well as the reader's time. So the capture is driven from inside a
+// scoped sheet, through the header control, onto a row of the table, and what the popover says it
+// captured is read back.
+const OVER_A_SHEET = ['fbtoggle', 'thtoggle', 'navstudents', 'navview', 'ghtoggle'];
+
+// The four the page keeps live over a sheet: the two page level controls and the two that are the
+// way out of the place a sheet is. `ghosts` is the fifth and is deliberately not among them.
+const KEPT_LIVE = ['fbtoggle', 'thtoggle', 'navstudents', 'navview'];
+
+function headerProbe(ids) {
+  return `(function () {
+    var out = {}, ids = ${JSON.stringify(ids)}, i;
+    for (i = 0; i < ids.length; i++) {
+      var el = document.getElementById(ids[i]);
+      if (!el) { out[ids[i]] = { present: false }; continue; }
+      var r = el.getBoundingClientRect();
+      var visible = r.width > 0 && r.height > 0 &&
+                    getComputedStyle(el).visibility !== 'hidden';
+      var x = Math.round(r.left + r.width / 2), y = Math.round(r.top + r.height / 2);
+      var hit = visible ? document.elementFromPoint(x, y) : null;
+      out[ids[i]] = {
+        present: true, visible: visible,
+        w: Math.round(r.width), h: Math.round(r.height), x: x, y: y,
+        reaches: !!(hit && (hit === el || el.contains(hit))),
+        found: hit ? (hit.id ? '#' + hit.id
+                             : hit.tagName.toLowerCase() + '.' +
+                               String(hit.getAttribute('class') || '').split(' ')[0])
+                   : 'nothing'
+      };
+    }
+    return JSON.stringify(out);
+  })()`;
+}
+
+async function checkCaptureOverASheet(page) {
+  // EVERY ADDRESS THAT OPENS A SHEET, READ OFF THE PAGE. #/students comes from the nav link's own
+  // href and the other sixteen from the function that publishes them, for the reason issue 84's
+  // assertions do it: `#/p/Z-ZIB` against `#/p/ZIB` cost this repository half an hour of false
+  // alarm, and the rule it left is to construct no address you can ask for.
+  const addresses = JSON.parse(await page.evaluate(`(function () {
+    var s = document.getElementById('navstudents');
+    return JSON.stringify([s.getAttribute('href')].concat(window.ZT.termRoutes()));
+  })()`));
+
+  const seen = [];
+  for (const at of addresses) {
+    await page.evaluate(`location.hash = ${JSON.stringify(at)}`);
+    await page.waitFor(`!!document.querySelector('.sheet:not([hidden])')`,
+      `the sheet at ${at} to open`);
+    const box = JSON.parse(await page.evaluate(`(function () {
+      var h = document.querySelector('header').getBoundingClientRect();
+      var s = document.querySelector('.sheet:not([hidden])').getBoundingClientRect();
+      return JSON.stringify({ headerBottom: h.bottom, sheetTop: s.top });
+    })()`));
+    seen.push({ at, box, m: JSON.parse(await page.evaluate(headerProbe(OVER_A_SHEET))) });
+  }
+
+  // THE RANK AND THE GEOMETRY ARE TWO CLAIMS AND THIS IS THE SECOND ONE, which was found by
+  // trying to prove the first. With the header raised to --z-chrome and the sheets left at
+  // `inset: 0`, every hit test below still passes: the header simply paints over the sheet, and
+  // below 760px it would paint five controls over the middle of an opaque, full bleed box. Being
+  // reachable by being drawn on top of somebody else's title is not the fix this card asked for.
+  // So the layout is asserted separately from the stacking: no sheet may start above the line the
+  // header ends on, which is what `inset: var(--hh) 0 0 0` buys and what a raised z-index does not.
+  const overlapping = seen.filter(s => s.box && s.box.sheetTop < s.box.headerBottom - 0.5);
+  assert('no sheet starts above the line the header ends on',
+    overlapping.length === 0 && seen.every(s => s.box && s.box.headerBottom > 0),
+    'every sheet top at or below the header bottom, at the measured header height',
+    overlapping.length
+      ? overlapping.map(s => `${s.at} sheet top ${s.box.sheetTop.toFixed(1)} against header ` +
+          `bottom ${s.box.headerBottom.toFixed(1)}`).join(', ')
+      : `all ${seen.length} start at or below ${seen[0].box.headerBottom.toFixed(1)}`);
+
+  const unreachable = seen.filter(s => !s.m.fbtoggle.reaches);
+  assert('the feedback control is reachable on every address that opens a sheet',
+    addresses.length > 1 && seen.length === addresses.length && unreachable.length === 0,
+    `#fbtoggle answering elementFromPoint at its own centre on all ${addresses.length} of them`,
+    unreachable.length
+      ? unreachable.map(s => `${s.at} found ${s.m.fbtoggle.found}`).join(', ')
+      : `all ${seen.length} reached it`);
+
+  const others = seen.filter(s => KEPT_LIVE.some(id => id !== 'fbtoggle' && !s.m[id].reaches));
+  assert('and so are theme, students and board, which is the rest of what a sheet may not swallow',
+    others.length === 0,
+    'the theme control and both navigation links reachable over every sheet',
+    others.length
+      ? others.map(s => `${s.at}: ` + KEPT_LIVE.filter(id => !s.m[id].reaches)
+          .map(id => `${id} found ${s.m[id].found}`).join(' and ')).join(' | ')
+      : `all ${seen.length} addresses left all four live`);
+
+  // THE ONE THAT IS DELIBERATELY NOT REACHABLE, and it is asserted in both directions, because a
+  // control that is missing everywhere would satisfy half of this. `ghosts` marks the drawing, and
+  // over a sheet the drawing is behind an opaque box, so it goes the way it already goes on the
+  // board rather than staying in the row doing nothing a reader can see.
+  await page.evaluate(`location.hash = '#/'`);
+  await page.waitFor(`window.ZT.term().open === false && window.ZT.roster() === false`,
+    'the sheet to close again');
+  const onDiagram = JSON.parse(await page.evaluate(headerProbe(['ghtoggle'])));
+  const ghostLeftOver = seen.filter(s => s.m.ghtoggle.visible);
+  assert('the ghost toggle is withdrawn over a sheet rather than left there acting on a hidden drawing',
+    ghostLeftOver.length === 0 && onDiagram.ghtoggle.visible && onDiagram.ghtoggle.reaches,
+    'no #ghtoggle on any sheet address, and a reachable one back on the diagram',
+    ghostLeftOver.length
+      ? `still shown on ${ghostLeftOver.map(s => s.at).join(', ')}`
+      : `withdrawn on all ${seen.length}, and on the diagram it is ` +
+        `${onDiagram.ghtoggle.w}x${onDiagram.ghtoggle.h} and ${onDiagram.ghtoggle.found}`);
+
+  // #77 TOOK THIS ROW TO 26 BY 26 FROM ELEVEN OF ELEVEN FAILING SC 2.5.8, and a control that was
+  // unreachable was never measured over a sheet. Anything this card makes reachable is held to
+  // the same bar, at the width where the header is one row and again where it wraps to two.
+  const undersized = [];
+  for (const s of seen) {
+    for (const id of KEPT_LIVE) {
+      const c = s.m[id];
+      if (c.visible && Math.min(c.w, c.h) < 24) undersized.push(`${s.at} ${id} ${c.w}x${c.h}`);
+    }
+  }
+  assert('every control the page keeps live over a sheet is still at least 24 by 24',
+    undersized.length === 0,
+    `all ${KEPT_LIVE.length} of them at 24 by 24 or better on all ${seen.length} addresses`,
+    undersized.length ? undersized.join(', ') : 'the smallest is 26 by 26');
+
+  // ---- and now the report itself ---------------------------------------------------------------
+  const scopedOutline = addresses.filter(a => /^#\/outline\/.+/.test(a));
+  if (!assert('the sheet publishes a scoped outline address to file a report from',
+      scopedOutline.length > 0, 'at least one #/outline/<code> among the published addresses',
+      addresses.join(' '))) {
+    return;
+  }
+  const at = scopedOutline[0];
+  const reading = at.split('/')[1];
+  await page.evaluate(`location.hash = ${JSON.stringify(at)}`);
+  await page.waitFor(`window.ZT.term().open === true && window.ZT.term().scope !== null`,
+    `the scoped sheet at ${at} to open`);
+
+  // Capture mode is turned on the way he would turn it on, by pressing the control in the header
+  // while the sheet he wants to report on is the thing he is reading.
+  const tog = await stableRect(page, '#fbtoggle');
+  const tx = Math.round(tog.cx), ty = Math.round(tog.cy);
+  await requireHit(page, tx, ty, { id: 'fbtoggle' });
+  await click(page, tx, ty);
+  await page.waitFor(`document.body.classList.contains('fb-mode')`,
+    'capture mode to turn on from inside the sheet');
+
+  const row = await stableRect(page, '#termrows .sheet-table tbody tr td');
+  const rx = Math.round(row.cx), ry = Math.round(row.cy);
+  // What is under the point, read before the click, because the popover the click opens is
+  // positioned at the click and would be the answer afterwards.
+  const under = JSON.parse(await page.evaluate(`(function () {
+    var el = document.elementFromPoint(${rx}, ${ry});
+    return JSON.stringify({
+      tag: el ? el.tagName.toLowerCase() : 'nothing',
+      inRows: !!(el && el.closest('#termrows')),
+      onBackdrop: !!(el && el.closest('.sheet-back'))
+    });
+  })()`));
+  await click(page, rx, ry);
+  await page.waitFor(`!!document.querySelector('.fb-popover .fb-el')`,
+    'the capture popover to open over the sheet');
+  const shot = JSON.parse(await page.evaluate(`(function () {
+    return JSON.stringify({
+      el: document.querySelector('.fb-popover .fb-el').textContent,
+      ctx: document.querySelector('.fb-popover .fb-ctx').textContent
+    });
+  })()`));
+
+  assert('a capture taken from inside a sheet names a row of that sheet and not the backdrop',
+    under.inRows && !under.onBackdrop && shot.el.indexOf('#termrows') !== -1 &&
+      !/sheet-back|termback|rosterback/.test(shot.el),
+    'a descriptor carrying #termrows, with no backdrop anywhere in it',
+    `under the point ${JSON.stringify(under)}, descriptor ${JSON.stringify(shot.el)}`);
+
+  assert('and the report it would file names the reading it was filed from',
+    new RegExp('view: ' + reading + '(\\n|$)').test(shot.ctx) && shot.ctx.indexOf(at) !== -1,
+    `"view: ${reading}" in the attached context, and ${at} in the page address`,
+    JSON.stringify(shot.ctx));
+
+  // OUT, AND THE ORDER OF THE TWO ESCAPES IS THE CLAIM. term.js stands down while capture mode is
+  // on, for the reason the student list and the programme menu do: Escape is how a reader leaves
+  // the mode. So the first Escape leaves capture with the sheet still open behind it, and only the
+  // second closes the sheet. A page that closed both on one press would take the reader out of the
+  // subpage they were reporting on, which is this card's own complaint.
+  await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: '3', code: 'Digit3', windowsVirtualKeyCode: 51 });
+  await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: '3', code: 'Digit3', windowsVirtualKeyCode: 51 });
+  await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+  await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+  await page.waitFor(`!document.body.classList.contains('fb-mode')`,
+    'capture mode to turn off from inside the sheet');
+  const between = JSON.parse(await page.evaluate('JSON.stringify(window.ZT.term())'));
+  await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+  await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+  await page.waitFor('window.ZT.term().open === false', 'the second Escape to close the sheet');
+  assert('one Escape leaves capture mode and the next closes the sheet, both from inside it',
+    between.open === true && between.reading === reading,
+    'the sheet still open on the same reading after capture mode is left',
+    `open ${between.open}, reading ${JSON.stringify(between.reading)}`);
+
+  await page.evaluate(`location.hash = '#/'`);
+  await page.waitFor(DIAGRAM_READY, 'the diagram to come back');
+  await page.evaluate('window.ZT.fit()');
+  await viewSettled(page);
 }
 
 // ---- the board ----------------------------------------------------------------------------------

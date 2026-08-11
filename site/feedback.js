@@ -82,12 +82,34 @@
     return 'sha256:' + d + ', a digest of the drawing and not a commit';
   }
 
+  // WHICH VIEW THE READER WAS IN, AND THAT IS FIVE ANSWERS NOW RATHER THAN TWO. This line said
+  // `board` or `diagram`, which was the whole truth when those were the only two. Issues 80, 82
+  // and 84 added #/students, #/calendar, #/outline and the scoped pair, and every one of them
+  // reported `diagram`: the view behind the sheet the reader was actually reading. Issue 86 is
+  // what makes a card filable from inside a sheet at all, so it is also what makes that wrong
+  // answer reachable, and a report that names the wrong view is the defect that card was filed
+  // about arriving one line further down.
+  //
+  // READ OFF THE BODY'S OWN CLASSES rather than off window.ZT, for the reason the commit line is
+  // read off window.ZV: this block has to answer in a run where app.js threw, which is exactly
+  // the run whose report is worth most. `page` on the last line carries the address itself, so
+  // the two are independent readings of the same fact and a disagreement between them is
+  // information rather than noise.
+  var VIEW_CLASSES = ['board', 'students', 'calendar', 'outline'];
+
+  function viewName() {
+    for (var i = 0; i < VIEW_CLASSES.length; i++) {
+      if (document.body.classList.contains(VIEW_CLASSES[i])) return VIEW_CLASSES[i];
+    }
+    return 'diagram';
+  }
+
   function contextPairs() {
     var zt = window.ZT || {};
     var sel = typeof zt.selected === 'function' ? zt.selected() : null;
     return [
       ['selected node', sel ? sel.label + ' (' + sel.type + ', id ' + sel.id + ')' : 'none'],
-      ['view', document.body.classList.contains('board') ? 'board' : 'diagram'],
+      ['view', viewName()],
       ['viewport', window.innerWidth + ' by ' + window.innerHeight],
       ['commit', commitLine()],
       ['drawing', drawingLine()],

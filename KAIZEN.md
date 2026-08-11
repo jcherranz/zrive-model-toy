@@ -328,3 +328,20 @@ build on a cited slug that resolves to nothing.
   and then fails silently; an identity does not rot. The durable form was already here and was not
   generalised: `2026-08-09-gate-scoped-to-the-public-surface` licenses the gate's matches on its own
   source as exact triples of rule, path and string.
+- `kaizen-a-modal-has-to-say-what-it-may-not-cover` &middot; **A modal is a claim about what it
+  covers, so it has to name what it does not, and outranking is not the same as not covering.**
+  Every sheet on this page was `inset: 0` with a backdrop at z-index 20 over a header that set none,
+  which made theme, ghosts, feedback, students and board unreachable on five addresses. Nothing was
+  disabled, hidden or undersized: all five stayed present, enabled and 26 by 26, so every property a
+  driver would have queried was intact and the only reading that saw it was `elementFromPoint`. The
+  distinction the repair needed already existed in `index.html`, where issue 57 put the theme first
+  as "the only item here that belongs to the page rather than to a view", and the modal had simply
+  never been told: covering every view is what it is for, covering the artefact's own controls is
+  the defect. The second half was found by trying to prove the first. With the header raised above
+  the sheet and the sheet still at `inset: 0`, every hit test passed, because being painted on top
+  is not the same as not being covered, and below the phone breakpoint that page would have put five
+  live controls over the middle of an opaque full bleed box. So the two mechanisms are two claims
+  and each is asserted alone: rank says what may cover what, geometry says the sheet starts where
+  the header ends, and neither is evidence for the other. A further instance of
+  `kaizen-a-widened-control-keeps-its-neighbours-reachable`, and the first here where nothing
+  touched the control at all: something else arrived on top of it.

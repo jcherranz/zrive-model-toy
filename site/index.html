@@ -69,11 +69,30 @@
       <span class="h-outline">The outline, all seven programmes in curriculum order</span>
     </h1>
     <nav class="hnav">
-      <!-- The theme, and it is first in the row on purpose: it is the only item here that
-           belongs to the page rather than to a view. `ghosts` is hidden on the board and
-           `students` and `board` are places to go, so an item present in every view and about
-           every view is the row's anchor. It costs no row of its own: it is one more .linkbtn
-           in a nav that already grows by more than its width when the capture toggle turns on,
+      <!-- WHAT THIS ROW IS, DECIDED IN ISSUE 57 AND ENFORCED IN ISSUE 86. Two of these five
+           belong to the page and three belong to a view of it, and until #86 nothing acted on the
+           difference: a sheet backdrop starting at y=0 covered all five, so a reader inside
+           #/outline could not reach `feedback`, and the card asking for it had to be filed from
+           outside the subpage it was about.
+
+           Page level, and reachable over anything the page ever puts on top of itself:
+             theme      the artefact's own presentation, on every route including the board
+             feedback   how anything on this page gets reported at all, which is why it is the
+                        one control that must never be behind something
+
+           View level, and free to go when the view does:
+             ghosts     a mark on the drawing, so app.css withdraws it on the board and on the
+                        five sheet addresses, where the drawing is behind an opaque box
+             students   navigation, and a sheet is a place, so these two stay reachable rather
+             board      than covered: they are the visible way out of the place, and a reader who
+                        wants the board from inside the outline should not have to find Escape
+                        first. Neither acts on what the sheet is showing, so neither is dead.
+           The programme picker is view level too and needs no rule, because it lives in the
+           heading, which is already swapped out on every route that opens a sheet.
+
+           The theme is first in the row on purpose: it is the item present in every view and
+           about every view, so it is the row's anchor. It costs no row of its own: it is one
+           more .linkbtn in a nav that already grows by more than its width when capture turns on,
            and its text is the current choice, which is the same idiom as `feedback` becoming
            `feedback: on (Esc to exit)`. Three states, because system, light and dark is the only
            honest set: a two-state switch cannot say "whatever the machine says". app.js writes
@@ -208,10 +227,19 @@
 
 <!-- The cohort in full. The rows are not written here: they are in the drawing's own generated
      file, because they are the model and not page furniture, and app.js builds this the first
-     time the view is opened. Hidden until then, which also keeps it out of the tab order. -->
+     time the view is opened. Hidden until then, which also keeps it out of the tab order.
+
+     `role="dialog"` AND NO `aria-modal`, WHICH IS ISSUE 86 AND IS NOT A WEAKENING. aria-modal
+     says content outside this element is inert, and a screen reader acts on that by refusing to
+     leave the dialog. Since #86 the header is deliberately outside it and deliberately live, so
+     the attribute would be a claim the page does not implement, and the one control it would put
+     out of reach is the one that card exists to make reachable: a reader who cannot get to
+     `feedback` cannot report anything at all. The sheet is still modal in every sense the page
+     enforces. It covers the drawing, the backdrop makes the canvas inert, Escape closes it and
+     the close control is focused when it opens. What it never was is modal to the page. -->
 <div id="roster" class="sheet" hidden>
   <div class="sheet-back" id="rosterback"></div>
-  <section class="sheet-box" role="dialog" aria-modal="true" aria-labelledby="rostertitle">
+  <section class="sheet-box" role="dialog" aria-labelledby="rostertitle">
     <div class="sheet-head">
       <div>
         <h2 id="rostertitle"></h2>
@@ -244,7 +272,10 @@
      with a scrolling table in it. They were named .roster-* while there was one of them. -->
 <div id="term" class="sheet term" hidden>
   <div class="sheet-back" id="termback"></div>
-  <section class="sheet-box" role="dialog" aria-modal="true" aria-labelledby="termtitle">
+  <!-- No aria-modal, for the reason written above the student list: since issue 86 the header
+       is outside this dialog and live, so declaring the rest of the page inert would hide the
+       feedback control from exactly the reader who has no other way to reach it. -->
+  <section class="sheet-box" role="dialog" aria-labelledby="termtitle">
     <div class="sheet-head">
       <div>
         <h2 id="termtitle"></h2>

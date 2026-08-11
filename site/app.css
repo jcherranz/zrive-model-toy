@@ -183,6 +183,46 @@
   --fs-base: 14px;
   --lh-ui: 1.28581;
   --radius: 4px;
+
+  /* ---- the layers, in one place and with the reason for each ----------------
+     Issue 86. Seven overlays had accumulated, each with its z-index written at the rule that
+     used it and nothing anywhere saying what the ladder was. The header sets none at all, so it
+     computed to `auto`, and a sheet backdrop at 20 whose top edge is y=0 sat on top of every
+     control in it: theme, ghosts, feedback, students and board were unreachable on all five
+     sheet addresses, in both themes, at every width. The header was not behind a scrim, it was
+     behind a click target. He had to leave the subpage to file the card about the subpage.
+
+     THE RUNGS, LOW TO HIGH, AND EACH ONE IS A SENTENCE ABOUT WHAT MAY COVER WHAT.
+
+       --z-canvas    5   the zoom control, furniture inside the plane it acts on
+       --z-panel    10   the detail panel, which describes one node of the drawing under it
+       --z-pop      15   the programme menu and the help box, which hang off their own control
+       --z-sheet    20   a sheet, which covers the drawing on purpose and keeps the reader in it
+       --z-chrome   25   the header, which belongs to the page and not to any view of it
+       --z-capture  30   the capture popover, which must reach over anything it can name
+       --z-error    40   the runtime error notice, the last thing on a page that has thrown
+
+     THE ORDER IS THE ARGUMENT, NOT THE NUMBERS. A sheet is above the drawing and above everything
+     that describes the drawing, because covering that is what a sheet is for. The header is above
+     the sheet, because theme and feedback are controls about the artefact rather than about what
+     is drawn, which is the distinction issue 57 wrote into index.html when it put the theme first
+     in that row, and which a modal that swallows the row had confused. Capture is above the
+     header, because a popover naming a control has to sit over the control it names. The error
+     notice is above capture, because a page that has thrown has nothing else left to report with.
+
+     THE RANK IS NOT THE MECHANISM, AND ON ITS OWN IT WOULD NOT HAVE FIXED THIS. Below 760px a
+     sheet is a full bleed opaque box, so a header merely raised above it would be five buttons
+     floating over the sheet's own title. What keeps the two apart is geometry, and this page
+     already had the answer: #panel is fixed at top: var(--hh), the measured header height,
+     written for exactly this defect the first time it happened. The sheets start there now too.
+     The ladder is what catches the next overlay, whose author will not have read that rule. */
+  --z-canvas: 5;
+  --z-panel: 10;
+  --z-pop: 15;
+  --z-sheet: 20;
+  --z-chrome: 25;
+  --z-capture: 30;
+  --z-error: 40;
 }
 
 /* ---- the reader disagreeing with the operating system ---------------------
@@ -275,7 +315,24 @@ body.calendar .h-diagram { display: none; }
 body.calendar .h-calendar { display: inline; }
 body.outline .h-diagram { display: none; }
 body.outline .h-outline { display: inline; }
-body.board #ghtoggle { display: none; }
+/* THE GHOST TOGGLE IS WITHDRAWN WHEREVER THE DRAWING IS NOT ON SCREEN, and issue 86 is what took
+   that from one route to five. The board was the first: a control that adds dashed tiles to a
+   picture is not dimmed or reworded there, it is gone. A sheet is the same situation arrived at
+   from the other side. Until #86 the whole header was under the sheet's backdrop, so this control
+   was covered along with everything else and the question never came up; with the header live
+   above a sheet it would be the one item in that row that does nothing a reader can see, acting
+   on a drawing behind an opaque box. Withdrawn rather than disabled, because the board's answer
+   is already in this file and one behaviour is better than two.
+
+   IT IS THE ONLY ONE OF THE FIVE THAT GOES. The distinction is issue 57's, restated: theme and
+   feedback belong to the page, `students` and `board` are the way out of a place, and only
+   `ghosts` is a control about a drawing. The programme picker is the other view level control in
+   this row and it needs no rule, because the heading it lives in is already swapped out on every
+   one of these five addresses. */
+body.board #ghtoggle,
+body.students #ghtoggle,
+body.calendar #ghtoggle,
+body.outline #ghtoggle { display: none; }
 /* The detail panel describes a node in the drawing, so on the board it goes the same way. It is
    hidden rather than closed: the selection is still the selection, and switching back brings the
    panel and the node it is about back together. */
@@ -292,9 +349,17 @@ body.board #panel { display: none; }
    between them gone. Issue 77.
 
    `align-items: center` and not `flex-start`, because both sides of this row are now one line of
-   the same height and there is no taller block for a top edge to align to. */
+   the same height and there is no taller block for a top edge to align to. Issue 77.
+
+   IT IS THE PAGE, SO IT OUTRANKS EVERY VIEW, and until issue 86 it said so nowhere. It set no
+   z-index, computed to `auto`, and lost to the first overlay that started at y=0. It is a rung on
+   the ladder in the palette block now, above a sheet and below the capture popover, and the
+   `position: relative` is there so the rank is read from a rule rather than from the fact that a
+   flex item happens to honour z-index without it. Nothing moves: the offsets are unset. */
 header {
   flex: none;
+  position: relative;
+  z-index: var(--z-chrome);
   padding: 8px 20px;
   border-bottom: 1px solid var(--rule-muted);
   background: var(--bg-panel);
@@ -418,14 +483,14 @@ h1 {
 .pgpick > .linkbtn[aria-expanded="true"] { text-decoration: underline; }
 
 /* Absolute, so opening it moves nothing: the sentence, the header's height and the canvas under
-   it are the same before and after. z-index 15 puts it over the canvas at 5 and the detail panel
-   at 10, and under the student list at 20 and the capture popover at 30, which is the order those
-   four already have among themselves. */
+   it are the same before and after. The rung is --z-pop, over the canvas and the detail panel and
+   under the capture popover, and it is inside the header, so a sheet cannot reach it either way.
+   The ladder and its reasons are in the palette block at the top of this file. Issue 86. */
 .pgmenu {
   position: absolute;
   top: calc(100% + 5px);
   left: 0;
-  z-index: 15;
+  z-index: var(--z-pop);
   min-width: 100%;
   max-width: calc(100vw - 40px);
   padding: 4px;
@@ -545,7 +610,7 @@ body.fb-mode #canvas { cursor: crosshair; }
   position: absolute;
   right: 12px;
   bottom: 12px;
-  z-index: 5;
+  z-index: var(--z-canvas);
   display: flex;
   align-items: center;
   background: var(--bg-panel);
@@ -751,7 +816,12 @@ body.fb-mode #canvas { cursor: crosshair; }
 /* The panel is a fixed overlay at the right edge and the header runs the full width, so a
    panel starting at y=0 sits on top of the header's own buttons: with a node selected, the
    feedback toggle could not be clicked at all. --hh is the measured header height, written by
-   app.js, so the panel begins where the header ends. */
+   app.js, so the panel begins where the header ends.
+
+   THIS IS THE PATTERN THE SHEETS TOOK IN ISSUE 86, and the two rules are now the same rule twice:
+   an overlay that must leave the page's own controls alone begins at --hh and not at 0. That card
+   is this paragraph's defect met again on a different overlay, and this note was the whole of the
+   prior art on it. */
 #panel {
   position: fixed;
   top: var(--hh, 0px);
@@ -765,7 +835,7 @@ body.fb-mode #canvas { cursor: crosshair; }
   overflow-y: auto;
   transform: translateX(100%);
   transition: transform 160ms cubic-bezier(0.4, 1, 0.75, 0.9);
-  z-index: 10;
+  z-index: var(--z-panel);
 }
 
 #panel.open { transform: none; }
@@ -898,8 +968,8 @@ footer b { color: var(--fg-body); font-weight: 600; }
 
 /* Upward and absolute, so opening it moves nothing: the footer's height, the canvas above it and
    the fit of the drawing are the same before and after. That is .pgmenu's reasoning and the same
-   z-index band: over the canvas at 5 and the detail panel at 10, under the student list at 20 and
-   the capture popover at 30.
+   rung on the ladder in the palette block: --z-pop, over the canvas and the detail panel and
+   under a sheet and the capture popover.
 
    IT HANGS OFF THE FOOTER AND NOT OFF THE BUTTON, which is the one thing .pgmenu does differently
    and the reason is the width. A 340px box anchored to the right edge of a control that sits 125px
@@ -910,7 +980,7 @@ footer b { color: var(--fg-body); font-weight: 600; }
   position: absolute;
   bottom: calc(100% + 6px);
   right: 20px;
-  z-index: 15;
+  z-index: var(--z-pop);
   width: 340px;
   max-width: calc(100vw - 24px);
   padding: 10px 14px 10px 4px;
@@ -973,7 +1043,7 @@ body.fb-mode .fb-popover select { cursor: pointer; }
 
 .fb-popover {
   position: fixed;
-  z-index: 30;
+  z-index: var(--z-capture);
   width: 300px;
   max-width: calc(100vw - 16px);
   background: var(--bg-panel);
@@ -1137,7 +1207,7 @@ body.fb-mode .fb-popover select { cursor: pointer; }
   position: fixed;
   left: 12px;
   bottom: 12px;
-  z-index: 40;
+  z-index: var(--z-error);
   max-width: 340px;
   background: var(--bg-panel);
   border: 1px solid var(--rule);
@@ -1533,11 +1603,31 @@ body.hide-ghosts .ghost { display: none; }
    with a title and a subtitle, and a scrolling table whose phone layout turns each row into a
    block. That is one object, so it has one implementation and a name that is true of all of it.
    Only the classes moved; every id is where it was, and .roster-drawn stayed, because "this row
-   is also on the canvas" is a fact about the cohort list and not about a sheet. */
+   is also on the canvas" is a fact about the cohort list and not about a sheet.
+
+   IT STARTS WHERE THE HEADER ENDS, AND THAT IS THE WHOLE OF ISSUE 86. It used to be `inset: 0`,
+   so the backdrop's top edge was y=0 and the box, at any height that filled the screen, reached
+   up to y=16. Measured on the deployed page at three widths, `elementFromPoint` at the centre of
+   every control in the header returned #termback, #rosterback or the sheet's own head, on all
+   five sheet addresses: theme, ghosts, feedback, students and board were unreachable, and the
+   card asking for feedback inside a subpage had to be filed from outside the subpage.
+
+   Covering the page IS what this object is for, so the repair is not a bigger number. It is the
+   line issue 57 drew when it put the theme first in the header row, "the only item here that
+   belongs to the page rather than to a view": a sheet may cover every view of the artefact and
+   may not cover the artefact's own controls. --hh is where those end. #panel is fixed at the same
+   offset for the same reason and has been since a panel at y=0 ate the feedback toggle.
+
+   GEOMETRY AND NOT RANK, and the difference matters at 390px, where the box below is full bleed
+   and opaque: a header merely raised over this would be five buttons floating on the sheet's own
+   title. The header carries --z-chrome as well, which is the declaration of what may cover what
+   for the next overlay, not the thing that separates these two. The backdrop still covers all of
+   the canvas, since all of the canvas is below the header, so nothing about the inert drawing,
+   the click that closes, or the wheel that must not reach it has changed. */
 .sheet {
   position: fixed;
-  inset: 0;
-  z-index: 20;              /* over the detail panel at 10, under the capture popover at 30 */
+  inset: var(--hh, 0px) 0 0 0;
+  z-index: var(--z-sheet);
   display: flex;
   align-items: center;
   justify-content: center;
