@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T20:36:46Z",
+  "generated": "2026-08-11T20:37:36Z",
   "columns": [
     {
       "key": "raw",
@@ -33,15 +33,6 @@
             "feedback"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/77"
-        },
-        {
-          "id": 78,
-          "title": "This is precisely NOT a session template but rather an instance (as…",
-          "labels": [
-            "bug",
-            "feedback"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/78"
         }
       ]
     },
@@ -79,6 +70,17 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/75"
+        },
+        {
+          "id": 78,
+          "title": "A Strategy Consulting session template carries a time and a venue, so it is an instance",
+          "labels": [
+            "bug",
+            "feedback",
+            "model",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/78"
         }
       ]
     },
