@@ -30,12 +30,12 @@ import tempfile
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
 sys.path.insert(0, str(HERE))
-from model import NODES, EDGES  # noqa: E402
+from model import VIEWS  # noqa: E402
 
-# The model as the build lays it out, and there is only one drawing to lay out. This used to be
-# the union of two views, the shipped one and an opt-in second cohort; the second cohort is
-# gone (issue 42) and its strings go with it, or the table would hold widths for text no build
-# can reach and nothing would ever say so.
+# The model as the build lays it out, and there are seven drawings to lay out since issue 43,
+# one per programme. The table is their UNION and nothing more: a string no view asks for is
+# dead weight the coverage check reports, and a string one view asks for and this file misses is
+# a coordinate laid out from the hand written estimate, which undershoots by up to a fifth.
 
 CSS = ROOT / "site" / "app.css"
 OUT = HERE / "label_widths.json"
@@ -61,9 +61,14 @@ CHROME_CANDIDATES = [
 # changed with it. The drift is not silent: a line this file has not measured is a line
 # build_layout.py falls back to estimating, and it prints the string and a count of estimated
 # widths at the end of every run.
+#
+# Since issue 43 it holds the alternates too. Three captions are claims that are false on a view
+# holding no employer, no instructor or no visit host, so build_layout.py swaps them per view,
+# and a caption line that is only reachable on one of the seven still has to be measured.
 BANDS = ["programme", "employers appear on click", "session templates", "instructors",
          "cohort sessions", "and the visit host",
-         "cohort and students", "individuals appear on click", "enrolment to claim"]
+         "cohort and students", "individuals appear on click", "enrolment to claim",
+         "none recorded"]
 
 # Not named by the stylesheet, but a plausible resolution of its final `sans-serif` on a
 # machine that is not this one. Included so the envelope covers them where they are installed.
@@ -113,23 +118,26 @@ def collect():
     """context key -> {css spec, strings}. The key is what build_layout.py looks up."""
     lbl, chip, band = css_rule(".node .lbl"), css_rule(".chip-tx"), css_rule(".band-cap")
 
+    nodes = [n for v in VIEWS for n in v["nodes"]]
+    edges = [e for v in VIEWS for e in v["edges"]]
+
     node_strings = set()
-    for n in NODES:
+    for n in nodes:
         node_strings |= runs(n["label"])
     # The 9px context holds the edge verbs, any mark a node carries under its label and any
     # tail it carries under that; all three are drawn at the chip size.
-    small = ({v for _s, _t, v in EDGES}
-             | {n["mark"] for n in NODES if n.get("mark")}
-             | {n["tail"] for n in NODES if n.get("tail")})
+    small = ({v for _s, _t, v in edges}
+             | {n["mark"] for n in nodes if n.get("mark")}
+             | {n["tail"] for n in nodes if n.get("tail")})
 
     # A ghost is drawn in italic (.lbl-ghost, .ghost .chip-tx). Italic is a different face with
     # different advances, so it gets its own contexts rather than borrowing the upright ones.
     ghost_strings = set()
-    for n in NODES:
+    for n in nodes:
         if n.get("ghost"):
             ghost_strings |= runs(n["label"])
-    ghost_ids = {n["id"] for n in NODES if n.get("ghost")}
-    ghost_verbs = {v for s, t, v in EDGES if s in ghost_ids or t in ghost_ids}
+    ghost_ids = {n["id"] for n in nodes if n.get("ghost")}
+    ghost_verbs = {v for s, t, v in edges if s in ghost_ids or t in ghost_ids}
 
     ctx = {
         # node labels as drawn: regular weight, the weight the layout wraps at
@@ -143,7 +151,7 @@ def collect():
         f"{px(lbl['font-size'])}/600": {
             "css": {"font-size": lbl["font-size"], "font-weight": "600"},
             "note": "node labels while selected, .node.sel .lbl",
-            "strings": {n["label"] for n in NODES} | node_strings,
+            "strings": {n["label"] for n in nodes} | node_strings,
         },
         f"{px(chip['font-size'])}/400": {
             "css": {"font-size": chip["font-size"], "font-weight": "400"},

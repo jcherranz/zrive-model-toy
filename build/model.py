@@ -339,430 +339,456 @@ _check_names([(f"ROSTER row {i + 1}", v)
               for i, row in enumerate(ROSTER) for v in row])
 
 
-NODES = [
-    # ---- rank 0 ------------------------------------------------------------
-    {
-        "id": "prog",
-        "type": "Programme",
-        "label": "Z-IB Investment Banking",
-        "props": [
-            p("programme_code", "Z-IB", D),
-            p("name", "Investment Banking", D),
-            p("delivery", "online, with two in person weekends", E),
-            p("session_templates", "6 shown, of a longer syllabus", E),
-            p("owner", "academic team", E),
-        ],
-    },
-    # The five employers. Every instructor has one, and until issue 49 only t1's was drawn as a
-    # node: the other four carried their employer as a property with no node and no edge, so
-    # clicking t1 reached an object and clicking t2 to t5 reached a string. That asymmetry was
-    # in the data and not in the reader's head, and it is removed here by giving all five the
-    # same shape: a Company node in column 0 and one 'employed by' edge, same type, same three
-    # property keys in the same order, same provenance flags.
-    #
-    # co_emp keeps its id rather than becoming co_emp1. An id is the handle a feedback note
-    # writes into an issue, and issue 48 already points at [data-node="co_emp"]; renaming it
-    # would break that reference and buy nothing. The four new ones are numbered for the
-    # instructor they employ, so co_empN employs tN and co_emp employs t1.
-    {
-        "id": "co_emp",
-        "type": "Company",
-        "label": "McKinsey",
-        "props": [
-            p("role", "employer of an instructor", E),
-            p("relationship", "none commercial in this toy", D),
-            p("instructors_supplied", "1", D),
-        ],
-    },
-    {
-        "id": "co_emp2",
-        "type": "Company",
-        "label": "Houlihan Lokey",
-        "props": [
-            p("role", "employer of an instructor", E),
-            p("relationship", "none commercial in this toy", D),
-            p("instructors_supplied", "1", D),
-        ],
-    },
-    {
-        "id": "co_emp3",
-        "type": "Company",
-        "label": "Bain & Company",
-        "props": [
-            p("role", "employer of an instructor", E),
-            p("relationship", "none commercial in this toy", D),
-            p("instructors_supplied", "1", D),
-        ],
-    },
-    # The one that is not like the others. t4's employer is Zrive, the company that runs the
-    # programme the whole drawing is about, so this node is both an employer of an instructor
-    # and the operator of everything else on the page.
-    #
-    # The choice made here, deliberately: draw it as a Company exactly like the other four,
-    # with the same type and the same 'employed by' verb, and carry the difference in the data
-    # instead of in the geometry. Three reasons.
-    #
-    # First, uniformity is the point of this change and it is what the reveal rule in issue 48
-    # keys on: that rule keys on the 'employed by' link rather than on the Company type,
-    # precisely so that Aretxa Capital, a Company that hosts a visit and employs nobody, keeps
-    # behaving as it does. A fifth employer wearing a different verb or a different type would
-    # put t4 straight back into the special case this card exists to remove.
-    #
-    # Second, the difference is already recorded and stays recorded. fee_per_session on t4
-    # reads 'in scope of salary' where the other four read 'not modelled', which is the whole
-    # of what in house means here in money terms, and the role and relationship rows below say
-    # it in words rather than leaving the fee row to imply it.
-    #
-    # Third, the mark mechanism was considered for a visual distinction and rejected. A mark
-    # draws a dashed ring and a second label line, and in this model its vocabulary is
-    # missingness: the cohort carries 'no cohort_id' because its key does not exist. Nothing
-    # about Zrive is missing, so marking it would make the drawing say something false in
-    # order to say something true. A distinction drawn in the tile itself would need a new
-    # affordance in the renderer, which is app.js and not this card.
-    {
-        "id": "co_emp4",
-        "type": "Company",
-        "label": "Zrive",
-        "note": ("Zrive is the operator of the programme, not a third party like the other four "
-                 "employers. It is drawn as a Company and carries the same 'employed by' edge "
-                 "so that all five instructors read the same way, and the difference is in the "
-                 "data: this instructor is in house, which is also why fee_per_session on "
-                 "Rubén Arizmendi reads in scope of salary where the other four read not "
-                 "modelled."),
-        "props": [
-            p("role", "employer of an instructor, and the operator of the programme", E),
-            p("relationship", "runs the programme, so this instructor is in house", E),
-            p("instructors_supplied", "1", D),
-        ],
-    },
-    {
-        "id": "co_emp5",
-        "type": "Company",
-        "label": "Uría",
-        "props": [
-            p("role", "employer of an instructor", E),
-            p("relationship", "none commercial in this toy", D),
-            p("instructors_supplied", "1", D),
-        ],
-    },
-    {
-        "id": "co_col",
-        "type": "Company",
-        "col": 3,   # sits beside the sessions it hosts, not beside the employer
-        "label": "Aretxa Capital",
-        "note": ("An invented firm. The visit it hosts attaches to the PROGRAMME and not to the "
-                 "cohort, which is what the company register says: thirteen company notes point "
-                 "a visit at a programme note and not one of the hundred and fifty six mentions "
-                 "a cohort at all. What no system anywhere records is the other half of it, "
-                 "which cohort attended. That absence has no tile on this page: it is a missing "
-                 "relation between two classes that both exist, and every ghost here is a "
-                 "missing class."),
-        "props": [
-            p("role", "empresa colaboradora", D),
-            p("note", "invented company, not a real firm", D),
-            p("visits_hosted", "1", D),
-            p("vacancies_open", "2", D),
-            p("cohort_that_attended", "no system relates a cohort to a visit", A),
-        ],
-    },
-    # ---- rank 1, instructors ----------------------------------------------
-    {
-        "id": "t1", "type": "Instructor", "label": "Nerea Iribarren",
-        "props": [
-            p("name", "invented", D),
-            p("employer", "McKinsey", D),
-            p("sessions_taught", "1", D),
-            p("fee_per_session", "not modelled", D),
-        ],
-    },
-    {
-        "id": "t2", "type": "Instructor", "label": "Bruno Belaunde",
-        "props": [
-            p("name", "invented", D),
-            p("employer", "Houlihan Lokey", D),
-            p("sessions_taught", "1", D),
-            p("fee_per_session", "not modelled", D),
-        ],
-    },
-    {
-        "id": "t3", "type": "Instructor", "label": "Nuria Ondarreta",
-        "props": [
-            p("name", "invented", D),
-            p("employer", "Bain & Company", D),
-            p("sessions_taught", "1", D),
-            p("fee_per_session", "not modelled", D),
-        ],
-    },
-    {
-        "id": "t4", "type": "Instructor", "label": "Rubén Arizmendi",
-        "props": [
-            p("name", "invented", D),
-            p("employer", "Zrive", D),
-            p("sessions_taught", "2", D),
-            p("fee_per_session", "in scope of salary", E),
-        ],
-    },
-    {
-        "id": "t5", "type": "Instructor", "label": "Celia Vandellós",
-        "props": [
-            p("name", "invented", D),
-            p("employer", "Uría", D),
-            p("sessions_taught", "1", D),
-            p("fee_per_session", "not modelled", D),
-        ],
-    },
-]
-
-# ---- rank 1, session templates --------------------------------------------
-# Titles are real and published. The codes beside them are invented.
-TEMPLATES = [
-    ("st1", "Advanced Excel Course", "ZIB-T1", "async", "online", "300"),
-    ("st2", "Cómo hacer un buen CV para IB", "ZIB-T2", "async", "online", "60"),
-    ("st3", "Intro to economics & financial markets", "ZIB-T3", "async", "online", "60"),
-    ("st4", "How to read financial statements", "ZIB-T4", "async", "online", "60"),
-    ("st5", "Why we value companies?", "ZIB-T5", "async", "online", "60"),
-    ("st6", "All about recruiting in Investment Banking", "ZIB-T6", "sync", "presencial", "120"),
-]
-for tid, title, code, dmode, lmode, dur in TEMPLATES:
-    NODES.append({
-        "id": tid, "type": "SessionTemplate", "label": title,
-        "props": [
-            p("title", "real, published on the company website", E),
-            p("template_code", code, D),
-            p("delivery_mode", dmode, D),
-            p("location_mode", lmode, D),
-            p("duration_min", dur, D),
-        ],
-    })
-
-# ---- rank 2, cohort sessions ----------------------------------------------
-# The centre of the graph: template x cohort x teacher x datetime.
-COHORT_SESSIONS = [
-    ("cs1", "Sesión 1, 12 ene", "st1", "t4", "2026-01-12 18:30", "delivered", "31"),
-    ("cs2", "Sesión 2, 19 ene", "st2", "t4", "2026-01-19 18:30", "delivered", "29"),
-    ("cs3", "Sesión 3, 26 ene", "st3", "t1", "2026-01-26 18:30", "delivered", "28"),
-    ("cs4", "Sesión 4, 2 feb",  "st4", "t3", "2026-02-02 18:30", "confirmed", "0"),
-    ("cs5", "Sesión 5, 9 feb",  "st5", "t2", "2026-02-09 18:30", "confirmed", "0"),
-    ("cs6", "Sesión 6, 14 mar", "st6", "t5", "2026-03-14 10:00", "planned",   "0"),
-]
-for cid, label, st, tt, when, state, att in COHORT_SESSIONS:
-    NODES.append({
-        "id": cid, "type": "CohortSession", "label": label,
-        "props": [
-            p("cohort_session_id", cid.upper(), D),
-            p("scheduled_at", when, D),
-            p("teacher_assigned", "yes", D),
-            p("state", state, D),
-            p("attendance", att, D),
-            p("recording_ref", "none", D),
-        ],
-    })
-
-NODES += [
-    {
-        "id": "cohort", "type": "Cohort", "label": "Z-IB 1Q26",
-        # The cohort is a real thing and its key is not. It is marked rather than drawn as a
-        # ghost for exactly that reason: the object exists, the identifier does not.
-        #
-        # ITS MARK USED TO READ "no cohort_id" AND IT IS NOT HAND WRITTEN ANY MORE. Issue 4 put a
-        # mark under every tile whose type no system holds, all of them saying the same sentence,
-        # and this was the one tile already carrying a different one. Two marks in the same slot
-        # saying different kinds of absence is bad enough. The version of it that was actually
-        # dangerous is that the cohort would then have been the only marked tile NOT saying "no
-        # system holds it", and a reader comparing the drawing's marks would have read that as the
-        # cohort having a system, which is the single most wrong thing this page could say: the
-        # cohort having no system of record is the central finding of the whole analysis.
-        #
-        # Nothing is lost by the change. The missing key is still a property row of its own two
-        # lines below, still the first sentence of the note, and now also the route_system row,
-        # which says what the cohort is instead of a record. The mark is set by the route loop at
-        # the foot of this file, like every other one.
-        "note": ("The cohort exists as a thing and its key does not. No identifier for it is "
-                 "held anywhere, so a cohort can only be picked out as the intersection of a "
-                 "roster, a calendar, a campus group and a record on the website."),
-        "props": [
-            p("cohort_id", "no identifier in any system", A),
-            p("intake", "1Q26", D),
-            p("starts_on", "2026-01-12", D),
-            p("sessions_scheduled", "6", D),
-            p("students_enrolled", str(COHORT_HEADCOUNT), D),
-        ],
-    },
-    {
-        "id": "students", "type": "StudentGroup", "label": "Alumnos Z-IB 1Q26",
-        "count": str(COHORT_HEADCOUNT),
-        # The line under the label, and it is not decoration. Four tiles are not a cohort, and a
-        # drawing that reveals four individuals without saying how many it left out has quietly
-        # replaced thirty four people with four. Same discipline as the count of Done cards the
-        # board draws under the ones it shows. It appears and disappears with the four tiles,
-        # because a marker about a reveal has nothing to say while nothing is revealed, and the
-        # number in it is computed and never typed.
-        "tail": f"and {NOT_DRAWN} more, not drawn",
-        "note": ("One card standing for the whole cohort. Clicking it draws four of the thirty "
-                 "four as individual Student objects, in space the layout already keeps for "
-                 "them, with the count of the ones it did not draw underneath. Every person in "
-                 "this cohort is invented, here and in the full list: no roster of real "
-                 "students is imported into this repository or published on this page."),
-        "props": [
-            p("headcount", str(COHORT_HEADCOUNT), D),
-            p("representation", f"one card for {COHORT_HEADCOUNT}, {DRAWN_STUDENTS} drawn on "
-                                f"click", E),
-            # This row used to read "not shown, and not in this repo", which stopped being true
-            # the moment the four tiles and the full list arrived. It is not softened: it says
-            # what is now in the repository and what is still not, which is any real person.
-            p("individual_records", f"{COHORT_HEADCOUNT} invented rows, no real roster", D),
-            p("not_drawn", str(NOT_DRAWN), D),
-            p("completion_rate", "not modelled", D),
-        ],
-    },
-    {
-        "id": "enrol", "type": "Enrolment", "label": "Enrolment 0001",
-        "props": [
-            p("enrolment_id", "ENR-0001", D),
-            p("stands_for", f"{COHORT_HEADCOUNT} enrolments, one drawn", E),
-            p("enrolled_on", "2026-01-05", D),
-            p("status", "active", D),
-        ],
-    },
-    {
-        "id": "agree", "type": "Agreement", "label": "Agreement 0001",
-        "props": [
-            p("agreement_id", "AGR-0001", D),
-            p("total_price", "4.000,00 EUR", D),
-            p("instalments", "4", D),
-            p("signed_on", "2026-01-05", D),
-        ],
-    },
-    {
-        "id": "charge", "type": "Charge", "label": "Charge 0001",
-        "props": [
-            p("charge_id", "CHG-0001", D),
-            p("amount", "1.000,00 EUR", D),
-            p("due_on", "2026-02-01", D),
-            # The drawn charge is the first student's charge, so its state is read off that
-            # student's row rather than typed here. Two places saying "unpaid" is one place to
-            # forget when the roster changes, and the disagreement would be invisible: the tile
-            # and the card would each look right on their own.
-            p("state", ROSTER[0][3], D),
-            p("payer_identity", "not resolved", E),
-        ],
-    },
-    {
-        "id": "claim", "type": "Claim", "label": "Claim 0001",
-        "props": [
-            p("claim_id", "CLM-0001", D),
-            p("amount_claimed", "1.000,00 EUR", D),
-            p("raised_on", "2026-03-01", D),
-            p("stage", "first reminder", D),
-        ],
-    },
-]
-
-# ---- edges -----------------------------------------------------------------
-# source, target, verb. The arrowhead sits at the target. Verbs read off the line.
-EDGES = []
-for tid, *_ in TEMPLATES:
-    EDGES.append(("prog", tid, "includes"))
-# One verb for all five, so a rule that hides an employer until its instructor is clicked can
-# key on the link and reach every one of them.
-for _t, _co in (("t1", "co_emp"), ("t2", "co_emp2"), ("t3", "co_emp3"),
-                ("t4", "co_emp4"), ("t5", "co_emp5")):
-    EDGES.append((_t, _co, "employed by"))
-for cid, _l, st, tt, *_ in COHORT_SESSIONS:
-    EDGES.append((tt, cid, "teaches"))
-    EDGES.append((cid, st, "instance of"))
-    EDGES.append((cid, "cohort", "scheduled for"))
-EDGES += [
-    # ISSUE 63, AND IT IS A DATA ERROR AND NOT A PREFERENCE. This edge used to end on the Cohort.
-    # Counted across the 156 company notes in the vault: 13 carry a visit and every one of them
-    # points at a PROGRAMME note; not one of the 156 contains the string cohort anywhere; and the
-    # 30 key company schema has no cohort field, so the relation the drawing asserted cannot even
-    # be expressed in the source. An edge pointing at the wrong object type is the one error this
-    # artefact cannot afford, because it looks exactly as authoritative as the edges that are
-    # right.
-    #
-    # WHAT IT COST, MEASURED RATHER THAN ESTIMATED. co_col sits in column 3 and prog in column 0,
-    # a span of 3, which is the threshold at which an edge stops being a neighbour bezier and
-    # becomes an arc slung under the row it connects. The research card priced that at up to 90
-    # units of extra height and offered moving the host into column 0 as the cheaper option. It
-    # is neither: the arc is FREE here, because its midpoint plus 26 lands well inside a drawing
-    # already 586 tall, and moving the host into column 0 would have put both ends of this edge
-    # in the SAME column, which this layout has no shape for at all. Probed rather than reasoned:
-    # the same-column case falls through to the neighbour branch, which draws p0 to the right of
-    # p3 and produces a loop between two tiles.
-    ("co_col", "prog", "hosts visit"),
-    ("students", "cohort", "enrolled in"),
-    ("students", "enrol", "recorded as"),
-    ("enrol", "agree", "governed by"),
-    ("agree", "charge", "schedules"),
-    ("students", "charge", "pays"),
-    ("claim", "charge", "claims against"),
-]
-
-# ---- the four students that are drawn ---------------------------------------
-# Issue 51. The students card carried two recorded decisions, "one card standing for 34
-# individuals" and "individual records: not shown, and not in this repo", and this block retires
-# the second of them: Student is a first class object type now, with its own colour, its own
-# properties and its own link, and four instances of it exist on the page.
+# ============================================================================
+# ONE PROGRAMME TYPE, SEVEN INSTANCES
+# ============================================================================
+# Issue 43. The toy carried one Programme, Investment Banking, and one instance cannot show
+# whether Programme is an object type or a shape baked into the drawing. Six more are declared
+# below, from the real syllabi in the vault, and all seven are built by the same three functions
+# out of the same fields. That is the test rather than the decoration: if Programme were an
+# assumption, the second instance would have needed a second code path, and none of the six does.
 #
-# Four and not thirty four. The whole drawing is thirty four nodes; exploding one lane into
-# thirty four tiles would double it and teach nothing that four do not, because what a reader
-# has to see here is the shape of a Student record and the fact that it joins the rest of the
-# model. The cohort as a population is a different question with a different answer, and the
-# answer is the full list, which is the sheet at #/students and holds all thirty four rows.
+# WHAT IS REAL AND WHAT IS INVENTED. Programme names, programme codes, session titles and firm
+# names are real and are reproduced verbatim, including Spanish spelling, the leading space on
+# one Z-SC title and the double space in one Z-HR title. Every PERSON is invented. Every
+# identifier, date, duration, count, state and amount is invented. The name gate at the foot of
+# this file hashes every string any of the seven ships and refuses the build on a collision.
 #
-# ONE VERB, AND THE REVEAL KEYS ON IT. 'member of' belongs to these four edges and to nothing
-# else on the page, which is what lets app.js derive the hidden set by walking the edges rather
-# than by holding a list of ids or by keying on the Student type. A fifth student added here
-# joins the rule by existing. Same reasoning as the 'employed by' rule in issue 48, and the
-# reason it is worth repeating is that keying on the type worked there too, right up until a
-# Company turned out to be playing two roles.
-STUDENT_IDS = [f"s{i}" for i in range(1, DRAWN_STUDENTS + 1)]
+# WHAT THE SIXTH AND SEVENTH INSTANCES FORCED, none of which one programme could have suggested:
+#
+#   1. Instructor to Programme is many to many. Three teachers of the real sixty four hold
+#      sessions on more than one programme, one of them on three. t4 spans three routes here,
+#      t6 and t7 span two, which reproduces that distribution exactly. Node ids are therefore
+#      GLOBAL and not per route, so a later sheet can key on the id.
+#   2. A Company can employ more than one Instructor. McKinsey supplies two on Z-SC, Uría two on
+#      Z-BL, Meta two on Z-DS, and instructors_supplied finally reads something other than 1.
+#   3. An Instructor can have no employer at all, 17 of the real 64. Four here carry
+#      p("employer", "not recorded", A) and draw no 'employed by' edge.
+#   4. A CohortSession can have no teacher. 100 of the real 260 have none; ten of the forty two
+#      drawn here carry teacher_assigned "no", flagged absent, with the 'teaches' edge missing.
+#   5. Z-CFA has no instructor anywhere in its source, so the whole lane is empty. That is the
+#      finding and not a fault, and it is why the lane captions are a per view argument to
+#      layout() rather than a module constant.
+#
+# THE SHARED CAST IS DELIBERATE AND MUST NOT BE UNDONE. Giving each route a private set of
+# instructors would produce a faculty sheet showing zero sharing across the catalogue, which is
+# the one answer the real data says is wrong.
+#
+# A NOTE ON EMPLOYERS AND RE-IDENTIFICATION, which the name gate cannot see. The gate hashes
+# person tokens; it has no opinion about a firm. But a firm that supplies exactly one teacher in
+# the real register re-identifies that teacher the moment an invented instructor is paired with
+# it on a public page. Two employers were therefore substituted for real ones that would have
+# been conspicuous, and both substitutions are recorded at the point of use. Apply the same
+# reasoning to anything added later: prefer an employer that supplies two or more.
 
-for _i, (_name, _uni, _yob, _state) in enumerate(ROSTER[:DRAWN_STUDENTS], start=1):
-    # Enrolment 0001 and charge 0001 are the ones the drawing carries as nodes; the other
-    # thirty three of each exist in the model and are not drawn, which the row says rather than
-    # leaving the reader to assume that ENR-0002 is missing.
-    _drawn = ", drawn" if _i == 1 else ", not drawn"
-    NODES.append({
-        "id": f"s{_i}", "type": "Student", "label": _name,
-        "note": ("An invented person. This card exists to show that a Student is an object with "
-                 "properties and links and not a name inside a headcount, and every value on it "
-                 "is made up: no real student, no real cohort, nothing imported from any Zrive "
-                 "system, on a page anyone with the URL can read."),
-        "props": [
-            p("name", "invented", D),
-            p("university", _uni, D),
-            # year and not date, on purpose: see the note above ROSTER.
-            p("year_of_birth", _yob, D),
-            p("recorded_as", f"ENR-{_i:04d}{_drawn}", D),
-            p("charge", f"CHG-{_i:04d}{_drawn}", D),
-            p("charge_state", _state, D),
-        ],
-    })
-    EDGES.append((f"s{_i}", "students", "member of"))
+# Every firm named on any of the seven routes as an employer. Real firm names, which name
+# nobody; the pairing of a firm with a person is invented and every instructor's employer row is
+# flagged dummy for exactly that reason.
+COMPANIES = {
+    "co_emp": "McKinsey",
+    "co_emp2": "Houlihan Lokey",
+    "co_emp3": "Bain & Company",
+    "co_emp4": "Zrive",
+    "co_emp5": "Uría",
+    "co_fide": "Fide Partners",
+    "co_latham": "Latham & Watkins",
+    "co_baker": "Baker McKenzie",
+    "co_cinven": "Cinven",
+    "co_nazca": "Nazca Capital",
+    "co_seedtag": "Seedtag",
+    "co_cabify": "Cabify",
+    "co_stemdo": "Stemdo",
+    "co_kaleidos": "Kaleidos",
+    "co_openbank": "openbank",
+    "co_meta": "Meta",
+}
+# The operator of every one of the seven programmes, and an employer of instructors on three of
+# them. It is drawn as a Company like the other fifteen and carries the difference in the data.
+ZRIVE = "co_emp4"
 
-# The full cohort as rows, for the sheet at #/students. It is the same list the four tiles come
-# off, so the sheet cannot disagree with the drawing about who the first four are, and the four
-# carry the id of the node they are drawn as. Everything here is invented; see ROSTER.
-ROSTER_ROWS = [
+# A property whose value is an absence rather than a value. Written once so that "not recorded"
+# cannot drift into "unknown" on one route and "none" on another: the difference between those
+# two words is the whole use of the third flag.
+NOT_RECORDED = "not recorded"
+
+
+# ---- the other six cohorts, recombined rather than invented again -----------
+# Six more cohorts need six more rosters. Inventing a hundred and thirty more Spanish names
+# would be a hundred and thirty more chances to write down somebody real, and the first draft of
+# the thirty four above did exactly that thirteen times over. So not one of them is invented.
+# The given names and the surnames of the roster above are split apart and recombined at an
+# offset: the people are new, every token in them has already been through the name gate, and
+# the offset is never zero, so no recombined row can put a given name back with the surname it
+# arrived with. The university, the year and the charge state travel with the given name, so
+# each cohort's distribution is the one above rather than a second thing to invent.
+if any(len(row[0].split()) != 2 for row in ROSTER):
+    raise SystemExit("model: the roster recombination assumes two tokens per name and one row "
+                     "no longer has two. Fix the split rather than the roster.")
+_GIVEN = [row[0].split()[0] for row in ROSTER]
+_SURNAME = [row[0].split()[1] for row in ROSTER]
+
+
+def cohort_roster(headcount, offset):
+    """`headcount` invented people, made of tokens the gate has already cleared."""
+    if not 0 < headcount <= len(ROSTER):
+        raise SystemExit(f"model: a cohort of {headcount} cannot be recombined out of a pool of "
+                         f"{len(ROSTER)} without repeating a person")
+    step = 1 + offset % 7          # never 0, so a row never keeps its own surname
+    rows = []
+    for i in range(headcount):
+        gi = (i + offset) % len(ROSTER)
+        si = (gi + step) % len(ROSTER)
+        _name, uni, yob, state = ROSTER[gi]
+        rows.append((f"{_GIVEN[gi]} {_SURNAME[si]}", uni, yob, state))
+    return rows
+
+
+# ---- the seven declarations -------------------------------------------------
+# A template is (id, title, code, delivery_mode, location_mode, duration_min). Any of the last
+# three may be None, which is written as an absence and not as a guess.
+#
+# An instructor is (id, label, employer node id or None, sessions taught on THIS route,
+# the routes it appears on or None). A Zrive-employed instructor's fee reads "in scope of
+# salary"; everybody else's reads "not modelled".
+#
+# A cohort session is (id, label, template id, (teacher ids), scheduled_at, state, attendance).
+# An empty teacher tuple is a session with nobody assigned, which is a real and common shape.
+SYLLABUS = ("real, from the programme syllabus", E)
+WEBSITE = ("real, published on the company website", E)
+
+# The selection rule that picked the six templates on each route is written out in the research
+# spec and is not re-derived here; what matters to the model is that it is the same rule on all
+# seven and that it reproduces the six Z-IB templates this toy already shipped.
+PROGRAMMES = [
     {
-        "id": f"STU-{_i:04d}",
-        "name": _name,
-        "uni": _uni,
-        "yob": _yob,
-        "enrol": f"ENR-{_i:04d}",
-        "state": _state,
-        "node": f"s{_i}" if _i <= DRAWN_STUDENTS else None,
-    }
-    for _i, (_name, _uni, _yob, _state) in enumerate(ROSTER, start=1)
+        "key": "ZIB", "pfx": "", "code": "Z-IB", "name": "Investment Banking",
+        "delivery": ("online, with two in person weekends", E),
+        "title_provenance": WEBSITE,
+        "templates": [
+            ("st1", "Advanced Excel Course", "ZIB-T1", "async", "online", "300"),
+            ("st2", "Cómo hacer un buen CV para IB", "ZIB-T2", "async", "online", "60"),
+            ("st3", "Intro to economics & financial markets", "ZIB-T3", "async", "online", "60"),
+            ("st4", "How to read financial statements", "ZIB-T4", "async", "online", "60"),
+            ("st5", "Why we value companies?", "ZIB-T5", "async", "online", "60"),
+            ("st6", "All about recruiting in Investment Banking", "ZIB-T6", "sync",
+             "presencial", "120"),
+        ],
+        "instructors": [
+            ("t1", "Nerea Iribarren", "co_emp", "1", None),
+            ("t2", "Bruno Belaunde", "co_emp2", "1", None),
+            ("t3", "Nuria Ondarreta", "co_emp3", "1", None),
+            ("t4", "Rubén Arizmendi", ZRIVE, "2", "Z-IB, Z-PE, Z-SC"),
+            ("t5", "Celia Vandellós", "co_emp5", "1", None),
+            # Issue 43. The real ZIB-T0072 carries two teachers and the second of them is the one
+            # external teacher in the whole corpus who also holds sessions on another programme.
+            # Without this tile the shared external instructor is invisible on the route where
+            # most of his sessions are, and the sharing the faculty sheet reports would be an
+            # in-house story only.
+            ("t7", "Iker Bidaurreta", None, "1", "Z-IB, Z-PE"),
+        ],
+        "sessions": [
+            ("cs1", "Sesión 1, 12 ene", "st1", ("t4",), "2026-01-12 18:30", "delivered", "31"),
+            ("cs2", "Sesión 2, 19 ene", "st2", ("t4",), "2026-01-19 18:30", "delivered", "29"),
+            ("cs3", "Sesión 3, 26 ene", "st3", ("t1",), "2026-01-26 18:30", "delivered", "28"),
+            ("cs4", "Sesión 4, 2 feb", "st4", ("t3",), "2026-02-02 18:30", "confirmed", "0"),
+            ("cs5", "Sesión 5, 9 feb", "st5", ("t2",), "2026-02-09 18:30", "confirmed", "0"),
+            ("cs6", "Sesión 6, 14 mar", "st6", ("t5", "t7"), "2026-03-14 10:00", "planned", "0"),
+        ],
+        "host": ("co_col", "Aretxa Capital"),
+        "intake": "1Q26", "starts_on": "2026-01-12",
+        "headcount": COHORT_HEADCOUNT, "roster": ROSTER,
+        "enrolled_on": "2026-01-05", "due_on": "2026-02-01", "raised_on": "2026-03-01",
+        "students_note": (
+            "One card standing for the whole cohort. Clicking it draws four of the thirty "
+            "four as individual Student objects, in space the layout already keeps for "
+            "them, with the count of the ones it did not draw underneath. Every person in "
+            "this cohort is invented, here and in the full list: no roster of real "
+            "students is imported into this repository or published on this page."),
+    },
+    {
+        "key": "ZSC", "pfx": "sc_", "code": "Z-SC", "name": "Strategy Consulting",
+        "delivery": ("online, with two in person weekends", E),
+        "title_provenance": SYLLABUS,
+        "templates": [
+            ("sc_st1", "Welcome to Zrive Strategy Consulting + Q&A SC", "ZSC-T1", "sync",
+             "online", "90"),
+            ("sc_st2", "Overview of the consulting industry", "ZSC-T2", "sync", "online", "90"),
+            ("sc_st3", "How to prepare for FIT interview questions", "ZSC-T3", "sync",
+             "online", "90"),
+            ("sc_st4", "Business Case - Group Practice (I) - Profitability", "ZSC-T4", "sync",
+             "online", "90"),
+            ("sc_st5", "Real Projects: TMT", "ZSC-T5", "sync", "online", "90"),
+            # The leading space is verbatim and deliberate in the syllabus. wrap() splits on
+            # whitespace and discards it, so the tile draws identically either way; stripping it
+            # here would make the model disagree with its source for no gain.
+            ("sc_st6", " ATTICO @ 10.15h - All you need to know about recruiting in Strategy "
+             "Consulting", "ZSC-T6", "sync", "presencial", "120"),
+        ],
+        "instructors": [
+            ("t4", "Rubén Arizmendi", ZRIVE, "1", "Z-IB, Z-PE, Z-SC"),
+            ("t6", "Ainhoa Muruzabal", ZRIVE, "1", "Z-SC, Z-HR"),
+            ("t8", "Nagore Elordieta", "co_emp3", "1", None),
+            ("t9", "Telmo Garaikoetxea", None, "1", None),
+            ("t10", "Saioa Erkoreka", "co_emp", "1", None),
+            ("t11", "Ander Legarralde", "co_fide", "1", None),
+            ("t12", "Miren Aitzgorri", "co_emp", "1", None),
+        ],
+        "sessions": [
+            ("sc_cs1", "Sesión 1, 13 ene", "sc_st1", ("t4", "t6"), "2026-01-13 18:30",
+             "delivered", "22"),
+            ("sc_cs2", "Sesión 2, 20 ene", "sc_st2", ("t8",), "2026-01-20 18:30",
+             "delivered", "21"),
+            ("sc_cs3", "Sesión 3, 27 ene", "sc_st3", ("t9",), "2026-01-27 18:30",
+             "delivered", "20"),
+            ("sc_cs4", "Sesión 4, 3 feb", "sc_st4", ("t10",), "2026-02-03 18:30",
+             "confirmed", "0"),
+            ("sc_cs5", "Sesión 5, 10 feb", "sc_st5", ("t11",), "2026-02-10 18:30",
+             "confirmed", "0"),
+            ("sc_cs6", "Sesión 6, 21 mar", "sc_st6", ("t12",), "2026-03-21 10:00",
+             "planned", "0"),
+        ],
+        "host": ("sc_co_col", "Belagua Advisory"),
+        "intake": "1Q26", "starts_on": "2026-01-13",
+        "headcount": 27, "roster_offset": 5,
+        "enrolled_on": "2026-01-06", "due_on": "2026-02-02", "raised_on": "2026-03-02",
+    },
+    {
+        "key": "ZBL", "pfx": "bl_", "code": "Z-BL", "name": "Big Law",
+        "delivery": ("online, with two in person weekends", E),
+        "title_provenance": SYLLABUS,
+        # Every duration on this route is invented: not one of Z-BL's twenty eight real rows
+        # carries a duration at all.
+        "templates": [
+            ("bl_st1", "Presentación // ¿Qué salidas profesionales existen en el mundo del "
+             "Derecho?", "ZBL-T1", "sync", "online", "90"),
+            ("bl_st2", "¿Como preparar procesos de selección?", "ZBL-T2", "sync", "online", "90"),
+            ("bl_st3", "Áreas de Práctica → Corporate and M&A I", "ZBL-T3", "sync",
+             "online", "90"),
+            ("bl_st4", "Oratoria I", "ZBL-T4", "sync", "online", "90"),
+            ("bl_st5", "Recruiting Superday", "ZBL-T5", "sync", "presencial", "240"),
+            ("bl_st6", "Oratoria III", "ZBL-T6", "sync", "presencial", "120"),
+        ],
+        # SUBSTITUTION, RECORDED. The real employer behind the two sessions t17 holds is a firm
+        # whose first token is also a real teacher's surname, so the name gate refuses it and is
+        # right to. t17 is given another real Z-BL employer from the same register instead.
+        # Changing the name is the fix; weakening the gate is not.
+        "instructors": [
+            ("t13", "Endika Zumeltzu", None, "1", None),
+            ("t14", "Oihana Belastegui", "co_emp5", "2", None),
+            ("t15", "Lide Arriotua", "co_emp5", "2", None),
+            ("t16", "Peru Zubizarreta", "co_latham", "1", None),
+            ("t17", "Estibaliz Onaindia", "co_baker", "2", None),
+        ],
+        "sessions": [
+            ("bl_cs1", "Sesión 1, 14 ene", "bl_st1", ("t13",), "2026-01-14 18:30",
+             "delivered", "19"),
+            ("bl_cs2", "Sesión 2, 21 ene", "bl_st2", ("t14", "t15"), "2026-01-21 18:30",
+             "delivered", "18"),
+            ("bl_cs3", "Sesión 3, 28 ene", "bl_st3", ("t16",), "2026-01-28 18:30",
+             "delivered", "18"),
+            ("bl_cs4", "Sesión 4, 4 feb", "bl_st4", ("t17",), "2026-02-04 18:30",
+             "confirmed", "0"),
+            ("bl_cs5", "Sesión 5, 14 mar", "bl_st5", ("t14", "t15"), "2026-03-14 10:00",
+             "planned", "0"),
+            ("bl_cs6", "Sesión 6, 15 mar", "bl_st6", ("t17",), "2026-03-15 10:00",
+             "planned", "0"),
+        ],
+        "host": ("bl_co_col", "Ordunte Abogados"),
+        "intake": "1Q26", "starts_on": "2026-01-14",
+        "headcount": 21, "roster_offset": 11,
+        "enrolled_on": "2026-01-07", "due_on": "2026-02-03", "raised_on": "2026-03-03",
+    },
+    {
+        "key": "ZPE", "pfx": "pe_", "code": "Z-PE", "name": "Private Equity",
+        "delivery": ("online, with two in person weekends", E),
+        "title_provenance": SYLLABUS,
+        # pe_st6's location is an absence and not an invention: twenty five of Z-PE's thirty six
+        # real rows record no location mode at all, and this is the toy's one instance of it.
+        "templates": [
+            ("pe_st1", "Welcome to Z-PE & Intro to Corporate Private Equity", "ZPE-T1", "sync",
+             "online", "90"),
+            ("pe_st2", "LBOs - value levers & returns calculation", "ZPE-T2", "sync",
+             "online", "90"),
+            ("pe_st3", "Intro to Alternative Investments", "ZPE-T3", "sync", "presencial", "90"),
+            ("pe_st4", "The investment process in corporate private equity (I)", "ZPE-T4",
+             "sync", "presencial", "90"),
+            ("pe_st5", "The IC Memo & Take Home Case Study Presentation", "ZPE-T5", "sync",
+             "online", "90"),
+            ("pe_st6", "Infrastructure Private Equity Fundamentals", "ZPE-T6", "sync",
+             None, "90"),
+        ],
+        # SUBSTITUTION, RECORDED, and for the reason the name gate cannot see. The real employer
+        # behind t19 clears the gate and supplies exactly one teacher in the register, so pairing
+        # an invented instructor with it would let a reader resolve the pair by uniqueness. t19
+        # is given a real Z-PE employer with four sessions in the register instead. t7's real
+        # employer is a second one-to-one pairing and is dropped entirely: t7 carries no employer
+        # node, which is also the toy's instance of the seventeen real teachers who carry none.
+        "instructors": [
+            ("t4", "Rubén Arizmendi", ZRIVE, "3", "Z-IB, Z-PE, Z-SC"),
+            ("t7", "Iker Bidaurreta", None, "1", "Z-IB, Z-PE"),
+            ("t18", "Xanti Urkullu", "co_cinven", "1", None),
+            ("t19", "Garazi Etxeberri", "co_nazca", "1", None),
+        ],
+        "sessions": [
+            ("pe_cs1", "Sesión 1, 15 ene", "pe_st1", ("t4",), "2026-01-15 18:30",
+             "delivered", "17"),
+            ("pe_cs2", "Sesión 2, 22 ene", "pe_st2", ("t18",), "2026-01-22 18:30",
+             "delivered", "16"),
+            ("pe_cs3", "Sesión 3, 29 ene", "pe_st3", ("t4",), "2026-01-29 18:30",
+             "delivered", "16"),
+            ("pe_cs4", "Sesión 4, 5 feb", "pe_st4", ("t7",), "2026-02-05 18:30",
+             "confirmed", "0"),
+            ("pe_cs5", "Sesión 5, 12 feb", "pe_st5", ("t4",), "2026-02-12 18:30",
+             "confirmed", "0"),
+            ("pe_cs6", "Sesión 6, 19 feb", "pe_st6", ("t19",), "2026-02-19 18:30",
+             "planned", "0"),
+        ],
+        "host": ("pe_co_col", "Larragoiti Partners"),
+        "intake": "1Q26", "starts_on": "2026-01-15",
+        "headcount": 18, "roster_offset": 17,
+        "enrolled_on": "2026-01-08", "due_on": "2026-02-04", "raised_on": "2026-03-04",
+    },
+    {
+        "key": "ZHR", "pfx": "hr_", "code": "Z-HR", "name": "Human Resources",
+        "delivery": ("online, with one in person weekend", E),
+        "title_provenance": SYLLABUS,
+        # EVERY Z-HR TEMPLATE CARRIES AN ABSENT DELIVERY MODE, and it is the true answer rather
+        # than a gap. All twenty five real rows read `delivery_mode: unknown` and the vault
+        # records that the Z-HR schema offers no other option, so writing "sync" here would be
+        # the toy asserting something its source cannot support.
+        "templates": [
+            ("hr_st1", "Sesión inaugural & presentaciones", "ZHR-T1", None, "online", "90"),
+            ("hr_st2", "De RRHH a People: un nuevo departamento estratégico", "ZHR-T2", None,
+             "online", "90"),
+            ("hr_st3", "Estrategias de atracción de talento: Employer Branding y PVE", "ZHR-T3",
+             None, "online", "90"),
+            ("hr_st4", "Potenciando el talento: formación y desarrollo profesional", "ZHR-T4",
+             None, "online", "90"),
+            # The double space is verbatim and deliberate in the syllabus, like the leading space
+            # on the Z-SC title above.
+            ("hr_st5", "People Analytics  I", "ZHR-T5", None, "online", "90"),
+            ("hr_st6", "Human Resources Agile", "ZHR-T6", None, "presencial", "120"),
+        ],
+        "instructors": [
+            ("t6", "Ainhoa Muruzabal", ZRIVE, "1", "Z-SC, Z-HR"),
+            ("t20", "Unax Sarralde", "co_seedtag", "1", None),
+            ("t21", "Maddi Larrabeiti", "co_cabify", "1", None),
+            ("t22", "Irati Zeberio", "co_stemdo", "1", None),
+            ("t23", "Aratz Mendiluze", "co_kaleidos", "1", None),
+            ("t24", "Nahia Goikoetxea", None, "1", None),
+        ],
+        # hr_cs5 has no teacher, which is the first unfilled teacher slot the toy has ever drawn.
+        # Five of Z-HR's twenty five real rows are like it, and a hundred of the corpus's two
+        # hundred and sixty.
+        "sessions": [
+            ("hr_cs1", "Sesión 1, 16 ene", "hr_st1", ("t6", "t24"), "2026-01-16 18:30",
+             "delivered", "20"),
+            ("hr_cs2", "Sesión 2, 23 ene", "hr_st2", ("t22",), "2026-01-23 18:30",
+             "delivered", "19"),
+            ("hr_cs3", "Sesión 3, 30 ene", "hr_st3", ("t20",), "2026-01-30 18:30",
+             "delivered", "19"),
+            ("hr_cs4", "Sesión 4, 6 feb", "hr_st4", ("t21",), "2026-02-06 18:30",
+             "confirmed", "0"),
+            ("hr_cs5", "Sesión 5, 13 feb", "hr_st5", (), "2026-02-13 18:30", "confirmed", "0"),
+            ("hr_cs6", "Sesión 6, 28 mar", "hr_st6", ("t23",), "2026-03-28 10:00",
+             "planned", "0"),
+        ],
+        "host": ("hr_co_col", "Zelaieta People"),
+        "intake": "1Q26", "starts_on": "2026-01-16",
+        "headcount": 24, "roster_offset": 23,
+        "enrolled_on": "2026-01-09", "due_on": "2026-02-05", "raised_on": "2026-03-05",
+    },
+    {
+        "key": "ZDS", "pfx": "ds_", "code": "Z-DS", "name": "Applied Data Science",
+        "delivery": ("online, no in person weekend", E),
+        "title_provenance": SYLLABUS,
+        # location_mode is an absence on all six: `unknown` on all twenty two real rows.
+        # delivery_mode is carried as `sync`, flagged dummy, and the dispute is in the note
+        # rather than in the flag, because the vault records the contradiction as unresolved and
+        # writing an absence here would be the toy taking a side in it.
+        "templates": [
+            ("ds_st1", "1. Introducción al programa", "ZDS-T1", "sync", None, "90"),
+            ("ds_st2", "2. Exploratory Data Analysis", "ZDS-T2", "sync", None, "90"),
+            ("ds_st3", "3. Fundamentals of Statistical Learning (1)", "ZDS-T3", "sync",
+             None, "90"),
+            ("ds_st4", "4. Model fitting", "ZDS-T4", "sync", None, "90"),
+            ("ds_st5", "5. Analyse, diagnose and improve a model", "ZDS-T5", "sync", None, "90"),
+            ("ds_st6", "6. Business translation", "ZDS-T6", "sync", None, "90"),
+        ],
+        "template_note": (
+            "The source for this programme records no format field, yet every one of its session "
+            "notes carries a delivery mode of sync. The vault flags that contradiction as "
+            "unresolved. The value is carried here and flagged invented, which is honest either "
+            "way; writing an absence instead would settle a question the source leaves open."),
+        "instructors": [
+            ("t25", "Amets Landaburu", "co_openbank", "1", None),
+            ("t26", "Ekhi Zabalondo", "co_meta", "1", None),
+            ("t27", "Haizea Olabeaga", "co_meta", "1", None),
+        ],
+        # Three of six with nobody assigned. Sixteen of Z-DS's twenty two real rows have none, so
+        # three of six understates it and is still the strongest teacher-absence signal drawn.
+        "sessions": [
+            ("ds_cs1", "Sesión 1, 11 feb", "ds_st1", ("t25",), "2026-02-11 18:30",
+             "delivered", "15"),
+            ("ds_cs2", "Sesión 2, 18 feb", "ds_st2", (), "2026-02-18 18:30", "delivered", "14"),
+            ("ds_cs3", "Sesión 3, 25 feb", "ds_st3", (), "2026-02-25 18:30", "delivered", "14"),
+            ("ds_cs4", "Sesión 4, 4 mar", "ds_st4", (), "2026-03-04 18:30", "confirmed", "0"),
+            ("ds_cs5", "Sesión 5, 11 mar", "ds_st5", ("t26",), "2026-03-11 18:30",
+             "confirmed", "0"),
+            ("ds_cs6", "Sesión 6, 18 mar", "ds_st6", ("t27",), "2026-03-18 18:30",
+             "planned", "0"),
+        ],
+        "host": ("ds_co_col", "Aixerrota Data"),
+        "intake": "1Q26", "starts_on": "2026-02-11",
+        "headcount": 16, "roster_offset": 29,
+        "enrolled_on": "2026-02-04", "due_on": "2026-03-04", "raised_on": "2026-04-01",
+    },
+    {
+        "key": "ZCFA", "pfx": "cfa_", "code": "Z-CFA", "name": "CFA preparation",
+        "delivery": ("asynchronous, with a fortnightly live catch up", E),
+        # The titles are verbatim and they are not session titles. Saying so in the provenance
+        # row is the whole reason this route is worth drawing.
+        "title_provenance": ("real, verbatim from the reading plan. The row names curriculum "
+                             "readings and not a session", E),
+        "prog_note": (
+            "The source for this programme is a reading plan and not a session calendar. It has "
+            "no instructor field, no module field and no format field, so three of the lanes on "
+            "this page cannot be filled from it. The empty instructor lane is the finding, not a "
+            "fault."),
+        "templates": [
+            ("cfa_st1", "19, 20 & 21", "ZCFA-T1", "async", None, None),
+            ("cfa_st2", "22, 23 & 24", "ZCFA-T2", "async", None, None),
+            ("cfa_st3", "25, 26 & 27", "ZCFA-T3", "async", None, None),
+            ("cfa_st4", "28, 29 & 30", "ZCFA-T4", "async", None, None),
+            ("cfa_st5", "31 & 32", "ZCFA-T5", "async", None, None),
+            ("cfa_st6", "33, 34 & 35", "ZCFA-T6", "async", None, None),
+        ],
+        # NO INSTRUCTORS, NO EMPLOYERS AND NO VISIT HOST, and none of the three may be invented
+        # to fill a lane. Z-CFA has no instructor property anywhere in its source, zero presencial
+        # sessions and no collaborating firm, so a tile in any of those lanes would be the toy
+        # asserting a relationship the corpus positively denies.
+        "instructors": [],
+        "sessions": [
+            ("cfa_cs1", "Sesión 1, 19 ene", "cfa_st1", (), "2026-01-19 18:30", "delivered", "24"),
+            ("cfa_cs2", "Sesión 2, 2 feb", "cfa_st2", (), "2026-02-02 18:30", "delivered", "23"),
+            ("cfa_cs3", "Sesión 3, 16 feb", "cfa_st3", (), "2026-02-16 18:30", "delivered", "22"),
+            ("cfa_cs4", "Sesión 4, 2 mar", "cfa_st4", (), "2026-03-02 18:30", "confirmed", "0"),
+            ("cfa_cs5", "Sesión 5, 16 mar", "cfa_st5", (), "2026-03-16 18:30", "confirmed", "0"),
+            ("cfa_cs6", "Sesión 6, 30 mar", "cfa_st6", (), "2026-03-30 18:30", "planned", "0"),
+        ],
+        "host": None,
+        "intake": "1Q26", "starts_on": "2026-01-19",
+        "headcount": 30, "roster_offset": 3,
+        "enrolled_on": "2026-01-12", "due_on": "2026-02-09", "raised_on": "2026-03-09",
+    },
 ]
+
 
 # ---- ghosts: classes the model needs and no system holds --------------------
-# Everything above is an object that exists. Everything below is one that does not, drawn on
-# the same page because the absences are the part of the shape that a reader cannot infer from
-# what is present. A ghost is a class, not an instance: it has no identifier, no date and no
-# amount, and its note says what the absence costs structurally and nothing more.
+# Everything a programme block draws is an object that exists. Everything below is one that does
+# not, drawn on the same page because the absences are the part of the shape that a reader cannot
+# infer from what is present. A ghost is a class, not an instance: it has no identifier, no date
+# and no amount, and its note says what the absence costs structurally and nothing more.
 #
 # The ghosts are all in the enrolment to claim band, and that is not a coincidence. It is the
 # band where money is promised, collected and chased, and it is the band with the fewest
@@ -795,33 +821,378 @@ def g(gid, label, col, verb, target, note):
     }
 
 
-GHOSTS = [
-    g("g_inst", "Instalment", 6, "expected by", "Agreement",
-      "The schedule of payments an agreement expects is not written down as rows. A payment "
-      "that fails leaves no row at all, and a row that is missing cannot be found without an "
-      "expectation to compare against, so nothing can be queried for what did not arrive."),
-    g("g_place", "Placement", 6, "matures", "Claim",
-      "A graduate taking a job offer is not recorded anywhere. A claim on future income can "
-      "therefore expire, and nothing can make it mature, so the question of which claims are "
-      "collectible today has no answer to read."),
-    g("g_beca", "Beca", 6, "discounts", "Agreement",
-      "A scholarship has no class of its own. A student who owes nothing and a student who "
-      "owes and has not paid are the same row."),
-    g("g_ref", "Refund", 7, "reverses", "Charge",
-      "Money returned to a payer has nowhere to be recorded. A charge that was reversed still "
-      "reads exactly as it did before, so a reversal can only be established off the system."),
-]
-
-GHOST_EDGES = [
-    ("g_inst", "agree", "expected by"),
-    ("g_place", "claim", "matures"),
-    ("g_beca", "agree", "discounts"),
-    ("g_ref", "charge", "reverses"),
+# (id suffix, label, column, verb, the class it would attach to, what the absence costs)
+GHOST_SPEC = [
+    ("g_inst", "Instalment", 6, "expected by", "Agreement", "agree",
+     "The schedule of payments an agreement expects is not written down as rows. A payment "
+     "that fails leaves no row at all, and a row that is missing cannot be found without an "
+     "expectation to compare against, so nothing can be queried for what did not arrive."),
+    ("g_place", "Placement", 6, "matures", "Claim", "claim",
+     "A graduate taking a job offer is not recorded anywhere. A claim on future income can "
+     "therefore expire, and nothing can make it mature, so the question of which claims are "
+     "collectible today has no answer to read."),
+    ("g_beca", "Beca", 6, "discounts", "Agreement", "agree",
+     "A scholarship has no class of its own. A student who owes nothing and a student who "
+     "owes and has not paid are the same row."),
+    ("g_ref", "Refund", 7, "reverses", "Charge", "charge",
+     "Money returned to a payer has nowhere to be recorded. A charge that was reversed still "
+     "reads exactly as it did before, so a reversal can only be established off the system."),
 ]
 
 TYPES = TYPES + [GHOST_TYPE]
-NODES += GHOSTS
-EDGES += GHOST_EDGES
+
+# The per-node populate routes are written once, for the unprefixed ids, and then repeated for
+# every route's own copy. A generated id that had no entry would stop the build at the loop at
+# the foot of this file, which is the behaviour that is wanted; repeating them here is what keeps
+# a visit host on Z-HR saying the same thing about Notion as the one on Z-IB.
+for _spec in PROGRAMMES:
+    _pfx = _spec["pfx"]
+    if not _pfx:
+        continue
+    for _base in ("co_col",) + tuple(gs[0] for gs in GHOST_SPEC):
+        ROUTE_BY_ID[_pfx + _base] = ROUTE_BY_ID[_base]
+
+
+# ---- the three builders -----------------------------------------------------
+def company_node(cid, supplied):
+    """An employer of instructors, drawn in column 0 with one 'employed by' edge per instructor.
+
+    The operator of the programme is one of them and is drawn exactly like the other fifteen:
+    same type, same verb, and the difference carried in the data rather than in the geometry.
+    Keying the reveal rule on the verb instead of on the type is what lets a Company that hosts
+    a visit and employs nobody stay on the page while these are hidden.
+    """
+    if cid == ZRIVE:
+        return {
+            "id": cid, "type": "Company", "label": COMPANIES[cid],
+            "note": ("Zrive is the operator of the programme, not a third party like the other "
+                     "employers. It is drawn as a Company and carries the same 'employed by' "
+                     "edge so that every instructor reads the same way, and the difference is "
+                     "in the data: an instructor it employs is in house, which is also why "
+                     "fee_per_session on that instructor reads in scope of salary where the "
+                     "others read not modelled."),
+            "props": [
+                p("role", "employer of an instructor, and the operator of the programme", E),
+                p("relationship", "runs the programme, so this instructor is in house", E),
+                p("instructors_supplied", str(supplied), D),
+            ],
+        }
+    return {
+        "id": cid, "type": "Company", "label": COMPANIES[cid],
+        "props": [
+            p("role", "employer of an instructor", E),
+            p("relationship", "none commercial in this toy", D),
+            p("instructors_supplied", str(supplied), D),
+        ],
+    }
+
+
+def programme_block(spec):
+    """The part of a drawing that is about one programme: prog, employers, host, templates,
+    instructors and cohort sessions. Seven calls, one function, no branch on which programme."""
+    pfx, nodes, edges = spec["pfx"], [], []
+    prog = pfx + "prog"
+    prog_node = {
+        "id": prog, "type": "Programme", "label": f"{spec['code']} {spec['name']}",
+        "props": [
+            p("programme_code", spec["code"], D),
+            p("name", spec["name"], D),
+            p("delivery", spec["delivery"][0], spec["delivery"][1]),
+            p("session_templates", "6 shown, of a longer syllabus", E),
+            p("owner", "academic team", E),
+        ],
+    }
+    if spec.get("prog_note"):
+        prog_node["note"] = spec["prog_note"]
+    nodes.append(prog_node)
+
+    # Employers, in the order their first instructor is declared, so a route's column 0 reads in
+    # the order its instructor lane does.
+    employers = []
+    for _tid, _lab, emp, _n, _pr in spec["instructors"]:
+        if emp and emp not in employers:
+            employers.append(emp)
+    for emp in employers:
+        supplied = sum(1 for _t, _l, e, _n, _pr in spec["instructors"] if e == emp)
+        nodes.append(company_node(emp, supplied))
+
+    if spec["host"]:
+        host_id, host_label = spec["host"]
+        nodes.append({
+            "id": host_id, "type": "Company",
+            "col": 3,   # sits beside the sessions it hosts, not beside the employer
+            "label": host_label,
+            "note": ("An invented firm. The visit it hosts attaches to the PROGRAMME and not to "
+                     "the cohort, which is what the company register says: thirteen company "
+                     "notes point a visit at a programme note and not one of the hundred and "
+                     "fifty six mentions a cohort at all. What no system anywhere records is the "
+                     "other half of it, which cohort attended. That absence has no tile on this "
+                     "page: it is a missing relation between two classes that both exist, and "
+                     "every ghost here is a missing class."),
+            "props": [
+                p("role", "empresa colaboradora", D),
+                p("note", "invented company, not a real firm", D),
+                p("visits_hosted", "1", D),
+                p("vacancies_open", "2", D),
+                p("cohort_that_attended", "no system relates a cohort to a visit", A),
+            ],
+        })
+
+    for tid, label, emp, taught, progs in spec["instructors"]:
+        props = [
+            p("name", "invented", D),
+            p("employer", COMPANIES[emp], D) if emp else p("employer", NOT_RECORDED, A),
+            p("sessions_taught", taught, D),
+            (p("fee_per_session", "in scope of salary", E) if emp == ZRIVE
+             else p("fee_per_session", "not modelled", D)),
+        ]
+        if progs:
+            # Only the three shared instructors carry this row. It is the whole of what a per
+            # programme drawing cannot show on its own: that this tile is also on another route.
+            props.append(p("programmes", progs, D))
+        nodes.append({"id": tid, "type": "Instructor", "label": label, "props": props})
+        if emp:
+            edges.append((tid, emp, "employed by"))
+
+    for sid, title, code, dmode, lmode, dur in spec["templates"]:
+        node = {
+            "id": sid, "type": "SessionTemplate", "label": title,
+            "props": [
+                p("title", spec["title_provenance"][0], spec["title_provenance"][1]),
+                p("template_code", code, D),
+                p("delivery_mode", dmode, D) if dmode else p("delivery_mode", NOT_RECORDED, A),
+                p("location_mode", lmode, D) if lmode else p("location_mode", NOT_RECORDED, A),
+                p("duration_min", dur, D) if dur else p("duration_min", NOT_RECORDED, A),
+            ],
+        }
+        if spec.get("template_note"):
+            node["note"] = spec["template_note"]
+        nodes.append(node)
+        edges.append((prog, sid, "includes"))
+
+    for cid, label, sid, teachers, when, state, att in spec["sessions"]:
+        nodes.append({
+            "id": cid, "type": "CohortSession", "label": label,
+            "props": [
+                p("cohort_session_id", cid.upper(), D),
+                p("scheduled_at", when, D),
+                (p("teacher_assigned", "yes", D) if teachers
+                 else p("teacher_assigned", "no", A)),
+                p("state", state, D),
+                p("attendance", att, D),
+                p("recording_ref", "none", D),
+            ],
+        })
+        for tid in teachers:
+            edges.append((tid, cid, "teaches"))
+        edges.append((cid, sid, "instance of"))
+        edges.append((cid, pfx + "cohort", "scheduled for"))
+
+    if spec["host"]:
+        # ISSUE 63, and the counted evidence is on the co_col note and in that commit. A span of
+        # 3 makes this the one edge on any of the seven routes that is drawn as an arc slung under
+        # the row it connects rather than as a neighbour bezier. It cost fourteen units of height
+        # on the shipped drawing when it landed on its own, 586 to 600, and this card takes them
+        # straight back: a sixth instructor moves where the barycentre puts the host, the arc's
+        # midpoint drops back inside the drawing, and Z-IB is 586 again with the edge still
+        # correct.
+        edges.append((spec["host"][0], prog, "hosts visit"))
+    return nodes, edges
+
+
+def tail_block(spec):
+    """The part of a drawing that is not about a programme: the cohort, the students card, the
+    four drawn Students, the enrolment to claim chain and the four ghosts. Fourteen nodes."""
+    pfx = spec["pfx"]
+    cohort, students = pfx + "cohort", pfx + "students"
+    enrol, agree = pfx + "enrol", pfx + "agree"
+    charge, claim = pfx + "charge", pfx + "claim"
+    roster = spec["roster"]
+    head, drawn = len(roster), DRAWN_STUDENTS
+    not_drawn = head - drawn
+
+    nodes = [
+        {
+            "id": cohort, "type": "Cohort", "label": f"{spec['code']} {spec['intake']}",
+            # The cohort is a real thing and its key is not. It is marked rather than drawn as a
+            # ghost for exactly that reason: the object exists, the identifier does not. The mark
+            # itself is set by the route loop at the foot of this file and is never hand written,
+            # so the drawing and the panel cannot come to disagree about which types have nowhere
+            # to live.
+            "note": ("The cohort exists as a thing and its key does not. No identifier for it is "
+                     "held anywhere, so a cohort can only be picked out as the intersection of a "
+                     "roster, a calendar, a campus group and a record on the website."),
+            "props": [
+                p("cohort_id", "no identifier in any system", A),
+                p("intake", spec["intake"], D),
+                p("starts_on", spec["starts_on"], D),
+                p("sessions_scheduled", str(len(spec["sessions"])), D),
+                p("students_enrolled", str(head), D),
+            ],
+        },
+        {
+            "id": students, "type": "StudentGroup",
+            "label": f"Alumnos {spec['code']} {spec['intake']}",
+            "count": str(head),
+            # The line under the label, and it is not decoration. Four tiles are not a cohort, and
+            # a drawing that reveals four individuals without saying how many it left out has
+            # quietly replaced a cohort with four people. It appears and disappears with the four
+            # tiles, and the number in it is computed and never typed.
+            "tail": f"and {not_drawn} more, not drawn",
+            "note": spec.get("students_note") or (
+                f"One card standing for the whole cohort. Clicking it draws {drawn} of the "
+                f"{head} as individual Student objects, in space the layout already keeps for "
+                f"them, with the count of the ones it did not draw underneath. Every person in "
+                f"this cohort is invented, here and in the full list: no roster of real students "
+                f"is imported into this repository or published on this page."),
+            "props": [
+                p("headcount", str(head), D),
+                p("representation", f"one card for {head}, {drawn} drawn on click", E),
+                p("individual_records", f"{head} invented rows, no real roster", D),
+                p("not_drawn", str(not_drawn), D),
+                p("completion_rate", "not modelled", D),
+            ],
+        },
+        {
+            "id": enrol, "type": "Enrolment", "label": "Enrolment 0001",
+            "props": [
+                p("enrolment_id", "ENR-0001", D),
+                p("stands_for", f"{head} enrolments, one drawn", E),
+                p("enrolled_on", spec["enrolled_on"], D),
+                p("status", "active", D),
+            ],
+        },
+        {
+            "id": agree, "type": "Agreement", "label": "Agreement 0001",
+            "props": [
+                p("agreement_id", "AGR-0001", D),
+                p("total_price", "4.000,00 EUR", D),
+                p("instalments", "4", D),
+                p("signed_on", spec["enrolled_on"], D),
+            ],
+        },
+        {
+            "id": charge, "type": "Charge", "label": "Charge 0001",
+            "props": [
+                p("charge_id", "CHG-0001", D),
+                p("amount", "1.000,00 EUR", D),
+                p("due_on", spec["due_on"], D),
+                # The drawn charge is the first student's charge, so its state is read off that
+                # student's row rather than typed here. Two places saying "unpaid" is one place to
+                # forget when the roster changes, and the disagreement would be invisible: the
+                # tile and the card would each look right on their own.
+                p("state", roster[0][3], D),
+                p("payer_identity", "not resolved", E),
+            ],
+        },
+        {
+            "id": claim, "type": "Claim", "label": "Claim 0001",
+            "props": [
+                p("claim_id", "CLM-0001", D),
+                p("amount_claimed", "1.000,00 EUR", D),
+                p("raised_on", spec["raised_on"], D),
+                p("stage", "first reminder", D),
+            ],
+        },
+    ]
+    edges = [
+        (students, cohort, "enrolled in"),
+        (students, enrol, "recorded as"),
+        (enrol, agree, "governed by"),
+        (agree, charge, "schedules"),
+        (students, charge, "pays"),
+        (claim, charge, "claims against"),
+    ]
+
+    # ---- the four students that are drawn -----------------------------------
+    # Four and not the whole cohort. What a reader has to see here is the shape of a Student
+    # record and the fact that it joins the rest of the model; the cohort as a population is a
+    # different question and its answer is the full list carried beside the drawing.
+    #
+    # ONE VERB, AND THE REVEAL KEYS ON IT. 'member of' belongs to these four edges and to nothing
+    # else on the page, which is what lets app.js derive the hidden set by walking the edges
+    # rather than by holding a list of ids or by keying on the Student type. A fifth student
+    # added here joins the rule by existing.
+    for i, (name, uni, yob, state) in enumerate(roster[:drawn], start=1):
+        # Enrolment 0001 and charge 0001 are the ones the drawing carries as nodes; the others
+        # exist in the model and are not drawn, which the row says rather than leaving a reader
+        # to assume that ENR-0002 is missing.
+        tag = ", drawn" if i == 1 else ", not drawn"
+        nodes.append({
+            "id": f"{pfx}s{i}", "type": "Student", "label": name,
+            "note": ("An invented person. This card exists to show that a Student is an object "
+                     "with properties and links and not a name inside a headcount, and every "
+                     "value on it is made up: no real student, no real cohort, nothing imported "
+                     "from any Zrive system, on a page anyone with the URL can read."),
+            "props": [
+                p("name", "invented", D),
+                p("university", uni, D),
+                # year and not date, on purpose: see the note above ROSTER.
+                p("year_of_birth", yob, D),
+                p("recorded_as", f"ENR-{i:04d}{tag}", D),
+                p("charge", f"CHG-{i:04d}{tag}", D),
+                p("charge_state", state, D),
+            ],
+        })
+        edges.append((f"{pfx}s{i}", students, "member of"))
+
+    target_of = {"agree": agree, "claim": claim, "charge": charge}
+    for gid, label, col, verb, attaches_to, target, note in GHOST_SPEC:
+        nodes.append(g(pfx + gid, label, col, verb, attaches_to, note))
+        edges.append((pfx + gid, target_of[target], verb))
+
+    rows = [
+        {
+            "id": f"STU-{i:04d}",
+            "name": name,
+            "uni": uni,
+            "yob": yob,
+            "enrol": f"ENR-{i:04d}",
+            "state": state,
+            "node": f"{pfx}s{i}" if i <= drawn else None,
+        }
+        for i, (name, uni, yob, state) in enumerate(roster, start=1)
+    ]
+    return nodes, edges, {"n": head, "drawn": drawn, "owner": students, "rows": rows}
+
+
+# ---- assemble the seven -----------------------------------------------------
+VIEWS = []
+for _spec in PROGRAMMES:
+    if "roster" not in _spec:
+        _spec["roster"] = cohort_roster(_spec["headcount"], _spec["roster_offset"])
+    if len(_spec["roster"]) != _spec["headcount"]:
+        raise SystemExit(f"model: {_spec['key']} says {_spec['headcount']} students and its "
+                         f"roster holds {len(_spec['roster'])}")
+    _pn, _pe = programme_block(_spec)
+    _tn, _te, _roster = tail_block(_spec)
+    VIEWS.append({
+        "key": _spec["key"], "code": _spec["code"], "name": _spec["name"],
+        "label": f"{_spec['code']} {_spec['name']}",
+        "nodes": _pn + _tn, "edges": _pe + _te, "roster": _roster,
+    })
+
+# One id may name a tile on more than one route, and it must be the same tile when it does: the
+# three shared instructors and the four shared employers are the whole point of the exercise, and
+# a typo that gave one of them a different label on one route would show up as two people on the
+# faculty sheet. Only the values that are genuinely per route are allowed to differ, which is why
+# this compares the label and the type and not the properties.
+_seen = {}
+for _v in VIEWS:
+    for _n in _v["nodes"]:
+        _was = _seen.setdefault(_n["id"], (_n["type"], _n["label"], _v["key"]))
+        if (_n["type"], _n["label"]) != _was[:2]:
+            raise SystemExit(f"model: id {_n['id']} is {_was[0]} {_was[1]!r} on {_was[2]} and "
+                             f"{_n['type']} {_n['label']!r} on {_v['key']}. A global id has to "
+                             f"name one object.")
+
+# The shipped drawing, and the names the rest of the build already imports. window.G is this one.
+NODES = VIEWS[0]["nodes"]
+EDGES = VIEWS[0]["edges"]
+ROSTER_ROWS = VIEWS[0]["roster"]["rows"]
+
+ALL_NODES = [_n for _v in VIEWS for _n in _v["nodes"]]
+ALL_EDGES = [_e for _v in VIEWS for _e in _v["edges"]]
 
 # ---- the route goes on every node, and the tiles with none say so -------------
 # In front of the object's own properties and not after them. Under the management tool objective
@@ -840,10 +1211,11 @@ EDGES += GHOST_EDGES
 # writes down an expectation" and "the student, under the income share contract" are answers, and
 # a ghost with no answers recorded would be indistinguishable from a ghost nobody looked into.
 #
-# What this costs the drawing: nothing measurable. The marks land in the programme, template,
-# cohort and agreement lanes, and the drawing's height is set by the cohort sessions lane, which
-# is the tallest and carries no mark because Notion holds a session calendar.
-for _n in NODES:
+# IT RUNS OVER EVERY VIEW'S OWN NODES AND NOT OVER A SET OF UNIQUE IDS. A shared instructor is a
+# different dict on each route it appears on, because sessions_taught is a fact about the route
+# and not about the person, and prepending the route rows twice to one shared dict would print
+# them twice on one tile.
+for _n in ALL_NODES:
     _r = ROUTE_BY_ID.get(_n["id"]) or ROUTES.get(_n["type"])
     if _r is None:
         raise SystemExit(f"model: node {_n['id']} ({_n['type']}) has no populate route. Every "
@@ -860,24 +1232,26 @@ for _n in NODES:
         _n["mark"] = NO_SYSTEM
 
 # ---- and the whole of it, once it is assembled ------------------------------
-# Every string this model puts on the page, through the same check the roster went through
-# above: labels, property keys and values, notes, marks, the tail, the verbs, the type names.
-# The roster is checked on its own first so that a bad name is reported as a row number rather
-# than as a node id, and everything is checked here so that nothing gets through by not being a
-# name. Comments are not in this set and do not need to be: the repository gate reads the file
-# whole, which is how a real name in a comment in this very block was caught.
+# Every string this model puts on any of the seven pages, through the same check the roster went
+# through above: labels, property keys and values, notes, marks, the tail, the verbs, the type
+# names. The roster is checked on its own first so that a bad name is reported as a row number
+# rather than as a node id, and everything is checked here so that nothing gets through by not
+# being a name. Comments are not in this set and do not need to be: the repository gate reads the
+# file whole, which is how a real name in a comment in this very block was caught.
 _strings = [("TYPES", t[1]) for t in TYPES]
-for _n in NODES:
-    _w = f"node {_n['id']}"
-    _strings.append((_w, _n["label"]))
-    for _k in ("note", "mark", "tail"):
-        if _n.get(_k):
-            _strings.append((f"{_w} {_k}", _n[_k]))
-    for _pr in _n["props"]:
-        _strings += [(f"{_w} prop {_pr['k']}", _pr["k"]), (f"{_w} prop {_pr['k']}", _pr["v"])]
-_strings += [(f"edge {_s}->{_t}", _v) for _s, _t, _v in EDGES]
-_strings += [(f"roster {_r['id']}", _r[_f])
-             for _r in ROSTER_ROWS for _f in ("name", "uni", "state")]
+for _v in VIEWS:
+    for _n in _v["nodes"]:
+        _w = f"{_v['key']} node {_n['id']}"
+        _strings.append((_w, _n["label"]))
+        for _k in ("note", "mark", "tail"):
+            if _n.get(_k):
+                _strings.append((f"{_w} {_k}", _n[_k]))
+        for _pr in _n["props"]:
+            _strings += [(f"{_w} prop {_pr['k']}", _pr["k"]),
+                         (f"{_w} prop {_pr['k']}", _pr["v"])]
+    _strings += [(f"{_v['key']} edge {_s}->{_t}", _v2) for _s, _t, _v2 in _v["edges"]]
+    _strings += [(f"{_v['key']} roster {_r['id']}", _r[_f])
+                 for _r in _v["roster"]["rows"] for _f in ("name", "uni", "state")]
 _check_names(_strings)
 
 # ---- the palette is a claim about a surface ---------------------------------

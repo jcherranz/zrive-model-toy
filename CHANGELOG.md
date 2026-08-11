@@ -9,6 +9,74 @@ of what changed and when, and it is meant to be scannable.
 
 ## [Unreleased]
 
+### Added
+
+- Six more programmes, so there are seven, #43. Z-SC Strategy Consulting, Z-BL Big Law, Z-PE
+  Private Equity, Z-HR Human Resources, Z-DS Applied Data Science and Z-CFA CFA preparation, each
+  laid out as its own drawing from the real syllabi in the vault. All seven are built by the same
+  three functions out of the same fields, which is the test rather than the decoration: if
+  Programme were an assumption baked into the drawing, the second instance would have needed a
+  second code path and none of the six does. Programme names, codes, session titles and firm names
+  are real and verbatim, including a leading space on one Z-SC title and a double space in one
+  Z-HR title; every person, identifier, date, duration, count, state and amount is invented and the
+  name gate hashes every string all seven ship. The routing is deliberately not here: `window.G` is
+  the Investment Banking view exactly as before and the other six sit beside it in the same file,
+  laid out, measured and gated, so wiring `#/p/<CODE>` is mechanical when `site/app.js` is free.
+- Five shapes the model always allowed and one instance could never show, #43. An Instructor is now
+  shared across routes, three of the twenty seven, one of them across three programmes, which
+  mirrors the real corpus one for one, three of sixty four teachers. A Company employs more than
+  one Instructor, so `instructors_supplied` finally reads something other than 1 and two
+  `employed by` edges converge on one tile. An Instructor has no employer at all, four of them,
+  matching the 17 of 64 real teachers whose session link carries no firm. A CohortSession has no
+  teacher, ten of the forty two drawn, flagged `absent` with the `teaches` edge simply missing,
+  against 100 of 260 in the corpus. And a whole lane is empty: Z-CFA has no instructor property
+  anywhere in its source, no employer and no visit host, and none of the three is invented to fill
+  a lane.
+- The lane captions are a per view argument to `layout()`, #43. Three of the six are claims that
+  are false on a view holding no employer, no instructor or no visit host, and a false caption is
+  worse than a missing one because a reader has no way to catch it. The alternates are chosen from
+  what a view actually holds and never from its code, so the next programme with no visit host
+  inherits the right caption by existing rather than by being added to a list. The column grouping
+  stays a module constant and `layout()` refuses a caption set that regroups it, because `COLX`,
+  `W` and `BAND_X` are computed from the grouping at import and baked into every coordinate. The
+  first draft of the empty-instructor caption read "none recorded for this programme"; the lane
+  overflow gate refused the build by 51,5px, the gate was right, and it reads "none recorded".
+
+### Changed
+
+- A label is re-broken at the selected weight when the regular break leaves the lane, #43. Lines
+  were broken to fit the column in the weight they are drawn in and then reserved at the BOLD width
+  of the same line, which is up to a fifth wider, and the two rules disagree by more than the 13
+  units of pad a lane has either side of its column. The shipped Z-IB title was inside it by 4,7
+  units, which is luck and not a margin, and `The investment process in corporate private equity
+  (I)` on Z-PE was outside it by 0,6 and stopped the build. Wrapping everything at the bold weight
+  fixes it and costs every long label on every route a line it does not need: measured, the seven
+  views go to 588, 634, 610, 634, 610, 599 and 576. So the bold weight is used only where the
+  regular one actually produced a box the lane cannot hold, which leaves every label that fits
+  exactly as it was and re-breaks the one that does not. Exactly one label on the seven routes
+  takes that path and the build names it.
+- The seven views do not all land at 1230x586, and the research card's prediction that they would
+  was wrong in a way worth writing down. Measured: Z-IB 586, Z-SC 610, Z-BL 588, Z-PE 610, Z-HR
+  610, Z-DS 586, Z-CFA 576. The card assumed the cohort sessions lane binds on six of the seven,
+  which held while every session template label fitted one line. Z-IB's six real titles do; the
+  other programmes' do not, because a real syllabus title runs to seventy characters and wraps to
+  two, and a template tile carries a mark under its label as well, so the templates lane overtakes
+  the sessions lane on four routes. Every view is still inside the 650 the layout's own docstring
+  targets and inside one 1440x900 viewport, and Z-CFA lands at exactly the 576 the card predicted,
+  for exactly the reason it gave. Nothing was tuned to make the numbers agree.
+- `build/label_widths.json` is 2.733 strings across seven contexts, up from 466, and the build
+  reports 1.500 measured widths and 0 estimated, #43. Measured in the same browser and the same
+  envelope as before. Without it every new title would be laid out from the hand written per
+  character estimate, which on this model undershoots by up to 21,8 per cent at the weight a
+  selected label is drawn.
+- The six new cohorts are recombined rather than invented again, #43. Six rosters is a hundred and
+  thirty more chances to write down somebody real, and the first draft of the original thirty four
+  did exactly that thirteen times over. So the given names and the surnames of the existing roster
+  are split apart and recombined at a per cohort offset that is never zero, which makes people who
+  are new, whose every token has already been through the name gate, and no one of whom can be an
+  original pairing. The university, the year and the charge state travel with the given name, so
+  each cohort's distribution is the original's rather than a second thing to invent.
+
 ### Fixed
 
 - `hosts visit` ends on the Programme and no longer on the Cohort, #63. Counted across the 156
@@ -35,6 +103,39 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- A theme control in the header, system, light and dark, with system as the default, #57. One more
+  `.linkbtn` at the head of `.hnav`, whose text is the state, which is the idiom `feedback: on (Esc
+  to exit)` already uses; it cycles, because three states is the only honest set and a two-state
+  switch has nowhere to put "whatever the machine says". Stored under `zmt.theme`, namespaced as
+  `zmt.gh.token` is, and applied before the first paint by four inline lines in `index.html`,
+  measured at 18,7ms against a first contentful paint at 52,0ms with `document.body` not yet in
+  existence, so the reader who chose dark on a light machine never watches a white page turn over.
+- The cascade, which is the whole of the card, #57. `color-scheme` is the switch and `light-dark()`
+  reads it, so the palette is ONE `:root` block with both values on each line instead of a second
+  copy of itself inside a media query, and there is no theme media query left in `app.css` at all.
+  `color-scheme: light dark` when the reader has said nothing, pinned to `light` or `dark` by
+  `:root[data-theme=...]` when they have. It answers in both directions for the same reason and
+  with no third copy of anything, and it fixes what no rule in this repository can reach: the four
+  scrollbars and the two native select menus follow the CHOICE now and not only the machine,
+  because the property the choice sets is the property they read. The thirteen type colours moved
+  to the same mechanism, `--type-<k>: light-dark(c, cDark)` in the generated stylesheet, so the
+  tiles turn with the chrome rather than a frame later, and still with no JavaScript listening for
+  anything. Checked on a real engine as #56 checked `color-mix`: `light-dark()` resolves in an SVG
+  presentation attribute, through `var()`, and nested inside `color-mix()`, and the thirteen fills
+  it produces are pixel for pixel the fills the media query produced in both schemes. Baseline
+  2024.
+- `window.ZT.theme()`, #57, reporting the choice, the attribute, what the machine says and what the
+  page resolved to, for the same reason `view()` is there: an override is a claim a driver should
+  read off the running page rather than infer from a screenshot.
+- `--elev-1-dark`, and the one exception it records, #57. A shadow list is not a colour, so
+  `light-dark()` cannot carry a dark form that moves the geometry as well as the colours, and this
+  token keeps a media query and an attribute rule of its own, both pointing at a value that lives
+  on `:root` where an attribute can reach it. The clever version was tried first and rejected on a
+  measurement, not a preference: four stops with each scheme painting the other's soft shadow in
+  `transparent` moved eight pixels by one 255th on the antialiased corners of the panel's
+  `estimated` badges, at 1536x839 and again at 1440x900, because a stop painted in `transparent` is
+  still a paint layer. Bisected one token at a time against the tree it replaced, after the same
+  harness had been run twice over one tree to prove it repeatable.
 - A stale origin announces itself, #62, which is the half of that card that mattered. On
   2026-08-11 `origin/main` carried a new palette and the deployed site did not, for 24 minutes, and
   nothing in the pipeline said so: `repo gate`, `smoke` and `build` were all green on that commit,

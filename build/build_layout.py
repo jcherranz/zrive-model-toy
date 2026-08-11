@@ -21,8 +21,7 @@ import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
-from model import (TYPES, NODES, EDGES, ROSTER_ROWS, COHORT_HEADCOUNT,  # noqa: E402
-                   DRAWN_STUDENTS, contrast_rows, floor4, type_colour)
+from model import VIEWS, TYPES, contrast_rows, floor4, type_colour  # noqa: E402
 
 COL_W = [166, 232, 122, 124, 80, 102, 92, 92]
 GAP_X, MARGIN_X = 18, 22
@@ -69,11 +68,36 @@ BANDS = [
     ([6, 7], ("enrolment to claim",)),
 ]
 
+# ---- and the captions are a per view argument, because three of them can be false -----------
+# Issue 43. BANDS above was a module constant shared by every call to layout(), which held while
+# there was one drawing to lay out. There are seven now and they do not hold the same kinds of
+# thing: Z-CFA has no instructor anywhere in its source, no employer and no visit host, so
+# "employers appear on click" would promise tiles that do not exist, "instructors" would caption
+# an empty lane as though its tiles had failed to load, and "and the visit host" would name a
+# tile nothing draws. A caption is a claim about everything under it and a false one is worse
+# than a missing one, because a reader has no way to catch it.
+#
+# The three alternates below are chosen by what a view ACTUALLY HOLDS and never by its code.
+# Special casing Z-CFA would have been a line of code and a lie about the mechanism: the next
+# programme with no visit host would have inherited the false caption in silence.
+CAP_NO_EMPLOYERS = ("programme",)
+# Two words and not a sentence, because the lane under it is 140 units wide and the caption is
+# sized by the columns and not by its own text. The first draft read "none recorded for this
+# programme", the lane overflow gate refused the build by 51.5px, and the gate was right.
+CAP_NO_INSTRUCTORS = ("instructors", "none recorded")
+CAP_NO_HOST = ("cohort sessions",)
+
 # The last caption line sits CAP_GAP above the top of the bands and any line before it stacks
-# above that, so the drawing gains headroom only if some lane actually needs a second line.
+# above that, so the drawing gains headroom only if some lane actually needs a second line. It is
+# measured over every caption a view could carry and not over the ones a particular view does:
+# the seven routes are read one after another and a header that changed height between them would
+# make the whole drawing jump.
 CAP_LH, CAP_GAP = 11.0, 7
-BAND_TOP = 21 + round(CAP_LH * (max(len(lines) for _cs, lines in BANDS) - 1))
+CAP_ALL = ([lines for _cs, lines in BANDS]
+           + [CAP_NO_EMPLOYERS, CAP_NO_INSTRUCTORS, CAP_NO_HOST])
+BAND_TOP = 21 + round(CAP_LH * (max(len(lines) for lines in CAP_ALL) - 1))
 MARGIN_Y = BAND_TOP + 16
+BAND_COLS = [cs for cs, _lines in BANDS]
 
 COLX, _acc = [], MARGIN_X
 _band_of = {c: i for i, (cs, _l) in enumerate(BANDS) for c in cs}
@@ -135,11 +159,11 @@ def text_w(s, size=FONT, weight=400, italic=False, caps=False):
     return estimate_w(s, size, caps)
 
 
-def wrap(label, maxw, italic=False):
+def wrap(label, maxw, italic=False, weight=400):
     lines, cur = [], ""
     for word in label.split():
         trial = (cur + " " + word).strip()
-        if cur and text_w(trial, FONT, 400, italic) > maxw:
+        if cur and text_w(trial, FONT, weight, italic) > maxw:
             lines.append(cur)
             cur = word
         else:
@@ -159,24 +183,49 @@ def wrap(label, maxw, italic=False):
 # claim, and it breaks it silently: the page still renders. So it is checked here, before a
 # single coordinate is written, against measured widths rather than guessed ones.
 BAND_X = {}
-for _cs, _lines in BANDS:
+for _cs in BAND_COLS:
     _x0 = COLX[_cs[0]] - COL_W[_cs[0]] / 2 - BAND_PAD
     _x1 = COLX[_cs[-1]] + COL_W[_cs[-1]] / 2 + BAND_PAD
     for _c in _cs:
-        BAND_X[_c] = (_x0, _x1, " ".join(_lines))
+        BAND_X[_c] = (_x0, _x1)
 
-# The caption over a lane is sized by the columns under it, not by its own text, so it can
-# outgrow the lane it names without anything noticing. Every line is checked, not the caption
-# as a whole: a caption that is only legal because it was split has to be legal line by line.
-# It depends on no node, so it is checked once rather than once per drawing.
-CAP_OVER = []
-for _cs, _lines in BANDS:
-    _x0 = BAND_X[_cs[0]][0]
-    _x1 = BAND_X[_cs[-1]][1]
-    for _line in _lines:
-        _cap = text_w(_line, 9.0, 600, False, True)
-        if _cap > _x1 - _x0:
-            CAP_OVER.append((_x1 - _x0 - _cap, "band", _line, " ".join(_lines)))
+
+def bands_for(model_nodes):
+    """The lane captions for one view, read off what that view holds.
+
+    Derived and not declared, for the same reason the "no system holds it" mark is derived from
+    the populate route: a caption written by hand beside a model is a second place to forget.
+    """
+    col_of = {n["id"]: n.get("col", TYPE_COL[n["type"]]) for n in model_nodes}
+    company_cols = {col_of[n["id"]] for n in model_nodes if n["type"] == "Company"}
+    has_employer = 0 in company_cols
+    has_host = 3 in company_cols
+    has_instructor = any(n["type"] == "Instructor" for n in model_nodes)
+    out = []
+    for cs, lines in BANDS:
+        if cs == [0] and not has_employer:
+            lines = CAP_NO_EMPLOYERS
+        elif cs == [2] and not has_instructor:
+            lines = CAP_NO_INSTRUCTORS
+        elif cs == [3] and not has_host:
+            lines = CAP_NO_HOST
+        out.append((cs, lines))
+    return out
+
+
+def caption_overflow(bands):
+    """The caption over a lane is sized by the columns under it, not by its own text, so it can
+    outgrow the lane it names without anything noticing. Every line is checked, not the caption
+    as a whole: a caption that is only legal because it was split has to be legal line by line.
+    """
+    over = []
+    for cs, lines in bands:
+        x0, x1 = BAND_X[cs[0]][0], BAND_X[cs[-1]][1]
+        for line in lines:
+            cap = text_w(line, 9.0, 600, False, True)
+            if cap > x1 - x0:
+                over.append((x1 - x0 - cap, "band", line, " ".join(lines)))
+    return over
 
 
 SPREAD, SPREAD_FROM = 0.42, 4
@@ -267,27 +316,62 @@ def dist_to_path(pt, pts, n=400):
                for x, y in (bez(pts, i / n) for i in range(n + 1)))
 
 
-def layout(model_nodes, model_edges, tag):
+def layout(model_nodes, model_edges, tag, bands, roster):
     """Lay one model out and return the object the browser draws.
 
     It is a function rather than module-level code because it once laid out two drawings, a
     one cohort view and an opt-in two cohort one, and the property that mattered was that
-    neither could move the other: the columns, the bands and the measured widths are shared
-    and nothing in here touches module state. The second cohort is gone (issue 42) and the
-    isolation is kept, because it is what makes "the drawing is a pure function of the model"
-    a statement that can be checked by running the build twice rather than a claim.
+    neither could move the other: the columns and the measured widths are shared and nothing in
+    here touches module state. Seven views go through it now, one per programme, and that
+    isolation is what makes "the drawing is a pure function of the model" a statement that can
+    be checked by running the build twice rather than a claim.
+
+    The captions come in as an argument rather than off a module constant, because three of the
+    six are claims that are false on a view that holds no employer, no instructor or no visit
+    host. The COLUMN GROUPING does not come in with them: COLX, W and BAND_X are computed once
+    from it at import and baked into every coordinate, so a caller handing over a different
+    grouping would get a drawing whose lanes and whose geometry disagree. That is checked rather
+    than trusted.
     """
+    if [cs for cs, _lines in bands] != BAND_COLS:
+        sys.exit(f"[layout:{tag}] the caption set groups the columns as "
+                 f"{[cs for cs, _l in bands]} and the geometry was computed for {BAND_COLS}. "
+                 f"Captions are a per view argument; the grouping is not.")
     nodes = {n["id"]: dict(n) for n in model_nodes}
     order = [n["id"] for n in model_nodes]
+    rewrapped = []
     for nid, n in nodes.items():
         n["col"] = n.get("col", TYPE_COL[n["type"]])
         it = bool(n.get("ghost"))
+
+        def reserve(lines):
+            # Reserve the bold width, not the regular one. Clicking a node turns its label bold
+            # (.node.sel .lbl), which is about a fifth wider, and the reserved box has to hold
+            # the state the page enters on a click as well as the one it starts in.
+            return max(max(text_w(ln, FONT, 400, it) for ln in lines),
+                       max(text_w(ln, FONT, 600, it) for ln in lines))
+
         n["lines"] = wrap(n["label"], COL_W[n["col"]] - 8, it)
-        # Reserve the bold width, not the regular one. Clicking a node turns its label bold
-        # (.node.sel .lbl), which is about a fifth wider, and the reserved box has to hold the
-        # state the page enters on a click as well as the one it starts in.
-        n["lw"] = max(max(text_w(ln, FONT, 400, it) for ln in n["lines"]),
-                      max(text_w(ln, FONT, 600, it) for ln in n["lines"]))
+        n["lw"] = reserve(n["lines"])
+        # AND WRAPPING AT THE DRAWN WEIGHT IS NOT ENOUGH ON ITS OWN, which issue 43 found the
+        # hard way. A line is broken so that it fits the column in the weight it is drawn in,
+        # and then the box reserved for it is the BOLD width of that same line, which is up to a
+        # fifth wider; the two rules disagree by more than the 13 units of pad a lane has either
+        # side of its column, so a long enough title clears the wrap and leaves the lane. The
+        # shipped Z-IB title was inside it by 4,7 units, which is luck and not a margin, and
+        # 'The investment process in corporate private equity (I)' on Z-PE was outside it by 0,6.
+        #
+        # Wrapping everything at the bold weight would fix it and would cost every long label on
+        # every route a line it does not need: measured, the seven views go to 588, 634, 610,
+        # 634, 610, 599 and 576. So the bold weight is used only where the regular one has
+        # actually produced a box the lane cannot hold, which leaves every label that fits
+        # exactly as it was and re-breaks only the ones that do not.
+        x = COLX[n["col"]]
+        x0, x1 = BAND_X[n["col"]]
+        if n["lw"] > 2 * min(x - x0, x1 - x):
+            n["lines"] = wrap(n["label"], COL_W[n["col"]] - 8, it, 600)
+            n["lw"] = reserve(n["lines"])
+            rewrapped.append(nid)
         # A node carrying a mark spends one more line under its label saying what it is
         # missing, so it reserves the height for it here and the browser only draws. A tail is
         # the same arithmetic for a different sentence: a line about the drawing rather than
@@ -302,13 +386,15 @@ def layout(model_nodes, model_edges, tag):
         n["h"] = TILE + GAP_LABEL + LINE_H * n["nlines"]
         n["x"] = COLX[n["col"]]
 
+    lane_label = {c: " ".join(lines) for cs, lines in bands for c in cs}
+
     def lane_slack(n):
-        x0, x1, _lab = BAND_X[n["col"]]
+        x0, x1 = BAND_X[n["col"]]
         return min(n["x"] - n["lw"] / 2 - x0, x1 - n["x"] - n["lw"] / 2)
 
     lane_tight = min(((lane_slack(n), nid) for nid, n in nodes.items()), default=(0.0, None))
-    over = sorted((lane_slack(n), nid, n["label"], BAND_X[n["col"]][2])
-                  for nid, n in nodes.items() if lane_slack(n) < 0) + CAP_OVER
+    over = sorted((lane_slack(n), nid, n["label"], lane_label[n["col"]])
+                  for nid, n in nodes.items() if lane_slack(n) < 0) + caption_overflow(bands)
     if over:
         for slack, nid, label, lab in over:
             print(f"[layout:{tag}] LANE OVERFLOW by {-slack:.1f}px: {label!r} ({nid}) leaves "
@@ -476,17 +562,16 @@ def layout(model_nodes, model_edges, tag):
                   file=sys.stderr)
         sys.exit("[layout] refusing to write a drawing in which a verb floats free of its line")
 
-    bands = []
-    for cs, lines in BANDS:
-        x0 = COLX[cs[0]] - COL_W[cs[0]] / 2 - BAND_PAD
-        x1 = COLX[cs[-1]] + COL_W[cs[-1]] / 2 + BAND_PAD
-        bands.append({"x": round(x0, 1), "w": round(x1 - x0, 1),
-                      "label": " ".join(lines), "lines": list(lines)})
+    drawn_bands = []
+    for cs, lines in bands:
+        x0, x1 = BAND_X[cs[0]][0], BAND_X[cs[-1]][1]
+        drawn_bands.append({"x": round(x0, 1), "w": round(x1 - x0, 1),
+                            "label": " ".join(lines), "lines": list(lines)})
 
     out = {
         "w": W, "h": round(height), "bandTop": BAND_TOP,
         "capLineH": CAP_LH, "capGap": CAP_GAP,
-        "bands": bands,
+        "bands": drawn_bands,
         # Two colours per type, not one. `c` is the hex the palette was chosen at, against a
         # white page; `cDark` is its sibling on the dark plate, and for five of the thirteen it
         # is the same string because those five already carried the dark theme. Both are read
@@ -519,8 +604,7 @@ def layout(model_nodes, model_edges, tag):
         # not page furniture, and a reader who files a note about a row is filing it against a
         # commit and a digest that pin the bytes the row came from. owner names the node the
         # sheet belongs to, so nothing in the browser holds the id 'students' as a literal.
-        "roster": {"n": COHORT_HEADCOUNT, "drawn": DRAWN_STUDENTS, "owner": "students",
-                   "rows": ROSTER_ROWS},
+        "roster": roster,
     }
     # A short digest of the drawing itself, and it is called drawingDigest because that is what
     # it is. It was called "build" and it went into every feedback report on its own, where seven
@@ -542,6 +626,9 @@ def layout(model_nodes, model_edges, tag):
             print(f"  col {c}  w {COL_W[c]:>3}  n {len(cols[c]):>2}  span {span:6.1f}  "
                   f"maxlines {max(len(nodes[i]['lines']) for i in cols[c])}")
     print(f"  lanes: tightest label has {lane_tight[0]:.1f}px of lane to spare ({lane_tight[1]})")
+    if rewrapped:
+        print(f"  lanes: {len(rewrapped)} label(s) re-broken at the selected weight because the "
+              f"regular break left the lane: {', '.join(sorted(rewrapped))}")
     _wo, _we = max(chip_off, key=lambda r: r[0])
     _wm, _wme = max(chip_mid, key=lambda r: r[0])
     _on_mid = sum(1 for d, _e in chip_mid if d < 0.5)
@@ -573,13 +660,31 @@ def layout(model_nodes, model_edges, tag):
     return out
 
 
-# ---- the one view -----------------------------------------------------------
-# window.G is the drawing, and there is exactly one. There was a second, an opt-in two cohort
-# view on a header switch, and it is gone: the toy shows one cohort, always, which is the whole
-# of issue 42. Its removal cost this drawing nothing, and that is checkable rather than
-# asserted, because the two were always laid out independently: the bytes of window.G are
-# identical either side of the change.
-base = layout(NODES, EDGES, "one cohort")
+# ---- seven views, one per programme ------------------------------------------
+# Issue 43. There was one drawing and there are seven, one per programme, each laid out on its
+# own from its own nodes and its own captions. They are independent by construction: nothing in
+# layout() touches module state, so a change to Z-BL cannot move Z-IB's geometry, and each view
+# carries its own drawingDigest so a reviewer can see which one moved.
+#
+# THE ROUTING IS NOT HERE AND THAT IS DELIBERATE. This file writes the data and the geometry for
+# all seven; reaching the other six needs a hash route and a picker, which is site/app.js and a
+# card of its own. Until that lands window.G is the Investment Banking view exactly as before,
+# and the six others sit beside it in the same file, laid out, measured and gated.
+drawings = []
+for _view in VIEWS:
+    _d = layout(_view["nodes"], _view["edges"], _view["key"],
+                bands_for(_view["nodes"]), _view["roster"])
+    drawings.append({"key": _view["key"], "code": _view["code"], "name": _view["name"],
+                     "label": _view["label"], "route": "#/p/" + _view["key"], "drawing": _d})
+
+# window.G is the first of them, and the browser reads it out of the list rather than getting a
+# second copy: fifty kilobytes of duplicated payload is fifty kilobytes that can come to disagree
+# with itself. The first view has to be the one the page shows, so that is asserted here rather
+# than left to the order of a list somebody may reorder.
+if drawings[0]["key"] != "ZIB":
+    sys.exit(f"[layout] window.G is written as the first view and the first view is "
+             f"{drawings[0]['key']}. The page shows Investment Banking.")
+base = drawings[0]["drawing"]
 
 site = pathlib.Path(__file__).resolve().parent.parent / "site"
 
@@ -597,9 +702,12 @@ if re.search(r"(?<![\d.])" + str(base["w"]) + r"(?![\d.])", _css):
 
 dest = site / "graph.js"
 dest.write_text(
-    "window.G=" + json.dumps(base, ensure_ascii=False, separators=(",", ":")) + ";\n",
+    "window.GV=" + json.dumps({"default": drawings[0]["key"], "views": drawings},
+                              ensure_ascii=False, separators=(",", ":"))
+    + ";window.G=window.GV.views[0].drawing;\n",
     encoding="utf-8")
-print(f"wrote {dest.name}  {dest.stat().st_size / 1024:.1f} KB")
+print(f"wrote {dest.name}  {dest.stat().st_size / 1024:.1f} KB, {len(drawings)} views")
+print("  " + "  ".join(f"{d['key']} {d['drawing']['w']}x{d['drawing']['h']}" for d in drawings))
 
 # ---- the palette, reported where it is edited -------------------------------
 # The verdict is not here, and that is a choice rather than an omission. scripts/check_repo.sh
