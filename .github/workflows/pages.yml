@@ -133,11 +133,21 @@ jobs:
             # conservative. Rename or remove this job and the filter matches nothing, so the run
             # reads as started and is LEFT ALONE. The reckless direction, a filter that matches
             # nothing and therefore declares everything cancellable, is not reachable from here.
-            running="$(jq '[ .jobs[] | select(.name != "supersede")
-                             | select(.status != "queued" and .status != "waiting") ] | length' jobs.json)"
+            # NAME THE STARTED STATUSES, DO NOT NAME THE UNSTARTED ONES. The second live finding of
+            # this card: the first repair listed `queued` and `waiting` as the not-yet-started
+            # statuses and a job held by a job-level concurrency group reports neither. It reports
+            # `pending`, so a run whose deploy job had run zero steps still read as started and was
+            # left alone. A list of the ways a job can be waiting is a list that the next status
+            # GitHub adds makes wrong, and wrong in the direction of doing nothing forever.
+            #
+            # `in_progress` and `completed` are the two that mean work happened, and the zero-steps
+            # reading below is what covers a status nobody here has seen: a job that has begun has
+            # steps, whatever it is called. Both readings have to say not started.
+            started="$(jq '[ .jobs[] | select(.name != "supersede")
+                             | select(.status == "in_progress" or .status == "completed") ] | length' jobs.json)"
             steps="$(jq '[ .jobs[] | select(.name != "supersede") | .steps[]? ] | length' jobs.json)"
 
-            if [ "$running" -eq 0 ] && [ "$steps" -eq 0 ]; then
+            if [ "$started" -eq 0 ] && [ "$steps" -eq 0 ]; then
               echo "  run ${number} (${id}, ${sha}, ${status}): no job has started a step, cancelling."
               if gh api -X POST "repos/${GH_REPO}/actions/runs/${id}/cancel" --silent; then
                 cancelled=$((cancelled + 1))
@@ -147,7 +157,7 @@ jobs:
                 echo "  run ${number} (${id}) refused the cancel, most likely already finished."
               fi
             else
-              echo "  run ${number} (${id}, ${sha}, ${status}): ${running} job(s) running and ${steps} step(s) begun, LEFT ALONE."
+              echo "  run ${number} (${id}, ${sha}, ${status}): ${started} job(s) started and ${steps} step(s) begun, LEFT ALONE."
               left=$((left + 1))
             fi
           done 3< runs.txt

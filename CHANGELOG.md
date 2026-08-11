@@ -57,6 +57,16 @@ of what changed and when, and it is meant to be scannable.
   deploy job still counts it and renaming or removing the supersede job makes every run read as
   started and be left alone, while selecting `deploy` by name would, if that job were ever renamed,
   match nothing and declare every run cancellable.
+- And the repair to that was wrong too, in the same direction, and again only a real run said so,
+  #62. It listed `queued` and `waiting` as the statuses that mean a job has not started, and a job
+  held by a job-level concurrency group reports neither: it reports `pending`. So a run whose
+  deploy job had run zero steps still read as started. A list of the ways a job can be waiting is a
+  list the next status GitHub adds makes wrong, so the check now names the two that mean work
+  happened, `in_progress` and `completed`, and leans on the zero-steps reading beside it to cover
+  any status nobody here has seen, because a job that has begun has steps whatever it is called.
+  Both readings have to say not started. Two defects in one guard, neither found by reading it and
+  both found by watching it run, is the card's own instruction working: an argument is not evidence
+  about this queue.
 - What makes a cancellation safe, established from the deployment record rather than argued, #62.
   The deploy job targets the `github-pages` environment, so GitHub opens a deployment the moment
   the job is admitted and before any step runs. In both jams the starved head-of-queue job sat with
