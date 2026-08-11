@@ -161,6 +161,24 @@
      the model reads instance.js; nothing but the drawing reads layout.js. -->
 <script src="instance.js"></script>
 <script src="layout.js"></script>
+<!-- The page, in four concerns and the file that wires them, issue 71 seam 2 of issue 60.
+     render.js paints the drawing from geometry and holds no state a reader can change; viewport.js
+     owns pan, zoom and fit, which is three numbers; selection.js owns what is picked, what that
+     dims and what it reveals; router.js owns the addresses and the two views an address switches
+     between. app.js joins the two generated documents, builds those four, wires them and publishes
+     window.ZT.
+
+     THE ORDER OF THESE FOUR DOES NOT MATTER AND app.js LAST DOES. There is no bundler and no build
+     step here, and the page has to work opened from a file:// URL, so ES modules are out and these
+     are ordinary scripts. Each of the four defines exactly one factory on window.ZM and executes
+     nothing at all, which is what makes their order among themselves irrelevant; app.js is the only
+     one that runs anything, and it checks all four factories are there and throws by name if one is
+     missing rather than half drawing the page. Adding a fifth means adding a tag here and naming it
+     in that check, and nothing else. -->
+<script src="render.js"></script>
+<script src="viewport.js"></script>
+<script src="selection.js"></script>
+<script src="router.js"></script>
 <script src="app.js"></script>
 <script src="board.js"></script>
 <script src="feedback.js"></script>

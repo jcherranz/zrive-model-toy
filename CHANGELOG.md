@@ -11,6 +11,32 @@ of what changed and when, and it is meant to be scannable.
 
 ### Changed
 
+- `site/app.js` is five files, #60 seam 2, #71. 1673 lines and four concerns became `render.js`,
+  the drawing painted from geometry; `viewport.js`, pan, zoom and fit, which is three numbers;
+  `selection.js`, what is picked, what that dims and what it reveals; `router.js`, the addresses
+  and the two views an address switches between; and `app.js`, which joins the two generated
+  documents, builds the other four, wires them, owns the theme and the ghosts toggle, and
+  publishes `window.ZT`. Each boundary is one the record already shows being edited alone: #46
+  built the whole viewport and touched nothing else, #45, #48 and #51 each changed only the
+  selection, #32, #41, #56 and #57 each changed only the drawing, and #51 and #66 each added a
+  route with the view it opens.
+- **Load order is handled by making it not matter.** No bundler, no build step and the page has to
+  work from a `file://` URL, so the four are ordinary `<script>` tags. Each DEFINES one factory on
+  `window.ZM` and EXECUTES NOTHING, so their order among themselves is irrelevant; `app.js` is the
+  only one that runs anything, must come last, and throws by name if a factory is missing rather
+  than half drawing the page. Verified from disk as well as from a server.
+- **No boundary was drawn between the student list and the addresses.** The list is a view reached
+  by an address, exactly as the drawing is, and #51 filed and built both halves as one thing, so
+  splitting them would put one card's work in two files and buy nothing. It is in `router.js`. The
+  theme is the other boundary declined: it has been edited alone twice, #55 and #57, but it is
+  sixty lines that belong to the page rather than to any view, so it stays in the wiring file with
+  the reason written there.
+- `window.ZT` and `window.ZMT` did not change shape, `index.html` gained four script tags and no
+  markup, `app.css` was not touched, and **`scripts/smoke.mjs` was not touched either**: 70
+  assertions, 70 passed, locally and against the origin, with none edited. Second time that
+  instruction has been paid for, after seam 1. Nine states were screenshotted from the tree before
+  and the tree after at 1536x839, and eight are pixel for pixel identical; the ninth is the board,
+  differing only in its own live "updated Ns ago" counter.
 - The data and the geometry are two documents, #60 seam 1. `site/graph.js` is gone and the page
   loads `site/instance.js`, what the objects are, and `site/layout.js`, where they go. The reason
   is on the card and it is not tidiness: the published page is public, so real data can never go
