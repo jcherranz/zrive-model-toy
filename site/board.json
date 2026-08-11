@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T22:30:05Z",
+  "generated": "2026-08-11T22:30:35Z",
   "columns": [
     {
       "key": "raw",
@@ -24,15 +24,6 @@
             "limitation"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
-        },
-        {
-          "id": 81,
-          "title": "Soften the lane bands: doable, but in light it turns the contrast gate red",
-          "labels": [
-            "bug",
-            "feedback"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/81"
         },
         {
           "id": 84,
@@ -123,6 +114,15 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/82"
         },
         {
+          "id": 81,
+          "title": "Soften the lane bands: doable, but in light it turns the contrast gate red",
+          "labels": [
+            "bug",
+            "feedback"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/81"
+        },
+        {
           "id": 80,
           "title": "A cohort calendar route: the data is already shipped, and the model says no such calendar exists",
           "labels": [
@@ -173,19 +173,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/76"
-        },
-        {
-          "id": 73,
-          "title": "Seam 5: provenance for live data, on the Z-Map's pattern",
-          "labels": [
-            "data model",
-            "enhancement",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/73"
         }
       ],
-      "hidden": 57,
+      "hidden": 58,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
