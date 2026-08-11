@@ -626,16 +626,11 @@ const READ_DRAWING = `(function () {
 // =================================================================================================
 // Pointer helpers, every one of them hit tested first.
 // =================================================================================================
-async function rectOf(page, selector) {
-  const r = await page.evaluate(`(function () {
-    var el = document.querySelector(${JSON.stringify(selector)});
-    if (!el) return null;
-    var b = el.getBoundingClientRect();
-    return { x: b.x, y: b.y, w: b.width, h: b.height, cx: b.x + b.width / 2, cy: b.y + b.height / 2 };
-  })()`);
-  if (!r) throw new Error(`no element matches ${selector}`);
-  return r;
-}
+// There is no plain rectOf() here, deliberately. Every measurement of a box this suite is about to
+// click goes through stableRect() below, because a single reading of a rect is a reading taken at
+// a moment, and the moments this page has are a panel sliding, a reveal timer that has not fired
+// and a canvas being re-inset. One measured rect and one dispatched click at that rect is the
+// whole of the failure it exists to prevent.
 
 // What is actually at this coordinate. The reason this exists rather than a bare dispatch is
 // KAIZEN.md `kaizen-a-widened-control-keeps-its-neighbours-reachable`: a control that is drawn and
@@ -737,6 +732,51 @@ async function clearSelection(page) {
   await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
   await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
   await page.waitFor('window.ZT.selected() === null', 'the selection to clear');
+  // And then wait for the plane to stop. select() schedules ensureVisible() 30ms later through
+  // reveal(), and clearing the selection does not cancel that timer, so the drawing can still be
+  // about to pan when the selection is already gone.
+  await viewSettled(page);
+}
+
+// A rect that has stopped moving, and the reason it exists is a failure this suite had in CI and
+// never had locally. The sequence is: click a node, the panel opens, reveal() schedules a pan for
+// 30ms later, the selection is cleared, the next node's rect is measured, and only then does that
+// pan fire and take the tile out from under the measured point. The click then lands on empty
+// canvas, and what the log says is that the suite waited twenty seconds for a selection that never
+// came, which is a true statement about the page and a useless one about the cause. Locally the
+// timer had always fired before the measurement; on a runner it had not.
+//
+// Two identical readings, which is a condition about the document rather than an interval chosen
+// to be long enough, and then the point is measured, hit tested and clicked with nothing in
+// between that could move it again.
+async function stableRect(page, selector) {
+  let last = null;
+  const deadline = Date.now() + TIMEOUT;
+  while (Date.now() < deadline) {
+    const now = await page.evaluate(`(function () {
+      var el = document.querySelector(${JSON.stringify(selector)});
+      if (!el) return null;
+      var b = el.getBoundingClientRect();
+      return JSON.stringify({ x: b.x, y: b.y, w: b.width, h: b.height });
+    })()`);
+    if (now === null) throw new Error(`no element matches ${selector}`);
+    if (now === last) {
+      const b = JSON.parse(now);
+      return { ...b, cx: b.x + b.w / 2, cy: b.y + b.h / 2 };
+    }
+    last = now;
+    await sleep(40);
+  }
+  throw new Error(`${selector} never stopped moving`);
+}
+
+// Click a node by its data-node key, on a rect that has settled, hit tested first.
+async function clickNode(page, id) {
+  const r = await stableRect(page, `[data-node="${id}"] rect.tile-bg`);
+  const p = { x: Math.round(r.cx), y: Math.round(r.cy) };
+  await requireHit(page, p.x, p.y, { node: id });
+  await click(page, p.x, p.y);
+  return { ...r, ...p };
 }
 
 // A point on the canvas that no node occupies. Found by asking the page rather than by computing
@@ -825,10 +865,7 @@ async function checkModelAndReveal(page) {
 
   // Clicking each instructor reveals exactly its own employer and nothing else.
   for (const e of employ.slice().sort((a, b) => a.key < b.key ? -1 : 1)) {
-    const r = await rectOf(page, `[data-node="${e.s}"] rect.tile-bg`);
-    const p = { x: Math.round(r.cx), y: Math.round(r.cy) };
-    await requireHit(page, p.x, p.y, { node: e.s });
-    await click(page, p.x, p.y);
+    await clickNode(page, e.s);
     await page.waitFor(`window.ZT.selected() && window.ZT.selected().id === ${JSON.stringify(e.s)}`,
       `${e.s} to be selected`);
     const shown = await page.evaluate('window.ZT.veiled().shown');
@@ -841,9 +878,9 @@ async function checkModelAndReveal(page) {
   // clear() to the svg itself, and a node's own handler stops propagation so only a click that
   // reached no node ever gets there.
   const last = employ[employ.length - 1];
-  const lr = await rectOf(page, `[data-node="${last.s}"] rect.tile-bg`);
-  await click(page, Math.round(lr.cx), Math.round(lr.cy));
+  await clickNode(page, last.s);
   await page.waitFor(`window.ZT.selected() !== null`, 'a node to be selected before clearing it');
+  await viewSettled(page);
   const bg = await backgroundPoint(page);
   await click(page, bg.x, bg.y);
   await page.waitFor('window.ZT.selected() === null', 'a click on the canvas to clear the selection');
@@ -867,10 +904,7 @@ async function checkStudents(page) {
   const card = owners[0];
   const drawnStudents = members.map(e => e.s).sort();
 
-  const r = await rectOf(page, `[data-node="${card}"] rect.tile-bg`);
-  const p = { x: Math.round(r.cx), y: Math.round(r.cy) };
-  await requireHit(page, p.x, p.y, { node: card });
-  await click(page, p.x, p.y);
+  await clickNode(page, card);
   await page.waitFor(`window.ZT.selected() && window.ZT.selected().id === ${JSON.stringify(card)}`,
     'the students card to be selected');
 
@@ -958,7 +992,7 @@ async function checkCanvas(page) {
   // An off-centre point, deliberately: a zoom about the centre of the box and a zoom about the
   // pointer are the same gesture at the centre and differ everywhere else, so an anchor test taken
   // at the middle of the screen proves nothing at all.
-  const canvas = await rectOf(page, '#canvas');
+  const canvas = await stableRect(page, '#canvas');
   // Rounded here, once, and then used for both the dispatch and every line of arithmetic below.
   // See px(): the browser floors what it is given, and measuring at the float while dispatching at
   // the floor is what made the first run of this suite report a defect the page did not have.
@@ -1021,7 +1055,7 @@ async function checkCanvas(page) {
   // Click or drag. Three gestures on the same tile, because the thresholds are the whole of what
   // tells them apart and app.js carries two of them: 5px of travel, or 3px travelled slowly.
   const node = await someInstructor(page);
-  const t = await rectOf(page, `[data-node="${node}"] rect.tile-bg`);
+  const t = await stableRect(page, `[data-node="${node}"] rect.tile-bg`);
   const tx = Math.round(t.cx), ty = Math.round(t.cy);
   const isSel = `window.ZT.selected() && window.ZT.selected().id === ${JSON.stringify(node)}`;
   await requireHit(page, tx, ty, { node });
@@ -1034,9 +1068,12 @@ async function checkCanvas(page) {
   // Two pixels of travel. Below DRAG_PX (5) and below SLOW_PX (3), so neither of app.js's two
   // thresholds fires however long the gesture takes, which is what makes this deterministic rather
   // than a race against SLOW_MS.
-  await mouse(page, 'mousePressed', tx, ty, 1);
-  await mouse(page, 'mouseMoved', tx + 2, ty + 1, 1);
-  await mouse(page, 'mouseReleased', tx + 2, ty + 1, 0);
+  const t2 = await stableRect(page, `[data-node="${node}"] rect.tile-bg`);
+  const jx = Math.round(t2.cx), jy = Math.round(t2.cy);
+  await requireHit(page, jx, jy, { node });
+  await mouse(page, 'mousePressed', jx, jy, 1);
+  await mouse(page, 'mouseMoved', jx + 2, jy + 1, 1);
+  await mouse(page, 'mouseReleased', jx + 2, jy + 1, 0);
   let selected = null;
   try {
     await page.waitFor(isSel, 'a 2px click to select');
@@ -1046,8 +1083,11 @@ async function checkCanvas(page) {
     selected === node, 'the node under the press to be selected', String(selected));
   await clearSelectionIfAny(page);
 
+  const t3 = await stableRect(page, `[data-node="${node}"] rect.tile-bg`);
+  const dx0 = Math.round(t3.cx), dy0 = Math.round(t3.cy);
+  await requireHit(page, dx0, dy0, { node });
   const viewBeforeDrag = await viewSettled(page);
-  await dragBy(page, tx, ty, 40, 0);
+  await dragBy(page, dx0, dy0, 40, 0);
   const viewAfterDrag = await viewSettled(page);
   const movedPx = Math.abs(viewAfterDrag.x - viewBeforeDrag.x) * viewAfterDrag.k;
   const sel = await page.evaluate('JSON.stringify(window.ZT.selected())');
@@ -1079,7 +1119,7 @@ async function checkCapture(page) {
   await viewSettled(page);
   await clearSelectionIfAny(page);
 
-  const toggle = await rectOf(page, '#fbtoggle');
+  const toggle = await stableRect(page, '#fbtoggle');
   const gx = Math.round(toggle.cx), gy = Math.round(toggle.cy);
   await requireHit(page, gx, gy, { id: 'fbtoggle' });
   await click(page, gx, gy);
@@ -1090,7 +1130,7 @@ async function checkCapture(page) {
   // feedback.js's document-level listener. If that ever stops holding, every drag on the canvas
   // opens a popover and a reader who moves the drawing files a card about wherever they let go.
   const node = await someInstructor(page);
-  const t = await rectOf(page, `[data-node="${node}"] rect.tile-bg`);
+  const t = await stableRect(page, `[data-node="${node}"] rect.tile-bg`);
   const tx = Math.round(t.cx), ty = Math.round(t.cy);
   await requireHit(page, tx, ty, { node });
   const before = await viewSettled(page);
@@ -1121,7 +1161,7 @@ async function checkCapture(page) {
   // outside the 16 unit glyph box, so the click lands on the tile rect rather than on a glyph
   // stroke: the point is chosen from the measured rect rather than from an offset in pixels,
   // so it stays right at any zoom.
-  const t4 = await rectOf(page, `[data-node="${DESCRIPTOR_BASELINE.node}"] rect.tile-bg`);
+  const t4 = await stableRect(page, `[data-node="${DESCRIPTOR_BASELINE.node}"] rect.tile-bg`);
   const bx = Math.round(t4.cx + t4.w * 0.35), by = Math.round(t4.cy + t4.h * 0.35);
   await requireHit(page, bx, by, { node: DESCRIPTOR_BASELINE.node, tag: 'rect' });
   await click(page, bx, by);
