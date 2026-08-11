@@ -167,6 +167,11 @@
   // and 82.
   term = ZM.term({
     views: VIEWS,
+    // Issue 85's invented session agenda, handed over rather than read off the global, for the
+    // reason the provenance block is: a module that reached for window.GI would be a second
+    // reader of the instance document. It is a top-level block and not a per view one, because
+    // it is one object and the same four lines sit under every template on all seven.
+    agenda: GI && GI.agenda,
     // Opening or closing the sheet swaps the heading, and below the breakpoint a heading of a
     // different length can change how many lines the header takes.
     onRoute: function () { measureHeader(); }
@@ -186,7 +191,14 @@
     canvas: canvas,
     drawing: router.view().drawing,
     onSelect: function (id) { selection.select(id); },
-    onFocus: function (n) { viewport.ensureVisible(n); }
+    onFocus: function (n) { viewport.ensureVisible(n); },
+    // Issue 84. What a lane heading opens. render.js knows where a lane is and term.js knows what
+    // a lane means, and neither learns the other's half: the drawing asks by the lane's name and
+    // the sheet answers with an address it built itself. The programme is the one on screen, so a
+    // heading on the Z-SC drawing opens Z-SC, which is the whole of what the card asked for.
+    capLink: function (bandKey) {
+      return term.capLink(bandKey, router.view());
+    }
   });
 
   selection = ZM.selection({
@@ -229,7 +241,10 @@
     // reader cannot see.
     busy: function () {
       return router.rosterOpen() || router.pgMenuOpen() || term.isOpen();
-    }
+    },
+    // Issue 84's counter-scale. The lane headings are controls and a control keeps its size on
+    // screen, so the drawing is told the scale on every change of it.
+    onScale: function (k) { render.setCapScale(k); }
   });
   viewport.init();
 
@@ -445,6 +460,11 @@
     // that should be read off the running page rather than inferred from a screenshot of 83 rows.
     // Every number in it is counted off the rows term.js built, so it cannot report a total the
     // sheet is not showing. Issues 80 and 82.
-    term: function () { return term.state(); }
+    term: function () { return term.state(); },
+    // Every address the sheet answers, built by the one function that builds them. Issue 84 took
+    // it from two to sixteen and a driver enumerating them by hand would be enumerating its own
+    // guess: that mistake, `#/p/Z-ZIB` against `#/p/ZIB`, produced a false alarm on this page
+    // once already, and the rule it left behind is to construct nothing you can read.
+    termRoutes: function () { return term.routes.slice(); }
   };
 })();

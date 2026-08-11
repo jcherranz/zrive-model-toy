@@ -180,11 +180,16 @@ node scripts/smoke.mjs                                          # serve site/ an
 node scripts/smoke.mjs https://jcherranz.github.io/zrive-model-toy/
 ```
 
-Eighty seven assertions across three viewports, 1536x839, 1440x900 and 390x844: the six Company
+Ninety seven assertions across three viewports, 1536x839, 1440x900 and 390x844: the six Company
 nodes of which five are hidden employers, each instructor revealing its own employer and nothing
 else, the students card and the roster agreeing on how many of the cohort the drawing left out, the
 term's two readings holding one row per session and per template, in date order and in curriculum
 order, with the sample they drew declared and the sessions with no instructor marked on the rows,
+each reading taking a programme and the unscoped pair surviving it, the outline grouped by the
+module its syllabus declares and saying so where a syllabus declares none, a lane heading that is a
+target of at least 24 by 24 at the smallest scale the canvas allows, at fit and at the largest,
+still a pan under a press and drag, the invented session agenda off until it is asked for and every
+line of it flagged when it is on,
 the pointer-anchored zoom holding the point under the cursor, a click and a 2px wobble selecting
 where a 40px drag pans, capture mode filing nothing on a pan and producing an unchanged element
 descriptor, the board's four columns and its arithmetic, no sideways scroll at any width, and no
@@ -249,15 +254,19 @@ use and stops the build on a hit. The universities are real institutions, which 
 ## The term, read twice
 
 `#/calendar` is every cohort session on the seven drawings in date order, and `#/outline` is every
-session template in curriculum order. One sheet, two readings, and the same 83 rows seen twice:
-once as when a thing happened and once as what is taught. The way into either is the node, a
-cohort session for the calendar and a session template for the outline, which is where both were
-asked for; the header takes no new control.
+session template in curriculum order, grouped by the module its syllabus puts it in. One sheet, two
+readings, and the same 83 rows seen twice: once as when a thing happened and once as what is
+taught. The way into either is the node, a cohort session for the calendar and a session template
+for the outline, which is where both were asked for, and the lane heading over each of those two
+columns, which is where the owner pressed. The header takes no new control.
 
-**It spans all seven programmes on purpose.** Every cohort session records that its schedule lives
-in Notion, one calendar per programme per quarter, so a calendar of one programme is a copy of
-something the business already has. One term across the seven exists nowhere, and the sheet says
-so where a reader meets it.
+**Each reading also takes a programme**, at `#/calendar/ZSC` and `#/outline/ZSC`, sixteen addresses
+in all, and the panel's link and the lane heading both go to the scoped one. **The unscoped pair
+stays**, and the reason is the difference between the two objects. Every cohort session records
+that its schedule lives in Notion, one calendar per programme per quarter, so a calendar of one
+programme is a copy of something the business already has and one term across the seven exists
+nowhere. A syllabus is not like that: it belongs to a programme, and a reader arriving from a Z-SC
+tile is asking about Z-SC.
 
 **It is not a schedule and says so three times over**: in the subtitle, in a notice above the rows
 that cannot be scrolled away, and on a sticky banner row inside the table, so a screenshot of the

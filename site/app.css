@@ -631,6 +631,47 @@ body.fb-mode #canvas { cursor: crosshair; }
   font-family: var(--font-ui);
 }
 
+/* ---- the lane heading as a control, issue 84 -----------------------------------
+   Two of the six lane headings open the sheet the lane is a picture of, and the target is not the
+   text. site/render.js puts a rect inside a group carrying `scale(1/k)`, so one unit in there is
+   one CSS pixel and the control is 26px tall and at least 26px wide at every zoom the canvas
+   allows, against the 39,4 by 3,0 the caption itself measured at fit. WCAG 2.2 SC 2.5.8 asks 24.
+
+   THE HIT AREA IS INVISIBLE AND THE FRAME IS WHAT APPEARS. Painting a box round two of six
+   headings at rest would put a control on the drawing before anybody wanted one and would say the
+   other four are broken. `cursor: pointer` overrides the canvas grab, which is what told the
+   owner nothing was listening, and the frame is drawn on hover and on focus.
+
+   FOCUS IS NOT :focus-visible HERE, unlike a node. A node paints a frame on the keyboard walk
+   only, because a mouse click on a node also selects it and the panel opening is the feedback;
+   nothing opens behind this one, and an SVG element matches plain :focus on a click in Chrome, so
+   the two states are drawn the same and the ring is never missing when a keyboard put it there. */
+.capbtn { cursor: pointer; }
+.capbtn:focus { outline: none; }
+
+.capbtn-hit { fill: transparent; stroke: none; }
+
+.capbtn-frame {
+  fill: none;
+  stroke: none;
+  stroke-width: 1;
+}
+
+.capbtn:hover .capbtn-frame,
+.capbtn:focus .capbtn-frame {
+  stroke: var(--i-primary);
+}
+
+.capbtn:focus .capbtn-frame { stroke-width: 2; }
+
+/* The words light with the frame. The control sits after the caption in the lane's group, so a
+   sibling combinator would reach the NEXT lane's caption; `:has()` asks the lane instead, which is
+   the relationship that is actually true. Baseline Chrome 105, Safari 15.4, Firefox 121, all
+   earlier than the `light-dark()` this stylesheet already requires, and a browser without it
+   loses the colour and keeps the frame, the cursor and the target. */
+.lane:has(.capbtn:hover) .band-cap,
+.lane:has(.capbtn:focus) .band-cap { fill: var(--i-primary); }
+
 .edge {
   fill: none;
   stroke: var(--c-gray-3);
@@ -783,6 +824,23 @@ body.panel-open #canvas { margin-right: 320px; }
 .flag.estimated {
   background: var(--tint-warning);
   color: var(--fg-warning);
+}
+
+/* A fourth flag, and the first one that is not a kind of placeholder. Issue 85. `module_name`
+   and `sequence` are read off the programme syllabus, the same corpus the session titles come
+   from, and they are the first real published values to reach a property list.
+
+   IT IS THE ONLY FLAG DRAWN IN THE PANEL'S OWN BODY COLOUR, which is the whole design of it: the
+   other three are quiet because they are qualifications, and this one is not a qualification. It
+   is a solid rule against `absent`'s dashed one and against `dummy`'s filled grey, so the three
+   are told apart by their border and their weight and not only by the word inside them.
+   --fg-body on --bg-panel is what every other line of running text in this panel is painted with
+   and is measured with it. */
+.flag.real {
+  background: transparent;
+  border: 1px solid var(--fg-body);
+  color: var(--fg-body);
+  padding: 0 4px;
 }
 
 /* The min-width is the third of the three target-size fixes issue 77 turned up. This control was
@@ -1688,6 +1746,115 @@ body.hide-ghosts .ghost { display: none; }
 .term-table tbody tr.term-group:hover { background: transparent; }
 .term-table tbody tr.term-group th .linkbtn { padding-left: 0; padding-right: 4px; }
 
+/* The two row kinds issue 85 adds both hold running text, and the sheet's cells are nowrap so
+   that a record reads as one run. Measured at 1536: without this the invented block pushes the
+   table from 1168 to 1335 inside a 1098 box, so the whole outline scrolls sideways to make room
+   for a paragraph. They are the only rows here that are prose, so they are the rows that wrap. */
+.term-table tbody tr.term-module th,
+.term-table tbody tr.term-agenda td { white-space: normal; }
+
+/* ---- the module, issue 85 -----------------------------------------------------
+   A SECOND LEVEL OF GROUP ROW, under the programme and over the rows. It is quieter than the
+   programme heading and louder than a row, which is what a second level has to be for a reader
+   to see three levels rather than two kinds of heading: no top rule, indented, and the module's
+   own name at the panel's body weight with the count after it in the muted colour. */
+.term-table tbody tr.term-module th {
+  position: static;
+  text-align: left;
+  padding: 8px 10px 3px 26px;
+  background: var(--bg-panel);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--fg-muted);
+}
+
+.term-table tbody tr.term-module:hover { background: transparent; }
+.term-table tbody tr.term-module .term-modname { font-weight: 700; color: var(--fg-body); }
+
+/* A module heading that is the ABSENCE of a module. It takes the same dashed treatment the
+   `absent` flag takes in the panel, for the reason that flag exists: a dummy value stands in for
+   something a system holds and an absent one says no system holds it, and on Z-CFA this heading
+   is the whole finding on the route. It is not the warning colour, because nothing is wrong. */
+.term-table tbody tr.term-module .term-nomodule {
+  font-weight: 600;
+  color: var(--fg-muted);
+  border-bottom: 1px dashed var(--c-gray-3);
+}
+
+/* ---- the scope bar ------------------------------------------------------------
+   Issue 84 scoped both readings, so a reader who arrived at one programme needs the way to the
+   others and to all seven. Ordinary links to addresses, like every other navigation on this
+   page. */
+.term-scope { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px; }
+.term-scope .term-scope-lead { color: var(--fg-muted); }
+
+/* ---- the invented session agenda, issue 85 -------------------------------------
+   THE HARDEST THING ON THIS PAGE TO SHIP HONESTLY, and the styling is half of the answer. Every
+   other invented value here is an identifier, a date, a count or an amount, and each of those is
+   obviously a placeholder. Invented PROSE about what happens inside a session looks exactly like
+   curriculum design, so it may not sit in the same visual register as the published titles beside
+   it, and a reader must not be able to crop a screenshot down to a line of it and lose the fact.
+
+   FOUR THINGS DO THAT, and they are all here or in site/term.js.
+   1. It is off until a reader presses a control that says what it turns on.
+   2. It is inside a box with its own ground and a heavy left rule, indented off the row it hangs
+      under, so it is visibly not a cell of the table.
+   3. Every line carries the same `dummy` badge the panel puts on an invented property, and the
+      badge is on the LINE, so there is no line to quote without one.
+   4. The first thing in the box is the sentence saying the same four lines sit under all 83
+      templates and that they are not Zrive's, which is what survives a crop.
+
+   The ground is the warning tint, which is the token the invented notice and the sticky banner
+   already take, so the reader has met this colour twice before reaching the block and it means
+   the same thing all three times. */
+.term-table tbody tr.term-agenda td {
+  padding: 0 10px 10px 26px;
+  border-bottom: 0;
+}
+
+.term-table tbody tr.term-agenda:hover { background: transparent; }
+
+.agenda-box {
+  border-left: 3px solid var(--fg-warning);
+  background: var(--tint-warning);
+  padding: 8px 10px;
+  border-radius: 0 3px 3px 0;
+}
+
+.agenda-note {
+  margin: 0 0 6px;
+  font-size: 10px;
+  line-height: 1.45;
+  color: var(--fg-warning);
+  font-weight: 600;
+}
+
+.agenda-lines { margin: 0; padding: 0; list-style: none; }
+
+.agenda-line {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--fg-muted);
+  font-style: italic;
+}
+
+/* The badge takes the panel's own ground inside the box and not the tint it would otherwise sit
+   on, and this is a measurement rather than a preference. --fg-muted over --tint-neutral over the
+   warmed ground of this box is 4.2891 in light and 4.4503 in dark, both under the 4.5 SC 1.4.3
+   asks of ten pixel text; the same badge in the panel, which is the ground it was chosen against,
+   is 4.7292 and 5.5068. Painting --bg-panel under it puts it back on that ground exactly. */
+.agenda-line .flag,
+.agenda-note .flag {
+  font-style: normal;
+  margin-right: 2px;
+  background: var(--bg-panel);
+}
+
+.term-agendactl { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+.term-agendactl .term-agendahint { color: var(--fg-muted); }
+
 /* THE BANNER IS INSIDE THE TABLE AND THAT IS THE POINT. The notice above answers the reader who
    is looking at the sheet; this answers the one looking at a screenshot of the rows, because both
    header rows are sticky and this one sits at the top of the scroll for as long as there are rows
@@ -1725,9 +1892,21 @@ body.hide-ghosts .ghost { display: none; }
   .term-table thead { display: block; }
   .term-table thead tr:not(.term-banner) { display: none; }
   .term-table thead tr.term-banner,
-  .term-table tbody tr.term-group { display: block; padding: 0; border-top: 0; }
+  .term-table tbody tr.term-group,
+  .term-table tbody tr.term-module,
+  .term-table tbody tr.term-agenda { display: block; padding: 0; border-top: 0; }
   .term-table thead tr.term-banner th { display: block; height: auto; }
   .term-table tbody tr.term-group th { display: block; border-top: 1px solid var(--rule); }
+  /* Issue 85's two new row kinds take the same treatment, and they have to: the phone layout
+     turns the tbody into a block, and a row left as a table-row inside it puts the whole table
+     back into table layout. Measured before the rule and after: 2055px of sideways scroll inside
+     #termrows at 390, and 0 with it. The deployed page before this card was 0, so this is a
+     regression the rule prevents rather than a limitation it works around. */
+  .term-table tbody tr.term-module th,
+  .term-table tbody tr.term-agenda td { display: block; }
+  .term-table tbody tr.term-module th { padding-left: 14px; }
+  .term-table tbody tr.term-agenda td { padding-left: 14px; }
+  .term-table tbody tr.term-agenda td::before { content: none; }
 
   /* A session template's title is a sentence, not a name, and the sheet's cells are nowrap so
      that a record reads as one run. At 390px the longest of them is wider than the phone, and a
@@ -1736,7 +1915,9 @@ body.hide-ghosts .ghost { display: none; }
   .term-table td.r-name,
   .term-table td.s-delivered,
   .term-table thead tr.term-banner th,
-  .term-table tbody tr.term-group th { white-space: normal; }
+  .term-table tbody tr.term-group th,
+  .term-table tbody tr.term-module th,
+  .term-table tbody tr.term-agenda td { white-space: normal; }
 }
 
 /* A note is content and the relationship list is metadata, so they are two blocks and not

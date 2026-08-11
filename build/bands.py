@@ -62,9 +62,12 @@ WHAT IT COSTS has no control at all, and there are four things.
 
 4. THE SECOND COLUMN HAS NO MEANING TO GIVE. A lane is a kind of object and a caption is a claim
    about everything under it, and "the back half of the list" is a fact about how long the list
-   is. The vault does carry a module for every row, which is a real grouping, but the modules
-   are three to fifteen rows long and would make sub-columns of wildly different heights, which
-   buys none of the height back. And the barycentre sweeps reorder each column against its
+   is. The vault carries a module on most rows, which is a real grouping and is what issue 85
+   groups the outline by, but the modules are one to seventeen rows long and would make
+   sub-columns of wildly different heights, which buys none of the height back. And it is not
+   every row: Z-CFA names no module on any of its forty five, Z-HR on four of twenty five and
+   Z-PE on twenty seven of thirty six, so a wrap along module boundaries would have no boundary
+   to follow on three of the seven. And the barycentre sweeps reorder each column against its
    neighbours, so even a split made in sequence does not stay in sequence.
 
 So: one column, and the drawing is tall. It is the plane's job to make that navigable, which is
@@ -128,6 +131,15 @@ BANDS = [
     ([6, 7], ("enrolment to claim",)),
 ]
 
+# A stable name per lane, in the order above, shipped on the geometry beside the caption.
+#
+# ISSUE 84 IS WHY IT EXISTS. A lane heading became a control, and the page has to be able to ask
+# which lane it is looking at without matching the caption's text: the text is computed from a
+# view's counts and has three alternates, so "the lane captioned session templates" is not a way
+# to find a lane. This is, and it does not change when a caption does.
+BAND_KEYS = ("programme", "templates", "instructors", "sessions", "cohort", "enrolment")
+
+
 # ---- and three of them can be false, so they are a per view argument -----------
 # Issue 43. BANDS above was a module constant shared by every call to layout(), which held while
 # there was one drawing to lay out. There are seven now and they do not hold the same kinds of
@@ -151,6 +163,11 @@ CAP_NO_HOST = ("cohort sessions", SAMPLE_SESSIONS)
 # changed height between them would make the whole drawing jump.
 CAP_ALL = [lines for _cs, lines in BANDS] + [CAP_NO_EMPLOYERS, CAP_NO_INSTRUCTORS, CAP_NO_HOST]
 MAX_CAP_LINES = max(len(lines) for lines in CAP_ALL)
+
+if len(BAND_KEYS) != len(BANDS):
+    raise SystemExit(f"bands: {len(BAND_KEYS)} lane names for {len(BANDS)} lanes. A lane added "
+                     f"without a name would ship geometry the page cannot ask about, and a name "
+                     f"left behind would point at the lane after it.")
 
 
 def sample_line(counts, sentinel):

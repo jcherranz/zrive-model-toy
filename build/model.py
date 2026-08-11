@@ -53,6 +53,17 @@ E = "estimated"
 # kind of dummy: a dummy value stands in for something a system holds, and an absent one says
 # no system holds it at all.
 A = "absent"
+# A FOURTH FLAG, AND IT IS THE FIRST ONE THAT IS NOT A KIND OF PLACEHOLDER. Issue 85.
+#
+# Until this card every property VALUE on this page was invented, and the session titles were
+# real only because a title is the node's label rather than one of its rows. `module_name` and
+# `sequence` are the first real published values to reach a property list: they are the vault's
+# own frontmatter, the same corpus the titles come from, and rendering them as `dummy` beside a
+# made up attendance figure would tell the reader the exact opposite of what is true of them.
+#
+# It is a flag and not a rank. The rank beside it says the same thing in the machine half of the
+# document, and check_provenance() below refuses the pair coming apart.
+R = "real"
 
 
 # ---- provenance, issue 73, seam 5 --------------------------------------------
@@ -153,6 +164,32 @@ STANCE = {
 # The Z-Map's `apto`, and the name is kept because the rule is house doctrine and renaming a
 # doctrine is how two copies of it drift.
 APTO = ("fresh", "aging")
+
+# ---- the third population, issue 85 ------------------------------------------
+# THE DOCUMENT SAID THERE WERE TWO KINDS OF ROW AND THERE ARE NOW THREE. Issue 73 found the
+# second: four registry rows at the front of every node that are read off the ontology analysis,
+# rendered until then exactly like the invented ones. This card adds a third, and it is smaller
+# and sharper. `module_name` and `sequence` are read off the programme syllabus in the vault,
+# which is the same corpus every session title on this page comes from. They are not made up,
+# so they may not be ranked `0_invented`, whose own definition in VALUE_RANK reads "nothing was
+# read. The value was made up".
+#
+# THE GATE IS EXTENDED AND NOT RELAXED, and the difference is checkable. `toy-value-not-invented`
+# used to say "every value in this model except the registry rows was made up", which this card
+# makes false. It now excepts exactly the keys below, and a new rule refuses one of those keys
+# ranked invented, so the population is closed in both directions: a syllabus row cannot pass as
+# invented and an invented row cannot pass as a syllabus one by carrying a rank.
+#
+# `3_observed` AND NOT `1_official`, for the reason the route rows are. `1_official` is a read of
+# the record the holding system keeps, and issue 72's registry says nothing here has reached a
+# system; the vault is a private analysis of one, which is what `3_observed` means.
+#
+# AND NO READ DATE, WHICH IS THE PART THAT MATTERS ON A PUBLIC PAGE. A date would compute
+# `fresh`, `fresh` is apto, and a value fit to act on inside a document whose stance is invented
+# is refused by the rule above and should be. The syllabus is not on the machine that builds this
+# in CI, so the honest state is `unread`: real, and not fit to act on.
+SYLLABUS_KEYS = ("module_name", "sequence", "modules")
+SYLLABUS_RANK = OBSERVED
 
 FRESH_DAYS = 120
 AGING_DAYS = 240
@@ -1102,6 +1139,198 @@ SYLLABUS_DIR = pathlib.Path.home() / "Obsidian/02_areas/zrive/02_areas/20_academ
 SYLLABUS_SESSIONS = {"ZIB": 79, "ZCFA": 45, "ZPE": 36, "ZBL": 28, "ZSC": 25, "ZHR": 25, "ZDS": 22}
 SYLLABUS_COUNTED_ON = "2026-08-11"
 
+# ---- and the module structure inside them, issue 85 --------------------------
+# THE SYLLABUS NOTES HAVE CARRIED THIS SINCE BEFORE THIS REPOSITORY EXISTED AND THE DRAWING HAS
+# NEVER SAID IT. Every note under the vault's syllabi folder holds `module`, `module_name` and
+# `sequence` beside the title the tiles are already labelled with, and a session template shipped
+# five properties, none of which said where in a programme the session sits.
+#
+# WRITTEN HERE FOR THE REASON SYLLABUS_SESSIONS IS: the vault is private and on one machine, the
+# build runs in CI, and a build that reads it would produce a different document there. So the
+# structure is read once, by hand, and written once, here, and check_module_structure() below
+# re-reads the vault on any machine that has it and refuses a drift.
+#
+# EACH ENTRY IS (module code, module name, sessions in the WHOLE syllabus). The count is the
+# whole syllabus and not the sample the drawing carries, which is the distinction issue 83 made
+# and the one a reader of a six tile column needs kept.
+#
+# AND THE TABLE IS THE FINDING AS MUCH AS IT IS THE DATA. Three of the seven do not have a module
+# for every session and one has none at all:
+#
+#   Z-IB    79 sessions   9 modules    every session in one
+#   Z-CFA   45 sessions   0 modules    NOT ONE, and the count is the whole point of the row
+#   Z-PE    36 sessions   3 modules    9 sessions in no module
+#   Z-BL    28 sessions   5 modules    every session in one
+#   Z-SC    25 sessions   6 modules    every session in one
+#   Z-HR    25 sessions   4 modules    21 sessions in no module, and each module holds one
+#   Z-DS    22 sessions  12 modules    every session in one
+#
+# Z-HR IS THE ROW THAT SAYS WHAT THE OTHERS MEAN. Four modules over twenty five sessions, one
+# session each, twenty one outside: this is a module structure somebody began and did not finish,
+# not a programme organised into four parts. Z-DS's twelve over twenty two are a different object
+# again, seven of them named `Modulo 1` to `Modulo 7`, which is a slot and not a subject, and the
+# other five named for a ROLE or an activity, `Code reviewers`, `Mock interviews`, `Project
+# coordinators*`, `PROYECTO A`, `PROYECTO B`. Z-IB's nine and Z-SC's six are subjects. So the word
+# module does not name one kind of thing across the seven, and the drawing says the counts rather
+# than implying a structure they do not share.
+
+SYLLABUS_MODULES = {
+    "ZIB": (
+        ("M01", "External Courses", 2),
+        ("M02", "Getting Started", 5),
+        ("M03", "Intro to Investment Banking", 10),
+        ("M04", "Financial Statement Analysis", 13),
+        ("M05", "Company & Security Valuation", 17),
+        ("M06", "Advanced Topics", 17),
+        ("M07", "Financial Modelling", 3),
+        ("M08", "In Person Weekend 1", 7),
+        ("M09", "In Person Weekend 2", 5),
+    ),
+    "ZSC": (
+        ("M01", "Intro to Strategy Consulting", 3),
+        ("M02", "Recruiting in Strategy Consulting", 3),
+        ("M03", "Business Case Practice", 8),
+        ("M04", "Inside consulting", 7),
+        ("M05", "In Person Weekend 1", 2),
+        ("M06", "In Person Weekend 2", 2),
+    ),
+    "ZBL": (
+        ("M01", "Big Law & procesos de selección", 3),
+        ("M02", "Áreas de práctica en despacho", 15),
+        ("M03", "Habilidades clave para abogados", 4),
+        ("M04", "Finde Presencial 1", 3),
+        ("M05", "Finde Presencial 2", 3),
+    ),
+    "ZPE": (
+        ("M01", "Intro to Private Equity", 6),
+        ("M02", "Investment Process in Corporate PE", 11),
+        ("M03", "Investment Strategies & Asset Classes", 10),
+    ),
+    "ZHR": (
+        ("M01", "Intro to Recursos Humanos & People", 1),
+        ("M02", "Employee Journey: Atracción & Selección", 1),
+        ("M03", "Employee Journey: Retención & Satisfacción", 1),
+        ("M04", "Data & Analytics en Recursos Humanos", 1),
+    ),
+    "ZDS": (
+        ("M01", "Modulo 1", 2),
+        ("M02", "Modulo 2", 2),
+        ("M03", "Modulo 3", 3),
+        ("M04", "Modulo 4", 2),
+        ("M05", "Modulo 5", 2),
+        ("M06", "Modulo 6", 2),
+        ("M07", "Modulo 7", 2),
+        ("M08", "PROYECTO A", 2),
+        ("M09", "PROYECTO B", 2),
+        ("M10", "Code reviewers", 1),
+        ("M11", "Mock interviews", 1),
+        ("M12", "Project coordinators*", 1),
+    ),
+    "ZCFA": (),
+}
+
+SYLLABUS_ROWS = {
+    "ZIB": {
+        "st1": ("M01", 1),
+        "st2": ("M02", 3),
+        "st3": ("M03", 8),
+        "st4": ("M04", 18),
+        "st5": ("M05", 31),
+        "st6": ("M08", 72),
+    },
+    "ZSC": {
+        "sc_st1": ("M01", 1),
+        "sc_st2": ("M01", 2),
+        "sc_st3": ("M01", 3),
+        "sc_st4": ("M02", 4),
+        "sc_st5": ("M02", 5),
+        "sc_st6": ("M02", 6),
+        "sc_st7": ("M03", 7),
+        "sc_st8": ("M03", 8),
+        "sc_st9": ("M03", 9),
+        "sc_st10": ("M03", 10),
+        "sc_st11": ("M03", 11),
+        "sc_st12": ("M03", 12),
+        "sc_st13": ("M03", 13),
+        "sc_st14": ("M03", 14),
+        "sc_st15": ("M04", 15),
+        "sc_st16": ("M04", 16),
+        "sc_st17": ("M04", 17),
+        "sc_st18": ("M04", 18),
+        "sc_st19": ("M04", 19),
+        "sc_st20": ("M04", 20),
+        "sc_st21": ("M04", 21),
+        "sc_st22": ("M05", 22),
+        "sc_st23": ("M05", 23),
+        "sc_st24": ("M06", 24),
+        "sc_st25": ("M06", 25),
+    },
+    "ZBL": {
+        "bl_st1": ("M01", 1),
+        "bl_st2": ("M01", 2),
+        "bl_st3": ("M01", 3),
+        "bl_st4": ("M02", 4),
+        "bl_st5": ("M02", 5),
+        "bl_st6": ("M02", 6),
+        "bl_st7": ("M02", 7),
+        "bl_st8": ("M02", 8),
+        "bl_st9": ("M02", 9),
+        "bl_st10": ("M02", 10),
+        "bl_st11": ("M02", 11),
+        "bl_st12": ("M02", 12),
+        "bl_st13": ("M02", 13),
+        "bl_st14": ("M02", 14),
+        "bl_st15": ("M02", 15),
+        "bl_st16": ("M02", 16),
+        "bl_st17": ("M02", 17),
+        "bl_st18": ("M02", 18),
+        "bl_st19": ("M03", 19),
+        "bl_st20": ("M03", 20),
+        "bl_st21": ("M03", 21),
+        "bl_st22": ("M03", 22),
+        # The one row whose label is not the syllabus string, because the name gate
+        # withholds the firm. Its place in the syllabus is not withheld.
+        "bl_st23": ("M04", 23),
+        "bl_st24": ("M04", 24),
+        "bl_st25": ("M04", 25),
+        "bl_st26": ("M05", 26),
+        "bl_st27": ("M05", 27),
+        "bl_st28": ("M05", 28),
+    },
+    "ZPE": {
+        "pe_st1": ("M01", 1),
+        "pe_st2": ("M01", 2),
+        "pe_st3": ("M01", 3),
+        "pe_st4": ("M01", 4),
+        "pe_st5": ("M02", 7),
+        "pe_st6": ("M03", 18),
+    },
+    "ZHR": {
+        "hr_st1": ("M01", 1),
+        "hr_st2": (None, 2),
+        "hr_st3": ("M02", 4),
+        "hr_st4": ("M03", 10),
+        "hr_st5": ("M04", 18),
+        "hr_st6": (None, 16),
+    },
+    "ZDS": {
+        "ds_st1": ("M01", 1),
+        "ds_st2": ("M02", 3),
+        "ds_st3": ("M03", 5),
+        "ds_st4": ("M04", 8),
+        "ds_st5": ("M05", 10),
+        "ds_st6": ("M06", 12),
+    },
+    "ZCFA": {
+        "cfa_st1": (None, 1),
+        "cfa_st2": (None, 3),
+        "cfa_st3": (None, 4),
+        "cfa_st4": (None, 6),
+        "cfa_st5": (None, 7),
+        "cfa_st6": (None, 9),
+    },
+}
+
 # The selection rule that picked the six templates on each route is written out in the research
 # spec and is not re-derived here; what matters to the model is that it is the same rule on all
 # seven and that it reproduces the six Z-IB templates this toy already shipped.
@@ -1798,6 +2027,155 @@ def check_syllabus_counts():
           f"folders on this machine, counted again just now", file=sys.stderr)
 
 
+def module_stats(key):
+    """(modules declared, sessions the modules account for, sessions in no module)."""
+    mods = SYLLABUS_MODULES[key]
+    covered = sum(n for _c, _n, n in mods)
+    return len(mods), covered, SYLLABUS_SESSIONS[key] - covered
+
+
+def check_module_structure():
+    """The same shape as check_syllabus_counts, on the module table, and for the same reason.
+
+    Two things are checked and they fail differently. The per programme module list is compared
+    against the vault's own distinct modules, in order, with their session counts; and every
+    drawn template's declared (module, sequence) pair is compared against the vault row that
+    carries that sequence. The second is what catches a template silently coming to claim
+    somebody else's place in the syllabus, which is the failure a table typed by hand has.
+    """
+    keys = {s["key"] for s in PROGRAMMES}
+    for name, table in (("SYLLABUS_MODULES", SYLLABUS_MODULES), ("SYLLABUS_ROWS", SYLLABUS_ROWS)):
+        if keys != set(table):
+            raise SystemExit(f"model: {name} does not cover the same seven programmes as "
+                             f"PROGRAMMES.")
+    for spec in PROGRAMMES:
+        declared = set(SYLLABUS_ROWS[spec["key"]])
+        drawn = {t[0] for t in spec["templates"]}
+        if declared != drawn:
+            raise SystemExit(f"model: SYLLABUS_ROWS[{spec['key']}] and the templates drawn on "
+                             f"that route are not the same set: "
+                             f"{sorted(declared ^ drawn)} is in one and not the other.")
+        codes = {c for c, _n, _k in SYLLABUS_MODULES[spec["key"]]}
+        for sid, (code, _seq) in SYLLABUS_ROWS[spec["key"]].items():
+            if code is not None and code not in codes:
+                raise SystemExit(f"model: {sid} sits in module {code!r} and "
+                                 f"SYLLABUS_MODULES[{spec['key']}] does not declare it.")
+        _n, covered, orphan = module_stats(spec["key"])
+        if orphan < 0:
+            raise SystemExit(f"model: {spec['key']} declares modules covering {covered} sessions "
+                             f"and the syllabus holds {SYLLABUS_SESSIONS[spec['key']]}.")
+    if not SYLLABUS_DIR.is_dir():
+        print(f"[model] module structure: the vault is not on this machine, so the module table "
+              f"is unverified here. It was read on {SYLLABUS_COUNTED_ON}.", file=sys.stderr)
+        return
+    import collections
+    bad, rows_checked = [], 0
+    for spec in PROGRAMMES:
+        key = spec["key"]
+        vault = {}
+        seen = collections.OrderedDict()
+        for f in sorted((SYLLABUS_DIR / key).glob("*.md")):
+            fm = {}
+            for line in f.read_text(encoding="utf-8").split("\n"):
+                m = re.match(r"^([a-z_]+):\s*(.*)$", line)
+                if m:
+                    fm[m.group(1)] = m.group(2).strip().strip('"')
+            seq = fm.get("sequence")
+            if seq:
+                vault[int(seq)] = (fm.get("module") or None, fm.get("module_name") or None)
+        for seq in sorted(vault):
+            code, name = vault[seq]
+            if name:
+                seen.setdefault((code, name), 0)
+                seen[(code, name)] += 1
+        real = tuple((c, n, k) for (c, n), k in seen.items())
+        if real != tuple(SYLLABUS_MODULES[key]):
+            bad.append(f"{key}: the module list has drifted from the vault.\n"
+                       f"      declared {SYLLABUS_MODULES[key]}\n"
+                       f"      the vault {real}")
+        for sid, (code, seq) in sorted(SYLLABUS_ROWS[key].items()):
+            rows_checked += 1
+            if seq not in vault:
+                bad.append(f"{key}: {sid} claims sequence {seq} and the syllabus has no such row")
+            elif vault[seq][0] != code:
+                bad.append(f"{key}: {sid} at sequence {seq} declares module {code!r} and the "
+                           f"vault row says {vault[seq][0]!r}")
+    if bad:
+        raise SystemExit("[model] the declared module structure no longer matches the vault, and "
+                         "the outline is grouped by it:\n  " + "\n  ".join(bad))
+    print(f"[model] module structure: all seven module lists and all {rows_checked} drawn rows "
+          f"agree with the vault on this machine, read again just now", file=sys.stderr)
+
+
+# ---- the invented session agenda, issue 85 -----------------------------------
+# THE OWNER ASKED FOR IT, THE VAULT HOLDS NOTHING OF THE KIND, AND WHAT SHIPPED IS NOT WHAT A
+# LITERAL READING OF THE REQUEST WOULD HAVE PRODUCED. All of that is stated here because the
+# difference is the decision.
+#
+# WHAT THE VAULT HAS. Nothing. Every syllabus note under the vault's syllabi folder is frontmatter
+# and no body at all: no agenda, no contents, no learning objective, in any of the 260 notes. So a
+# session level outline cannot be read; it can only be made up.
+#
+# THE CAUTION ON THE CARD, WHICH IS THE THING THAT SHAPED THIS. Everything invented on this page
+# so far is an identifier, a date, a count or an amount, and every one of those is obviously a
+# placeholder. An invented AGENDA is invented substantive content that looks exactly like
+# curriculum design, and a reader landing on it has no way to tell it from a proposal. That is a
+# different risk from a made up attendance figure and it needs a different answer.
+#
+# THE ANSWER: THE SAME FOUR LINES UNDER EVERY TEMPLATE, AND NOT ONE WORD OF THEM IS ABOUT ANY
+# SESSION. A per session agenda inferred from a title would have produced eighty three different
+# plausible plans, and plausible is precisely the property that makes it dangerous. Four constant
+# lines cannot be mistaken for a plan for this session, because a reader who opens a second row
+# sees the identical four. They demonstrate the SHAPE a session level outline would take, which is
+# what the drawing was missing, and they assert nothing at all about the curriculum.
+#
+# It is not a smaller version of what was asked for; it is a different object, and the block says
+# so on its own face. The reader is told, inside the block and in a sentence that survives a
+# screenshot of the block alone, that these are the same four lines everywhere, that no system
+# holds any of it, and that they came from this page rather than from Zrive.
+#
+# EVERY LINE CARRIES `dummy` AND `0_invented` LIKE EVERY OTHER INVENTED VALUE, and it is a block
+# of the instance document rather than eighty three copies on eighty three nodes because it is
+# one object and not eighty three. check_provenance() walks it, for the reason three separate
+# comments in this file already give about the registry, the provenance block and the counts
+# block: a block the node walk cannot see is where the next unranked value lands.
+SESSION_AGENDA = {
+    "note": ("INVENTED, AND THE SAME FOUR LINES UNDER EVERY ONE OF THE 83 TEMPLATES ON THIS "
+             "PAGE. No system in the business records what happens inside a session: every "
+             "syllabus note is frontmatter with no body at all, so there is no agenda anywhere "
+             "to draw. These four lines were written on this page to show the shape a session "
+             "level outline would take. They are not Zrive's, they are not a proposal, they are "
+             "not about this session, and nothing above them changes when you open another row."),
+    "applies_to": "SessionTemplate",
+    "rows": [
+        p("1", "opening, and what the session is for", D),
+        p("2", "the material, delivered by whoever is teaching", D),
+        p("3", "something worked through, on material no system holds", D),
+        p("4", "questions, and what to do before the next row of the syllabus", D),
+    ],
+}
+
+
+def module_row(key):
+    """The `modules` row on a Programme tile, written from the module table and never typed.
+
+    Three shapes, and which one a route gets is decided by what its syllabus holds rather than by
+    its code, for the reason build/bands.py gives about its three caption alternates: special
+    casing Z-CFA would be a line of code and a lie about the mechanism, and the next programme
+    with no module structure would inherit the wrong sentence in silence.
+    """
+    n, _covered, orphan = module_stats(key)
+    total = SYLLABUS_SESSIONS[key]
+    if not n:
+        return p("modules", f"no module structure recorded: none of the {total} sessions in the "
+                            f"syllabus names a module", A, SYLLABUS_RANK)
+    noun = "module" if n == 1 else "modules"
+    if orphan:
+        return p("modules", f"{n} {noun} over {total - orphan} of the {total} sessions, and "
+                            f"{orphan} in no module", R, SYLLABUS_RANK)
+    return p("modules", f"{n} {noun} over all {total} sessions", R, SYLLABUS_RANK)
+
+
 def programme_block(spec):
     """The part of a drawing that is about one programme: prog, employers, host, templates,
     instructors and cohort sessions. Seven calls, one function, no branch on which programme."""
@@ -1815,6 +2193,14 @@ def programme_block(spec):
             # is nor, once two routes were expanded, whether this one is a sample at all.
             p("session_templates", sample_phrase(len(spec["templates"]), total, "in the syllabus"),
               E),
+            # ISSUE 85, and it is a finding on three of the seven rather than a count on all of
+            # them. The syllabus groups its sessions into named modules, which nothing on this
+            # page has ever said; and on Z-CFA it groups none of them, on Z-HR it groups four of
+            # twenty five and on Z-PE twenty seven of thirty six. A row reading "4 modules" and
+            # stopping there would let a reader take Z-HR for a programme in four parts. So the
+            # sentence carries what is outside the modules whenever anything is, and where there
+            # is no structure at all the row is an absence and not a zero.
+            module_row(spec["key"]),
             p("owner", "academic team", E),
         ],
     }
@@ -1897,15 +2283,28 @@ def programme_block(spec):
     # label is therefore not the syllabus string and which has to say so on its own tile rather
     # than under its route's title provenance. A dict and not two more positional fields,
     # because the next override will not be the same one.
+    modnames = dict((c, n) for c, n, _k in SYLLABUS_MODULES[spec["key"]])
     for tpl in spec["templates"]:
         sid, title, code, dmode, lmode, dur = tpl[:6]
         over = tpl[6] if len(tpl) > 6 else {}
         prov = over.get("title_provenance", spec["title_provenance"])
+        mcode, mseq = SYLLABUS_ROWS[spec["key"]][sid]
+        # ISSUE 85. The first two real published values ever to reach a property list, and they
+        # are ranked as well as flagged: `real` is what the reader sees on the row and
+        # `3_observed` with no read date is what a machine reading site/instance.js sees. A
+        # template with no module says so as an absence, which is not a smaller kind of dummy: on
+        # Z-CFA it is true of all forty five rows and it is the finding on that route.
+        if mcode:
+            mod_prop = p("module_name", f"{mcode} {modnames[mcode]}", R, SYLLABUS_RANK)
+        else:
+            mod_prop = p("module_name", "no module recorded in the syllabus", A, SYLLABUS_RANK)
         node = {
             "id": sid, "type": "SessionTemplate", "label": title,
             "props": [
                 p("title", prov[0], prov[1]),
                 p("template_code", code, D),
+                mod_prop,
+                p("sequence", f"{mseq} of {total}", R, SYLLABUS_RANK),
                 p("delivery_mode", dmode, D) if dmode else p("delivery_mode", NOT_RECORDED, A),
                 p("location_mode", lmode, D) if lmode else p("location_mode", NOT_RECORDED, A),
                 p("duration_min", dur, D) if dur else p("duration_min", NOT_RECORDED, A),
@@ -2127,6 +2526,7 @@ def tail_block(spec):
 
 # ---- assemble the seven -----------------------------------------------------
 check_syllabus_counts()
+check_module_structure()
 VIEWS = []
 for _spec in PROGRAMMES:
     if "roster" not in _spec:
@@ -3092,6 +3492,30 @@ def check_provenance(doc):
 
     classes = doc.get("routes", {}).get("classes", {})
     seen = 0
+    # Issue 85's agenda. A top-level block, so the node walk below cannot see it, and this file
+    # already carries the same reasoning three times over the registry, the provenance block and
+    # the counts block: a block no gate reads is where the next unranked value lands. Every line
+    # of it is made up and it renders as a block of prose, which is the one shape on this page a
+    # reader could take for a document, so it answers the invented rules and nothing weaker.
+    agenda = doc.get("agenda")
+    if agenda is not None:
+        if not isinstance(agenda, dict) or not agenda.get("note") \
+                or not isinstance(agenda.get("rows"), list) or not agenda["rows"]:
+            bad("agenda-block", "the agenda block is present and is not a note with rows under "
+                                "it. It is the only invented prose on this page and it says what "
+                                "it is on its own face or it does not ship.")
+        for j, row in enumerate(agenda["rows"]):
+            seen += 1
+            what = f"agenda row {j}"
+            if row.get("r") != INVENTED or row.get("at") is not None:
+                bad("agenda-row-not-invented",
+                    f"{what} is ranked {row.get('r')!r} with read date {row.get('at')!r}. Nothing "
+                    f"in the vault records what happens inside a session, so every line of this "
+                    f"block was made up and each one says so.")
+            if row.get("f") != D:
+                bad("agenda-row-not-dummy",
+                    f"{what} is flagged {row.get('f')!r}. It stands in for something no system "
+                    f"holds, which is what dummy means, and it is the flag the reader sees.")
     for v in doc["views"]:
         for n in v["nodes"]:
             where = f"{v['key']} node {n['id']}"
@@ -3129,6 +3553,31 @@ def check_provenance(doc):
                             f"{what} was read on {at}, after this document was written on "
                             f"{as_of}. One of the two dates is wrong and the value would "
                             f"compute fresh forever.")
+                # Issue 85. The third population, and both directions of it. A row whose key is
+                # one of the syllabus keys was read off the vault and may not claim to have been
+                # made up; every other row of the node's own still must, which is the rule below.
+                #
+                # Scoped to the invented stance, like the rule it excepts. A live document laid
+                # out through --instance may hold a module name read out of a real system, which
+                # is a different rank with a real date on it, and this repository's answer for
+                # its own public toy is not a claim about that one.
+                #
+                # ABOVE THE STANCE GATE AND NOT BELOW IT, so that a dated syllabus row is refused
+                # for being dated rather than for the `fresh` that the date computes to. Both
+                # refusals are correct and only one of them names the defect.
+                syllabus_row = (i >= registry_rows and stance == "invented"
+                                and row["k"] in SYLLABUS_KEYS)
+                if syllabus_row and rank != SYLLABUS_RANK:
+                    bad("syllabus-row-not-observed",
+                        f"{what} is a syllabus value, read off the programme syllabus in the "
+                        f"vault, and it is ranked {rank!r}. It is not made up and it did not "
+                        f"come out of a system's own record, so its rank is {SYLLABUS_RANK!r}.")
+                if syllabus_row and at is not None:
+                    bad("syllabus-row-carries-no-read-date",
+                        f"{what} is a syllabus value carrying the read date {at!r}. The vault is "
+                        f"not on the machine that builds this document, and a date here computes "
+                        f"fresh, which would make a value on an invented page read as fit to act "
+                        f"on.")
                 st = value_status(rank, at, as_of, clock["fresh_days"], clock["aging_days"])
                 if st not in vocab["status"]:
                     bad("document-block", f"{what} computes to {st!r}, which the document's own "
@@ -3152,11 +3601,12 @@ def check_provenance(doc):
                         f"{what} is one of the {registry_rows} rows issue 72's registry "
                         f"produced, and it is ranked invented. Those rows are read off the "
                         f"analysis each of them cites.")
-                if i >= registry_rows and stance == "invented" and rank != INVENTED:
+                if i >= registry_rows and not syllabus_row \
+                        and stance == "invented" and rank != INVENTED:
                     bad("toy-value-not-invented",
                         f"{what} is one of this node's own values in a document whose stance is "
                         f"invented, and it is ranked {rank!r}. Every value in this model except "
-                        f"the registry rows was made up.")
+                        f"the registry rows and the syllabus rows was made up.")
                 # Seam 5 asking seam 3, in the one document that carries both.
                 if rank == OFFICIAL:
                     entry = classes.get(n.get("class"))
@@ -3234,6 +3684,8 @@ def instance_document():
             "apto": list(APTO),
             "vocab": {"rank": VALUE_RANK, "status": VALUE_STATUS, "stance": STANCE},
         },
+        # ---- the invented session agenda, issue 85 --------------------------------------------
+        "agenda": SESSION_AGENDA,
         "views": [{
             "key": v["key"], "code": v["code"], "name": v["name"], "label": v["label"],
             "route": "#/p/" + v["key"],
@@ -3287,9 +3739,11 @@ def _probe_doc(stance="invented"):
     }
 
 
-def _probe(doc, row=None, node=None, prov=None, drop_prov=False):
+def _probe(doc, row=None, node=None, prov=None, drop_prov=False, agenda=None):
     """The control with one thing changed, so a probe and its control differ by that alone."""
     d = _probe_doc(doc)
+    if agenda is not None:
+        d["agenda"] = agenda
     if drop_prov:
         del d["provenance"]
     if prov:
@@ -3367,6 +3821,30 @@ def provenance_self_test():
            "an invented value in a document that says its values were read")
     expect("registry-row-invented", _probe("invented", row=(0, {"r": INVENTED})),
            "a registry row ranked invented, when it cites the analysis it came from")
+    # Issue 85's third population, proved in both directions and with its own control, because a
+    # rule that only ever refuses is a rule nobody has shown lets the right thing through.
+    # Issue 85's agenda block, the only invented prose on the page, proved armed in three
+    # directions: absent is legal, present and honest passes, present and dishonest is refused.
+    expect_clean(_probe("invented", agenda=SESSION_AGENDA),
+                 "the shipped agenda block, every line dummy and invented, passes")
+    expect("agenda-block", _probe("invented", agenda={"rows": list(SESSION_AGENDA["rows"])}),
+           "an agenda block with rows and no note saying what they are")
+    expect("agenda-row-not-invented",
+           _probe("invented", agenda={"note": "n", "rows": [p("1", "x", D, OBSERVED)]}),
+           "an agenda line claiming it was read off something")
+    expect("agenda-row-not-dummy",
+           _probe("invented", agenda={"note": "n", "rows": [p("1", "x", E)]}),
+           "an agenda line flagged as an estimate rather than as a stand-in")
+    expect_clean(_probe("invented", row=(1, {"k": "module_name", "v": "Inside consulting",
+                                             "f": R, "r": SYLLABUS_RANK})),
+                 "a syllabus value ranked observed and undated passes on an invented document")
+    expect("syllabus-row-not-observed",
+           _probe("invented", row=(1, {"k": "module_name", "v": "Inside consulting", "f": R})),
+           "a syllabus value ranked invented, which says the vault string was made up")
+    expect("syllabus-row-carries-no-read-date",
+           _probe("invented", row=(1, {"k": "sequence", "v": "7 of 25", "f": R,
+                                       "r": SYLLABUS_RANK, "at": "2026-08-08"})),
+           "a syllabus value carrying a read date, which would compute fresh and read as apto")
     expect("toy-value-not-invented", _probe("invented", row=(1, {"r": OBSERVED})),
            "one of the model's own made up values ranked as read")
     expect("official-needs-a-read", _probe("invented", row=(0, {"r": OFFICIAL})),

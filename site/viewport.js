@@ -84,6 +84,12 @@
     var extent = opts.extent;                 // function -> the drawing on screen
     var TILE = opts.tile;
     var busy = opts.busy || function () { return false; };
+    // Issue 84. The one thing this file tells the drawing. A lane heading is a control now and a
+    // control has to be the same size on the reader's screen at every zoom, so the scale goes out
+    // on every change of it and the drawing counter-scales. It is a callback and not a reach into
+    // render.js for the reason every other boundary here is one: the viewport does not know what
+    // is painted and must not learn.
+    var onScale = opts.onScale || function () {};
 
     svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 
@@ -162,6 +168,9 @@
       // readout answers the one question a canvas raises, which is how far in you are.
       if (levelEl) levelEl.textContent = Math.round(view.k / fitScale() * 100) + '%';
       if (fitBtn) fitBtn.classList.toggle('away', away());
+      // Last, and every time, because a pan changes nothing about it and a pinch, a wheel, a
+      // resize and a refit all arrive here. One place is one place.
+      onScale(view.k);
     }
 
     function fit() {

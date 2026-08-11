@@ -121,9 +121,13 @@
   // opts.drawing  the first drawing, read once for the type palette and the tile size
   // opts.onSelect called with a node id when a node is clicked or activated from the keyboard
   // opts.onFocus  called with a node record when the keyboard walk reaches one
+  // opts.capLink  called with a lane's NAME, returns {href, label} for a lane whose heading is a
+  //               control and null for the rest. Issue 84. This file knows where a lane is and
+  //               nothing about what a lane means, so what a heading opens is answered outside it.
   ZM.render = function createRender(opts) {
     var svg = opts.svg, canvas = opts.canvas;
     var onSelect = opts.onSelect, onFocus = opts.onFocus;
+    var capLinkFor = opts.capLink;
 
     var COLOR = {}, TLABEL = {}, GLYPH = {};
     opts.drawing.types.forEach(function (t) { TLABEL[t.k] = t.label; GLYPH[t.k] = t.glyph; });
@@ -192,6 +196,96 @@
 
     var G = null;
     var nodeById = {}, edgesOf = {}, gfxNode = {}, gfxEdge = [];
+    // Issue 84. The counter-scaled caption controls, and the last scale they were told about, so
+    // that a repaint puts them back at the size the reader was already looking at rather than at
+    // the size they were built with.
+    var capBtns = [];
+    var capK = 1;
+
+    // ---- the lane heading as a control, issue 84 -------------------------------
+    // HE CLICKED `all 25 session templates` AND EXPECTED THE OUTLINE, AND THE CAPTION AS DRAWN
+    // COULD NOT BE THE TARGET. Measured on the deployed page at fit, that caption rendered
+    // 39,4 by 3,0 CSS px: nine pixel type inside a drawing sitting at about a third, with the
+    // canvas pan cursor over it and nothing listening. Issue 77 had just taken every interactive
+    // control on this page to 26 by 26 from eleven of eleven failing WCAG 2.2 SC 2.5.8, so wiring
+    // a click to that text would have put a three pixel target on a page that had finished
+    // proving it had none.
+    //
+    // AND THE PART A REDESIGN HAS TO ANSWER IS NOT THE THREE PIXELS, IT IS THAT THEY MOVE. Every
+    // other control here has a fixed screen size. A target that is 3px at fit and 30px zoomed in
+    // is not a control, it is a coincidence. So the target is NOT the text. It is a rect inside a
+    // group carrying `scale(1/k)`, where k is the view's own scale, which makes one unit inside
+    // that group one CSS pixel at every zoom: the control is the same size on the reader's screen
+    // fitted, at the far end of the zoom out and at eight times in.
+    //
+    // WIDTH IS `max(the lane on screen, CAP_MIN)` AND HEIGHT IS ALWAYS CAP_MIN. The lane is the
+    // honest extent of the thing the caption is about, so at anything but the extreme zoom out
+    // the target is exactly the lane. Below that the lane on screen is narrower than 24px and the
+    // rect stops following it, which is the only way to hold the size the success criterion asks
+    // for. The two lanes that carry a control are bands 1 and 3 with the instructors lane between
+    // them, 356 units apart centre to centre, so at the smallest scale this canvas allows they
+    // are 35,6px apart and two 26px targets still do not touch.
+    //
+    // IT DOES NOT FIGHT THE CANVAS. A press and drag over it is a pan exactly as it is over a
+    // node, because viewport.js reads the gesture on the canvas and swallows the click a drag
+    // leaves behind; this listens for the click, which a drag never produces. That is issue 46's
+    // threshold doing its job for a second kind of target rather than a second mechanism.
+    var CAP_MIN = 26;               // what issue 77 took every control on this page to
+    var CAP_BELOW = 4;              // CSS px below the last baseline, so a descender is inside
+    var CAP_ABOVE = 8;              // and enough over the top line to clear its ascender
+
+    function addCapButton(parent, b) {
+      var link = capLinkFor ? capLinkFor(b.key) : null;
+      if (!link) return;
+      var g = el('g', { class: 'capbtn', 'data-cap': b.key, tabindex: 0, role: 'link' }, parent);
+      var title = el('title', {}, g);
+      title.textContent = link.label;
+      // Two rects. The hit area is transparent and is the target; the frame is what a hover or a
+      // keyboard focus draws, on top of it, so the affordance is visible without a box being
+      // painted over two of the six lane headings at rest.
+      var hit = el('rect', { class: 'capbtn-hit' }, g);
+      var frame = el('rect', { class: 'capbtn-frame', rx: 3 }, g);
+      function go(ev) { ev.stopPropagation(); location.hash = link.href; }
+      g.addEventListener('click', go);
+      g.addEventListener('keydown', function (ev) {
+        if (ev.key !== 'Enter' && ev.key !== ' ') return;
+        ev.preventDefault();
+        go(ev);
+      });
+      capBtns.push({ g: g, hit: hit, frame: frame, band: b });
+      return g;
+    }
+
+    // Called by the viewport on every fit, zoom step, pinch and resize. At most two controls and
+    // five attribute writes each, which is why it can be called on every frame of a pinch.
+    //
+    // THE TWO AXES ARE THE SAME RULE WITH A DIFFERENT NATURAL SIZE. Width follows the lane and
+    // height follows the caption, because those are the honest extents of the thing the heading
+    // is about; each is then held at CAP_MIN when the zoom takes it under, which is the only way
+    // a target keeps a size the reader can hit. So at anything but the far end of the zoom out
+    // the control is exactly the lane and exactly the caption block, and past that point it stops
+    // shrinking. Zoomed in it grows with them, so the frame never sits inside its own text.
+    function setCapScale(k) {
+      capK = (k > 0 && isFinite(k)) ? k : 1;
+      capBtns.forEach(function (c) {
+        var lines = (c.band.lines || [c.band.label]).length;
+        var capUnits = (lines - 1) * (G.capLineH || 11) + CAP_ABOVE + CAP_BELOW;
+        var wpx = Math.max(CAP_MIN, c.band.w * capK);
+        var hpx = Math.max(CAP_MIN, capUnits * capK);
+        // Anchored on the LAST baseline, which is the line that sits the same distance above the
+        // lane whatever the caption above it does, so a one line heading and a three line one are
+        // the same control in the same place.
+        c.g.setAttribute('transform',
+          'translate(' + (c.band.x + c.band.w / 2) + ',' + (G.bandTop - (G.capGap || 7)) + ') ' +
+          'scale(' + (1 / capK).toFixed(4) + ')');
+        [c.hit, c.frame].forEach(function (r) {
+          r.setAttribute('x', (-wpx / 2).toFixed(2));
+          r.setAttribute('y', (CAP_BELOW - hpx).toFixed(2));
+          r.setAttribute('width', wpx.toFixed(2));
+          r.setAttribute('height', hpx.toFixed(2));
+        });
+      });
+    }
 
     // ---- svg scaffolding -----------------------------------------------------
     // draw() takes its drawing as an argument and everything below reads it rather than reaching
@@ -218,9 +312,15 @@
       // Column bands. One lane per kind of thing, captioned, so that instructors and session
       // templates are told apart by where they sit and not only by tile colour.
       var gBand = el('g', {}, svg);
+      capBtns = [];
       (G.bands || []).forEach(function (b) {
+        // One group per lane, and issue 84 is why: the heading of two of them is a control, and
+        // hovering the control has to light the words it is a target for. A group is what lets
+        // the stylesheet say "the caption inside the lane whose control is hovered" without
+        // JavaScript keeping a second copy of the hover state.
+        var gLane = el('g', { class: 'lane' }, gBand);
         el('rect', { class: 'band', x: b.x, y: G.bandTop, width: b.w, height: G.h - G.bandTop - 4 },
-           gBand);
+           gLane);
         // A caption can run to more than one line, because a lane is only as wide as the columns
         // under it and a caption that has to say more has nowhere to go sideways. The lines are
         // stacked upwards from the top of the band, so the last one always sits the same
@@ -231,10 +331,12 @@
           var t = el('text', {
             class: 'band-cap', x: b.x + b.w / 2,
             y: G.bandTop - (G.capGap || 7) - (lines.length - 1 - i) * (G.capLineH || 11)
-          }, gBand);
+          }, gLane);
           t.textContent = line;
         });
+        addCapButton(gLane, b);
       });
+      setCapScale(capK);
 
       var gEdge = el('g', {}, svg);
       var gChip = el('g', {}, svg);
@@ -414,6 +516,11 @@
 
     return {
       draw: draw,
+      // Issue 84. The one thing the viewport tells this file. Everything else about the view is
+      // the viewport's and stays there; a control that has to be the same size on screen at every
+      // zoom is the one thing painted here that cannot be painted without knowing the scale.
+      setCapScale: setCapScale,
+      capButtons: function () { return capBtns.map(function (c) { return c.g; }); },
       // The drawing on screen, which is what the viewport frames and the router describes. Taken
       // through a call rather than handed out once, because draw() replaces it.
       drawing: function () { return G; },

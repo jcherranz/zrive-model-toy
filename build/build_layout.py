@@ -39,7 +39,7 @@ import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
-from bands import BANDS, CAP_NO_EMPLOYERS, CAP_NO_HOST, CAP_NO_INSTRUCTORS, MAX_CAP_LINES, fill  # noqa: E402,E501
+from bands import BAND_KEYS, BANDS, CAP_NO_EMPLOYERS, CAP_NO_HOST, CAP_NO_INSTRUCTORS, MAX_CAP_LINES, fill  # noqa: E402,E501
 from model import check_provenance, contrast_rows, floor4, instance_document, value_status  # noqa: E402,E501
 
 COL_W = [166, 232, 122, 124, 80, 102, 92, 92]
@@ -611,9 +611,11 @@ def layout(view, tag, bands, col_of):
         sys.exit("[layout] refusing to write a drawing in which a verb floats free of its line")
 
     drawn_bands = []
-    for cs, lines in bands:
+    for i, (cs, lines) in enumerate(bands):
         x0, x1 = BAND_X[cs[0]][0], BAND_X[cs[-1]][1]
-        drawn_bands.append({"x": round(x0, 1), "w": round(x1 - x0, 1),
+        # `key` is issue 84's. The caption is computed and has alternates, so a lane is found by
+        # its name and never by the words over it.
+        drawn_bands.append({"key": BAND_KEYS[i], "x": round(x0, 1), "w": round(x1 - x0, 1),
                             "label": " ".join(lines), "lines": list(lines)})
 
     # ---- and what goes out is geometry, with no value of any object in it -------------------
@@ -748,6 +750,16 @@ def refuse_mixed(inst, lay):
     # sort of number that reads like a coordinate.
     prov = inst.get("provenance", {})
     for label, block in (("provenance", prov), ("provenance clock", prov.get("clock", {}))):
+        bad = sorted(set(block) & GEOMETRY_KEYS)
+        if bad:
+            sys.exit(f"[layout] the {label} block carries geometry: {', '.join(bad)}. "
+                     f"Where a thing is drawn belongs in site/layout.js.")
+    # The agenda block, issue 85. Fourth time the same reasoning has been needed: a top-level
+    # block the node walk cannot see is where the next geometry key lands. Its rows are property
+    # rows of the shape every other one has, so they take the same blacklist.
+    ag = inst.get("agenda") or {}
+    for label, block in ([("agenda", ag)]
+                         + [(f"agenda row {j}", r) for j, r in enumerate(ag.get("rows", []))]):
         bad = sorted(set(block) & GEOMETRY_KEYS)
         if bad:
             sys.exit(f"[layout] the {label} block carries geometry: {', '.join(bad)}. "

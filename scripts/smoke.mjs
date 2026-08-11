@@ -218,7 +218,7 @@ const PHASES = {
   'every width':          { count: 3, when: 'every' },
   'model and reveal':     { count: 14, when: 'behavioural' },
   'students':             { count: 11, when: 'behavioural' },
-  'term':                 { count: 16, when: 'behavioural' },
+  'term':                 { count: 26, when: 'behavioural' },
   'canvas':               { count: 7, when: 'behavioural' },
   'capture':              { count: 5, when: 'behavioural' },
   'board':                { count: 13, when: 'behavioural' },
@@ -238,7 +238,18 @@ const PHASES = {
 // scope is all seven programmes, that the sheet declares the sample it drew instead of reading as
 // a whole term, that the gaps are on the page, that the one to one is stated rather than implied,
 // and that a table of invented dates says so where a reader cannot miss it.
-const EXPECTED_ASSERTIONS = 87;
+// 87 until issues 84 and 85, which took the `term` phase from 16 to 26. The ten are the claims
+// those two cards decided and not a count of what the code happens to do: that both readings now
+// take a programme AND that the unscoped pair survives, because shipping the scope by replacing
+// the unscoped reading would satisfy a driver that only looked at the new address; that the
+// outline is grouped by the module its syllabus declares; that a syllabus naming no module says
+// so where the heading goes rather than leaving a blank; that the two real published values reach
+// the panel flagged real and not dummy; that the lane heading is a control at least 24 by 24 at
+// the smallest scale, at fit and at the largest, which is the property the caption itself could
+// never have had; that both of the two lane headings are controls and not one; that a press and
+// drag over one is still a pan; and that the invented agenda is off until it is asked for and
+// carries its flag on every line when it is on.
+const EXPECTED_ASSERTIONS = 97;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -1195,12 +1206,52 @@ async function checkStudents(page) {
 // built on.
 const TERM_READ = `(function () {
   function txt(sel) { var e = document.querySelector(sel); return e ? e.textContent : null; }
-  var rows = Array.prototype.slice.call(
-    document.querySelectorAll('#termrows tbody tr:not(.term-group)'));
+  var rows = Array.prototype.slice.call(document.querySelectorAll(
+    '#termrows tbody tr:not(.term-group):not(.term-module):not(.term-agenda)'));
   var groups = Array.prototype.slice.call(
     document.querySelectorAll('#termrows tbody tr.term-group'));
+  var mods = Array.prototype.slice.call(
+    document.querySelectorAll('#termrows tbody tr.term-module'));
+  var ag = Array.prototype.slice.call(
+    document.querySelectorAll('#termrows tbody tr.term-agenda'));
   return {
     rows: rows.length,
+    // Issue 85. Three row kinds now, and they are counted apart because the whole point of the
+    // grouping is that a module heading is not a template and the invented block is neither.
+    groups: groups.length,
+    modules: mods.length,
+    moduleNames: mods.map(function (tr) {
+      var n = tr.querySelector('.term-modname');
+      return n ? n.textContent : null;
+    }).filter(Boolean),
+    noModuleGroups: mods.filter(function (tr) {
+      return !!tr.querySelector('.term-nomodule');
+    }).length,
+    noModuleNames: mods.map(function (tr) {
+      var n = tr.querySelector('.term-nomodule');
+      return n ? n.textContent : null;
+    }).filter(Boolean),
+    agendaRows: ag.length,
+    agendaLines: document.querySelectorAll('#termrows .agenda-line').length,
+    agendaUnflagged: Array.prototype.slice.call(
+      document.querySelectorAll('#termrows .agenda-line')).filter(function (li) {
+        var f = li.querySelector('.flag');
+        return !f || f.textContent !== 'dummy';
+      }).length,
+    agendaNote: (function () {
+      var p = document.querySelector('#termrows .agenda-note');
+      return p ? p.textContent : null;
+    })(),
+    agendaToggle: (function () {
+      var b = document.querySelector('.agenda-toggle');
+      if (!b) return null;
+      var r = b.getBoundingClientRect();
+      return { pressed: b.getAttribute('aria-pressed'), w: r.width, h: r.height };
+    })(),
+    scopeLinks: Array.prototype.slice.call(
+      document.querySelectorAll('#termnotice .term-scope a')).map(function (a) {
+        return a.getAttribute('href');
+      }),
     firstCells: rows.map(function (tr) {
       var td = tr.querySelector('td');
       return td ? td.textContent : '';
@@ -1257,10 +1308,24 @@ async function checkTerm(page) {
              text: a.length ? a[a.length - 1].textContent : null,
              hint: h.length ? h[h.length - 1].textContent : null };
   })()`);
-  assert('the panel on a cohort session offers the term, and says how big it is',
-    fromSession.href === '#/calendar' &&
-      Number((/all (\d+) sessions/.exec(fromSession.text || '') || [])[1]) === state.sessions,
-    `a link to #/calendar reading "all ${state.sessions} sessions"`,
+  // ISSUE 84 SCOPED IT, AND THAT IS THE HALF OF THE CARD THAT WAS UNCONDITIONAL. The link used to
+  // go to all seven, which is what the card objected to: a reader on a Z-IB tile was handed 83
+  // rows across seven syllabi. The address is read off the page's own routes list rather than
+  // built here, after `#/p/Z-ZIB` cost this repository half an hour of false alarm.
+  const scoped = await page.evaluate('JSON.stringify(window.ZT.termRoutes())').then(JSON.parse);
+  const here = await page.evaluate('window.ZT.programme().key');
+  // The counts the scoped link quotes are this drawing's and not the term's, which is the whole
+  // of what the scope changed. Counted off the drawing on screen rather than off the sheet, so
+  // the two are independent readings of the same claim.
+  const hereSessions = drawing.nodes.filter(n => n.type === 'Cohort session').length;
+  const hereTemplates = drawing.nodes.filter(n => n.type === 'Session template').length;
+  assert('the panel on a cohort session offers the term, scoped to the programme on screen',
+    fromSession.href === '#/calendar/' + here &&
+      scoped.indexOf(fromSession.href) !== -1 &&
+      Number((/all (\d+) sessions/.exec(fromSession.text || '') || [])[1]) === hereSessions &&
+      hereSessions < state.sessions,
+    `a link to #/calendar/${here}, one of the ${scoped.length} addresses the sheet publishes, ` +
+      `reading "all ${hereSessions} sessions" and not the term's ${state.sessions}`,
     `${JSON.stringify(fromSession.href)}, ${JSON.stringify(fromSession.text)}`);
   await clearSelection(page);
 
@@ -1273,12 +1338,34 @@ async function checkTerm(page) {
     return { href: a.length ? a[a.length - 1].getAttribute('href') : null,
              text: a.length ? a[a.length - 1].textContent : null };
   })()`);
-  assert('and the panel on a session template offers the outline',
-    fromTemplate.href === '#/outline' &&
+  assert('and the panel on a session template offers the outline, scoped the same way',
+    fromTemplate.href === '#/outline/' + here &&
+      scoped.indexOf(fromTemplate.href) !== -1 &&
       Number((/all (\d+) session templates/.exec(fromTemplate.text || '') || [])[1]) ===
-        state.templates,
-    `a link to #/outline reading "all ${state.templates} session templates"`,
+        hereTemplates && hereTemplates < state.templates,
+    `a link to #/outline/${here} reading "all ${hereTemplates} session templates" and not the ` +
+      `syllabus-wide ${state.templates}`,
     `${JSON.stringify(fromTemplate.href)}, ${JSON.stringify(fromTemplate.text)}`);
+
+  // ISSUE 85. The two real published values that had never reached a property list, and the flag
+  // is the assertion: a module name rendered `dummy` beside an invented attendance figure would
+  // tell the reader the exact opposite of what is true of it.
+  const tprops = await page.evaluate(`(function () {
+    var out = {}, dl = document.getElementById('pprops');
+    var dts = dl.querySelectorAll('dt'), dds = dl.querySelectorAll('dd'), i;
+    for (i = 0; i < dts.length; i++) {
+      var f = dds[i].querySelector('.flag');
+      out[dts[i].textContent] = { v: dds[i].querySelector('b').textContent,
+                                  f: f ? f.textContent : null };
+    }
+    return out;
+  })()`);
+  assert('a session template carries the module and the place in its syllabus, flagged real',
+    !!tprops.module_name && !!tprops.sequence &&
+      tprops.module_name.f === 'real' && tprops.sequence.f === 'real' &&
+      /^\d+ of \d+$/.test(tprops.sequence.v),
+    'module_name and sequence on the panel, both flagged real and not dummy',
+    JSON.stringify({ module_name: tprops.module_name, sequence: tprops.sequence }));
   await clearSelection(page);
 
   // ---- the calendar reading ---------------------------------------------------
@@ -1351,6 +1438,29 @@ async function checkTerm(page) {
     `${state.templates} rows headed "in curriculum order"`,
     `${out.rows} rows, heading ${JSON.stringify(out.title)}`);
 
+  // ISSUE 85, AND IT IS THE THING THAT MAKES THE OUTLINE READABLE. A flat list of 79 rows is
+  // unreadable and the module grouping is the fix. Asserted against the page's own count of the
+  // module headings it drew, and against the rows being INSIDE them: a grouping that drew the
+  // headings and left the rows flat would look right in a screenshot.
+  const outState = await page.evaluate('window.ZT.term()');
+  assert('the outline is grouped by the module each syllabus declares',
+    out.modules === outState.modules && out.modules > 0 &&
+      out.modules < out.rows && out.groups === state.programmes,
+    `${outState.modules} module headings under ${state.programmes} programme headings`,
+    `${out.modules} module headings, ${out.groups} programme headings, ${out.rows} rows`);
+
+  // Z-CFA IS A FINDING AND NOT A BLANK. Its syllabus names no module on any of its 45 rows, and
+  // the drawing says so where the modules would be rather than showing nothing. The same shape
+  // covers Z-HR and Z-PE, whose syllabi name a module on some rows and not others.
+  assert('a syllabus that names no module says so where the module heading goes',
+    out.noModuleGroups > 0 && out.modules > out.noModuleGroups &&
+      out.noModuleNames.every(t => /no module recorded in the syllabus/.test(t)) &&
+      /not the same object on every programme/.test(out.notice),
+    'headings of both kinds, the absent ones saying no module is recorded, and the notice ' +
+      'saying the structure differs by programme',
+    `${out.noModuleGroups} of ${out.modules} headings are the absence: ` +
+      JSON.stringify(out.noModuleNames.slice(0, 2)));
+
   // ISSUE 82'S SECOND FINDING, AND THE LIMIT ON IT. One to one is what a drawing of one cohort can
   // produce and is not evidence about Zrive. What is asserted here is that the page states it as
   // a property of the drawing, and that the sheet's own arithmetic agrees with the rows.
@@ -1373,6 +1483,75 @@ async function checkTerm(page) {
     `${state.programmes} distinct links, each to a #/p/ address`,
     out.groupLinks.join(', ') || 'none');
 
+  // ---- the scoped readings, issue 84 ------------------------------------------
+  // THE CARD'S FIRST HALF, AND THE ONE THAT WAS UNCONDITIONAL. A syllabus belongs to a programme,
+  // so both readings take one, and the unscoped pair stays because the fragmentation finding
+  // lives in the unscoped calendar. Both claims are asserted, because shipping the scope by
+  // replacing the unscoped reading would have satisfied a driver that only checked the new one.
+  const other = await page.evaluate(`(function () {
+    var vs = window.GI.views, i;
+    for (i = 0; i < vs.length; i++) if (vs[i].key !== window.ZT.programme().key) return vs[i].key;
+    return null;
+  })()`);
+  await page.evaluate(`location.hash = '#/outline/' + ${JSON.stringify(other)}`);
+  await page.waitFor(`window.ZT.term().scope === ${JSON.stringify(other)}`,
+    'the outline to scope to one programme');
+  const one = await page.evaluate(TERM_READ);
+  const oneState = await page.evaluate('window.ZT.term()');
+  assert('#/outline/<CODE> is one programme, and the unscoped outline still holds all seven',
+    oneState.scope === other && one.groups === 1 && one.rows === oneState.templates &&
+      one.rows < state.templates && oneState.allTemplates === state.templates &&
+      one.scopeLinks.indexOf('#/outline') !== -1,
+    `one programme heading, fewer than ${state.templates} rows, and a link back to #/outline`,
+    `scope ${oneState.scope}, ${one.groups} programme heading(s), ${one.rows} rows, ` +
+      `scope links ${JSON.stringify(one.scopeLinks.slice(0, 3))}`);
+
+  await page.evaluate(`location.hash = '#/calendar/' + ${JSON.stringify(other)}`);
+  await page.waitFor(`window.ZT.term().reading === 'calendar' &&
+                      window.ZT.term().scope === ${JSON.stringify(other)}`,
+    'the calendar to scope to the same programme');
+  const oneCal = await page.evaluate(TERM_READ);
+  const oneCalState = await page.evaluate('window.ZT.term()');
+  assert('and the calendar takes a programme the same way, keeping the unscoped one',
+    oneCal.rows === oneCalState.sessions && oneCal.rows < state.sessions &&
+      oneCalState.allSessions === state.sessions &&
+      oneCal.title.indexOf(state.sessions + ' sessions') === -1,
+    `fewer than ${state.sessions} rows under a heading that does not claim the whole term`,
+    `${oneCal.rows} rows, heading ${JSON.stringify(oneCal.title)}`);
+
+  // ---- the invented session agenda, issue 85 -----------------------------------
+  // OFF UNTIL IT IS ASKED FOR is the first of the four things marking it, and it is the one a
+  // later change could undo without anything looking wrong. The other three are on the block.
+  await page.evaluate(`location.hash = '#/outline/' + ${JSON.stringify(other)}`);
+  await page.waitFor(`window.ZT.term().reading === 'outline'`, 'the outline back');
+  const agOff = await page.evaluate(TERM_READ);
+  assert('the invented session agenda is off until a reader asks for it',
+    agOff.agendaRows === 0 && !!agOff.agendaToggle &&
+      agOff.agendaToggle.pressed === 'false' &&
+      agOff.agendaToggle.w >= 24 && agOff.agendaToggle.h >= 24,
+    'no agenda rows, and a control at least 24 by 24 offering them',
+    `${agOff.agendaRows} agenda rows, control ` + JSON.stringify(agOff.agendaToggle));
+
+  await page.evaluate(`document.querySelector('.agenda-toggle').click()`);
+  await page.waitFor('window.ZT.term().agenda === true', 'the agenda to be switched on');
+  const agOn = await page.evaluate(TERM_READ);
+  assert('every line of it carries the dummy flag, and the block says what it is on its own face',
+    agOn.agendaRows === agOn.rows &&
+      agOn.agendaLines === agOn.rows * oneState.agendaLines &&
+      agOn.agendaUnflagged === 0 &&
+      /INVENTED/.test(agOn.agendaNote || '') &&
+      /same four lines/i.test(agOn.agendaNote || '') &&
+      /not a proposal/i.test(agOn.agendaNote || ''),
+    `one block under each of the ${agOn.rows} rows, every line flagged dummy, and a note ` +
+      'saying the lines are invented, the same everywhere, and not a proposal',
+    `${agOn.agendaRows} blocks, ${agOn.agendaLines} lines, ${agOn.agendaUnflagged} unflagged, ` +
+      `note ${JSON.stringify((agOn.agendaNote || '').slice(0, 90))}`);
+  await page.evaluate(`document.querySelector('.agenda-toggle').click()`);
+  await page.waitFor('window.ZT.term().agenda === false', 'the agenda to be switched off again');
+
+  await page.evaluate(`location.hash = '#/outline'`);
+  await page.waitFor('window.ZT.term().scope === null', 'the unscoped outline back');
+
   // ISSUE 77'S RULE. A route with no heading of its own inherits the one before it, which is the
   // defect that card was filed for. Three headings, three different sentences.
   const headings = [headingDiagram, cal.heading.trim(), out.heading.trim()];
@@ -1394,6 +1573,94 @@ async function checkTerm(page) {
     `the diagram on screen under ${JSON.stringify(headingDiagram)}`,
     `${JSON.stringify(back.heading.trim())}, display ${back.diagram}, body class ` +
     `${JSON.stringify(back.cls)}`);
+
+  // ---- the lane heading as a control, issue 84 ----------------------------------
+  // HE CLICKED THE CAPTION AND EXPECTED THE OUTLINE. Measured on the deployed page at fit, the
+  // caption itself was 39,4 by 3,0 CSS px with the pan cursor over it and nothing listening, and
+  // issue 77 had just taken every control here to 26 by 26 from eleven of eleven failing SC
+  // 2.5.8. So the target is a counter-scaled rect and not the text, and the assertion that
+  // matters is the one the caption could never have passed: THAT ITS SIZE DOES NOT MOVE WITH THE
+  // ZOOM. Three readings, at the far end of the zoom out, at fit, and at the far end in.
+  await page.evaluate('window.ZT.fit()');
+  await viewSettled(page);
+  const capBox = () => page.evaluate(`(function () {
+    var out = {}, k = window.ZT.view().k;
+    ['templates', 'sessions'].forEach(function (key) {
+      var e = document.querySelector('.capbtn[data-cap="' + key + '"] .capbtn-hit');
+      if (!e) { out[key] = null; return; }
+      var r = e.getBoundingClientRect();
+      out[key] = { w: Math.round(r.width * 10) / 10, h: Math.round(r.height * 10) / 10,
+                   cx: Math.round(r.left + r.width / 2), cy: Math.round(r.top + r.height / 2) };
+    });
+    out.k = k;
+    return out;
+  })()`);
+  const zoomTimes = (id, n) =>
+    page.evaluate(`(function () { var b = document.getElementById(${JSON.stringify(id)});
+      for (var i = 0; i < ${n}; i++) b.click(); return window.ZT.view().k; })()`);
+
+  const atFit = await capBox();
+  await zoomTimes('zoomout', 30);
+  await viewSettled(page);
+  const atMin = await capBox();
+  await zoomTimes('zoomin', 60);
+  await viewSettled(page);
+  const atMax = await capBox();
+  await page.evaluate('window.ZT.fit()');
+  await viewSettled(page);
+
+  const three = [['min', atMin], ['fit', atFit], ['max', atMax]];
+  const tooSmall = three.filter(([, b]) =>
+    !b.templates || !b.sessions ||
+    Math.min(b.templates.w, b.templates.h, b.sessions.w, b.sessions.h) < 24);
+  assert('the lane heading is a target of at least 24 by 24 at every zoom the canvas allows',
+    tooSmall.length === 0 && atMin.k < atFit.k && atMax.k > atFit.k,
+    'both controls at least 24 by 24 at the smallest scale, at fit and at the largest',
+    three.map(([n, b]) => `${n} k=${b.k.toFixed(3)} templates ${b.templates.w}x` +
+      `${b.templates.h} sessions ${b.sessions.w}x${b.sessions.h}`).join(' | '),
+    three.map(([n, b]) => `${n} k=${b.k.toFixed(3)}: ${b.templates.w}x${b.templates.h} and ` +
+      `${b.sessions.w}x${b.sessions.h}`).join(', '));
+
+  // AND IT OPENS THE LANE'S OWN READING, SCOPED. One lane heading being a control while its
+  // neighbour is decoration is worse than neither, which is why both are asserted here.
+  const capPoints = await capBox();
+  await requireHit(page, capPoints.templates.cx, capPoints.templates.cy, { tag: 'rect' });
+  await click(page, capPoints.templates.cx, capPoints.templates.cy);
+  await page.waitFor(`window.ZT.term().reading === 'outline'`, 'the caption to open the outline');
+  const viaCapOut = await page.evaluate('location.hash');
+  await page.evaluate(`location.hash = '#/'`);
+  await page.waitFor('window.ZT.term().open === false', 'the sheet to close again');
+  await page.evaluate('window.ZT.fit()');
+  await viewSettled(page);
+  const capPoints2 = await capBox();
+  await click(page, capPoints2.sessions.cx, capPoints2.sessions.cy);
+  await page.waitFor(`window.ZT.term().reading === 'calendar'`,
+    'the neighbouring caption to open the calendar');
+  const viaCapCal = await page.evaluate('location.hash');
+  await page.evaluate(`location.hash = '#/'`);
+  await page.waitFor('window.ZT.term().open === false', 'the sheet to close');
+  assert('the templates heading opens the scoped outline and the sessions heading the calendar',
+    viaCapOut === '#/outline/' + here && viaCapCal === '#/calendar/' + here,
+    `#/outline/${here} from one and #/calendar/${here} from the other`,
+    `${JSON.stringify(viaCapOut)} and ${JSON.stringify(viaCapCal)}`);
+
+  // AND IT DOES NOT BREAK THE CANVAS. A press and drag is a pan and issue 46 spent real work on
+  // the click versus drag threshold; a new click target on the drawing that swallowed a pan, or
+  // that navigated at the end of one, would be a regression in the plane rather than a feature.
+  await page.evaluate('window.ZT.fit()');
+  const beforeDrag = await viewSettled(page);
+  const dragFrom = await capBox();
+  await dragBy(page, dragFrom.templates.cx, dragFrom.templates.cy, 90, 60);
+  const afterDrag = await viewSettled(page);
+  const hashAfter = await page.evaluate('location.hash');
+  const moved = Math.abs(afterDrag.x - beforeDrag.x) * afterDrag.k;
+  assert('a press and drag that starts on the lane heading pans and does not navigate',
+    moved > 60 && !/outline|calendar/.test(hashAfter) &&
+      (await page.evaluate('window.ZT.term().open')) === false,
+    'the drawing moved and the sheet stayed shut',
+    `moved ${moved.toFixed(1)}px, hash ${JSON.stringify(hashAfter)}`);
+  await page.evaluate('window.ZT.fit()');
+  await viewSettled(page);
 }
 
 // ---- the canvas ---------------------------------------------------------------------------------

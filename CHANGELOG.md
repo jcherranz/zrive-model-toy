@@ -11,6 +11,64 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- **The module structure the drawing has never had, #85.** Every syllabus note in the vault
+  carries `module`, `module_name` and `sequence` beside the title the tiles are already labelled
+  with, and a session template shipped five properties, none of which said where in a programme
+  the session sits. All 83 templates now carry both, and the Programme tile carries the module
+  count. `SYLLABUS_MODULES` and `SYLLABUS_ROWS` in `build/model.py` are read once by hand and
+  written once, for the reason `SYLLABUS_SESSIONS` is: the vault is on one machine and the build
+  runs in CI. `check_module_structure()` re-reads it on any machine that has it, compares all
+  seven module lists and all 83 rows against the vault by sequence, and refuses the build on
+  drift.
+- **`real`, a fourth flag, and the first one that is not a kind of placeholder.** Until this card
+  every property VALUE on the page was invented and the session titles were real only because a
+  title is the node's label. `module_name` and `sequence` are the vault's own frontmatter, so
+  rendering them `dummy` beside an invented attendance figure would say the opposite of what is
+  true. It is a flag and a rank: `3_observed` with no read date, which computes `unread` and is
+  never fit to act on, and `check_provenance()` refuses the two coming apart in either direction.
+  The gate was extended and not relaxed: `toy-value-not-invented` used to say "every value except
+  the registry rows was made up", which this card makes false, and the two new rules close the
+  third population from both sides. Self-test 20 to 27.
+- **Z-CFA is a finding and not a blank.** Its syllabus names no module on any of its 45 rows, and
+  the outline says so where the module heading goes rather than showing nothing, the same answer
+  its empty instructor lane already gets. Z-HR names four modules over 25 sessions with one
+  session each and 21 outside, and Z-PE names three over 36 with 9 outside; the Programme tile
+  carries the sentence and it is written from the table rather than typed. Z-DS's twelve over
+  twenty two are a different object again: seven are `Modulo 1` to `Modulo 7`, which is a slot and
+  not a subject, and the other five name a role or an activity. The word module does not name one
+  kind of thing across the seven and the drawing says the counts rather than implying a structure
+  they do not share.
+- **The outline is grouped by module and both readings take a programme, #84.** `#/outline/ZSC`
+  and `#/calendar/ZSC`, sixteen addresses in all, built by the one function that publishes them so
+  a driver reads them rather than constructing them. The unscoped pair stays: the term across the
+  seven exists nowhere, which is why the calendar was built unscoped, but a syllabus belongs to a
+  programme and a reader arriving from a Z-SC tile is asking about Z-SC. At 79 rows the flat list
+  was unreadable and the module grouping is what fixes it.
+- **The lane heading is a control, and it is a measured one.** He pressed `all 25 session
+  templates` expecting the outline; that caption renders 39,4 by 3,0 CSS px at fit with the pan
+  cursor over it and nothing listening, and #77 had just taken every control here to 26 by 26 from
+  eleven of eleven failing SC 2.5.8. Worse, its size moves with the zoom, which no other control's
+  does. The target is now a rect inside a group carrying `scale(1/k)`: width follows the lane and
+  height the caption, each held at 26 when the zoom takes it under. Measured on Z-SC and on Z-BL,
+  the two tall drawings, at the three scales: **26x26 at k=0.10, 57,3x26 at fit, 2000x96 at k=8**
+  for the templates lane and 26x26, 32,5x26, 1136x272 for its neighbour, with 9,6px still between
+  the two targets at the smallest scale. Both lane headings are controls, because one being a
+  control while its neighbour is decoration is worse than neither. A press and drag over one is
+  still a pan, asserted.
+- **An invented session agenda, #85, and it is not what a literal reading of the request would
+  have produced.** The vault holds no session-level content at all: every syllabus note is
+  frontmatter with no body. A per session agenda inferred from a title would have produced 83
+  different plausible plans, and plausible is the property that makes invented curriculum
+  dangerous. What ships is **the same four lines under every template**, so a reader who opens a
+  second row sees the identical four and cannot take them for a plan for this session. Off until a
+  control says what it turns on; every line carries the same `dummy` badge an invented property
+  carries in the panel, on the line rather than on the block; the block sits behind a heavy rule
+  on its own ground, indented off the row, in a register no published value uses; and the first
+  thing inside it says the lines are the same everywhere and are not a proposal, which is what
+  survives a screenshot of the block alone. It is a block of the instance document and
+  `check_provenance()` walks it, for the reason the registry, the provenance block and the counts
+  block each needed the same treatment.
+
 - **The term, read twice, #80 and #82.** `#/calendar` is every cohort session on the seven
   drawings in date order and `#/outline` is every session template in curriculum order: one sheet,
   two readings, 83 rows seen once as when a thing happened and once as what is taught. Both cards
@@ -63,6 +121,11 @@ of what changed and when, and it is meant to be scannable.
 
 ### Changed
 
+- **The smoke suite is 97 assertions, from 87**, #84 and #85. The `term` phase went 16 to 26;
+  `PHASES` and `EXPECTED_ASSERTIONS` were edited together, per #67.
+- **The footer no longer says only the session titles and the programme code are real.** The
+  module names and the position of a session in its syllabus are now on the page and are real
+  too, so the sentence names them.
 - **The lane plates step back off the drawing, #81.** They were painted `--bg-panel`, the token
   the header and the detail panel take, and seven opaque panel-white slabs were doing separation
   work the dot grid took over at #46. `.band` now takes `--bg-band`, a token of its own that sits
