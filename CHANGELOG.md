@@ -94,6 +94,33 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- The freshness watchdog asked the run whether the deploy had finished, and a frozen run record
+  would have made it pass on a stale origin, #68. Twice on 2026-08-11 a run's record sat
+  `in_progress` while its job read `completed/success`: `smoke` on ff37e65 for nine minutes against
+  a 45 second baseline, and run 31508159376 for 25 minutes with `updated_at` frozen at creation
+  plus three seconds. Neither held its concurrency group, so neither is #62's starved deployment;
+  this is the opposite shape, the work finished and the record did not. `origin-freshness.yml`
+  selected in-flight Pages runs on the run's own status, so a record like that is a deploy in
+  flight for as long as it stays frozen, which sends the check down its `inflight` branch and makes
+  it PASS while the origin is behind, and past the grace fails it with the wrong diagnosis, naming
+  a finished run as holding the queue. It reads the jobs now. No jobs at all is still in flight,
+  because that is #62's starved run exactly; a job not completed is in flight; a run whose every
+  job has completed keeps the benefit of the grace for two minutes, since a record catching up a
+  second later is ordinary and the seconds after a deploy job goes green are also the seconds a CDN
+  may still be serving the previous bytes, and is only then dropped, with a warning naming it and
+  the stale verdict listing it separately from anything in flight. Both observed records were
+  frozen an order of magnitude past that threshold. A jobs read that fails counts the run as in
+  flight, which can delay a red and cannot invent one. Proved against the real step text driven
+  over fixtures: a record frozen three minutes with both jobs completed and a stale origin passes
+  on the old code and fails on the new, while the in-flight, no-jobs, still-catching-up,
+  jobs-read-failed and fresh cases all decide as before.
+- `pages.yml`'s jam guard reported a frozen record as a deploy that had begun, #68. Its decision
+  was already made from the jobs and does not move, so nothing is cancelled that was not cancelled
+  before. A run whose every job is completed while its record still reads unfinished is now counted
+  and named apart from the ones that are genuinely under way, because it is left alone for having
+  nothing left to cancel rather than for running. The audit behind this card found no other
+  run-level reading: nothing under `scripts/` asks whether a workflow finished, and `board.yml` and
+  `issue-status.yml` dispatch without waiting on what they woke.
 - A browser that never started was reported as the page having regressed, on a fifth of the suite,
   #67. One CI dispatch of `smoke` failed with `no DevToolsActivePort in 20000ms` and dbus errors,
   printed `VERDICT: the page has regressed` for a browser that never opened, and reported 14 of 14

@@ -106,6 +106,7 @@ jobs:
 
           cancelled=0
           left=0
+          frozen=0
           # Read the list on file descriptor 3, not on stdin. `gh` inside the loop reads stdin and
           # would eat the remaining lines, so the loop would silently examine only the first
           # candidate and report a clean sweep.
@@ -146,6 +147,13 @@ jobs:
             started="$(jq '[ .jobs[] | select(.name != "supersede")
                              | select(.status == "in_progress" or .status == "completed") ] | length' jobs.json)"
             steps="$(jq '[ .jobs[] | select(.name != "supersede") | .steps[]? ] | length' jobs.json)"
+            # The third reading, and it changes no decision here: how many of those jobs have
+            # FINISHED. A run whose every job is completed while its record still reads
+            # in_progress is issue 68's frozen record, not a deploy that is running, and the two
+            # were reported with the same sentence until that card. It is still left alone, and
+            # for a better reason than "it has begun": there is nothing left of it to cancel.
+            unfinished="$(jq '[ .jobs[] | select(.name != "supersede")
+                                | select(.status != "completed") ] | length' jobs.json)"
 
             if [ "$started" -eq 0 ] && [ "$steps" -eq 0 ]; then
               echo "  run ${number} (${id}, ${sha}, ${status}): no job has started a step, cancelling."
@@ -156,13 +164,18 @@ jobs:
                 # resolving itself in the safe direction and is not a failure.
                 echo "  run ${number} (${id}) refused the cancel, most likely already finished."
               fi
+            elif [ "$started" -gt 0 ] && [ "$unfinished" -eq 0 ]; then
+              echo "  run ${number} (${id}, ${sha}): the record reads ${status} and all ${started} of its jobs are completed."
+              echo "    A stale record, not a running deploy (issue 68). Nothing to cancel; LEFT ALONE."
+              frozen=$((frozen + 1))
             else
               echo "  run ${number} (${id}, ${sha}, ${status}): ${started} job(s) started and ${steps} step(s) begun, LEFT ALONE."
               left=$((left + 1))
             fi
           done 3< runs.txt
 
-          echo "superseded ${cancelled} older run(s); left ${left} alone because they had begun."
+          echo "superseded ${cancelled} older run(s); left ${left} alone because they had begun,"
+          echo "and ${frozen} whose jobs had all completed while the run record had not caught up."
 
   deploy:
     runs-on: ubuntu-latest
