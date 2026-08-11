@@ -9,6 +9,30 @@ of what changed and when, and it is meant to be scannable.
 
 ## [Unreleased]
 
+### Fixed
+
+- `hosts visit` ends on the Programme and no longer on the Cohort, #63. Counted across the 156
+  company notes in the vault: 13 carry a visit and every one of them points at a Programme note, no
+  note anywhere contains the string `cohort`, and the 30 key company schema has no cohort field, so
+  the relation the drawing asserted cannot be expressed in the source at all. An edge terminating
+  on the wrong object type is the one error this artefact cannot afford, because a reader has no
+  way to catch it: it looks exactly as authoritative as the edges that are right. It cost 14 units
+  of height on its own, 586 to 600, because `co_col` sits in column 3 and `prog` in column 0 and a
+  span of 3 is the threshold at which an edge becomes an arc slung under the row it connects; the
+  research card had priced that at up to 90 and recommended moving the host into column 0 instead,
+  which is not an option at all, since both ends would then sit in the SAME column and this layout
+  has no shape for that, falling through to the neighbour branch and drawing a loop between two
+  tiles. Probed rather than reasoned. The 14 units come back in the next entry.
+- The ghost that was NOT added, and why, #63. The card left one judgement open: whether to draw the
+  cohort-to-visit relation nobody records as a fifth ghost. It is not drawn. Every ghost on this
+  page is a CLASS the model needs and no system holds, and what is missing here is a RELATION
+  between two classes that both exist and are both already on the page, so a fifth ghost would be
+  the first that is not a class and would blur the vocabulary the other four rely on; it is also
+  the same shape as the Attendance class the ghost block already declined, for the same reason. The
+  finding is not lost. `co_col` carries it as a node note and as an `absent` property row,
+  `cohort_that_attended: no system relates a cohort to a visit`, which is where a reader meets it.
+  Reversal is one entry in `GHOST_SPEC` and one edge if it is ever wanted.
+
 ### Added
 
 - A stale origin announces itself, #62, which is the half of that card that mattered. On

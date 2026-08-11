@@ -450,11 +450,19 @@ NODES = [
         "type": "Company",
         "col": 3,   # sits beside the sessions it hosts, not beside the employer
         "label": "Aretxa Capital",
+        "note": ("An invented firm. The visit it hosts attaches to the PROGRAMME and not to the "
+                 "cohort, which is what the company register says: thirteen company notes point "
+                 "a visit at a programme note and not one of the hundred and fifty six mentions "
+                 "a cohort at all. What no system anywhere records is the other half of it, "
+                 "which cohort attended. That absence has no tile on this page: it is a missing "
+                 "relation between two classes that both exist, and every ghost here is a "
+                 "missing class."),
         "props": [
             p("role", "empresa colaboradora", D),
             p("note", "invented company, not a real firm", D),
             p("visits_hosted", "1", D),
             p("vacancies_open", "2", D),
+            p("cohort_that_attended", "no system relates a cohort to a visit", A),
         ],
     },
     # ---- rank 1, instructors ----------------------------------------------
@@ -665,7 +673,24 @@ for cid, _l, st, tt, *_ in COHORT_SESSIONS:
     EDGES.append((cid, st, "instance of"))
     EDGES.append((cid, "cohort", "scheduled for"))
 EDGES += [
-    ("co_col", "cohort", "hosts visit"),
+    # ISSUE 63, AND IT IS A DATA ERROR AND NOT A PREFERENCE. This edge used to end on the Cohort.
+    # Counted across the 156 company notes in the vault: 13 carry a visit and every one of them
+    # points at a PROGRAMME note; not one of the 156 contains the string cohort anywhere; and the
+    # 30 key company schema has no cohort field, so the relation the drawing asserted cannot even
+    # be expressed in the source. An edge pointing at the wrong object type is the one error this
+    # artefact cannot afford, because it looks exactly as authoritative as the edges that are
+    # right.
+    #
+    # WHAT IT COST, MEASURED RATHER THAN ESTIMATED. co_col sits in column 3 and prog in column 0,
+    # a span of 3, which is the threshold at which an edge stops being a neighbour bezier and
+    # becomes an arc slung under the row it connects. The research card priced that at up to 90
+    # units of extra height and offered moving the host into column 0 as the cheaper option. It
+    # is neither: the arc is FREE here, because its midpoint plus 26 lands well inside a drawing
+    # already 586 tall, and moving the host into column 0 would have put both ends of this edge
+    # in the SAME column, which this layout has no shape for at all. Probed rather than reasoned:
+    # the same-column case falls through to the neighbour branch, which draws p0 to the right of
+    # p3 and produces a loop between two tiles.
+    ("co_col", "prog", "hosts visit"),
     ("students", "cohort", "enrolled in"),
     ("students", "enrol", "recorded as"),
     ("enrol", "agree", "governed by"),
@@ -745,6 +770,17 @@ ROSTER_ROWS = [
 # have to hang off the cohort sessions, the tallest column, and would make the drawing taller
 # for every reader; and a Placement date or an income share schedule, which is detail below
 # the level of this page.
+#
+# A THIRD CANDIDATE WAS CONSIDERED AND LEFT OUT UNDER ISSUE 63, and the reason is recorded here
+# because the card asked for a judgement rather than for an implementation. Repointing 'hosts
+# visit' at the Programme leaves a real absence behind it: no system anywhere relates a COHORT to
+# a visit, and the people who attend one are a cohort. It is not drawn as a fifth ghost, on two
+# grounds. Every ghost here is a CLASS the model needs and nothing holds; what is missing in the
+# visit case is a RELATION between two classes that both exist and are both already on the page,
+# so a fifth ghost would be the first one that is not a class and would blur the vocabulary the
+# other four rely on. And it is the same shape as the Attendance class the paragraph above
+# already declined, for the same reason. The finding is not lost: it is written on the visit
+# host's own note and carried as an absent property row, where a reader meets it.
 GHOST_TYPE = ("Ghost", "does not exist in any system", "#8f99a8", "ghost", 6)
 
 
