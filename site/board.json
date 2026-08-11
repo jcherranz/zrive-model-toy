@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T22:34:16Z",
+  "generated": "2026-08-11T22:35:07Z",
   "columns": [
     {
       "key": "raw",
@@ -36,7 +36,7 @@
         },
         {
           "id": 88,
-          "title": "In the calendar view there has to be an option to see it as calendar…",
+          "title": "Calendar view needs month and week grids, and the data says which one earns its place",
           "labels": [
             "bug",
             "feedback"
