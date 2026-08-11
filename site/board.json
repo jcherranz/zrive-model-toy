@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T16:08:44Z",
+  "generated": "2026-08-11T16:09:50Z",
   "columns": [
     {
       "key": "raw",
@@ -24,16 +24,6 @@
             "limitation"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
-        },
-        {
-          "id": 69,
-          "title": "The panel's 11px type label is text and three of the thirteen are under 4.5:1 in light",
-          "labels": [
-            "bug",
-            "model",
-            "status:raw"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/69"
         }
       ]
     },
@@ -60,6 +50,16 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/64"
+        },
+        {
+          "id": 69,
+          "title": "The panel's 11px type label is text and three of the thirteen are under 4.5:1 in light",
+          "labels": [
+            "bug",
+            "model",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/69"
         }
       ]
     },
