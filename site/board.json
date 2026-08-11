@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T20:52:16Z",
+  "generated": "2026-08-11T20:53:17Z",
   "columns": [
     {
       "key": "raw",
@@ -53,13 +53,13 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/81"
         },
         {
-          "id": 82,
-          "title": "I dont know where, but it would be great to have an outline…",
+          "id": 83,
+          "title": "For Z-BL and Z-SC that have more up to date and structured…",
           "labels": [
             "bug",
             "feedback"
           ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/82"
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/83"
         }
       ]
     },
@@ -119,6 +119,17 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/80"
+        },
+        {
+          "id": 82,
+          "title": "A session template outline: the other half of #80, and the place reuse could finally be visible",
+          "labels": [
+            "bug",
+            "feedback",
+            "model",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/82"
         }
       ]
     },
