@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T22:46:10Z",
+  "generated": "2026-08-11T22:47:52Z",
   "columns": [
     {
       "key": "raw",
@@ -45,7 +45,7 @@
         },
         {
           "id": 89,
-          "title": "Is there a smooth nice looking way of aggregating / disaggregating…",
+          "title": "Collapse sessions into modules and back: the drawing's first management gesture",
           "labels": [
             "bug",
             "feedback"
