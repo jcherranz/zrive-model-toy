@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T20:35:44Z",
+  "generated": "2026-08-11T20:36:14Z",
   "columns": [
     {
       "key": "raw",
@@ -24,15 +24,6 @@
             "limitation"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
-        },
-        {
-          "id": 76,
-          "title": "Make the zoom work with control + scroll not just scroll",
-          "labels": [
-            "bug",
-            "feedback"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/76"
         },
         {
           "id": 77,
@@ -79,6 +70,16 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/75"
+        },
+        {
+          "id": 76,
+          "title": "Zoom should need Ctrl or Cmd with the wheel, not bare scroll",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/76"
         }
       ]
     },
