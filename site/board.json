@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T16:34:22Z",
+  "generated": "2026-08-11T16:34:54Z",
   "columns": [
     {
       "key": "raw",
@@ -85,15 +85,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/66"
-        },
-        {
-          "id": 68,
-          "title": "A frozen run record will hang anything that gates on run status, including the freshness watchdog",
-          "labels": [
-            "bug",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/68"
         }
       ]
     },
@@ -101,6 +92,15 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 68,
+          "title": "A frozen run record will hang anything that gates on run status, including the freshness watchdog",
+          "labels": [
+            "bug",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/68"
+        },
         {
           "id": 67,
           "title": "A browser-launch flake reports a runner problem as a page regression, on 20 percent of the suite",
@@ -165,19 +165,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/58"
-        },
-        {
-          "id": 57,
-          "title": "A theme control in the header, so a reader can override the operating system",
-          "labels": [
-            "idea",
-            "layout",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/57"
         }
       ],
-      "hidden": 42,
+      "hidden": 43,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
