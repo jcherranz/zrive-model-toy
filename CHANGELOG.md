@@ -115,8 +115,39 @@ of what changed and when, and it is meant to be scannable.
   siblings plug in with no change to the check: proved by handing Agreement #56's `#bd8750` for
   dark only, which measures 4.64 and makes the gate say the declaration is now unnecessary. The
   three light failures survive #56, which moves no light colour, and need a card of their own.
-  Ratios are carried to four decimals so the printed figure is the compared figure and no rounding
-  stands between them. Self-test 42 probes, up from 32; `site/graph.js` byte identical.
+  Ratios are floored to four decimals, so a printed figure is never better than the truth and,
+  with the threshold written to four decimals too, the printed figure decides exactly what full
+  precision would have decided; rounding to nearest does not, and `#00a3c0` on white, which
+  measures 2.99998, is the colour that proves it. Self-test 50 probes, up from 32;
+  `site/graph.js` byte identical.
+- The palette table is validated before it is judged, #59, and this is the guard that matters
+  most. The rule shipped with one completeness check, that the row count was over zero, in the
+  belief that it was the poka-yoke the name rule and the citation rule carry. It was weaker than
+  both. Fed only the six failing rows, twenty measurements missing, every declaration was still
+  hit, nothing was stale, no colour was under the threshold undeclared, and the run printed a
+  clean verdict on less than a quarter of the palette, with the missing types reading
+  `not measured` in the table and costing nothing. A clean verdict now means twenty-six
+  measurements were taken or it means nothing: every row is checked field by field, both grounds
+  must be present for every type, no pair may appear twice, a ratio must be a four decimal figure
+  because `awk` reads `3foo` as over the threshold, and the model writes a terminator carrying
+  the count it intended, which a truncated stream cannot forge. Each fails at exit 2, an
+  assertion and not a finding, because the answer is not that a colour is wrong but that the run
+  does not know. Eight probes, one of which runs the real emitter and asserts the shape of what
+  it writes, since the field order is a contract between two files in two languages and nothing
+  else would notice it breaking. Found by an independent review of the first commit, which is
+  the second time on this card that reading the code beat reading the argument about it.
+- Three smaller repairs from the same review, all of them prose that was more confident than the
+  code, #59. The transfer function's breakpoint is the 2.1 and 2.2 value where the check cites a
+  2.2 criterion, and no measurement moves, since no channel of an 8 bit colour falls between the
+  two. `app.css` is read with its comments stripped, because a commented-out `.band` rule or the
+  theme block's own name inside a comment would have pointed the whole measurement at a surface
+  nothing is drawn on. And the comment now says what the check does not cover: the stroke has two
+  neighbours, the plate outside and the tile's own tint inside, the inner one is always the
+  harder comparison and seven colours that clear 3:1 on the plate are under it against their own
+  fill. The plate stays the gated surface, because 1.4.11 asks whether an object can be told from
+  its surroundings and a tile is a stroke and a wash together, and because it is the comparison
+  #56 designed against; moving the line inward is a card with a price, seven more declarations or
+  a change to the tint's alpha.
 - Every type says how it gets filled, Issue 4. Four rows in front of each node's own properties,
   `route_system`, `route_entered_by` and `route_event`, plus `route_source` naming the file the
   answer was read in, grounded in the 55 entity ontology, five adversarial reviews and the read of

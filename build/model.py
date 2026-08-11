@@ -4,6 +4,7 @@
 # the session titles (published on the company's own public website) and the names of firms
 # that are companies rather than people. All teacher names are invented. All identifiers,
 # dates, counts and money figures are invented. No value in this file is measured.
+import math
 import pathlib
 
 TYPES = [
@@ -860,6 +861,26 @@ _check_names(_strings)
 # ground would fail and one failing that the ground would pass. The ground is measured as well
 # and reported for exactly that reason, and it is not the surface anything is judged against.
 #
+# THE STROKE HAS TWO NEIGHBOURS AND ONLY ONE OF THEM IS GATED, which is a limit of this check and
+# is written down here rather than left to be found. Outside the stroke is the plate. Inside it
+# is the tile's own wash, a tint of the same hex composited over that plate, which is by
+# construction nearer the stroke colour than the plate is, so the inner comparison is always the
+# harder one. Measured, it is harder by enough to matter: seven colours that clear 3:1 against
+# the plate are under it against their own fill, worst Programme in dark at 2.26.
+#
+# The plate is gated because SC 1.4.11 asks whether an object can be told from what surrounds it,
+# and the fill is part of the object rather than its surroundings: a tile is a stroke and a wash
+# together, and it is the pair that has to be found on the page. That is also the comparison
+# issue 56 designed its dark siblings against, so gating the other one here would put two
+# different answers to one question in the repository on the same day. It is a defensible line
+# and it is not the only one, and moving it inward is a card with a consequence: seven more
+# colours under the threshold, wanting either seven more declarations or a change to the alpha
+# the tint is drawn at.
+#
+# ONE MORE THING NOT MEASURED. "At full opacity" is true of a tile at rest. `.dim` in app.css
+# puts every node that is not adjacent to the selection at 16 per cent while something is
+# selected, and nothing here measures that state.
+#
 # The plate is read out of site/app.css through the custom property `.band` actually paints
 # with, not through a hex typed here. Painting the lanes from another token would then move this
 # measurement with them instead of leaving it measuring a surface the page no longer has, and a
@@ -893,12 +914,19 @@ _CSS_PATH = pathlib.Path(__file__).resolve().parent.parent / "site" / "app.css"
 _DARK_BLOCK = "@media (prefers-color-scheme: dark)"
 
 
+# The breakpoint of the transfer function, and it is the 2.1 and 2.2 value rather than 2.0's
+# 0.03928. This check cites SC 1.4.11, which is a 2.2 criterion, so it should be arithmetic from
+# the same document. Nothing moves: no channel of an 8 bit colour lands between the two, 10/255
+# being under both and 11/255 over both, so every ratio in the table is identical either way.
+_SRGB_BREAK = 0.04045
+
+
 def relative_luminance(colour):
     """WCAG 2.x relative luminance of an #rrggbb colour."""
     ch = []
     for i in (1, 3, 5):
         c = int(colour[i:i + 2], 16) / 255
-        ch.append(c / 12.92 if c <= 0.03928 else ((c + _SRGB_OFFSET) / _SRGB_SCALE) ** 2.4)
+        ch.append(c / 12.92 if c <= _SRGB_BREAK else ((c + _SRGB_OFFSET) / _SRGB_SCALE) ** 2.4)
     return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2]
 
 
@@ -910,11 +938,20 @@ def contrast_ratio(a, b):
 
 
 def _css_text():
+    """app.css with its comments removed, which is the only text that paints anything.
+
+    Not fussiness. That file argues with itself at length in comments, several of them naming
+    tokens and quoting rules, and a commented-out `.band` above the live one, or the theme
+    block's own name written inside a comment, would be picked up by the two readers below and
+    would point this whole measurement at a surface nothing is drawn on.
+    """
+    import re as _re
     try:
-        return _CSS_PATH.read_text(encoding="utf-8")
+        css = _CSS_PATH.read_text(encoding="utf-8")
     except OSError as exc:
         raise SystemExit(f"model: cannot read {_CSS_PATH.name} ({exc}). The surfaces the type "
                          f"colours are drawn on live there and cannot be guessed at.")
+    return _re.sub(r"/\*.*?\*/", "", css, flags=_re.S)
 
 
 def surface_token(selector, prop):
@@ -975,18 +1012,36 @@ def contrast_rows():
     return rows
 
 
+def floor4(x):
+    """A ratio at four decimals, rounded DOWN, so a printed figure is never better than the truth.
+
+    Four decimals and not two: two would be readable and would put every ratio in the shape the
+    repository gate's money rule reads as a grouped amount.
+
+    Down and not to nearest, which is the part that does real work. The gate compares the printed
+    figure, so that a verdict can be reproduced from what is on the screen. Rounding to nearest
+    makes that comparison lenient near the line: #00a3c0 on white measures 2.99998, which reads
+    as 3.0000 and would clear a threshold it is under. Rounding down cannot do that. With the
+    threshold itself written to four decimals, every true ratio at or over it floors to at or
+    over it and every true ratio under it floors to under it, so the printed figure decides
+    exactly what the full precision figure would have decided.
+    """
+    return math.floor(x * 10000) / 10000
+
+
 def emit_contrast():
     """The rows, pipe separated, for scripts/check_repo.sh to judge.
 
-    Four decimal places, and that is not decoration. Two would be readable and would put every
-    ratio in the shape the repository gate's money rule reads as a grouped amount, and rounding
-    to two before comparing would hand the threshold a hundredth of slack it was not argued for.
-    A fourth digit removes both: the printed figure is the compared figure, and the comparison
-    is exact.
+    The last line is a terminator carrying the row count. A reader that does not find it is
+    looking at a truncated table, and a truncated table is the one failure this check could not
+    otherwise see: every row it does hold would be judged, every declaration still hit, and the
+    verdict would come out clean on a fraction of the palette.
     """
-    for r in contrast_rows():
+    rows = contrast_rows()
+    for r in rows:
         print(f"{r['key']}|{r['label']}|{r['ground']}|{r['hex']}|{r['plate']}|"
-              f"{r['ratio']:.4f}|{r['canvas']}|{r['canvas_ratio']:.4f}")
+              f"{floor4(r['ratio']):.4f}|{r['canvas']}|{floor4(r['canvas_ratio']):.4f}")
+    print(f"#rows|{len(rows)}")
 
 
 if __name__ == "__main__":

@@ -22,7 +22,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from model import (TYPES, NODES, EDGES, ROSTER_ROWS, COHORT_HEADCOUNT,  # noqa: E402
-                   DRAWN_STUDENTS, contrast_rows)
+                   DRAWN_STUDENTS, contrast_rows, floor4)
 
 COL_W = [166, 232, 122, 124, 80, 102, 92, 92]
 GAP_X, MARGIN_X = 18, 22
@@ -605,8 +605,8 @@ for _r in contrast_rows():
         _worst[_g] = _r
 print("contrast: {} type colours on the band plate, worst {} at {:.4f} light and {} at {:.4f} "
       "dark. The threshold and the declared exceptions are in scripts/check_repo.sh.".format(
-          len(TYPES), _worst["light"]["label"], _worst["light"]["ratio"],
-          _worst["dark"]["label"], _worst["dark"]["ratio"]))
+          len(TYPES), _worst["light"]["label"], floor4(_worst["light"]["ratio"]),
+          _worst["dark"]["label"], floor4(_worst["dark"]["ratio"])))
 
 # ---- what the measurement bought -------------------------------------------
 # How far the old hand written estimate was from the truth, and where the widths came from.

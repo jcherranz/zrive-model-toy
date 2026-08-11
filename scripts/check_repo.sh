@@ -218,7 +218,7 @@ CONTRAST_EXEMPT=(
   # them: it adds a dark sibling per type and moves no light colour at all. So these three
   # survive that card and need one of their own. They are declared here so that the day
   # somebody writes it, the gate is what tells them it is done.
-  "StudentGroup|light|#8eb125|2.4806|the light palette's own, unrepaired by 56, which moves no light colour"
+  "StudentGroup|light|#8eb125|2.4805|the light palette's own, unrepaired by 56, which moves no light colour"
   "CohortSession|light|#d1980b|2.5587|the light palette's own, unrepaired by 56, which moves no light colour"
   "Ghost|light|#8f99a8|2.8807|the light palette's own, unrepaired by 56, which moves no light colour"
 
@@ -226,7 +226,7 @@ CONTRAST_EXEMPT=(
   # this plate, and these declarations go stale the day it lands, which is the point of them.
   "Programme|dark|#9d3f9d|2.4972|issue 56 names this colour and gives it a dark sibling; that card is not this one"
   "Company|dark|#5f6b7c|2.6686|issue 56 names this colour and gives it a dark sibling; that card is not this one"
-  "Agreement|dark|#946638|2.8998|issue 56 names this colour and gives it a dark sibling; that card is not this one"
+  "Agreement|dark|#946638|2.8997|issue 56 names this colour and gives it a dark sibling; that card is not this one"
 )
 
 WORKDIR=""
@@ -418,6 +418,14 @@ contrast_fail() {
 
 assert_contrast_table_well_formed() {
   local e key ground hex ratio why
+  # The threshold has to be a four decimal figure, because the whole exactness argument rests on
+  # it being one: the ratios are floored to four places, so a threshold written to three or five
+  # would put the printed figure and the true figure on opposite sides of the line.
+  case "$CONTRAST_MIN" in
+    [0-9].[0-9][0-9][0-9][0-9]|[0-9][0-9].[0-9][0-9][0-9][0-9]) ;;
+    *) echo "ASSERTION FAILED: the threshold must be written to four decimals: $CONTRAST_MIN" >&2
+       exit 2 ;;
+  esac
   for e in ${CONTRAST_EXEMPT[@]+"${CONTRAST_EXEMPT[@]}"}; do
     IFS='|' read -r key ground hex ratio why <<< "$e"
     case "$ground" in
@@ -476,20 +484,77 @@ contrast_rows() {  # -> stdout
     exit 2; }
 }
 
+contrast_schema_abort() {
+  echo "ASSERTION FAILED: the palette table is not readable: $*" >&2
+  echo "                  A table this gate cannot fully parse is a verdict about a fraction of" >&2
+  echo "                  the palette, printed as though it were about all of it." >&2
+  exit 2
+}
+
+# THE TABLE IS VALIDATED BEFORE IT IS JUDGED, and this is the guard that matters most.
+#
+# The only check here at first was that the row count was over zero, in the belief that it was
+# the same poka-yoke the name rule and the citation rule carry. It was weaker than both. Fed the
+# six failing rows on their own, twenty measurements missing, every declaration was still hit,
+# nothing was stale, no colour was under the threshold undeclared, and the run printed a clean
+# verdict on less than a quarter of the palette. The missing types printed `not measured` in the
+# table and cost nothing at all.
+#
+# A gate whose clean verdict does not mean "twenty-six measurements were taken" is not the gate
+# this card asked for. So: every line is checked field by field, both grounds must be present
+# for every type, no pair may appear twice, and the emitter writes a terminator carrying the
+# count it intended, which a truncated stream cannot forge. Each of those fails the run at
+# exit 2, which is an assertion and not a finding: the answer is not "this colour is wrong", it
+# is "this run does not know".
 scan_contrast_rows() {  # rowsfile
-  local rows="$1" n key label ground hex plate ratio canvas cratio verdict
-  n="$(grep -c . "$rows" || true)"
-  # The same poka-yoke as the name rule and the citation rule. A palette with nothing in it
-  # would pass every colour it does not have.
-  [ "$n" -gt 0 ] || {
-    echo "ASSERTION FAILED: no type colour to measure" >&2; exit 2; }
+  local rows="$1" n key label ground hex plate ratio canvas cratio extra verdict
+  local seen_terminator=0 claimed=-1 parsed=0
 
   local -A LBL=() CELL=() SEEN=() CANVAS=()
   local -a order=()
   local under=0 declared=0 disagree=0 ok_plate ok_canvas
 
-  while IFS='|' read -r key label ground hex plate ratio canvas cratio; do
+  # `|| [ -n "$key" ]` is not decoration. A last line with no newline leaves `read` returning
+  # non-zero with the fields already set, so a plain `while read` drops it, and `grep -c` counts
+  # it: the two disagree by one and the loop is the one that decides.
+  while IFS='|' read -r key label ground hex plate ratio canvas cratio extra || [ -n "$key" ]; do
     [ -n "$key" ] || continue
+
+    # The terminator, and it must be last.
+    if [ "$key" = "#rows" ]; then
+      [ "$seen_terminator" -eq 0 ] || contrast_schema_abort "two terminators"
+      case "$label" in
+        ''|*[!0-9]*) contrast_schema_abort "terminator does not carry a count: $key|$label" ;;
+      esac
+      seen_terminator=1; claimed="$label"
+      continue
+    fi
+    [ "$seen_terminator" -eq 0 ] || contrast_schema_abort "a row after the terminator: $key"
+
+    [ -z "$extra" ] || contrast_schema_abort "too many fields on the $key row"
+    [ -n "$label" ] && [ -n "$canvas" ] && [ -n "$cratio" ] \
+      || contrast_schema_abort "too few fields on the $key row"
+    case "$ground" in
+      light|dark) ;;
+      *) contrast_schema_abort "unknown ground on the $key row: ${ground:-empty}" ;;
+    esac
+    case "$hex$plate$canvas" in
+      \#[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]\#[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]\#[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]) ;;
+      *) contrast_schema_abort "a colour on the $key $ground row is not an #rrggbb hex" ;;
+    esac
+    # A strict four decimal figure, so that awk cannot be handed a string it coerces to a number
+    # that passes. `3foo`, `3,0000` and `+inf` all read as at or over the threshold to awk.
+    case "$ratio$cratio" in
+      [0-9].[0-9][0-9][0-9][0-9][0-9].[0-9][0-9][0-9][0-9]|\
+      [0-9][0-9].[0-9][0-9][0-9][0-9][0-9].[0-9][0-9][0-9][0-9]|\
+      [0-9].[0-9][0-9][0-9][0-9][0-9][0-9].[0-9][0-9][0-9][0-9]|\
+      [0-9][0-9].[0-9][0-9][0-9][0-9][0-9][0-9].[0-9][0-9][0-9][0-9]) ;;
+      *) contrast_schema_abort "a ratio on the $key $ground row is not a four decimal figure" ;;
+    esac
+    [ -z "${CELL["$key|$ground"]:-}" ] \
+      || contrast_schema_abort "$key is measured twice on the $ground plate"
+
+    parsed=$((parsed + 1))
     if [ -z "${SEEN[$key]:-}" ]; then SEEN[$key]=1; order+=("$key"); LBL[$key]="$label"; fi
     CANVAS[$ground]="$canvas"
 
@@ -514,15 +579,26 @@ scan_contrast_rows() {  # rowsfile
     [ "$ok_plate" = "$ok_canvas" ] || disagree=$((disagree + 1))
   done < "$rows"
 
+  # What the table has to be before a verdict on it means anything.
+  [ "$seen_terminator" -eq 1 ] || contrast_schema_abort "no terminator; the table is truncated"
+  [ "$claimed" -eq "$parsed" ] \
+    || contrast_schema_abort "the terminator claims $claimed rows and $parsed were read"
+  [ "$parsed" -gt 0 ] || contrast_schema_abort "no type colour to measure"
+  for key in "${order[@]}"; do
+    [ -n "${CELL["$key|light"]:-}" ] || contrast_schema_abort "$key was never measured on light"
+    [ -n "${CELL["$key|dark"]:-}" ] || contrast_schema_abort "$key was never measured on dark"
+  done
+
   echo "contrast: type colour strokes on the band plate, threshold $CONTRAST_MIN, WCAG 2.2 SC 1.4.11"
   printf '  %-30s %-25s %-25s\n' "type" "light plate" "dark plate"
   for key in "${order[@]}"; do
     printf '  %-30s %-25s %-25s\n' "${LBL[$key]}" \
-           "${CELL["$key|light"]:-not measured}" "${CELL["$key|dark"]:-not measured}"
+           "${CELL["$key|light"]}" "${CELL["$key|dark"]}"
   done
-  echo "  $n measurements, $under under the threshold: $declared declared, $((under - declared)) not"
+  echo "  ${#order[@]} colours, $parsed measurements, $under under the threshold:" \
+       "$declared declared, $((under - declared)) not"
   echo "  against the page ground instead (${CANVAS[light]:-?} light, ${CANVAS[dark]:-?} dark) the" \
-       "verdict would move for $disagree of $n"
+       "verdict would move for $disagree of $parsed"
 }
 
 scan_contrast() {
@@ -724,26 +800,121 @@ self_test() {
     fi
   }
 
+  # Every payload below is a whole two ground table with its terminator, because a partial one no
+  # longer reaches a verdict at all: the schema probes further down are what prove that.
+  PROBE_LIGHT='Probe|Probe|light|#9d3f9d|#ffffff|5.7827|#f6f7f9|5.3946'
+
   echo
   echo "self-test: a type colour under the threshold is a finding unless it is declared"
   contrast_probe "a colour under the threshold" 'trip' \
-        'Probe|Probe|dark|#9d3f9d|#252a31|2.4972|#1c2127|2.8016'
+        "$PROBE_LIGHT
+Probe|Probe|dark|#9d3f9d|#252a31|2.4972|#1c2127|2.8015
+#rows|2"
   contrast_probe "a colour exactly on the threshold" 'pass' \
-        'Probe|Probe|dark|#9d3f9d|#252a31|3.0000|#1c2127|3.4000'
+        "$PROBE_LIGHT
+Probe|Probe|dark|#9d3f9d|#252a31|3.0000|#1c2127|3.4000
+#rows|2"
   contrast_probe "a colour declared exactly" 'pass' \
-        'Probe|Probe|dark|#9d3f9d|#252a31|2.4972|#1c2127|2.8016' \
+        "$PROBE_LIGHT
+Probe|Probe|dark|#9d3f9d|#252a31|2.4972|#1c2127|2.8015
+#rows|2" \
         "Probe|dark|#9d3f9d|2.4972|declared for the probe"
   # The three ways a declaration could quietly widen, each shut. A shade nudged, a theme
   # confused, a measurement drifted: none of them is covered by yesterday's entry.
   contrast_probe "a declaration whose hex has moved still trips" 'trip' \
-        'Probe|Probe|dark|#9d3f9e|#252a31|2.4972|#1c2127|2.8016' \
+        "$PROBE_LIGHT
+Probe|Probe|dark|#9d3f9e|#252a31|2.4972|#1c2127|2.8015
+#rows|2" \
         "Probe|dark|#9d3f9d|2.4972|declared for the probe"
   contrast_probe "a declaration for the other ground still trips" 'trip' \
-        'Probe|Probe|dark|#9d3f9d|#252a31|2.4972|#1c2127|2.8016' \
+        "$PROBE_LIGHT
+Probe|Probe|dark|#9d3f9d|#252a31|2.4972|#1c2127|2.8015
+#rows|2" \
         "Probe|light|#9d3f9d|2.4972|declared for the probe"
   contrast_probe "a declaration whose ratio has moved still trips" 'trip' \
-        'Probe|Probe|dark|#9d3f9d|#252a31|2.4900|#1c2127|2.8016' \
+        "$PROBE_LIGHT
+Probe|Probe|dark|#9d3f9d|#252a31|2.4900|#1c2127|2.8015
+#rows|2" \
         "Probe|dark|#9d3f9d|2.4972|declared for the probe"
+
+  # A table the gate cannot fully parse must abort at exit 2 rather than produce a verdict about
+  # whatever part of it did parse. Every probe below is a way the palette could arrive
+  # incomplete, and the first of them is the hole this rule shipped with: fed only the six
+  # failing rows, it hit every declaration, found nothing stale, and reported clean on a quarter
+  # of the palette.
+  contrast_schema_probe() {  # name payload
+    local name="$1" payload="$2" rc=0
+    total=$((total + 1))
+    printf '%s\n' "$payload" > "$tmp/rows"
+    (
+      CONTRAST_EXEMPT=()
+      unset CONTRAST_EXEMPT_HITS; declare -A CONTRAST_EXEMPT_HITS=()
+      FAILURES=0
+      CONTRAST_FAILURES=0
+      scan_contrast_rows "$tmp/rows" >/dev/null 2>&1
+    ) || rc=$?
+    if [ "$rc" -eq 2 ]; then
+      echo "  [OK]   $name"
+      pass=$((pass + 1))
+    else
+      echo "  [MISS] $name was judged instead of aborting (exit $rc)"
+    fi
+  }
+
+  echo
+  echo "self-test: a palette this gate cannot fully read must abort, not report on part of it"
+  contrast_schema_probe "a table with no terminator" \
+        'Probe|Probe|light|#9d3f9d|#ffffff|5.7827|#f6f7f9|5.3946
+Probe|Probe|dark|#9d3f9d|#252a31|2.4972|#1c2127|2.8015'
+  contrast_schema_probe "a terminator claiming more rows than arrived" \
+        'Probe|Probe|light|#9d3f9d|#ffffff|5.7827|#f6f7f9|5.3946
+Probe|Probe|dark|#9d3f9d|#252a31|2.4972|#1c2127|2.8015
+#rows|26'
+  contrast_schema_probe "a type measured on one ground only" \
+        'Probe|Probe|light|#9d3f9d|#ffffff|5.7827|#f6f7f9|5.3946
+#rows|1'
+  contrast_schema_probe "a type measured twice on one ground" \
+        'Probe|Probe|light|#9d3f9d|#ffffff|5.7827|#f6f7f9|5.3946
+Probe|Probe|light|#9d3f9d|#ffffff|5.7827|#f6f7f9|5.3946
+Probe|Probe|dark|#9d3f9d|#252a31|2.4972|#1c2127|2.8015
+#rows|3'
+  # awk coerces a string to the number in front of it, so `3foo` reads as at or over the
+  # threshold and a malformed field would pass as a good colour rather than fail as a bad table.
+  contrast_schema_probe "a ratio that is not a four decimal figure" \
+        'Probe|Probe|light|#9d3f9d|#ffffff|3foo|#f6f7f9|5.3946
+Probe|Probe|dark|#9d3f9d|#252a31|2.4972|#1c2127|2.8015
+#rows|2'
+  contrast_schema_probe "a colour that is not an #rrggbb hex" \
+        'Probe|Probe|light|red|#ffffff|5.7827|#f6f7f9|5.3946
+Probe|Probe|dark|#9d3f9d|#252a31|2.4972|#1c2127|2.8015
+#rows|2'
+  contrast_schema_probe "a row carrying a field too many" \
+        'Probe|Probe|light|#9d3f9d|#ffffff|5.7827|#f6f7f9|5.3946|extra
+Probe|Probe|dark|#9d3f9d|#252a31|2.4972|#1c2127|2.8015
+#rows|2'
+
+  # The one probe that runs the real emitter, and it asserts the SHAPE of what the model writes
+  # and never a value: the field order, the field count and the terminator are a contract between
+  # two files in two languages, and nothing else in this self-test would notice it being broken.
+  # Values stay out of it for the reason every other probe here is synthetic.
+  total=$((total + 1))
+  rc=0
+  (
+    python3 "$ROOT/build/model.py" --contrast > "$tmp/realrows" 2>/dev/null || exit 9
+    CONTRAST_EXEMPT=()
+    unset CONTRAST_EXEMPT_HITS; declare -A CONTRAST_EXEMPT_HITS=()
+    FAILURES=0
+    CONTRAST_FAILURES=0
+    scan_contrast_rows "$tmp/realrows" >/dev/null 2>&1
+  ) || rc=$?
+  if [ "$rc" -eq 9 ]; then
+    echo "  [MISS] the model would not emit its palette at all"
+  elif [ "$rc" -ne 2 ]; then
+    echo "  [OK]   the palette the model emits satisfies the shape this gate reads"
+    pass=$((pass + 1))
+  else
+    echo "  [MISS] the model and this gate disagree about the shape of a palette row"
+  fi
 
   # And a declaration that is no longer needed must fail the run, exactly as a self-match that
   # matches nothing does. This is the half that keeps a tolerance from outliving the defect.
