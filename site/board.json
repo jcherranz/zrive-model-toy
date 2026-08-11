@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T15:44:46Z",
+  "generated": "2026-08-11T15:48:17Z",
   "columns": [
     {
       "key": "raw",
@@ -66,6 +66,15 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/65"
+        },
+        {
+          "id": 66,
+          "title": "Seven programme drawings ship in the data and no route reaches six of them",
+          "labels": [
+            "bug",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/66"
         }
       ]
     },
