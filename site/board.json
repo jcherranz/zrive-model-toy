@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T20:43:14Z",
+  "generated": "2026-08-11T20:44:37Z",
   "columns": [
     {
       "key": "raw",
@@ -36,12 +36,21 @@
         },
         {
           "id": 79,
-          "title": "Remove this messages and create a proper footer",
+          "title": "Rebuild the footer: 101 words doing four different jobs in one paragraph",
           "labels": [
             "bug",
             "feedback"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/79"
+        },
+        {
+          "id": 80,
+          "title": "I dont know exaclty how but it would be great to be able to access…",
+          "labels": [
+            "bug",
+            "feedback"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/80"
         }
       ]
     },
