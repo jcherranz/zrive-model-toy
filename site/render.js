@@ -412,7 +412,32 @@
       drawing: function () { return G; },
       tile: TILE,
       typeLabel: function (k) { return TLABEL[k]; },
-      typeColor: function (k) { return COLOR[k]; },
+      // The two paints a swatch of a type is drawn with, and THERE IS DELIBERATELY NO
+      // `typeColor` BESIDE IT ANY MORE. Issue 69.
+      //
+      // What was here handed `var(--type-<k>)` out to whoever asked, and the one caller wrote it
+      // into `#ptype.style.color`, which is 11px bold uppercase text. A token chosen to clear the
+      // 3:1 that SC 1.4.11 asks of a drawn boundary was therefore also answering the 4.5:1 that
+      // SC 1.4.3 asks of text, and the higher of the two bars propagated back into the palette:
+      // issues 56 and 65 both aimed at 4,5 rather than at 3,0 for exactly this reason, and #65
+      // recorded that decoupling this label would have made two of its own darkenings
+      // unnecessary. One token cannot serve two thresholds without the stricter one deciding the
+      // colour of things it is not about.
+      //
+      // Withdrawing the export is the repair rather than a note asking the caller to be careful.
+      // The panel is now handed no expression it could paint text with: what it gets is a fill
+      // and a stroke for a nine pixel box, which is a graphical object under SC 1.4.11 and is the
+      // bar the palette was actually chosen against. A future panel that wanted to colour a word
+      // by type would have to add an export back and argue for it here, which is the argument
+      // that never happened the first time.
+      //
+      // The two values are the tile's own and not a third opinion about them: the same `tint()`
+      // at the same strengths the drawing paints with, seven per cent for a ghost against every
+      // other tile's fourteen, so a swatch is the tile made small rather than a second rendering
+      // of the same idea that can drift from it.
+      typeSwatch: function (k, ghost) {
+        return { fill: tint(COLOR[k], ghost ? 7 : 14), stroke: COLOR[k] };
+      },
       // The four tables the drawing was built into, taken fresh after every draw().
       gfx: function () {
         return { drawing: G, nodeById: nodeById, edgesOf: edgesOf,

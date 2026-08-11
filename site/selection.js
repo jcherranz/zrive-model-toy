@@ -95,13 +95,13 @@
   // opts.panel        the detail panel
   // opts.rosterRoute  the address of the student list, for the one node that stands for a list
   // opts.typeLabel    a type key to the name the reader is told
-  // opts.typeColor    a type key to the paint expression its tiles carry
+  // opts.typeSwatch   a type key to the fill and the stroke a swatch of it is drawn with
   // opts.provenance   the document's stance, clock, apto rule and vocabularies
   // opts.onReveal     called with a node once the panel has taken its bite of the screen
   ZM.selection = function createSelection(opts) {
     var svg = opts.svg, panel = opts.panel;
     var ROSTER_ROUTE = opts.rosterRoute;
-    var typeLabel = opts.typeLabel, typeColor = opts.typeColor;
+    var typeLabel = opts.typeLabel, typeSwatch = opts.typeSwatch;
     var PROV = opts.provenance || null;
     var onReveal = opts.onReveal;
 
@@ -228,6 +228,67 @@
       document.body.classList.remove('panel-open');
     }
 
+    // ---- the panel's type caption ----------------------------------------------
+    // Issue 69. THE CAPTION IS TEXT AND IS NO LONGER PAINTED IN THE TYPE COLOUR.
+    //
+    // It used to be `#ptype.style.color = typeColor(n.type)`, the same token the tile's stroke
+    // carries. A stroke is the visual boundary of a component and WCAG 2.2 SC 1.4.11 asks 3:1 of
+    // it; this is 11px bold uppercase, so it is text and SC 1.4.3 asks 4.5:1. One token cannot
+    // answer both without the stricter bar deciding the palette, and it did: issues 56 and 65
+    // both targeted 4,5 rather than the gate's own 3,0 to fix the stroke and this label with one
+    // number, and #65 recorded afterwards that decoupling here would have made two of its
+    // darkenings unnecessary. Three light labels were under 4.5 anyway when this was written, the
+    // ghost grey at 2,8807, Session template at 3,1440 and Cohort at 3,1826, and two of those
+    // three pass the 3:1 the gate asks, so no check had an opinion about them.
+    //
+    // WHAT IT TAKES INSTEAD is --fg-muted, which is what every other caption in this panel is
+    // painted with: the note, the property keys and the provenance line. It measures 5,4113 on
+    // the panel in light and 6,8297 in dark, so all thirteen clear 4.5 in both themes at once and
+    // by construction rather than by thirteen numbers that have to be rechecked whenever one
+    // moves. Not --fg-body, which at 16,2 would make an 11px caption the loudest thing in the
+    // panel after the name it is a caption for.
+    //
+    // THE COLOUR IS NOT DISCARDED, IT IS MOVED ONTO A SHAPE. The obvious argument for dropping it
+    // altogether is that the panel sits beside the tile the reader just clicked, so the tile
+    // carries the identity. That argument is weaker here than it looks: selecting a node repaints
+    // its tile in --i-primary, so the one tile the panel is about is the one tile not showing its
+    // type colour. The swatch is a nine pixel copy of that tile drawn from the same two values,
+    // and it is a graphical object rather than text, so it answers 3:1, which is the bar the
+    // palette was chosen against in the first place.
+    //
+    // THE GHOST STAYS QUIET, WHICH IS THE ONE THING THIS COULD HAVE BROKEN. Its grey is the light
+    // value of --c-gray-3, the stylesheet's "grey of a line", read by nine rules for every edge
+    // and arrowhead, and #65 kept it declared because the drawing is saying "this does not exist"
+    // and a louder grey contradicts the drawing. Nothing here touches that hex. The ghost's
+    // swatch is its tile: the seven per cent wash every other tile carries at fourteen, bounded
+    // by a dashed hairline rather than a solid one, which is the quietest of the thirteen exactly
+    // as its tile is the quietest tile. What does change for the ghost is its caption, which was
+    // the least legible text in the panel at 2,8807 and is now the same grey as every other
+    // caption. Decoupling makes the words readable and leaves the drawing's statement alone,
+    // which is the whole reason the two should never have shared a token.
+    //
+    // INLINE AND NOT A STYLESHEET RULE, for the reason already written beside the property list
+    // below: site/app.css is not this card's to change, and a rule set from here is one fewer
+    // file two people are editing at once. The class name is on the element so the declarations
+    // can move into that file whole, and every value that is a colour is a custom property rather
+    // than a hex, so the swatch follows the theme from the same place everything else does.
+    function paintType(n) {
+      var ptype = document.getElementById('ptype');
+      ptype.textContent = '';
+      ptype.style.color = 'var(--fg-muted)';
+      // `box` and not `paint`, which is the name of the function above that inverts a selected
+      // tile. Two paints in one file is one shadowed variable away from a confusing read.
+      var box = typeSwatch(n.type, n.ghost);
+      var sw = document.createElement('span');
+      sw.className = 'ptype-swatch';
+      sw.style.cssText = 'display:inline-block;width:9px;height:9px;border-radius:2px;'
+        + 'margin-right:7px;vertical-align:baseline;'
+        + 'background:' + box.fill + ';'
+        + 'border:1px ' + (n.ghost ? 'dashed' : 'solid') + ' ' + box.stroke + ';';
+      ptype.appendChild(sw);
+      ptype.appendChild(document.createTextNode(typeLabel(n.type)));
+    }
+
     function select(id) {
       if (current === id) { clear(); return; }
       if (current) paint(current, false);
@@ -251,8 +312,7 @@
       });
 
       var n = nodeById[id];
-      document.getElementById('ptype').textContent = typeLabel(n.type);
-      document.getElementById('ptype').style.color = typeColor(n.type);
+      paintType(n);
       document.getElementById('pname').textContent = n.label;
       var rel = edgesOf[id].map(function (i) {
         var e = G.edges[i];

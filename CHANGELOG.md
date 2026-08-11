@@ -11,6 +11,35 @@ of what changed and when, and it is meant to be scannable.
 
 ### Changed
 
+- The panel's type caption is text and no longer takes the stroke's token, #69. It was
+  `#ptype.style.color = typeColor(n.type)`, so one hex answered both the 3:1 SC 1.4.11 asks of a
+  drawn boundary and the 4.5:1 SC 1.4.3 asks of 11px bold text, and the stricter bar decided the
+  palette: #56 and #65 both aimed at 4,5 rather than at the gate's own 3,0 for this reason, and
+  #65 recorded afterwards that decoupling here would have made two of its darkenings unnecessary.
+- **The caption takes `--fg-muted`, which every other caption in the panel already takes.**
+  5,4113 on the panel in light and 6,8297 in dark, so all thirteen clear 4.5 in both themes by
+  construction rather than by thirteen figures that have to be rechecked whenever one moves.
+  Before: three under 4.5 in light, the ghost grey at 2,8807, Session template at 3,1440 and
+  Cohort at 3,1826, of which the last two passed the gate and so were invisible to every check.
+- **The colour is not discarded, it is moved onto a shape.** A nine pixel swatch beside the
+  caption, drawn from the tile's own two values at the same strengths, so it is the tile made
+  small. It is a graphical object and answers 3:1, which is the bar the palette was chosen
+  against. Selecting a node repaints its tile `--i-primary`, so the one tile the panel is about is
+  the one tile not showing its type colour: the swatch is what carries the identity at that moment.
+- **The ghost's quiet is in the drawing and stays there.** No hex moved, so `--c-gray-3` still
+  paints every edge and arrowhead at the value nine `app.css` rules read. Its swatch is its tile,
+  a seven per cent wash inside a dashed hairline where every other swatch is at fourteen inside a
+  solid one, the quietest of the thirteen. Its caption, which was the least legible text in the
+  panel, is now the same grey as every other caption.
+- **`render.js` no longer exports `typeColor` at all**, which is the repair rather than a note
+  asking the caller to be careful: the panel is handed a fill and a stroke for a box and no
+  expression it could paint a word with. Re-introducing the defect would take an export and an
+  argument for it, which is the argument that never happened the first time.
+- Stroke measurements did not move: the gate's 26-measurement table is byte identical before and
+  after, 1 declared and 0 undeclared, and the declared ghost exception still reads 2,8807.
+  Whether the palette can now be relaxed back toward 3,0 is #74 and not this card. `app.css` and
+  `build/model.py` were not touched, and **`scripts/smoke.mjs` was not touched**, 70 assertions,
+  70 passed, none edited. Fifth structural change it has survived untouched.
 - Every value says where it came from and when it was read, #60 seam 5, #73. The scheme is the
   Z-Map's, not one invented here: a rank per value, a read date per value, and `status` and `apto`
   computed by every reader and written down nowhere. `build/model.py` ranks each row, the

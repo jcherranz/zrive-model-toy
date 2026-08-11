@@ -176,7 +176,10 @@
     panel: panel,
     rosterRoute: router.rosterRoute,
     typeLabel: render.typeLabel,
-    typeColor: render.typeColor,
+    // Issue 69. This was `typeColor`, and the panel painted its type caption with it. A swatch
+    // is what crosses the boundary now: the caption is text and takes a text token, and the
+    // type's colour is carried by a box beside it, which is the thing the palette was chosen for.
+    typeSwatch: render.typeSwatch,
     // Issue 73, seam 5. The document's own stance, clock and vocabularies, handed over rather
     // than read off the global: a panel that reached for window.GI would be a second reader of
     // the instance document and would keep working after this file stopped handing it one,
