@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T12:43:08Z",
+  "generated": "2026-08-11T12:48:35Z",
   "columns": [
     {
       "key": "raw",
@@ -84,15 +84,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/58"
-        },
-        {
-          "id": 59,
-          "title": "Contrast should be a gate, not a measurement somebody once took",
-          "labels": [
-            "enhancement",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/59"
         }
       ]
     },
@@ -100,6 +91,15 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 59,
+          "title": "Contrast should be a gate, not a measurement somebody once took",
+          "labels": [
+            "enhancement",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/59"
+        },
         {
           "id": 55,
           "title": "A dark theme for low light",
@@ -168,19 +168,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/47"
-        },
-        {
-          "id": 46,
-          "title": "Make the diagram an infinite canvas: dot grid, pan and zoom",
-          "labels": [
-            "feedback",
-            "idea",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/46"
         }
       ],
-      "hidden": 32,
+      "hidden": 33,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
