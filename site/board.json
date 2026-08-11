@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T16:18:34Z",
+  "generated": "2026-08-11T16:34:22Z",
   "columns": [
     {
       "key": "raw",
@@ -87,15 +87,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/66"
         },
         {
-          "id": 67,
-          "title": "A browser-launch flake reports a runner problem as a page regression, on 20 percent of the suite",
-          "labels": [
-            "bug",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/67"
-        },
-        {
           "id": 68,
           "title": "A frozen run record will hang anything that gates on run status, including the freshness watchdog",
           "labels": [
@@ -110,6 +101,15 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 67,
+          "title": "A browser-launch flake reports a runner problem as a page regression, on 20 percent of the suite",
+          "labels": [
+            "bug",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/67"
+        },
         {
           "id": 65,
           "title": "Three type colours fail contrast on the light page and always have",
@@ -175,19 +175,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/57"
-        },
-        {
-          "id": 56,
-          "title": "The thirteen type colours are one light palette; three strokes fall under 3:1 in dark mode",
-          "labels": [
-            "layout",
-            "model",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/56"
         }
       ],
-      "hidden": 41,
+      "hidden": 42,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
