@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T22:32:21Z",
+  "generated": "2026-08-11T22:33:45Z",
   "columns": [
     {
       "key": "raw",
@@ -51,6 +51,15 @@
             "feedback"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/87"
+        },
+        {
+          "id": 88,
+          "title": "In the calendar view there has to be an option to see it as calendar…",
+          "labels": [
+            "bug",
+            "feedback"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/88"
         }
       ]
     },
