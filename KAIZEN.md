@@ -316,3 +316,15 @@ build on a cited slug that resolves to nothing.
   scanner is not how precise its pattern is. It is whether the text it reads is ever about that
   pattern, and where the answer is yes there are two honest moves and no third: delete the scanner,
   or stop the text from being able to spell the thing. Both were taken here, one each.
+- `kaizen-a-checker-inside-the-set-it-counts` &middot; **A mechanism that enumerates a set it is
+  itself in will match itself.** Three shapes here now: a wait loop grepped process output for the
+  task id it was running under, so it always found a match and never ended; a count of running
+  watchers read five because `ps -eo args` piped into a grep for the script name matched the grep
+  asking the question, and there was one watcher; and the supersede job, issue 62, enumerated
+  in-flight runs, found itself among those that had started work, and cancelled nothing. Before
+  writing a check that counts a set, ask whether the checker is in the set, and where it is, exclude
+  it by an identity it already holds, its own process id, run id or job id. Pattern-based exclusion,
+  the `[w]atch.sh` bracket trick or filtering out the word `grep`, holds only while the pattern does
+  and then fails silently; an identity does not rot. The durable form was already here and was not
+  generalised: `2026-08-09-gate-scoped-to-the-public-surface` licenses the gate's matches on its own
+  source as exact triples of rule, path and string.
