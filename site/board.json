@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T20:44:37Z",
+  "generated": "2026-08-11T20:45:17Z",
   "columns": [
     {
       "key": "raw",
@@ -51,6 +51,15 @@
             "feedback"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/80"
+        },
+        {
+          "id": 81,
+          "title": "Can we make this blocks a bit less invasive now that we have…",
+          "labels": [
+            "bug",
+            "feedback"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/81"
         }
       ]
     },
