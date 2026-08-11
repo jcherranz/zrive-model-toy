@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T17:23:24Z",
+  "generated": "2026-08-11T17:23:53Z",
   "columns": [
     {
       "key": "raw",
@@ -24,32 +24,6 @@
             "limitation"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
-        },
-        {
-          "id": 71,
-          "title": "Seam 2: split site/app.js into viewport, selection, render, router and wiring",
-          "labels": [
-            "enhancement"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/71"
-        },
-        {
-          "id": 72,
-          "title": "Seam 3: make the populate routes a machine-readable adapter registry",
-          "labels": [
-            "data model",
-            "enhancement"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/72"
-        },
-        {
-          "id": 73,
-          "title": "Seam 5: provenance for live data, on the Z-Map's pattern",
-          "labels": [
-            "data model",
-            "enhancement"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/73"
         }
       ]
     },
@@ -85,6 +59,35 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/70"
+        },
+        {
+          "id": 71,
+          "title": "Seam 2: split site/app.js into viewport, selection, render, router and wiring",
+          "labels": [
+            "enhancement",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/71"
+        },
+        {
+          "id": 72,
+          "title": "Seam 3: make the populate routes a machine-readable adapter registry",
+          "labels": [
+            "data model",
+            "enhancement",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/72"
+        },
+        {
+          "id": 73,
+          "title": "Seam 5: provenance for live data, on the Z-Map's pattern",
+          "labels": [
+            "data model",
+            "enhancement",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/73"
         }
       ]
     },
