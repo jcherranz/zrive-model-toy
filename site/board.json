@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T14:50:55Z",
+  "generated": "2026-08-11T15:19:44Z",
   "columns": [
     {
       "key": "raw",
@@ -69,15 +69,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/57"
         },
         {
-          "id": 62,
-          "title": "The Pages deploy queue jammed again and a stale origin does not announce itself",
-          "labels": [
-            "bug",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/62"
-        },
-        {
           "id": 63,
           "title": "The visit edge points at the Cohort and the data says Programme",
           "labels": [
@@ -93,6 +84,15 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 62,
+          "title": "The Pages deploy queue jammed again and a stale origin does not announce itself",
+          "labels": [
+            "bug",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/62"
+        },
         {
           "id": 61,
           "title": "Nothing in CI runs the build, so the drawing is unverified",
@@ -160,18 +160,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/51"
-        },
-        {
-          "id": 50,
-          "title": "The commit-message backstop reads a citation as a claim of work",
-          "labels": [
-            "bug",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/50"
         }
       ],
-      "hidden": 36,
+      "hidden": 37,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
