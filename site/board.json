@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T22:02:32Z",
+  "generated": "2026-08-11T22:28:38Z",
   "columns": [
     {
       "key": "raw",
@@ -33,6 +33,15 @@
             "feedback"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/81"
+        },
+        {
+          "id": 84,
+          "title": "The full outline should appear when clicking here.",
+          "labels": [
+            "bug",
+            "feedback"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/84"
         }
       ]
     },
