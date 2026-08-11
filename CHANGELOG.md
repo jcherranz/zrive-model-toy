@@ -9,6 +9,37 @@ of what changed and when, and it is meant to be scannable.
 
 ## [Unreleased]
 
+### Fixed
+
+- A Strategy Consulting session template was labelled with a venue and a start time, so the
+  drawing put an instance on the template side of its own split, #78. `sc_st6` on `#/p/ZSC` read
+  " ATTICO @ 10.15h - All you need to know about recruiting in Strategy Consulting", verbatim from
+  the syllabus. A venue and a clock are properties of a delivery; a template has neither. #19
+  exists because the template versus instance split was asserted rather than shown, and the answer
+  was to draw both sides and join them with `instance of`, so a template that is really an instance
+  breaks the one distinction the artefact demonstrates, in the place a reader checks it.
+- **The conflation is the source's, and the vault records it.** The syllabus note ZSC-T0023 carries
+  both `title_raw`, the published row with the venue and the clock on it, and `name_norm`, the
+  subject on its own. On the other five ZSC rows drawn here the two fields hold the same string; on
+  this one they diverge. The template takes `name_norm` verbatim, which is the normalisation the
+  source performs on itself, so no name is invented and the title stays real and published.
+- **The delivery already existed and already held the clock.** `sc_cs6` is `instance of` this
+  template and carries `scheduled_at`, so the join now says something true rather than repeating
+  one side of itself. It reads 10:00 and not 10.15 because every date and clock on a cohort session
+  here is invented, and lining one up with a real syllabus row makes a half real datum. The venue
+  has nowhere to go: no CohortSession on any of the seven routes has a venue field, and the only
+  trace of ATTICO that survives is `location_mode presencial` on the template, which is the
+  template-level truth the venue implied.
+- **The old label did not even fit.** Rendered, it wrapped to the two line cap as "ATTICO @ 10.15h
+  - All you need to" and "know about recruiting in Strategy", dropping "Consulting" from the
+  drawing entirely. The new one reads whole in the same two lines.
+- Scope was measured across all seven views rather than assumed: of 42 session templates, one
+  carried a time, an `@` venue or a date before and none does after, and the scan was run against
+  the previous document as its own positive control. Only ZSC moved, digest f447946 to dc73951;
+  the other six views are byte identical. `build/label_widths.json` was remeasured, which took 99
+  dead strings out of the table and changed no width, so the coverage check reports nothing
+  missing and nothing spare.
+
 ### Changed
 
 - The wheel zooms only with **Ctrl or Cmd**, and a bare wheel pans, #76. This reverses #46's

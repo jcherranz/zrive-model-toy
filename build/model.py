@@ -1124,11 +1124,34 @@ PROGRAMMES = [
             ("sc_st4", "Business Case - Group Practice (I) - Profitability", "ZSC-T4", "sync",
              "online", "90"),
             ("sc_st5", "Real Projects: TMT", "ZSC-T5", "sync", "online", "90"),
-            # The leading space is verbatim and deliberate in the syllabus. wrap() splits on
-            # whitespace and discards it, so the tile draws identically either way; stripping it
-            # here would make the model disagree with its source for no gain.
-            ("sc_st6", " ATTICO @ 10.15h - All you need to know about recruiting in Strategy "
-             "Consulting", "ZSC-T6", "sync", "presencial", "120"),
+            # ISSUE 78, and the finding is about the source and not only about this row. This
+            # template used to be labelled with the syllabus string verbatim, leading space and
+            # all: a venue, ATTICO, then a start time, then the subject. A venue and a start time
+            # are properties of a DELIVERY. A template has neither. So the node sat on the
+            # template side of the split carrying the evidence that it is an instance, and that
+            # split is the sharpest claim this drawing makes: issue 19 exists because it was
+            # asserted rather than shown, and the answer was to draw both sides and join them
+            # with `instance of`. A template that is really an instance breaks the one
+            # distinction the artefact exists to demonstrate, in the place a reader checks it.
+            #
+            # THE SOURCE CONFLATES THE TWO, and the vault says so in its own frontmatter rather
+            # than by inference. The syllabus note ZSC-T0023 carries two title fields: `title_raw`,
+            # which is the published row with the venue and the clock on it, and `name_norm`,
+            # which is the subject on its own. On the other five ZSC rows drawn here the two
+            # fields hold the same string; on this one they diverge. So the normalisation the
+            # source itself performs is the fix, and the label below is `name_norm` verbatim.
+            #
+            # WHERE THE VENUE AND THE TIME WENT. The time is on the delivery already: sc_cs6 is
+            # `instance of` this template and carries scheduled_at. It reads 10:00 and not 10.15,
+            # because every date and clock on a cohort session in this toy is invented and lining
+            # one of them up with a real syllabus row would make a half real datum out of an
+            # invented delivery. The venue has nowhere to go: no CohortSession on any of the
+            # seven routes has a venue field, so the only trace of ATTICO that survives is
+            # location_mode `presencial` on this template, which is the template-level truth the
+            # venue implied. Adding a venue to one invented delivery would be a fact made up to
+            # tidy the picture.
+            ("sc_st6", "All you need to know about recruiting in Strategy Consulting",
+             "ZSC-T6", "sync", "presencial", "120"),
         ],
         "instructors": [
             ("t4", "Rubén Arizmendi", ZRIVE, "1", "Z-IB, Z-PE, Z-SC"),
