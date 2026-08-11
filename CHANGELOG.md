@@ -44,6 +44,21 @@ of what changed and when, and it is meant to be scannable.
 
 ### Changed
 
+- The browser pin stays the runner image, decided rather than left inherited, #67. The runner drove
+  Chrome 151 on the dispatch that failed to start one and Chrome 150 on the rerun of the identical
+  commit, which is #58's own caveat coming true: `runs-on: ubuntu-24.04` pins the image and not the
+  build, and the build moved underneath the suite inside a day. Kept, for three reasons. The
+  version is not what failed, since neither build failed an assertion and each gave 70 of 70 on the
+  runs where it started; what failed was the launch, which the retry and the count assertion now
+  cover. A pinned Chrome for Testing download is a third-party binary fetched on every run and
+  needs a pinned URL and a recorded checksum to be worth anything, which is a supply-chain surface
+  this repository does not have and a pin that rots into a browser nobody uses. And the suite is a
+  regression net for the page rather than a conformance test against one browser: a behaviour that
+  breaks on the Chrome the runner ships is a behaviour that breaks for readers, and a frozen build
+  would report clean on exactly that. What is added is the diagnosis cost the caveat actually
+  carried, the version written into the job summary as well as the log, so a failed run can be
+  correlated with a browser change from the run list. Reversing it is one step and the workflow
+  names it.
 - A label is re-broken at the selected weight when the regular break leaves the lane, #43. Lines
   were broken to fit the column in the weight they are drawn in and then reserved at the BOLD width
   of the same line, which is up to a fifth wider, and the two rules disagree by more than the 13
@@ -79,6 +94,27 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- A browser that never started was reported as the page having regressed, on a fifth of the suite,
+  #67. One CI dispatch of `smoke` failed with `no DevToolsActivePort in 20000ms` and dbus errors,
+  printed `VERDICT: the page has regressed` for a browser that never opened, and reported 14 of 14
+  passing while the 1536x839 group that carries every behavioural assertion had not run at all. A
+  rerun on the identical commit gave 70 of 70. Three repairs, in the order a run meets them. The
+  launch gets one retry, and the failed process and its profile directory are killed and removed
+  before it, so a retry cannot inherit the attempt that failed; the budget is one because the rerun
+  started its browser first time, and a larger one turns a genuinely broken image into a slow
+  failure rather than a fast one. The verdict has three values instead of two: exit 1 `the page has
+  regressed` for a failed assertion, exit 0 clean, and exit 2 `the suite could not answer` for a
+  browser that never started or a run short of its own intended count, which is the code
+  `check_repo.sh` already uses for a gate saying it does not know and which `verify.sh` already
+  prints as [SKIP] rather than [OK]. A failed assertion outranks a harness finding, so a run that
+  loses a viewport and also finds a real regression reports the regression. And the suite writes
+  down what it intends to assert, eight phases over three viewports, fourteen viewport-phase pairs
+  summing to 70, checked against a headline figure before anything runs so that neither can be
+  edited alone: this is `build/model.py`'s `#rows|N` terminator in another language, for the same
+  reason, that everything a truncated run does hold looks exactly like a clean one. Proved in three
+  directions with a launcher that refuses on demand: refusing once, the retry recovers and the run
+  gives 70 of 70; refusing twice, the incident is reproduced exactly, 14 of 14 passing, exit 2,
+  named as a harness failure; and skipping one phase fails on the count with 59 of 59 passing.
 - Two type colours that had been under 3:1 on the white band plate since the palette was chosen,
   #65. Cohort session `#d1980b` measured 2.5587 and Students `#8eb125` 2.4805, both worse than
   anything the dark theme ever had, and #56 left them by construction: it added a dark sibling per

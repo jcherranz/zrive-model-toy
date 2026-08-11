@@ -45,6 +45,37 @@ name: smoke
 # a browser change is diagnosable from the log rather than guessed at, and if the image ever stops
 # shipping Chrome the suite fails with the list of paths it tried, which is the message that
 # failure needs.
+#
+# ---------------------------------------------------------------------------------------------
+# THAT CAVEAT CAME TRUE, AND THE DECISION IS TO KEEP THE IMAGE PIN. Issue 67, decided 2026-08-11.
+#
+# The build moved underneath the suite inside one day: Chrome 151 on the dispatch that failed to
+# start a browser, Chrome 150 on the rerun of the identical commit that gave 70 of 70. So the
+# question the pin was carrying is now a live one and not a hypothetical, and the answer is to
+# accept the moving build, for three reasons and with one thing added.
+#
+#   1. THE VERSION IS NOT WHAT FAILED. Neither build failed an assertion. 151 failed to open a
+#      debug port, with dbus errors beside it, which is the well known headless-Chrome-on-CI
+#      launch flake and not a behavioural difference; 150 and 151 each produced 70 of 70 on the
+#      runs where they started. Pinning the build would have changed nothing about that incident.
+#      What did change it is the retry and the count assertion in scripts/smoke.mjs, which are
+#      about the two faults that were actually there.
+#   2. PINNING THE BUILD IS A BIGGER LIABILITY THAN THE ONE IT REMOVES. A pinned Chrome for
+#      Testing download is a third-party binary fetched over the network on every run, and to be
+#      worth anything it needs a pinned URL and a recorded checksum, which is a supply-chain
+#      surface this repository does not have today and a maintenance obligation that rots quietly:
+#      a pin nobody moves is a browser years behind the one every reader of the page uses.
+#      check_forbidden.sh's own comment already makes the same trade in the other direction, that
+#      a mechanism which can false-fire near the deploy costs more than the failure it catches.
+#   3. THE SUITE IS A REGRESSION NET FOR THE PAGE, not a conformance test against one browser. A
+#      behaviour that breaks on the Chrome the runner ships is a behaviour that breaks for
+#      readers, and a suite frozen on an old build would report clean on exactly that.
+#
+# What is added, because the caveat's real cost was diagnosis and not risk: the version is written
+# into the job summary as well as the log, so a run that failed can be correlated with a browser
+# change from the run list without opening it. REVERSING THIS DECISION is one step: replace the
+# resolve step below with a Chrome for Testing download pinned by version and checksum, and set
+# SMOKE_CHROME to it.
 
 on:
   push:
@@ -86,6 +117,14 @@ jobs:
               echo "SMOKE_CHROME=$c" >> "$GITHUB_ENV"
               echo "$c"
               "$c" --version
+              # In the summary as well as the log, so the version this run drove is readable from
+              # the run list. Issue 67: two dispatches of the same commit drove two different
+              # Chrome builds and it took opening both logs to find that out.
+              {
+                echo "browser: \`$("$c" --version)\`"
+                echo ""
+                echo "image: \`ubuntu-24.04\`, which pins the image and not the build. See the header of this workflow."
+              } >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
           done
@@ -95,5 +134,40 @@ jobs:
       # deliberately not pointed at the deployed origin: a check that reads the origin answers a
       # question about the last deploy, and this one has to answer a question about the commit in
       # front of it.
+      #
+      # THREE EXIT CODES, AND THEY MUST NOT BE COLLAPSED. Issue 67. 1 is a page regression, which
+      # is what this workflow exists to report. 2 is the suite saying it could not answer: a
+      # browser that never started after its retry, or a run that recorded fewer assertions than
+      # it says it intends. Both fail the job, because a check that measured a fifth of itself is
+      # not a pass and the incident that produced this card looked exactly like one. They fail it
+      # with different words, because the header of this file argues at length that a browser
+      # failing to start must not read as the page having regressed, and until now the suite said
+      # `VERDICT: the page has regressed` for a browser that never started.
       - name: The page behaves, at every width
-        run: node scripts/smoke.mjs
+        run: |
+          set +e
+          node scripts/smoke.mjs
+          rc=$?
+          set -e
+          case "$rc" in
+            0)
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+              echo "smoke: clean, every assertion the suite intends." >> "$GITHUB_STEP_SUMMARY"
+              ;;
+            1)
+              echo "::error::THE PAGE HAS REGRESSED. An assertion about the page failed; the log names each one."
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+              echo "smoke: **the page has regressed**. See the failures in the log." >> "$GITHUB_STEP_SUMMARY"
+              ;;
+            2)
+              echo "::error::THE SMOKE SUITE COULD NOT ANSWER. This is a harness failure and is NOT evidence"
+              echo "::error::about the page: a browser that never started, or a run that recorded fewer"
+              echo "::error::assertions than it intends. The log carries the per-phase count."
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+              echo "smoke: **could not answer** (harness, not the page). Re-run before reading anything into it." >> "$GITHUB_STEP_SUMMARY"
+              ;;
+            *)
+              echo "::error::the smoke suite exited $rc, which it has no meaning for."
+              ;;
+          esac
+          exit $rc

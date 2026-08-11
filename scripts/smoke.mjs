@@ -89,13 +89,60 @@
 // issue numbers in the 900s that cannot collide with anything real, and the served board.json is
 // read from the same origin as the page rather than from the GitHub API.
 //
+// ---------------------------------------------------------------------------------------------
+// A BROWSER THAT NEVER STARTED IS NOT EVIDENCE ABOUT THE PAGE. Issue 67.
+//
+// In CI one dispatch failed with `no DevToolsActivePort in 20000ms` and dbus errors. A rerun on
+// the identical commit gave 70 of 70. Two faults came out of it, and the second was the worse.
+//
+//   1. The suite printed `VERDICT: the page has regressed` for a browser that never started.
+//      smoke.yml's own comment says exactly this must not happen: the reason the suite lives in
+//      its own workflow is that a browser failing to start must not turn a gate red for a reason
+//      unrelated to what the gate is about. The argument was right and the code did not honour it.
+//   2. It cut its own coverage by four fifths and called what was left a pass. The 1536x839 group
+//      carries every behavioural assertion; when it fails to launch, the 14 that survive are the
+//      narrow-viewport overflow checks. A green 14 of 14 is a pass on a fifth of the suite.
+//
+// Three answers, in the order a run meets them.
+//
+//   THE RETRY. LAUNCH_ATTEMPTS below, one retry, which is what the evidence supports and no more:
+//   the rerun succeeded on its first attempt, so the flake is transient rather than a broken
+//   image. Each attempt gets a fresh profile directory and the failed process is killed and its
+//   directory removed before the next one, so a retry cannot inherit anything from the attempt
+//   that failed. Every attempt prints why it failed, so a retry that keeps saving a run is
+//   visible in the log rather than silent.
+//
+//   THE VERDICT, WHICH NOW HAS THREE VALUES AND NOT TWO. A failed assertion is evidence about the
+//   page and exits 1 under `VERDICT: the page has regressed`. A browser that never started, or a
+//   suite that ran fewer assertions than it intended, is not evidence about the page at all: it
+//   exits 2 under `VERDICT: the suite could not answer`. Two is the code this repository already
+//   uses for a gate saying "I do not know" rather than "the answer is clean", which is how
+//   check_repo.sh's contrast schema aborts and what scripts/verify.sh prints as [SKIP] rather
+//   than [OK]. Evidence beats silence: a run that both found a real failure and lost a viewport
+//   reports the regression and exits 1, with the harness failure printed beside it.
+//
+//   THE COUNT, AND IT IS THE CONTRAST GATE'S TERMINATOR IN ANOTHER LANGUAGE. build/model.py emits
+//   a `#rows|N` line carrying the count it meant to write and check_repo.sh refuses a table that
+//   does not match it, because a truncated table judges every row it holds, hits every
+//   declaration, and comes out clean on a fraction of the palette. A suite that loses a viewport
+//   is that same shape. So PHASES below writes down how many assertions each phase intends and
+//   EXPECTED_ASSERTIONS the total, both by hand: a count taken from the run cannot notice a group
+//   that did not run. Running fewer is a failure however many passed.
+//
 // Usage:
 //   node scripts/smoke.mjs                 serve site/ locally and test the working tree
 //   node scripts/smoke.mjs <url>           test a deployed origin instead
 //   node scripts/smoke.mjs --help
 //
+// Exit: 0 clean, 1 the page has regressed, 2 the suite could not answer for itself
+//
 // Env: SMOKE_CHROME / CHROME_PATH / CHROME_BIN  the browser to drive
 //      SMOKE_TIMEOUT_MS                          per-wait deadline, default 20000
+//      SMOKE_SKIP_PHASE                          a test affordance, and the only way to prove the
+//                                                count assertion fires: name a phase in PHASES and
+//                                                it is not run. It can never produce a clean
+//                                                verdict, because the assertions it skips are
+//                                                still the assertions the suite says it intends.
 
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
@@ -154,6 +201,42 @@ const DESCRIPTOR_BASELINE = {
 // the margin is visible rather than asserted.
 const ZOOM_TOLERANCE_PX = 0.5;
 
+// ---- what the suite intends to assert ----------------------------------------------------------
+// Issue 67. Written down by hand, and that is the whole mechanism: a count computed from the run
+// agrees with whatever the run happened to do, which is exactly the reading that let a suite
+// missing four fifths of itself report a pass. This is build/model.py's `#rows|N` terminator in
+// another language, and it fails the same way, at exit 2, saying the run does not know rather
+// than saying the page is clean.
+//
+// `every` phases run at every viewport, because each is a claim about a width or about what the
+// browser said while that width was on screen. `behavioural` phases are claims about the model,
+// the gestures and the board, which are not claims about a width, so they run once, at the one
+// viewport that can drive a pointer. Adding an assertion means editing the count beside it and
+// the total below, and a change that forgets is a red run rather than a quiet one.
+const PHASES = {
+  'the viewport opened':  { count: 2, when: 'every' },
+  'every width':          { count: 3, when: 'every' },
+  'model and reveal':     { count: 14, when: 'behavioural' },
+  'students':             { count: 11, when: 'behavioural' },
+  'canvas':               { count: 6, when: 'behavioural' },
+  'capture':              { count: 5, when: 'behavioural' },
+  'board':                { count: 13, when: 'behavioural' },
+  'console and requests': { count: 2, when: 'every' }
+};
+
+// The headline figure, and it is not derived from PHASES on purpose. Summing the table would agree
+// with a table that had lost a row, and a viewport deleted from VIEWPORTS would take its share of
+// the expectation with it. This number is checked against the sum before anything runs, so the two
+// have to be edited together or the run refuses to draw a verdict.
+const EXPECTED_ASSERTIONS = 70;
+
+// One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
+// 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
+// image into a slow failure instead of a fast one, and the message at the end of the budget is the
+// same message either way.
+const LAUNCH_ATTEMPTS = 2;
+const LAUNCH_RETRY_MS = 1500;
+
 // =================================================================================================
 // The report. Every assertion runs and every failure is printed: a suite that stops at the first
 // one hides the other four, and a bare "assertion failed" costs the reader the debugging session
@@ -161,19 +244,45 @@ const ZOOM_TOLERANCE_PX = 0.5;
 // =================================================================================================
 const results = [];
 let where = '-';
+let phase = '-';
 
 function setWhere(label) { where = label; }
+function setPhase(label) { phase = label; }
 
 function pass(name, detail) {
-  results.push({ ok: true, name, where });
+  results.push({ ok: true, name, where, phase });
   console.log(`[PASS] ${where}  ${name}${detail ? '  (' + detail + ')' : ''}`);
 }
 
 function fail(name, expected, found) {
-  results.push({ ok: false, name, where, expected, found });
+  results.push({ ok: false, name, where, phase, expected, found });
   console.log(`[FAIL] ${where}  ${name}`);
   console.log(`         expected: ${expected}`);
   console.log(`         found:    ${found}`);
+}
+
+// =================================================================================================
+// The harness, kept apart from the page. Issue 67.
+//
+// A finding recorded here is a statement about the runner and never about the artefact under test,
+// and the two are held in separate lists so that no arithmetic anywhere can quietly add one to the
+// other. A browser that did not start contributes no assertion, passing or failing; it contributes
+// a reason the suite cannot answer.
+// =================================================================================================
+const harnessFindings = [];
+
+class HarnessFailure extends Error {
+  constructor(message, detail) {
+    super(message);
+    this.name = 'HarnessFailure';
+    this.detail = detail || '';
+  }
+}
+
+function harnessFail(what, detail) {
+  harnessFindings.push({ what, detail: detail || '' });
+  console.log(`[HARNESS] ${what}`);
+  if (detail) console.log(String(detail).split('\n').map(l => '          ' + l).join('\n'));
 }
 
 function assert(name, ok, expected, found, detail) {
@@ -186,15 +295,30 @@ function assertEqual(name, actual, wanted, note) {
   return assert(name, a === w, w + (note ? ' (' + note + ')' : ''), a);
 }
 
+// The test affordance, and it exists because a count assertion nobody can fire is a count
+// assertion nobody has checked. origin-freshness.yml carries the same idea in its `expected_sha`
+// input. It is safe in the only sense that matters: the phase it skips stays in PHASES, so the
+// intended count is unchanged and the run cannot come out clean.
+const SKIP_PHASE = process.env.SMOKE_SKIP_PHASE || '';
+
+function phaseIsSkipped(name) {
+  if (!SKIP_PHASE || SKIP_PHASE !== name) return false;
+  console.log(`[SKIPPED] ${where}  ${name}  (SMOKE_SKIP_PHASE; the count assertion will say so)`);
+  return true;
+}
+
 // A group that throws must not take the groups after it down with it. The throw is reported as a
 // failure of that group, named, with the message, and the suite carries on.
 async function group(name, fn) {
+  setPhase(name);
   try {
-    await fn();
+    if (!phaseIsSkipped(name)) await fn();
   } catch (err) {
     fail(name + ' (the group threw before it finished)',
          'the group to run to completion',
          (err && err.stack ? err.stack.split('\n').slice(0, 4).join(' | ') : String(err)));
+  } finally {
+    setPhase('-');
   }
 }
 
@@ -338,6 +462,20 @@ async function launchBrowser(chrome, width, height) {
   const stderr = [];
   proc.stderr.on('data', d => stderr.push(String(d)));
 
+  // Every throw below leaves a process and a profile directory behind, and a retry that inherits
+  // either of those is a retry measuring the attempt that failed rather than a fresh one. Issue 67.
+  const abandon = () => {
+    try { proc.kill('SIGKILL'); } catch { /* already gone */ }
+    try { fs.rmSync(profile, { recursive: true, force: true }); } catch { /* best effort */ }
+  };
+  try {
+    return await connect();
+  } catch (err) {
+    abandon();
+    throw err;
+  }
+
+  async function connect() {
   const portFile = path.join(profile, 'DevToolsActivePort');
   let port = null;
   const deadline = Date.now() + TIMEOUT;
@@ -368,10 +506,40 @@ async function launchBrowser(chrome, width, height) {
     browser: version.Browser,
     close() {
       try { ws.close(); } catch { /* already gone */ }
-      try { proc.kill('SIGKILL'); } catch { /* already gone */ }
-      try { fs.rmSync(profile, { recursive: true, force: true }); } catch { /* best effort */ }
+      abandon();
     }
   };
+  }
+}
+
+// One retry, and it is the whole of the answer to the flake in issue 67: `no DevToolsActivePort in
+// 20000ms` with dbus errors on one dispatch, 70 of 70 on a rerun of the identical commit minutes
+// later. Every attempt is named in the log with the reason it failed, so a retry that is quietly
+// saving every run is visible rather than hidden, and the budget running out throws a
+// HarnessFailure rather than a plain Error, which is what keeps a browser that never started out
+// of the verdict about the page.
+async function launchWithRetry(chrome, width, height, label) {
+  const reasons = [];
+  for (let attempt = 1; attempt <= LAUNCH_ATTEMPTS; attempt++) {
+    try {
+      const b = await launchBrowser(chrome, width, height);
+      if (attempt > 1) {
+        console.log(`  the browser started on attempt ${attempt} of ${LAUNCH_ATTEMPTS}, after ${attempt - 1} failed`);
+      }
+      return b;
+    } catch (err) {
+      const why = (err && err.message ? err.message : String(err)).split('\n')[0];
+      reasons.push(`attempt ${attempt} of ${LAUNCH_ATTEMPTS}: ${why}`);
+      console.log(`  the browser did not start at ${label} on attempt ${attempt} of ${LAUNCH_ATTEMPTS}: ${why}`);
+      if (attempt < LAUNCH_ATTEMPTS) {
+        console.log(`  retrying in ${LAUNCH_RETRY_MS}ms with a fresh profile`);
+        await sleep(LAUNCH_RETRY_MS);
+      }
+    }
+  }
+  throw new HarnessFailure(
+    `the browser never started at ${label}, in ${LAUNCH_ATTEMPTS} attempt(s)`,
+    reasons.join('\n'));
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
@@ -1412,39 +1580,115 @@ function checkRequests(page, base) {
 // =================================================================================================
 async function runViewport(chrome, viewport, base, full) {
   const label = `${viewport.w}x${viewport.h}`;
+  setWhere(label);
+  console.log(`\n--- ${label} ---`);
   // A window big enough that the height correction below has somewhere to go, and the width
-  // asked for where the browser will grant it.
-  const b = await launchBrowser(chrome, Math.max(viewport.w, WINDOW_FLOOR_PX), viewport.h);
+  // asked for where the browser will grant it. A launch that exhausts the retry budget throws a
+  // HarnessFailure past every assertion in this function, which is the point: none of them ran,
+  // so none of them has anything to say.
+  const b = await launchWithRetry(chrome, Math.max(viewport.w, WINDOW_FLOOR_PX), viewport.h, label);
   try {
     const page = await openPage(b.cdp, viewport);
-    setWhere(label);
-    console.log(`\n--- ${label} ---`);
     console.log(`  browser:   ${b.browser}`);
     console.log(`  requested: ${viewport.w} by ${viewport.h}`);
     console.log(`  actual:    ${page.actual.w} by ${page.actual.h}   via ${page.mechanism}`);
-    assert('the viewport the harness got is the viewport it asked for',
-      page.actual.w === viewport.w && page.actual.h === viewport.h,
-      `${viewport.w} by ${viewport.h}`, `${page.actual.w} by ${page.actual.h}`);
 
-    await page.navigate(new URL('#/', base).toString());
-    await page.waitFor(DIAGRAM_READY, 'the diagram to draw');
-    pass('the page draws, and says so itself rather than being photographed');
+    setPhase('the viewport opened');
+    if (!phaseIsSkipped('the viewport opened')) {
+      assert('the viewport the harness got is the viewport it asked for',
+        page.actual.w === viewport.w && page.actual.h === viewport.h,
+        `${viewport.w} by ${viewport.h}`, `${page.actual.w} by ${page.actual.h}`);
+
+      await page.navigate(new URL('#/', base).toString());
+      await page.waitFor(DIAGRAM_READY, 'the diagram to draw');
+      pass('the page draws, and says so itself rather than being photographed');
+    } else {
+      // The page still has to be on screen for everything after this, whatever the affordance
+      // says about counting the two assertions above.
+      await page.navigate(new URL('#/', base).toString());
+      await page.waitFor(DIAGRAM_READY, 'the diagram to draw');
+    }
+    setPhase('-');
 
     await group('every width', () => checkWidth(page, base));
 
     if (full) {
       await group('model and reveal', () => checkModelAndReveal(page));
       await group('students', () => checkStudents(page));
-      if (viewport.pointer) await group('canvas', () => checkCanvas(page));
-      if (viewport.pointer) await group('capture', () => checkCapture(page));
+      await group('canvas', () => checkCanvas(page));
+      await group('capture', () => checkCapture(page));
       await group('board', () => checkBoard(page, base));
     }
 
-    checkConsole(page);
-    checkRequests(page, base);
+    setPhase('console and requests');
+    if (!phaseIsSkipped('console and requests')) {
+      checkConsole(page);
+      checkRequests(page, base);
+    }
+    setPhase('-');
   } finally {
     b.close();
   }
+}
+
+// =================================================================================================
+// The count. Issue 67, and it is build/model.py's terminator in another language: the emitter
+// declares how many rows it meant to write and the reader refuses a stream that carries fewer,
+// because everything a truncated stream does hold looks exactly like a clean run.
+// =================================================================================================
+const BEHAVIOURAL_VIEWPORT = VIEWPORTS.findIndex(v => v.pointer);
+
+function plannedPhases(index) {
+  return Object.entries(PHASES)
+    .filter(([, p]) => p.when === 'every' || index === BEHAVIOURAL_VIEWPORT)
+    .map(([name, p]) => ({ name, count: p.count, where: `${VIEWPORTS[index].w}x${VIEWPORTS[index].h}` }));
+}
+
+function planTotal() {
+  let n = 0;
+  for (let i = 0; i < VIEWPORTS.length; i++) for (const p of plannedPhases(i)) n += p.count;
+  return n;
+}
+
+// Every phase the run intended, against what it actually recorded. Reported as a table whether or
+// not it agrees, because a count printed only when it disagrees is a count nobody has ever seen
+// agree.
+function auditCount() {
+  const ran = new Map();
+  for (const r of results) {
+    const key = `${r.where}|${r.phase}`;
+    ran.set(key, (ran.get(key) || 0) + 1);
+  }
+  const rows = [];
+  let intended = 0, counted = 0;
+  for (let i = 0; i < VIEWPORTS.length; i++) {
+    for (const p of plannedPhases(i)) {
+      const got = ran.get(`${p.where}|${p.name}`) || 0;
+      rows.push({ ...p, got });
+      intended += p.count;
+      counted += got;
+    }
+  }
+  // Anything recorded outside a planned phase, which is a new assertion nobody added to PHASES.
+  const strays = [];
+  for (const [key, n] of ran) {
+    const [w, ph] = key.split('|');
+    if (!rows.some(r => r.where === w && r.name === ph)) strays.push({ where: w, phase: ph, n });
+  }
+  return { rows, strays, intended, counted, total: results.length };
+}
+
+function reportCount(audit) {
+  console.log('\nthe assertions this run intended, by phase:');
+  console.log(`  ${'viewport'.padEnd(10)} ${'phase'.padEnd(24)} ${'intended'.padStart(8)} ${'ran'.padStart(5)}`);
+  for (const r of audit.rows) {
+    const mark = r.got === r.count ? ' ' : '<';
+    console.log(`  ${r.where.padEnd(10)} ${r.name.padEnd(24)} ${String(r.count).padStart(8)} ${String(r.got).padStart(5)} ${mark}`);
+  }
+  for (const s of audit.strays) {
+    console.log(`  ${s.where.padEnd(10)} ${(s.phase + ' (in no phase)').padEnd(24)} ${'-'.padStart(8)} ${String(s.n).padStart(5)} <`);
+  }
+  console.log(`  ${''.padEnd(10)} ${'total'.padEnd(24)} ${String(audit.intended).padStart(8)} ${String(audit.total).padStart(5)}`);
 }
 
 async function main() {
@@ -1457,9 +1701,32 @@ async function main() {
       '  With a url, tests the origin at that url instead.',
       '',
       '  SMOKE_CHROME / CHROME_PATH / CHROME_BIN   which browser to drive',
-      '  SMOKE_TIMEOUT_MS                          per-wait deadline, default 20000'
+      '  SMOKE_TIMEOUT_MS                          per-wait deadline, default 20000',
+      '  SMOKE_SKIP_PHASE                          skip one phase, to prove the count assertion fires',
+      '',
+      '  Exit 0 clean, 1 the page has regressed, 2 the suite could not answer for itself.'
     ].join('\n'));
     return 0;
+  }
+
+  // The suite's own arithmetic, before it drives anything. A PHASES table that does not sum to the
+  // headline figure is a suite that does not know what it intends to do, and a verdict from it
+  // would mean nothing.
+  const declared = planTotal();
+  if (declared !== EXPECTED_ASSERTIONS) {
+    throw new Error(
+      `the phase table sums to ${declared} and EXPECTED_ASSERTIONS says ${EXPECTED_ASSERTIONS}.\n` +
+      'Both are written by hand and they have to be edited together: the sum alone would agree\n' +
+      'with a table that had lost a phase, and the total alone would not say which phase moved.');
+  }
+  if (BEHAVIOURAL_VIEWPORT < 0) {
+    throw new Error('no viewport in VIEWPORTS is marked pointer: true, so the behavioural ' +
+                    'assertions have nowhere to run and the suite would only check widths.');
+  }
+  if (SKIP_PHASE && !Object.prototype.hasOwnProperty.call(PHASES, SKIP_PHASE)) {
+    throw new Error(`SMOKE_SKIP_PHASE names "${SKIP_PHASE}", which is not a phase. A typo here ` +
+                    'would skip nothing and read as a clean run. The phases are:\n  ' +
+                    Object.keys(PHASES).join('\n  '));
   }
 
   const chrome = resolveChrome();
@@ -1482,25 +1749,38 @@ async function main() {
     // drive a pointer, which is the condition they need and not the position in the list: below the
     // window floor there is no real widget to dispatch into and the gesture would be measuring the
     // harness. Everything that IS a claim about a width runs at every width.
-    let doneFull = false;
-    for (const v of VIEWPORTS) {
-      const full = v.pointer && !doneFull;
-      if (full) doneFull = true;
-      await group(`the ${v.w}x${v.h} run`, () => runViewport(chrome.path, v, base, full));
-    }
-    if (!doneFull) {
-      fail('the behavioural assertions ran at all',
-        'one viewport in VIEWPORTS able to drive a pointer',
-        'none of them is marked pointer: true, so only the width checks ran');
+    // Which viewport carries the behavioural assertions is decided once, in BEHAVIOURAL_VIEWPORT,
+    // and both the plan and the run read it from there. The earlier form set a flag as it went, so
+    // the plan and the run were two statements of the same rule and could disagree.
+    for (let i = 0; i < VIEWPORTS.length; i++) {
+      const v = VIEWPORTS[i];
+      try {
+        await runViewport(chrome.path, v, base, i === BEHAVIOURAL_VIEWPORT);
+      } catch (err) {
+        if (err instanceof HarnessFailure) {
+          // Not a finding about the page. Nothing in this viewport ran, so nothing in this
+          // viewport is evidence, and the count audit below says how much was lost.
+          harnessFail(err.message, err.detail);
+        } else {
+          setWhere(`${v.w}x${v.h}`);
+          fail(`the ${v.w}x${v.h} run (it threw before it finished)`,
+            'the viewport to run to completion',
+            (err && err.stack ? err.stack.split('\n').slice(0, 4).join(' | ') : String(err)));
+        }
+      }
     }
   } finally {
     if (server) server.close();
   }
 
   setWhere('-');
+  setPhase('-');
   const failed = results.filter(r => !r.ok);
+  const audit = auditCount();
+
   console.log(`\n${'='.repeat(80)}`);
-  console.log(`${results.length} assertions, ${results.length - failed.length} passed, ${failed.length} failed`);
+  reportCount(audit);
+  console.log(`\n${results.length} assertions, ${results.length - failed.length} passed, ${failed.length} failed`);
   if (failed.length) {
     console.log('\nfailures:');
     for (const f of failed) {
@@ -1509,11 +1789,57 @@ async function main() {
       console.log(`           found:    ${f.found}`);
     }
   }
-  console.log(failed.length ? 'VERDICT: the page has regressed' : 'VERDICT: clean');
-  return failed.length ? 1 : 0;
+
+  // THE COUNT, judged. Short is a failure however many passed, and so is a stray assertion nobody
+  // declared: both mean the run and the suite's own statement of intent disagree.
+  const short = audit.rows.filter(r => r.got !== r.count);
+  if (short.length || audit.strays.length || results.length !== EXPECTED_ASSERTIONS) {
+    console.log('\nthe suite did not run the assertions it says it intends:');
+    for (const r of short) {
+      console.log(`  ${r.where} ${r.name}: intended ${r.count}, ran ${r.got}`);
+    }
+    for (const s of audit.strays) {
+      console.log(`  ${s.where} ${s.phase}: ${s.n} assertion(s) in no declared phase`);
+    }
+    if (results.length !== EXPECTED_ASSERTIONS) {
+      console.log(`  the total: EXPECTED_ASSERTIONS says ${EXPECTED_ASSERTIONS}, ${results.length} were recorded`);
+    }
+    harnessFail('the suite ran fewer assertions than it intends, or ran ones it never declared',
+      'A verdict on a partial suite is the failure build/model.py\'s terminator exists to stop:\n' +
+      'every assertion that did run can pass and the run still says nothing about the rest.');
+  }
+
+  if (harnessFindings.length) {
+    console.log('\nharness findings, which are about the runner and not about the page:');
+    for (const h of harnessFindings) {
+      console.log(`  ${h.what}`);
+      if (h.detail) console.log(String(h.detail).split('\n').map(l => '    ' + l).join('\n'));
+    }
+  }
+
+  // Three verdicts, and the order between them is a claim about evidence. A failed assertion is
+  // evidence about the page and outranks a harness finding, so a run that lost a viewport AND
+  // found a real regression reports the regression. A run with no failed assertion and a harness
+  // finding has no evidence about the page at all and must not be read as either verdict about it.
+  console.log();
+  if (failed.length) {
+    console.log('VERDICT: the page has regressed');
+    if (harnessFindings.length) {
+      console.log('         and the harness failed as well, so this verdict is about the part that ran.');
+    }
+    return 1;
+  }
+  if (harnessFindings.length) {
+    console.log('VERDICT: the suite could not answer. This is a harness failure, not a page regression:');
+    console.log('         everything that ran passed, and what did not run is not evidence about the page.');
+    return 2;
+  }
+  console.log(`VERDICT: clean, all ${EXPECTED_ASSERTIONS} of the assertions it intends`);
+  return 0;
 }
 
 main().then(code => process.exit(code)).catch(err => {
   console.error('\nthe suite could not run:\n' + (err && err.message ? err.message : err));
+  console.error('\nVERDICT: the suite could not answer. This is a harness failure, not a page regression.');
   process.exit(2);
 });
