@@ -97,8 +97,9 @@ Six places where the mistake is made hard rather than remembered against.
   and the cost was an agent withholding a lesson rather than repointing them by adding it, issue
   54.
 - **One entrypoint, so the list is not reconstructed from prose.** `scripts/verify.sh` runs, in
-  order, the syntax check on every shipped script, the layout reproducibility check, both gates
-  with their self-tests, the local token grep and the smoke suite. Every one of those already
+  order, the syntax check on every shipped script, the layout reproducibility check, the
+  provenance gate's self-test, both content gates with their self-tests, the local token grep and
+  the smoke suite. Every one of those already
   existed and every one was findable only by reading a different paragraph of a different file,
   which makes the list a thing somebody rebuilds by hand and therefore a thing somebody rebuilds
   short. A step that cannot run says `[SKIP]` and why, because a clean run that skipped two checks

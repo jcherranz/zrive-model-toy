@@ -193,22 +193,27 @@ echo "python: $(python3 --version 2>/dev/null || echo 'not found')"
 step "1. every shipped script parses"                     check_syntax
 step "2. nothing is untracked, so the gates see everything" check_untracked
 step "3. the layout rebuilds byte for byte"               check_layout_reproducible
-step "4. prove the repository gate fires"                 bash scripts/check_repo.sh --self-test
-step "5. repository gate, over every tracked file"        bash scripts/check_repo.sh
-step "6. prove the deployed-bytes gate fires"             bash scripts/check_forbidden.sh --self-test
+# The provenance gate runs inside build/build_layout.py on every build, so step 3 already
+# exercises it against the real document. This is the other half of the TPS rule: a gate that
+# has never been seen to refuse is not a gate, so one synthetic document per rule, each one a
+# document that PASSES with a single field changed. Issue 73.
+step "4. prove the provenance gate fires"                 python3 build/model.py --provenance-self-test
+step "5. prove the repository gate fires"                 bash scripts/check_repo.sh --self-test
+step "6. repository gate, over every tracked file"        bash scripts/check_repo.sh
+step "7. prove the deployed-bytes gate fires"             bash scripts/check_forbidden.sh --self-test
 
 if [ -n "$ORIGIN" ]; then
-  step "7. deployed-bytes gate, against $ORIGIN"          bash scripts/check_forbidden.sh "$ORIGIN"
+  step "8. deployed-bytes gate, against $ORIGIN"          bash scripts/check_forbidden.sh "$ORIGIN"
 else
-  skip "7. deployed-bytes gate, against the origin" \
+  skip "8. deployed-bytes gate, against the origin" \
        "no origin given. It fetches the published files over HTTP and has nothing to read without one; pass a url to run it. It runs in CI after every deploy, in pages.yml."
 fi
 
-step "8. the local token grep, against site/"             check_token_grep
-step "9. the smoke suite, against this working tree"      node scripts/smoke.mjs
+step "9. the local token grep, against site/"             check_token_grep
+step "10. the smoke suite, against this working tree"     node scripts/smoke.mjs
 
 if [ -n "$ORIGIN" ]; then
-  step "10. the smoke suite, against $ORIGIN"             node scripts/smoke.mjs "$ORIGIN"
+  step "11. the smoke suite, against $ORIGIN"             node scripts/smoke.mjs "$ORIGIN"
 fi
 
 # ---------------------------------------------------------------------------------------------

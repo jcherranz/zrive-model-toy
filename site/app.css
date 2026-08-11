@@ -1230,6 +1230,22 @@ body.hide-ghosts .ghost { display: none; }
    reader could name. */
 .node.sel .lbl-tail { font-weight: 400; }
 
+/* ---- where the values above came from, issue 73 -------------------------------
+   Deliberately the quietest thing in the panel. It is the same 11px muted register as the hint
+   under the student list link, it takes no rule of its own above it, and it carries no colour:
+   a provenance that shouted would compete with the values it is about, and every value on this
+   page has the same one. It reads as a footnote because on this document it IS one. On a
+   private deployment reading real systems the counts would differ from node to node and it
+   would start earning attention on its own, which is the state the sentence is written for. */
+.pprov {
+  margin: 12px 0 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--fg-muted);
+}
+
+.pprov:empty { display: none; }
+
 /* ---- the way from a card that stands for many to the list of them ------------ */
 .pmore {
   margin-top: 18px;

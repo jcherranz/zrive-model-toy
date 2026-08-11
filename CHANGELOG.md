@@ -11,6 +11,40 @@ of what changed and when, and it is meant to be scannable.
 
 ### Changed
 
+- Every value says where it came from and when it was read, #60 seam 5, #73. The scheme is the
+  Z-Map's, not one invented here: a rank per value, a read date per value, and `status` and `apto`
+  computed by every reader and written down nowhere. `build/model.py` ranks each row, the
+  vocabularies and the clock ship in `site/instance.js` beside #72's registry, and `selection.js`
+  puts one muted line at the foot of the panel.
+- **The document was not uniform, which is the finding.** 2157 values, and 992 of them, the four
+  registry rows on each of 248 nodes, were read off the ontology analysis they each cite. The
+  other 1165 were made up. Those two populations had rendered identically since day one. The four
+  are `3_observed` and undated, because #72's registry says on all seventeen classes that no
+  system here has ever been reached and this repository does not record when the analysis was
+  read; a plausible date would compute to `fresh` and make an undated finding read as current.
+  Undated computes to `unread`, and **0 of 2157 values are fit to act on**, which is the honest
+  answer rather than a failure.
+- **Being invented is a provenance state**, `0_invented`, a rank below the Z-Map's three because
+  no Z-Map row is invented and it never needed one. An invented value carries no read date and
+  the build refuses one written onto it.
+- **The gate refuses a document that mixes states, in both directions.** A document declares one
+  stance: an `invented` one may carry no value computing to apto, a `live` one may carry no
+  invented value. Copied at the Z-Map's own level, which is the document and not the row: its map
+  keeps every stale row and refuses the export. Eleven rules in `check_provenance()`, run from
+  `build/build_layout.py` on whatever document is being laid out, so a private deployment's own
+  document meets the same gate. The sharpest asks #72's registry, in the same document, whether
+  anything has ever reached the system a value claims to have been read from.
+- `python3 build/model.py --provenance-self-test`, 20 probes, wired into `verify.sh` and
+  `build.yml`. Two controls first, since a probe proves nothing unless its control is known to
+  clear the same gate. Seven more refusals were demonstrated against the real build.
+- **One departure from the Z-Map, argued.** Its windows are multiplied by seniority because
+  juniors churn fastest, which is a measurement. Nothing here has measured how fast anything goes
+  out of date, so one window is declared for every class rather than seven invented multipliers.
+  120 and 240 days are the Z-Map's own.
+- Nothing else moved: 85 `no system holds it` marks across seven views before and after, node
+  counts unchanged on all seven, the seven layout digests are the only geometry bytes that
+  differ, and **`scripts/smoke.mjs` was not touched**, 70 assertions, 70 passed, none edited.
+  Third structural change it has survived untouched.
 - `site/app.js` is five files, #60 seam 2, #71. 1673 lines and four concerns became `render.js`,
   the drawing painted from geometry; `viewport.js`, pan, zoom and fit, which is three numbers;
   `selection.js`, what is picked, what that dims and what it reveals; `router.js`, the addresses

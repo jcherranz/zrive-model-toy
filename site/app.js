@@ -177,6 +177,12 @@
     rosterRoute: router.rosterRoute,
     typeLabel: render.typeLabel,
     typeColor: render.typeColor,
+    // Issue 73, seam 5. The document's own stance, clock and vocabularies, handed over rather
+    // than read off the global: a panel that reached for window.GI would be a second reader of
+    // the instance document and would keep working after this file stopped handing it one,
+    // which is how a module stops being a module. It is a top-level block and not a per view
+    // one, because a provenance is a fact about the document and not about the drawing.
+    provenance: GI && GI.provenance,
     onReveal: function (n) { viewport.ensureVisible(n); }
   });
 

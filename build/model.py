@@ -4,6 +4,7 @@
 # the session titles (published on the company's own public website) and the names of firms
 # that are companies rather than people. All teacher names are invented. All identifiers,
 # dates, counts and money figures are invented. No value in this file is measured.
+import datetime
 import hashlib
 import math
 import pathlib
@@ -49,8 +50,150 @@ E = "estimated"
 A = "absent"
 
 
-def p(name, value, flag):
-    return {"k": name, "v": value, "f": flag}
+# ---- provenance, issue 73, seam 5 --------------------------------------------
+# A management tool needs three things about a value that this model has never carried: where it
+# came from, when it was read, and whether that is still good enough to act on. The flag above
+# answers none of them. `dummy` says what KIND of value it is; it says nothing about where the
+# value came from, which is why an `estimated` route row citing a real analysis and an
+# `estimated` tile value somebody made up have looked identical on this page since day one.
+#
+# NOTHING HERE IS INVENTED. The Z-Map solves this exact problem, it is house doctrine, and its
+# schema note is the specification this block was written against:
+# 02_areas/zrive/03_resources/professional_map/_doc/Z-Map, esquema.md, version 2.2. Four things
+# are copied and one is deliberately not.
+#
+#   COPIED, the two rules it says hold the whole model up.
+#   1. Every row carries its source and a `source_rank`. Authority is a property of the SOURCE
+#      and never a feeling about the row. Here: every value carries `r`, a rank, and `at`, the
+#      date the source was read.
+#   2. A row nobody has verified is refused by a gate rather than quietly used. There, a blank
+#      `last_verified_on` computes to `partial`, `partial` is not `apto`, and no student-facing
+#      document may name a person from outside `apto`. Here, `at` null computes to `unread`,
+#      `unread` is not apto, and check_provenance() below refuses.
+#
+#   COPIED, computed and never typed. The Z-Map says "`status` and `apto` are computed, never
+#   typed". So neither is in this document. The panel computes them from `r`, `at` and the
+#   clock, and the gate refuses a row that carries either as a field, because a typed status is
+#   a status that can be typed wrong and nothing downstream would know.
+#
+#   COPIED, the windows. Fresh to 120 days, aging to 240, verbatim from the Z-Map's Tier A clock.
+#
+#   NOT COPIED, and this is the one departure worth arguing. The Z-Map multiplies its windows by
+#   seniority, because juniors churn fastest, and that multiplier is a measurement of a real
+#   population. Nothing in this repository has measured how fast anything here goes out of date,
+#   so seven per-class multipliers would be seven invented numbers wearing a measurement's
+#   clothes, which is the failure this whole seam exists to prevent. One window is declared for
+#   every class instead. Where a per-class window would eventually go is already built: the
+#   registry entry for the class, whose `event` field is what would set it.
+#
+# THE HARD PART, AND IT IS NOT DODGED: EVERY VALUE HERE IS INVENTED, SO WHAT DOES `at` MEAN?
+# The honest answer is that being invented IS a provenance state, and it is the one the Z-Map
+# never needed a rank for because no Z-Map row is invented. So the rank vocabulary is the
+# Z-Map's three with a fourth BELOW them, and it is where all but four rows of every node sit.
+# An invented value has no read date, because there was no read; `at` is null and the gate
+# refuses a date written onto one, since a date on a read that never happened is the exact lie
+# the scheme is built to make impossible.
+#
+# AND THE DOCUMENT TURNED OUT NOT TO BE UNIFORM, WHICH IS THE FINDING. The four route rows at
+# the front of every node are NOT invented. They are read off the ontology analysis and each one
+# already cites where: `route_source` reads "ontology.yaml, Programme, finding F25". So this
+# document carries two populations that have been rendered identically, and the reader has had
+# no way at all to tell a real finding about Zrive's systems from a number made up to fill a
+# tile. Ranking them apart is the whole of what this seam adds to what a reader can see.
+#
+# WHY THE ROUTE ROWS ARE `3_observed` AND NOT `1_official`, checked against seam 3 rather than
+# chosen. `1_official` is a read of the record the holding system keeps. Issue 72's registry
+# says, for all seventeen classes, that the read state is `no-source` or `not-attempted`:
+# nothing here has ever reached a system. A value claiming to be read from a system's own record
+# would contradict the registry sitting beside it in the same document, and check_provenance()
+# refuses exactly that pair. What was read is an analysis OF the systems, which is what
+# `3_observed` means. Undated, because the analysis dates are not recorded in this repository and
+# a plausible date is worse than none: it would compute to `fresh` and the value would read as
+# current. Undated computes to `unread` and is refused, which is the correct answer.
+INVENTED = "0_invented"
+OFFICIAL = "1_official"
+CONFIRMED = "2_confirmed"
+OBSERVED = "3_observed"
+
+# The Z-Map's `source_rank` vocabulary, its three definitions kept, plus the rank it never
+# needed. Ships with the document like issue 72's vocabularies, so a reader of site/instance.js
+# has the meaning of every token without reading Python.
+VALUE_RANK = {
+    INVENTED: "nothing was read. The value was made up so that the drawing has something to "
+              "draw, and it stands in for a value some system would hold",
+    OFFICIAL: "read from the record the holding system itself keeps, or from a signed document",
+    CONFIRMED: "somebody who would know stated it",
+    OBSERVED: "read off an analysis of the systems, or inferred from one",
+}
+
+# Computed from the rank, the read date and the clock. Never written into the document: a value
+# carries the two facts and every reader derives the same answer from them.
+VALUE_STATUS = {
+    "invented": "nothing was read, so no clock applies and it is never fit to act on",
+    "unread": "a source is named and no date says when it was read, so nothing can say whether "
+              "the value is still true. The Z-Map's `partial`",
+    "fresh": "read inside the fresh window",
+    "aging": "read inside the aging window, and due",
+    "stale": "read longer ago than the aging window",
+}
+
+# What kind of estate a whole document describes. One document, one stance: the point of the
+# field is that mixing them is what the gate refuses.
+STANCE = {
+    "invented": "every value in this document stands in for one. Nothing in it may be acted on, "
+                "and the public deployment is this one",
+    "live": "the values in this document were read from the systems that hold them",
+}
+
+# The Z-Map's `apto`, and the name is kept because the rule is house doctrine and renaming a
+# doctrine is how two copies of it drift.
+APTO = ("fresh", "aging")
+
+FRESH_DAYS = 120
+AGING_DAYS = 240
+
+# This document's own stance, and the date its provenance was last established.
+#
+# THE DATE IS DECLARED AND IS NOT READ OFF THE CLOCK, which is not a shortcut. site/instance.js
+# is committed and the build gate deletes it, rebuilds and compares byte for byte; a document
+# carrying today's date rebuilds to different bytes tomorrow and the gate would fail every day
+# for the one reason that is not a defect. So the build stamp is typed, and it is a fact about
+# the document rather than a claim about any read: what it is used for is refusing a value read
+# after the document was written.
+PROVENANCE_STANCE = "invented"
+PROVENANCE_AS_OF = "2026-08-11"
+
+
+def value_status(rank, at, as_of, fresh_days=FRESH_DAYS, aging_days=AGING_DAYS):
+    """The Z-Map's `status`, computed and never typed. `at` null is its `partial`.
+
+    The windows are arguments and not constants because a document declares its own clock: a
+    private deployment laid out through --instance carries different systems and may have
+    different windows, and reading this repository's numbers while laying out that document is
+    the same class of mistake seam 1 and issue 72 each refused once already.
+    """
+    if rank == INVENTED:
+        return "invented"
+    if not at:
+        return "unread"
+    days = (datetime.date.fromisoformat(as_of) - datetime.date.fromisoformat(at)).days
+    if days <= fresh_days:
+        return "fresh"
+    if days <= aging_days:
+        return "aging"
+    return "stale"
+
+
+def p(name, value, flag, rank=INVENTED, at=None):
+    """One property row: what it is called, what it says, what kind of value it is, and now
+    where it came from and when that was read.
+
+    The rank defaults to `0_invented` because every value written by hand in this file is
+    invented, and a default that had to be remembered on two thousand rows is a default that
+    would be forgotten on one of them. The four registry rows are the only ones that pass
+    anything else, and they pass it in one place, route_props().
+    """
+    return {"k": name, "v": value, "f": flag, "r": rank, "at": at}
 
 
 # ---- the populate route, and it is a registry rather than a caption -----------
@@ -296,12 +439,21 @@ def route_props(entry):
 
     The strings are #4's, unchanged. The flags are read off the machine fields, so a row that
     records an absence and a field saying nothing holds it cannot come apart.
+
+    ISSUE 73 IS THE RANK. These four are the only rows in this model that were read off
+    anything: an ontology of 55 entities and a read of the company's own workspace, cited on the
+    fourth row of every panel. `3_observed`, because what was read is an analysis OF the systems
+    and issue 72's registry says on every one of the seventeen classes that no system here has
+    ever been reached. Undated, because this repository does not record when the analysis was
+    read and a plausible date would compute to `fresh` and make an undated finding read as a
+    current one. Passed here rather than at each of the seventeen call sites: a rank written
+    seventeen times is a rank sixteen of them can drift from.
     """
     says = ROUTE_SAYS[entry["id"]]
-    return [p("route_system", says[0], E if entry["attachable"] else A),
-            p("route_entered_by", says[1], FIELD_FLAG[entry["entered_by"]["status"]]),
-            p("route_event", says[2], FIELD_FLAG[entry["event"]["status"]]),
-            p("route_source", entry["source"], E)]
+    return [p("route_system", says[0], E if entry["attachable"] else A, OBSERVED),
+            p("route_entered_by", says[1], FIELD_FLAG[entry["entered_by"]["status"]], OBSERVED),
+            p("route_event", says[2], FIELD_FLAG[entry["event"]["status"]], OBSERVED),
+            p("route_source", entry["source"], E, OBSERVED)]
 
 
 route_class(
@@ -1793,6 +1945,12 @@ _strings += [(f"registry vocabulary {_name}", _s)
                                  ("key", KEY_STATE), ("field", FIELD_STATE), ("role", ROLE),
                                  ("absence", ABSENCE), ("caveat", CAVEAT))
              for _tok, _why in _tbl.items() for _s in (_tok, _why)]
+# The provenance vocabularies ship on the public page for the same reason the registry's do, so
+# they go through the same folding. Issue 73.
+_strings += [(f"provenance vocabulary {_name}", _s)
+             for _name, _tbl in (("rank", VALUE_RANK), ("status", VALUE_STATUS),
+                                 ("stance", STANCE))
+             for _tok, _why in _tbl.items() for _s in (_tok, _why)]
 for _v in VIEWS:
     for _n in _v["nodes"]:
         _w = f"{_v['key']} node {_n['id']}"
@@ -2075,6 +2233,158 @@ def emit_contrast():
     print(f"#rows|{len(rows)}")
 
 
+# ---- the provenance gate, and the point of a gate is that it refuses ---------
+# Issue 73. The Z-Map's second load-bearing rule is that freshness is only worth maintaining if
+# something downstream refuses to act on a stale row, so this is the something. It runs on the
+# EMITTED DOCUMENT and not on the code that writes it, for seam 1's reason: the code that writes
+# it is the code that would be wrong. And it runs inside build/build_layout.py, on whatever
+# document is being laid out, so a private deployment's own document is refused by the same
+# eleven rules as this one rather than by nobody.
+#
+# WHAT IT REFUSES, AND THE FIRST QUESTION TO ANSWER IS WHY IT DOES NOT REFUSE EVERYTHING. Not one
+# value in this document is apto. Every row is either invented or read and undated, and a gate
+# reading "refuse to present a value that is not apto" would blank the page on the first run.
+# That is not a reason to weaken it; it is a sign the rule was copied at the wrong level. The
+# Z-Map's own gate is not on the row either. The map holds every row it has, including the stale
+# ones and the unverified ones. What is refused is a DOWNSTREAM USE: "no placement claim, target
+# list, introduction request or student-facing document may name a person or a team from outside
+# `apto`". The row is kept and marked; the export is refused.
+#
+# So the level that copies across is the DOCUMENT. A document declares one stance, and the gate
+# refuses a document that mixes states, in both directions:
+#
+#   an `invented` document may carry no value that computes apto. A number on the public page
+#   that reads as current and fit to act on is exactly invariant 7, and it would be indetectable
+#   among two thousand invented ones.
+#
+#   a `live` document may carry no invented value. An invented number in a management tool,
+#   rendered identically to a read one, is the failure this entire seam exists to prevent and it
+#   is worse than the tool showing nothing.
+#
+# The other nine rules are the ways one row could be wrong while still looking right in a panel.
+# The sharpest is `official-needs-a-read`, which is not a provenance rule at all on its own: it
+# asks issue 72's registry, in the same document, whether the system holding this class has ever
+# been reached, and refuses a value claiming to be read from a record when the registry says
+# nothing has read it. Two seams that could have disagreed silently now cannot.
+#
+# Every rule is named, and build/model.py --provenance-self-test builds one synthetic document
+# per rule and asserts it trips, per TPS.md: a gate is proved armed before it is trusted, and a
+# gate never seen to refuse is not a gate.
+def check_provenance(doc):
+    """Refuse an instance document whose values do not say honestly where they came from."""
+    def bad(rule, why):
+        raise SystemExit(f"[provenance] {rule}: {why}")
+
+    pr = doc.get("provenance")
+    if not isinstance(pr, dict):
+        bad("document-block", "the document declares no provenance block. Every value in it "
+                              "would then carry a rank nothing defines and a stance nothing "
+                              "states.")
+    stance, as_of, clock = pr.get("stance"), pr.get("as_of"), pr.get("clock")
+    vocab = pr.get("vocab") if isinstance(pr.get("vocab"), dict) else {}
+    ranks = vocab.get("rank") if isinstance(vocab.get("rank"), dict) else None
+    if not ranks or not isinstance(vocab.get("status"), dict) \
+            or not isinstance(vocab.get("stance"), dict):
+        bad("document-block", "the provenance block ships no vocabulary for its ranks, its "
+                              "statuses and its stances. A token whose meaning is only in the "
+                              "program that wrote it is not machine readable.")
+    if stance not in vocab["stance"]:
+        bad("document-block", f"stance {stance!r} is not one of {sorted(vocab['stance'])}")
+    try:
+        datetime.date.fromisoformat(as_of or "")
+    except (TypeError, ValueError):
+        bad("document-block", f"as_of {as_of!r} is not a date. It is what a read date is judged "
+                              f"against, so a document without one cannot age anything.")
+    if not isinstance(clock, dict) or set(clock) != {"fresh_days", "aging_days"} \
+            or not all(isinstance(clock[k], int) and clock[k] > 0 for k in clock) \
+            or clock["fresh_days"] > clock["aging_days"]:
+        bad("document-block", f"the clock {clock!r} is not two positive day counts with the "
+                              f"fresh window inside the aging one. Staleness has to be "
+                              f"computable, which is the whole of what this block is for.")
+
+    classes = doc.get("routes", {}).get("classes", {})
+    seen = 0
+    for v in doc["views"]:
+        for n in v["nodes"]:
+            where = f"{v['key']} node {n['id']}"
+            registry_rows = n.get("route") or 0
+            for i, row in enumerate(n["props"]):
+                seen += 1
+                at, rank = row.get("at"), row.get("r")
+                what = f"{where} row {row['k']!r}"
+                # A status or an apto somebody could type is a status somebody could type
+                # wrong, and every reader downstream would believe it. The Z-Map says both are
+                # computed and never typed, so neither is a field here.
+                for typed in ("status", "apto"):
+                    if typed in row:
+                        bad("computed-not-typed",
+                            f"{what} carries a {typed!r} field. It is computed from the rank, "
+                            f"the read date and the clock, by every reader, and a written one "
+                            f"can disagree with the two facts it was supposed to follow from.")
+                if rank not in ranks:
+                    bad("rank-vocabulary",
+                        f"{what} is ranked {rank!r}, which is not one of {sorted(ranks)}")
+                if rank == INVENTED and at is not None:
+                    bad("invented-carries-no-read-date",
+                        f"{what} was invented and carries the read date {at!r}. Nothing was "
+                        f"read, so there is no date, and a date here would age in the clocks "
+                        f"exactly as a real one does.")
+                if at is not None:
+                    try:
+                        read = datetime.date.fromisoformat(at)
+                    except (TypeError, ValueError):
+                        read = None
+                        bad("read-date-is-a-date",
+                            f"{what} carries the read date {at!r}, which is not a date")
+                    if read > datetime.date.fromisoformat(as_of):
+                        bad("read-from-the-future",
+                            f"{what} was read on {at}, after this document was written on "
+                            f"{as_of}. One of the two dates is wrong and the value would "
+                            f"compute fresh forever.")
+                st = value_status(rank, at, as_of, clock["fresh_days"], clock["aging_days"])
+                if st not in vocab["status"]:
+                    bad("document-block", f"{what} computes to {st!r}, which the document's own "
+                                          f"status vocabulary does not define")
+                # The two halves of the stance gate.
+                if stance == "invented" and st in APTO:
+                    bad("stance-invented-refuses-apto",
+                        f"{what} computes to {st!r}, which is fit to act on, in a document "
+                        f"whose stance is invented. Every other value on this page stands in "
+                        f"for one and renders identically, so a reader would have no way to "
+                        f"tell this one apart. One document, one stance.")
+                if stance == "live" and rank == INVENTED:
+                    bad("stance-live-refuses-invented",
+                        f"{what} was invented, in a document whose stance is live. A made up "
+                        f"number beside read ones, rendered the same way, is worse than the "
+                        f"tool showing nothing.")
+                # Where the registry rows stop is where the invented ones start, and both
+                # directions are the finding. It is written down here so that it stays true.
+                if i < registry_rows and rank == INVENTED:
+                    bad("registry-row-invented",
+                        f"{what} is one of the {registry_rows} rows issue 72's registry "
+                        f"produced, and it is ranked invented. Those rows are read off the "
+                        f"analysis each of them cites.")
+                if i >= registry_rows and stance == "invented" and rank != INVENTED:
+                    bad("toy-value-not-invented",
+                        f"{what} is one of this node's own values in a document whose stance is "
+                        f"invented, and it is ranked {rank!r}. Every value in this model except "
+                        f"the registry rows was made up.")
+                # Seam 5 asking seam 3, in the one document that carries both.
+                if rank == OFFICIAL:
+                    entry = classes.get(n.get("class"))
+                    read_state = entry.get("read") if entry else None
+                    if read_state in ("no-source", "not-attempted"):
+                        bad("official-needs-a-read",
+                            f"{what} claims to be read from the record its holding system "
+                            f"keeps, and the registry entry for class {n.get('class')!r} in "
+                            f"this same document says the read state is {read_state!r}. "
+                            f"Nothing has reached that system.")
+    if not seen:
+        bad("empty-input", "no value in this document carries a provenance, so this gate "
+                           "examined nothing and would report clean on any document at all.")
+    return seen
+
+
 # ---- the instance document --------------------------------------------------
 # Issue 60, seam 1. What this file has to say about the world, and nothing about where any of it
 # is drawn. Until this card the model and the geometry were one blob, site/graph.js, and changing
@@ -2119,6 +2429,23 @@ def instance_document():
                              "field": FIELD_STATE, "role": ROLE, "absence": ABSENCE,
                              "caveat": CAVEAT},
                    "classes": ROUTES},
+        # ---- provenance, issue 73 -------------------------------------------------------------
+        # What kind of estate this document describes, the date its provenance was established,
+        # the clock staleness is computed against, and the vocabularies for the three tokens a
+        # value's provenance is written in. Beside the registry and not inside it: a route is a
+        # fact about a class and a provenance is a fact about a value, and issue 72's own note
+        # says which grain each question belongs to.
+        #
+        # `status` and `apto` are absent on purpose and their absence is the doctrine. Every
+        # reader computes them from a value's `r` and `at` against this clock, so there is no
+        # written answer for a written answer to be wrong about.
+        "provenance": {
+            "stance": PROVENANCE_STANCE,
+            "as_of": PROVENANCE_AS_OF,
+            "clock": {"fresh_days": FRESH_DAYS, "aging_days": AGING_DAYS},
+            "apto": list(APTO),
+            "vocab": {"rank": VALUE_RANK, "status": VALUE_STATUS, "stance": STANCE},
+        },
         "views": [{
             "key": v["key"], "code": v["code"], "name": v["name"], "label": v["label"],
             "route": "#/p/" + v["key"],
@@ -2144,9 +2471,134 @@ def instance_document():
     }
 
 
+# ---- proving the provenance gate is armed ------------------------------------
+# TPS.md: each gate is proved armed before it is trusted, and every workflow runs the relevant
+# self-test alongside the live check. One synthetic document per rule, each one differing from a
+# document that PASSES by exactly the mutation under test, which is the part that matters: a
+# probe that trips a gate proves nothing unless its control is known to clear the same gate, and
+# a control nobody checks is how a dead one survives. The control is asserted first and every
+# probe is built from it.
+def _probe_doc(stance="invented"):
+    """The smallest document this gate accepts. Two rows, one registry and one of the node's
+    own, which is the shape of every node in the real one."""
+    return {
+        "provenance": {
+            "stance": stance,
+            "as_of": PROVENANCE_AS_OF,
+            "clock": {"fresh_days": FRESH_DAYS, "aging_days": AGING_DAYS},
+            "apto": list(APTO),
+            "vocab": {"rank": VALUE_RANK, "status": VALUE_STATUS, "stance": STANCE},
+        },
+        "routes": {"classes": {"probe": {"read": "not-attempted"}}},
+        "views": [{"key": "PROBE", "nodes": [{
+            "id": "n1", "class": "probe", "route": 1,
+            "props": [p("route_system", "a system holds it", E, OBSERVED),
+                      p("a_value", "12", D)],
+        }]}],
+    }
+
+
+def _probe(doc, row=None, node=None, prov=None, drop_prov=False):
+    """The control with one thing changed, so a probe and its control differ by that alone."""
+    d = _probe_doc(doc)
+    if drop_prov:
+        del d["provenance"]
+    if prov:
+        d["provenance"].update(prov)
+    if node:
+        d["views"][0]["nodes"][0].update(node)
+    if row is not None:
+        d["views"][0]["nodes"][0]["props"][row[0]].update(row[1])
+    return d
+
+
+def provenance_self_test():
+    ok = 0
+    total = 0
+
+    def expect(rule, doc, what):
+        nonlocal ok, total
+        total += 1
+        try:
+            check_provenance(doc)
+        except SystemExit as e:
+            got = str(e).split(":", 1)[0].replace("[provenance] ", "")
+            if got == rule:
+                ok += 1
+                print(f"  [OK]   {rule}: {what}")
+            else:
+                print(f"  [FAIL] {rule}: {what}. It refused, and for {got!r} instead.")
+            return
+        print(f"  [FAIL] {rule}: {what}. It did NOT refuse.")
+
+    def expect_clean(doc, what):
+        nonlocal ok, total
+        total += 1
+        try:
+            n = check_provenance(doc)
+        except SystemExit as e:
+            print(f"  [FAIL] control: {what}. It refused: {e}")
+            return
+        ok += 1
+        print(f"  [OK]   control: {what} ({n} value(s) examined)")
+
+    # The controls first. A probe below is this document with one field changed, so if either of
+    # these ever fails the probes stop meaning anything at all.
+    expect_clean(_probe_doc(), "the synthetic document every probe is built from passes")
+    expect_clean(_probe("live", row=(1, {"r": OBSERVED, "at": "2026-08-01"})),
+                 "a live document whose values were read and dated passes")
+
+    expect("document-block", _probe("invented", drop_prov=True),
+           "a document with no provenance block at all")
+    expect("document-block", _probe("invented", prov={"stance": "hopeful"}),
+           "a stance the document's own vocabulary does not define")
+    expect("document-block", _probe("invented", prov={"as_of": "soon"}),
+           "an as_of that is not a date, so nothing can be aged against it")
+    expect("document-block",
+           _probe("invented", prov={"clock": {"fresh_days": 400, "aging_days": 10}}),
+           "a clock whose fresh window is wider than its aging window")
+    expect("document-block", _probe("invented", prov={"vocab": {"rank": VALUE_RANK}}),
+           "a provenance block shipping no vocabulary for its statuses and stances")
+    expect("rank-vocabulary", _probe("invented", row=(1, {"r": "9_hoped"})),
+           "a rank in no vocabulary")
+    expect("computed-not-typed", _probe("invented", row=(1, {"status": "fresh"})),
+           "a status typed onto a row instead of computed from it")
+    expect("computed-not-typed", _probe("invented", row=(1, {"apto": True})),
+           "an apto typed onto a row")
+    expect("invented-carries-no-read-date", _probe("invented", row=(1, {"at": "2026-08-01"})),
+           "a read date on a value nothing was read for")
+    expect("read-date-is-a-date", _probe("invented", row=(0, {"at": "last tuesday"})),
+           "a read date that is not a date")
+    expect("read-from-the-future", _probe("invented", row=(0, {"at": "2026-09-01"})),
+           "a value read after the document that carries it was written")
+    expect("stance-invented-refuses-apto",
+           _probe("invented", row=(0, {"r": CONFIRMED, "at": PROVENANCE_AS_OF})),
+           "a value fit to act on, on a page where everything else is invented")
+    expect("stance-live-refuses-invented", _probe("live"),
+           "an invented value in a document that says its values were read")
+    expect("registry-row-invented", _probe("invented", row=(0, {"r": INVENTED})),
+           "a registry row ranked invented, when it cites the analysis it came from")
+    expect("toy-value-not-invented", _probe("invented", row=(1, {"r": OBSERVED})),
+           "one of the model's own made up values ranked as read")
+    expect("official-needs-a-read", _probe("invented", row=(0, {"r": OFFICIAL})),
+           "a value read from a system's own record, on a class the registry says nobody has "
+           "reached")
+    expect("empty-input", _probe("invented", node={"props": []}),
+           "a document with no values in it, which would otherwise report clean")
+
+    # And the document this repository actually ships, which is the only one that matters.
+    expect_clean(instance_document(), "the model's own instance document passes")
+
+    print(f"\nprovenance self-test: {ok}/{total}")
+    if ok != total:
+        raise SystemExit(1)
+
+
 if __name__ == "__main__":
     import sys as _sys
     if _sys.argv[1:] == ["--contrast"]:
         emit_contrast()
+    elif _sys.argv[1:] == ["--provenance-self-test"]:
+        provenance_self_test()
     else:
-        raise SystemExit("usage: model.py --contrast")
+        raise SystemExit("usage: model.py --contrast | --provenance-self-test")

@@ -43,6 +43,52 @@
     { verb: 'member of',   hide: 's', by: 't', together: true }
   ];
 
+  // ---- where a value came from, and whether it is still good enough to act on ---------------
+  // Issue 73, seam 5, and the scheme is the Z-Map's rather than one invented here: every value
+  // carries the rank of its source and the date that source was read, `status` and `apto` are
+  // computed and never written down, and a value nobody has verified is refused rather than
+  // quietly used. The vocabulary and the clock ship in the instance document, so nothing below
+  // holds a copy of a threshold or of a token's meaning.
+  //
+  // THE CLOCK IS READ AGAINST TODAY AND NOT AGAINST THE DOCUMENT'S OWN as_of, which is the one
+  // place this file and the build deliberately disagree. The build has to be deterministic, so
+  // it ages every value against the date stamped on the document; a reader wants to know how old
+  // a value is now. The disagreement is safe in one direction only and that is the direction it
+  // runs: today is never earlier than the stamp, so a value can only read staler here than the
+  // build judged it, and the page can never show as current something the build let through as
+  // stale.
+  var STATUS_ORDER = ['fresh', 'aging', 'stale', 'unread', 'invented'];
+  var DAY = 86400000;
+
+  function statusOf(P, row) {
+    if (row.r === '0_invented') return 'invented';
+    if (!row.at) return 'unread';
+    var days = Math.floor((Date.now() - Date.parse(row.at + 'T00:00:00Z')) / DAY);
+    if (days <= P.clock.fresh_days) return 'fresh';
+    if (days <= P.clock.aging_days) return 'aging';
+    return 'stale';
+  }
+
+  // One sentence about the node's whole property list. A chip on every row was the alternative
+  // and it is the wrong shape here: the rows already carry a flag each, saying what kind of
+  // value it is, and a second chip beside every one of them would be twice the ink for an answer
+  // that is the same on nine rows out of nine. What a reader needs to be told is that this list
+  // is not something to act on, which is a fact about the set.
+  function provenanceLine(P, props) {
+    if (!P || !props.length) return '';
+    var count = {}, apto = 0;
+    props.forEach(function (row) {
+      var st = statusOf(P, row);
+      count[st] = (count[st] || 0) + 1;
+      if (P.apto.indexOf(st) >= 0) apto++;
+    });
+    var parts = STATUS_ORDER.filter(function (st) { return count[st]; })
+                            .map(function (st) { return count[st] + ' ' + st; });
+    return 'provenance: ' + parts.join(', ') + '. '
+           + (apto ? apto + ' of ' + props.length + ' fit to act on.'
+                   : 'Nothing here is fit to act on.');
+  }
+
   var ZM = window.ZM = window.ZM || {};
 
   // opts.svg          the drawing, whose background clears the selection when clicked
@@ -50,11 +96,13 @@
   // opts.rosterRoute  the address of the student list, for the one node that stands for a list
   // opts.typeLabel    a type key to the name the reader is told
   // opts.typeColor    a type key to the paint expression its tiles carry
+  // opts.provenance   the document's stance, clock, apto rule and vocabularies
   // opts.onReveal     called with a node once the panel has taken its bite of the screen
   ZM.selection = function createSelection(opts) {
     var svg = opts.svg, panel = opts.panel;
     var ROSTER_ROUTE = opts.rosterRoute;
     var typeLabel = opts.typeLabel, typeColor = opts.typeColor;
+    var PROV = opts.provenance || null;
     var onReveal = opts.onReveal;
 
     var G = null, nodeById = {}, edgesOf = {}, gfxNode = {}, gfxEdge = [];
@@ -258,6 +306,9 @@
         dl.appendChild(dt);
         dl.appendChild(dd);
       });
+      // Under the list and not beside any one row of it, because it is a fact about the set.
+      // Issue 73.
+      document.getElementById('pprov').textContent = provenanceLine(PROV, n.props);
       // A node that stands for a list says where the list is. Only one node does, and which one is
       // named by the build rather than by an id written here, so a second aggregate would arrive
       // with its own link and this code would not have to learn about it.

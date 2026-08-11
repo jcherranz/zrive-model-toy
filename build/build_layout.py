@@ -31,7 +31,7 @@ import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
-from model import contrast_rows, floor4, instance_document  # noqa: E402
+from model import check_provenance, contrast_rows, floor4, instance_document, value_status  # noqa: E402,E501
 
 COL_W = [166, 232, 122, 124, 80, 102, 92, 92]
 GAP_X, MARGIN_X = 18, 22
@@ -775,6 +775,16 @@ def refuse_mixed(inst, lay):
         if bad:
             sys.exit(f"[layout] the populate registry carries geometry: class {cid} has "
                      f"{', '.join(bad)}. Where a thing is drawn belongs in site/layout.js.")
+    # The provenance block, issue 73. Same reasoning as the registry above, and it is the second
+    # time the reasoning has been needed: a top-level block the node walk cannot see is where the
+    # next geometry key lands. Its clock is walked as well, since two day counts are exactly the
+    # sort of number that reads like a coordinate.
+    prov = inst.get("provenance", {})
+    for label, block in (("provenance", prov), ("provenance clock", prov.get("clock", {}))):
+        bad = sorted(set(block) & GEOMETRY_KEYS)
+        if bad:
+            sys.exit(f"[layout] the {label} block carries geometry: {', '.join(bad)}. "
+                     f"Where a thing is drawn belongs in site/layout.js.")
     for v in inst["views"]:
         for kind in ("nodes", "edges"):
             for o in v[kind]:
@@ -806,6 +816,23 @@ def refuse_mixed(inst, lay):
 
 def build(inst, out_dir):
     """Write both documents for one instance document. Everything read is read from `inst`."""
+    # Issue 73, seam 5. The provenance gate runs HERE, on the document being laid out, and not
+    # inside model.py's own emit. A private deployment reading a real estate is laid out through
+    # --instance and never calls instance_document() at all, so a gate on the model's emit would
+    # be a gate on the one document nobody worries about. It is the first thing done, because a
+    # document whose values do not say where they came from is not a document to lay out.
+    values = check_provenance(inst)
+    _pr = inst["provenance"]
+    _st = {}
+    for _v in inst["views"]:
+        for _n in _v["nodes"]:
+            for _row in _n["props"]:
+                _k = value_status(_row["r"], _row["at"], _pr["as_of"],
+                                  _pr["clock"]["fresh_days"], _pr["clock"]["aging_days"])
+                _st[_k] = _st.get(_k, 0) + 1
+    print(f"  provenance: stance {_pr['stance']}, {values} values, "
+          + ", ".join(f"{_st[k]} {k}" for k in sorted(_st))
+          + f", {sum(_st.get(k, 0) for k in _pr['apto'])} fit to act on")
     # THE COLUMN TABLE IS CHECKED AGAINST THE DOCUMENT'S OWN TYPES rather than trusted. A type
     # added to the model with no column here would otherwise be drawn in column 0, which looks
     # like a layout bug and is a missing table entry.

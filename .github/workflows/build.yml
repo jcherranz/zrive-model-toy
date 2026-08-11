@@ -108,5 +108,12 @@ jobs:
       - name: Prove the build check fires
         run: bash scripts/check_build.sh --self-test
 
+      # The provenance gate, issue 73, runs inside build/build_layout.py, so the step below
+      # already exercises it against the real document on every run. This is the other half of
+      # the same rule: one synthetic document per refusal, each differing from a document that
+      # passes by exactly the field under test.
+      - name: Prove the provenance gate fires
+        run: python3 build/model.py --provenance-self-test
+
       - name: The committed drawing is what the builder produces
         run: bash scripts/check_build.sh
