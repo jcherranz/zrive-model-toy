@@ -2372,10 +2372,10 @@ print(f"[model] session templates: {_n_templates} scanned, none carries a clock,
 # picks a type out by.
 #
 # WHICH SURFACE THE STROKE SITS ON. Established by reading the drawing rather than chosen.
-# app.js draws one `rect.band` per lane before it draws anything else, `.band` is filled with an
-# opaque `var(--bg-panel)` in app.css, the bands span every column of the drawing and run from
-# `bandTop` to four units off the bottom, and every tile is laid out inside a lane. So a tile's
-# stroke sits on the band plate, in both themes, and never on the page ground. The two are
+# site/render.js draws one `rect.band` per lane before it draws anything else, `.band` is filled
+# with an opaque `var(--bg-band)` in app.css, the bands span every column of the drawing and run
+# from `bandTop` to four units off the bottom, and every tile is laid out inside a lane. So a
+# tile's stroke sits on the band plate, in both themes, and never on the page ground. The two are
 # different colours and the difference is not cosmetic: it moves the verdict for two of the
 # twenty-six measurements, Session template and Cohort on the light side, both of which pass on
 # the plate and would fail on the ground. It moved three before the dark siblings landed, the
@@ -2383,15 +2383,47 @@ print(f"[model] session templates: {_n_templates} scanned, none carries a clock,
 # now passes on both. The ground is measured as well and reported for exactly that reason, and
 # it is not the surface anything is judged against.
 #
+# THE PLATE IS ITS OWN TOKEN SINCE ISSUE 81 AND IT IS NO LONGER THE PANEL COLOUR. `.band` was
+# filled with `var(--bg-panel)` until that card softened the lanes onto `var(--bg-band)`, and
+# nothing in this file had to be told: the surface is found by reading the var() out of the
+# `.band` rule, so the measurement followed the paint. What the card actually moved is the
+# denominator of all twenty-six rows, toward the page ground and by a little under half the step
+# in each theme:
+#
+#   light   #ffffff -> #fafbfc   the ground it is stepping toward is #f6f7f9
+#   dark    #252a31 -> #20252c   the ground it is stepping toward is #1c2127
+#
+# In LIGHT every ratio falls, because the plate is moving toward the type colours; the binding
+# one is Session template at 3.1440 -> 3.0346, and the light plate goes exactly as far as that
+# figure allows and stops. In DARK every ratio RISES, because the dark plate is lighter than the
+# dark ground, so stepping back toward the ground is stepping away from the strokes; the lowest
+# is Cohort at 4.5374 -> 4.8431. The card is therefore constrained entirely on the light side,
+# and the dark plate takes the same fraction as light rather than the freedom it has, so that
+# the two themes stay one drawing rather than two.
+#
+# AND A SURFACE THAT USED TO BE COVERED BY ACCIDENT NO LONGER IS. While the plate and the panel
+# were one token, this check happened to measure both: the panel's nine pixel type swatch, which
+# issue 69 left carrying the type colour as a graphical object, is painted on `--bg-panel`, and
+# that was the same hex as the plate. It is not any more. The swatch is not gated here and never
+# was named; on `--bg-panel` unchanged its worst case is Cohort at 4.5374 in dark and the ghost
+# grey at 2.8807 in light, which is the ghost's own declared exception in another place. The
+# hole is stated rather than closed because closing it means a third surface in every row and a
+# parser change in scripts/check_repo.sh, which is a card and not a footnote.
+#
 # THE STROKE HAS TWO NEIGHBOURS AND ONLY ONE OF THEM IS GATED, which is a limit of this check and
 # is written down here rather than left to be found. Outside the stroke is the plate. Inside it
 # is the tile's own wash, a tint of the same hex composited over that plate, which is by
 # construction nearer the stroke colour than the plate is, so the inner comparison is always the
 # harder one. It used to be harder by enough to matter, seven colours clearing 3:1 on the plate
 # and under it against their own fill. The dark siblings took five of those seven with them:
-# what is left is Session template at 2.6905 and Cohort at 2.7477, both on the light side, and
+# what is left is Session template at 2.6156 and Cohort at 2.6517, both on the light side, and
 # the dark side no longer has one. The limit is real and it is now much smaller than the card
-# that named it found it.
+# that named it found it. Those two figures were 2.6905 and 2.7477 before issue 81 softened the
+# plate, and the re-measurement is the point rather than the drop: the wash is composited OVER
+# the plate, so a plate that moves moves both sides of this comparison, and what had to be
+# checked was whether a THIRD colour crossed under. None did, in either theme; in dark every one
+# of the thirteen improved, from a 3.7354 floor to 4.0013. Issue 70 is the card that names this
+# limit and its membership is unchanged.
 #
 # The plate is gated because SC 1.4.11 asks whether an object can be told from what surrounds it,
 # and the fill is part of the object rather than its surroundings: a tile is a stroke and a wash
@@ -2421,11 +2453,20 @@ print(f"[model] session templates: {_n_templates} scanned, none carries a clock,
 # side: the palette is asked for a colour PER GROUND and the check did not move.
 #
 # THE TARGET IS 4.5 AND NOT 3.0, WHICH IS THE ONE DECISION IN HERE. The gate's threshold is 3:1,
-# SC 1.4.11, because a stroke is a boundary. The same thirteen colours are also written as 11px
-# bold text at the head of the detail panel, which is SC 1.4.3 and 4.5:1, and app.js writes that
-# colour inline, so no stylesheet reaches it. One number fixes both surfaces, and it is the
+# SC 1.4.11, because a stroke is a boundary. The same thirteen colours were also written as 11px
+# bold text at the head of the detail panel, which is SC 1.4.3 and 4.5:1, and app.js wrote that
+# colour inline, so no stylesheet reached it. One number fixed both surfaces, and it was the
 # higher one. Every sibling holds the other one's hue and its saturation and moves only its
 # lightness, so a type is the same colour in both themes and not a different one.
+#
+# THAT REASON EXPIRED AND THE HEXES DID NOT FOLLOW IT OUT, which is issue 74 and is named here
+# rather than acted on. Issue 69 repainted the panel's caption --fg-muted and left the type
+# colour there as a nine pixel swatch, which is a graphical object at 3:1, so nothing on the page
+# asks 4.5 of these thirteen any more. Ten of them are still carrying a lightness chosen for a
+# label that no longer takes them. Issue 81 makes that visible without changing it: on the
+# softened light plate five colours that cleared 4.5 no longer do, Instructor at 4.3449, Cohort
+# session at 4.4550, Students at 4.4522, Enrolment at 4.4589 and Claim at 4.4046, and not one of
+# them owes it. Whoever takes 74 decides what the target is; this file states what it was.
 #
 # THE LIGHT HALF MOVED TOO, UNDER ISSUE 65, AND THE MAP IS NOW READ IN BOTH DIRECTIONS. Issue 56
 # raised lightness to clear the dark plate. Three light colours had been under 3:1 against the
@@ -2454,11 +2495,14 @@ print(f"[model] session templates: {_n_templates} scanned, none carries a clock,
 # back and the only thing that returns is the collision.
 #
 # THE GHOST GREY DID NOT MOVE AND THAT IS ALSO A DECISION. It is the third light failure, at
-# 2.8807, and it stays a declared exception. The argument is in scripts/check_repo.sh beside the
-# declaration, where a reader meets it.
+# 2.8807 when issue 65 declared it and at 2.7804 on the plate issue 81 softened it onto, and it
+# stays the one declared exception at the new figure. The argument is in scripts/check_repo.sh
+# beside the declaration, where a reader meets it, and the argument did not move with the
+# number: it was never that 2.8807 was close enough, it was that the hex belongs to --c-gray-3
+# and the value which would pass renders as a Company.
 #
-# The three that are absent from this map need nothing: on the dark plate they already measure
-# 4.5374 (Cohort), 4.5930 (Session template) and 5.0129 (the ghost grey). Absent and not written
+# The three that are absent from this map need nothing: on the dark plate they measure 4.8431
+# (Cohort), 4.9025 (Session template) and 5.3506 (the ghost grey). Absent and not written
 # out as themselves, so that a reader can see at a glance which colours these cards moved.
 #
 # THE WASH DID NOT NEED ANYTHING AND IT WAS MEASURED RATHER THAN ASSUMED. A tile is a stroke and

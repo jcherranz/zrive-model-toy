@@ -63,6 +63,38 @@ of what changed and when, and it is meant to be scannable.
 
 ### Changed
 
+- **The lane plates step back off the drawing, #81.** They were painted `--bg-panel`, the token
+  the header and the detail panel take, and seven opaque panel-white slabs were doing separation
+  work the dot grid took over at #46. `.band` now takes `--bg-band`, a token of its own that sits
+  a little under half way from the page ground to where the old plate was: `#ffffff` to `#fafbfc`
+  in light, `#252a31` to `#20252c` in dark. Same fraction in both themes, so the two pages stay
+  one drawing. Verified by sampling the rendered pixels rather than the token: the flat plate
+  comes back `#fafbfc` and `#20252c` off the screenshots of all six lanes.
+- **The plate is the denominator of the contrast gate, so this was measured before it was
+  written.** In light every ratio falls and the binding one is Session template, 3.1440 to 3.0346
+  against a threshold of 3.0000; the plate goes exactly as far toward the ground as that figure
+  allows and stops. In dark every ratio rises, because the dark plate is lighter than the dark
+  ground: the lowest goes 4.5374 to 4.8431. Gate after: **26 measurements, 1 declared, 0
+  undeclared**, unchanged in shape.
+- **The other two routes were priced and refused.** An outlined lane with no fill puts every tile
+  on `--bg-app`, where Session template at 2.9330, Cohort at 2.9690 and the ghost grey at 2.6874
+  fall under 3:1, and #65 and #70 both settled that the ghost's `#8f99a8` is `--c-gray-3` and that
+  the value which would pass renders as a Company. Softening in dark only was defensible on the
+  numbers and would have made the two themes two drawings.
+- **`build/model.py` was not edited to follow the plate, which is the point of how it reads it.**
+  It finds the surface by reading the `var()` out of the `.band` rule, so moving the lanes onto a
+  new token moved the measurement with them. What did move in that file is prose and one figure
+  in `scripts/check_repo.sh`: the ghost's declared exception is re-declared at 2.7804, because an
+  entry licenses exactly the measurement it names and a plate that moves re-opens it.
+- **The captions did not move and that was checked rather than assumed.** `.band-cap` is 9px text
+  and answers 4.5:1, not the 3:1 the gate asks of a stroke, and #83 gave every lane a second line.
+  They are stacked upward from `bandTop`, so they sit on `--bg-app` and not on the plate, in
+  every theme and at every zoom: 5.0482 light and 7.6622 dark, before and after, unchanged.
+  Confirmed on the pixels, whose modal colour along a caption's own line is the page ground.
+- **Two surfaces followed the plate because they are the plate.** `.chip-bg`, which knocks an edge
+  out from behind its verb, and the backdrop under a stacked tile in `site/render.js`, whose own
+  comment says it is the band's colour. Left behind, each would have become a panel-white box on
+  a softened lane.
 - **The heading has five variants, not three, #80 and #82.** A route with no heading of its own
   inherits the one before it, which is the defect #77 was filed for, so `#/calendar` and
   `#/outline` each own a line. The smoke suite asserts the three are different sentences.

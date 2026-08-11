@@ -309,13 +309,20 @@
         // rounded outline crossing the inside of the tile. The backdrop is the band's own
         // colour, which is what every tile in this drawing is already composited over, so the
         // tile renders exactly as it did and the cards now stop at its edge.
+        //
+        // WHICH IS WHY IT IS --bg-band AND NOT --bg-panel. Those were one token until issue 81
+        // softened the lanes, and the sentence above is the whole reason this one has to follow:
+        // the backdrop is not "the page's plate colour", it is "whatever the lane under this
+        // tile is painted with". Left on --bg-panel it would have drawn a brighter square behind
+        // every stacked tile on a softened lane, which is a defect this comment already
+        // describes the repair of.
         if (n.count) {
           el('rect', { x: n.x - R + 5, y: n.y - R - 5, width: TILE, height: TILE,
                        rx: 6, fill: tint(col, 10), stroke: tint(col, 45) }, g2);
           el('rect', { x: n.x - R + 2.5, y: n.y - R - 2.5, width: TILE, height: TILE,
                        rx: 6, fill: tint(col, 12), stroke: tint(col, 60) }, g2);
           el('rect', { x: n.x - R, y: n.y - R, width: TILE, height: TILE, rx: 6,
-                       fill: 'var(--bg-panel)', stroke: 'none' }, g2);
+                       fill: 'var(--bg-band)', stroke: 'none' }, g2);
         }
         // A node whose key does not exist keeps its own outline and gains a second, dashed one.
         // The object is real; something about it is missing, and the label below says what.

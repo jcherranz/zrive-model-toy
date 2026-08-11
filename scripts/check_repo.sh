@@ -180,23 +180,31 @@ FORBIDDEN_EXEMPT=(
 # contrast one.
 #
 # WHAT IS MEASURED, AND ON WHAT. A tile's stroke, at full opacity, against the band plate it
-# sits on. Not against the page ground: app.js fills one opaque `rect.band` per lane before it
-# draws a tile and every tile is laid out inside a lane, so the plate is the surface, and the
-# two differ enough to move three of the twenty-six verdicts, in both directions. The rows carry
-# the page ground as well and the run prints how far apart the two answers are, so the choice
-# stays visible rather than becoming a thing somebody once decided.
+# sits on. Not against the page ground: site/render.js fills one opaque `rect.band` per lane
+# before it draws a tile and every tile is laid out inside a lane, so the plate is the surface,
+# and the two differ enough to move three of the twenty-six verdicts, in both directions. The
+# rows carry the page ground as well and the run prints how far apart the two answers are, so the
+# choice stays visible rather than becoming a thing somebody once decided.
+#
+# THE PLATE IS NOT WHITE ANY MORE, WHICH IS ISSUE 81 AND IS THE LAST THING TO MOVE UNDER THIS
+# GATE. `.band` was filled with --bg-panel, the same token the header and the detail panel take,
+# and it now takes --bg-band, which sits a little under half way from the page ground to where
+# the old plate was: #ffffff to #fafbfc in light, #252a31 to #20252c in dark. Every light ratio
+# below therefore fell and every dark ratio rose, and the light side is what bounded the card:
+# the plate went as far toward the ground as the lowest of the thirteen allowed and stopped,
+# with Session template at 3.0346 against this threshold. build/model.py needed no change, since
+# it reads the token name off the `.band` rule rather than holding a copy of it.
 #
 # THE THRESHOLD is 3:1, WCAG 2.2 SC 1.4.11 Non-text Contrast, which is the figure for the visual
 # boundary of a user interface component and for a graphical object needed to understand the
 # content. A tile is both: it takes focus, it takes a click, it opens the panel, and its outline
 # is what a reader tells one type from another by. It is not 4.5:1, which is SC 1.4.3 and about
-# text; the same colours are also written as 11px bold text in the panel, which is a text
-# surface this check does not gate. Issues 56 and 65 both aimed at 4.5 anyway, so that one number
-# would fix the stroke and that label together, and between them they hit it on eleven colours:
-# on the dark plate all thirteen clear 4.5, and on the light plate three are still under it,
-# Session template, Cohort and the ghost grey. It is not lower than 3:1 either. One of the
-# twenty-six measurements fails today and it is declared below rather than legalised by moving
-# the line.
+# text. Issues 56 and 65 both aimed at 4.5 anyway, because the same colours were then written as
+# 11px bold text at the head of the detail panel and one number would fix the stroke and that
+# label together. Issue 69 repainted that label --fg-muted, so nothing takes these hexes as text
+# now, and issue 74 is the open card on the ten lightnesses chosen for it. It is not lower than
+# 3:1 either. One of the twenty-six measurements fails today and it is declared below rather than
+# legalised by moving the line.
 #
 # The comparison is on the figure the table prints, to four decimals, so a verdict can always be
 # reproduced from what is on the screen and no rounding stands between the two.
@@ -243,20 +251,28 @@ CONTRAST_EXEMPT=(
   #    another by. There is one ghost type and four devices already say so before colour does:
   #    a dashed outline at 3 and 2.4, a stroke-width of 1.1 against every other tile's 1.25, an
   #    empty tile with no glyph in it, and an italic label painted --fg-muted, which measures
-  #    5.4113 and is not this hex at all. A reader does not find a ghost by its grey.
+  #    5.2231 on the plate and is not this hex at all. A reader does not find a ghost by its grey.
   # 4. THE QUIET IS THE STATEMENT. A ghost marks a class no system holds. It is drawn faint on
   #    purpose, and its wash is 7 per cent where every real tile is at 14. Darkening it to pass
   #    would make the four things that do not exist the most emphatic outlines in their lane.
   #
-  # THE RESIDUAL, STATED RATHER THAN LEFT TO BE FOUND. The detail panel writes this same hex as
-  # an 11px bold type label, which is text under SC 1.4.3 and wants 4.5, and at 2.8807 it does
-  # not have it. That is real and it is not this colour's alone: Session template at 3.1440 and
-  # Cohort at 3.1826 are under 4.5 on the same surface and pass this gate, which asks 3:1 of a
-  # boundary. Three labels under a text threshold is a panel card, and fixing one of the three
-  # here by moving a hex the stylesheet also owns would be the wrong repair in the wrong file.
-  # The honest repair of the drawn grey, if it is ever wanted, is a --line token across those
-  # nine app.css rules, which moves every edge on the page and is its own card with its own look.
-  "Ghost|light|#8f99a8|2.8807|the page's own line grey, --c-gray-3; the value that would pass is Company's"
+  # THE RESIDUAL THIS ENTRY CARRIED IS GONE, AND SAYING SO IS PART OF KEEPING THE ENTRY HONEST.
+  # It used to read that the detail panel wrote this same hex as an 11px bold type label, text
+  # under SC 1.4.3, at 2.8807 against a threshold of 4.5. Issue 69 repainted that label
+  # --fg-muted and left the type colour there as a nine pixel swatch, which is a graphical object
+  # at 3:1, so no text on this page takes this hex any more. What remains of the residual is the
+  # swatch's own outline on --bg-panel, which this gate does not measure and did measure by
+  # accident until issue 81 moved the plate off that token; for the ghost it is this same 2.8807,
+  # for the same reason, and the four findings above are the argument for it there too.
+  #
+  # THE FIGURE MOVED AND THE ARGUMENT DID NOT, WHICH IS ISSUE 81. The ratio in this entry is
+  # 2.7804 rather than 2.8807 because the plate is #fafbfc rather than #ffffff. An entry licenses
+  # exactly the measurement it names, so a plate that moves re-opens every declaration written
+  # against the old one, which is the mechanism working: this one was re-read and re-argued
+  # rather than carried across. Not one of the four findings depends on the figure. The honest
+  # repair of the drawn grey, if it is ever wanted, is a --line token across those nine app.css
+  # rules, which moves every edge on the page and is its own card with its own look.
+  "Ghost|light|#8f99a8|2.7804|the page's own line grey, --c-gray-3; the value that would pass is Company's"
 )
 
 WORKDIR=""

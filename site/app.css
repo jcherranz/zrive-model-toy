@@ -75,20 +75,53 @@
      app and the elevated fill steps back down; in dark both steps go the one way, away from the
      ground, because on a dark page depth is light.
 
-     THE FIRST TWO ARE READ BY THE BUILD, and until issue 64 that cost them their shape.
-     build/model.py reads these two out of this file to know what the contrast check measures
-     against: `.band` is filled with one of them and `html, body` is painted with the other, so
-     issue 59's gate measures the surface the page actually paints rather than a hex retyped in
-     Python, which is right and stays. What it used to do as well was fix the SHAPE of these two
-     declarations, because it found a token's two values by splitting the file on the dark media
-     block and requiring one literal on each side, and one light-dark() pair gives that reader
-     zero of each. So these two were held in the old form, with a --bg-app-dark and a
-     --bg-panel-dark that existed only to be counted. Issue 64 replaced that reader with one
-     that resolves a token under each colour scheme wherever the declarations sit, the two extra
-     tokens are gone, and these two are written like their neighbours. Nothing about the
-     measurement moved: the hexes and the surfaces are the same ones. */
+     TWO OF THESE FOUR ARE READ BY THE BUILD, and until issue 64 that cost them their shape.
+     build/model.py reads --bg-band and --bg-app out of this file to know what the contrast
+     check measures against: `.band` is filled with the first and `html, body` is painted with
+     the second, so issue 59's gate measures the surface the page actually paints rather than a
+     hex retyped in Python, which is right and stays. It reads the TOKEN NAME off the `.band`
+     rule rather than being told it, which is why issue 81 could move the lanes onto a token of
+     their own and the gate followed with no change in Python. What that reader used to do as
+     well was fix the SHAPE of these declarations, because it found a token's two values by
+     splitting the file on the dark media block and requiring one literal on each side, and one
+     light-dark() pair gives that reader zero of each. So they were held in the old form, with a
+     --bg-app-dark and a --bg-panel-dark that existed only to be counted. Issue 64 replaced that
+     reader with one that resolves a token under each colour scheme wherever the declarations
+     sit, the two extra tokens are gone, and these are written like their neighbours.
+
+     --bg-band IS THE LANES AND IT IS NO LONGER --bg-panel, WHICH IS ISSUE 81. The lanes were
+     painted in the panel colour from the day they existed, and it was the right colour then:
+     the drawing was a fixed picture in a box and the plates did the work of saying where one
+     lane ended and the next began. Issue 46 put the drawing on an infinite plane with a dot
+     grid, the grid says "this continues" on its own, and seven opaque plates in the panel
+     colour were louder than the job left to them. So the plate steps back toward the ground it
+     sits on, and it does it by the same fraction in both themes, which is what keeps the two
+     pages one drawing: the light plate was 9, 8 and 6 above the ground per channel and is now
+     4, 4 and 3; the dark plate was 9, 9 and 10 above and is now 4, 4 and 5. A little under half
+     of the step, both times, which is one rule and not two.
+
+     WHY IT STOPS THERE, AND THE FIGURE IS NOT A TASTE. Retreating all the way to --bg-app is
+     free in dark, where every one of the thirteen type colours GAINS separation because the
+     dark plate is lighter than the dark ground. In light it is not free: the plate is the
+     denominator of thirteen gated measurements, and at the ground three of them are under
+     issue 59's 3:1, Session template at 2.9330, Cohort at 2.9690 and the ghost grey at 2.6874.
+     Two of those three cannot be repaired in the palette without moving a hex this card has no
+     business moving, and the third must not move at all: issues 65 and 70 both established that
+     #8f99a8 is the light value of --c-gray-3, the grey nine rules in this file paint every edge
+     and arrowhead with, and that the value which would pass renders as a Company. So the light
+     plate goes as far as the gate allows and stops, at #fafbfc, where the lowest of the thirteen
+     is Session template at 3.0346. The dark plate then takes the same fraction rather than the
+     freedom it has, because a lane that is half a step from the ground on one page and flush
+     with it on the other is two drawings.
+
+     WHAT IS NOT --bg-band. Everything that is a real panel: the header, the footer, the detail
+     panel, the popovers, the board cards, the student sheet. Those are chrome on top of the
+     page and they still step up from it in the full amount. The only things that take the band
+     colour are the three surfaces inside the drawing that ARE the band: the lane plate itself,
+     the chip a caption sits in, and the backdrop under a stacked tile in site/render.js. */
   --bg-app: light-dark(#f6f7f9, #1c2127);
   --bg-panel: light-dark(#ffffff, #252a31);
+  --bg-band: light-dark(#fafbfc, #20252c);
   --bg-elevated: light-dark(#edeff2, #2f343c);
 
   --fg-body: light-dark(#1c2127, #f6f7f9);
@@ -560,14 +593,34 @@ body.fb-mode #canvas { cursor: crosshair; }
 
 #zoomfit.away { color: var(--i-primary); font-weight: 600; }
 
-/* ---- column bands -------------------------------------------------------- */
+/* ---- column bands --------------------------------------------------------
+   The plate is --bg-band and the argument for that token is up beside its declaration. Two
+   things about this rule are load-bearing and neither is obvious from reading it.
+
+   THE TOKEN NAME IS AN INTERFACE. build/model.py finds the surface its contrast check measures
+   against by reading the var() out of THIS declaration, so the name here and the name there
+   cannot drift: change this to any other custom property and the gate measures that one
+   instead, and delete the var() and the gate refuses to emit rather than measuring a guess.
+
+   NO STROKE, STILL. Issue 81 asked whether the plate should become an outline instead of a
+   fill. It cannot, on the light side and on the measurement: an outlined lane puts every tile
+   on --bg-app, where three of the thirteen type colours fall under 3:1 and one of the three is
+   a grey that must not move. A hairline ADDED to a softened fill was the other half of that
+   question and it is not here either, because a line around a lane is the box issue 46 spent a
+   card removing. */
 
 .band {
-  fill: var(--bg-panel);
+  fill: var(--bg-band);
   stroke: none;
   rx: 4;
 }
 
+/* The lane captions, and they are the one part of this drawing that is TEXT, so they answer
+   SC 1.4.3 at 4.5:1 and not the 3:1 the gate asks of a tile stroke. They are painted --fg-muted
+   and they do not sit on the plate: site/render.js stacks them upward from `bandTop`, which is
+   the plate's own top edge, so their surface is --bg-app in every theme and at every zoom. That
+   is why issue 81 moved the plate without moving them. Measured on the ground they sit on:
+   5.0482 in light and 7.6622 in dark, both clear, and both unchanged by that card. */
 .band-cap {
   font-size: 9px;
   font-weight: 600;
@@ -586,8 +639,12 @@ body.fb-mode #canvas { cursor: crosshair; }
 
 .arrow { fill: var(--c-gray-3); }
 
+/* An edge chip knocks the edge out from behind its own text, so its fill has to be whatever the
+   chip is standing on, and inside this drawing that is the lane plate. It followed --bg-panel to
+   --bg-band under issue 81 for that reason and not for tidiness: left behind, a chip would have
+   become a panel-white box sitting on a softened lane, which is the thing the card was removing. */
 .chip-bg {
-  fill: var(--bg-panel);
+  fill: var(--bg-band);
   stroke: var(--rule-muted);
   stroke-width: 1;
   rx: 3;
