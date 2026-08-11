@@ -149,7 +149,9 @@
       sub.appendChild(warn);
 
       var table = document.createElement('table');
-      table.className = 'roster-table';
+      // .sheet-table, because the box this list sits in is the same box #/calendar and #/outline
+      // sit in and there is one stylesheet block for all three. Issues 80 and 82.
+      table.className = 'sheet-table';
       var thead = document.createElement('thead');
       var hr = document.createElement('tr');
       ['student', 'name', 'university', 'born', 'enrolment', 'charge', 'on the canvas']

@@ -11,6 +11,34 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- **The term, read twice, #80 and #82.** `#/calendar` is every cohort session on the seven
+  drawings in date order and `#/outline` is every session template in curriculum order: one sheet,
+  two readings, 83 rows seen once as when a thing happened and once as what is taught. Both cards
+  said "I dont know where", and the answer is the node: a cohort session opens the calendar and a
+  session template opens the outline, from the panel that describes it, which is where both were
+  filed from. The header takes no sixth control.
+- **The scope is all seven programmes, and that is the decision.** Every session records
+  `route_system: Notion, one session calendar per programme per quarter`, so a calendar of one
+  programme is a copy of a page the business already has. One term across the seven exists
+  nowhere. The route is the first place it exists, and the sheet says so under the rows.
+- **A date shaped view says it is invented three times over**: in the subtitle, in a notice above
+  the rows that cannot be scrolled away, and on a sticky banner row inside the table, so a
+  screenshot of the rows alone carries the disclaimer. It also declares its sample, #83's rule
+  applied to a route: 83 of the 260 sessions the model counts, said in the sentence over the rows.
+- **The gaps are the reading.** 11 sessions have no instructor named and every one of those rows
+  is marked, not merely counted; 21 delivered, 14 confirmed and 48 planned; none of the 83 carries
+  a recording reference; 38 templates record no duration. A calendar is opened to find what is
+  missing.
+- **The one to one is stated as a property of the drawing, not as a fact about Zrive.** All 83
+  templates have exactly one delivery, and with one cohort drawn a template can have at most one,
+  so it is what the drawing was built to produce. What a template is for, that it outlives its
+  deliveries, cannot be seen at one to one. The outline says this in its own notice and the text
+  is written from the measured maximum, so it stops claiming one to one the moment a second cohort
+  arrives.
+- **`site/term.js`**, the fifth module, and it arrived the way `site/index.html` said a fifth
+  would: a script tag and a name in app.js's check. It is not in router.js because it is the one
+  view here with no opinion about which of the seven programmes is drawn.
+
 - **Every lane that draws a sample now says so, on all seven views**, #83. The session template
   lane read "session templates" while drawing six tiles of a syllabus holding up to seventy nine,
   and said nothing anywhere: no count on the tiles, none in the caption, none in the footer. The
@@ -35,6 +63,15 @@ of what changed and when, and it is meant to be scannable.
 
 ### Changed
 
+- **The heading has five variants, not three, #80 and #82.** A route with no heading of its own
+  inherits the one before it, which is the defect #77 was filed for, so `#/calendar` and
+  `#/outline` each own a line. The smoke suite asserts the three are different sentences.
+- **`.roster-*` is `.sheet-*`.** There are three of these overlays now, so the backdrop, the box,
+  the head, the scroll and the phone layout have one name that is true of all of them. Only class
+  names moved; every id is where it was, and `.roster-drawn` stayed, because "this row is also on
+  the canvas" is a fact about the cohort list rather than about a sheet.
+- **The smoke suite is 87 assertions, up from 71**, sixteen of them the new `term` phase. `PHASES`
+  and `EXPECTED_ASSERTIONS` were edited together, which #67 requires.
 - **The page chrome, header and footer as one piece of work, #77 and #79.** Measured over CDP at
   390x844, 834x1112 and 1536x839 before and after, on the diagram, the board, the student list and
   with capture mode on. On a phone the chrome was 33,4 per cent of the viewport and is 18,0; the

@@ -218,6 +218,7 @@ const PHASES = {
   'every width':          { count: 3, when: 'every' },
   'model and reveal':     { count: 14, when: 'behavioural' },
   'students':             { count: 11, when: 'behavioural' },
+  'term':                 { count: 16, when: 'behavioural' },
   'canvas':               { count: 7, when: 'behavioural' },
   'capture':              { count: 5, when: 'behavioural' },
   'board':                { count: 13, when: 'behavioural' },
@@ -231,7 +232,13 @@ const PHASES = {
 // 70 until issue 76. That card made the wheel need Ctrl or Cmd and gave the bare wheel a pan, and
 // the assertion it added is the one that says a bare wheel no longer zooms, which is the whole of
 // what the card decided and the only part of it a later change could silently undo.
-const EXPECTED_ASSERTIONS = 71;
+// 71 until issues 80 and 82, which added two addresses, #/calendar and #/outline, and the `term`
+// phase that drives them. Sixteen, and each one is a claim the two cards decided rather than a
+// count of what the code happens to do: that the way in is the node and not the header, that the
+// scope is all seven programmes, that the sheet declares the sample it drew instead of reading as
+// a whole term, that the gaps are on the page, that the one to one is stated rather than implied,
+// and that a table of invented dates says so where a reader cannot miss it.
+const EXPECTED_ASSERTIONS = 87;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -1177,6 +1184,218 @@ async function checkStudents(page) {
   await page.waitFor('window.ZT.roster() === false', 'the student list to close');
 }
 
+// ---- the term, read twice -------------------------------------------------------------------
+// Issues 80 and 82. Thirteen assertions, and every one of them is about a decision those two cards
+// made rather than about the shape of the markup that carries it.
+//
+// NOTHING HERE HOLDS A COPY OF 83 OR OF 260. Every count is taken from the page's own answer,
+// window.ZT.term(), and checked against what the reader can see: the rows in the table, the
+// sentence over them and the marks on them. A term that grew by a session and a subtitle that did
+// not would fail rather than pass quietly, which is the same reasoning the students phase is
+// built on.
+const TERM_READ = `(function () {
+  function txt(sel) { var e = document.querySelector(sel); return e ? e.textContent : null; }
+  var rows = Array.prototype.slice.call(
+    document.querySelectorAll('#termrows tbody tr:not(.term-group)'));
+  var groups = Array.prototype.slice.call(
+    document.querySelectorAll('#termrows tbody tr.term-group'));
+  return {
+    rows: rows.length,
+    firstCells: rows.map(function (tr) {
+      var td = tr.querySelector('td');
+      return td ? td.textContent : '';
+    }),
+    gapRows: rows.filter(function (tr) { return tr.classList.contains('term-gap'); }).length,
+    gapCells: rows.filter(function (tr) {
+      return !!tr.querySelector('td.term-gap-cell');
+    }).length,
+    deliveryCounts: rows.map(function (tr) {
+      var td = tr.querySelector('td.s-deliveries');
+      return td ? Number(td.textContent) : null;
+    }),
+    groupLinks: groups.map(function (tr) {
+      var a = tr.querySelector('a.linkbtn');
+      return a ? a.getAttribute('href') : null;
+    }).filter(Boolean),
+    title: txt('#termtitle') || '',
+    sub: txt('#termsub') || '',
+    notice: (document.getElementById('termnotice') || {}).textContent || '',
+    banner: txt('#termrows .term-banner th'),
+    bannerSticky: (function () {
+      var th = document.querySelector('#termrows .term-banner th');
+      return th ? getComputedStyle(th).position : null;
+    })(),
+    heading: (document.querySelector('h1') || {}).innerText || ''
+  };
+})()`;
+
+async function checkTerm(page) {
+  const drawing = await page.evaluate(READ_DRAWING);
+  const headingDiagram = (await page.evaluate(TERM_READ)).heading.trim();
+  const session = drawing.nodes.find(n => n.type === 'Cohort session');
+  const template = drawing.nodes.find(n => n.type === 'Session template');
+  if (!assert('the drawing carries a cohort session and a session template to start from',
+      !!session && !!template, 'one node of each type on the default view',
+      `session ${session ? session.id : 'none'}, template ${template ? template.id : 'none'}`)) {
+    return;
+  }
+
+  const state = await page.evaluate('window.ZT.term()');
+
+  // THE WAY IN IS THE NODE, which is the answer both cards were filed asking for: one from a
+  // cohort session wanting the calendar, one with a template selected wanting the outline. The
+  // header row is where it deliberately is not, and an assertion that only checked the route
+  // would pass on a sixth control in that row.
+  await clickNode(page, session.id);
+  await page.waitFor(
+    `window.ZT.selected() && window.ZT.selected().id === ${JSON.stringify(session.id)}`,
+    'the cohort session to be selected');
+  const fromSession = await page.evaluate(`(function () {
+    var a = document.querySelectorAll('#pmore .pmore-link');
+    var h = document.querySelectorAll('#pmore .pmore-hint');
+    return { href: a.length ? a[a.length - 1].getAttribute('href') : null,
+             text: a.length ? a[a.length - 1].textContent : null,
+             hint: h.length ? h[h.length - 1].textContent : null };
+  })()`);
+  assert('the panel on a cohort session offers the term, and says how big it is',
+    fromSession.href === '#/calendar' &&
+      Number((/all (\d+) sessions/.exec(fromSession.text || '') || [])[1]) === state.sessions,
+    `a link to #/calendar reading "all ${state.sessions} sessions"`,
+    `${JSON.stringify(fromSession.href)}, ${JSON.stringify(fromSession.text)}`);
+  await clearSelection(page);
+
+  await clickNode(page, template.id);
+  await page.waitFor(
+    `window.ZT.selected() && window.ZT.selected().id === ${JSON.stringify(template.id)}`,
+    'the session template to be selected');
+  const fromTemplate = await page.evaluate(`(function () {
+    var a = document.querySelectorAll('#pmore .pmore-link');
+    return { href: a.length ? a[a.length - 1].getAttribute('href') : null,
+             text: a.length ? a[a.length - 1].textContent : null };
+  })()`);
+  assert('and the panel on a session template offers the outline',
+    fromTemplate.href === '#/outline' &&
+      Number((/all (\d+) session templates/.exec(fromTemplate.text || '') || [])[1]) ===
+        state.templates,
+    `a link to #/outline reading "all ${state.templates} session templates"`,
+    `${JSON.stringify(fromTemplate.href)}, ${JSON.stringify(fromTemplate.text)}`);
+  await clearSelection(page);
+
+  // ---- the calendar reading ---------------------------------------------------
+  await page.evaluate(`location.hash = '#/calendar'`);
+  await page.waitFor(`window.ZT.term().open === true &&
+                      window.ZT.term().reading === 'calendar'`,
+    'the calendar reading to open');
+  const cal = await page.evaluate(TERM_READ);
+
+  assert('#/calendar opens the term on its calendar reading',
+    cal.rows > 0 && /in date order/.test(cal.title),
+    'a sheet of rows headed "in date order"', `${cal.rows} rows, heading ${JSON.stringify(cal.title)}`);
+  assert('it draws one row for every session it says it holds',
+    cal.rows === state.sessions, `${state.sessions} rows`, `${cal.rows} rows`);
+
+  // The ordering is the whole of #80's request, and it is the one property of this reading that a
+  // later change could undo with nothing else going red. Read off the rendered date cells rather
+  // than off the data behind them.
+  const dates = cal.firstCells;
+  const outOfOrder = dates.filter((d, i) => i > 0 && d < dates[i - 1]).length;
+  assert('and they are in date order, across all seven programmes',
+    outOfOrder === 0 && dates[0] === state.from && dates[dates.length - 1] === state.to,
+    `no row earlier than the row above it, running ${state.from} to ${state.to}`,
+    `${outOfOrder} out of order, running ${dates[0]} to ${dates[dates.length - 1]}`);
+
+  // ISSUE 83'S RULE, APPLIED TO A ROUTE. A lane that draws a sample says so; a sheet of 83 rows
+  // that did not would read as a term. The total is the model's own, so the sheet cannot claim to
+  // be complete while it is not.
+  assert('the sheet declares the sample it drew rather than reading as the whole term',
+    state.sessionsTotal > state.sessions &&
+      cal.sub.indexOf(String(state.sessions)) === 0 &&
+      cal.sub.indexOf('the model counts at ' + state.sessionsTotal) !== -1,
+    `a subtitle saying ${state.sessions} drawn from ${state.sessionsTotal}`,
+    JSON.stringify(cal.sub.slice(0, 160)));
+
+  // The gaps, which are the only reason an operator opens a calendar. Counted twice on the page,
+  // once in the subtitle and once as a mark on each row, and the two have to agree.
+  const statedGaps = Number((/(\d+) with no instructor named/.exec(cal.sub) || [])[1]);
+  assert('the sessions with nobody to teach them are marked on the rows, not only counted',
+    state.noInstructor > 0 && cal.gapRows === state.noInstructor &&
+      cal.gapCells === state.noInstructor && statedGaps === state.noInstructor,
+    `${state.noInstructor} rows marked, and the subtitle saying so`,
+    `${cal.gapRows} rows marked, ${cal.gapCells} cells marked, subtitle says ${statedGaps}`);
+
+  // A DATE SHAPED VIEW RAISES THE STAKES ON THE PROVENANCE. Said above the rows, where it cannot
+  // be scrolled away, and again inside the table on a sticky row, where it survives a screenshot
+  // of the rows on their own.
+  assert('the calendar says its values are invented, above the rows and inside the table',
+    /invented/.test(cal.notice) && /is not a schedule/i.test(cal.notice) &&
+      /invented/.test(cal.banner || '') && cal.bannerSticky === 'sticky',
+    'a notice reading "not a schedule" and a sticky banner row saying every value is invented',
+    `notice ${JSON.stringify((cal.notice || '').slice(0, 80))}, banner ` +
+    `${JSON.stringify(cal.banner)} (${cal.bannerSticky})`);
+
+  // The finding, and it is the most interesting thing either card turned up: the model says this
+  // view does not exist in the business.
+  assert('and it says that nothing in the business assembles this',
+    /one calendar per programme per quarter/.test(cal.notice) &&
+      /first place it is assembled/.test(cal.notice),
+    'the notice naming the seven Notion calendars and saying this is the first assembly of them',
+    JSON.stringify((cal.notice || '').slice(-220)));
+
+  // ---- the outline reading ----------------------------------------------------
+  await page.evaluate(`location.hash = '#/outline'`);
+  await page.waitFor(`window.ZT.term().reading === 'outline'`, 'the outline reading to open');
+  const out = await page.evaluate(TERM_READ);
+
+  assert('#/outline is the same sheet read the other way, one row per template',
+    out.rows === state.templates && /in curriculum order/.test(out.title),
+    `${state.templates} rows headed "in curriculum order"`,
+    `${out.rows} rows, heading ${JSON.stringify(out.title)}`);
+
+  // ISSUE 82'S SECOND FINDING, AND THE LIMIT ON IT. One to one is what a drawing of one cohort can
+  // produce and is not evidence about Zrive. What is asserted here is that the page states it as
+  // a property of the drawing, and that the sheet's own arithmetic agrees with the rows.
+  const delivered = out.deliveryCounts.filter(n => n === 1).length;
+  assert('every template names exactly one delivery, and the page has counted them',
+    state.maxDeliveries === 1 && delivered === state.templates,
+    `${state.templates} rows each carrying 1 delivery`,
+    `${delivered} rows carrying 1, the page reports a maximum of ${state.maxDeliveries}`);
+  const outNotice = out.notice.replace(/\s+/g, ' ');
+  assert('and the sheet says that is a property of the drawing rather than a finding',
+    /property of the drawing rather than a finding about the business/.test(outNotice) &&
+      /it draws one cohort/.test(outNotice),
+    'the notice naming one cohort as the reason a template can have at most one delivery',
+    JSON.stringify(outNotice.slice(-260)));
+
+  assert('the outline names every programme and links each back to its own drawing',
+    out.groupLinks.length === state.programmes &&
+      new Set(out.groupLinks).size === state.programmes &&
+      out.groupLinks.every(h => h.indexOf('#/p/') === 0),
+    `${state.programmes} distinct links, each to a #/p/ address`,
+    out.groupLinks.join(', ') || 'none');
+
+  // ISSUE 77'S RULE. A route with no heading of its own inherits the one before it, which is the
+  // defect that card was filed for. Three headings, three different sentences.
+  const headings = [headingDiagram, cal.heading.trim(), out.heading.trim()];
+  assert('each reading has a heading of its own rather than the diagram\'s',
+    new Set(headings).size === 3 && headings.every(h => h.length > 0),
+    'three different headings, one per route',
+    headings.map(h => JSON.stringify(h)).join(' | '));
+
+  await page.evaluate(`location.hash = '#/'`);
+  await page.waitFor('window.ZT.term().open === false', 'the term sheet to close');
+  const back = await page.evaluate(`(function () {
+    return { heading: (document.querySelector('h1') || {}).innerText || '',
+             diagram: getComputedStyle(document.getElementById('view-diagram')).display,
+             cls: document.body.className };
+  })()`);
+  assert('leaving the route closes the sheet and gives the drawing its heading back',
+    back.heading.trim() === headingDiagram && back.diagram !== 'none' &&
+      !/\b(calendar|outline)\b/.test(back.cls),
+    `the diagram on screen under ${JSON.stringify(headingDiagram)}`,
+    `${JSON.stringify(back.heading.trim())}, display ${back.diagram}, body class ` +
+    `${JSON.stringify(back.cls)}`);
+}
+
 // ---- the canvas ---------------------------------------------------------------------------------
 async function checkCanvas(page) {
   await page.evaluate('window.ZT.fit()');
@@ -1650,6 +1869,7 @@ async function runViewport(chrome, viewport, base, full) {
     if (full) {
       await group('model and reveal', () => checkModelAndReveal(page));
       await group('students', () => checkStudents(page));
+      await group('term', () => checkTerm(page));
       await group('canvas', () => checkCanvas(page));
       await group('capture', () => checkCapture(page));
       await group('board', () => checkBoard(page, base));

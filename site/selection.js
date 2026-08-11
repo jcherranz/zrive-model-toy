@@ -97,12 +97,17 @@
   // opts.typeLabel    a type key to the name the reader is told
   // opts.typeSwatch   a type key to the fill and the stroke a swatch of it is drawn with
   // opts.provenance   the document's stance, clock, apto rule and vocabularies
+  // opts.moreLink     a node to a further view of what it is one of, or null. Issues 80 and 82.
+  //                   This file asks and does not answer: a node that is one of a set is a fact
+  //                   about the model, and which address holds that set is a fact about the page,
+  //                   so the wiring supplies it and nothing here learns a route or a count.
   // opts.onReveal     called with a node once the panel has taken its bite of the screen
   ZM.selection = function createSelection(opts) {
     var svg = opts.svg, panel = opts.panel;
     var ROSTER_ROUTE = opts.rosterRoute;
     var typeLabel = opts.typeLabel, typeSwatch = opts.typeSwatch;
     var PROV = opts.provenance || null;
+    var moreLink = opts.moreLink;
     var onReveal = opts.onReveal;
 
     var G = null, nodeById = {}, edgesOf = {}, gfxNode = {}, gfxEdge = [];
@@ -289,6 +294,20 @@
       ptype.appendChild(document.createTextNode(typeLabel(n.type)));
     }
 
+    // One link out of the panel and the sentence under it. Two callers, one shape, so a second
+    // view reached from a node arrives without this markup being written a third time.
+    function addMore(host, href, text, hint) {
+      var a = document.createElement('a');
+      a.className = 'linkbtn pmore-link';
+      a.href = href;
+      a.textContent = text;
+      host.appendChild(a);
+      var h = document.createElement('span');
+      h.className = 'pmore-hint';
+      h.textContent = hint;
+      host.appendChild(h);
+    }
+
     function select(id) {
       if (current === id) { clear(); return; }
       if (current) paint(current, false);
@@ -372,19 +391,22 @@
       // A node that stands for a list says where the list is. Only one node does, and which one is
       // named by the build rather than by an id written here, so a second aggregate would arrive
       // with its own link and this code would not have to learn about it.
+      //
+      // ISSUES 80 AND 82 PUT A SECOND WAY OUT HERE, and this is where the owner asked for it: he
+      // filed both cards from a node, one from a cohort session asking for the calendar and one
+      // with a template selected asking for the outline. The panel is where a reader already is
+      // when they want the rest of what a node is one of, and #77 has just rebuilt a header row
+      // that is not taking a sixth control. Written the same way as the students link because it
+      // is the same idea, and asked for rather than decided: the wiring answers for the types it
+      // has a view of and returns nothing for the rest.
       var pmore = document.getElementById('pmore');
       pmore.textContent = '';
       if (G.roster && G.roster.owner === id) {
-        var a = document.createElement('a');
-        a.className = 'linkbtn pmore-link';
-        a.href = ROSTER_ROUTE;
-        a.textContent = 'see all ' + G.roster.n + ' students';
-        pmore.appendChild(a);
-        var hint = document.createElement('span');
-        hint.className = 'pmore-hint';
-        hint.textContent = G.roster.drawn + ' of them are drawn here; the list has every row.';
-        pmore.appendChild(hint);
+        addMore(pmore, ROSTER_ROUTE, 'see all ' + G.roster.n + ' students',
+                G.roster.drawn + ' of them are drawn here; the list has every row.');
       }
+      var more = moreLink ? moreLink(n) : null;
+      if (more) addMore(pmore, more.href, more.text, more.hint);
       panel.classList.add('open');
       document.body.classList.add('panel-open');
       reveal(n);

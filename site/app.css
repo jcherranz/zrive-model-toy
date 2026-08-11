@@ -112,7 +112,7 @@
   --tint-warning: light-dark(rgba(200, 118, 25, 0.10), rgba(236, 154, 60, 0.12));
   --tint-neutral: light-dark(rgba(143, 153, 168, 0.15), rgba(255, 255, 255, 0.07));
   --fg-warning: light-dark(#935610, #ec9a3c);
-  /* What makes the canvas inert while the student list is up. It was written into .roster-back
+  /* What makes the canvas inert while the student list is up. It was written into .sheet-back
      as a literal, which is the one colour in this file a second palette could not have reached.
      The dark half is darker and heavier and is black rather than the near-black of the ramp: a
      scrim's job is to put the canvas behind the list, and against a ground that is already dark
@@ -229,11 +229,19 @@ body.board #view-board { display: flex; }
    router.js where the list is opened, beside the aria-current it already sets on the nav link.
    The ghost toggle describes the drawing, so on the board it is not dimmed or reworded, it is
    gone. Issue 77. */
-.h-board, .h-students { display: none; }
+.h-board, .h-students, .h-calendar, .h-outline { display: none; }
 body.board .h-diagram { display: none; }
 body.board .h-board { display: inline; }
 body.students .h-diagram { display: none; }
 body.students .h-students { display: inline; }
+/* Five variants now, issues 80 and 82. A route with no heading of its own does not go bare, it
+   inherits the one before it, which is exactly the defect #77 was filed for, so each address on
+   this page owns a line. Written the same way as the two above and set by the module that opens
+   the view, term.js, beside the aria-current it already puts on the reading it is showing. */
+body.calendar .h-diagram { display: none; }
+body.calendar .h-calendar { display: inline; }
+body.outline .h-diagram { display: none; }
+body.outline .h-outline { display: inline; }
 body.board #ghtoggle { display: none; }
 /* The detail panel describes a node in the drawing, so on the board it goes the same way. It is
    hidden rather than closed: the selection is still the selection, and switching back brings the
@@ -1395,16 +1403,23 @@ body.hide-ghosts .ghost { display: none; }
   color: var(--fg-muted);
 }
 
-/* ---- the cohort, all of it ---------------------------------------------------
-   A view of its own on its own route, #/students, and the reason it is an overlay rather than a
-   third main is that the board already takes that path: swapping the diagram out takes the
-   canvas off the screen and hands its ResizeObserver a box of nothing, which this page survives
-   but need not do twice. Over the top, the canvas keeps its size, its view and its selection.
+/* ---- a sheet over the canvas -------------------------------------------------
+   A view of its own on its own route, and the reason it is an overlay rather than a main of its
+   own is that the board already takes that path: swapping the diagram out takes the canvas off
+   the screen and hands its ResizeObserver a box of nothing, which this page survives but need not
+   do twice. Over the top, the canvas keeps its size, its view and its selection.
 
-   The backdrop is not decoration. It is what makes the canvas inert while the list is up: a
-   click on it closes the list rather than reaching a node, and the wheel listener, which is on
-   the canvas, never sees an event over it, so nothing zooms behind the reader's back. */
-.roster {
+   The backdrop is not decoration. It is what makes the canvas inert while a sheet is up: a click
+   on it closes the sheet rather than reaching a node, and the wheel listener, which is on the
+   canvas, never sees an event over it, so nothing zooms behind the reader's back.
+
+   THESE WERE .roster-* AND THERE ARE THREE OF THEM NOW. #/students opens the cohort, and issues
+   80 and 82 opened #/calendar and #/outline over the same box: a fixed backdrop, a sheet, a head
+   with a title and a subtitle, and a scrolling table whose phone layout turns each row into a
+   block. That is one object, so it has one implementation and a name that is true of all of it.
+   Only the classes moved; every id is where it was, and .roster-drawn stayed, because "this row
+   is also on the canvas" is a fact about the cohort list and not about a sheet. */
+.sheet {
   position: fixed;
   inset: 0;
   z-index: 20;              /* over the detail panel at 10, under the capture popover at 30 */
@@ -1414,15 +1429,15 @@ body.hide-ghosts .ghost { display: none; }
   padding: 16px;
 }
 
-.roster[hidden] { display: none; }
+.sheet[hidden] { display: none; }
 
-.roster-back {
+.sheet-back {
   position: absolute;
   inset: 0;
   background: var(--scrim);
 }
 
-.roster-sheet {
+.sheet-box {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -1435,7 +1450,7 @@ body.hide-ghosts .ghost { display: none; }
   overflow: hidden;
 }
 
-.roster-head {
+.sheet-head {
   flex: none;
   display: flex;
   align-items: flex-start;
@@ -1444,19 +1459,20 @@ body.hide-ghosts .ghost { display: none; }
   border-bottom: 1px solid var(--rule-muted);
 }
 
-.roster-head h2 {
+.sheet-head h2 {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
 }
 
-.roster-sub {
+.sheet-sub {
   margin: 4px 0 0;
   font-size: 11px;
   color: var(--fg-muted);
 }
 
-#rosterclose {
+#rosterclose,
+#termclose {
   margin-left: auto;
   font-size: 18px;
   line-height: 1;
@@ -1464,23 +1480,24 @@ body.hide-ghosts .ghost { display: none; }
   color: var(--fg-muted);
 }
 
-#rosterclose:hover { text-decoration: none; background: var(--tint-hover); }
+#rosterclose:hover,
+#termclose:hover { text-decoration: none; background: var(--tint-hover); }
 
 /* The rows scroll, and they scroll here rather than on the page: the diagram is one screen at
    every width and a list long enough to move it would be a second thing to scroll. */
-.roster-rows {
+.sheet-rows {
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
 }
 
-.roster-table {
+.sheet-table {
   width: 100%;
   border-collapse: collapse;
   font-size: var(--fs-sm);
 }
 
-.roster-table th {
+.sheet-table th {
   position: sticky;
   top: 0;
   z-index: 1;
@@ -1495,41 +1512,41 @@ body.hide-ghosts .ghost { display: none; }
   white-space: nowrap;
 }
 
-.roster-table td {
+.sheet-table td {
   padding: 5px 10px;
   border-top: 1px solid var(--rule-muted);
   white-space: nowrap;
 }
 
-.roster-table tbody tr:hover { background: var(--tint-hover); }
+.sheet-table tbody tr:hover { background: var(--tint-hover); }
 
-.roster-table .r-id,
-.roster-table .r-num,
-.roster-table .r-drawn {
+.sheet-table .r-id,
+.sheet-table .r-num,
+.sheet-table .r-drawn {
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--fg-muted);
 }
 
-.roster-table .r-name { font-weight: 600; }
-.roster-table .r-state { color: var(--fg-muted); }
+.sheet-table .r-name { font-weight: 600; }
+.sheet-table .r-state { color: var(--fg-muted); }
 
 /* The four the canvas carries are marked and not highlighted. They are not more important rows;
    they are the same rows, seen twice. */
-.roster-table .roster-drawn .r-drawn { color: var(--i-primary); }
+.sheet-table .roster-drawn .r-drawn { color: var(--i-primary); }
 
 @media (max-width: 760px) {
-  .roster { padding: 0; align-items: stretch; }
-  .roster-sheet { width: 100%; border: 0; border-radius: 0; }
+  .sheet { padding: 0; align-items: stretch; }
+  .sheet-box { width: 100%; border: 0; border-radius: 0; }
 
   /* Seven columns do not fit a phone, and a table that scrolls sideways inside itself hides
      the charge state, which is one of the two columns somebody opens this to read. Each row
      becomes a block instead: the name on its own line and the rest of the record under it as
      one wrapped run. Same cells, same order, no second markup. */
-  .roster-table thead { display: none; }
-  .roster-table, .roster-table tbody { display: block; }
+  .sheet-table thead { display: none; }
+  .sheet-table, .sheet-table tbody { display: block; }
 
-  .roster-table tr {
+  .sheet-table tr {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
@@ -1538,13 +1555,13 @@ body.hide-ghosts .ghost { display: none; }
     border-top: 1px solid var(--rule-muted);
   }
 
-  .roster-table td {
+  .sheet-table td {
     padding: 0;
     border: 0;
     white-space: nowrap;
   }
 
-  .roster-table td.r-name {
+  .sheet-table td.r-name {
     order: -1;
     flex: 1 0 100%;
     font-size: var(--fs-sm);
@@ -1552,10 +1569,117 @@ body.hide-ghosts .ghost { display: none; }
 
   /* A separator before every cell but the first of the run. An empty one, which is the
      "on the canvas" cell on the thirty rows that are not drawn, takes its separator with it. */
-  .roster-table td:empty { display: none; }
-  .roster-table td::before { content: '·'; margin-right: 5px; color: var(--c-gray-3); }
-  .roster-table td.r-name::before,
-  .roster-table td.r-id:first-child::before { content: none; }
+  .sheet-table td:empty { display: none; }
+  .sheet-table td::before { content: '·'; margin-right: 5px; color: var(--c-gray-3); }
+  .sheet-table td.r-name::before,
+  .sheet-table td.r-id:first-child::before { content: none; }
+}
+
+/* ---- the term, read twice ----------------------------------------------------
+   Issues 80 and 82. The sheet above, with three things of its own: two readings to switch
+   between, a notice that says what the rows are and what they are not, and a table with group
+   rows in it. Everything else, the backdrop, the box, the head, the scroll and the phone layout,
+   is the sheet's and is not repeated here. */
+.term .sheet-box { width: min(1100px, 100%); }
+
+.term-switch {
+  flex: none;
+  display: flex;
+  gap: 6px;
+  padding: 8px 16px 0;
+}
+
+/* The reading that is on screen, said with weight rather than with colour: both of these are
+   .linkbtn and already carry the link colour, so a second colour here would be one distinction
+   too many on a control whose text is its state. */
+.term-switch .linkbtn[aria-current="true"] {
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.term-notice {
+  flex: none;
+  padding: 10px 16px 12px;
+  border-bottom: 1px solid var(--rule-muted);
+}
+
+.term-notice p { margin: 0; font-size: 11px; line-height: 1.45; }
+.term-notice p + p { margin-top: 6px; }
+
+/* The one sentence this project requires on every page it publishes, and the sharpest place it
+   has had to sit: a table of dates is the first view here that could be read as an operating
+   document. It is given the warning colour rather than the muted one so that it is not read as
+   small print, and it is above the scroll so it cannot be scrolled away from. */
+.term-notice .term-invented { color: var(--fg-warning); font-weight: 600; }
+.term-notice .term-finding { color: var(--fg-muted); }
+
+/* The month, or the programme. A row in the table rather than a heading above it, so it scrolls
+   with the rows it names and the columns underneath stay aligned. */
+.term-table tbody tr.term-group th {
+  position: static;
+  text-align: left;
+  padding: 10px 10px 4px;
+  border-top: 1px solid var(--rule);
+  background: var(--bg-panel);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--fg-body);
+}
+
+.term-table tbody tr.term-group:hover { background: transparent; }
+.term-table tbody tr.term-group th .linkbtn { padding-left: 0; padding-right: 4px; }
+
+/* THE BANNER IS INSIDE THE TABLE AND THAT IS THE POINT. The notice above answers the reader who
+   is looking at the sheet; this answers the one looking at a screenshot of the rows, because both
+   header rows are sticky and this one sits at the top of the scroll for as long as there are rows
+   under it.
+
+   The 22px is written down rather than measured because two sticky rows cannot both be at top 0:
+   the second has to be offset by the height of the first, and a height that is written into the
+   rule above it is one the offset cannot fall behind. 5 + 12 + 5 is that height. */
+.term-table thead tr.term-banner th {
+  top: 0;
+  height: 22px;
+  padding: 5px 10px;
+  line-height: 12px;
+  text-align: left;
+  background: var(--tint-warning);
+  color: var(--fg-warning);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.term-table thead tr.term-banner + tr th { top: 22px; }
+
+/* A gap is the only reason an operator opens a calendar, so a session with nobody to teach it
+   says so in the row and not only in the count above. The colour is the warning token, which is
+   the same token the invented notice takes, and it is on the cell rather than on the row: a
+   coloured row would read as an error, and a session with no instructor named yet is a fact
+   about the term rather than a fault in it. */
+.term-table .term-gap-cell { color: var(--fg-warning); font-weight: 600; }
+.term-table tr.term-gap td.r-name { color: var(--fg-body); }
+
+@media (max-width: 760px) {
+  /* The sheet's phone layout hides the whole of thead, which would take the banner with it. The
+     column headers are what it is right to hide, because each row carries its own run of values;
+     the banner is the one row in this table that has to survive a small screen. */
+  .term-table thead { display: block; }
+  .term-table thead tr:not(.term-banner) { display: none; }
+  .term-table thead tr.term-banner,
+  .term-table tbody tr.term-group { display: block; padding: 0; border-top: 0; }
+  .term-table thead tr.term-banner th { display: block; height: auto; }
+  .term-table tbody tr.term-group th { display: block; border-top: 1px solid var(--rule); }
+
+  /* A session template's title is a sentence, not a name, and the sheet's cells are nowrap so
+     that a record reads as one run. At 390px the longest of them is wider than the phone, and a
+     table that scrolls sideways inside a sheet that does not is the worst of both. These four are
+     the only cells here that carry running text, so they are the four that wrap. */
+  .term-table td.r-name,
+  .term-table td.s-delivered,
+  .term-table thead tr.term-banner th,
+  .term-table tbody tr.term-group th { white-space: normal; }
 }
 
 /* A note is content and the relationship list is metadata, so they are two blocks and not

@@ -114,7 +114,12 @@ report carries it, so a note can be tied to the exact bytes that were on screen.
 site/            what is deployed
   index.html     the shell
   app.css        design tokens and components
-  app.js         drawing, selection, the panel
+  app.js         joins the two documents, builds the five modules and wires them
+  render.js      paints the drawing from geometry
+  viewport.js    pan, zoom and fit
+  selection.js   what is picked, what it dims and what it reveals
+  router.js      the programme addresses and #/students
+  term.js        the term read twice, at #/calendar and #/outline
   instance.js    generated: the objects, their properties and identity, do not edit by hand
   layout.js      generated: every coordinate, do not edit by hand
   feedback.js    the feedback button
@@ -175,11 +180,13 @@ node scripts/smoke.mjs                                          # serve site/ an
 node scripts/smoke.mjs https://jcherranz.github.io/zrive-model-toy/
 ```
 
-Seventy one assertions across three viewports, 1536x839, 1440x900 and 390x844: the six Company nodes
-of which five are hidden employers, each instructor revealing its own employer and nothing else,
-the students card and the roster agreeing on how many of the cohort the drawing left out, the
-pointer-anchored zoom holding the point under the cursor, a click and a 2px wobble selecting where
-a 40px drag pans, capture mode filing nothing on a pan and producing an unchanged element
+Eighty seven assertions across three viewports, 1536x839, 1440x900 and 390x844: the six Company
+nodes of which five are hidden employers, each instructor revealing its own employer and nothing
+else, the students card and the roster agreeing on how many of the cohort the drawing left out, the
+term's two readings holding one row per session and per template, in date order and in curriculum
+order, with the sample they drew declared and the sessions with no instructor marked on the rows,
+the pointer-anchored zoom holding the point under the cursor, a click and a 2px wobble selecting
+where a 40px drag pans, capture mode filing nothing on a pan and producing an unchanged element
 descriptor, the board's four columns and its arithmetic, no sideways scroll at any width, and no
 console error beyond the favicon 404. Plain Node driving Chrome over the DevTools Protocol; no
 framework, no dependency, and no GitHub token. It cannot file an issue: the page's own network
@@ -238,6 +245,30 @@ button and a click outside all dismiss it, and it closes itself on the way to th
 **Every person in it is invented, and the build refuses to publish a roster that is not.**
 `build/model.py` puts every string this model ships through the same salted hash the safety gates
 use and stops the build on a hit. The universities are real institutions, which names nobody.
+
+## The term, read twice
+
+`#/calendar` is every cohort session on the seven drawings in date order, and `#/outline` is every
+session template in curriculum order. One sheet, two readings, and the same 83 rows seen twice:
+once as when a thing happened and once as what is taught. The way into either is the node, a
+cohort session for the calendar and a session template for the outline, which is where both were
+asked for; the header takes no new control.
+
+**It spans all seven programmes on purpose.** Every cohort session records that its schedule lives
+in Notion, one calendar per programme per quarter, so a calendar of one programme is a copy of
+something the business already has. One term across the seven exists nowhere, and the sheet says
+so where a reader meets it.
+
+**It is not a schedule and says so three times over**: in the subtitle, in a notice above the rows
+that cannot be scrolled away, and on a sticky banner row inside the table, so a screenshot of the
+rows carries the disclaimer with it. The drawings hold 83 of the 260 sessions the model counts and
+the sheet declares that sample rather than reading as a whole term. `state` and `teacher_assigned`
+are what make it more than a list: 11 sessions have no instructor named and each of those rows is
+marked.
+
+Every template has exactly one delivery, **and that is a property of this drawing rather than a
+finding about the business**: it draws one cohort, so a template can have at most one delivery in
+it. The outline says as much in its own notice.
 
 ## Board
 

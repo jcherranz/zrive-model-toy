@@ -23,7 +23,7 @@
   'use strict';
 
   var ZM = window.ZM || {};
-  ['render', 'viewport', 'selection', 'router'].forEach(function (k) {
+  ['render', 'viewport', 'selection', 'router', 'term'].forEach(function (k) {
     if (typeof ZM[k] !== 'function') {
       throw new Error('site/' + k + '.js did not define window.ZM.' + k +
                       ' before site/app.js ran: check the script tags in index.html');
@@ -98,8 +98,13 @@
           return out;
         })
       };
+      // The counts block travels with the view, issue 83. It is what each band caption says about
+      // its own sample, and #/calendar and #/outline read across all seven to say the same thing
+      // about the whole term: 83 sessions drawn out of the 260 the model counts. A view that
+      // carried its rows and not the total it is a sample of would let a sheet of 83 rows read as
+      // a complete term. It is not geometry, so it comes off the instance document.
       return { key: iv.key, code: iv.code, name: iv.name, label: iv.label, route: iv.route,
-               drawing: drawing };
+               counts: iv.counts, drawing: drawing };
     });
   }
 
@@ -131,7 +136,7 @@
     document.documentElement.style.setProperty('--hh', (hdr ? hdr.offsetHeight : 0) + 'px');
   }
 
-  var router, render, selection, viewport;
+  var router, render, selection, viewport, term;
 
   // ---- the wiring itself -----------------------------------------------------
   // What happens when the address starts naming a different programme. The order is the whole of
@@ -153,6 +158,19 @@
     // measured against what is left.
     viewport.refit();
   }
+
+  // The term, read twice. Built before the selection, because the panel asks it what a node is one
+  // of, and before the router, because it needs nothing the router has: it reads across all seven
+  // views and has no opinion about which of them is drawn, which is the whole reason it is a
+  // module of its own and not another view inside router.js. Nothing in showView() touches it for
+  // the same reason: a change of programme behind the sheet changes none of its rows. Issues 80
+  // and 82.
+  term = ZM.term({
+    views: VIEWS,
+    // Opening or closing the sheet swaps the heading, and below the breakpoint a heading of a
+    // different length can change how many lines the header takes.
+    onRoute: function () { measureHeader(); }
+  });
 
   router = ZM.router({
     views: VIEWS,
@@ -186,6 +204,11 @@
     // which is how a module stops being a module. It is a top-level block and not a per view
     // one, because a provenance is a fact about the document and not about the drawing.
     provenance: GI && GI.provenance,
+    // Issues 80 and 82. A cohort session is one of a term and a session template is one of a
+    // syllabus, and the panel is where the reader is when they want the rest of it. The route and
+    // the counts belong to the view that holds them, so term.js answers and selection.js only
+    // asks: a panel that knew '#/calendar' would be a second place the address is written down.
+    moreLink: term.linkFor,
     onReveal: function (n) { viewport.ensureVisible(n); }
   });
 
@@ -204,7 +227,9 @@
     // The two answers about the keyboard that do not come from the canvas. Both of these views
     // sit over it, and a digit typed into either is not an instruction to move a drawing the
     // reader cannot see.
-    busy: function () { return router.rosterOpen() || router.pgMenuOpen(); }
+    busy: function () {
+      return router.rosterOpen() || router.pgMenuOpen() || term.isOpen();
+    }
   });
   viewport.init();
 
@@ -347,6 +372,9 @@
   // The student list and the programme description are both read off the drawing, so neither can
   // run before there is one on the canvas.
   router.start();
+  // And the address may already be one of the term's two, which is what makes a link to
+  // #/calendar or #/outline open on the reading it names rather than on the diagram.
+  term.start();
   measureHeader();
   window.addEventListener('resize', measureHeader);
   // The header changes height for more reasons than a resize: capture mode widens its own toggle
@@ -411,6 +439,12 @@
       };
     },
     veiled: function () { return selection.veiledState(); },
-    roster: function () { return router.rosterOpen(); }
+    roster: function () { return router.rosterOpen(); },
+    // The term sheet, for the reason the roster and the view are here: whether a table holds the
+    // rows it says it holds, and whether the sample it declares is the sample it drew, are claims
+    // that should be read off the running page rather than inferred from a screenshot of 83 rows.
+    // Every number in it is counted off the rows term.js built, so it cannot report a total the
+    // sheet is not showing. Issues 80 and 82.
+    term: function () { return term.state(); }
   };
 })();

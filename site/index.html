@@ -61,6 +61,12 @@
       <span class="h-board">The work on this drawing, one card per issue</span>
       <span class="h-students">The <span id="hstudprog">Z-IB</span> cohort, every student in
       it</span>
+      <!-- The same term read twice, issues 80 and 82. A route with no heading of its own inherits
+           the one before it, which is what #77 found the board doing for months, so each of these
+           two gets its own line. Neither names a programme: the sheet under them reads across all
+           seven, which is the whole of the scope decision those two cards had to make. -->
+      <span class="h-calendar">The term, all seven programmes in date order</span>
+      <span class="h-outline">The outline, all seven programmes in curriculum order</span>
     </h1>
     <nav class="hnav">
       <!-- The theme, and it is first in the row on purpose: it is the only item here that
@@ -158,6 +164,9 @@
         <li>Click a node for its properties. Clicking an instructor also brings out the employer
           that instructor works for, and clicking the students card draws the individuals the
           picture carries.</li>
+        <li>A cohort session opens on to <b>the term</b>, every session on the seven drawings in
+          date order, and a session template on to <b>the outline</b>, every template in
+          curriculum order. The two are the same term read twice.</li>
         <li>Drag the canvas or scroll to move it, hold <b>Ctrl</b> (<b>Cmd</b> on a Mac) and
           scroll to zoom, or pinch, and <b>fit</b> brings the whole drawing back.</li>
         <li>The programme name in the heading opens the other six. <b>students</b> in the header
@@ -199,18 +208,63 @@
 <!-- The cohort in full. The rows are not written here: they are in the drawing's own generated
      file, because they are the model and not page furniture, and app.js builds this the first
      time the view is opened. Hidden until then, which also keeps it out of the tab order. -->
-<div id="roster" class="roster" hidden>
-  <div class="roster-back" id="rosterback"></div>
-  <section class="roster-sheet" role="dialog" aria-modal="true" aria-labelledby="rostertitle">
-    <div class="roster-head">
+<div id="roster" class="sheet" hidden>
+  <div class="sheet-back" id="rosterback"></div>
+  <section class="sheet-box" role="dialog" aria-modal="true" aria-labelledby="rostertitle">
+    <div class="sheet-head">
       <div>
         <h2 id="rostertitle"></h2>
-        <p class="roster-sub" id="rostersub"></p>
+        <p class="sheet-sub" id="rostersub"></p>
       </div>
       <button id="rosterclose" class="linkbtn" type="button" aria-label="Close the student list"
               title="close (Esc)">&times;</button>
     </div>
-    <div class="roster-rows" id="rosterrows"></div>
+    <div class="sheet-rows" id="rosterrows"></div>
+  </section>
+</div>
+
+<!-- THE SAME TERM, READ TWICE. Issues 80 and 82, and they are one card because they are the two
+     halves of one split: #/calendar is the instances in date order, #/outline is the templates in
+     curriculum order, and a reader who meets the same term under both orderings has been shown the
+     template versus instance distinction rather than told it.
+
+     ONE SHEET AND TWO ADDRESSES. One sheet because both readings want the same box, the same
+     close and the same provenance notice, and because switching between them is the point. Two
+     addresses because #/board and #/students established that a view worth having is worth an
+     address, and because the heading can only say what is on screen if there is a route for it to
+     say it about.
+
+     ITS SCOPE IS ALL SEVEN PROGRAMMES AND THAT IS THE DECISION. A calendar of one programme is
+     what Notion already holds, one per programme per quarter, by the model's own account; the term
+     across all seven exists nowhere, which is what makes it worth building and is the finding the
+     notice states. The rows are not written here: term.js reads them out of the seven drawings.
+
+     The classes are the student list's, because this is the same object: a sheet over the canvas
+     with a scrolling table in it. They were named .roster-* while there was one of them. -->
+<div id="term" class="sheet term" hidden>
+  <div class="sheet-back" id="termback"></div>
+  <section class="sheet-box" role="dialog" aria-modal="true" aria-labelledby="termtitle">
+    <div class="sheet-head">
+      <div>
+        <h2 id="termtitle"></h2>
+        <p class="sheet-sub" id="termsub"></p>
+      </div>
+      <button id="termclose" class="linkbtn" type="button" aria-label="Close"
+              title="close (Esc)">&times;</button>
+    </div>
+    <!-- The two readings, as ordinary links to their own addresses. Anchors and not a widget, for
+         issue 66's reason: the keyboard, the middle button, the context menu and the back button
+         all work without this page implementing any of them, and there is one code path into a
+         reading rather than two. -->
+    <div class="term-switch" role="group" aria-label="reading">
+      <a id="termcal" class="linkbtn" href="#/calendar">calendar</a>
+      <a id="termout" class="linkbtn" href="#/outline">outline</a>
+    </div>
+    <!-- What this is and what it is not, above the rows and outside the scroll, so it is on screen
+         for as long as the rows are. A table of dates is the first view on this page that could be
+         read as an operating document, and every date in it is invented. -->
+    <div class="term-notice" id="termnotice"></div>
+    <div class="sheet-rows" id="termrows"></div>
   </section>
 </div>
 
@@ -243,6 +297,11 @@
 <script src="viewport.js"></script>
 <script src="selection.js"></script>
 <script src="router.js"></script>
+<!-- The fifth, and it arrived exactly as the note above says a fifth would: a tag here and a name
+     in app.js's check. term.js owns #/calendar and #/outline and the sheet they open. It is not in
+     router.js because it is the one view on this page with no opinion about which of the seven
+     programmes is drawn: it reads across all of them. Issues 80 and 82. -->
+<script src="term.js"></script>
 <script src="app.js"></script>
 <script src="board.js"></script>
 <script src="feedback.js"></script>
