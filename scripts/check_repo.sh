@@ -946,6 +946,41 @@ Probe|Probe|dark|#9d3f9d|#252a31|2.4972|#1c2127|2.8015
     echo "  [MISS] the model and this gate disagree about the shape of a palette row"
   fi
 
+  # THE SURFACE THIS GATE MEASURES AGAINST, proved shape by shape. The two plates come out of
+  # site/app.css, which is right: the check then measures what the page paints instead of a hex
+  # retyped in Python. Until issue 64 the reader of that file assumed WHERE in it a dark value
+  # sits, split it on the media block and required one literal on each side, and issue 57's
+  # rewrite of the palette gave it zero and took the whole gate down. The reader now resolves a
+  # token under each colour scheme wherever the declarations are written.
+  #
+  # Its probes live beside it in build/model.py, against synthetic stylesheets, for the reason
+  # every probe here is synthetic. They are COUNTED HERE because this is where the contrast rule
+  # is judged, and a probe suite counted nowhere is a probe suite that can quietly stop running.
+  echo
+  echo "self-test: the stylesheet reader the contrast gate measures its plates with"
+  local palette_cases=0 verdict name
+  while IFS='|' read -r verdict name; do
+    [ -n "$name" ] || continue
+    palette_cases=$((palette_cases + 1))
+    total=$((total + 1))
+    if [ "$verdict" = ok ]; then
+      echo "  [OK]   $name"
+      pass=$((pass + 1))
+    else
+      echo "  [MISS] $name"
+    fi
+  done < <(python3 "$ROOT/build/model.py" --palette-self-test || true)
+  # And the poka-yoke this file applies to every other scan: a suite that emitted no case at all
+  # must read as a failure, not as a clean run over nothing.
+  total=$((total + 1))
+  if [ "$palette_cases" -gt 0 ]; then
+    echo "  [OK]   the stylesheet reader's own probes ran at all"
+    pass=$((pass + 1))
+  else
+    echo "  [MISS] the stylesheet reader emitted no probe at all"
+  fi
+
+  echo
   # And a declaration that is no longer needed must fail the run, exactly as a self-match that
   # matches nothing does. This is the half that keeps a tolerance from outliving the defect.
   total=$((total + 1))

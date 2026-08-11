@@ -11,6 +11,36 @@ of what changed and when, and it is meant to be scannable.
 
 ### Changed
 
+- The contrast gate reads the palette by resolving a token, not by where in `site/app.css` it is
+  written, #64. `surface_values()` used to split the file on `@media (prefers-color-scheme: dark)`
+  and require exactly one `#rrggbb` on each side. #57 made `color-scheme` the switch and put both
+  values in one `light-dark()`, which is zero on each side, and the gate refused to emit the
+  palette at all: main went red and `check_repo.sh --self-test` fell from 50 to 49.
+- **It was never a `light-dark()` problem.** Any dark rule spelling a plate hex breaks a
+  positional count the same way, and a `[data-theme="dark"]` block naming it makes two after the
+  split line. The question was wrong: the gate needs a token's value under each colour scheme,
+  which is not a question about the file's layout.
+- **The reader is scheme-aware and selector-blind.** It collects every declaration of the token,
+  tags each with the schemes its enclosing block can apply under, expands `light-dark()` and
+  `var()`, lets a scheme-scoped rule beat a scheme-neutral one, and requires the winners to agree.
+  A browser was rejected as the answer: `measure_labels.py` drives Chrome by hand and commits its
+  output precisely so the build never opens one, and this runs inside `check_repo.sh` on every
+  pass. No new dependency.
+- **The refusals are the point.** No declaration reaching a scheme, winners that disagree, a value
+  that is not a hex or a pair or a `var()`, a `var()` chain closing on itself, a `not
+  (prefers-color-scheme: dark)` query, a selector claiming both attributes, an unclosed block:
+  each names the token and the scheme and stops the gate at exit 2. The failure it replaced was
+  honest and was not traded for a quiet one.
+- `python3 build/model.py --palette-self-test`, 22 probes against synthetic stylesheets, folded
+  into `check_repo.sh --self-test`, which goes 50 to 73. Ten prove a value is a fact about the
+  token and not about where it sits, twelve prove a refusal.
+- **The two workaround tokens are gone.** `--bg-app-dark` and `--bg-panel-dark` existed only to be
+  counted by a regex; `--bg-app` and `--bg-panel` are `light-dark()` pairs like their fifteen
+  neighbours, and the two theme rules carry `--elev-1` alone. The same two tokens written five
+  ways, including all three the stylesheet could honestly use, produce the identical 26
+  measurements, 1 declared and 0 undeclared. Four screenshots, two routes by two themes, are byte
+  identical before and after, and the reader's own choice still wins over the operating system in
+  both directions.
 - The panel's type caption is text and no longer takes the stroke's token, #69. It was
   `#ptype.style.color = typeColor(n.type)`, so one hex answered both the 3:1 SC 1.4.11 asks of a
   drawn boundary and the 4.5:1 SC 1.4.3 asks of 11px bold text, and the stricter bar decided the

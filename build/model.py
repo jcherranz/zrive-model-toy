@@ -8,6 +8,7 @@ import datetime
 import hashlib
 import math
 import pathlib
+import re
 
 TYPES = [
     # key,             label,               colour,    glyph
@@ -2096,11 +2097,8 @@ _SRGB_OFFSET = 0.0550
 _SRGB_SCALE = 1.0550
 
 _CSS_PATH = pathlib.Path(__file__).resolve().parent.parent / "site" / "app.css"
-# The stylesheet's dark theme is one block and the whole theme, so a token's light value is its
-# definition before this line and its dark value is the one after it. Split on the block rather
-# than taking the first and second match in file order: the order is the thing that would be
-# quietly wrong if the block ever moved.
-_DARK_BLOCK = "@media (prefers-color-scheme: dark)"
+# The two colour schemes this file has to answer about, and the only two there are.
+_SCHEMES = ("light", "dark")
 
 
 # The breakpoint of the transfer function, and it is the 2.1 and 2.2 value rather than 2.0's
@@ -2126,21 +2124,25 @@ def contrast_ratio(a, b):
     return (hi + 0.05) / (lo + 0.05)
 
 
-def _css_text():
+def _css_text(raw=None):
     """app.css with its comments removed, which is the only text that paints anything.
 
     Not fussiness. That file argues with itself at length in comments, several of them naming
     tokens and quoting rules, and a commented-out `.band` above the live one, or the theme
     block's own name written inside a comment, would be picked up by the two readers below and
     would point this whole measurement at a surface nothing is drawn on.
+
+    `raw` defaults to the shipped file. It is a parameter only so that a synthetic stylesheet
+    goes through this same stripping on its way into the same reader.
     """
     import re as _re
-    try:
-        css = _CSS_PATH.read_text(encoding="utf-8")
-    except OSError as exc:
-        raise SystemExit(f"model: cannot read {_CSS_PATH.name} ({exc}). The surfaces the type "
-                         f"colours are drawn on live there and cannot be guessed at.")
-    return _re.sub(r"/\*.*?\*/", "", css, flags=_re.S)
+    if raw is None:
+        try:
+            raw = _CSS_PATH.read_text(encoding="utf-8")
+        except OSError as exc:
+            raise SystemExit(f"model: cannot read {_CSS_PATH.name} ({exc}). The surfaces the "
+                             f"type colours are drawn on live there and cannot be guessed at.")
+    return _re.sub(r"/\*.*?\*/", "", raw, flags=_re.S)
 
 
 def surface_token(selector, prop):
@@ -2157,22 +2159,368 @@ def surface_token(selector, prop):
     return m.group(1)
 
 
-def surface_values(token):
-    """A custom property's two values, light and dark, from the one stylesheet that holds them."""
-    import re as _re
-    css = _css_text()
-    if _DARK_BLOCK not in css:
-        raise SystemExit("model: app.css no longer carries the dark theme block. The dark "
-                         "surface cannot be read and this check will not guess one.")
-    light_half, dark_half = css.split(_DARK_BLOCK, 1)
-    out = {}
-    for ground, half in (("light", light_half), ("dark", dark_half)):
-        found = _re.findall(_re.escape(token) + r"\s*:\s*(#[0-9a-fA-F]{6})\b", half)
-        if len(found) != 1:
-            raise SystemExit(f"model: {token} is defined {len(found)} time(s) in the {ground} "
-                             f"half of app.css and this check needs exactly one.")
-        out[ground] = found[0].lower()
+# ---- reading a token's two values out of the stylesheet ----------------------
+# Issue 64. WHAT THIS ASKS THE STYLESHEET, said first, because the previous reader asked the
+# wrong question and that is the whole defect. It needs the resolved value of two custom
+# properties under two colour schemes. It used to ask instead "where in the file is the dark
+# value", split app.css on the media block's text and require exactly one `#rrggbb` on each
+# side. That is a question about the file's LAYOUT, and issue 57 rewrote the palette so that
+# color-scheme is the switch and one light-dark() declaration carries both values, at which
+# point there were zero definitions on each side and the gate refused to emit anything. Main
+# went red. The patch was to hold --bg-app and --bg-panel in the old shape, which cost two
+# tokens that existed only to be counted by a regex. This is the repair of the question.
+#
+# It was never a light-dark() problem. ANY dark rule that spells a plate colour breaks a
+# positional count the same way: a `[data-theme="dark"]` block naming the hex is a second
+# definition after the split line and the old reader refused at 2. A reader that assumes a
+# stylesheet's structure keeps breaking as the stylesheet is written.
+#
+# THE THREE OTHER ANSWERS AND WHY THEY LOST.
+#
+#   Parse light-dark() and nothing else. It is a small grammar and it is what the file uses
+#   today, and that is exactly the objection: it swaps one assumption about shape for another,
+#   and the next honest override, a media block or an explicit-choice rule, breaks it again in
+#   the same way. It would fix today and re-file this card.
+#
+#   Resolve the tokens the way a browser does. The faithful answer, and far more machinery than
+#   two questions are worth: specificity, source order, inheritance, @supports, nesting, custom
+#   property substitution. A second CSS engine in this repository, unverified against the first,
+#   would be a larger thing to be wrong than the thing it replaces.
+#
+#   Ask a real browser. build/measure_labels.py already drives Chrome for text widths, so it
+#   would be consistent, and it loses on where the answer is needed. measure_labels.py runs BY
+#   HAND and writes build/label_widths.json, precisely so that the build reads a committed file
+#   and never opens a browser: deterministic, offline, no dependency. This runs inside
+#   check_repo.sh on every pass. Putting a browser on that path makes the contrast gate
+#   unrunnable wherever there is no Chrome, and a gate that cannot run is not a gate.
+#
+# SO: a small scheme-aware reader over the declarations, which asks the question that was
+# actually being asked. It collects every declaration of the token in the file, tags each with
+# the colour schemes the block it sits in can apply under, expands light-dark() and one var()
+# hop, and requires each scheme to come out at exactly one value. It knows nothing about where
+# in the file anything sits.
+#
+# WHAT IT REFUSES, and it refuses out loud in every case, naming the token and the scheme,
+# because the failure it replaces was at least honest: it stopped the gate rather than
+# measuring against a guess, and that must not be traded for a quiet wrong answer.
+#   no declaration reaches a scheme at all
+#   the winning declarations for a scheme disagree about the value
+#   a value is not a hex, a light-dark() pair or a var() this reader can follow
+#   a var() chain that closes on itself
+#   a media query about prefers-color-scheme this reader will not claim to understand
+#   a selector claiming both data-theme values at once
+#   a file that does not close every block it opens
+#
+# THE ONE THING IT DELIBERATELY DOES NOT DISTINGUISH: dark chosen by the reader and dark
+# inherited from the operating system are one scheme here. After 57 they are one palette, since
+# both rules set color-scheme and every pair follows from that. If a stylesheet ever gave them
+# different values, the two would be competing declarations for the same scheme and this reader
+# would refuse rather than pick. A page whose two routes to dark disagree is a stylesheet
+# defect, and it is app.css's own comment that says to keep the two blocks agreeing.
+
+_HEX3 = re.compile(r"#([0-9a-fA-F]{3})$")
+_HEX6 = re.compile(r"#([0-9a-fA-F]{6})$")
+_VAR_REF = re.compile(r"var\(\s*(--[A-Za-z0-9_-]+)\s*\)$")
+_LIGHT_DARK = re.compile(r"light-dark\((.*)\)$", re.S)
+_DECL = re.compile(r"(--[A-Za-z0-9_-]+)\s*:\s*([^;]*)")
+# A media condition this reader will read, and the only one. Anything else mentioning
+# prefers-color-scheme is refused rather than guessed at, `not` above all: it inverts the
+# meaning while still carrying the word the naive match would key on.
+_PREFERS = re.compile(r"\(\s*prefers-color-scheme\s*:\s*(dark|light)\s*\)")
+_DATA_THEME = re.compile(r"\[\s*data-theme\s*=\s*[\"']?(dark|light)[\"']?\s*\]")
+# `:root:not([data-theme="light"])` says nothing about the scheme of the block: it stands out of
+# the way of a reader who chose light, and it still applies when nobody has chosen anything. So
+# a :not() is removed before the selector is read, and what remains is what the block claims.
+_NOT_ARG = re.compile(r":not\([^()]*\)")
+
+
+def _css_abort(message):
+    raise SystemExit(f"model: {message} The surfaces the type colours are measured against are "
+                     f"read from site/app.css and this check will not guess one.")
+
+
+def _match_brace(text, opened_at):
+    """The index of the } closing the { at opened_at, or -1 if the file never closes it."""
+    depth = 0
+    for i in range(opened_at, len(text)):
+        if text[i] == "{":
+            depth += 1
+        elif text[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return i
+    return -1
+
+
+def _blank_nested(body):
+    """A block's own declaration text, with every block nested inside it blanked out.
+
+    Blanked and not deleted so that nothing on either side of a nested rule is joined to
+    anything else: a declaration cannot be manufactured by removing the text between two.
+    """
+    out = []
+    depth = 0
+    for ch in body:
+        if ch == "{":
+            depth += 1
+        out.append(" " if depth else ch)
+        if ch == "}":
+            depth -= 1
+    return "".join(out)
+
+
+def _narrow(scope, prelude):
+    """The schemes a block can apply under, given its enclosing scope and its own prelude."""
+    if prelude.startswith("@"):
+        if "prefers-color-scheme" not in prelude:
+            return scope
+        found = _PREFERS.findall(prelude)
+        if len(found) != 1 or re.search(r"\bnot\b|\bor\b", prelude):
+            _css_abort(f"app.css carries a media query about prefers-color-scheme that this "
+                       f"reader will not claim to understand: `{prelude}`.")
+        return scope & {found[0]}
+    selector = _NOT_ARG.sub(" ", prelude)
+    found = set(_DATA_THEME.findall(selector))
+    if len(found) > 1:
+        _css_abort(f"app.css carries a selector claiming both theme attributes at once: "
+                   f"`{prelude}`.")
+    return (scope & found) if found else scope
+
+
+def _walk(css, start, end, scope, out):
+    """Every custom property declared between start and end, tagged with its scheme scope."""
+    i = start
+    while True:
+        j = css.find("{", i)
+        if j < 0 or j >= end:
+            return
+        # A block's prelude is what stands between the last thing that ended and its `{`. The
+        # rsplit is what makes a block nested inside a rule readable: without it the prelude of
+        # an at-rule written inside `:root` would carry the declarations before it and would
+        # stop looking like an at-rule at all.
+        prelude = " ".join(css[i:j].rsplit(";", 1)[-1].split())
+        closes = _match_brace(css, j)
+        if closes < 0 or closes > end:
+            _css_abort("app.css does not close every block it opens, so no rule in it can be "
+                       "read with any confidence about which block it sits in.")
+        inner = _narrow(scope, prelude)
+        for m in _DECL.finditer(_blank_nested(css[j + 1:closes])):
+            out.append((inner, m.group(1), m.group(2).strip()))
+        _walk(css, j + 1, closes, inner, out)
+        i = closes + 1
+
+
+def _declarations(css):
+    """Every custom property declaration in a stylesheet, tagged with the schemes it applies
+    under."""
+    out = []
+    _walk(css, 0, len(css), frozenset(_SCHEMES), out)
     return out
+
+
+def _as_hex(value):
+    """`#abc` or `#aabbcc` as a lowercase six digit hex, or None if it is neither."""
+    m = _HEX6.match(value)
+    if m:
+        return "#" + m.group(1).lower()
+    m = _HEX3.match(value)
+    if m:
+        return "#" + "".join(c + c for c in m.group(1).lower())
+    return None
+
+
+def _split_args(text):
+    """A function's arguments, split on the commas that are not inside a nested function."""
+    parts, depth, current = [], 0, []
+    for ch in text:
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+        if ch == "," and depth == 0:
+            parts.append("".join(current).strip())
+            current = []
+        else:
+            current.append(ch)
+    parts.append("".join(current).strip())
+    return parts
+
+
+def _expand(decls, token, value, scheme, seen):
+    """One declared value, reduced to the hex it paints under one colour scheme."""
+    value = " ".join(value.split())
+    hexc = _as_hex(value)
+    if hexc:
+        return hexc
+    m = _LIGHT_DARK.match(value)
+    if m:
+        halves = _split_args(m.group(1))
+        if len(halves) != 2:
+            _css_abort(f"app.css writes {token} as a light-dark() of {len(halves)} arguments "
+                       f"rather than two: `{value}`.")
+        return _expand(decls, token, halves[_SCHEMES.index(scheme)], scheme, seen)
+    m = _VAR_REF.match(value)
+    if m:
+        return _resolve(decls, m.group(1), scheme, seen)
+    _css_abort(f"app.css gives {token} the value `{value}` under the {scheme} colour scheme, "
+               f"which is not a hex, a light-dark() pair, or a var() naming one token.")
+
+
+def _resolve(decls, token, scheme, seen=frozenset()):
+    """A custom property's one value under one colour scheme, or a refusal saying why not."""
+    if token in seen:
+        _css_abort(f"app.css resolves {token} through a chain of var() that closes on itself.")
+    reaching = [(0 if len(scope) == len(_SCHEMES) else 1, value)
+                for scope, name, value in decls if name == token and scheme in scope]
+    if not reaching:
+        _css_abort(f"app.css declares no value for {token} that can apply under the {scheme} "
+                   f"colour scheme.")
+    # The cascade, at the only resolution this question needs: a rule scoped to one scheme beats
+    # a rule that applies under both. Among the winners the reader requires agreement rather
+    # than ranking them by specificity and source order, which is where a second CSS engine
+    # would begin. Two dark rules that disagree are a stylesheet to look at, not a coin to toss.
+    top = max(tier for tier, _ in reaching)
+    values = sorted({_expand(decls, token, value, scheme, seen | {token})
+                     for tier, value in reaching if tier == top})
+    if len(values) != 1:
+        _css_abort(f"app.css resolves {token} to {len(values)} different values under the "
+                   f"{scheme} colour scheme ({', '.join(values)}) and this check will not "
+                   f"choose between them.")
+    return values[0]
+
+
+def surface_values(token, css=None):
+    """A custom property's two values, light and dark, from the one stylesheet that holds them.
+
+    `css` is the stylesheet text, and it defaults to the one this repository ships. It is a
+    parameter so that the probes below can put a synthetic palette through the same reader the
+    gate runs, rather than through a copy of it that could agree with a broken original.
+    """
+    decls = _declarations(_css_text(css))
+    return {scheme: _resolve(decls, token, scheme) for scheme in _SCHEMES}
+
+
+# ---- proving the reader, against palettes nobody ships -----------------------
+# Issue 64. Every probe below is a synthetic stylesheet, for the reason every other probe in
+# this repository is synthetic: one that read site/app.css would start passing or failing
+# because somebody changed a colour, which is the one thing a test must not do.
+#
+# The point of the first group is that a token's value is a fact about the token and not about
+# where in the file it was written. The same token, the same two answers, expressed as a
+# light-dark() pair, as a media block, as an explicit-choice rule, as all three at once, and as
+# the workaround shape this card deleted. Any of the five would have broken the previous reader
+# except the second, which is the only shape it could read.
+#
+# The second group is the refusals, and it is the half that matters more. A reader that answers
+# wrongly and quietly is worse than the abort it replaced, so every way this one can fail to
+# know an answer is a probe here, and each asserts that the message NAMES what could not be
+# resolved rather than merely failing.
+#
+# scripts/check_repo.sh runs this and folds each line into its own self-test count, so these
+# cases are counted where the contrast rule is judged and cannot quietly stop running.
+
+_PALETTE_PROBE_TOKEN = "--probe-plate"
+_PALETTE_PROBE_LIGHT = "#ffffff"
+_PALETTE_PROBE_DARK = "#252a31"
+
+
+def palette_self_test():
+    """One line per probe, `ok|name` or `miss|name`, and a non-zero exit if any missed."""
+    results = []
+
+    def expect_pair(name, css, light=_PALETTE_PROBE_LIGHT, dark=_PALETTE_PROBE_DARK):
+        try:
+            got = surface_values(_PALETTE_PROBE_TOKEN, css)
+        except SystemExit as exc:
+            results.append((False, f"{name} (refused: {exc})"))
+            return
+        results.append((got == {"light": light, "dark": dark}, name))
+
+    def expect_refusal(name, css, names_it):
+        try:
+            got = surface_values(_PALETTE_PROBE_TOKEN, css)
+        except SystemExit as exc:
+            results.append((names_it in str(exc), name))
+            return
+        results.append((False, f"{name} (answered {got} instead of refusing)"))
+
+    t, lit, drk = _PALETTE_PROBE_TOKEN, _PALETTE_PROBE_LIGHT, _PALETTE_PROBE_DARK
+
+    expect_pair("the pair written as one light-dark() declaration",
+                f":root {{ {t}: light-dark({lit}, {drk}); }}")
+    expect_pair("the pair written as a light value and a dark media block",
+                f":root {{ {t}: {lit}; }}\n"
+                f"@media (prefers-color-scheme: dark) {{\n"
+                f"  :root:not([data-theme=\"light\"]) {{ {t}: {drk}; }}\n}}")
+    expect_pair("the pair written as a light value and a [data-theme=\"dark\"] rule",
+                f":root {{ {t}: {lit}; }}\n"
+                f":root[data-theme=\"dark\"] {{ {t}: {drk}; }}")
+    expect_pair("the pair written all three ways at once, agreeing",
+                f":root {{ {t}: light-dark({lit}, {drk}); }}\n"
+                f"@media (prefers-color-scheme: dark) {{\n"
+                f"  :root:not([data-theme=\"light\"]) {{ {t}: {drk}; }}\n}}\n"
+                f":root[data-theme=\"dark\"] {{ {t}: {drk}; }}")
+    expect_pair("the pair written in the shape issue 64 deleted, a -dark sibling token",
+                f":root {{ {t}: {lit}; {t}-dark: {drk}; }}\n"
+                f"@media (prefers-color-scheme: dark) {{\n"
+                f"  :root:not([data-theme=\"light\"]) {{ {t}: {drk}; }}\n}}\n"
+                f":root[data-theme=\"dark\"] {{ {t}: var({t}-dark); }}")
+    expect_pair("a dark value reached through two hops of var()",
+                f":root {{ {t}: light-dark(var({t}-a), var({t}-b));\n"
+                f"  {t}-a: {lit}; {t}-b: var({t}-c); {t}-c: {drk}; }}")
+    expect_pair("three digit hexes, which are the same colours written shorter",
+                f":root {{ {t}: light-dark(#fff, #ABC); }}", "#ffffff", "#aabbcc")
+    expect_pair("a token with one value has that value under both schemes",
+                f":root {{ {t}: {lit}; }}", lit, lit)
+    expect_pair("a commented out rule declares nothing",
+                f"/* :root {{ {t}: #000000; }} */\n"
+                f":root {{ {t}: light-dark({lit}, {drk}); }}")
+    expect_pair("a dark media block nested inside the rule it overrides",
+                f":root {{ {t}: {lit};\n"
+                f"  @media (prefers-color-scheme: dark) {{ {t}: {drk}; }}\n}}")
+
+    expect_refusal("a token no rule declares", f":root {{ --something-else: {lit}; }}", t)
+    # This reader does not read selectors, only the colour scheme a block can apply under, so it
+    # cannot tell a second declaration of the same token on another element from a second
+    # declaration on the same one. It says so and stops. That is the right way round: a
+    # stylesheet that sets one of these two tokens in more than one place is a stylesheet to
+    # look at, and the alternative is a reader that picks one and is quietly wrong.
+    expect_refusal("a second declaration of the token, on another element",
+                   f":root {{ {t}: light-dark({lit}, {drk}); }}\n"
+                   f".somewhere-else {{ {t}: #000000; }}", "2 different values")
+    expect_refusal("a token no rule declares under one of the two schemes",
+                   f"@media (prefers-color-scheme: light) {{ :root {{ {t}: {lit}; }} }}", "dark")
+    expect_refusal("two dark rules that disagree",
+                   f":root {{ {t}: {lit}; }}\n"
+                   f"@media (prefers-color-scheme: dark) {{ :root {{ {t}: {drk}; }} }}\n"
+                   f":root[data-theme=\"dark\"] {{ {t}: #2f343c; }}",
+                   "2 different values")
+    expect_refusal("a value this reader cannot reduce to a colour",
+                   f":root {{ {t}: color-mix(in srgb, {lit} 50%, {drk}); }}", "color-mix")
+    expect_refusal("a var() naming a token that is declared nowhere",
+                   f":root {{ {t}: var(--no-such-token); }}", "--no-such-token")
+    expect_refusal("a var() chain that closes on itself",
+                   f":root {{ {t}: var({t}-a); {t}-a: var({t}); }}", "closes on itself")
+    expect_refusal("a light-dark() of three arguments",
+                   f":root {{ {t}: light-dark({lit}, {drk}, #000000); }}", "3 arguments")
+    expect_refusal("a light-dark() half that is not a colour, and is not mis-split on its commas",
+                   f":root {{ {t}: light-dark(rgb(255, 255, 255), {drk}); }}",
+                   "rgb(255, 255, 255)")
+    expect_refusal("a media query about prefers-color-scheme that inverts its own condition",
+                   f":root {{ {t}: {lit}; }}\n"
+                   f"@media not all and (prefers-color-scheme: dark) {{ :root {{ {t}: {drk}; }} }}",
+                   "will not claim to understand")
+    expect_refusal("a selector claiming both theme attributes at once",
+                   f":root {{ {t}: {lit}; }}\n"
+                   f":root[data-theme=\"dark\"][data-theme=\"light\"] {{ {t}: {drk}; }}",
+                   "both theme attributes")
+    expect_refusal("a stylesheet that does not close every block it opens",
+                   f":root {{ {t}: light-dark({lit}, {drk});", "does not close every block")
+
+    for ok, name in results:
+        print(f"{'ok' if ok else 'miss'}|{name}")
+    if not all(ok for ok, _ in results):
+        raise SystemExit(1)
 
 
 def type_colour(key, colour, ground):
@@ -2600,5 +2948,8 @@ if __name__ == "__main__":
         emit_contrast()
     elif _sys.argv[1:] == ["--provenance-self-test"]:
         provenance_self_test()
+    elif _sys.argv[1:] == ["--palette-self-test"]:
+        palette_self_test()
     else:
-        raise SystemExit("usage: model.py --contrast | --provenance-self-test")
+        raise SystemExit("usage: model.py --contrast | --provenance-self-test "
+                         "| --palette-self-test")
