@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T15:43:19Z",
+  "generated": "2026-08-11T15:43:41Z",
   "columns": [
     {
       "key": "raw",
@@ -113,7 +113,7 @@
           "labels": [
             "idea",
             "layout",
-            "status:in-progress"
+            "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/57"
         },
