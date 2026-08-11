@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T20:57:29Z",
+  "generated": "2026-08-11T21:27:00Z",
   "columns": [
     {
       "key": "raw",
@@ -110,17 +110,6 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/82"
-        },
-        {
-          "id": 83,
-          "title": "Show every session for Z-BL and Z-SC, and declare the sample on the five that stay sampled",
-          "labels": [
-            "bug",
-            "feedback",
-            "model",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/83"
         }
       ]
     },
@@ -133,6 +122,17 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 83,
+          "title": "Show every session for Z-BL and Z-SC, and declare the sample on the five that stay sampled",
+          "labels": [
+            "bug",
+            "feedback",
+            "model",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/83"
+        },
         {
           "id": 78,
           "title": "A Strategy Consulting session template carries a time and a venue, so it is an instance",
@@ -201,18 +201,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/68"
-        },
-        {
-          "id": 67,
-          "title": "A browser-launch flake reports a runner problem as a page regression, on 20 percent of the suite",
-          "labels": [
-            "bug",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/67"
         }
       ],
-      "hidden": 52,
+      "hidden": 53,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
