@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T18:43:59Z",
+  "generated": "2026-08-11T18:45:35Z",
   "columns": [
     {
       "key": "raw",
@@ -32,25 +32,6 @@
       "title": "Backlog",
       "cards": [
         {
-          "id": 64,
-          "title": "The contrast gate reads the palette out of app.css and assumes the dark theme is one media block",
-          "labels": [
-            "enhancement",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/64"
-        },
-        {
-          "id": 69,
-          "title": "The panel's 11px type label is text and three of the thirteen are under 4.5:1 in light",
-          "labels": [
-            "bug",
-            "model",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/69"
-        },
-        {
           "id": 70,
           "title": "The inner edge of a tile stroke is ungated, and three light colours are under 3:1 there",
           "labels": [
@@ -65,7 +46,27 @@
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": []
+      "cards": [
+        {
+          "id": 64,
+          "title": "The contrast gate reads the palette out of app.css and assumes the dark theme is one media block",
+          "labels": [
+            "enhancement",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/64"
+        },
+        {
+          "id": 69,
+          "title": "The panel's 11px type label is text and three of the thirteen are under 4.5:1 in light",
+          "labels": [
+            "bug",
+            "model",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/69"
+        }
+      ]
     },
     {
       "key": "done",
