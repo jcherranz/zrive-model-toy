@@ -222,47 +222,88 @@ main {
 #view-board { display: none; overflow-y: auto; }
 body.board #view-diagram { display: none; }
 body.board #view-board { display: flex; }
-/* The subtitle and the ghost toggle both describe the drawing, so on the board they are not
-   dimmed or reworded, they are gone. */
-.sub-board { display: none; }
-body.board .sub-diagram { display: none; }
-body.board .sub-board { display: inline; }
+/* The heading says what is on screen, so it is three headings and the route picks one. It is the
+   same mechanism the subtitle used to carry and the same three rules, moved up a line: nothing
+   here writes text, so a route cannot leave a heading half rewritten and no module has to own a
+   string. `students` is a route as much as `board` is, and the class for it is written by
+   router.js where the list is opened, beside the aria-current it already sets on the nav link.
+   The ghost toggle describes the drawing, so on the board it is not dimmed or reworded, it is
+   gone. Issue 77. */
+.h-board, .h-students { display: none; }
+body.board .h-diagram { display: none; }
+body.board .h-board { display: inline; }
+body.students .h-diagram { display: none; }
+body.students .h-students { display: inline; }
 body.board #ghtoggle { display: none; }
 /* The detail panel describes a node in the drawing, so on the board it goes the same way. It is
    hidden rather than closed: the selection is still the selection, and switching back brings the
    panel and the node it is about back together. */
 body.board #panel { display: none; }
 
+/* ONE ROW, AT EVERY WIDTH THE ROW FITS ON. Issue 32 reclaimed a header row by deleting the
+   legend and issue 57 protected it; this gives back a second one rather than spending it. The
+   header used to be a heading with a subtitle under it, two lines wherever it was read and four
+   or five on a phone, where the subtitle wrapped to three and the nav took a row of its own: 123
+   CSS px, 15 per cent of a 390 by 844 viewport, before the drawing got anything. The subtitle and
+   the heading said the same kind of thing and only one of them was ever right, so they are one
+   line now, and the row is the heading beside the nav. Below the breakpoint the nav still takes
+   its own row, which is the same two rows a phone already had, with the three lines of subtitle
+   between them gone. Issue 77.
+
+   `align-items: center` and not `flex-start`, because both sides of this row are now one line of
+   the same height and there is no taller block for a top edge to align to. */
 header {
   flex: none;
-  padding: 11px 20px 9px;
+  padding: 8px 20px;
   border-bottom: 1px solid var(--rule-muted);
   background: var(--bg-panel);
 }
 
 .hrow {
   display: flex;
-  align-items: flex-start;
-  gap: 20px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
 }
-
-.htitle { flex: 1 1 auto; min-width: 0; }
 
 .hnav {
   flex: none;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding-top: 1px;
+  gap: 8px;
 }
 
+/* THE ONE DECLARATION THAT MADE FIVE CONTROLS FAIL WCAG 2.2 SC 2.5.8. This was
+   `padding: 2px 2px` with no height, and at 12px over a 1.28581 line height that is a 19 CSS px
+   box: `theme: system` 19, `students` 19, `board` 19, and `ghosts` and `feedback` 21 because those
+   two carry a border. Five of five under the 24 by 24 the standard asks for, in a repository that
+   gates itself on WCAG 2.2 for contrast and had never once measured a target. Issue 77.
+
+   THE BORDER IS TRANSPARENT RATHER THAN ABSENT, and that is the second finding rather than a
+   trick. Two of these five had a border and three had none, so the row rendered on two baselines
+   a pixel apart and a line that reads as one line was not one. Giving every control the same box
+   and letting the two that want a visible edge recolour it is what makes the baseline shared by
+   construction: there is no width here for a later control to get wrong.
+
+   The height is 26 and not 24, which is the floor plus the two pixels the border takes, so the
+   box measures 26 whether the border is painted or not and a control cannot be exactly at the
+   limit by accident. */
 .linkbtn {
+  display: inline-block;
   font: inherit;
   font-size: var(--fs-sm);
+  line-height: 18px;
+  min-height: 26px;
+  /* Both axes, because the standard is 24 BY 24 and a rule that only sets the height passes every
+     control whose label is a word and fails the one whose label is a glyph. The student list's
+     close button is that control: at the phone's tighter padding it measured 24.16 wide, inside
+     the standard by a sixth of a pixel and outside it on any font that renders that glyph a
+     shade narrower. */
+  min-width: 26px;
   color: var(--i-primary);
   background: transparent;
-  border: 0;
-  padding: 2px 2px;
+  border: 1px solid transparent;
+  padding: 3px 8px;
   cursor: pointer;
   text-decoration: none;
   border-radius: var(--radius);
@@ -281,41 +322,59 @@ header {
 
 .linkbtn:disabled:hover { text-decoration: none; }
 
+/* The heading is one line and the row is sized by it, so it takes the row's remaining width and
+   is allowed to shrink into it rather than pushing the nav off the edge. No `overflow: hidden`:
+   the programme menu is absolutely positioned inside this box and clipping it would be clipping
+   the control. */
 h1 {
+  flex: 0 1 auto;
+  min-width: 0;
   margin: 0;
   font-size: var(--fs-base);
   font-weight: 600;
   letter-spacing: .01em;
-}
-
-/* One sentence, so the line length that a paragraph would need is not needed here, and the
-   dummy-values badge stays on the same line as the sentence it qualifies. */
-.sub {
-  margin: 3px 0 0;
-  font-size: var(--fs-sm);
-  color: var(--fg-muted);
+  line-height: 1.3;
 }
 
 /* ---- the programme picker ------------------------------------------------
-   Seven drawings, one control, and no row spent on it. The subtitle already had to name the
+   Seven drawings, one control, and no row spent on it. The heading already had to name the
    programme on screen, so the name is the button: it sits inside the sentence, it is a .linkbtn
    like the rest of the page's controls, and the header is exactly as tall with it as without.
    Nothing here is a new control style. The list under it is seven ordinary links to the seven
    addresses, so the keyboard reaches them by tabbing, the middle button opens one in a tab and
    the address bar shows which one is drawn. Issue 66, on top of issue 32's reclaimed row and
-   issue 57's protection of it.
+   issue 57's protection of it; issue 77 moved it from the subtitle into the heading when the two
+   became one line, and it is the same control in the same sentence.
 
    The button carries aria-expanded and .linkbtn already answers that with a weight, which is
    the same "the control says what state it is in" the theme toggle and the ghosts chip use. */
 .pgpick {
   position: relative;
   display: inline-block;
-  /* .linkbtn pads 2px either side, which is right for a control in a row with gaps and wrong
-     for one in the middle of a sentence: the comma after it read as though it had a space in
-     front of it. The padding stays, because it is what the focus ring is drawn around, and the
-     sentence takes it back on the side the punctuation is on. */
-  margin-right: -2px;
+  /* The horizontal padding is the nav's answer to a row with gaps and the wrong answer inside a
+     sentence: the comma after the name read as though it had a space in front of it, and the
+     first word of the heading started indented by the padding of a control nobody can see. The
+     box stays, because it is what the focus ring is drawn around and what the reader's finger
+     lands on, and the sentence takes it back on both sides. */
+  margin: 0 -5px;
 }
+
+/* A control in the middle of a sentence sits on the sentence's own type and not on the nav's: at
+   the nav's 12px inside a 14px heading it read as a chip dropped into the line, and the point of
+   issue 66 is that these are the words the sentence was already saying. Everything about the box
+   is the nav's, so it is 26 CSS px tall like every other control on the page; only the horizontal
+   padding is cut, because the height is the target size and is not negotiable. */
+.pgpick > .linkbtn {
+  font: inherit;
+  line-height: 18px;
+  min-height: 26px;
+  padding: 3px 4px;
+  color: var(--i-primary);
+}
+
+/* Every other .linkbtn answers aria-expanded with a weight. This one is already at the heading's
+   weight and has nowhere to go, so the open state is marked the way a link marks itself. */
+.pgpick > .linkbtn[aria-expanded="true"] { text-decoration: underline; }
 
 /* Absolute, so opening it moves nothing: the sentence, the header's height and the canvas under
    it are the same before and after. z-index 15 puts it over the canvas at 5 and the detail panel
@@ -455,15 +514,23 @@ body.fb-mode #canvas { cursor: crosshair; }
   overflow: hidden;
 }
 
+/* Measured while issue 77 was measuring the header, and failing the same standard for the same
+   reason: `padding: 3px 9px` over a 12px type gave a 21.6 CSS px box, under WCAG 2.2 SC 2.5.8's
+   24 by 24. It is not in the header and it was not on that card's list, but it is a control a
+   finger lands on, the cause and the fix are the one the nav just took, and a page that fixed
+   five targets and left three is a page that has not fixed target size. The height costs the
+   chrome nothing: this control floats in the corner of the canvas. */
 .zbtn {
   font: inherit;
   font-size: var(--fs-sm);
   color: var(--fg-muted);
   background: transparent;
   border: 0;
-  padding: 3px 9px;
+  min-height: 26px;
+  min-width: 26px;
+  padding: 4px 9px;
   cursor: pointer;
-  line-height: 1.3;
+  line-height: 18px;
 }
 
 .zbtn:hover { background: var(--tint-hover); color: var(--fg-body); }
@@ -653,6 +720,12 @@ body.panel-open #canvas { margin-right: 320px; }
   color: var(--fg-warning);
 }
 
+/* The min-width is the third of the three target-size fixes issue 77 turned up. This control was
+   22.52 by 26: tall enough by its type and narrow enough by its glyph, which is the failure mode a
+   height-only rule cannot catch, and it is the one place on the page where the two axes disagree.
+   The card was about the header and this is not in the header, so it is noted here rather than
+   argued: one declaration, no colour and no layout, and a page that had fixed eight targets and
+   left the ninth would not have fixed target size. WCAG 2.2 SC 2.5.8. */
 #close {
   position: absolute;
   top: 10px;
@@ -663,20 +736,79 @@ body.panel-open #canvas { margin-right: 320px; }
   font-size: 18px;
   line-height: 1;
   cursor: pointer;
+  min-width: 26px;
+  min-height: 26px;
   padding: 4px 6px;
   border-radius: var(--radius);
 }
 
 #close:hover { background: var(--tint-hover); }
 
+/* One statement and one control. This strip carried 101 words in a single paragraph and 144 to
+   158 CSS px on a 390 by 844 phone, 17 to 19 per cent of the viewport, for three instructions a
+   reader takes once and a provenance sentence they should be able to find at any time. What is
+   left is the provenance, which this project requires the page to say plainly, and a disclosure
+   holding the rest. Issue 79. */
 footer {
   flex: none;
-  padding: 7px 20px 9px;
+  position: relative;
+  padding: 6px 20px;
   font-size: 11px;
+  line-height: 1.45;
   color: var(--fg-muted);
   border-top: 1px solid var(--rule-muted);
   background: var(--bg-panel);
 }
+
+/* The two counts and the one exception, in the body colour, because they are the parts of this
+   sentence a reader is meant to be able to pick out of it without reading it again. */
+footer b { color: var(--fg-body); font-weight: 600; }
+
+/* Floated, so the control takes the right hand end of the first line and the rest of the sentence
+   wraps under it at full width. On a phone that is the difference between a three line strip and a
+   four line one, and it is why the disclosure is affordable here at all: the control costs the
+   footer no height of its own at any width. */
+.helppick {
+  float: right;
+  margin-left: 12px;
+}
+
+/* Upward and absolute, so opening it moves nothing: the footer's height, the canvas above it and
+   the fit of the drawing are the same before and after. That is .pgmenu's reasoning and the same
+   z-index band: over the canvas at 5 and the detail panel at 10, under the student list at 20 and
+   the capture popover at 30.
+
+   IT HANGS OFF THE FOOTER AND NOT OFF THE BUTTON, which is the one thing .pgmenu does differently
+   and the reason is the width. A 340px box anchored to the right edge of a control that sits 125px
+   from the left of a 390px screen starts at minus 215 and is half off the screen. Anchored to the
+   strip, its right edge lines up with the end of the sentence above it at every width, and the
+   max-width keeps it inside the viewport when the viewport is narrower than the box. */
+.helpbox {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 20px;
+  z-index: 15;
+  width: 340px;
+  max-width: calc(100vw - 24px);
+  padding: 10px 14px 10px 4px;
+  background: var(--bg-panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--elev-1);
+  color: var(--fg-body);
+  text-align: left;
+}
+
+.helpbox[hidden] { display: none; }
+
+.helpbox ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.helpbox li { margin: 0 0 6px; }
+.helpbox li:last-child { margin-bottom: 0; }
+.helpbox b { color: var(--fg-body); font-weight: 600; }
 
 /* ---- feedback capture ----------------------------------------------------
    The interaction is monetary-lab's, the skin is this site's: the same class names and the
@@ -684,10 +816,11 @@ footer {
 
 /* The toggle is the entry point to a whole capture mode, so it is a chip with a clear on
    state rather than another muted header link. */
+/* .linkbtn already gives every control in this row a 1px border and the padding that goes with
+   it, so a chip is that box with its border painted. Issue 77: the two chips used to declare
+   both and the three plain controls declared neither, which is why the row sat on two baselines. */
 #fbtoggle {
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  padding: 2px 8px;
+  border-color: var(--rule);
   color: var(--fg-muted);
 }
 
@@ -1058,7 +1191,13 @@ body.fb-mode .fb-popover select { cursor: pointer; }
      still refuses to build while a copy of the number is sitting in this file; nothing in the
      stylesheet reads the property today. Issue 46. */
   body.board { height: auto; overflow: visible; }
-  .hrow { flex-wrap: wrap; gap: 8px; }
+  /* Two rows here, and they are the two a phone already had: the heading and the nav. What is
+     gone is the three lines of subtitle that used to sit between them, which is the 123px header
+     issue 77 measured coming down to the height of its own two controls. The horizontal padding
+     comes in with them, because the five controls in this nav are 8 CSS px wider each now that
+     they are 24 by 24, and 16px of edge is what pays for that without the row wrapping again. */
+  header { padding: 8px 12px; }
+  .hrow { flex-wrap: wrap; gap: 6px 12px; }
   /* The nav has to wrap here, not only the row that holds it. The feedback toggle grows when
      the mode is on, from "feedback" to "feedback: on (Esc to exit)", and a nav that cannot
      wrap answers that by pushing the board link off the right edge: at 360px and below the
@@ -1068,7 +1207,15 @@ body.fb-mode .fb-popover select { cursor: pointer; }
      not enough: the nav keeps `flex: none` from the desktop rule, so it is sized to its own
      max-content width and its children never meet an edge to wrap at. It is given the row
      here, and then wraps inside it. */
-  .hnav { flex: 1 1 100%; flex-wrap: wrap; row-gap: 6px; }
+  .hnav { flex: 1 1 100%; flex-wrap: wrap; gap: 6px; }
+  /* The five controls in the nav are within a few pixels of the width of a 390px screen once
+     they are 24 by 24, so the padding that separates them in the row comes down here and the box
+     stays the size a finger needs. The picker inside the heading keeps its own, tighter, padding
+     through a more specific rule, and the footer's disclosure keeps the wider one because it sits
+     alone at the end of a sentence. */
+  .hnav .linkbtn { padding-left: 6px; padding-right: 6px; }
+  footer { padding: 6px 12px; }
+  .helpbox { right: 12px; }
   .bcols { display: block; }
   .bcol { min-width: 0; margin-bottom: 10px; }
   /* One number, used twice. The sheet's height and the room reserved under the drawing for it
@@ -1104,9 +1251,8 @@ body.fb-mode .fb-popover select { cursor: pointer; }
    control is drawn as the thing it adds to the drawing. It had a solid twin, the second cohort
    switch, which is gone with the view it opened (issue 42). */
 #ghtoggle {
-  border: 1px dashed var(--c-gray-3);
-  border-radius: var(--radius);
-  padding: 2px 8px;
+  border-style: dashed;
+  border-color: var(--c-gray-3);
   color: var(--fg-muted);
 }
 

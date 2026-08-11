@@ -27,33 +27,41 @@
 
 <header>
   <div class="hrow">
-    <div class="htitle">
-      <h1>Zrive operating model, one cohort as instances</h1>
-      <!-- One sentence per view. The header sits above both, so it says what is on screen and
-           not what is on the other page.
+    <!-- THE HEADING IS THE SENTENCE NOW, and that is the whole of issue 77's fourth finding.
+         There used to be a fixed h1 above a subtitle that swapped per view, so the subtitle
+         said what was on screen and the heading, which nothing ever rewrote, said "one cohort
+         as instances" over a kanban. One line cannot be right on three routes and wrong on
+         none, so the two collapse into one: the heading itself swaps, exactly as the subtitle
+         did, and the row it used to sit above is given back to the drawing. Three variants and
+         not two, because #/students is a route as much as #/board is.
 
-           THE PROGRAMME NAME IN THIS SENTENCE IS THE CONTROL, and that is the whole reason the
-           seven routes cost the header nothing. The row was already saying which programme is
-           drawn, because a drawing of instances has to name the instance it is of; seven near
-           identical drawings need that sentence more, not less. So the words that were already
-           the statement become the button as well, instead of a sixth item in the nav pushing
-           `board` towards the edge at 390px, and instead of the row #32 reclaimed and #57
-           protected. It is a .linkbtn like every other control on this page, its text is its
-           state, and pressing it opens the other six as ordinary links to their own addresses.
-           The cohort and the two counts in the footer follow the same view, written by app.js
-           from the drawing rather than typed here, because a number typed into this file is a
-           number that is right on one of the seven. Issue 66. -->
-      <p class="sub">
-        <span class="sub-diagram">Programme <span class="pgpick" id="pgpick"><button id="pgbtn"
-        class="linkbtn" type="button" aria-expanded="false" aria-controls="pgmenu">Z-IB Investment
-        Banking</button><span class="pgmenu" id="pgmenu" hidden></span></span>, cohort <span
-        id="subcohort">1Q26</span>, drawn as
-        named instances joined by the verbs that relate them.<span
-        class="warn">every value is dummy or estimated, nothing is measured</span></span>
-        <span class="sub-board">The work on this drawing, one card per issue, in the column its
-        status label puts it in.</span>
-      </p>
-    </div>
+         THE PROGRAMME NAME IN THE SENTENCE IS STILL THE CONTROL, which is issue 66's idea and
+         the reason seven routes cost the header nothing. It moved up a line with the sentence it
+         was always part of. It is a .linkbtn like every other control on this page, it takes the
+         heading's own size and weight rather than the nav's so that it reads as the words it
+         replaced, its text is its state, and pressing it opens the other six as ordinary links
+         to their own addresses. The cohort, the programme code in the students variant and the
+         two counts in the footer are all written by the page from the drawing rather than typed
+         here, because a name or a number typed into this file is one that is right on one of the
+         seven. Issue 66, issue 77.
+
+         WHAT WENT WITH THE SUBTITLE. "drawn as named instances joined by the verbs that relate
+         them" is a description of the drawing and is now the first line of the footer's help,
+         beside the other three things a reader is told once. The dummy-values badge is gone from
+         here and its sentence is in the footer, said plainly and at greater length: it and the
+         footer's provenance line were the same claim written twice, the footer's is the one this
+         project requires to be on the page, and two copies of a claim are two places for it to
+         drift. Nothing said the badge on the board route, where the subtitle it sat in was
+         already hidden. Issue 79. -->
+    <h1>
+      <span class="h-diagram"><span class="pgpick" id="pgpick"><button id="pgbtn"
+      class="linkbtn" type="button" aria-expanded="false" aria-controls="pgmenu">Z-IB Investment
+      Banking</button><span class="pgmenu" id="pgmenu" hidden></span></span>, cohort <span
+      id="subcohort">1Q26</span>, as instances</span>
+      <span class="h-board">The work on this drawing, one card per issue</span>
+      <span class="h-students">The <span id="hstudprog">Z-IB</span> cohort, every student in
+      it</span>
+    </h1>
     <nav class="hnav">
       <!-- The theme, and it is first in the row on purpose: it is the only item here that
            belongs to the page rather than to a view. `ghosts` is hidden on the board and
@@ -79,6 +87,15 @@
     </nav>
   </div>
 </header>
+<!-- EVERY CONTROL IN THIS ROW IS THE SAME BOX, and that is issue 77's first two findings, which
+     had one cause between them. .linkbtn carried `padding: 2px 2px` and no height, so five of the
+     five controls here rendered 19 or 21 CSS px tall and every one of them failed WCAG 2.2
+     SC 2.5.8 Target Size (Minimum), in a repository that already gates itself on WCAG 2.2 for
+     contrast. The 19 and the 21 were the second finding as well: two of these five carry a border
+     and three did not, so the row that reads as one line sat on two baselines a pixel apart. Both
+     are fixed in the stylesheet rather than here, by one min-height and one transparent border
+     that the two bordered controls only recolour, so a control added to this row later is the
+     right size and on the right line without anybody remembering to make it so. -->
 
 <main id="view-diagram">
   <!-- The canvas is a viewport onto a plane. The drawing is moved by app.js through the svg's
@@ -99,15 +116,57 @@
               title="bring the whole drawing back into view (0 key)">fit</button>
     </div>
   </div>
+  <!-- ONE STATEMENT AND ONE CONTROL. This was 101 words in a single paragraph doing four
+       unrelated jobs: what is invented, what clicking does, what the mouse does, and that the
+       programme name opens the other six. Only the first is a statement ABOUT the artefact. The
+       other three are instructions, and an instruction written into a permanent strip is read
+       once and then occupies the screen forever, which on a 390px phone cost 17 per cent of the
+       viewport for a sentence nobody was still reading. Issue 79.
+
+       THE PROVENANCE STAYS, AND IT STAYS PLAIN. It is restructured and shorter, not weakened:
+       this page is served world-readable from a private repository and every value on it is
+       invented, so the page saying so is a standing requirement of the project rather than a
+       piece of copy. The old three sentences named the invented things one class at a time
+       (instructors, the empresa colaboradora, identifiers, dates, counts, amounts, every person)
+       and then named the exception. One sentence that starts from everything and names the same
+       exception says all of that and cannot fall behind a class the model gains later.
+
+       THE TWO COUNTS ARE STILL WRITTEN FROM THE DRAWING and are still here rather than behind the
+       disclosure, because how many people the cohort has and how many of them the picture drew is
+       provenance: it is the sentence saying what the drawing left out. The cohorts are 34, 27, 21,
+       18, 24, 16 and 30, so a footer with one of them typed into it is a footer that is wrong six
+       times out of seven. app.js's router writes both from the drawing on screen.
+
+       THE OTHER THREE JOBS ARE BEHIND ONE DISCLOSURE, which is closed on arrival and costs the
+       strip one control. It opens upward, absolutely positioned, so the footer's height, the
+       canvas under it and the fit of the drawing are the same before and after, which is the same
+       reasoning .pgmenu is built on. Two of the three were already discoverable at the control
+       they are about, and stay there: the zoom readout's title carries the wheel and the Ctrl or
+       Cmd it now needs, and the programme button's title, written by router.js, says how many
+       other programmes pressing it opens. -->
   <footer>
-    Names of instructors and of the empresa colaboradora are invented. Session titles and the
-    programme code are real and published. All identifiers, dates, counts and amounts are
-    invented, including every person in the cohort. Click a node for its properties; clicking an
-    instructor also brings out the employer that instructor works for, and clicking the students
-    card draws <span id="footdrawn">4</span> of the <span id="footn">34</span> as individuals.
-    <b>students</b> in the header lists every one of them. Drag the canvas or scroll to move it,
-    hold <b>Ctrl</b> (<b>Cmd</b> on a Mac) and scroll to zoom, or pinch, and <b>fit</b> brings the
-    whole drawing back. The programme name above the drawing opens the other six.
+    <!-- The control comes first in the source because it is floated to the right of the first
+         line: a float only rises to the line it is written on, and put after the sentence it
+         dropped to a line of its own and took another 26 CSS px of a 390px screen for a strip
+         that already had them back. The provenance still reads as one block, because the lines
+         under the first one reclaim the full width. -->
+    <div class="helppick"><button id="helpbtn" class="linkbtn" type="button"
+      aria-expanded="false" aria-controls="helpbox">how to read this</button><div
+      class="helpbox" id="helpbox" hidden>
+      <ul>
+        <li>The drawing is named instances joined by the verbs that relate them.</li>
+        <li>Click a node for its properties. Clicking an instructor also brings out the employer
+          that instructor works for, and clicking the students card draws the individuals the
+          picture carries.</li>
+        <li>Drag the canvas or scroll to move it, hold <b>Ctrl</b> (<b>Cmd</b> on a Mac) and
+          scroll to zoom, or pinch, and <b>fit</b> brings the whole drawing back.</li>
+        <li>The programme name in the heading opens the other six. <b>students</b> in the header
+          lists every person in the cohort.</li>
+      </ul>
+    </div></div>
+    Every name, identifier, date, count and amount on this page is invented, including the
+    cohort's <b id="footn">34</b> people, of whom <b id="footdrawn">4</b> are drawn. Only the
+    session titles and the programme code are real and published.
   </footer>
 </main>
 

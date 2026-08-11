@@ -292,11 +292,71 @@
     });
   }
 
+  // ---- how to read this ----------------------------------------------------
+  // Issue 79. The footer used to carry three instructions in running text: what clicking does,
+  // what the mouse does, and that the programme name opens the other six. An instruction written
+  // into a permanent strip is read once and then occupies the screen forever, and on a phone
+  // those three cost a sixth of the viewport for as long as the page was open. They are here
+  // instead, closed on arrival, one control wide.
+  //
+  // IT IS A DISCLOSURE AND NOT A DIALOG, which is why this is fifteen lines and not a focus trap.
+  // Nothing behind it is inert, the content is four sentences of text with no control in it, and
+  // the box is absolutely positioned so opening it moves neither the footer nor the canvas. The
+  // three listeners are the three the programme menu already has, in the same shapes and for the
+  // same reasons: the click on the control stops there so the document listener does not close
+  // what it just opened, a click anywhere else closes it, and Escape closes it in the capture
+  // phase, ahead of the bubble listener in selection.js that clears the selection, so a reader
+  // who opens this and changes their mind does not also lose the node they had open behind it.
+  // Capture mode is left alone for the reason the student list and the programme menu leave it
+  // alone: while it is on, Escape is how a reader gets out of it.
+  //
+  // IN THE WIRING FILE FOR THE REASON THE THEME IS. It belongs to the page rather than to a view:
+  // the same four sentences are true of all seven drawings, and there is no module whose subject
+  // it is.
+  var helpBtn = document.getElementById('helpbtn');
+  var helpBox = document.getElementById('helpbox');
+
+  function helpOpen() { return !!helpBox && !helpBox.hidden; }
+
+  function showHelp(on) {
+    if (!helpBtn || !helpBox || helpOpen() === on) return;
+    helpBox.hidden = !on;
+    helpBtn.setAttribute('aria-expanded', on ? 'true' : 'false');
+  }
+
+  if (helpBtn && helpBox) {
+    helpBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      showHelp(!helpOpen());
+    });
+    document.addEventListener('click', function (e) {
+      var t = e.target;
+      if (t && t.closest && t.closest('.helppick')) return;
+      showHelp(false);
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape' || !helpOpen()) return;
+      if (document.body.classList.contains('fb-mode')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      showHelp(false);
+      if (helpBtn.focus) helpBtn.focus();
+    }, true);
+  }
+
   // The student list and the programme description are both read off the drawing, so neither can
   // run before there is one on the canvas.
   router.start();
   measureHeader();
   window.addEventListener('resize', measureHeader);
+  // The header changes height for more reasons than a resize: capture mode widens its own toggle
+  // and wraps the nav, a route swaps the heading for a longer or shorter one, and a programme with
+  // a longer name can take a second line on a phone. Every one of those was a way for --hh to
+  // fall behind the header it is supposed to measure, and each was a hashchange or a click
+  // somebody had to remember to hook. One observer on the element answers all of them and any
+  // reason a later card invents. The resize listener stays as the answer where there is no
+  // ResizeObserver. Issue 77.
+  if (window.ResizeObserver && hdr) new ResizeObserver(measureHeader).observe(hdr);
 
   // What feedback.js needs in order to say what was on screen when a note was written, plus the
   // view, which is here for a driver to read and assert against rather than for the page: an

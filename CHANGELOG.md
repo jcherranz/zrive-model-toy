@@ -35,6 +35,50 @@ of what changed and when, and it is meant to be scannable.
 
 ### Changed
 
+- **The page chrome, header and footer as one piece of work, #77 and #79.** Measured over CDP at
+  390x844, 834x1112 and 1536x839 before and after, on the diagram, the board, the student list and
+  with capture mode on. On a phone the chrome was 33,4 per cent of the viewport and is 18,0; the
+  header 123,41px and 75,00; the footer 158,41px and 76,75. Tablet 15,0 to 7,9 and desktop 14,4 to
+  9,8. On the board route, where there is no footer, the header alone goes 103,27 to 67,19 on a
+  phone and 57,42 to 43,00 elsewhere.
+- **Every control on the page now measures at least 24 by 24 CSS px, WCAG 2.2 SC 2.5.8.** Eleven
+  were measured and eleven failed: the five in the nav at 19,42 or 21,42, the programme picker at
+  19,42, the three zoom buttons at 21,59, the panel's close at 22,52 wide and the student list's
+  close at 22,16 by 22. The smallest box now is 26 by 26. The repository has gated itself on
+  WCAG 2.2 for contrast since #35 and had never once measured a target.
+- **The cause was one declaration and the fix is one box.** `.linkbtn` carried `padding: 2px 2px`
+  and no height. It now carries `min-height` and `min-width` of 26 and a 1px transparent border, so
+  the two chips that want a visible edge recolour a border they already have instead of adding one.
+  That is also the whole of the ragged row: `<button>` rendered 21,42 and `<a>` 19,42 with their
+  tops a pixel apart, and the header's controls now report **one distinct top** at every width and
+  on every route, two only where the nav genuinely wraps in capture mode on a phone.
+- **The heading says what is on screen, on all nine routes.** Nothing had ever rewritten the `h1`,
+  so `#/board` declared "Zrive operating model, one cohort as instances" over a kanban. The fixed
+  heading and the swapping subtitle are one line now, with three variants picked by a body class,
+  the mechanism the subtitle already used. `#/board` reads "The work on this drawing, one card per
+  issue", `#/students` "The Z-CFA cohort, every student in it" with the code written from the view,
+  and each of the seven programme routes its own label, cohort and count.
+- **#66's idea survives and #32's row is given back rather than spent.** The programme name in the
+  sentence is still the control; it moved up a line with the sentence it was part of and takes the
+  heading's size and weight. The header is one row at every width the row fits on and two on a
+  phone, which is the two a phone already had with the three lines of subtitle between them gone.
+- **The footer's four jobs went four ways.** The provenance stayed, restructured and shorter, and
+  is a standing requirement of the project rather than copy: this page is served world-readable
+  from a private repository and every value on it is invented. The two counts stayed with it,
+  still written from the drawing, because how many people a cohort has and how many the picture
+  drew is what the drawing left out; the seven cohorts are 34, 27, 21, 18, 24, 16 and 30, verified
+  as seven distinct pairs on the seven routes. The other three jobs, what clicking does, what the
+  mouse does and that the programme name opens the other six, are behind one disclosure that is
+  closed on arrival, floats at the right hand end of the first line so it costs the strip no height
+  of its own, and opens upward and absolutely so the footer, the canvas and the fit do not move.
+- **#76's gesture sentence is preserved verbatim in its new home**: hold Ctrl, or Cmd on a Mac, and
+  scroll to zoom, a bare scroll moves the drawing, and `fit` brings it back. It is also still on
+  the zoom readout's own tooltip, where it applies.
+- `--hh`, the header height the detail panel is positioned against, is now read from a
+  `ResizeObserver` on the header rather than from a list of the events that were known to change
+  it. 71 smoke assertions green, unedited; verify.sh, the repository gate at 73/73, the provenance
+  self-test at 20/20, the deployed-bytes gate and the contrast gate at 1 declared and 0 undeclared
+  all clean.
 - **Z-BL and Z-SC draw their whole syllabus**, #83: 6 session templates to 28 and to 25, with a
   cohort session for each, so 42 templates across the seven views become 83 and the sample is
   16 per cent no longer. Every one carries the same five properties the six did, `title`,

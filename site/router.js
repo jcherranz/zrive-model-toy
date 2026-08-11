@@ -218,6 +218,13 @@
         if (on) nav.setAttribute('aria-current', 'page');
         else nav.removeAttribute('aria-current');
       }
+      // The heading says what is on screen, and what is on screen here is the list. One class on
+      // the body and the stylesheet picks the variant, which is the mechanism board.js already
+      // uses for #/board and the mechanism the subtitle used before the heading took its job. It
+      // is set here rather than off the hash, beside the aria-current above, because this is the
+      // one place that knows the list is open: the list can be closed by Escape or by the
+      // backdrop, neither of which is a hashchange anything else would hear. Issue 77.
+      document.body.classList.toggle('students', on);
     }
 
     // Closing is a navigation, because opening was one. replaceState rather than another hash
@@ -342,6 +349,13 @@
       }
       var cohEl = document.getElementById('subcohort');
       if (cohEl) cohEl.textContent = cohLabel;
+
+      // The heading's third variant, the one #/students brings up. It names the programme by its
+      // code rather than by its label because the sentence around it is short and there are seven
+      // cohorts, one per programme, so "the cohort" over a list of thirty four people would be the
+      // same heading over seven different sets of rows. Issue 77.
+      var hsp = document.getElementById('hstudprog');
+      if (hsp) hsp.textContent = v.code || label;
 
       // The footer's two counts. The cohorts are 34, 27, 21, 18, 24, 16 and 30, so a footer holding
       // one of them in words is a footer that is wrong six times out of seven.
