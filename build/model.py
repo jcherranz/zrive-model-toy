@@ -13,9 +13,9 @@ TYPES = [
     ("Company",        "Company",           "#5f6b7c", "company",   0),
     ("SessionTemplate","Session template",  "#00a396", "document",  1),
     ("Instructor",     "Instructor",        "#147eb3", "person",    2),
-    ("CohortSession",  "Cohort session",    "#d1980b", "calendar",  3),
+    ("CohortSession",  "Cohort session",    "#976e08", "calendar",  3),
     ("Cohort",         "Cohort",            "#29a634", "cohort",    4),
-    ("StudentGroup",   "Students",          "#8eb125", "stack",     5),
+    ("StudentGroup",   "Students",          "#657e1a", "stack",     5),
     # A Student is a member of that group, so it is drawn in the group's own lane and in the
     # colour family the group already owns, one shade down. The column is 4 and not 5, which is
     # the column the group itself sits in, for a reason that is geometric and not conceptual:
@@ -24,7 +24,14 @@ TYPES = [
     # the tile above it. Column 4 is the other half of the same lane, it holds one node, and the
     # 'member of' edges then run left to right into the group exactly like every other edge on
     # the page. The lane caption, "cohort and students", is true of both columns either way.
-    ("Student",        "Student",           "#5f7d1f", "cap",       4),
+    #
+    # "One shade down" is a claim the light half of this pair nearly stopped being able to make.
+    # Issue 65 had to darken Students to clear the plate, and the shade it lands on is the shade
+    # Student was already sitting on: Student IS the darkened Students, so there is no value for
+    # the group that clears the threshold and stays a different colour from its own member. The
+    # family moved down together rather than collapsing into one colour, and the numbers are in
+    # the palette section at the foot of this file.
+    ("Student",        "Student",           "#526b1b", "cap",       4),
     # The enrolment to claim chain folds over two columns rather than running out over four.
     # Every one of its edges still joins neighbouring columns, so the chain stays legible
     # while the drawing keeps a two to one aspect instead of a long empty right half.
@@ -1307,35 +1314,71 @@ _check_names(_strings)
 # on the machine of whoever remembered to rebuild is not a gate.
 #
 # A TYPE CARRIES MORE THAN ONE COLOUR. Issue 56, and the map below is the whole of it on this
-# side: the palette is asked for a colour PER GROUND, the check did not move, and the light
-# column above is untouched to the byte, so the light page is the page it was.
+# side: the palette is asked for a colour PER GROUND and the check did not move.
 #
 # THE TARGET IS 4.5 AND NOT 3.0, WHICH IS THE ONE DECISION IN HERE. The gate's threshold is 3:1,
 # SC 1.4.11, because a stroke is a boundary. The same thirteen colours are also written as 11px
 # bold text at the head of the detail panel, which is SC 1.4.3 and 4.5:1, and app.js writes that
 # colour inline, so no stylesheet reaches it. One number fixes both surfaces, and it is the
-# higher one. Every dark hex holds the light one's hue and its saturation and raises only its
+# higher one. Every sibling holds the other one's hue and its saturation and moves only its
 # lightness, so a type is the same colour in both themes and not a different one.
 #
-# The five that are absent from this map need nothing: on the dark plate they already measure
-# 4.5374 (Cohort), 4.5930 (Session template), 5.0129 (the ghost grey), 5.6437 (Cohort session)
-# and 5.8215 (Students). Absent and not written out as themselves, so that a reader can see at a
-# glance which colours this card moved.
+# THE LIGHT HALF MOVED TOO, UNDER ISSUE 65, AND THE MAP IS NOW READ IN BOTH DIRECTIONS. Issue 56
+# raised lightness to clear the dark plate. Three light colours had been under 3:1 against the
+# white plate since the palette was chosen, and two of them are repaired here by the same
+# arithmetic run the other way: hold the hue and the saturation, lower the lightness to the first
+# value that clears 4.6, and pin the old hex as the dark sibling so the dark page does not move
+# by a pixel.
+#
+#   Cohort session  #d1980b -> #976e08   2.5587 -> 4.6156 on the white plate
+#   Students        #8eb125 -> #657e1a   2.4805 -> 4.6127
+#
+# AND A THIRD COLOUR MOVED THAT NOTHING ASKED FOR, WHICH IS THE ONE JUDGEMENT IN THIS PARAGRAPH.
+# Student was at 4.7299 and passing. Darkening Students lands it on top of Student, because
+# Student IS the darkened Students: same hue, same family, one shade down, and the shade a
+# yellow-green has to reach to clear 4.5 against white is that shade. Measured as CIE76 colour
+# difference, the repaired Students sits 3.25 from Student, which is the same colour, against a
+# palette whose tightest other pair is 18.18. A gate satisfied by two type colours a reader
+# cannot tell apart has been satisfied against its own stated purpose, which is that an outline
+# is what one type is told from another by. So the family moved down together:
+#
+#   Student         #5f7d1f -> #526b1b   4.7299 -> 6.0385, family gap back to 10.94
+#
+# 10.94 is not a taste: it is the gap issue 56 already shipped between these same two on the dark
+# plate, where #8eb125 and #789e27 sit 10.56 apart. The light family is now no closer than the
+# dark one has been since that card landed. Reversal, if it is unwanted, is one hex: put #5f7d1f
+# back and the only thing that returns is the collision.
+#
+# THE GHOST GREY DID NOT MOVE AND THAT IS ALSO A DECISION. It is the third light failure, at
+# 2.8807, and it stays a declared exception. The argument is in scripts/check_repo.sh beside the
+# declaration, where a reader meets it.
+#
+# The three that are absent from this map need nothing: on the dark plate they already measure
+# 4.5374 (Cohort), 4.5930 (Session template) and 5.0129 (the ghost grey). Absent and not written
+# out as themselves, so that a reader can see at a glance which colours these cards moved.
 #
 # THE WASH DID NOT NEED ANYTHING AND IT WAS MEASURED RATHER THAN ASSUMED. A tile is a stroke and
 # a 14 per cent wash of the same hex over the band plate. At that alpha, with these hexes, the
-# twelve non-ghost fills sit 1.2007 to 1.2753 off the dark plate, against 1.0983 to 1.2753 for
-# the light hexes on the same plate today: every one of them steps further from the plate than
-# it did, none of them flattens, and the alpha is unchanged. The ghost keeps its own 7 per cent.
+# twelve non-ghost fills sit 1.2007 to 1.2753 off the dark plate, unchanged, and on the white
+# plate the three that moved all step FURTHER from it than they did: Cohort session 1.1258 to
+# 1.1917, Students 1.1238 to 1.1902, Student 1.1895 to 1.2186. The light band narrows from
+# 1.1238 to 1.2328 down to 1.1582 to 1.2328, so the flattest fill on the page is less flat than
+# it was and nothing was traded for the stroke. The alpha is unchanged and the ghost keeps its
+# own 7 per cent. The ungated inner comparison, a stroke against its own wash, is untouched by
+# this card: the same two colours are under 3:1 there and they are two this card did not move.
 TYPE_COLOUR_DARK = {
-    "Programme":   "#c773c7",   # 4.6110 on the plate, 5.1730 on the page ground
-    "Company":     "#8793a3",   # 4.6297 / 5.1939
-    "Instructor":  "#199adb",   # 4.5980 / 5.1584
-    "Student":     "#789e27",   # 4.6201 / 5.1832
-    "Enrolment":   "#9784e3",   # 4.6249 / 5.1886
-    "Agreement":   "#bd8750",   # 4.6384 / 5.2037
-    "Charge":      "#eb6a49",   # 4.6006 / 5.1613
-    "Claim":       "#e56697",   # 4.5929 / 5.1527
+    "Programme":     "#c773c7",   # 4.6110 on the plate, 5.1730 on the page ground
+    "Company":       "#8793a3",   # 4.6297 / 5.1939
+    "Instructor":    "#199adb",   # 4.5980 / 5.1584
+    # The three below are not new colours. They are the light palette's own hexes, held here so
+    # that repairing the light half leaves the dark half exactly where issue 56 measured it.
+    "CohortSession": "#d1980b",   # 5.6437 / 6.3316
+    "StudentGroup":  "#8eb125",   # 5.8215 / 6.5311
+    "Student":       "#789e27",   # 4.6201 / 5.1832
+    "Enrolment":     "#9784e3",   # 4.6249 / 5.1886
+    "Agreement":     "#bd8750",   # 4.6384 / 5.2037
+    "Charge":        "#eb6a49",   # 4.6006 / 5.1613
+    "Claim":         "#e56697",   # 4.5929 / 5.1527
 }
 
 # The two constants of the sRGB transfer function, written with a trailing zero. They are the

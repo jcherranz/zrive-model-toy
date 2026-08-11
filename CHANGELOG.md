@@ -79,6 +79,50 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- Two type colours that had been under 3:1 on the white band plate since the palette was chosen,
+  #65. Cohort session `#d1980b` measured 2.5587 and Students `#8eb125` 2.4805, both worse than
+  anything the dark theme ever had, and #56 left them by construction: it added a dark sibling per
+  type and moved no light colour at all. Repaired by that card's own arithmetic run the other way,
+  hold the hue and the saturation and lower the lightness to the first value clearing 4.6. Cohort
+  session goes to `#976e08` at 4.6156 and Students to `#657e1a` at 4.6127. The target is 4.5 and
+  not the gate's 3.0 because the detail panel writes the same hex as an 11px bold type label,
+  which is text, so one number fixes the drawn boundary and the label together. The old hexes are
+  pinned as the dark siblings, so the dark page does not move and was measured rather than
+  asserted: 0 differing pixels of 1288704 at 1536x839, against 12612 on the light page, all of
+  them inside the cohort sessions column and the students card. The gate removed the two
+  declarations itself. On the first run after the colours moved and before the table was touched
+  it exited 1 with `[STALE] declared contrast exception is now unnecessary` against exactly those
+  two and nothing else, and it now reads 26 measurements, 1 under the threshold, 1 declared, 0
+  not.
+- Student moved as well, which nothing asked for and one thing required, #65. It was at 4.7299 and
+  passing. Student is by design Students one shade down in the same hue, and the shade a
+  yellow-green has to reach to clear 4.5 against white is the shade Student was already on, so the
+  repaired Students landed 3.25 from it as a CIE76 colour difference, which is the same colour, in
+  a palette whose tightest other pair is 18.18. A gate satisfied by two type colours a reader
+  cannot tell apart has been satisfied against its own stated reason for measuring a stroke, that
+  an outline is what one type is told from another by. The family moved down together instead:
+  Student `#5f7d1f` to `#526b1b`, 4.7299 to 6.0385, family gap back to 10.94, which is not a taste
+  but the gap #56 already shipped between the same two on the dark plate. Its dark sibling
+  `#789e27` is untouched, so this costs the dark page nothing either. Reversal is one hex, and the
+  only thing that comes back is the collision.
+- The ghost grey that was NOT repaired, and why, #65. It is the third light failure, at 2.8807,
+  and it stays a declared exception, with the reason rewritten from a placeholder that said only
+  that #56 had not touched it. Four findings decide it. `#8f99a8` is the light value of
+  `--c-gray-3`, which `site/app.css` itself calls "the grey of a line" and which nine rules read
+  directly, so every edge and every arrowhead on the page is already this hex at this ratio, none
+  of those uses is a type colour and so none is measured here; moving the model's copy alone would
+  outline a ghost darker than the dashed edge running into it. The value that would pass,
+  `#6a7688`, sits 4.46 from Company `#5f6b7c`, so repairing the contrast would make a ghost read
+  as a Company. The stroke carries no type-discrimination load, which is what this rule gates:
+  there is one ghost type, and a dashed outline, a stroke-width of 1.1 against every other tile's
+  1.25, an empty tile with no glyph and an italic `--fg-muted` label at 5.4113 all say so before
+  colour does. And the quiet is the statement, since a ghost marks a class no system holds and its
+  wash is 7 per cent where every real tile is at 14. The residual is stated rather than hidden:
+  the panel's 11px label for this type stays at 2.8807 against a text threshold of 4.5, and it is
+  one of three light labels under it, Session template at 3.1440 and Cohort at 3.1826 being the
+  other two, which pass this gate because it asks 3:1 of a boundary. Filed as #69. The honest
+  repair of the drawn grey, if it is ever wanted, is a `--line` token across those nine rules,
+  which moves every edge on the page and is its own card with its own look.
 - `hosts visit` ends on the Programme and no longer on the Cohort, #63. Counted across the 156
   company notes in the vault: 13 carry a visit and every one of them points at a Programme note, no
   note anywhere contains the string `cohort`, and the 30 key company schema has no cohort field, so

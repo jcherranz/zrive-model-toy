@@ -191,11 +191,12 @@ FORBIDDEN_EXEMPT=(
 # content. A tile is both: it takes focus, it takes a click, it opens the panel, and its outline
 # is what a reader tells one type from another by. It is not 4.5:1, which is SC 1.4.3 and about
 # text; the same colours are also written as 11px bold text in the panel, which is a text
-# surface this check does not gate. Issue 56 aimed at 4.5 anyway, so that one number would fix
-# the stroke and that label together, and it hit it: on the dark plate all thirteen now clear
-# 4.5, and on the light plate five are still under it, the same five the light palette has
-# always had there. It is not lower than 3:1 either. Three of the twenty-six measurements fail
-# today and every one of them is declared below rather than legalised by moving the line.
+# surface this check does not gate. Issues 56 and 65 both aimed at 4.5 anyway, so that one number
+# would fix the stroke and that label together, and between them they hit it on eleven colours:
+# on the dark plate all thirteen clear 4.5, and on the light plate three are still under it,
+# Session template, Cohort and the ghost grey. It is not lower than 3:1 either. One of the
+# twenty-six measurements fails today and it is declared below rather than legalised by moving
+# the line.
 #
 # The comparison is on the figure the table prints, to four decimals, so a verdict can always be
 # reproduced from what is on the screen and no rounding stands between the two.
@@ -211,21 +212,51 @@ CONTRAST_MIN="3.0000"
 # used, so a colour that is repaired or removed makes the run say the declaration is now
 # unnecessary instead of leaving it sitting there. An entry with no reason is rejected.
 #
-# THREE, AND THERE WERE SIX. The other three were the dark side, and this table is how their
-# repair was found to be finished rather than believed to be: issue 56 gave eight types a second
-# hex chosen against the dark plate, the run went red on the next push with
-# `[STALE] declared contrast exception is now unnecessary` against Programme, Company and
-# Agreement, and the entries came out because the gate said they were spent. That is the whole
-# design of a declaration with a staleness rule, and it is the second time it has paid: a
+# ONE, AND THERE WERE SIX. Twice now this table has been how a repair was found to be finished
+# rather than believed to be. Issue 56 gave eight types a second hex chosen against the dark
+# plate and the run went red with `[STALE] declared contrast exception is now unnecessary`
+# against Programme, Company and Agreement. Issue 65 darkened Cohort session and Students against
+# the white one and the run went red again, naming exactly those two and nothing else. Both times
+# the entries came out because the gate said they were spent, and both times the gate said it
+# before anybody claimed it. That is the whole design of a declaration with a staleness rule: a
 # tolerance nobody has to tolerate is a tolerance nobody is reading.
 CONTRAST_EXEMPT=(
-  # Under 3:1 on the white plate since the palette was chosen, and issue 56 did not repair them:
-  # it added a dark sibling per type and moved no light colour at all. So these three survived
-  # that card and need one of their own. They are declared here so that the day somebody writes
-  # it, the gate is what tells them it is done.
-  "StudentGroup|light|#8eb125|2.4805|the light palette's own, untouched by 56, which moved no light colour"
-  "CohortSession|light|#d1980b|2.5587|the light palette's own, untouched by 56, which moved no light colour"
-  "Ghost|light|#8f99a8|2.8807|the light palette's own, untouched by 56, which moved no light colour"
+  # THE ONE THAT IS LEFT, AND IT IS NOT A COLOUR NOBODY GOT TO. Issue 65 was asked to repair all
+  # three light failures and repaired two. This one was measured, drawn and looked at, and the
+  # answer came back that repairing it would cost more than it bought. Four findings, in the
+  # order they decide it.
+  #
+  # 1. IT IS NOT ONLY A TYPE COLOUR. #8f99a8 is the light value of --c-gray-3 in site/app.css,
+  #    which that file calls "the grey of a line" and which nine rules read directly: every edge
+  #    on the drawing, every arrowhead, the ghosts' three dashed marks, two greyed controls and
+  #    one separator. So this exact hex is already painted over the whole page at this exact
+  #    ratio, and none of those uses is a type colour, so none of them is measured here. Moving
+  #    the model's copy alone would leave a ghost outlined darker than the dashed edge running
+  #    into it, in a hex the stylesheet no longer agrees with.
+  # 2. THE VALUE THAT WOULD PASS IS ANOTHER TYPE'S. Held to its own hue and saturation, the first
+  #    lightness that clears 4.6 against the white plate is #6a7688. That sits 4.46 from Company
+  #    #5f6b7c as a CIE76 colour difference, which is the same colour: the tightest pair the
+  #    palette otherwise has is 18.18. Repairing the ghost's contrast would make a ghost read as
+  #    a Company, and a Company is the thing on this page a ghost most has to not be.
+  # 3. ITS STROKE CARRIES NO TYPE-DISCRIMINATION LOAD, WHICH IS WHAT THIS RULE GATES. The reason
+  #    given above for measuring a stroke at all is that an outline is what one type is told from
+  #    another by. There is one ghost type and four devices already say so before colour does:
+  #    a dashed outline at 3 and 2.4, a stroke-width of 1.1 against every other tile's 1.25, an
+  #    empty tile with no glyph in it, and an italic label painted --fg-muted, which measures
+  #    5.4113 and is not this hex at all. A reader does not find a ghost by its grey.
+  # 4. THE QUIET IS THE STATEMENT. A ghost marks a class no system holds. It is drawn faint on
+  #    purpose, and its wash is 7 per cent where every real tile is at 14. Darkening it to pass
+  #    would make the four things that do not exist the most emphatic outlines in their lane.
+  #
+  # THE RESIDUAL, STATED RATHER THAN LEFT TO BE FOUND. The detail panel writes this same hex as
+  # an 11px bold type label, which is text under SC 1.4.3 and wants 4.5, and at 2.8807 it does
+  # not have it. That is real and it is not this colour's alone: Session template at 3.1440 and
+  # Cohort at 3.1826 are under 4.5 on the same surface and pass this gate, which asks 3:1 of a
+  # boundary. Three labels under a text threshold is a panel card, and fixing one of the three
+  # here by moving a hex the stylesheet also owns would be the wrong repair in the wrong file.
+  # The honest repair of the drawn grey, if it is ever wanted, is a --line token across those
+  # nine app.css rules, which moves every edge on the page and is its own card with its own look.
+  "Ghost|light|#8f99a8|2.8807|the page's own line grey, --c-gray-3; the value that would pass is Company's"
 )
 
 WORKDIR=""
