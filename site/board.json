@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T21:27:00Z",
+  "generated": "2026-08-11T21:33:07Z",
   "columns": [
     {
       "key": "raw",
@@ -24,15 +24,6 @@
             "limitation"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
-        },
-        {
-          "id": 77,
-          "title": "Redesign the header: the controls fail WCAG 2.2 target size and the row is ragged",
-          "labels": [
-            "bug",
-            "feedback"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/77"
         },
         {
           "id": 79,
@@ -145,6 +136,16 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/78"
         },
         {
+          "id": 77,
+          "title": "Redesign the header: the controls fail WCAG 2.2 target size and the row is ragged",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/77"
+        },
+        {
           "id": 76,
           "title": "Zoom should need Ctrl or Cmd with the wheel, not bare scroll",
           "labels": [
@@ -192,18 +193,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/69"
-        },
-        {
-          "id": 68,
-          "title": "A frozen run record will hang anything that gates on run status, including the freshness watchdog",
-          "labels": [
-            "bug",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/68"
         }
       ],
-      "hidden": 53,
+      "hidden": 54,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
