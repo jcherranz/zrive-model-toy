@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T23:56:54Z",
+  "generated": "2026-08-11T23:58:32Z",
   "columns": [
     {
       "key": "raw",
@@ -78,6 +78,15 @@
             "feedback"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/96"
+        },
+        {
+          "id": 97,
+          "title": "Not centered in the frame",
+          "labels": [
+            "bug",
+            "feedback"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/97"
         }
       ]
     },
