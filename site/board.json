@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T22:47:52Z",
+  "generated": "2026-08-11T22:48:33Z",
   "columns": [
     {
       "key": "raw",
@@ -51,6 +51,15 @@
             "feedback"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/89"
+        },
+        {
+          "id": 90,
+          "title": "Do you think it makes sense to create a filter to show either…",
+          "labels": [
+            "bug",
+            "feedback"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/90"
         }
       ]
     },
