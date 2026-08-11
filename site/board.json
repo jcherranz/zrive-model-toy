@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T23:58:32Z",
+  "generated": "2026-08-11T23:59:30Z",
   "columns": [
     {
       "key": "raw",
@@ -87,6 +87,15 @@
             "feedback"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/97"
+        },
+        {
+          "id": 98,
+          "title": "Start thinking about the header in terms of what this will…",
+          "labels": [
+            "bug",
+            "feedback"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/98"
         }
       ]
     },
