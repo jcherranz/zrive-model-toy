@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T23:55:05Z",
+  "generated": "2026-08-11T23:56:25Z",
   "columns": [
     {
       "key": "raw",
@@ -71,24 +71,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/93"
         },
         {
-          "id": 94,
-          "title": "Alignment is wrong, too much space to the left",
-          "labels": [
-            "bug",
-            "feedback"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/94"
-        },
-        {
-          "id": 95,
-          "title": "Alignment is wrong, too much space to the left",
-          "labels": [
-            "bug",
-            "feedback"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/95"
-        },
-        {
           "id": 96,
           "title": "Frame is too tight, improve design",
           "labels": [
@@ -143,6 +125,16 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/92"
+        },
+        {
+          "id": 94,
+          "title": "Module headings are indented further left-padded than the rows they head",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/94"
         }
       ]
     },
@@ -240,7 +232,7 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/79"
         }
       ],
-      "hidden": 62,
+      "hidden": 63,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
