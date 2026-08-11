@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T16:07:47Z",
+  "generated": "2026-08-11T16:08:18Z",
   "columns": [
     {
       "key": "raw",
@@ -50,15 +50,6 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/64"
-        },
-        {
-          "id": 68,
-          "title": "A frozen run record will hang anything that gates on run status, including the freshness watchdog",
-          "labels": [
-            "bug",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/68"
         }
       ]
     },
@@ -93,6 +84,15 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/67"
+        },
+        {
+          "id": 68,
+          "title": "A frozen run record will hang anything that gates on run status, including the freshness watchdog",
+          "labels": [
+            "bug",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/68"
         }
       ]
     },
