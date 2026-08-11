@@ -1,10 +1,87 @@
 (function () {
   'use strict';
 
+  // ---- two documents, joined here ------------------------------------------
+  // Issue 60 seam 1. The build no longer ships one blob. site/instance.js is window.GI, what the
+  // objects ARE: types, nodes, properties, provenance flags, identity, the verbs on the
+  // relationships and the roster, with no coordinate anywhere in it. site/layout.js is window.GL,
+  // where they GO: extents, bands, positions, line breaks as word counts, edge paths and chip
+  // boxes, with no value of any object in it. The page loads both and joins them below.
+  //
+  // WHY THE SPLIT IS WORTH A JOIN. The published page is public, so real data can never go on
+  // it. One codebase serves the public toy and a private management tool only if the data
+  // document loads separately from the page, invented data on the public origin and real data on
+  // a private deployment. That is the whole of it, and it is why the join is here rather than
+  // the split being undone in the build.
+  //
+  // THE JOIN IS BY POSITION AND CHECKED BY ID. Both documents come out of one build, in one
+  // order, so position is the cheap join; the id is compared on every node and both ends on
+  // every relationship, and a mismatch throws rather than drawing a tile at another tile's
+  // coordinates. A page drawn from a mismatched pair would look almost right, which is the worst
+  // way for this to fail.
+  //
+  // A LABEL LIVES IN ONE PLACE. The layout carries the word counts its lines were broken at and
+  // not the lines themselves, so the label text is in the instance document and nowhere else.
+  // The lines are rebuilt here, which is four lines of code and one fewer copy of every name on
+  // the page.
+  function joinDocs(gi, gl) {
+    if (!gi || !gi.views || !gl || !gl.views) return null;
+    if (gi.views.length !== gl.views.length) {
+      throw new Error('instance.js has ' + gi.views.length + ' views and layout.js has ' +
+                      gl.views.length);
+    }
+    return gi.views.map(function (iv, vi) {
+      var lv = gl.views[vi], d = lv.drawing;
+      if (iv.key !== lv.key) throw new Error('view ' + vi + ': ' + iv.key + ' against ' + lv.key);
+      if (iv.nodes.length !== d.nodes.length || iv.edges.length !== d.edges.length) {
+        throw new Error(iv.key + ': the two documents disagree about how much is in it');
+      }
+      var drawing = {
+        w: d.w, h: d.h, bandTop: d.bandTop, capLineH: d.capLineH, capGap: d.capGap,
+        bands: d.bands, tile: d.tile, lineH: d.lineH, gapLabel: d.gapLabel, font: d.font,
+        drawingDigest: d.drawingDigest, types: gi.types, roster: iv.roster,
+        nodes: iv.nodes.map(function (n, i) {
+          var g = d.nodes[i], out = {}, k;
+          if (g.id !== n.id) {
+            throw new Error(iv.key + ' node ' + i + ': ' + n.id + ' has the coordinates of ' +
+                            g.id);
+          }
+          for (k in n) if (Object.prototype.hasOwnProperty.call(n, k)) out[k] = n[k];
+          out.x = g.x;
+          out.y = g.y;
+          out.lines = unwrap(n.label, g.wrap);
+          return out;
+        }),
+        edges: iv.edges.map(function (e, i) {
+          var g = d.edges[i], out = {}, k;
+          if (g.s !== e.s || g.t !== e.t) {
+            throw new Error(iv.key + ' edge ' + i + ': ' + e.s + '->' + e.t + ' has the path of ' +
+                            g.s + '->' + g.t);
+          }
+          for (k in e) if (Object.prototype.hasOwnProperty.call(e, k)) out[k] = e[k];
+          out.d = g.d; out.cx = g.cx; out.cy = g.cy; out.cw = g.cw;
+          out.rev = g.rev; out.ax = g.ax; out.ay = g.ay; out.aa = g.aa;
+          return out;
+        })
+      };
+      return { key: iv.key, code: iv.code, name: iv.name, label: iv.label, route: iv.route,
+               drawing: drawing };
+    });
+  }
+
+  // The label, broken where the layout broke it. The build proved the counts rebuild its own
+  // lines before writing them, so this cannot silently drop a word: a count that did not add up
+  // would have stopped the build.
+  function unwrap(label, counts) {
+    var words = String(label).split(/\s+/), out = [], i;
+    for (i = 0; i < counts.length; i++) out.push(words.splice(0, counts[i]).join(' '));
+    return out;
+  }
+
   // ---- the seven programmes, and which of them this page is showing ----------
-  // The build ships seven drawings, one per programme, as window.GV.views, each with its own
-  // nodes, edges, band captions and extent, and window.G is the first of them. Until issue 66
-  // this file read window.G and nothing else, so six of the seven had never been on a screen.
+  // Seven views, one per programme, each with its own nodes, edges, band captions and extent.
+  // Until issue 66 this file read one of them and nothing else, so six had never been on a
+  // screen.
   //
   // A VIEW IS CHOSEN BEFORE THE FIRST draw() AND NEVER AFTER IT. Everything below reads G, and
   // draw() reassigns it, so resolving the address up here is what makes a deep link draw its own
@@ -26,9 +103,9 @@
   // address and names nothing, #/p/ or #/p/NOPE, falls back to the default rather than drawing
   // nothing, because the reader asked for a programme and the honest answer to an unknown one is
   // the page they would have got with no code at all.
-  var GV = window.GV || null;
-  var VIEWS = (GV && GV.views && GV.views.length) ? GV.views
-    : [{ key: '', code: '', name: '', label: '', route: '#/', drawing: window.G }];
+  var GI = window.GI || null;
+  var VIEWS = joinDocs(GI, window.GL);
+  if (!VIEWS || !VIEWS.length) throw new Error('site/instance.js and site/layout.js: no view');
   var PGPREFIX = '#/p/';
 
   function normCode(s) {
@@ -36,7 +113,7 @@
   }
 
   var DEFAULT_VIEW = (function () {
-    var want = normCode(GV && GV.default);
+    var want = normCode(GI && GI.default);
     for (var i = 0; i < VIEWS.length; i++) if (normCode(VIEWS[i].key) === want) return VIEWS[i];
     return VIEWS[0];
   })();
@@ -81,7 +158,7 @@
   //
   // THE STYLESHEET IS GENERATED FROM THE DATA and never written by hand, so it cannot name a
   // type the model does not have and cannot miss one it does. The colours live in build/model.py
-  // and reach the page once, through site/graph.js; app.css holds no type colour and must not
+  // and reach the page once, through site/instance.js; app.css holds no type colour and must not
   // grow one.
   //
   // color-mix RATHER THAN A SECOND PRE-MIXED VALUE PER TYPE, and it was checked rather than

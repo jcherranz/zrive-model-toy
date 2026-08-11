@@ -107,13 +107,14 @@ site/            what is deployed
   index.html     the shell
   app.css        design tokens and components
   app.js         drawing, selection, the panel
-  graph.js       generated coordinates and properties, do not edit by hand
+  instance.js    generated: the objects, their properties and identity, do not edit by hand
+  layout.js      generated: every coordinate, do not edit by hand
   feedback.js    the feedback button
   board.js       the board view at #/board
   board.json     generated from GitHub Issues, read by board.js, do not edit by hand
 build/
   model.py       the objects, their properties and the edges
-  build_layout.py    computes every coordinate, writes site/graph.js
+  build_layout.py    a function from the instance document to geometry, writes both site files
   measure_labels.py  measures every label in a real browser -> label_widths.json
   safety_grep.py     the local forbidden content gate
 scripts/
@@ -181,7 +182,7 @@ in the deploy path, so a behaviour regression can never leave the site half publ
 ## Regenerating
 
 ```bash
-python3 build/build_layout.py     # rewrites site/graph.js
+python3 build/build_layout.py     # rewrites site/instance.js and site/layout.js
 python3 build/safety_grep.py site # must print VERDICT: clean
 python3 -m http.server -d site 8000
 ```
@@ -221,7 +222,7 @@ size and the build id.
 ## The cohort in full
 
 `#/students` lists all thirty four students as rows, over the drawing, from the roster the build
-writes into `site/graph.js`. It is a view of its own, reached from `students` in the header or
+writes into `site/instance.js`. It is a view of its own, reached from `students` in the header or
 from the students card's own panel, and the drawing is not a way to reach part of it: the diagram
 answers what shape a student record is and this answers who is in the cohort. Escape, the close
 button and a click outside all dismiss it, and it closes itself on the way to the board.

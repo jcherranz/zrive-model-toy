@@ -9,6 +9,37 @@ of what changed and when, and it is meant to be scannable.
 
 ## [Unreleased]
 
+### Changed
+
+- The data and the geometry are two documents, #60 seam 1. `site/graph.js` is gone and the page
+  loads `site/instance.js`, what the objects are, and `site/layout.js`, where they go. The reason
+  is on the card and it is not tidiness: the published page is public, so real data can never go
+  on it, and one codebase serves the public toy and a private management tool only if the data
+  document loads separately from the page. `build/build_layout.py` writes the instance document,
+  **reads it back off disk** and lays out what came back, so the geometry never sees the model and
+  the purity of that function is a fact about the pipeline rather than a claim about it. A
+  `--instance` flag lays out any other document with the same shape.
+  **Demonstrated rather than asserted:** a 16 node document about a made up widget inspection
+  course was laid out and served to `index.html`, `app.css` and `app.js` byte for byte as
+  committed, and the page drew it, header, lane captions, reveals, counts and all.
+  The split is gated in both directions: a geometry key in the instance document stops the build,
+  and a value in the laid out nodes or edges that is not a number, a boolean, a list of numbers,
+  an id or a cubic path stops it too. A label appears in the layout only as the word counts its
+  lines were broken at, and the build proves those counts rebuild its own lines before writing
+  them, so no name on the page exists in two files. Measured on the emitted bytes: 505 distinct
+  strings in `layout.js`, 238 of them node ids and the rest paths, digests and the layout's own
+  lane captions, and not one value of any object.
+- Geometry left `build/model.py` entirely, #60 seam 1. The column a type is drawn in, the visit
+  host's column and the four ghosts' columns were all written beside the data; they are now
+  derived in the layout, the host from its own `hosts visit` verb and each ghost from the lane of
+  the class it would attach to, which is the pattern the students reveal already used. All seven
+  views build at exactly the extents they had before, which is what makes the derivation checkable
+  rather than plausible.
+- `scripts/check_build.sh` and `scripts/verify.sh` check both documents, and `scripts/smoke.mjs`
+  did not change at all. #58 was told to assert what the page presents and never the shape of the
+  blob; the split landed and all 70 assertions passed without one being edited, which is the
+  first time that instruction has been paid for.
+
 ### Added
 
 - Every object carries a source system and a source key, both nullable, #60 seam 4. A drawing id

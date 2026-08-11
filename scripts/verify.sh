@@ -126,30 +126,43 @@ check_untracked() {
 # 3. The layout is a pure function of the model.
 # ---------------------------------------------------------------------------------------------
 # README.md's Layout section claims the drawing is reproducible and says the claim is "checkable by
-# running the build twice rather than believed". This is that check. site/graph.js is put back
-# whatever happens, so a verify run never leaves the tree dirty: a check that edits the thing it
-# checks is a check nobody runs twice.
+# running the build twice rather than believed". This is that check. Both generated documents are
+# put back whatever happens, so a verify run never leaves the tree dirty: a check that edits the
+# thing it checks is a check nobody runs twice.
+#
+# TWO FILES SINCE ISSUE 60 SEAM 1, and both have to reproduce. site/instance.js is what the
+# objects are, site/layout.js is where they go, and a tree in which one is stale would draw the
+# right shapes from the wrong data or the wrong shapes from the right data. Neither shows.
 check_layout_reproducible() {
-  local before
-  before="$(mktemp)"
-  cp site/graph.js "$before"
+  local before g bad=0
+  before="$(mktemp -d)"
+  for g in site/instance.js site/layout.js; do cp "$g" "$before/$(basename "$g")"; done
   if ! python3 build/build_layout.py >/tmp/zmt-layout.$$ 2>&1; then
     sed 's/^/  /' /tmp/zmt-layout.$$
-    cp "$before" site/graph.js; rm -f "$before" /tmp/zmt-layout.$$
+    for g in site/instance.js site/layout.js; do cp "$before/$(basename "$g")" "$g"; done
+    rm -rf "$before"; rm -f /tmp/zmt-layout.$$
     echo "  the build itself failed"
     return 1
   fi
   tail -3 /tmp/zmt-layout.$$ | sed 's/^/  /'
-  if cmp -s site/graph.js "$before"; then
-    echo "  site/graph.js is byte identical after a rebuild: the drawing is a pure function of the model"
-    rm -f "$before" /tmp/zmt-layout.$$
+  for g in site/instance.js site/layout.js; do
+    if cmp -s "$g" "$before/$(basename "$g")"; then
+      echo "  $g is byte identical after a rebuild"
+    else
+      bad=1
+      echo "  $g CHANGED when the build was run again."
+      printf '    committed %s bytes, rebuilt %s bytes\n' \
+        "$(wc -c <"$before/$(basename "$g")")" "$(wc -c <"$g")"
+    fi
+  done
+  rm -f /tmp/zmt-layout.$$
+  if [ "$bad" -eq 0 ]; then
+    echo "  the drawing is a pure function of the model"
+    rm -rf "$before"
     return 0
   fi
-  echo "  site/graph.js CHANGED when the build was run again."
-  echo "  Either the committed file is stale, or the build is not deterministic. The diff, by size:"
-  printf '    committed %s bytes, rebuilt %s bytes\n' "$(wc -c <"$before")" "$(wc -c <site/graph.js)"
-  echo "  The rebuilt file has been kept; the previous one is at $before"
-  rm -f /tmp/zmt-layout.$$
+  echo "  Either a committed file is stale, or the build is not deterministic."
+  echo "  The rebuilt files have been kept; the previous ones are in $before"
   return 1
 }
 

@@ -1,17 +1,27 @@
 #!/usr/bin/env python3
 """Degenerate Sugiyama layout for the toy instance graph.
 
-Columns are fixed by object type, with a per-node override for the nodes whose instances
-play different roles. Order within a column comes from barycentre sweeps. Y is relaxed
-towards the mean of each node's neighbours, then packed to a minimum gap. Columns are
-gathered into named bands so that two adjacent columns of different kinds of thing read as
-two different lanes rather than one striped list. Coordinates are written to site/graph.js;
-the browser only draws.
+A FUNCTION FROM AN INSTANCE DOCUMENT TO GEOMETRY, which is issue 60 seam 1. build/model.py
+emits site/instance.js, the data and only the data; this file reads that document back off
+disk and writes site/layout.js, the geometry and only the geometry; the page loads both. The
+point of the split is recorded on the card: the published page is public, so real data can
+never go on it, and the only way the public toy and a private management tool are ever one
+codebase is if the data document loads separately from the page. Everything below reads the
+emitted document rather than importing the model, so a different instance document with the
+same shape lays out without a line of this file changing:
+
+    python3 build/build_layout.py --instance other.json --out /tmp/other
+
+Columns are fixed by object type, with two derived exceptions. Order within a column comes
+from barycentre sweeps. Y is relaxed towards the mean of each node's neighbours, then packed
+to a minimum gap. Columns are gathered into named bands so that two adjacent columns of
+different kinds of thing read as two different lanes rather than one striped list.
 
 The whole drawing is sized to be readable inside one 1440x900 viewport with the header and
 the footer taken out, so the target aspect is roughly two to one and the target height is
 around 650 user units.
 """
+import argparse
 import hashlib
 import json
 import math
@@ -21,7 +31,7 @@ import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
-from model import VIEWS, TYPES, contrast_rows, floor4, type_colour  # noqa: E402
+from model import contrast_rows, floor4, instance_document  # noqa: E402
 
 COL_W = [166, 232, 122, 124, 80, 102, 92, 92]
 GAP_X, MARGIN_X = 18, 22
@@ -108,7 +118,40 @@ for c, w in enumerate(COL_W):
     _acc += w + GAP_X
 W = round(_acc - GAP_X + MARGIN_X)
 
-TYPE_COL = {t[0]: t[4] for t in TYPES}
+# ---- which column a type is drawn in ----------------------------------------
+# Geometry, so it is here and not in build/model.py, which since issue 60 seam 1 says what the
+# objects are and nothing about where they go. The key set is checked against the instance
+# document's own types on every build, so a type added to the model without a column stops the
+# build instead of landing silently in column zero.
+#
+# STUDENT SITS IN 4 AND NOT 5, WHICH IS THE ONE ENTRY THAT NEEDS ITS REASON. 5 is the column its
+# own StudentGroup card sits in, and this layout draws an edge between two columns and has no
+# shape for an edge inside one, so four members stacked under the card they belong to would each
+# need a line from a tile to the tile above it. Column 4 is the other half of the same lane, it
+# holds one node, and the 'member of' edges then run left to right into the group exactly like
+# every other edge on the page. The lane caption, "cohort and students", is true of both columns.
+#
+# THE ENROLMENT TO CLAIM CHAIN FOLDS OVER TWO COLUMNS rather than running out over four. Every
+# one of its edges still joins neighbouring columns, so the chain stays legible while the drawing
+# keeps a two to one aspect instead of a long empty right half.
+COL_BY_TYPE = {
+    "Programme": 0, "Company": 0, "SessionTemplate": 1, "Instructor": 2, "CohortSession": 3,
+    "Cohort": 4, "StudentGroup": 5, "Student": 4, "Enrolment": 6, "Agreement": 7,
+    "Charge": 6, "Claim": 7,
+}
+
+# A Company that hosts a visit is drawn beside the sessions it hosts and not beside the
+# employers, and it is picked out by the verb on its own edge. That is the house pattern rather
+# than a new one: the students reveal in site/app.js derives its set by walking the edges for
+# 'member of' rather than holding a list of ids, for the same reason. A second visit host added
+# to the model joins the rule by existing.
+HOST_VERB, HOST_COL = "hosts visit", 3
+
+# A ghost has no column of its own because it has no place of its own: it is the class that
+# would attach to something real, so it is drawn in the other column of the lane its target sits
+# in, next to the thing whose absence it is about. Derived from the edge, which is why the four
+# ghosts stopped carrying a hand written column when this file took the geometry over.
+GHOST_TYPE_KEY = "Ghost"
 
 # ---- text width ------------------------------------------------------------
 # Widths come from build/label_widths.json, which build/measure_labels.py produced by shaping
@@ -190,13 +233,49 @@ for _cs in BAND_COLS:
         BAND_X[_c] = (_x0, _x1)
 
 
-def bands_for(model_nodes):
+def columns_for(view, tag):
+    """id -> column, for one view, from the instance document alone.
+
+    Three rules and no table of ids: the type, the visit host picked out by its verb, and the
+    ghost placed beside the class it would attach to. A node the rules cannot place stops the
+    build, because the alternative is column zero and a drawing that looks merely odd.
+    """
+    nodes, edges = view["nodes"], view["edges"]
+    type_of = {n["id"]: n["type"] for n in nodes}
+    col = {}
+    for n in nodes:
+        if n["type"] in COL_BY_TYPE:
+            col[n["id"]] = COL_BY_TYPE[n["type"]]
+    for e in edges:
+        if e["v"] == HOST_VERB and type_of.get(e["s"]) == "Company":
+            col[e["s"]] = HOST_COL
+    for e in edges:
+        if type_of.get(e["s"]) != GHOST_TYPE_KEY:
+            continue
+        target = col.get(e["t"])
+        if target is None:
+            sys.exit(f"[layout:{tag}] ghost {e['s']} attaches to {e['t']}, which has no column")
+        lane = [c for c in BAND_COLS if target in c][0]
+        other = [c for c in lane if c != target]
+        if not other:
+            sys.exit(f"[layout:{tag}] ghost {e['s']} attaches to {e['t']} in column {target}, "
+                     f"whose lane has no second column for the ghost to sit in")
+        col[e["s"]] = other[0]
+    missing = [n["id"] for n in nodes if n["id"] not in col]
+    if missing:
+        sys.exit(f"[layout:{tag}] no column rule places {', '.join(sorted(missing))}. Every node "
+                 f"is placed by its type, by hosting a visit, or by the class it would attach "
+                 f"to; a node placed by none of the three would be drawn in column 0 and look "
+                 f"merely odd.")
+    return col
+
+
+def bands_for(model_nodes, col_of):
     """The lane captions for one view, read off what that view holds.
 
     Derived and not declared, for the same reason the "no system holds it" mark is derived from
     the populate route: a caption written by hand beside a model is a second place to forget.
     """
-    col_of = {n["id"]: n.get("col", TYPE_COL[n["type"]]) for n in model_nodes}
     company_cols = {col_of[n["id"]] for n in model_nodes if n["type"] == "Company"}
     has_employer = 0 in company_cols
     has_host = 3 in company_cols
@@ -316,8 +395,8 @@ def dist_to_path(pt, pts, n=400):
                for x, y in (bez(pts, i / n) for i in range(n + 1)))
 
 
-def layout(model_nodes, model_edges, tag, bands, roster):
-    """Lay one model out and return the object the browser draws.
+def layout(view, tag, bands, col_of):
+    """Lay one view of the instance document out and return the geometry the browser draws.
 
     It is a function rather than module-level code because it once laid out two drawings, a
     one cohort view and an opt-in two cohort one, and the property that mattered was that
@@ -337,11 +416,12 @@ def layout(model_nodes, model_edges, tag, bands, roster):
         sys.exit(f"[layout:{tag}] the caption set groups the columns as "
                  f"{[cs for cs, _l in bands]} and the geometry was computed for {BAND_COLS}. "
                  f"Captions are a per view argument; the grouping is not.")
+    model_nodes, model_edges = view["nodes"], view["edges"]
     nodes = {n["id"]: dict(n) for n in model_nodes}
     order = [n["id"] for n in model_nodes]
     rewrapped = []
     for nid, n in nodes.items():
-        n["col"] = n.get("col", TYPE_COL[n["type"]])
+        n["col"] = col_of[nid]
         it = bool(n.get("ghost"))
 
         def reserve(lines):
@@ -402,9 +482,9 @@ def layout(model_nodes, model_edges, tag, bands, roster):
         sys.exit("[layout] refusing to write a drawing in which a label crosses a lane boundary")
 
     adj = {nid: [] for nid in nodes}
-    for a, b, _v in model_edges:
-        adj[a].append(b)
-        adj[b].append(a)
+    for e in model_edges:
+        adj[e["s"]].append(e["t"])
+        adj[e["t"]].append(e["s"])
 
     cols = [[nid for nid in order if nodes[nid]["col"] == c] for c in range(NCOL)]
     H = max(sum(nodes[i]["h"] for i in c) + MIN_GAP * (len(c) - 1) for c in cols if c)
@@ -490,7 +570,8 @@ def layout(model_nodes, model_edges, tag, bands, roster):
         return n["y"] - (n["h"] - TILE) / 2
 
     edges = []
-    for a, b, verb in model_edges:
+    for me in model_edges:
+        a, b, verb = me["s"], me["t"], me["v"]
         na, nb = nodes[a], nodes[b]
         left, right = (na, nb) if na["col"] <= nb["col"] else (nb, na)
         span = abs(nb["col"] - na["col"])
@@ -509,7 +590,7 @@ def layout(model_nodes, model_edges, tag, bands, roster):
              f"{p2[0]:.1f} {p2[1]:.1f} {p3[0]:.1f} {p3[1]:.1f}")
         edges.append({"s": a, "t": b, "v": verb, "d": d, "pts": pts,
                       "rev": nb["col"] < na["col"], "span": span,
-                      "ghost": bool(na.get("ghost") or nb.get("ghost"))})
+                      "ghost": bool(me.get("ghost"))})
 
     blocked = []
     for n in nodes.values():
@@ -568,56 +649,58 @@ def layout(model_nodes, model_edges, tag, bands, roster):
         drawn_bands.append({"x": round(x0, 1), "w": round(x1 - x0, 1),
                             "label": " ".join(lines), "lines": list(lines)})
 
+    # ---- and what goes out is geometry, with no value of any object in it -------------------
+    # Issue 60 seam 1. A label appears here only as the WORD COUNTS its lines were broken at, and
+    # never as text: wrapping is what the layout did to the label, the label itself belongs to
+    # the instance document, and a copy of it here would be a second place for it to live. The
+    # browser rebuilds the lines by splitting the label it already has. The reconstruction is
+    # checked below rather than assumed.
+    #
+    # The band captions ARE text and they are the layout's own: a lane exists because of how the
+    # columns are grouped, and its caption is a claim about that lane. Nothing in the instance
+    # document says it.
+    def wrap_counts(n):
+        counts = [len(ln.split()) for ln in n["lines"]]
+        rebuilt, words = [], n["label"].split()
+        for c in counts:
+            rebuilt.append(" ".join(words[:c]))
+            words = words[c:]
+        if rebuilt != n["lines"]:
+            sys.exit(f"[layout:{tag}] the line breaks on {n['id']} cannot be written as word "
+                     f"counts: {n['lines']} does not rebuild from {n['label']!r} as {rebuilt}. "
+                     f"A label the browser cannot rebuild would be drawn wrong and nothing "
+                     f"downstream would know.")
+        return counts
+
     out = {
         "w": W, "h": round(height), "bandTop": BAND_TOP,
         "capLineH": CAP_LH, "capGap": CAP_GAP,
         "bands": drawn_bands,
-        # Two colours per type, not one. `c` is the hex the palette was chosen at, against a
-        # white page; `cDark` is its sibling on the dark plate, and for five of the thirteen it
-        # is the same string because those five already carried the dark theme. Both are read
-        # out of the model through type_colour(), which is the same accessor the contrast check
-        # reads, so the drawing and the measurement cannot come to hold different palettes.
-        #
-        # It belongs to the type and therefore to the DATA, which is why it rides here beside
-        # `c` and not in the geometry: issue 60 splits this file into an instance document and a
-        # layout, and a colour written into the layout half would have to be moved back.
-        "types": [{"k": k, "label": lab, "c": col,
-                   "cDark": type_colour(k, col, "dark"), "glyph": g,
-                   "ghost": 1 if k == "Ghost" else None}
-                  for k, lab, col, g, _c in TYPES],
         "tile": TILE, "lineH": LINE_H, "gapLabel": GAP_LABEL, "font": FONT,
-        "nodes": [{"id": n["id"], "type": n["type"], "label": n["label"], "lines": n["lines"],
-                   "x": round(n["x"], 1), "y": round(tile_y(n), 1),
-                   "count": n.get("count"), "props": n["props"], "route": n["route"],
-                   # Issue 60, seam 4. The system that holds this object and its key there, both
-                   # null where the model establishes that nothing holds it. Distinct from `id`,
-                   # which is the drawing's own and joins a tile to an edge and nothing else.
-                   "source_system": n["source_system"], "source_key": n["source_key"],
-                   "ghost": 1 if n.get("ghost") else None,
-                   "mark": n.get("mark"), "tail": n.get("tail"), "note": n.get("note")}
+        "nodes": [{"id": n["id"], "wrap": wrap_counts(n),
+                   "x": round(n["x"], 1), "y": round(tile_y(n), 1)}
                   for n in (nodes[i] for i in order)],
-        "edges": [{"s": e["s"], "t": e["t"], "v": e["v"], "d": e["d"],
-                   "ghost": 1 if e["ghost"] else None,
+        "edges": [{"s": e["s"], "t": e["t"], "d": e["d"],
                    "cx": round(e["cx"], 1), "cy": round(e["cy"], 1),
                    "cw": round(e["cw"], 1), "rev": e["rev"],
                    "ax": round(e["ax"], 1), "ay": round(e["ay"], 1), "aa": round(e["aa"], 1)}
                   for e in edges],
-        # The cohort as rows, for the sheet at #/students, which is the view that answers "who
-        # is in it" where the drawing answers "what shape is a student". It is carried in the
-        # drawing's own file and covered by the drawing digest for one reason: it is the model,
-        # not page furniture, and a reader who files a note about a row is filing it against a
-        # commit and a digest that pin the bytes the row came from. owner names the node the
-        # sheet belongs to, so nothing in the browser holds the id 'students' as a literal.
-        "roster": roster,
     }
-    # A short digest of the drawing itself, and it is called drawingDigest because that is what
-    # it is. It was called "build" and it went into every feedback report on its own, where seven
-    # lowercase hex characters read as an abbreviated commit to every engineer alive: the one
-    # action the value invited, looking the revision up, failed with "not a valid object name",
-    # and a report could not say what code the reporter saw. Issue 47. The commit now comes from
-    # site/version.js, written at deploy time, and this stays for the one question it can answer,
-    # whether two pages are drawing the same geometry.
-    payload = json.dumps(out, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    # A short digest, and it is called drawingDigest because that is what it is. It was called
+    # "build" and it went into every feedback report on its own, where seven lowercase hex
+    # characters read as an abbreviated commit to every engineer alive: the one action the value
+    # invited, looking the revision up, failed with "not a valid object name", and a report could
+    # not say what code the reporter saw. Issue 47. The commit now comes from site/version.js,
+    # written at deploy time, and this stays for the one question it can answer, whether two
+    # pages are showing the same thing.
+    #
+    # IT COVERS THE DATA AS WELL AS THE GEOMETRY, which is not an oversight now that the two are
+    # separate files. The question a reader of a feedback report asks is whether their page was
+    # showing what mine is, and a page whose coordinates match and whose roster does not is not
+    # showing the same thing. So the digest is taken over this view's instance payload and its
+    # geometry together, and it answers exactly the question it answered when they were one blob.
+    payload = (json.dumps(view, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+               + json.dumps(out, ensure_ascii=False, sort_keys=True, separators=(",", ":")))
     out["drawingDigest"] = hashlib.sha256(payload.encode("utf-8")).hexdigest()[:7]
 
     print(f"[{tag}] nodes {len(out['nodes'])}  edges {len(out['edges'])}  "
@@ -664,54 +747,135 @@ def layout(model_nodes, model_edges, tag, bands, roster):
     return out
 
 
-# ---- seven views, one per programme ------------------------------------------
-# Issue 43. There was one drawing and there are seven, one per programme, each laid out on its
-# own from its own nodes and its own captions. They are independent by construction: nothing in
-# layout() touches module state, so a change to Z-BL cannot move Z-IB's geometry, and each view
-# carries its own drawingDigest so a reviewer can see which one moved.
+# ---- the two documents, and the gate that keeps them apart ---------------------
+# Issue 60 seam 1. site/instance.js is what the objects are; site/layout.js is where they go.
+# The rule below is what makes that a fact about the emitted bytes rather than a habit: neither
+# document may carry the other's kind of thing, and the build refuses instead of writing one
+# that does. It is checked on the documents themselves and not on the code that writes them,
+# because the code that writes them is the code that would be wrong.
 #
-# THE ROUTING IS NOT HERE AND THAT IS DELIBERATE. This file writes the data and the geometry for
-# all seven; reaching the other six needs a hash route and a picker, which is site/app.js and a
-# card of its own. Until that lands window.G is the Investment Banking view exactly as before,
-# and the six others sit beside it in the same file, laid out, measured and gated.
-drawings = []
-for _view in VIEWS:
-    _d = layout(_view["nodes"], _view["edges"], _view["key"],
-                bands_for(_view["nodes"]), _view["roster"])
-    drawings.append({"key": _view["key"], "code": _view["code"], "name": _view["name"],
-                     "label": _view["label"], "route": "#/p/" + _view["key"], "drawing": _d})
+# The instance side is a key blacklist, because geometry has a vocabulary and it is small. The
+# layout side is stronger and does not need a list at all: every value in a laid out node or edge
+# has to be a number, a boolean, a list of numbers, or an id the instance document declares. A
+# label, a property value, a note or a verb cannot pass that test in any spelling.
+GEOMETRY_KEYS = {"x", "y", "w", "h", "col", "lines", "wrap", "d", "cx", "cy", "cw", "rev",
+                 "ax", "ay", "aa", "tile", "lineH", "gapLabel", "bandTop", "capLineH",
+                 "capGap", "bands", "font"}
+_N = r"-?\d+(?:\.\d+)?"
+PATH_RE = re.compile(rf"M {_N} {_N} C {_N} {_N} {_N} {_N} {_N} {_N}")
 
-# window.G is the first of them, and the browser reads it out of the list rather than getting a
-# second copy: fifty kilobytes of duplicated payload is fifty kilobytes that can come to disagree
-# with itself. The first view has to be the one the page shows, so that is asserted here rather
-# than left to the order of a list somebody may reorder.
-if drawings[0]["key"] != "ZIB":
-    sys.exit(f"[layout] window.G is written as the first view and the first view is "
-             f"{drawings[0]['key']}. The page shows Investment Banking.")
-base = drawings[0]["drawing"]
 
-site = pathlib.Path(__file__).resolve().parent.parent / "site"
+def refuse_mixed(inst, lay):
+    for v in inst["views"]:
+        for kind in ("nodes", "edges"):
+            for o in v[kind]:
+                bad = sorted(set(o) & GEOMETRY_KEYS)
+                if bad:
+                    sys.exit(f"[layout] the instance document carries geometry: {v['key']} "
+                             f"{kind[:-1]} {o.get('id', o.get('s'))} has {', '.join(bad)}. "
+                             f"Where a thing is drawn belongs in site/layout.js.")
+    for iv, lv in zip(inst["views"], lay["views"]):
+        ids = {n["id"] for n in iv["nodes"]}
+        for kind in ("nodes", "edges"):
+            for o in lv["drawing"][kind]:
+                for k, val in o.items():
+                    if isinstance(val, bool) or isinstance(val, (int, float)):
+                        continue
+                    if isinstance(val, list) and all(isinstance(x, (int, float)) for x in val):
+                        continue
+                    if isinstance(val, str) and val in ids:
+                        continue
+                    # The one string that is geometry: a cubic path, allowed by its grammar
+                    # rather than by its key, so nothing can ride into the layout under the
+                    # name `d`.
+                    if k == "d" and PATH_RE.fullmatch(val):
+                        continue
+                    sys.exit(f"[layout] the layout document carries a value that is not "
+                             f"geometry and is not an id: {lv['key']} {kind[:-1]} {k}={val!r}. "
+                             f"What an object IS belongs in site/instance.js.")
 
-# The width of the drawing is computed here and read by the stylesheet through the --drawing-w
-# custom property that app.js writes. If it is ever typed into app.css as well the two will
-# disagree the first time a column changes width, and the symptom is quiet: on a narrow
-# viewport the canvas would stop short of the drawing or scroll past it into blank space. So
-# refuse to build while a copy of the number is sitting in the stylesheet.
-_css = (site / "app.css").read_text(encoding="utf-8")
-# Not \b: in "1230px" there is no word boundary between the 0 and the p, so \b would let the
-# very form the number takes in a stylesheet through untouched.
-if re.search(r"(?<![\d.])" + str(base["w"]) + r"(?![\d.])", _css):
-    sys.exit(f"[layout] app.css contains the literal {base['w']}, the width of the drawing. "
-             f"The stylesheet must read var(--drawing-w) instead.")
 
-dest = site / "graph.js"
-dest.write_text(
-    "window.GV=" + json.dumps({"default": drawings[0]["key"], "views": drawings},
-                              ensure_ascii=False, separators=(",", ":"))
-    + ";window.G=window.GV.views[0].drawing;\n",
-    encoding="utf-8")
-print(f"wrote {dest.name}  {dest.stat().st_size / 1024:.1f} KB, {len(drawings)} views")
-print("  " + "  ".join(f"{d['key']} {d['drawing']['w']}x{d['drawing']['h']}" for d in drawings))
+def build(inst, out_dir):
+    """Write both documents for one instance document. Everything read is read from `inst`."""
+    # THE COLUMN TABLE IS CHECKED AGAINST THE DOCUMENT'S OWN TYPES rather than trusted. A type
+    # added to the model with no column here would otherwise be drawn in column 0, which looks
+    # like a layout bug and is a missing table entry.
+    keys = {t["k"] for t in inst["types"]}
+    unplaced = keys - set(COL_BY_TYPE) - {GHOST_TYPE_KEY}
+    stale = set(COL_BY_TYPE) - keys
+    if unplaced or stale:
+        sys.exit(f"[layout] COL_BY_TYPE and the instance document's types disagree. "
+                 f"No column for: {', '.join(sorted(unplaced)) or 'none'}. "
+                 f"A column for types the document does not have: "
+                 f"{', '.join(sorted(stale)) or 'none'}.")
+
+    views = []
+    for view in inst["views"]:
+        col_of = columns_for(view, view["key"])
+        views.append({"key": view["key"],
+                      "drawing": layout(view, view["key"], bands_for(view["nodes"], col_of),
+                                        col_of)})
+    lay = {"views": views}
+    refuse_mixed(inst, lay)
+
+    # The width of the drawing is computed here and read by the stylesheet through the
+    # --drawing-w custom property that app.js writes. If it is ever typed into app.css as well
+    # the two will disagree the first time a column changes width, and the symptom is quiet: on
+    # a narrow viewport the canvas would stop short of the drawing or scroll past it into blank
+    # space. So refuse to build while a copy of the number is sitting in the stylesheet.
+    base_w = views[0]["drawing"]["w"]
+    _css = (SITE / "app.css").read_text(encoding="utf-8")
+    # Not \b: in "1230px" there is no word boundary between the 0 and the p, so \b would let the
+    # very form the number takes in a stylesheet through untouched.
+    if re.search(r"(?<![\d.])" + str(base_w) + r"(?![\d.])", _css):
+        sys.exit(f"[layout] app.css contains the literal {base_w}, the width of the drawing. "
+                 f"The stylesheet must read var(--drawing-w) instead.")
+
+    dest = out_dir / "layout.js"
+    dest.write_text("window.GL=" + json.dumps(lay, ensure_ascii=False, separators=(",", ":"))
+                    + ";\n", encoding="utf-8")
+    print(f"wrote {dest.name}  {dest.stat().st_size / 1024:.1f} KB, {len(views)} views")
+    print("  " + "  ".join(f"{v['key']} {v['drawing']['w']}x{v['drawing']['h']}"
+                           for v in views))
+    return lay
+
+
+SITE = pathlib.Path(__file__).resolve().parent.parent / "site"
+
+_ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+_ap.add_argument("--instance", type=pathlib.Path,
+                 help="lay out this instance document instead of the model's own. The whole "
+                      "point of seam 1: a different document with the same shape needs no "
+                      "change to this file and none to the page.")
+_ap.add_argument("--out", type=pathlib.Path, default=SITE,
+                 help="where to write instance.js and layout.js (default site/)")
+_args = _ap.parse_args()
+
+# ---- the model's own document, written first and then READ BACK ---------------
+# The layout is a function of the instance document, and the cheapest way to keep that true is
+# to make it literally so: the document is written to disk, parsed back, and laid out from what
+# came back. Nothing the model holds and the document does not can reach the geometry, because
+# the geometry never sees the model. It also means the seven views are laid out from exactly the
+# bytes the page will load.
+if _args.instance:
+    _inst = json.loads(_args.instance.read_text(encoding="utf-8"))
+else:
+    _inst = instance_document()
+    # The first view is the one the page shows with no code in the address, so it is asserted
+    # here rather than left to the order of a list somebody may reorder.
+    if _inst["views"][0]["key"] != "ZIB":
+        sys.exit(f"[layout] the default view is written as the first one and the first one is "
+                 f"{_inst['views'][0]['key']}. The page shows Investment Banking.")
+
+_args.out.mkdir(parents=True, exist_ok=True)
+_dest = _args.out / "instance.js"
+_dest.write_text("window.GI=" + json.dumps(_inst, ensure_ascii=False, separators=(",", ":"))
+                 + ";\n", encoding="utf-8")
+print(f"wrote {_dest.name}  {_dest.stat().st_size / 1024:.1f} KB, {len(_inst['views'])} views")
+_txt = _dest.read_text(encoding="utf-8")
+_inst = json.loads(_txt[len("window.GI="):-len(";\n")])
+
+build(_inst, _args.out)
 
 # ---- the palette, reported where it is edited -------------------------------
 # The verdict is not here, and that is a choice rather than an omission. scripts/check_repo.sh
@@ -727,7 +891,7 @@ for _r in contrast_rows():
         _worst[_g] = _r
 print("contrast: {} type colours on the band plate, worst {} at {:.4f} light and {} at {:.4f} "
       "dark. The threshold and the declared exceptions are in scripts/check_repo.sh.".format(
-          len(TYPES), _worst["light"]["label"], floor4(_worst["light"]["ratio"]),
+          len(_inst["types"]), _worst["light"]["label"], floor4(_worst["light"]["ratio"]),
           _worst["dark"]["label"], floor4(_worst["dark"]["ratio"])))
 
 # ---- what the measurement bought -------------------------------------------

@@ -8,8 +8,9 @@
 // valid object name". Issue 47.
 //
 // The value therefore has to be written where the deploy happens rather than where the drawing
-// is built, and it cannot go into site/graph.js: that file has to stay byte for byte what
-// build/build_layout.py reproduces, and a deploy-time edit to it would end that. So it is here,
+// is built, and it cannot go into a generated document: site/instance.js and site/layout.js
+// have to stay byte for byte what build/build_layout.py reproduces, and a deploy-time edit to
+// either would end that. So it is here,
 // in the one file in site/ whose deployed bytes are deliberately not the bytes in the tree.
 //
 // .github/workflows/pages.yml rewrites this file into the artifact it publishes, with the sha it

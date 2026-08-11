@@ -240,8 +240,8 @@ jobs:
       # reads as an abbreviated commit, is not one, and moved only when the layout was rebuilt.
       # The value is written here, in the job that publishes, because that is the only place that
       # knows what is being published, and it is written into site/version.js rather than into
-      # site/graph.js because graph.js has to stay byte for byte what build/build_layout.py
-      # reproduces. site/version.js is the one file in site/ whose deployed bytes are deliberately
+      # a generated document, because site/instance.js and site/layout.js have to stay byte
+      # for byte what build/build_layout.py reproduces. site/version.js is the one file in site/ whose deployed bytes are deliberately
       # not the bytes in the tree, and the copy in the tree names no commit, which is the truth
       # about a working tree.
       #

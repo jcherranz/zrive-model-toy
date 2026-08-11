@@ -161,10 +161,10 @@ FORBIDDEN_EXEMPT=(
 # THE CONTRAST RULE, which is about a drawing rather than about content.
 #
 # WHY IT IS HERE AND NOT IN THE BUILD. The thirteen type colours live in build/model.py and
-# reach the page through site/graph.js, so the build is where they are known and would be the
+# reach the page through site/instance.js, so the build is where they are known and would be the
 # obvious home. It is the wrong one, for a reason that is about this repository and not about
-# taste: no workflow runs the build. site/graph.js is committed and pages.yml deploys it as it
-# stands, so a check inside build/build_layout.py runs only when somebody rebuilds, which is
+# taste: no workflow runs the build. The generated documents are committed and pages.yml
+# deploys them as they stand, so a check inside build/build_layout.py runs only when somebody rebuilds, which is
 # exactly the person who already knows what they changed. This script runs on every push and
 # every pull request, it already carries a declared-exception mechanism with a staleness rule,
 # and it already has a self-test. All three are needed here on the first day.
@@ -174,7 +174,7 @@ FORBIDDEN_EXEMPT=(
 # row per type per ground and holds no threshold and no verdict.
 #
 # WHAT THIS DOES NOT CHECK, said here rather than left to be discovered. It measures the palette
-# in the model. Nothing in CI rebuilds site/graph.js and compares it, so a colour hand edited
+# in the model. Nothing in CI rebuilds site/instance.js and compares it, so a colour hand edited
 # into the drawing and not into the model would be measured by nobody. That hole is older than
 # this rule and wider than it, and closing it is a build-reproducibility card rather than a
 # contrast one.

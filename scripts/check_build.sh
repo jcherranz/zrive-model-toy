@@ -1,29 +1,29 @@
 #!/usr/bin/env bash
 # Rebuild the drawing and refuse any difference from the committed file.
 #
-# WHY THIS EXISTS. Issue 61. Nothing in CI ran the build. site/graph.js was committed and
-# deployed exactly as it sat in the tree, and two guarantees this repository believes it has
-# were held by nothing but habit:
+# WHY THIS EXISTS. Issue 61. Nothing in CI ran the build. The generated documents were
+# committed and deployed exactly as they sat in the tree, and two guarantees this repository
+# believes it has were held by nothing but habit:
 #
-#   Reproducibility. Every card asserted that `python3 build/build_layout.py` reproduces
-#   site/graph.js byte for byte, and every one of those assertions was somebody remembering to
-#   run it by hand.
+#   Reproducibility. Every card asserted that `python3 build/build_layout.py` reproduces them
+#   byte for byte, and every one of those assertions was somebody remembering to run it by
+#   hand.
 #
 #   Measurement. The contrast gate reads the palette out of build/model.py and the page draws
-#   from site/graph.js. Those are the same colours only while the build is honest. A colour
-#   typed straight into the drawing would be measured by nobody, would pass every gate, and
-#   would ship. The same hole covers a label, a property value, a provenance flag, a populate
-#   route, and the name gate itself: model.py hashes every shipped string against the faculty
-#   register at build time, so a real name pasted into graph.js never meets it.
+#   what the build wrote. Those are the same colours only while the build is honest. A colour
+#   typed straight into the generated file would be measured by nobody, would pass every gate,
+#   and would ship. The same hole covers a label, a property value, a provenance flag, a
+#   populate route, and the name gate itself: model.py hashes every shipped string against the
+#   faculty register at build time, so a real name pasted into a generated file never meets it.
 #
 # WHAT IT CHECKS, and the argument for each.
 #
-#   1. THE DRAWING REPRODUCES. site/graph.js is deleted, the real builder is run, and the file
-#      it writes is compared byte for byte with the bytes that were there. Deleting first is
-#      the poka-yoke: a builder that silently wrote nothing would otherwise be indistinguishable
-#      from a builder that wrote the same bytes, and the check would report clean about a run
-#      that produced nothing. The file is always put back, whatever happens, because a check
-#      that dirties the tree it checks is a check nobody runs twice.
+#   1. BOTH DOCUMENTS REPRODUCE. site/instance.js and site/layout.js are deleted, the real
+#      builder is run, and each file it writes is compared byte for byte with the bytes that
+#      were there. Deleting first is the poka-yoke: a builder that silently wrote nothing would
+#      otherwise be indistinguishable from one that wrote the same bytes, and the check would
+#      report clean about a run that produced nothing. Both files are always put back, whatever
+#      happens, because a check that dirties the tree it checks is a check nobody runs twice.
 #
 #   2. THE LABEL WIDTH TABLE COVERS EVERY STRING THE LAYOUT MEASURES, and this is deliberately
 #      NOT a byte diff. build/label_widths.json is generated, but by build/measure_labels.py
@@ -43,7 +43,8 @@
 #
 # WHAT THE BUILDER TOUCHES, established by running it on a clean tree rather than assumed.
 # It reads build/model.py, build/label_widths.json, site/app.css and the name gate's rules in
-# scripts/, and it writes exactly one tracked file, site/graph.js. It also leaves a
+# scripts/, and it writes exactly two tracked files, site/instance.js and site/layout.js. It
+# also leaves a
 # build/__pycache__ directory, which .gitignore already covers. It neither reads nor writes
 # site/board.json, which is what makes this safe to run on a board sync commit; see the header
 # of .github/workflows/build.yml.
@@ -59,14 +60,19 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-GRAPH="site/graph.js"
+# Two generated documents since issue 60 seam 1, and both are checked the same way. site/
+# instance.js is what the objects are and site/layout.js is where they go; a build that
+# reproduced one and not the other would ship a page whose data and geometry came from different
+# revisions, which is the failure mode a reader would never see.
+GENERATED=(site/instance.js site/layout.js)
 BUILDER="build/build_layout.py"
 WIDTHS_DEFAULT="build/label_widths.json"
 
 # ---------------------------------------------------------------------------------------------
 # The report. One function, so the self-test exercises the same text CI prints.
 # ---------------------------------------------------------------------------------------------
-# It takes the two files rather than reading site/graph.js itself, which is what lets the
+# It takes the two files as arguments rather than reading the tree itself, which is what lets
+# the
 # self-test hand it a tampered pair without going anywhere near the working tree.
 report_difference() {
   local expected="$1" actual="$2" named="$3"
@@ -80,7 +86,8 @@ report_difference() {
     "$(wc -c <"$expected")" "$(sha256sum <"$expected" | cut -c1-16)"
   printf '    rebuilt    %s bytes  sha256 %s\n' \
     "$(wc -c <"$actual")" "$(sha256sum <"$actual" | cut -c1-16)"
-  # The offset, and the bytes around it. graph.js is one very long line, so a diff says nothing
+  # The offset, and the bytes around it. Each document is one very long line, so a diff says
+  # nothing
   # and a line number says less; what a reader needs is the text either side of the divergence.
   # cmp names both files in its message and one of them is a temporary path, so only the
   # numbers are kept.
@@ -105,24 +112,29 @@ report_difference() {
 # ---------------------------------------------------------------------------------------------
 # 1. The drawing reproduces.
 # ---------------------------------------------------------------------------------------------
-SAVED=""
+SAVEDIR=""
 restore_graph() {
-  if [ -n "$SAVED" ] && [ -f "$SAVED" ]; then
-    cp "$SAVED" "$GRAPH"
-    rm -f "$SAVED"
-    SAVED=""
+  if [ -n "$SAVEDIR" ] && [ -d "$SAVEDIR" ]; then
+    local g
+    for g in "${GENERATED[@]}"; do
+      [ -f "$SAVEDIR/$(basename "$g")" ] && cp "$SAVEDIR/$(basename "$g")" "$g"
+    done
+    rm -rf "$SAVEDIR"
+    SAVEDIR=""
   fi
+  return 0
 }
 trap restore_graph EXIT INT TERM
 
 check_reproducible() {
-  local rc log
+  local rc log g bad=0
   log="$(mktemp)"
-  SAVED="$(mktemp)"
-  cp "$GRAPH" "$SAVED"
-
-  # Deleted on purpose. See the poka-yoke note in the header.
-  rm -f "$GRAPH"
+  SAVEDIR="$(mktemp -d)"
+  for g in "${GENERATED[@]}"; do
+    cp "$g" "$SAVEDIR/$(basename "$g")"
+    # Deleted on purpose. See the poka-yoke note in the header.
+    rm -f "$g"
+  done
 
   python3 "$BUILDER" >"$log" 2>&1
   rc=$?
@@ -135,20 +147,25 @@ check_reproducible() {
     return 1
   fi
 
-  if [ ! -f "$GRAPH" ]; then
-    restore_graph
-    echo "::error::${BUILDER} exited 0 and wrote no ${GRAPH}"
-    echo "  The check deletes ${GRAPH} before building so that a build which writes nothing"
-    echo "  cannot be mistaken for a build which writes the same bytes. Nothing was written."
-    return 1
-  fi
-
-  if report_difference "$SAVED" "$GRAPH" "$GRAPH"; then
-    restore_graph
-    echo "  ${GRAPH} is byte identical after a rebuild: the drawing is a pure function of the model"
+  for g in "${GENERATED[@]}"; do
+    if [ ! -f "$g" ]; then
+      restore_graph
+      echo "::error::${BUILDER} exited 0 and wrote no ${g}"
+      echo "  The check deletes what the build writes before building, so that a build which"
+      echo "  writes nothing cannot be mistaken for a build which writes the same bytes."
+      return 1
+    fi
+    if report_difference "$SAVEDIR/$(basename "$g")" "$g" "$g"; then
+      echo "  ${g} is byte identical after a rebuild"
+    else
+      bad=1
+    fi
+  done
+  restore_graph
+  if [ "$bad" -eq 0 ]; then
+    echo "  both documents are a pure function of the model"
     return 0
   fi
-  restore_graph
   return 1
 }
 
@@ -213,13 +230,13 @@ if missing:
     print()
     print(f"  Every one of those is laid out from the hand written per character estimate "
           f"instead of a measured width, and the estimate is wrong by up to a fifth. The wrong "
-          f"width is then baked into the coordinates in site/graph.js.")
+          f"width is then baked into the coordinates in site/layout.js.")
     print()
     print(f"  THE FIX: run  python3 build/measure_labels.py  on a machine with the browser it "
-          f"names, then run  python3 build/build_layout.py  and commit both {path.name} and "
-          f"site/graph.js.")
+          f"names, then run  python3 build/build_layout.py  and commit {path.name} together "
+          f"with site/instance.js and site/layout.js.")
     print()
-    print(f"  DO NOT hand write a width into {path.name} and DO NOT edit site/graph.js. The "
+    print(f"  DO NOT hand write a width into {path.name} and DO NOT edit site/layout.js. The "
           f"table is a measurement taken in a real browser; a typed number is a guess wearing "
           f"a measurement's clothes.")
     sys.exit(1)
@@ -231,7 +248,7 @@ PY
 # ---------------------------------------------------------------------------------------------
 # The self-test. Jidoka: prove the check refuses a bad input before believing it says clean.
 # ---------------------------------------------------------------------------------------------
-# It never touches site/graph.js or build/label_widths.json. The byte-difference cases run
+# It never touches the generated documents or build/label_widths.json. The byte-difference cases run
 # against temporary copies, and the coverage cases run against a temporary table.
 PASS=0
 TOTAL=0
@@ -269,28 +286,28 @@ self_test() {
   a="$dir/expected.js"
   b="$dir/actual.js"
 
-  printf 'window.G={"a":1};\n' >"$a"
+  printf 'window.GL={"a":1};\n' >"$a"
   cp "$a" "$b"
 
   echo "self-test: the drawing comparison"
   probe 0 "an identical pair was reported clean" \
-        report_difference "$a" "$b" "$GRAPH"
+        report_difference "$a" "$b" "${GENERATED[0]}"
 
   # One byte, which is the size of the edit this check exists to catch: a colour nudged, a
   # digit changed, a letter added to a label.
-  printf 'window.G={"a":2};\n' >"$b"
+  printf 'window.GL={"a":2};\n' >"$b"
   probe 1 "a one byte difference was refused" \
-        report_difference "$a" "$b" "$GRAPH"
-  probe_says "$GRAPH" "the refusal named the file" \
-        report_difference "$a" "$b" "$GRAPH"
+        report_difference "$a" "$b" "${GENERATED[0]}"
+  probe_says "${GENERATED[0]}" "the refusal named the file" \
+        report_difference "$a" "$b" "${GENERATED[0]}"
   probe_says "python3 $BUILDER" "the refusal said to run the builder" \
-        report_difference "$a" "$b" "$GRAPH"
-  probe_says "DO NOT edit $GRAPH by hand" "the refusal said not to edit the drawing" \
-        report_difference "$a" "$b" "$GRAPH"
+        report_difference "$a" "$b" "${GENERATED[0]}"
+  probe_says "DO NOT edit ${GENERATED[0]} by hand" "the refusal said not to edit the drawing" \
+        report_difference "$a" "$b" "${GENERATED[0]}"
 
   : >"$b"
   probe 1 "an empty rebuild was refused rather than read as a small drawing" \
-        report_difference "$a" "$b" "$GRAPH"
+        report_difference "$a" "$b" "${GENERATED[0]}"
 
   echo
   echo "self-test: the width table"

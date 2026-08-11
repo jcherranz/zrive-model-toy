@@ -44,7 +44,8 @@ name: build
 # site/board.json and nothing else, and site/board.json is neither an input nor an output of the
 # build: established by running the builder on a clean tree and reading what moved, its inputs are
 # build/model.py, build/label_widths.json, site/app.css and the name gate's rules under scripts/,
-# and its only tracked output is site/graph.js. A board sync therefore cannot change what this
+# and its only tracked outputs are site/instance.js and site/layout.js. A board sync therefore
+# cannot change what this
 # check reads or what it compares, so running it there would add a Python build to the hot path of
 # an idempotent sync and buy no claim at all.
 #

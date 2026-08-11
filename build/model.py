@@ -9,22 +9,24 @@ import math
 import pathlib
 
 TYPES = [
-    # key,             label,               colour,    glyph,       column
-    ("Programme",      "Programme",         "#9d3f9d", "programme", 0),
-    ("Company",        "Company",           "#5f6b7c", "company",   0),
-    ("SessionTemplate","Session template",  "#00a396", "document",  1),
-    ("Instructor",     "Instructor",        "#147eb3", "person",    2),
-    ("CohortSession",  "Cohort session",    "#976e08", "calendar",  3),
-    ("Cohort",         "Cohort",            "#29a634", "cohort",    4),
-    ("StudentGroup",   "Students",          "#657e1a", "stack",     5),
+    # key,             label,               colour,    glyph
+    #
+    # NO COLUMN. A column is where a type is DRAWN, which is geometry, and geometry left this
+    # file with issue 60 seam 1. The table lives in build/build_layout.py, which is the half of
+    # the build that decides where things go, and it is checked against the type keys this file
+    # emits so a new type without a column stops the build rather than landing in column zero.
+    # The colour and the glyph stay, because a type's colour is a fact about the type and the
+    # contrast gate reads it out of this file.
+    ("Programme",      "Programme",         "#9d3f9d", "programme"),
+    ("Company",        "Company",           "#5f6b7c", "company"),
+    ("SessionTemplate","Session template",  "#00a396", "document"),
+    ("Instructor",     "Instructor",        "#147eb3", "person"),
+    ("CohortSession",  "Cohort session",    "#976e08", "calendar"),
+    ("Cohort",         "Cohort",            "#29a634", "cohort"),
+    ("StudentGroup",   "Students",          "#657e1a", "stack"),
     # A Student is a member of that group, so it is drawn in the group's own lane and in the
-    # colour family the group already owns, one shade down. The column is 4 and not 5, which is
-    # the column the group itself sits in, for a reason that is geometric and not conceptual:
-    # this layout draws an edge between two columns and has no shape for an edge inside one, so
-    # four members stacked under the card they belong to would each need a line from a tile to
-    # the tile above it. Column 4 is the other half of the same lane, it holds one node, and the
-    # 'member of' edges then run left to right into the group exactly like every other edge on
-    # the page. The lane caption, "cohort and students", is true of both columns either way.
+    # colour family the group already owns, one shade down. Which column of that lane it sits in
+    # is a geometric question and its answer is in build/build_layout.py with the rest of them.
     #
     # "One shade down" is a claim the light half of this pair nearly stopped being able to make.
     # Issue 65 had to darken Students to clear the plate, and the shade it lands on is the shade
@@ -32,14 +34,11 @@ TYPES = [
     # the group that clears the threshold and stays a different colour from its own member. The
     # family moved down together rather than collapsing into one colour, and the numbers are in
     # the palette section at the foot of this file.
-    ("Student",        "Student",           "#526b1b", "cap",       4),
-    # The enrolment to claim chain folds over two columns rather than running out over four.
-    # Every one of its edges still joins neighbouring columns, so the chain stays legible
-    # while the drawing keeps a two to one aspect instead of a long empty right half.
-    ("Enrolment",      "Enrolment",         "#7961db", "link",      6),
-    ("Agreement",      "Agreement",         "#946638", "agreement", 7),
-    ("Charge",         "Charge",            "#d33d17", "coin",      6),
-    ("Claim",          "Claim",             "#db2c6f", "claim",     7),
+    ("Student",        "Student",           "#526b1b", "cap"),
+    ("Enrolment",      "Enrolment",         "#7961db", "link"),
+    ("Agreement",      "Agreement",         "#946638", "agreement"),
+    ("Charge",         "Charge",            "#d33d17", "coin"),
+    ("Claim",          "Claim",             "#db2c6f", "claim"),
 ]
 
 D = "dummy"
@@ -878,12 +877,12 @@ PROGRAMMES = [
 # other four rely on. And it is the same shape as the Attendance class the paragraph above
 # already declined, for the same reason. The finding is not lost: it is written on the visit
 # host's own note and carried as an absent property row, where a reader meets it.
-GHOST_TYPE = ("Ghost", "does not exist in any system", "#8f99a8", "ghost", 6)
+GHOST_TYPE = ("Ghost", "does not exist in any system", "#8f99a8", "ghost")
 
 
-def g(gid, label, col, verb, target, note):
+def g(gid, label, verb, target, note):
     return {
-        "id": gid, "type": "Ghost", "label": label, "col": col, "ghost": True, "note": note,
+        "id": gid, "type": "Ghost", "label": label, "ghost": True, "note": note,
         "props": [
             p("class_exists", "no", A),
             p("would_attach_to", target, A),
@@ -892,20 +891,22 @@ def g(gid, label, col, verb, target, note):
     }
 
 
-# (id suffix, label, column, verb, the class it would attach to, what the absence costs)
+# (id suffix, label, verb, the class it would attach to, the id it attaches to, what the
+# absence costs). No column: a ghost is drawn beside the class it would attach to, which
+# build/build_layout.py derives from that attachment rather than being told.
 GHOST_SPEC = [
-    ("g_inst", "Instalment", 6, "expected by", "Agreement", "agree",
+    ("g_inst", "Instalment", "expected by", "Agreement", "agree",
      "The schedule of payments an agreement expects is not written down as rows. A payment "
      "that fails leaves no row at all, and a row that is missing cannot be found without an "
      "expectation to compare against, so nothing can be queried for what did not arrive."),
-    ("g_place", "Placement", 6, "matures", "Claim", "claim",
+    ("g_place", "Placement", "matures", "Claim", "claim",
      "A graduate taking a job offer is not recorded anywhere. A claim on future income can "
      "therefore expire, and nothing can make it mature, so the question of which claims are "
      "collectible today has no answer to read."),
-    ("g_beca", "Beca", 6, "discounts", "Agreement", "agree",
+    ("g_beca", "Beca", "discounts", "Agreement", "agree",
      "A scholarship has no class of its own. A student who owes nothing and a student who "
      "owes and has not paid are the same row."),
-    ("g_ref", "Refund", 7, "reverses", "Charge", "charge",
+    ("g_ref", "Refund", "reverses", "Charge", "charge",
      "Money returned to a payer has nowhere to be recorded. A charge that was reversed still "
      "reads exactly as it did before, so a reversal can only be established off the system."),
 ]
@@ -992,8 +993,11 @@ def programme_block(spec):
     if spec["host"]:
         host_id, host_label = spec["host"]
         nodes.append({
+            # Where it is drawn is not written here any more. It sits beside the sessions it
+            # hosts rather than beside the employers, and build/build_layout.py works that out
+            # from the 'hosts visit' edge below, the same way the students reveal works out its
+            # own set from 'member of'.
             "id": host_id, "type": "Company",
-            "col": 3,   # sits beside the sessions it hosts, not beside the employer
             "label": host_label,
             "note": ("An invented firm. The visit it hosts attaches to the PROGRAMME and not to "
                      "the cohort, which is what the company register says: thirteen company "
@@ -1214,8 +1218,8 @@ def tail_block(spec):
         edges.append((f"{pfx}s{i}", students, "member of"))
 
     target_of = {"agree": agree, "claim": claim, "charge": charge}
-    for gid, label, col, verb, attaches_to, target, note in GHOST_SPEC:
-        nodes.append(g(pfx + gid, label, col, verb, attaches_to, note))
+    for gid, label, verb, attaches_to, target, note in GHOST_SPEC:
+        nodes.append(g(pfx + gid, label, verb, attaches_to, note))
         edges.append((pfx + gid, target_of[target], verb))
 
     # A roster row is a Student, so it carries identity on the same terms a drawn Student tile
@@ -1436,7 +1440,8 @@ _check_names(_strings)
 # WHERE THE VERDICT IS. Not here. This file computes ratios; scripts/check_repo.sh holds the
 # threshold, the declared exceptions and the pass or fail, because it is the only one of the two
 # that CI runs on every push and every pull request. No workflow in this repository runs the
-# build at all: site/graph.js is committed and deployed as it stands. A gate that only ever runs
+# build at all: the generated documents are committed and deployed as they stand. A gate that
+# only ever runs
 # on the machine of whoever remembered to rebuild is not a gate.
 #
 # A TYPE CARRIES MORE THAN ONE COLOUR. Issue 56, and the map below is the whole of it on this
@@ -1610,7 +1615,7 @@ def contrast_rows():
     plate = surface_values(surface_token(".band", "fill"))
     canvas = surface_values(surface_token("html, body", "background"))
     rows = []
-    for key, label, colour, _glyph, _col in TYPES:
+    for key, label, colour, _glyph in TYPES:
         for ground in ("light", "dark"):
             hexc = type_colour(key, colour, ground)
             rows.append({"key": key, "label": label, "ground": ground, "hex": hexc,
@@ -1650,6 +1655,56 @@ def emit_contrast():
         print(f"{r['key']}|{r['label']}|{r['ground']}|{r['hex']}|{r['plate']}|"
               f"{floor4(r['ratio']):.4f}|{r['canvas']}|{floor4(r['canvas_ratio']):.4f}")
     print(f"#rows|{len(rows)}")
+
+
+# ---- the instance document --------------------------------------------------
+# Issue 60, seam 1. What this file has to say about the world, and nothing about where any of it
+# is drawn. Until this card the model and the geometry were one blob, site/graph.js, and changing
+# one value meant re-running a Python build; the destination is a management tool reading data
+# that changes without one, on a private deployment, while the public page keeps the invented
+# document. That is only possible if the data document loads separately from the page, so this is
+# the document, and build/build_layout.py is a function from it to geometry.
+#
+# WHAT IS IN IT: the object types with their labels, colours and glyphs; the seven views; each
+# view's nodes with their type, label, properties, provenance flags, mark, note and identity; the
+# relationships with their verbs; and the roster. WHAT IS NOT: any coordinate, extent, tile size,
+# column, line break, path or band. The build refuses to write a geometry key into it, and refuses
+# to write a property value into the layout, so the split is a gate rather than an intention.
+#
+# THE COLOURS ARE HERE AND THAT IS DELIBERATE. A type's colour is a fact about the type. It is
+# read through type_colour(), the same accessor the contrast check reads, so the drawing and the
+# measurement cannot come to hold different palettes.
+def _ghost_ids(view):
+    return {n["id"] for n in view["nodes"] if n.get("ghost")}
+
+
+def instance_document():
+    """The data, as the page and any other reader gets it. No geometry."""
+    return {
+        "default": VIEWS[0]["key"],
+        "types": [{"k": k, "label": lab, "c": col,
+                   "cDark": type_colour(k, col, "dark"), "glyph": glyph,
+                   "ghost": 1 if k == "Ghost" else None}
+                  for k, lab, col, glyph in TYPES],
+        "views": [{
+            "key": v["key"], "code": v["code"], "name": v["name"], "label": v["label"],
+            "route": "#/p/" + v["key"],
+            "nodes": [{"id": n["id"], "type": n["type"], "label": n["label"],
+                       "count": n.get("count"), "props": n["props"], "route": n["route"],
+                       "source_system": n["source_system"], "source_key": n["source_key"],
+                       "ghost": 1 if n.get("ghost") else None,
+                       "mark": n.get("mark"), "tail": n.get("tail"), "note": n.get("note")}
+                      for n in v["nodes"]],
+            # `ghost` on a relationship is derived from its ends rather than declared, and it is
+            # here rather than in the layout because whether a relationship is one the model
+            # cannot record is a fact about the model. The layout only reads it, to pick the
+            # face its verb chip is measured in.
+            "edges": [{"s": s, "t": t, "v": verb,
+                       "ghost": 1 if (_ghost_ids(v).intersection((s, t))) else None}
+                      for s, t, verb in v["edges"]],
+            "roster": v["roster"],
+        } for v in VIEWS],
+    }
 
 
 if __name__ == "__main__":

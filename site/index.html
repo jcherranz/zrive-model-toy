@@ -154,7 +154,13 @@
      page is, and feedback.js is asked exactly when app.js has thrown. It is a static file in the
      repository naming no commit, and the deploy workflow rewrites it with the sha it publishes. -->
 <script src="version.js"></script>
-<script src="graph.js"></script>
+<!-- Two documents and not one, issue 60 seam 1. instance.js is what the objects are and
+     layout.js is where they go; app.js joins them. The published page is public, so real data can
+     never go on it, and the only way this codebase ever serves both the public toy and a private
+     management tool is if the data document loads separately from the page. Anything that reads
+     the model reads instance.js; nothing but the drawing reads layout.js. -->
+<script src="instance.js"></script>
+<script src="layout.js"></script>
 <script src="app.js"></script>
 <script src="board.js"></script>
 <script src="feedback.js"></script>

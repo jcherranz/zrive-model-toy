@@ -736,18 +736,25 @@ const STUB_SOURCE = `(function () {
 })();`;
 
 // =================================================================================================
-// WHAT THIS SUITE IS ALLOWED TO READ, AND WHY IT IS NOT window.G
+// WHAT THIS SUITE IS ALLOWED TO READ, AND WHY IT IS NOT THE GENERATED DOCUMENTS
 //
-// site/graph.js today is one blob holding two different things: the instance data, which is the
-// objects, their types, their properties and the provenance flag on each, and the layout, which is
-// every coordinate, tile size, edge path and band. That fusion is going to be split, so that the
-// data document can be swapped without touching the presentation and one codebase can serve
-// invented data on the public origin and real data on a private deployment. A suite reading
-// `G.nodes[i].props[j].f` would break on the day that split lands, which would make it a tax on
-// the refactor instead of the net under it.
+// When this was written the build shipped one blob, site/graph.js, holding two different things:
+// the instance data, which is the objects, their types, their properties and the provenance flag
+// on each, and the layout, which is every coordinate, tile size, edge path and band. #58 was told
+// that the fusion was going to be split, so that the data document could be swapped without
+// touching the presentation and one codebase could serve invented data on the public origin and
+// real data on a private deployment, and that a suite reading `G.nodes[i].props[j].f` would break
+// on the day the split landed, which would make it a tax on the refactor instead of the net under
+// it.
 //
-// So nothing below reads window.G. Every fact is taken from one of three places, all of which are
-// what the page presents rather than how it is fed:
+// THE SPLIT LANDED WITH ISSUE 60 SEAM 1 AND THIS FILE DID NOT MOVE. site/graph.js became
+// site/instance.js and site/layout.js, every node and edge in the page was rebuilt from a join of
+// the two, and all 70 assertions passed without one of them being edited. That is what the
+// discipline below bought, and it is the reason to keep it: the suite is a net under a refactor
+// only for as long as it asserts what the page presents rather than how the page is fed.
+//
+// So nothing below reads either document. Every fact is taken from one of three places, all of
+// which are what the page presents rather than how it is fed:
 //
 //   the rendered DOM      `[data-node]` and `[data-edge]`, which are the instance and relationship
 //                         keys app.js writes and every feedback report already quotes; each node's

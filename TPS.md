@@ -135,8 +135,9 @@ somewhere to fail.
 ## Standard work
 
 The build is deterministic. `build/model.py` states the objects, their properties and the edges;
-`build/build_layout.py` computes every coordinate at build time and writes them into
-`site/graph.js`. The browser draws and decides no coordinate. Same input, same picture, every
+`build/build_layout.py` is a function from that document to geometry and writes the two files
+the page loads, `site/instance.js` and `site/layout.js`. The browser draws and decides no
+coordinate. Same input, same picture, every
 load and every reader; a reader who pans or zooms moves the whole drawing and changes nothing
 inside it.
 
