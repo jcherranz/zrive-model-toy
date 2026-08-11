@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T18:06:52Z",
+  "generated": "2026-08-11T18:08:45Z",
   "columns": [
     {
       "key": "raw",
@@ -59,23 +59,24 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/70"
-        },
-        {
-          "id": 73,
-          "title": "Seam 5: provenance for live data, on the Z-Map's pattern",
-          "labels": [
-            "data model",
-            "enhancement",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/73"
         }
       ]
     },
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": []
+      "cards": [
+        {
+          "id": 73,
+          "title": "Seam 5: provenance for live data, on the Z-Map's pattern",
+          "labels": [
+            "data model",
+            "enhancement",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/73"
+        }
+      ]
     },
     {
       "key": "done",
