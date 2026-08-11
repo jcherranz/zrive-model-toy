@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T23:54:36Z",
+  "generated": "2026-08-11T23:55:05Z",
   "columns": [
     {
       "key": "raw",
@@ -87,6 +87,15 @@
             "feedback"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/95"
+        },
+        {
+          "id": 96,
+          "title": "Frame is too tight, improve design",
+          "labels": [
+            "bug",
+            "feedback"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/96"
         }
       ]
     },
