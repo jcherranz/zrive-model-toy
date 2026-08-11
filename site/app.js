@@ -5,7 +5,47 @@
   var NS = 'http://www.w3.org/2000/svg';
   var TILE = G.tile, R = TILE / 2;
   var COLOR = {}, TLABEL = {}, GLYPH = {};
-  G.types.forEach(function (t) { COLOR[t.k] = t.c; TLABEL[t.k] = t.label; GLYPH[t.k] = t.glyph; });
+  G.types.forEach(function (t) { TLABEL[t.k] = t.label; GLYPH[t.k] = t.glyph; });
+
+  // ---- the palette, as custom properties -------------------------------------
+  // Every type carries two hexes now, one chosen against a white page and one against the dark
+  // band plate, and nothing below paints with either of them. It paints with `var(--type-<key>)`
+  // and the stylesheet decides which hex that is. Issue 56.
+  //
+  // WHY NOT matchMedia. The obvious version is for this file to read
+  // `matchMedia('(prefers-color-scheme: dark)')`, pick one of the two hexes, and add a `change`
+  // listener to repaint. It works and it is small, and it puts a SECOND theming mechanism on a
+  // page that already has one: app.css answers that media query for every other colour on the
+  // screen. Two mechanisms for one question is how they come to disagree about what dark means,
+  // and the disagreement would be a repaint that half happened. This way the theme changes with
+  // no JavaScript running at all.
+  //
+  // THE STYLESHEET IS GENERATED FROM THE DATA and never written by hand, so it cannot name a
+  // type the model does not have and cannot miss one it does. The colours live in build/model.py
+  // and reach the page once, through site/graph.js; app.css holds no type colour and must not
+  // grow one.
+  //
+  // color-mix RATHER THAN A SECOND PRE-MIXED VALUE PER TYPE, and it was checked rather than
+  // looked up. Driven in Chrome 149: var() resolves in an SVG presentation attribute, so does
+  // color-mix(), and `color-mix(in srgb, C 14%, transparent)` paints the pixel
+  // `rgba(C, 0.14)` paints, all thirteen colours, zero pixels different over the whole swatch
+  // sheet. That last one is what makes the light page identical rather than nearly identical:
+  // mixing with `transparent` is premultiplied, so the result is exactly C at alpha 0.14. It is
+  // Baseline (Chrome 111, Safari 16.2, Firefox 113, all 2023) and the site ships no polyfill and
+  // no build step, which is the whole reason it had to be checked on a real engine.
+  (function () {
+    var light = [], dark = [];
+    G.types.forEach(function (t) {
+      COLOR[t.k] = 'var(--type-' + t.k + ')';
+      light.push('--type-' + t.k + ':' + t.c + ';');
+      dark.push('--type-' + t.k + ':' + (t.cDark || t.c) + ';');
+    });
+    var st = document.createElement('style');
+    st.id = 'type-palette';
+    st.textContent = ':root{' + light.join('') + '}\n' +
+                     '@media (prefers-color-scheme: dark){:root{' + dark.join('') + '}}\n';
+    (document.head || document.documentElement).appendChild(st);
+  })();
 
   // Stroke glyphs in a 16 by 16 box. Kept deliberately plain.
   var PATHS = {
@@ -38,9 +78,19 @@
     return n;
   }
 
-  function tint(hex, a) {
-    var v = parseInt(hex.slice(1), 16);
-    return 'rgba(' + (v >> 16 & 255) + ',' + (v >> 8 & 255) + ',' + (v & 255) + ',' + a + ')';
+  // A wash of a colour over whatever is behind it, which in this drawing is always the band
+  // plate. It used to take a hex and return an `rgba`; it takes a paint expression now and
+  // returns a `color-mix` at the same strength, so the value follows the theme instead of
+  // pinning the hex the page happened to load with. The semantics are unchanged and that is the
+  // point: mixing with `transparent` is premultiplied, so this is the source colour at that
+  // alpha, it composites over the plate rather than mixing toward white, and on a dark page a
+  // tile is lighter than its plate by the same step it is darker by on a light one.
+  //
+  // A percentage and no longer a fraction, because CSS wants a percentage and JavaScript cannot
+  // produce one from 0.14 without producing 14.000000000000002. The strengths are the ones the
+  // drawing already used, renamed and not retuned.
+  function tint(paint, pct) {
+    return 'color-mix(in srgb, ' + paint + ' ' + pct + '%, transparent)';
   }
 
   // There is no legend. It was twelve swatches restating what the panel says on a click and
@@ -204,9 +254,9 @@
       // tile renders exactly as it did and the cards now stop at its edge.
       if (n.count) {
         el('rect', { x: n.x - R + 5, y: n.y - R - 5, width: TILE, height: TILE,
-                     rx: 6, fill: tint(col, 0.10), stroke: tint(col, 0.45) }, g);
+                     rx: 6, fill: tint(col, 10), stroke: tint(col, 45) }, g);
         el('rect', { x: n.x - R + 2.5, y: n.y - R - 2.5, width: TILE, height: TILE,
-                     rx: 6, fill: tint(col, 0.12), stroke: tint(col, 0.6) }, g);
+                     rx: 6, fill: tint(col, 12), stroke: tint(col, 60) }, g);
         el('rect', { x: n.x - R, y: n.y - R, width: TILE, height: TILE, rx: 6,
                      fill: 'var(--bg-panel)', stroke: 'none' }, g);
       }
@@ -219,7 +269,11 @@
       var tile = el('rect', {
         class: n.ghost ? 'tile-bg tile-ghost' : 'tile-bg',
         x: n.x - R, y: n.y - R, width: TILE, height: TILE, rx: 6,
-        fill: n.ghost ? 'rgba(143,153,168,0.07)' : tint(col, 0.14), stroke: col
+        // A ghost's wash is 7 per cent where every other tile is at 14, and it is the same
+        // grey the ghost type carries rather than a second copy of that grey written here:
+        // this line held `rgba(143,153,168,0.07)` as a literal, which was the palette's own
+        // hex typed into a second file. The strength is unchanged.
+        fill: tint(col, n.ghost ? 7 : 14), stroke: col
       }, g);
 
       var mark;

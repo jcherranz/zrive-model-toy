@@ -22,7 +22,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from model import (TYPES, NODES, EDGES, ROSTER_ROWS, COHORT_HEADCOUNT,  # noqa: E402
-                   DRAWN_STUDENTS, contrast_rows, floor4)
+                   DRAWN_STUDENTS, contrast_rows, floor4, type_colour)
 
 COL_W = [166, 232, 122, 124, 80, 102, 92, 92]
 GAP_X, MARGIN_X = 18, 22
@@ -487,7 +487,17 @@ def layout(model_nodes, model_edges, tag):
         "w": W, "h": round(height), "bandTop": BAND_TOP,
         "capLineH": CAP_LH, "capGap": CAP_GAP,
         "bands": bands,
-        "types": [{"k": k, "label": lab, "c": col, "glyph": g,
+        # Two colours per type, not one. `c` is the hex the palette was chosen at, against a
+        # white page; `cDark` is its sibling on the dark plate, and for five of the thirteen it
+        # is the same string because those five already carried the dark theme. Both are read
+        # out of the model through type_colour(), which is the same accessor the contrast check
+        # reads, so the drawing and the measurement cannot come to hold different palettes.
+        #
+        # It belongs to the type and therefore to the DATA, which is why it rides here beside
+        # `c` and not in the geometry: issue 60 splits this file into an instance document and a
+        # layout, and a colour written into the layout half would have to be moved back.
+        "types": [{"k": k, "label": lab, "c": col,
+                   "cDark": type_colour(k, col, "dark"), "glyph": g,
                    "ghost": 1 if k == "Ghost" else None}
                   for k, lab, col, g, _c in TYPES],
         "tile": TILE, "lineH": LINE_H, "gapLabel": GAP_LABEL, "font": FONT,

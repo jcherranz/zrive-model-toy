@@ -212,6 +212,51 @@ of what changed and when, and it is meant to be scannable.
   its surroundings and a tile is a stroke and a wash together, and because it is the comparison
   #56 designed against; moving the line inward is a card with a price, seven more declarations or
   a change to the tint's alpha.
+- The thirteen type colours have dark siblings and the drawing is legible in both themes, #56.
+  Eight got a second hex chosen against the dark band plate, five needed none, and every one of
+  the thirteen now measures at or over 4.5 there, worst Cohort at 4.5374 against the 2.4972 that
+  Programme reached the day the dark theme shipped. The target is 4.5 and not the gate's 3:1
+  because the same colours are written as 11px bold text at the head of the detail panel, which
+  is SC 1.4.3 and not 1.4.11, so one number fixes the stroke and the label together. Each dark
+  hex holds the light one's hue and its saturation and raises only its lightness, so a type is
+  the same colour in both themes rather than a different one. The light column did not move, and
+  that is proved and not asserted: eighteen screenshots, three viewports by six surfaces, pixel
+  identical before and after. One source, and it is the model. `build/model.py` carries
+  `TYPE_COLOUR_DARK` beside the palette, `build_layout.py` ships it as `cDark` beside `c` through
+  the same accessor the contrast check reads, so the drawing and the measurement cannot come to
+  hold different palettes; `app.js` generates one stylesheet from `G.types` declaring
+  `--type-<key>` on `:root` and again under `prefers-color-scheme: dark`, and paints every
+  stroke, glyph, count and panel label with `var(--type-<key>)`. `app.css` holds no type colour.
+  Not `matchMedia`: that puts a second theming mechanism on a page whose stylesheet already
+  answers that query for every other colour, and two mechanisms for one question is how they come
+  to disagree about what dark means. This way the theme changes with no JavaScript running.
+  `tint()` keeps its semantics and returns a `color-mix` at the same strength, so a wash still
+  composites over the plate rather than mixing toward white. The alpha was measured rather than
+  assumed and needed nothing: at 14 per cent the twelve non-ghost fills sit 1.2007 to 1.2753 off
+  the dark plate where the light hexes sat 1.0983 to 1.2753, so every one steps further from its
+  plate than it did. The ghost's fill was `rgba(143,153,168,0.07)` written into `app.js`, which
+  was the palette's own grey typed into a second file, and it is the type's own colour now at the
+  same 7 per cent, KAIZEN.md `kaizen-a-computed-value-is-never-typed-twice`. `color-mix` was
+  checked on a real engine rather than looked up in a table, because the site ships no build step
+  and no polyfill: in Chrome 149 it resolves in an SVG presentation attribute, so does `var()`,
+  and `color-mix(in srgb, C 14%, transparent)` paints exactly the pixel `rgba(C, 0.14)` paints,
+  all thirteen colours, zero pixels different, which is what makes the light page identical
+  rather than nearly identical. It is Baseline since 2023. The inner comparison improved as a side
+  effect: seven colours cleared 3:1 on the plate and were under it against their own fill, and
+  five of those seven were dark; two are left, both light.
+- Three declared contrast exceptions are gone because the gate said they were spent, #56. The
+  dark siblings landed, `scripts/check_repo.sh` went red on the next run with
+  `[STALE] declared contrast exception is now unnecessary` against Programme, Company and
+  Agreement, and the entries came out for that reason and not from memory,
+  KAIZEN.md `kaizen-gate-shown-to-fire`. Three remain, Students 2.4805, Cohort session 2.5587 and
+  the ghost grey 2.8807, all on the white plate, all untouched by this card, which moved no light
+  colour, and all still needing a card of their own. Twenty-six measurements, three under the
+  threshold, three declared, none undeclared. Two figures on the card did not reproduce and are
+  corrected here rather than left: the fill step column read 1.26 for Cohort session where it
+  measures 1.2516 and 1.21 for Claim where it measures 1.2007, and it gave the ghost a figure at
+  14 per cent when the ghost is drawn at 7. Its stated recipe, the first lightness that clears
+  4.6, does not produce Instructor's `#199adb` at 4.5980 or Claim's `#e56697` at 4.5929 either;
+  both clear the 4.5 the card is actually about, so both hexes are kept as published.
 - Every type says how it gets filled, Issue 4. Four rows in front of each node's own properties,
   `route_system`, `route_entered_by` and `route_event`, plus `route_source` naming the file the
   answer was read in, grounded in the 55 entity ontology, five adversarial reviews and the read of

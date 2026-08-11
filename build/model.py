@@ -846,36 +846,40 @@ _check_names(_strings)
 
 # ---- the palette is a claim about a surface ---------------------------------
 # Each of the thirteen colours above is painted as a tile's stroke, at full opacity, and again
-# as a wash inside it: a 14 per cent tint of the same hex for twelve of them, and a fixed 7 per
-# cent literal of the same grey for the ghost. The stroke is the one that has to be legible on
-# its own, because it is the boundary of the tile and the tile is a control: it takes focus, it
-# takes a click, and it is what a reader picks a type out by.
+# as a wash inside it: 14 per cent of the same colour for twelve of them, and 7 per cent for the
+# ghost. The stroke is the one that has to be legible on its own, because it is the boundary of
+# the tile and the tile is a control: it takes focus, it takes a click, and it is what a reader
+# picks a type out by.
 #
 # WHICH SURFACE THE STROKE SITS ON. Established by reading the drawing rather than chosen.
 # app.js draws one `rect.band` per lane before it draws anything else, `.band` is filled with an
 # opaque `var(--bg-panel)` in app.css, the bands span every column of the drawing and run from
 # `bandTop` to four units off the bottom, and every tile is laid out inside a lane. So a tile's
 # stroke sits on the band plate, in both themes, and never on the page ground. The two are
-# different colours and the difference is not cosmetic: it moves the verdict for three of the
-# twenty-six measurements, and in both directions, two colours passing on the plate that the
-# ground would fail and one failing that the ground would pass. The ground is measured as well
-# and reported for exactly that reason, and it is not the surface anything is judged against.
+# different colours and the difference is not cosmetic: it moves the verdict for two of the
+# twenty-six measurements, Session template and Cohort on the light side, both of which pass on
+# the plate and would fail on the ground. It moved three before the dark siblings landed, the
+# third being Agreement in dark, which failed on the plate and passed on the ground; that one
+# now passes on both. The ground is measured as well and reported for exactly that reason, and
+# it is not the surface anything is judged against.
 #
 # THE STROKE HAS TWO NEIGHBOURS AND ONLY ONE OF THEM IS GATED, which is a limit of this check and
 # is written down here rather than left to be found. Outside the stroke is the plate. Inside it
 # is the tile's own wash, a tint of the same hex composited over that plate, which is by
 # construction nearer the stroke colour than the plate is, so the inner comparison is always the
-# harder one. Measured, it is harder by enough to matter: seven colours that clear 3:1 against
-# the plate are under it against their own fill, worst Programme in dark at 2.26.
+# harder one. It used to be harder by enough to matter, seven colours clearing 3:1 on the plate
+# and under it against their own fill. The dark siblings took five of those seven with them:
+# what is left is Session template at 2.6905 and Cohort at 2.7477, both on the light side, and
+# the dark side no longer has one. The limit is real and it is now much smaller than the card
+# that named it found it.
 #
 # The plate is gated because SC 1.4.11 asks whether an object can be told from what surrounds it,
 # and the fill is part of the object rather than its surroundings: a tile is a stroke and a wash
 # together, and it is the pair that has to be found on the page. That is also the comparison
-# issue 56 designed its dark siblings against, so gating the other one here would put two
-# different answers to one question in the repository on the same day. It is a defensible line
-# and it is not the only one, and moving it inward is a card with a consequence: seven more
-# colours under the threshold, wanting either seven more declarations or a change to the alpha
-# the tint is drawn at.
+# issue 56 chose its dark siblings against, so gating the other one here would put two different
+# answers to one question in the repository. It is a defensible line and it is not the only one,
+# and moving it inward is a card with a consequence: two more colours under the threshold,
+# wanting either two more declarations or a change to the alpha the tint is drawn at.
 #
 # ONE MORE THING NOT MEASURED. "At full opacity" is true of a tile at rest. `.dim` in app.css
 # puts every node that is not adjacent to the selection at 16 per cent while something is
@@ -892,12 +896,37 @@ _check_names(_strings)
 # build at all: site/graph.js is committed and deployed as it stands. A gate that only ever runs
 # on the machine of whoever remembered to rebuild is not a gate.
 #
-# A TYPE MAY CARRY MORE THAN ONE COLOUR. Issue 56 proposes a second hex per type, chosen against
-# the dark plate, and leaves the light column untouched. Nothing here implements it. What is
-# here is the shape it lands in: the palette is asked for a colour PER GROUND rather than for a
-# colour, so filling the map below is the whole of the change on this side and the check does
-# not move.
-TYPE_COLOUR_DARK = {}
+# A TYPE CARRIES MORE THAN ONE COLOUR. Issue 56, and the map below is the whole of it on this
+# side: the palette is asked for a colour PER GROUND, the check did not move, and the light
+# column above is untouched to the byte, so the light page is the page it was.
+#
+# THE TARGET IS 4.5 AND NOT 3.0, WHICH IS THE ONE DECISION IN HERE. The gate's threshold is 3:1,
+# SC 1.4.11, because a stroke is a boundary. The same thirteen colours are also written as 11px
+# bold text at the head of the detail panel, which is SC 1.4.3 and 4.5:1, and app.js writes that
+# colour inline, so no stylesheet reaches it. One number fixes both surfaces, and it is the
+# higher one. Every dark hex holds the light one's hue and its saturation and raises only its
+# lightness, so a type is the same colour in both themes and not a different one.
+#
+# The five that are absent from this map need nothing: on the dark plate they already measure
+# 4.5374 (Cohort), 4.5930 (Session template), 5.0129 (the ghost grey), 5.6437 (Cohort session)
+# and 5.8215 (Students). Absent and not written out as themselves, so that a reader can see at a
+# glance which colours this card moved.
+#
+# THE WASH DID NOT NEED ANYTHING AND IT WAS MEASURED RATHER THAN ASSUMED. A tile is a stroke and
+# a 14 per cent wash of the same hex over the band plate. At that alpha, with these hexes, the
+# twelve non-ghost fills sit 1.2007 to 1.2753 off the dark plate, against 1.0983 to 1.2753 for
+# the light hexes on the same plate today: every one of them steps further from the plate than
+# it did, none of them flattens, and the alpha is unchanged. The ghost keeps its own 7 per cent.
+TYPE_COLOUR_DARK = {
+    "Programme":   "#c773c7",   # 4.6110 on the plate, 5.1730 on the page ground
+    "Company":     "#8793a3",   # 4.6297 / 5.1939
+    "Instructor":  "#199adb",   # 4.5980 / 5.1584
+    "Student":     "#789e27",   # 4.6201 / 5.1832
+    "Enrolment":   "#9784e3",   # 4.6249 / 5.1886
+    "Agreement":   "#bd8750",   # 4.6384 / 5.2037
+    "Charge":      "#eb6a49",   # 4.6006 / 5.1613
+    "Claim":       "#e56697",   # 4.5929 / 5.1527
+}
 
 # The two constants of the sRGB transfer function, written with a trailing zero. They are the
 # one shape scripts/check_repo.sh reads as a Spanish-grouped amount, a digit and a dot and

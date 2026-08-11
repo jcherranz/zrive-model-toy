@@ -190,11 +190,12 @@ FORBIDDEN_EXEMPT=(
 # boundary of a user interface component and for a graphical object needed to understand the
 # content. A tile is both: it takes focus, it takes a click, it opens the panel, and its outline
 # is what a reader tells one type from another by. It is not 4.5:1, which is SC 1.4.3 and about
-# text; the same colours are also written as 11px bold text in the panel and eight of the
-# thirteen are under 4.5:1 there, which is real, is issue 56's card, and is not what a check on
-# a stroke can honestly claim to have gated. It is not lower than 3:1 either. Six of the
-# twenty-six measurements fail today and every one of them is declared below rather than
-# legalised by moving the line.
+# text; the same colours are also written as 11px bold text in the panel, which is a text
+# surface this check does not gate. Issue 56 aimed at 4.5 anyway, so that one number would fix
+# the stroke and that label together, and it hit it: on the dark plate all thirteen now clear
+# 4.5, and on the light plate five are still under it, the same five the light palette has
+# always had there. It is not lower than 3:1 either. Three of the twenty-six measurements fail
+# today and every one of them is declared below rather than legalised by moving the line.
 #
 # The comparison is on the figure the table prints, to four decimals, so a verdict can always be
 # reproduced from what is on the screen and no rounding stands between the two.
@@ -210,23 +211,21 @@ CONTRAST_MIN="3.0000"
 # used, so a colour that is repaired or removed makes the run say the declaration is now
 # unnecessary instead of leaving it sitting there. An entry with no reason is rejected.
 #
-# These six are the palette as it stands and none of them is repaired here. Repairing them is a
-# palette decision with a designed answer already written down, and writing a second answer
-# inside a gate card is how a page ends up with two.
+# THREE, AND THERE WERE SIX. The other three were the dark side, and this table is how their
+# repair was found to be finished rather than believed to be: issue 56 gave eight types a second
+# hex chosen against the dark plate, the run went red on the next push with
+# `[STALE] declared contrast exception is now unnecessary` against Programme, Company and
+# Agreement, and the entries came out because the gate said they were spent. That is the whole
+# design of a declaration with a staleness rule, and it is the second time it has paid: a
+# tolerance nobody has to tolerate is a tolerance nobody is reading.
 CONTRAST_EXEMPT=(
-  # Under 3:1 on the white plate since the palette was chosen, and issue 56 does not repair
-  # them: it adds a dark sibling per type and moves no light colour at all. So these three
-  # survive that card and need one of their own. They are declared here so that the day
-  # somebody writes it, the gate is what tells them it is done.
-  "StudentGroup|light|#8eb125|2.4805|the light palette's own, unrepaired by 56, which moves no light colour"
-  "CohortSession|light|#d1980b|2.5587|the light palette's own, unrepaired by 56, which moves no light colour"
-  "Ghost|light|#8f99a8|2.8807|the light palette's own, unrepaired by 56, which moves no light colour"
-
-  # The three the dark theme broke. Issue 56 proposes a second hex for each, measured against
-  # this plate, and these declarations go stale the day it lands, which is the point of them.
-  "Programme|dark|#9d3f9d|2.4972|issue 56 names this colour and gives it a dark sibling; that card is not this one"
-  "Company|dark|#5f6b7c|2.6686|issue 56 names this colour and gives it a dark sibling; that card is not this one"
-  "Agreement|dark|#946638|2.8997|issue 56 names this colour and gives it a dark sibling; that card is not this one"
+  # Under 3:1 on the white plate since the palette was chosen, and issue 56 did not repair them:
+  # it added a dark sibling per type and moved no light colour at all. So these three survived
+  # that card and need one of their own. They are declared here so that the day somebody writes
+  # it, the gate is what tells them it is done.
+  "StudentGroup|light|#8eb125|2.4805|the light palette's own, untouched by 56, which moved no light colour"
+  "CohortSession|light|#d1980b|2.5587|the light palette's own, untouched by 56, which moved no light colour"
+  "Ghost|light|#8f99a8|2.8807|the light palette's own, untouched by 56, which moved no light colour"
 )
 
 WORKDIR=""
