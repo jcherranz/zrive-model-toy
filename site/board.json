@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T18:59:26Z",
+  "generated": "2026-08-11T19:06:04Z",
   "columns": [
     {
       "key": "raw",
@@ -65,16 +65,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/64"
-        },
-        {
-          "id": 69,
-          "title": "The panel's 11px type label is text and three of the thirteen are under 4.5:1 in light",
-          "labels": [
-            "bug",
-            "model",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/69"
         }
       ]
     },
@@ -112,6 +102,16 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/71"
         },
         {
+          "id": 69,
+          "title": "The panel's 11px type label is text and three of the thirteen are under 4.5:1 in light",
+          "labels": [
+            "bug",
+            "model",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/69"
+        },
+        {
           "id": 68,
           "title": "A frozen run record will hang anything that gates on run status, including the freshness watchdog",
           "labels": [
@@ -147,19 +147,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/65"
-        },
-        {
-          "id": 63,
-          "title": "The visit edge points at the Cohort and the data says Programme",
-          "labels": [
-            "bug",
-            "model",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/63"
         }
       ],
-      "hidden": 48,
+      "hidden": 49,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
