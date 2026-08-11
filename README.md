@@ -175,7 +175,7 @@ node scripts/smoke.mjs                                          # serve site/ an
 node scripts/smoke.mjs https://jcherranz.github.io/zrive-model-toy/
 ```
 
-Seventy assertions across three viewports, 1536x839, 1440x900 and 390x844: the six Company nodes
+Seventy one assertions across three viewports, 1536x839, 1440x900 and 390x844: the six Company nodes
 of which five are hidden employers, each instructor revealing its own employer and nothing else,
 the students card and the roster agreeing on how many of the cohort the drawing left out, the
 pointer-anchored zoom holding the point under the cursor, a click and a 2px wobble selecting where
