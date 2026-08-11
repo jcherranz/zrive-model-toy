@@ -91,7 +91,39 @@ check_syntax() {
 }
 
 # ---------------------------------------------------------------------------------------------
-# 2. The layout is a pure function of the model.
+# 2. What the repository gate cannot see.
+# ---------------------------------------------------------------------------------------------
+# scripts/check_repo.sh takes its file list from `git ls-files`, so a file that has never been
+# added is not scanned, and the gate reports clean on a tree that contains it. That is correct and
+# it is also the shape of a trap: a new file is exactly the file most likely to carry something,
+# and the run a person makes just before committing it is the run that cannot see it.
+#
+# Bought here. This card's own scripts/smoke.mjs was written, verified against a clean gate run,
+# committed and pushed, and the gate went red on the first run that could see it, on six decimal
+# measurements in a comment that the money rule reads as grouped figures. Not an exposure, since
+# scripts/ is not deployed and the figures were pixel counts, and entirely avoidable: the gate had
+# said clean about a set of files that did not include the one being written.
+#
+# So this reports [SKIP] rather than [OK] when anything is untracked, and names the files. A
+# skipped step is loud in the summary and an OK is not, which is the difference that matters:
+# the gate's answer is incomplete and the reader has to know which files it excludes.
+check_untracked() {
+  local untracked
+  untracked="$(git ls-files --others --exclude-standard)"
+  if [ -z "$untracked" ]; then
+    echo "  nothing untracked: the repository gate's file list is the whole working tree"
+    return 0
+  fi
+  echo "  the repository gate reads \`git ls-files\`, so it will not scan these:"
+  printf '%s\n' "$untracked" | sed 's/^/    /'
+  echo
+  echo "  \`git add\` them before trusting a clean verdict from steps 4 and 5, or accept that the"
+  echo "  verdict is about the rest of the tree."
+  return 2
+}
+
+# ---------------------------------------------------------------------------------------------
+# 3. The layout is a pure function of the model.
 # ---------------------------------------------------------------------------------------------
 # README.md's Layout section claims the drawing is reproducible and says the claim is "checkable by
 # running the build twice rather than believed". This is that check. site/graph.js is put back
@@ -122,7 +154,7 @@ check_layout_reproducible() {
 }
 
 # ---------------------------------------------------------------------------------------------
-# 5. The local token grep.
+# 8. The local token grep.
 # ---------------------------------------------------------------------------------------------
 # build/safety_grep.py reads the faculty register straight out of the vault, which is what lets it
 # look for real names in plaintext where the two CI gates hold salted hashes. It needs the vault,
@@ -146,23 +178,24 @@ echo "python: $(python3 --version 2>/dev/null || echo 'not found')"
 [ -n "$ORIGIN" ] && echo "origin: $ORIGIN"
 
 step "1. every shipped script parses"                     check_syntax
-step "2. the layout rebuilds byte for byte"               check_layout_reproducible
-step "3. prove the repository gate fires"                 bash scripts/check_repo.sh --self-test
-step "4. repository gate, over every tracked file"        bash scripts/check_repo.sh
-step "5. prove the deployed-bytes gate fires"             bash scripts/check_forbidden.sh --self-test
+step "2. nothing is untracked, so the gates see everything" check_untracked
+step "3. the layout rebuilds byte for byte"               check_layout_reproducible
+step "4. prove the repository gate fires"                 bash scripts/check_repo.sh --self-test
+step "5. repository gate, over every tracked file"        bash scripts/check_repo.sh
+step "6. prove the deployed-bytes gate fires"             bash scripts/check_forbidden.sh --self-test
 
 if [ -n "$ORIGIN" ]; then
-  step "6. deployed-bytes gate, against $ORIGIN"          bash scripts/check_forbidden.sh "$ORIGIN"
+  step "7. deployed-bytes gate, against $ORIGIN"          bash scripts/check_forbidden.sh "$ORIGIN"
 else
-  skip "6. deployed-bytes gate, against the origin" \
+  skip "7. deployed-bytes gate, against the origin" \
        "no origin given. It fetches the published files over HTTP and has nothing to read without one; pass a url to run it. It runs in CI after every deploy, in pages.yml."
 fi
 
-step "7. the local token grep, against site/"             check_token_grep
-step "8. the smoke suite, against this working tree"      node scripts/smoke.mjs
+step "8. the local token grep, against site/"             check_token_grep
+step "9. the smoke suite, against this working tree"      node scripts/smoke.mjs
 
 if [ -n "$ORIGIN" ]; then
-  step "9. the smoke suite, against $ORIGIN"              node scripts/smoke.mjs "$ORIGIN"
+  step "10. the smoke suite, against $ORIGIN"             node scripts/smoke.mjs "$ORIGIN"
 fi
 
 # ---------------------------------------------------------------------------------------------

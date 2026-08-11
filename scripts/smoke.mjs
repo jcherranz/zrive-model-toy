@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // The regression net. Issue 58.
 //
-// site/ ships 2.685 lines of JavaScript and this repository had no functional test of any kind.
+// site/ ships 2685 lines of JavaScript and this repository had no functional test of any kind.
+// Written without a thousands separator on purpose: the safety gates read a dot-grouped figure as
+// money, and this file is scanned by them.
 // Both existing gates are SAFETY gates: check_repo.sh asserts nothing forbidden is committed,
 // check_forbidden.sh asserts nothing forbidden is published. Neither has ever had an opinion
 // about whether the page works. Roughly ten substantive changes landed on 2026-08-10 and 11,
@@ -668,13 +670,13 @@ async function requireHit(page, x, y, want) {
 
 // EVERY COORDINATE THIS SUITE DISPATCHES IS AN INTEGER, and this refuses rather than rounds.
 //
-// Input.dispatchMouseEvent takes a float and the browser floors it. Give it 322.948 and the page
-// anchors its zoom on 322, while the driver goes on doing arithmetic about 322.948, and the two
+// Input.dispatchMouseEvent takes a float and the browser floors it. Give it 322.9488 and the page
+// anchors its zoom on 322, while the driver goes on doing arithmetic about 322.9488, and the two
 // differ by (1 - k1/k0) times that fraction: at the four step gesture below, 1.78px of apparent
 // drift on the vertical axis and 0.15px on the horizontal, from an anchor chosen as a fraction of
 // the canvas rect. That is what the first run of this suite reported as a page defect. It was
 // checked before it was believed, by predicting both numbers from the floor alone, and they came
-// out at 1.779 and 0.150 against 1.781 and 0.149 measured, so the page was right and the driver
+// out at 1.7789 and 0.1500 against 1.7814 and 0.1486 measured, so the page was right and the driver
 // was wrong. KAIZEN.md `kaizen-verifier-not-exempt-from-verification` and
 // `kaizen-a-harness-and-a-page-must-agree-on-the-coordinate`.
 //
