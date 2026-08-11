@@ -6,9 +6,10 @@
  */
 
 /* ---- the palette, both schemes on one line each ---------------------------
-   Every colour on this page is here and every one of them is written twice, light first and
-   dark second, inside light-dark(). Which of the two is used is decided by one property,
-   color-scheme, and by nothing else in this file. Issues 55 and 57.
+   Almost every colour on this page is here and is written twice, light first and dark second,
+   inside light-dark(). Which of the two is used is decided by one property, color-scheme, and by
+   nothing else. Three tokens are exceptions and they are at the foot of this file, each with the
+   reason it could not come up here. Issues 55 and 57.
 
    WHY color-scheme AND NOT A MEDIA QUERY. #55 shipped this palette as a second copy of itself
    inside @media (prefers-color-scheme: dark), which is the right shape while the operating
@@ -17,18 +18,18 @@
    overriding it means a third copy of the palette under the attribute, and three copies of one
    set of colours is how they come to disagree. color-scheme already had to be set here for the
    scrollbars and the native select menus, so making it the switch adds no mechanism, it removes
-   one. There is now no media query in this file that has anything to do with the theme.
+   one.
 
      color-scheme: light dark   the reader has said nothing, so the operating system decides
      color-scheme: light        the reader chose light, whatever the operating system says
      color-scheme: dark         the reader chose dark, whatever the operating system says
 
    light-dark() reads that used value, so all three follow from the two rules under this block
-   and every token follows in both directions at once. site/app.js writes the thirteen type
-   colours as the same function into a generated stylesheet, so the tiles turn with the chrome
-   rather than a repaint later. It is Baseline (Chrome 123, Safari 17.5, Firefox 120, 2024) and
-   it was checked on a real engine rather than looked up, because the site ships no build step
-   and no polyfill: driven in Chrome 149, light-dark() resolves in an SVG presentation
+   and every token that carries a pair follows in both directions at once. site/app.js writes the
+   thirteen type colours as the same function into a generated stylesheet, so the tiles turn with
+   the chrome rather than a repaint later. It is Baseline (Chrome 123, Safari 17.5, Firefox 120,
+   2024) and it was checked on a real engine rather than looked up, because the site ships no
+   build step and no polyfill: driven in Chrome 149, light-dark() resolves in an SVG presentation
    attribute, resolves through var(), and nests inside color-mix(), and the thirteen tile fills
    it produces are pixel for pixel the fills the media query produced, on both schemes.
 
@@ -72,9 +73,26 @@
   /* The ground and the plates on it, in one order read twice: the app is the plane, a panel
      sits on it, and the elevated fill sits on the panel. In light the panel steps up from the
      app and the elevated fill steps back down; in dark both steps go the one way, away from the
-     ground, because on a dark page depth is light. */
-  --bg-app: light-dark(#f6f7f9, #1c2127);
-  --bg-panel: light-dark(#ffffff, #252a31);
+     ground, because on a dark page depth is light.
+
+     THE FIRST TWO ARE NOT WRITTEN AS PAIRS AND THAT IS NOT A STYLE CHOICE. build/model.py reads
+     these two out of this file to know what the contrast check is measuring against: `.band` is
+     filled with one of them and `html, body` is painted with the other, and it finds each
+     token's two values by splitting the file on the dark media block and taking the one
+     definition on each side. Reading the plate out of the stylesheet rather than retyping a hex
+     in Python is right, and it is why issue 59's gate measures the surface the page actually
+     paints. What it also does is fix the SHAPE of these two declarations, and one light-dark()
+     pair gives that reader zero definitions on each side rather than one. So these two keep the
+     old form and their dark values live at the foot of this file. The debt is a card and not a
+     bodge: the reader should learn light-dark(), at which point both move up here with the rest,
+     and nothing about the measurement is weakened meanwhile, since the hexes and the surfaces
+     are the same ones. The `-dark` pair below is not a third copy of anything; it is what lets
+     the rule that answers an explicit choice avoid writing the literal a second time after the
+     media line, where the model's reader counts them and needs exactly one. */
+  --bg-app: #f6f7f9;
+  --bg-app-dark: #1c2127;
+  --bg-panel: #ffffff;
+  --bg-panel-dark: #252a31;
   --bg-elevated: light-dark(#edeff2, #2f343c);
 
   --fg-body: light-dark(#1c2127, #f6f7f9);
@@ -148,17 +166,42 @@
 :root[data-theme="light"] { color-scheme: light; }
 :root[data-theme="dark"] { color-scheme: dark; }
 
-/* And the one token that cannot ride on color-scheme, wired to the same three states by hand.
-   This is the only place in this file where the theme is spelled twice, and the pair is what a
-   token that is not a colour costs: the media query answers a reader who has said nothing, and
-   is written `:not([data-theme="light"])` rather than `:not([data-theme])` because what it has
-   to stand out of the way of is a reader who chose light on a machine set to dark. The value
-   itself is on :root above, not in here, so neither rule can drift from the palette or from the
-   other. */
+/* ---- the three tokens that cannot ride on color-scheme ---------------------
+   Everything else in this file is one declaration carrying both values. These three are not, and
+   each is here for a stated reason rather than because the mechanism ran out:
+
+     --bg-app     read out of this file by build/model.py, which needs one definition on each
+     --bg-panel   side of the media block, so a light-dark() pair gives it zero of each
+     --elev-1     a shadow list and not a colour, and its dark form moves the geometry too,
+                  which light-dark() cannot express because light-dark() takes colours
+
+   The two rules are each other's mirror, token for token, so that a choice wins in both
+   directions. The media query answers a reader who has said nothing, and is written
+   `:not([data-theme="light"])` rather than `:not([data-theme])` because what it has to stand out
+   of the way of is a reader who chose light on a machine set to dark.
+
+   ONLY THE FIRST BLOCK SPELLS A PLATE COLOUR, and that asymmetry is forced rather than chosen.
+   build/model.py counts `#rrggbb` definitions of these two tokens on each side of the media line
+   and needs exactly one on each: a literal in both blocks makes it two and it refuses to emit
+   the palette, which is how this was found. So the literal is here, where the reader reads it,
+   and the second block names the same value through the token beside its light sibling at the
+   top of the file. `--elev-1` is under no such constraint and names its value in both.
+
+   Keep the two blocks agreeing token for token. A token in one and not the other is a token that
+   follows the operating system and ignores the reader, or the reverse, and both of those look
+   like a working page until somebody disagrees with their machine. */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --elev-1: var(--elev-1-dark); }
+  :root:not([data-theme="light"]) {
+    --bg-app: #1c2127;
+    --bg-panel: #252a31;
+    --elev-1: var(--elev-1-dark);
+  }
 }
-:root[data-theme="dark"] { --elev-1: var(--elev-1-dark); }
+:root[data-theme="dark"] {
+  --bg-app: var(--bg-app-dark);
+  --bg-panel: var(--bg-panel-dark);
+  --elev-1: var(--elev-1-dark);
+}
 
 * { box-sizing: border-box; }
 
