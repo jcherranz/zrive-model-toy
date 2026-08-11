@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T14:12:23Z",
+  "generated": "2026-08-11T14:17:50Z",
   "columns": [
     {
       "key": "raw",
@@ -77,7 +77,13 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/56"
-        },
+        }
+      ]
+    },
+    {
+      "key": "done",
+      "title": "Done",
+      "cards": [
         {
           "id": 61,
           "title": "Nothing in CI runs the build, so the drawing is unverified",
@@ -86,13 +92,7 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/61"
-        }
-      ]
-    },
-    {
-      "key": "done",
-      "title": "Done",
-      "cards": [
+        },
         {
           "id": 59,
           "title": "Contrast should be a gate, not a measurement somebody once took",
@@ -160,19 +160,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/49"
-        },
-        {
-          "id": 48,
-          "title": "An instructor's employer should appear only when the instructor is clicked",
-          "labels": [
-            "feedback",
-            "layout",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/48"
         }
       ],
-      "hidden": 34,
+      "hidden": 35,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
