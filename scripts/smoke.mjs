@@ -218,7 +218,7 @@ const PHASES = {
   'every width':          { count: 3, when: 'every' },
   'model and reveal':     { count: 14, when: 'behavioural' },
   'students':             { count: 11, when: 'behavioural' },
-  'canvas':               { count: 6, when: 'behavioural' },
+  'canvas':               { count: 7, when: 'behavioural' },
   'capture':              { count: 5, when: 'behavioural' },
   'board':                { count: 13, when: 'behavioural' },
   'console and requests': { count: 2, when: 'every' }
@@ -228,7 +228,10 @@ const PHASES = {
 // with a table that had lost a row, and a viewport deleted from VIEWPORTS would take its share of
 // the expectation with it. This number is checked against the sum before anything runs, so the two
 // have to be edited together or the run refuses to draw a verdict.
-const EXPECTED_ASSERTIONS = 70;
+// 70 until issue 76. That card made the wheel need Ctrl or Cmd and gave the bare wheel a pan, and
+// the assertion it added is the one that says a bare wheel no longer zooms, which is the whole of
+// what the card decided and the only part of it a later change could silently undo.
+const EXPECTED_ASSERTIONS = 71;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -1198,6 +1201,27 @@ async function checkCanvas(page) {
              ctm: { a: m.a, d: m.d, e: m.e, f: m.f } };
   })()`);
 
+  // ISSUE 76. The wheel zooms only with Ctrl or Cmd, and a bare wheel pans instead. Driven first,
+  // from the fitted view, so the anchored test below still starts exactly where it always did.
+  // This is the assertion the card added: it is the whole of what #76 decided, and the only part
+  // of it that a later change could undo without anything else going red.
+  const bare0 = await read();
+  for (let i = 0; i < 4; i++) {
+    await page.send('Input.dispatchMouseEvent', {
+      type: 'mouseWheel', x: ax, y: ay, deltaX: 0, deltaY: -120, pointerType: 'mouse'
+    });
+  }
+  const bare1 = await viewSettled(page).then(read);
+  const panned = Math.abs(bare1.y - bare0.y) * bare1.k;
+  assert('a wheel with no modifier moves the drawing and does not zoom it',
+    bare1.k === bare0.k && panned > 100,
+    'the scale untouched and the drawing moved',
+    `the scale went ${bare0.k.toFixed(4)} to ${bare1.k.toFixed(4)} and the drawing moved ` +
+      `${panned.toFixed(1)}px`,
+    `scale unmoved at ${bare1.k.toFixed(4)}, panned ${panned.toFixed(1)}px`);
+  await page.evaluate('window.ZT.fit()');
+  await viewSettled(page);
+
   const b = await read();
   // Two readings of the same point: one from the three numbers app.js holds, and one from the
   // matrix the browser is actually rendering with. app.js's own comment records the two
@@ -1206,9 +1230,13 @@ async function checkCanvas(page) {
   const docBefore = { x: b.x + (ax - b.left) / b.k, y: b.y + (ay - b.top) / b.k };
   const renderBefore = { x: (ax - b.ctm.e) / b.ctm.a, y: (ay - b.ctm.f) / b.ctm.d };
 
+  // `modifiers: 2` is Ctrl in the DevTools Protocol's bitmask (1 Alt, 2 Ctrl, 4 Meta, 8 Shift),
+  // and it is the one edit issue 76 made to an existing assertion: without it this gesture is a
+  // pan now and the anchored zoom it measures never happens. The claim being made is unchanged.
   for (let i = 0; i < 4; i++) {
     await page.send('Input.dispatchMouseEvent', {
-      type: 'mouseWheel', x: ax, y: ay, deltaX: 0, deltaY: -120, pointerType: 'mouse'
+      type: 'mouseWheel', x: ax, y: ay, deltaX: 0, deltaY: -120, pointerType: 'mouse',
+      modifiers: 2
     });
   }
   const a = await viewSettled(page).then(read);

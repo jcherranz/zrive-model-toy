@@ -11,6 +11,38 @@ of what changed and when, and it is meant to be scannable.
 
 ### Changed
 
+- The wheel zooms only with **Ctrl or Cmd**, and a bare wheel pans, #76. This reverses #46's
+  decision rather than repairing a fault in it: #46 argued that over the canvas the wheel is
+  always a zoom, so the event is never handed back, and the owner read the page, scrolled, watched
+  the drawing jump and asked for the modifier. The shape of #46's argument survives: one of the
+  two things always happens, so the event is still never handed back.
+- **The modifier is `ctrlKey` or `metaKey`.** Ctrl is what was asked for and is the zoom modifier
+  on Windows and Linux; Cmd is the same gesture on a Mac. `ctrlKey` is also how a macOS trackpad
+  pinch is delivered, which is why #46's pinch keeps its path here unchanged. Not Alt and not
+  Shift, since Shift plus wheel is horizontal scrolling everywhere.
+- **A bare wheel pans rather than being handed back, and that was measured before it was chosen.**
+  `scrollHeight === clientHeight` at 1536x839, 1440x900 and 390x844, so the browser has nothing to
+  scroll and handing the wheel back would make a bare scroll do nothing at all. A reader who
+  scrolls and sees no movement learns nothing. Panning is what the drawing already is: #46 built
+  it as an infinite canvas in the sense of Figma, Miro and Obsidian Canvas, where a bare wheel
+  moves the plane and a modifier scales it. `deltaX` is carried, so a trackpad pans sideways.
+- **The listener stays non-passive and still always prevents.** Ctrl plus wheel is the browser's
+  own page zoom, and a passive listener may not cancel it, so the page would scale under the
+  drawing while the drawing scaled itself. Over the canvas all four events report
+  `defaultPrevented`; over the footer, where nothing touches the wheel, none of them does.
+- **The two zoom rates are now told apart by the delta and not by the modifier**, because the
+  modifier just acquired its other meaning. A mouse notch is 120 pixels and `0.0022` turns exactly
+  one notch into the 1,3021 the `+` button steps by; a trackpad arrives in small deltas at a much
+  higher rate and keeps `0.01`. Measured: ctrl notch 1,3021 and cmd notch 1,3021, a mac pinch
+  delta of 9 gives 1,0942, a touch pinch 3,5 over six frames, anchor drift 0,0008px across and
+  0,0020px down.
+- **The footer and the zoom readout's tooltip say so**, at no cost to the header row. Eight wheel
+  shapes driven: bare notch, bare trackpad delta, bare sideways, Shift and Alt all pan; Ctrl, Cmd
+  and a small ctrlKey delta all zoom.
+- **`scripts/smoke.mjs` goes to 71 assertions**, the first edit to the suite in six structural
+  changes and it is declared rather than quiet: the existing anchored-zoom gesture takes
+  `modifiers: 2` because without it that gesture is a pan now, and one assertion is added saying a
+  bare wheel moves the drawing and does not zoom it, which is the whole of what this card decided.
 - The contrast gate reads the palette by resolving a token, not by where in `site/app.css` it is
   written, #64. `surface_values()` used to split the file on `@media (prefers-color-scheme: dark)`
   and require exactly one `#rrggbb` on each side. #57 made `color-scheme` the switch and put both

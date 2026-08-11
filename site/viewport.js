@@ -58,6 +58,14 @@
   // a node and missing by 3px. Whichever fires first wins, and the gesture is a drag from that
   // moment on.
   var DRAG_PX = 5, SLOW_PX = 3, SLOW_MS = 250;
+  // The wheel, at two rates, because one wheel event is two different devices. A mouse notch is a
+  // whole 120 pixels at a time and 0.0022 turns exactly one notch into the 1.3 the + button steps
+  // by, so the two controls agree; a trackpad pinch arrives as a stream of small deltas at a much
+  // higher rate and needs 0.01 to travel at all. Issue 46 told the two apart by ctrlKey, which was
+  // right for as long as ctrlKey over this box could only mean a pinch. Issue 76 gave ctrlKey its
+  // other meaning, so they are told apart by the size of the delta instead, which is the property
+  // that actually differs between a notched wheel and a trackpad.
+  var WHEEL_FINE_PX = 40, ZOOM_FINE = 0.01, ZOOM_COARSE = 0.0022;
 
   function clampK(k) { return Math.max(K_MIN, Math.min(K_MAX, k)); }
 
@@ -306,12 +314,43 @@
     }, true);
 
     // ---- the wheel -------------------------------------------------------------
-    // Registered on the canvas and nowhere else, and not passive, because it always calls
-    // preventDefault: over this box the wheel is always a zoom, so there is no case in which the
-    // event is looked at and handed back. Off the box it is untouched, which is what keeps the
-    // detail panel scrolling with the wheel and the board view, a different route that does not
-    // draw this element at all, scrolling exactly as it did. The diagram view itself has nothing
-    // to scroll: the page is one screen tall at every width and the canvas does not overflow.
+    // THE WHEEL ZOOMS ONLY WITH A MODIFIER, AND A BARE WHEEL PANS. Issue 76, and it reverses a
+    // decision issue 46 made rather than repairing a fault in it. #46's reasoning was that over
+    // this box the wheel is always a zoom, so there is no case in which the event is looked at
+    // and handed back; the owner read the page, scrolled, watched the drawing jump, and asked for
+    // the modifier. What is kept from #46 is the shape of that argument: one of the two things
+    // below always happens, so the event is still never handed back and preventDefault is still
+    // unconditional.
+    //
+    // THE MODIFIER IS ctrlKey OR metaKey, and each is there for a different reader.
+    //   ctrlKey   what the owner asked for, and the zoom modifier on Windows and on Linux.
+    //   metaKey   Cmd, which is the same gesture on a Mac, where Ctrl is not the document
+    //             modifier.
+    //   ctrlKey   again, and this is the one that is easy to break: a macOS trackpad pinch is
+    //             delivered as a wheel event with ctrlKey already set by the system, which is how
+    //             every browser detects a pinch. So the pinch #46 built keeps its path here for
+    //             free, and the delta size rather than the modifier now picks its rate.
+    // Not altKey and not shiftKey. Shift plus wheel is horizontal scrolling on every platform,
+    // and it therefore has to pan.
+    //
+    // WHY A BARE WHEEL PANS RATHER THAN BEING HANDED BACK TO THE BROWSER. Handing it back is the
+    // other honest answer and it was measured before it was rejected: on this page the scrolling
+    // element's scrollHeight equals its clientHeight at 1536x839, at 1440x900 and at 390x844, so
+    // there is nothing for the browser to scroll and a bare wheel would do nothing whatsoever. A
+    // reader who scrolls and sees no movement learns nothing and has no reason to try a modifier.
+    // Panning is also what this drawing already is: #46 built it as an infinite canvas in the
+    // sense of Figma, Miro and Obsidian Canvas, and in all three a bare wheel moves the plane and
+    // a modifier scales it. deltaX is carried too, so a trackpad's sideways scroll pans sideways.
+    //
+    // AND WHY THE LISTENER IS STILL NOT PASSIVE. A passive listener may not call preventDefault
+    // at all, and Ctrl plus wheel is the browser's own page zoom. Without the preventDefault the
+    // browser would scale the whole document underneath the drawing while the drawing scaled
+    // itself, which is two zooms for one gesture. Driven and read off visualViewport.scale rather
+    // than reasoned about: it stays at 1 across the gesture.
+    //
+    // Off the box the wheel is untouched, which is what keeps the detail panel scrolling with the
+    // wheel and the board view, a different route that does not draw this element at all,
+    // scrolling exactly as it did.
     //
     // This listener was moved to the document and back during the work, and the round trip is
     // worth a sentence because the evidence for moving it looked overwhelming and was noise.
@@ -327,15 +366,23 @@
     // from a new direction: make the harness state the size it actually got, and where a
     // measurement depends on a coordinate, the size that matters is the widget's and not the
     // page's.
-    //
-    // ctrlKey is how a trackpad pinch arrives, at small deltas and a much higher rate than a
-    // mouse wheel, so it gets its own multiplier. Both paths end in the same anchored zoom.
     canvas.addEventListener('wheel', function (e) {
+      var zooming = e.ctrlKey || e.metaKey;
       e.preventDefault();
-      var dy = e.deltaY;
-      if (e.deltaMode === 1) dy *= 16;            // lines
-      else if (e.deltaMode === 2) dy *= vh;       // pages
-      var f = Math.exp(-dy * ((e.ctrlKey || e.metaKey) ? 0.01 : 0.0022));
+      var dx = e.deltaX, dy = e.deltaY;
+      if (e.deltaMode === 1) { dx *= 16; dy *= 16; }          // lines
+      else if (e.deltaMode === 2) { dx *= vw; dy *= vh; }     // pages
+      if (!zooming) {
+        if (!dx && !dy) return;
+        // The delta is screen pixels and the view is in the drawing's units, so it is divided by
+        // the scale exactly as a drag is. A wheel therefore moves the drawing by the same amount
+        // a drag of the same distance would, at every zoom.
+        view.x += dx / view.k;
+        view.y += dy / view.k;
+        applyView();
+        return;
+      }
+      var f = Math.exp(-dy * (Math.abs(dy) < WHEEL_FINE_PX ? ZOOM_FINE : ZOOM_COARSE));
       zoomAt(e.clientX, e.clientY, Math.max(0.2, Math.min(5, f)));
     }, { passive: false });
 
