@@ -47,6 +47,16 @@ of what changed and when, and it is meant to be scannable.
   triggering sha and so publishes whatever main holds when it runs. It carries a byte-identical
   copy of the deploy job's loop guard, without which a board-bot push whose skip marker had been
   dropped would cancel a legitimate deploy and then skip its own, publishing nothing.
+- The first version of that rule cancelled nothing at all, and only a real run said so, #62. It
+  counted every job in the candidate run, and the supersede job is a job in that run and is always
+  running, so every candidate read as started: `superseded 0 older run(s); left 4 alone` against
+  four runs whose deploy jobs had zero steps between them. The reasoning had not found it and the
+  local dry run could not, because the dry run was reading historical payloads from before this job
+  existed. The repair excludes the supersede job by name rather than selecting the deploy job by
+  name, which is not the same choice: excluding fails safe in both directions, since renaming the
+  deploy job still counts it and renaming or removing the supersede job makes every run read as
+  started and be left alone, while selecting `deploy` by name would, if that job were ever renamed,
+  match nothing and declare every run cancellable.
 - What makes a cancellation safe, established from the deployment record rather than argued, #62.
   The deploy job targets the `github-pages` environment, so GitHub opens a deployment the moment
   the job is admitted and before any step runs. In both jams the starved head-of-queue job sat with

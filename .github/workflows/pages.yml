@@ -120,8 +120,22 @@ jobs:
             # Two independent readings of the same claim, because one of them alone would be a
             # guess. A run held at the run level has no jobs at all; a job admitted but starved of
             # a runner has a job and zero steps. Neither has published anything.
-            running="$(jq '[ .jobs[] | select(.status != "queued" and .status != "waiting") ] | length' jobs.json)"
-            steps="$(jq '[ .jobs[].steps[]? ] | length' jobs.json)"
+            #
+            # THE SUPERSEDE JOB ITSELF IS EXCLUDED, and it is excluded by name rather than by
+            # selecting the deploy job by name, which is not the same choice. The first version of
+            # this counted every job in the candidate run, so every run matched "something here has
+            # started", because this job is in that run and is always running. It reported
+            # `superseded 0 older run(s); left 4 alone` against four runs whose deploy jobs had
+            # zero steps between them. The live run found that; the reasoning had not.
+            #
+            # Excluding by name fails safe in both directions, which selecting `deploy` by name
+            # does not. Rename the deploy job and this still counts it, so the guard stays
+            # conservative. Rename or remove this job and the filter matches nothing, so the run
+            # reads as started and is LEFT ALONE. The reckless direction, a filter that matches
+            # nothing and therefore declares everything cancellable, is not reachable from here.
+            running="$(jq '[ .jobs[] | select(.name != "supersede")
+                             | select(.status != "queued" and .status != "waiting") ] | length' jobs.json)"
+            steps="$(jq '[ .jobs[] | select(.name != "supersede") | .steps[]? ] | length' jobs.json)"
 
             if [ "$running" -eq 0 ] && [ "$steps" -eq 0 ]; then
               echo "  run ${number} (${id}, ${sha}, ${status}): no job has started a step, cancelling."
