@@ -11,6 +11,24 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- Every object carries a source system and a source key, both nullable, #60 seam 4. A drawing id
+  joins a tile to an edge and means nothing outside this repository; a management tool joins on
+  the key the holding system uses, so the two are now different columns and the second exists
+  while the data is still invented, because retrofitting identity after the adapters exist means
+  touching every adapter. 248 objects on the seven routes, 135 keyed and **113 null**: every
+  Programme, every Company that only employs, every SessionTemplate, every Agreement, all 28
+  ghosts and **every Cohort**, which is the finding the drawing already marks, since a cohort
+  exists as a thing and no identifier for it is held anywhere. No key is invented to fill that
+  column. Which objects are null is derived from `route_system` exactly as the mark is, and the
+  build refuses both ways round: a type whose route names a system and has no entry in
+  `SOURCE_SYSTEM` stops it, and an entry for a type whose route says nothing holds it stops it
+  too. The visit host is the case that pays for the per id override, one Company type with a
+  Notion page where the five employers have no record anywhere. Keys are invented and deliberately
+  do not imitate the vendors' formats, since a string shaped like a real Stripe charge id on a
+  public page invites being read as one. The drawn Student tile and its roster row are seeded on
+  the person, so `s1` and `STU-0001` carry one key under two drawing ids and the build refuses if
+  they ever diverge; a key naming two objects is refused as well, because a join on it would
+  merge them silently. The name gate hashes both new fields on every node and every roster row.
 - A route per programme, `#/p/<CODE>`, so the seven drawings are reachable, #66. #43 built them
   and `site/app.js` named `window.GV` zero times, so six of the seven had been rendered by nothing
   but a verification harness. The address is resolved before the first `draw()`, which is what

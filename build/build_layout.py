@@ -589,6 +589,10 @@ def layout(model_nodes, model_edges, tag, bands, roster):
         "nodes": [{"id": n["id"], "type": n["type"], "label": n["label"], "lines": n["lines"],
                    "x": round(n["x"], 1), "y": round(tile_y(n), 1),
                    "count": n.get("count"), "props": n["props"], "route": n["route"],
+                   # Issue 60, seam 4. The system that holds this object and its key there, both
+                   # null where the model establishes that nothing holds it. Distinct from `id`,
+                   # which is the drawing's own and joins a tile to an edge and nothing else.
+                   "source_system": n["source_system"], "source_key": n["source_key"],
                    "ghost": 1 if n.get("ghost") else None,
                    "mark": n.get("mark"), "tail": n.get("tail"), "note": n.get("note")}
                   for n in (nodes[i] for i in order)],

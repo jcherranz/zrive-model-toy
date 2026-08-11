@@ -4,6 +4,7 @@
 # the session titles (published on the company's own public website) and the names of firms
 # that are companies rather than people. All teacher names are invented. All identifiers,
 # dates, counts and money figures are invented. No value in this file is measured.
+import hashlib
 import math
 import pathlib
 
@@ -201,6 +202,69 @@ ROUTE_BY_ID = {
         ("on the student asking. It ran once as a campaign, not as a standing process", A),
         "ontology.yaml, Refund, finding F18"),
 }
+
+
+# ---- identity, and it is not the drawing id ---------------------------------
+# Issue 60, seam 4. Every object here carries a drawing id, `t1`, `co_emp2`, `s1`, and that id
+# exists so that a tile can be joined to an edge. It is not the object's identity: a management
+# tool joins a row to the system that holds it, on that system's own key, and a drawing id means
+# nothing outside this file. So every object also carries two fields, both nullable:
+#
+#   source_system   the machine name of the system holding the record, or null
+#   source_key      that system's own key for this object, or null
+#
+# NOW, WHILE THE DATA IS INVENTED. Retrofitting identity after adapters exist means touching
+# every adapter, and the adapters are the next cards rather than distant ones.
+#
+# NULL IS A FINDING AND NOT AN OMISSION. Where the ontology establishes that no system holds the
+# type, there is no key to carry and both fields are null. The Cohort is the plainest of them: a
+# cohort exists as a thing, no identifier for it is held anywhere, and its tile already carries a
+# mark saying so. Inventing a key to fill that column would delete the one thing this drawing has
+# to say about it.
+#
+# WHICH OBJECTS ARE NULL IS DERIVED AND NEVER DECLARED TWICE, exactly as the mark is. An object
+# has a source system precisely when its own route_system row is not flagged absent, and the map
+# below supplies only the NAME of the system for the ones that have one. A type with a route and
+# no name here stops the build; a name here for a type whose route says nothing holds it stops
+# the build too. There is no third state and nowhere to forget one.
+#
+# THE KEYS ARE INVENTED AND THEY DELIBERATELY DO NOT IMITATE THE VENDORS' OWN FORMATS. A string
+# shaped exactly like a Stripe charge id or a Notion page id, on a page anyone with the URL can
+# read, invites being read as a real one. Each key is the system's own name, a hyphen and ten
+# digits derived from the object's seed: stable across builds, one per object, and unmistakably
+# a toy. What a management tool needs from this column is that it joins, not that it looks
+# plausible.
+SOURCE_SYSTEM = {
+    "Instructor": "notion",
+    "CohortSession": "notion",
+    "StudentGroup": "campus",        # the learning platform, which the route calls the campus
+    "Student": "applicant-tracker",
+    "Enrolment": "notion",
+    "Charge": "stripe",
+    "Claim": "notion",
+}
+
+# Per node, for the ids whose route overrides their type's. The visit host is the whole of it
+# today and it is the case that makes the point: it is a Company like the five employers, the
+# employers have no record anywhere, and this one has a Notion page. One type, two answers about
+# identity, and the difference lives in the data exactly where ROUTE_BY_ID already puts it.
+SOURCE_SYSTEM_BY_ID = {"co_col": "notion"}
+
+
+def source_key(system, seed):
+    """The invented key an object would be found by in the system that holds it.
+
+    Deterministic in the seed, so a rebuild writes the same document and the reproducibility
+    gate stays a gate. The seed is the object's drawing id for everything except a student,
+    where the drawn tile and the roster row are two renderings of one person and are seeded on
+    the person instead, so they carry one key while their drawing ids differ. That is the whole
+    argument for the column: `s1` and `STU-0001` are the same student and nothing but this says
+    so.
+    """
+    if system is None:
+        return None
+    n = int(hashlib.sha256(f"zrive-toy:{system}:{seed}".encode("utf-8")).hexdigest()[:16], 16)
+    return f"{system}-{n % 10 ** 10:010d}"
 
 
 # ---- the cohort, one row per student ----------------------------------------
@@ -858,6 +922,8 @@ for _spec in PROGRAMMES:
         continue
     for _base in ("co_col",) + tuple(gs[0] for gs in GHOST_SPEC):
         ROUTE_BY_ID[_pfx + _base] = ROUTE_BY_ID[_base]
+        if _base in SOURCE_SYSTEM_BY_ID:
+            SOURCE_SYSTEM_BY_ID[_pfx + _base] = SOURCE_SYSTEM_BY_ID[_base]
 
 
 # ---- the three builders -----------------------------------------------------
@@ -1127,6 +1193,10 @@ def tail_block(spec):
         tag = ", drawn" if i == 1 else ", not drawn"
         nodes.append({
             "id": f"{pfx}s{i}", "type": "Student", "label": name,
+            # The tile and the roster row below are one person, so they are seeded on the person
+            # and not on either drawing id. The identity loop at the foot of this file reads it
+            # and takes it back off; nothing downstream ever sees the seed.
+            "source_seed": f"{pfx}STU-{i:04d}",
             "note": ("An invented person. This card exists to show that a Student is an object "
                      "with properties and links and not a name inside a headcount, and every "
                      "value on it is made up: no real student, no real cohort, nothing imported "
@@ -1148,6 +1218,10 @@ def tail_block(spec):
         nodes.append(g(pfx + gid, label, col, verb, attaches_to, note))
         edges.append((pfx + gid, target_of[target], verb))
 
+    # A roster row is a Student, so it carries identity on the same terms a drawn Student tile
+    # does, seeded on the person. Four of these rows are also tiles and the pair then holds one
+    # source key under two drawing ids, which is checked at the foot of this file rather than
+    # asserted here.
     rows = [
         {
             "id": f"STU-{i:04d}",
@@ -1157,6 +1231,8 @@ def tail_block(spec):
             "enrol": f"ENR-{i:04d}",
             "state": state,
             "node": f"{pfx}s{i}" if i <= drawn else None,
+            "source_system": SOURCE_SYSTEM["Student"],
+            "source_key": source_key(SOURCE_SYSTEM["Student"], f"{pfx}STU-{i:04d}"),
         }
         for i, (name, uni, yob, state) in enumerate(roster, start=1)
     ]
@@ -1230,6 +1306,26 @@ for _n in ALL_NODES:
     if _n.get("mark"):
         raise SystemExit(f"model: node {_n['id']} carries a hand written mark. The mark says "
                          f"whether a system holds the type and is derived from route_system.")
+    if "source_system" in _n or "source_key" in _n:
+        raise SystemExit(f"model: node {_n['id']} carries a hand written source id. Identity is "
+                         f"derived from route_system and SOURCE_SYSTEM, in one place.")
+    # ---- identity, seam 4, derived from the route that is already written above -------------
+    # A route flagged absent says no system holds the type, so there is no system to name and no
+    # key to carry. Anything else says a system holds it, so it has to be named. The two
+    # refusals below are the whole of the rule and there is no way to satisfy one by editing the
+    # other.
+    _held = _r[0]["f"] != A
+    _sys = SOURCE_SYSTEM_BY_ID.get(_n["id"], SOURCE_SYSTEM.get(_n["type"]))
+    if _held and _sys is None:
+        raise SystemExit(f"model: node {_n['id']} ({_n['type']}) has a populate route naming a "
+                         f"system and no entry in SOURCE_SYSTEM. Name the system it is keyed "
+                         f"in, or say in the route that nothing holds it.")
+    if not _held and _sys is not None:
+        raise SystemExit(f"model: node {_n['id']} ({_n['type']}) is keyed in {_sys!r} and its "
+                         f"populate route says no system holds it. One of the two is wrong and "
+                         f"the route is the one the panel prints.")
+    _n["source_system"] = _sys
+    _n["source_key"] = source_key(_sys, _n.pop("source_seed", _n["id"]))
     _n["props"] = _r + _n["props"]
     # How many of the rows at the front of the list are the route, so the panel can rule a line
     # under them. A count and not a name: the browser never has to know that a key beginning
@@ -1237,6 +1333,35 @@ for _n in ALL_NODES:
     _n["route"] = len(_r)
     if _r[0]["f"] == A and not _n.get("ghost"):
         _n["mark"] = NO_SYSTEM
+
+# ---- and identity has to join, which is the only reason to carry it ----------
+# A key that names two objects is worse than no key, because a join on it silently merges them.
+# The shared instructors and the shared employers are the case that matters: one person appears
+# on several routes as several dicts and must carry one key, and two different people must never
+# collide onto one. Checked over every node on every view rather than over a set of unique ids.
+_by_key = {}
+for _n in ALL_NODES:
+    if _n["source_key"] is None:
+        continue
+    _was = _by_key.setdefault(_n["source_key"], _n["id"])
+    if _was != _n["id"]:
+        raise SystemExit(f"model: source key {_n['source_key']} names {_was} and {_n['id']}. A "
+                         f"key that names two objects merges them the first time anything joins.")
+
+# The drawn student and the roster row are one person under two drawing ids, and the source key
+# is the only thing in this model that says so. If that ever stops holding, the column has
+# nothing to demonstrate and the failure would be invisible: both halves would look right alone.
+for _v in VIEWS:
+    _nodes_by_id = {_n["id"]: _n for _n in _v["nodes"]}
+    for _row in _v["roster"]["rows"]:
+        if not _row["node"]:
+            continue
+        _tile = _nodes_by_id[_row["node"]]
+        if _tile["source_key"] != _row["source_key"]:
+            raise SystemExit(
+                f"model: {_v['key']} draws {_row['node']} for roster row {_row['id']} and the "
+                f"two carry different source keys, {_tile['source_key']} and "
+                f"{_row['source_key']}. They are one person.")
 
 # ---- and the whole of it, once it is assembled ------------------------------
 # Every string this model puts on any of the seven pages, through the same check the roster went
@@ -1250,7 +1375,7 @@ for _v in VIEWS:
     for _n in _v["nodes"]:
         _w = f"{_v['key']} node {_n['id']}"
         _strings.append((_w, _n["label"]))
-        for _k in ("note", "mark", "tail"):
+        for _k in ("note", "mark", "tail", "source_system", "source_key"):
             if _n.get(_k):
                 _strings.append((f"{_w} {_k}", _n[_k]))
         for _pr in _n["props"]:
@@ -1258,7 +1383,8 @@ for _v in VIEWS:
                          (f"{_w} prop {_pr['k']}", _pr["v"])]
     _strings += [(f"{_v['key']} edge {_s}->{_t}", _v2) for _s, _t, _v2 in _v["edges"]]
     _strings += [(f"{_v['key']} roster {_r['id']}", _r[_f])
-                 for _r in _v["roster"]["rows"] for _f in ("name", "uni", "state")]
+                 for _r in _v["roster"]["rows"]
+                 for _f in ("name", "uni", "state", "source_system", "source_key")]
 _check_names(_strings)
 
 # ---- the palette is a claim about a surface ---------------------------------
