@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T14:50:12Z",
+  "generated": "2026-08-11T14:50:55Z",
   "columns": [
     {
       "key": "raw",
@@ -41,16 +41,6 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/60"
-        },
-        {
-          "id": 63,
-          "title": "The visit edge points at the Cohort and the data says Programme",
-          "labels": [
-            "bug",
-            "model",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/63"
         }
       ]
     },
@@ -86,6 +76,16 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/62"
+        },
+        {
+          "id": 63,
+          "title": "The visit edge points at the Cohort and the data says Programme",
+          "labels": [
+            "bug",
+            "model",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/63"
         }
       ]
     },
