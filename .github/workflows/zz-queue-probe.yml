@@ -1,0 +1,44 @@
+name: zz queue probe
+
+# TEMPORARY. Issue 62. This file exists to answer one question by measurement and is deleted in
+# the commit that uses the answer: is `queue: max` honoured on a JOB-level concurrency block, or
+# is it accepted and silently ignored, leaving the default single pending slot that EVICTS a
+# waiting run with zero steps run?
+#
+# The question has to be settled before pages.yml's concurrency moves from the workflow to the
+# job that actually deploys, because board.yml's concurrency comment records exactly this failure
+# in this repository: three runs evicted inside five minutes, no error anywhere, each reading like
+# a run that was somehow superseded. Repeating that by assuming a key works in a place it has
+# never been used here would be the same defect with a new address.
+#
+# THE EXPERIMENT. Dispatch this three times inside a few seconds.
+#   `free`   has no concurrency at all and must run immediately on all three, which proves a job
+#            outside the group is not held by the group. That is the property the supersede job
+#            in pages.yml depends on.
+#   `gated`  carries the exact block pages.yml is going to carry. It sleeps long enough that the
+#            second and third dispatches must wait.
+# Honoured  -> three `gated` jobs complete, in order, none cancelled.
+# Ignored   -> the middle one is cancelled with zero steps run.
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  free:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "free job running at $(date -u +%H:%M:%S) in run ${{ github.run_number }}"
+
+  gated:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: zz-queue-probe
+      cancel-in-progress: false
+      queue: max
+    steps:
+      - run: |
+          echo "gated job STARTED at $(date -u +%H:%M:%S) in run ${{ github.run_number }}"
+          sleep 45
+          echo "gated job FINISHED at $(date -u +%H:%M:%S) in run ${{ github.run_number }}"
