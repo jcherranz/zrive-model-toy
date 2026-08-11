@@ -64,6 +64,14 @@ The whole drawing fits one 1440 by 900 viewport without scrolling. Below 760px i
 designed size and the canvas scrolls sideways, rather than shrinking until the labels stop
 being readable.
 
+Five of the seven drawings are about 600 units tall and fit that viewport at roughly full size.
+Two are not: Z-BL and Z-SC draw their whole syllabus, twenty eight and twenty five session
+templates against six on the other five, and they stand 2578 and 2470 units tall. They still
+fit without scrolling, because the canvas frames them, but they fit at about 23 per cent and a
+reader who wants to read a tile zooms in and pans rather than taking the drawing in at once.
+That is the trade issue 83 made deliberately, and the reasoning is on the card and in
+build/bands.py.
+
 Click a node to select it. The clicked node takes a solid fill, everything except its direct
 neighbours dims, and a side panel lists its properties with a flag on each. Nothing is drawn
 around it. A reader arriving by keyboard gets a frame on the node the tab is on, which a mouse

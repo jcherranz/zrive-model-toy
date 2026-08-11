@@ -30,6 +30,7 @@ import tempfile
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
 sys.path.insert(0, str(HERE))
+from bands import every_line  # noqa: E402
 from model import VIEWS  # noqa: E402
 
 # The model as the build lays it out, and there are seven drawings to lay out since issue 43,
@@ -57,18 +58,16 @@ CHROME_CANDIDATES = [
 # runs to more than one line is measured line by line, because that is how the check reads it:
 # a caption is only legal if every line of it fits the lane on its own.
 #
-# This list is a second copy of the caption lines in build_layout.py's BANDS and has to be
-# changed with it. The drift is not silent: a line this file has not measured is a line
-# build_layout.py falls back to estimating, and it prints the string and a count of estimated
-# widths at the end of every run.
-#
-# Since issue 43 it holds the alternates too. Three captions are claims that are false on a view
-# holding no employer, no instructor or no visit host, so build_layout.py swaps them per view,
-# and a caption line that is only reachable on one of the seven still has to be measured.
-BANDS = ["programme", "employers appear on click", "session templates", "instructors",
-         "cohort sessions", "and the visit host",
-         "cohort and students", "individuals appear on click", "enrolment to claim",
-         "none recorded"]
+# THIS USED TO BE A SECOND COPY of the caption lines in build_layout.py, with a note saying it
+# had to be changed with the original. Issue 83 made two of the lines a sentence written from
+# each view's counts, "6 of 22 session templates" against "all 28 session templates", and a
+# computed caption cannot be copied by hand at all. So both files now read build/bands.py, which
+# declares the lanes, the alternates and the two sentences, and every_line() produces exactly the
+# lines the builder will produce for these seven views. Alternates included: three captions are
+# claims that are false on a view holding no employer, no instructor or no visit host, and a line
+# only reachable on one of the seven still has to be measured, because the overflow gate reads it
+# there.
+BAND_LINES = every_line(v["counts"] for v in VIEWS)
 
 # Not named by the stylesheet, but a plausible resolution of its final `sans-serif` on a
 # machine that is not this one. Included so the envelope covers them where they are installed.
@@ -163,7 +162,7 @@ def collect():
                     "letter-spacing": band["letter-spacing"],
                     "text-transform": band["text-transform"]},
             "note": "band captions, .band-cap",
-            "strings": set(BANDS),
+            "strings": set(BAND_LINES),
         },
     }
     if ghost_strings:

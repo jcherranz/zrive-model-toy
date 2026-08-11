@@ -20,6 +20,14 @@ different kinds of thing read as two different lanes rather than one striped lis
 The whole drawing is sized to be readable inside one 1440x900 viewport with the header and
 the footer taken out, so the target aspect is roughly two to one and the target height is
 around 650 user units.
+
+THAT TARGET IS NOW MET BY FIVE OF THE SEVEN AND MISSED BY TWO, on purpose. Issue 83 gave Z-BL
+and Z-SC their whole syllabus, twenty eight and twenty five session templates where the other
+five draw six, and a band is a vertical lane, so the two of them stand 2578 and 2470 units
+tall at an aspect near one to two. The alternative, wrapping a tall lane into sub-columns, was
+built and measured and rejected; the numbers and the reason are in the header of
+build/bands.py. The plane from issue 46 is what makes the tall pair navigable, and it is the
+only reason a drawing this shape is shippable at all.
 """
 import argparse
 import hashlib
@@ -31,6 +39,7 @@ import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
+from bands import BANDS, CAP_NO_EMPLOYERS, CAP_NO_HOST, CAP_NO_INSTRUCTORS, MAX_CAP_LINES, fill  # noqa: E402,E501
 from model import check_provenance, contrast_rows, floor4, instance_document, value_status  # noqa: E402,E501
 
 COL_W = [166, 232, 122, 124, 80, 102, 92, 92]
@@ -43,69 +52,18 @@ MIN_GAP = 26
 NEAR = MIN_GAP
 NCOL = len(COL_W)
 
-# Column bands. Each is a run of columns holding one kind of thing, drawn as its own lane
-# with its own caption. The instructors and the session templates sit in bands of their own
-# for exactly this reason: they are different kinds of object and the drawing should say so
-# without relying on tile colour.
-#
-# A caption is a claim about the type of everything under it, so it has to hold for every tile
-# in the lane and not merely for most of them. The cohort sessions lane also holds the empresa
-# colaboradora, whose visit attaches at session level, and that placement is right: the finde
-# presencial is a session level event and the "hosts visit" edge leaves from beside the
-# sessions it is about. The caption is therefore the thing that had to change. Captions are
-# written as a tuple of lines rather than one string because a lane is only as wide as the
-# columns under it and a longer caption has nowhere to go sideways.
-BANDS = [
-    # Plural since issue 49: the lane held one employer and now holds five, and a caption is a
-    # claim about everything under it. Two lines since issue 48, which stopped painting those
-    # five until the instructor each of them employs is clicked. A lane captioned only
-    # "programme", holding one tile in a tall empty strip, would be true of what is on screen and
-    # would hide that there is anything else in it; a lane still captioned "programme and
-    # employers" with no employer under it reads as five tiles that failed to load. The second
-    # line is the affordance, so the emptiness is legible as a state rather than as a fault. It
-    # costs no height: the cohort sessions lane below already runs to two lines, and BAND_TOP
-    # reserves headroom for the longest caption rather than for each one.
-    ([0], ("programme", "employers appear on click")),
-    ([1], ("session templates",)),
-    ([2], ("instructors",)),
-    ([3], ("cohort sessions", "and the visit host")),
-    # Two lines since issue 51, for the same reason the programme lane grew one in issue 48: the
-    # lane holds four Student tiles that nothing paints until the students card is clicked, and a
-    # caption naming only what is on screen would hide that the lane holds anything else. It
-    # costs no height, since BAND_TOP reserves for the longest caption and another lane already
-    # runs to two lines.
-    ([4, 5], ("cohort and students", "individuals appear on click")),
-    ([6, 7], ("enrolment to claim",)),
-]
-
-# ---- and the captions are a per view argument, because three of them can be false -----------
-# Issue 43. BANDS above was a module constant shared by every call to layout(), which held while
-# there was one drawing to lay out. There are seven now and they do not hold the same kinds of
-# thing: Z-CFA has no instructor anywhere in its source, no employer and no visit host, so
-# "employers appear on click" would promise tiles that do not exist, "instructors" would caption
-# an empty lane as though its tiles had failed to load, and "and the visit host" would name a
-# tile nothing draws. A caption is a claim about everything under it and a false one is worse
-# than a missing one, because a reader has no way to catch it.
-#
-# The three alternates below are chosen by what a view ACTUALLY HOLDS and never by its code.
-# Special casing Z-CFA would have been a line of code and a lie about the mechanism: the next
-# programme with no visit host would have inherited the false caption in silence.
-CAP_NO_EMPLOYERS = ("programme",)
-# Two words and not a sentence, because the lane under it is 140 units wide and the caption is
-# sized by the columns and not by its own text. The first draft read "none recorded for this
-# programme", the lane overflow gate refused the build by 51.5px, and the gate was right.
-CAP_NO_INSTRUCTORS = ("instructors", "none recorded")
-CAP_NO_HOST = ("cohort sessions",)
+# Column bands. Each is a run of columns holding one kind of thing, drawn as its own lane with
+# its own caption. The lanes and their captions are declared in build/bands.py, one copy, read
+# from here for the geometry and from build/measure_labels.py for the text; the header of that
+# file carries the reasoning that used to sit here.
 
 # The last caption line sits CAP_GAP above the top of the bands and any line before it stacks
-# above that, so the drawing gains headroom only if some lane actually needs a second line. It is
+# above that, so the drawing gains headroom only if some lane actually needs another line. It is
 # measured over every caption a view could carry and not over the ones a particular view does:
 # the seven routes are read one after another and a header that changed height between them would
 # make the whole drawing jump.
 CAP_LH, CAP_GAP = 11.0, 7
-CAP_ALL = ([lines for _cs, lines in BANDS]
-           + [CAP_NO_EMPLOYERS, CAP_NO_INSTRUCTORS, CAP_NO_HOST])
-BAND_TOP = 21 + round(CAP_LH * (max(len(lines) for lines in CAP_ALL) - 1))
+BAND_TOP = 21 + round(CAP_LH * (MAX_CAP_LINES - 1))
 MARGIN_Y = BAND_TOP + 16
 BAND_COLS = [cs for cs, _lines in BANDS]
 
@@ -270,12 +228,21 @@ def columns_for(view, tag):
     return col
 
 
-def bands_for(model_nodes, col_of):
+def bands_for(view, col_of):
     """The lane captions for one view, read off what that view holds.
 
     Derived and not declared, for the same reason the "no system holds it" mark is derived from
     the populate route: a caption written by hand beside a model is a second place to forget.
+
+    TWO KINDS OF DERIVATION MEET HERE and they answer different questions. Which alternate a
+    lane takes is decided by what the view DRAWS, because a caption naming a tile that is not
+    there is false. What the two sample lines say is decided by the view's `counts` block, which
+    is the document's own statement of how much of the syllabus it carries; the drawing cannot
+    work that out by looking at itself, and a number typed into the caption instead would be the
+    thing this whole card exists to remove.
     """
+    model_nodes = view["nodes"]
+    counts = view["counts"]
     company_cols = {col_of[n["id"]] for n in model_nodes if n["type"] == "Company"}
     has_employer = 0 in company_cols
     has_host = 3 in company_cols
@@ -288,7 +255,7 @@ def bands_for(model_nodes, col_of):
             lines = CAP_NO_INSTRUCTORS
         elif cs == [3] and not has_host:
             lines = CAP_NO_HOST
-        out.append((cs, lines))
+        out.append((cs, fill(lines, counts)))
     return out
 
 
@@ -786,6 +753,15 @@ def refuse_mixed(inst, lay):
             sys.exit(f"[layout] the {label} block carries geometry: {', '.join(bad)}. "
                      f"Where a thing is drawn belongs in site/layout.js.")
     for v in inst["views"]:
+        # The counts block, issue 83. Third time the same reasoning has been needed, after the
+        # registry and the provenance block: a block the node walk cannot see is where the next
+        # geometry key lands, and this one holds nothing but integers, which is exactly what a
+        # coordinate looks like.
+        for key, block in v.get("counts", {}).items():
+            bad = sorted(set(block) & GEOMETRY_KEYS)
+            if bad:
+                sys.exit(f"[layout] the counts block carries geometry: {v['key']} {key} has "
+                         f"{', '.join(bad)}. Where a thing is drawn belongs in site/layout.js.")
         for kind in ("nodes", "edges"):
             for o in v[kind]:
                 bad = sorted(set(o) & GEOMETRY_KEYS)
@@ -849,8 +825,7 @@ def build(inst, out_dir):
     for view in inst["views"]:
         col_of = columns_for(view, view["key"])
         views.append({"key": view["key"],
-                      "drawing": layout(view, view["key"], bands_for(view["nodes"], col_of),
-                                        col_of)})
+                      "drawing": layout(view, view["key"], bands_for(view, col_of), col_of)})
     lay = {"views": views}
     refuse_mixed(inst, lay)
 

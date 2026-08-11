@@ -9,6 +9,69 @@ of what changed and when, and it is meant to be scannable.
 
 ## [Unreleased]
 
+### Added
+
+- **Every lane that draws a sample now says so, on all seven views**, #83. The session template
+  lane read "session templates" while drawing six tiles of a syllabus holding up to seventy nine,
+  and said nothing anywhere: no count on the tiles, none in the caption, none in the footer. The
+  lane next door has declared its sample since #51, "4 of the 34". The two lanes now read
+  "6 of 79 session templates" and, under "cohort sessions", "6 of 79 scheduled", or "all 28" where
+  the view draws the lot.
+- **The totals are declared once and the sentence is written from them.** `SYLLABUS_SESSIONS` in
+  `build/model.py` holds one number per programme, counted from the vault's syllabus folders;
+  the Programme tile, the Cohort tile and both band captions are written from it, so none of the
+  four can disagree with the others. It is not counted at build time because the vault is on one
+  machine and the build runs in CI, where a build that read it would either fail or quietly
+  produce a different drawing. `check_syllabus_counts()` re-counts the folders on any machine that
+  has them and refuses the build on drift, and says out loud when it could not check rather than
+  passing in silence.
+- **`build/bands.py`**, the lanes and their captions, one copy read by the builder for geometry
+  and by the measurer for text. A caption computed per view cannot be hand copied into a second
+  file, which is what `build/measure_labels.py` held before.
+- **A gate for #78's finding.** A session template label carrying a clock, an `@` venue or a date
+  is a delivery wearing a template's clothes, and #78 caught one by reading. The build now scans
+  every shipped template label for all three and refuses. 83 templates scanned, none carries any
+  of them.
+
+### Changed
+
+- **Z-BL and Z-SC draw their whole syllabus**, #83: 6 session templates to 28 and to 25, with a
+  cohort session for each, so 42 templates across the seven views become 83 and the sample is
+  16 per cent no longer. Every one carries the same five properties the six did, `title`,
+  `template_code`, `delivery_mode`, `location_mode` and `duration_min`, read off the syllabus
+  notes. The other five views are unchanged except for the caption and the eleven units of
+  headroom its third line costs.
+- **The labels are `name_norm` where the vault's two title fields diverge**, which is #78's
+  finding applied to two whole routes instead of the one row that made it visible. Seventeen Z-BL
+  rows and six Z-SC rows carry a `title_raw` that is a calendar string rather than a subject: a
+  module heading, a "Presentación //", a venue and a clock, a leading space, a doubled space, an
+  editorial "(NEW)".
+- **A Z-BL visit has its firm withheld and not swapped.** The syllabus row names a law firm whose
+  first token is a real teacher's surname, so the name gate refuses it, correctly: the folding
+  cannot tell a firm named after a person from the person. The tile reads "Visita a despacho",
+  its `title` row says the firm is withheld by the gate, and its note says why. Substituting
+  another real firm, which is what the t17 employer row does, would have put a visit this
+  programme did not make on a named third party. The next row keeps its firm, because the gate
+  does not refuse that one.
+- **Duration is read off the source and its absence is written as one.** Not one of Z-BL's twenty
+  eight rows records a duration, and the six-row version invented four. Twenty eight invented
+  numbers standing where the source is uniformly silent is the value made up to fill a tile that
+  the provenance seam exists to prevent.
+- **`sessions_scheduled` on a Cohort was a statement about the picture.** It was the number of
+  session tiles drawn, so every one of the seven answered "six" to the question of how many
+  sessions the cohort holds. It is now the syllabus total with the drawn count beside it, flagged
+  `estimated` because one delivery per syllabus row is an inference and not a reading.
+- **`sessions_taught` on an instructor is refused when it disagrees with the edges.** It is a
+  count of that route's `teaches` edges, typed beside the person while the edges are declared
+  under the sessions, which was readable at six sessions and is not at twenty eight.
+- **A tall lane stays one column, and both designs were built and measured before that was
+  decided.** Z-BL is 1230x2578 against 1622x1382 wrapped. The wrap frames 1.87 times the scale at
+  fit, and costs: all seven views a third wider for a wrap two of them need, 99 of 132 edges
+  joining neighbours down to 56, one arc up to 33, verb chip overlaps 1 at 0.1px up to 4 at 0.9px,
+  and a second column with no meaning to give beyond the length of the list. The scale at fit is
+  the one of those a reader has a control for, which is what #46 built the plane for. The table
+  is in the header of `build/bands.py`.
+
 ### Fixed
 
 - A Strategy Consulting session template was labelled with a venue and a start time, so the

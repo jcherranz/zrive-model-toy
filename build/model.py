@@ -9,6 +9,10 @@ import hashlib
 import math
 import pathlib
 import re
+# Every line this file prints goes to stderr, and that is not a style choice. stdout is the
+# palette table `--contrast` emits, scripts/check_repo.sh parses it field by field, and a
+# diagnostic printed beside it aborts that gate with a complaint about the table.
+import sys
 
 TYPES = [
     # key,             label,               colour,    glyph
@@ -1061,6 +1065,42 @@ def cohort_roster(headcount, offset):
 # An empty teacher tuple is a session with nobody assigned, which is a real and common shape.
 SYLLABUS = ("real, from the programme syllabus", E)
 WEBSITE = ("real, published on the company website", E)
+# One template on Z-BL carries this instead of its route's own title provenance, because its
+# label is not the syllabus string: the firm the row names is withheld. A per template override
+# and not a per route one, so the tile that is not verbatim is the only tile that says so.
+WITHHELD_FIRM = {
+    "title_provenance": ("real, with the firm withheld by the name gate", D),
+    "note": ("The syllabus row for this session names the law firm being visited. Its first "
+             "token is also a real teacher's surname in the register the name gate holds, so "
+             "the gate refuses the string, and it is right to: the comparison folds accents and "
+             "case and cannot tell a firm named after a person from the person. The name is "
+             "withheld rather than replaced with another firm's. Replacing it would have put a "
+             "visit this programme did not make on a named third party, which is a fact invented "
+             "to tidy a tile; withholding it says exactly what is known, that the session is a "
+             "visit to a law firm. The next session template along keeps its firm, because the "
+             "gate does not refuse that one."),
+}
+
+# ---- how many sessions each programme actually has ---------------------------
+# Issue 83. The drawing shows a sample of the syllabus on five of the seven routes and used to
+# say nothing about it, so a reader comparing a six tile column with a twenty eight tile column
+# would have read a difference in programme size that the data does not carry. The band caption
+# now states the sample, and it is written from these numbers rather than typed into the
+# caption.
+#
+# WHY THE NUMBER IS DECLARED HERE AND NOT COUNTED AT BUILD TIME. The syllabi live in a private
+# vault on one machine. The build runs in CI, where that vault does not exist, and a build that
+# reads it would either fail there or silently produce a different drawing, which is the one
+# thing site/instance.js and site/layout.js may never do. So the count is read once, by hand,
+# and written once, here: one place, feeding the Programme tile, the Cohort tile and the two
+# band captions, none of which can now disagree with each other.
+#
+# AND IT IS NOT LEFT ON TRUST. check_syllabus_counts() below re-counts the folders on any
+# machine that has the vault and refuses the build if a number here has drifted, and says out
+# loud when it could not check rather than passing in silence.
+SYLLABUS_DIR = pathlib.Path.home() / "Obsidian/02_areas/zrive/02_areas/20_academic/syllabi"
+SYLLABUS_SESSIONS = {"ZIB": 79, "ZCFA": 45, "ZPE": 36, "ZBL": 28, "ZSC": 25, "ZHR": 25, "ZDS": 22}
+SYLLABUS_COUNTED_ON = "2026-08-11"
 
 # The selection rule that picked the six templates on each route is written out in the research
 # spec and is not re-derived here; what matters to the model is that it is the same rule on all
@@ -1115,15 +1155,58 @@ PROGRAMMES = [
         "key": "ZSC", "pfx": "sc_", "code": "Z-SC", "name": "Strategy Consulting",
         "delivery": ("online, with two in person weekends", E),
         "title_provenance": SYLLABUS,
+        # ISSUE 83. Twenty five rows and not six, which is the whole syllabus. Every label is
+        # `name_norm` where the vault's two title fields diverge and `title_raw` where they do
+        # not, which is issue 78's finding applied to the whole route rather than to the one row
+        # that made it visible: `title_raw` is the published calendar string and carries a venue,
+        # a clock, a leading space, a doubled space or an editorial "(NEW)" on six of these
+        # twenty five, and every one of those is a property of a DELIVERY or of the spreadsheet.
+        # sc_st23 is the row issue 78 found, and it is now one of six rather than a special case.
+        #
+        # DURATION IS READ OFF THE SOURCE AND ITS ABSENCE IS WRITTEN AS ONE. Twenty one of these
+        # rows record ninety minutes and one records a hundred and twenty; the other three record
+        # nothing, and they now say so. The six-row version invented a duration for sc_st1 and
+        # for the presencial row, which at six rows was filler and at twenty five would have been
+        # a column of made up numbers on a route where the source is explicit.
         "templates": [
             ("sc_st1", "Welcome to Zrive Strategy Consulting + Q&A SC", "ZSC-T1", "sync",
-             "online", "90"),
+             "online", None),
             ("sc_st2", "Overview of the consulting industry", "ZSC-T2", "sync", "online", "90"),
-            ("sc_st3", "How to prepare for FIT interview questions", "ZSC-T3", "sync",
+            ("sc_st3", "Day-to-day of a junior consultant", "ZSC-T3", "sync", "online", "90"),
+            ("sc_st4", "How to prepare for FIT interview questions", "ZSC-T4", "sync", "online",
+             "90"),
+            ("sc_st5", "How to prepare for the Interview Business Case (I)", "ZSC-T5", "sync",
              "online", "90"),
-            ("sc_st4", "Business Case - Group Practice (I) - Profitability", "ZSC-T4", "sync",
+            ("sc_st6", "How to prepare for the Interview Business Case (II)", "ZSC-T6", "sync",
              "online", "90"),
-            ("sc_st5", "Real Projects: TMT", "ZSC-T5", "sync", "online", "90"),
+            ("sc_st7", "Business Case - Group Practice (I) - Profitability", "ZSC-T7", "sync",
+             "online", "90"),
+            ("sc_st8", "Business Case - Group Practice (II) - Market Sizing", "ZSC-T8", "sync",
+             "online", "90"),
+            ("sc_st9", "Business Case (III) - Finance/ Comercial Due Diligence", "ZSC-T9", "sync",
+             "online", "90"),
+            ("sc_st10", "Business Case - Group Practice (III) - Comercial Due Diligence",
+             "ZSC-T10", "sync", "online", "90"),
+            ("sc_st11", "Business Case - Group Practice (IV) - Business Transformations",
+             "ZSC-T11", "sync", "online", "90"),
+            ("sc_st12", "Business Case - Group Practice (V) - M&A", "ZSC-T12", "sync", "online",
+             "90"),
+            ("sc_st13", "Business Case - Group Practice (VI) - New market entry", "ZSC-T13",
+             "sync", "online", "90"),
+            ("sc_st14", "Business Case - Group Practice (VII) - Private Equity / Due Diligence",
+             "ZSC-T14", "sync", "online", "90"),
+            ("sc_st15", "Real Projects: TMT", "ZSC-T15", "sync", "online", "90"),
+            ("sc_st16", "Storylining - What it is and why it matters & Case Studies", "ZSC-T16",
+             "sync", "online", "90"),
+            ("sc_st17", "Real projects: Consumo. Implementar Plan Estratégico", "ZSC-T17", "sync",
+             "online", "90"),
+            ("sc_st18", "Storylining II - What it is and why it matters & Case Studies",
+             "ZSC-T18", "sync", "online", "90"),
+            ("sc_st19", "Real projects: Retail", "ZSC-T19", "sync", "online", "90"),
+            ("sc_st20", "Real Projects: pricing", "ZSC-T20", "sync", "online", "90"),
+            ("sc_st21", "Career path & exit opportunities in strategy consulting", "ZSC-T21",
+             "sync", "online", "90"),
+            ("sc_st22", "Visita BCG", "ZSC-T22", "sync", "presencial", None),
             # ISSUE 78, and the finding is about the source and not only about this row. This
             # template used to be labelled with the syllabus string verbatim, leading space and
             # all: a venue, ATTICO, then a start time, then the subject. A venue and a start time
@@ -1137,11 +1220,12 @@ PROGRAMMES = [
             # THE SOURCE CONFLATES THE TWO, and the vault says so in its own frontmatter rather
             # than by inference. The syllabus note ZSC-T0023 carries two title fields: `title_raw`,
             # which is the published row with the venue and the clock on it, and `name_norm`,
-            # which is the subject on its own. On the other five ZSC rows drawn here the two
-            # fields hold the same string; on this one they diverge. So the normalisation the
-            # source itself performs is the fix, and the label below is `name_norm` verbatim.
+            # which is the subject on its own. On nineteen of the twenty five ZSC rows the two
+            # fields hold the same string; on six of them they diverge, and this is the one where
+            # the divergence is a venue and a clock. So the normalisation the source itself
+            # performs is the fix, and the label below is `name_norm` verbatim.
             #
-            # WHERE THE VENUE AND THE TIME WENT. The time is on the delivery already: sc_cs6 is
+            # WHERE THE VENUE AND THE TIME WENT. The time is on the delivery already: sc_cs23 is
             # `instance of` this template and carries scheduled_at. It reads 10:00 and not 10.15,
             # because every date and clock on a cohort session in this toy is invented and lining
             # one of them up with a real syllabus row would make a half real datum out of an
@@ -1150,31 +1234,76 @@ PROGRAMMES = [
             # location_mode `presencial` on this template, which is the template-level truth the
             # venue implied. Adding a venue to one invented delivery would be a fact made up to
             # tidy the picture.
-            ("sc_st6", "All you need to know about recruiting in Strategy Consulting",
-             "ZSC-T6", "sync", "presencial", "120"),
+            ("sc_st23", "All you need to know about recruiting in Strategy Consulting", "ZSC-T23",
+             "sync", "presencial", None),
+            ("sc_st24", "Visita Consultora (TBC)", "ZSC-T24", "sync", "presencial", None),
+            ("sc_st25", "Mock interviews", "ZSC-T25", "sync", "presencial", "120"),
         ],
         "instructors": [
-            ("t4", "Rubén Arizmendi", ZRIVE, "1", "Z-IB, Z-PE, Z-SC"),
-            ("t6", "Ainhoa Muruzabal", ZRIVE, "1", "Z-SC, Z-HR"),
-            ("t8", "Nagore Elordieta", "co_emp3", "1", None),
-            ("t9", "Telmo Garaikoetxea", None, "1", None),
-            ("t10", "Saioa Erkoreka", "co_emp", "1", None),
-            ("t11", "Ander Legarralde", "co_fide", "1", None),
-            ("t12", "Miren Aitzgorri", "co_emp", "1", None),
+            ("t4", "Rubén Arizmendi", ZRIVE, "3", "Z-IB, Z-PE, Z-SC"),
+            ("t6", "Ainhoa Muruzabal", ZRIVE, "4", "Z-SC, Z-HR"),
+            ("t8", "Nagore Elordieta", "co_emp3", "3", None),
+            ("t9", "Telmo Garaikoetxea", None, "3", None),
+            ("t10", "Saioa Erkoreka", "co_emp", "3", None),
+            ("t11", "Ander Legarralde", "co_fide", "4", None),
+            ("t12", "Miren Aitzgorri", "co_emp", "5", None),
         ],
+        # One delivery per template, weekly on a Tuesday for the twenty one online rows and then
+        # two presencial weekends, which is the shape the six-row version already drew. Every
+        # date, clock, state and attendance figure here is invented. Each instructor holds a
+        # CONTIGUOUS run of sessions rather than a scattered set: the layout orders a column by
+        # the barycentre of its neighbours, so a contiguous run puts the instructor beside the
+        # middle of its own block and its edges fan out short, where a scattered set would drag
+        # one tile up and down a column that is now twenty five tiles tall.
         "sessions": [
             ("sc_cs1", "Sesión 1, 13 ene", "sc_st1", ("t4", "t6"), "2026-01-13 18:30",
              "delivered", "22"),
-            ("sc_cs2", "Sesión 2, 20 ene", "sc_st2", ("t8",), "2026-01-20 18:30",
-             "delivered", "21"),
-            ("sc_cs3", "Sesión 3, 27 ene", "sc_st3", ("t9",), "2026-01-27 18:30",
-             "delivered", "20"),
-            ("sc_cs4", "Sesión 4, 3 feb", "sc_st4", ("t10",), "2026-02-03 18:30",
-             "confirmed", "0"),
-            ("sc_cs5", "Sesión 5, 10 feb", "sc_st5", ("t11",), "2026-02-10 18:30",
-             "confirmed", "0"),
-            ("sc_cs6", "Sesión 6, 21 mar", "sc_st6", ("t12",), "2026-03-21 10:00",
-             "planned", "0"),
+            ("sc_cs2", "Sesión 2, 20 ene", "sc_st2", ("t4",), "2026-01-20 18:30", "delivered",
+             "21"),
+            ("sc_cs3", "Sesión 3, 27 ene", "sc_st3", ("t4",), "2026-01-27 18:30", "delivered",
+             "20"),
+            ("sc_cs4", "Sesión 4, 3 feb", "sc_st4", ("t6",), "2026-02-03 18:30", "confirmed", "0"),
+            ("sc_cs5", "Sesión 5, 10 feb", "sc_st5", ("t6",), "2026-02-10 18:30", "confirmed",
+             "0"),
+            ("sc_cs6", "Sesión 6, 17 feb", "sc_st6", ("t6",), "2026-02-17 18:30", "planned", "0"),
+            ("sc_cs7", "Sesión 7, 24 feb", "sc_st7", ("t8",), "2026-02-24 18:30", "planned", "0"),
+            ("sc_cs8", "Sesión 8, 3 mar", "sc_st8", ("t8",), "2026-03-03 18:30", "planned", "0"),
+            ("sc_cs9", "Sesión 9, 10 mar", "sc_st9", ("t8",), "2026-03-10 18:30", "planned", "0"),
+            ("sc_cs10", "Sesión 10, 17 mar", "sc_st10", ("t9",), "2026-03-17 18:30", "planned",
+             "0"),
+            ("sc_cs11", "Sesión 11, 24 mar", "sc_st11", ("t9",), "2026-03-24 18:30", "planned",
+             "0"),
+            ("sc_cs12", "Sesión 12, 31 mar", "sc_st12", ("t9",), "2026-03-31 18:30", "planned",
+             "0"),
+            ("sc_cs13", "Sesión 13, 7 abr", "sc_st13", ("t10",), "2026-04-07 18:30", "planned",
+             "0"),
+            ("sc_cs14", "Sesión 14, 14 abr", "sc_st14", ("t10",), "2026-04-14 18:30", "planned",
+             "0"),
+            ("sc_cs15", "Sesión 15, 21 abr", "sc_st15", ("t10",), "2026-04-21 18:30", "planned",
+             "0"),
+            ("sc_cs16", "Sesión 16, 28 abr", "sc_st16", ("t11",), "2026-04-28 18:30", "planned",
+             "0"),
+            ("sc_cs17", "Sesión 17, 5 may", "sc_st17", ("t11",), "2026-05-05 18:30", "planned",
+             "0"),
+            ("sc_cs18", "Sesión 18, 12 may", "sc_st18", ("t11",), "2026-05-12 18:30", "planned",
+             "0"),
+            ("sc_cs19", "Sesión 19, 19 may", "sc_st19", ("t11",), "2026-05-19 18:30", "planned",
+             "0"),
+            ("sc_cs20", "Sesión 20, 26 may", "sc_st20", ("t12",), "2026-05-26 18:30", "planned",
+             "0"),
+            ("sc_cs21", "Sesión 21, 2 jun", "sc_st21", ("t12",), "2026-06-02 18:30", "planned",
+             "0"),
+            ("sc_cs22", "Sesión 22, 13 jun", "sc_st22", ("t12",), "2026-06-13 10:00", "planned",
+             "0"),
+            ("sc_cs23", "Sesión 23, 14 jun", "sc_st23", ("t12",), "2026-06-14 10:00", "planned",
+             "0"),
+            # Nobody assigned, and it is the one on the route whose template is `Visita
+            # Consultora (TBC)`. A session with no teacher is a real and common shape and the
+            # toy has carried it only on Z-CFA, where no instructor exists at all; here it sits
+            # beside twenty four sessions that do have one, which is where the shape reads.
+            ("sc_cs24", "Sesión 24, 20 jun", "sc_st24", (), "2026-06-20 10:00", "planned", "0"),
+            ("sc_cs25", "Sesión 25, 21 jun", "sc_st25", ("t12",), "2026-06-21 10:00", "planned",
+             "0"),
         ],
         "host": ("sc_co_col", "Belagua Advisory"),
         "intake": "1Q26", "starts_on": "2026-01-13",
@@ -1185,42 +1314,135 @@ PROGRAMMES = [
         "key": "ZBL", "pfx": "bl_", "code": "Z-BL", "name": "Big Law",
         "delivery": ("online, with two in person weekends", E),
         "title_provenance": SYLLABUS,
-        # Every duration on this route is invented: not one of Z-BL's twenty eight real rows
-        # carries a duration at all.
+        # ISSUE 83. Twenty eight rows and not six, which is the whole syllabus.
+        #
+        # NOT ONE OF THE TWENTY EIGHT REAL ROWS CARRIES A DURATION, so not one of these does
+        # either. The six-row version invented four different ones. At six rows that was filler
+        # in a column nobody would total; at twenty eight it would be twenty eight made up
+        # numbers standing where the source is uniformly silent, which is the value made up to
+        # fill a tile that the provenance seam exists to prevent. The absence is now written as
+        # an absence, once per row.
+        #
+        # THE LABELS ARE `name_norm` WHERE THE VAULT'S TWO TITLE FIELDS DIVERGE, which is issue
+        # 78's finding applied to a whole route. Seventeen of these rows carry a `title_raw`
+        # that is a calendar string rather than a subject: sixteen of them are prefixed "Áreas
+        # de Práctica →", which is the module heading and not the session, and one carries a
+        # "Presentación //" that belongs to the first delivery and not to the template.
         "templates": [
-            ("bl_st1", "Presentación // ¿Qué salidas profesionales existen en el mundo del "
-             "Derecho?", "ZBL-T1", "sync", "online", "90"),
-            ("bl_st2", "¿Como preparar procesos de selección?", "ZBL-T2", "sync", "online", "90"),
-            ("bl_st3", "Áreas de Práctica → Corporate and M&A I", "ZBL-T3", "sync",
-             "online", "90"),
-            ("bl_st4", "Oratoria I", "ZBL-T4", "sync", "online", "90"),
-            ("bl_st5", "Recruiting Superday", "ZBL-T5", "sync", "presencial", "240"),
-            ("bl_st6", "Oratoria III", "ZBL-T6", "sync", "presencial", "120"),
+            ("bl_st1", "¿Qué salidas profesionales existen en el mundo del Derecho?", "ZBL-T1",
+             "sync", "online", None),
+            ("bl_st2", "¿Como preparar procesos de selección?", "ZBL-T2", "sync", "online", None),
+            ("bl_st3", "Másteres & becas", "ZBL-T3", "sync", "online", None),
+            ("bl_st4", "Corporate and M&A I", "ZBL-T4", "sync", "online", None),
+            ("bl_st5", "Corporate and M&A II", "ZBL-T5", "sync", "online", None),
+            ("bl_st6", "Restructuring I", "ZBL-T6", "sync", "online", None),
+            ("bl_st7", "Restructuring II", "ZBL-T7", "sync", "online", None),
+            ("bl_st8", "Litigation I", "ZBL-T8", "sync", "online", None),
+            ("bl_st9", "Litigation II", "ZBL-T9", "sync", "online", None),
+            ("bl_st10", "Capital Markets, Banking & Finance I", "ZBL-T10", "sync", "online", None),
+            ("bl_st11", "Capital Markets, Banking & Finance II", "ZBL-T11", "sync", "online",
+             None),
+            ("bl_st12", "Tax I", "ZBL-T12", "sync", "online", None),
+            ("bl_st13", "Tax II", "ZBL-T13", "sync", "online", None),
+            ("bl_st14", "Público", "ZBL-T14", "sync", "online", None),
+            ("bl_st15", "Startups", "ZBL-T15", "sync", "online", None),
+            ("bl_st16", "IP & Nuevas tecnologías", "ZBL-T16", "sync", "online", None),
+            ("bl_st17", "Derecho Laboral", "ZBL-T17", "sync", "online", None),
+            ("bl_st18", "Real Estate", "ZBL-T18", "sync", "online", None),
+            ("bl_st19", "Oratoria I", "ZBL-T19", "sync", "online", None),
+            ("bl_st20", "Oratoria II", "ZBL-T20", "sync", "online", None),
+            ("bl_st21", "Deep Dive: Contratos", "ZBL-T21", "sync", "online", None),
+            ("bl_st22", "Deep Dive: Due Diligence", "ZBL-T22", "sync", "online", None),
+            # THE FIRM IS WITHHELD AND IT IS NOT SWAPPED. The real row names a law firm whose
+            # first token is also a real teacher's surname in the register, so the name gate
+            # refuses the string and is right to: the folding cannot tell a firm named after a
+            # person from the person. Two fixes were available and only one of them invents
+            # nothing. Substituting another real firm, which is what t17's employer row below
+            # does, would have put a visit this programme did not make on a named third party;
+            # withholding says exactly what is known, that the visit is to a law firm, and the
+            # row beside it says why the name is not there. bl_st24 keeps its firm because the
+            # gate does not refuse it.
+            ("bl_st23", "Visita a despacho", "ZBL-T23", "sync", "presencial", None, WITHHELD_FIRM),
+            ("bl_st24", "Visita a Uría", "ZBL-T24", "sync", "presencial", None),
+            ("bl_st25", "Recruiting Superday", "ZBL-T25", "sync", "presencial", None),
+            ("bl_st26", "Despacho 1", "ZBL-T26", "sync", "presencial", None),
+            ("bl_st27", "Despacho 2", "ZBL-T27", "sync", "presencial", None),
+            ("bl_st28", "Oratoria III", "ZBL-T28", "sync", "presencial", None),
         ],
         # SUBSTITUTION, RECORDED. The real employer behind the two sessions t17 holds is a firm
         # whose first token is also a real teacher's surname, so the name gate refuses it and is
         # right to. t17 is given another real Z-BL employer from the same register instead.
         # Changing the name is the fix; weakening the gate is not.
         "instructors": [
-            ("t13", "Endika Zumeltzu", None, "1", None),
-            ("t14", "Oihana Belastegui", "co_emp5", "2", None),
-            ("t15", "Lide Arriotua", "co_emp5", "2", None),
-            ("t16", "Peru Zubizarreta", "co_latham", "1", None),
-            ("t17", "Estibaliz Onaindia", "co_baker", "2", None),
+            ("t13", "Endika Zumeltzu", None, "5", None),
+            ("t14", "Oihana Belastegui", "co_emp5", "6", None),
+            ("t15", "Lide Arriotua", "co_emp5", "6", None),
+            ("t16", "Peru Zubizarreta", "co_latham", "6", None),
+            ("t17", "Estibaliz Onaindia", "co_baker", "6", None),
         ],
+        # One delivery per template, weekly on a Wednesday for the twenty two online rows and
+        # then three presencial weekends for the six that are not. Every date, clock, state and
+        # attendance figure is invented, and each instructor holds a contiguous run of sessions
+        # for the barycentre reason written on the Z-SC list above.
         "sessions": [
-            ("bl_cs1", "Sesión 1, 14 ene", "bl_st1", ("t13",), "2026-01-14 18:30",
-             "delivered", "19"),
-            ("bl_cs2", "Sesión 2, 21 ene", "bl_st2", ("t14", "t15"), "2026-01-21 18:30",
-             "delivered", "18"),
-            ("bl_cs3", "Sesión 3, 28 ene", "bl_st3", ("t16",), "2026-01-28 18:30",
-             "delivered", "18"),
-            ("bl_cs4", "Sesión 4, 4 feb", "bl_st4", ("t17",), "2026-02-04 18:30",
-             "confirmed", "0"),
-            ("bl_cs5", "Sesión 5, 14 mar", "bl_st5", ("t14", "t15"), "2026-03-14 10:00",
+            ("bl_cs1", "Sesión 1, 14 ene", "bl_st1", ("t13",), "2026-01-14 18:30", "delivered",
+             "19"),
+            ("bl_cs2", "Sesión 2, 21 ene", "bl_st2", ("t13",), "2026-01-21 18:30", "delivered",
+             "18"),
+            ("bl_cs3", "Sesión 3, 28 ene", "bl_st3", ("t13",), "2026-01-28 18:30", "delivered",
+             "18"),
+            ("bl_cs4", "Sesión 4, 4 feb", "bl_st4", ("t13",), "2026-02-04 18:30", "confirmed",
+             "0"),
+            ("bl_cs5", "Sesión 5, 11 feb", "bl_st5", ("t13",), "2026-02-11 18:30", "confirmed",
+             "0"),
+            ("bl_cs6", "Sesión 6, 18 feb", "bl_st6", ("t14",), "2026-02-18 18:30", "planned",
+             "0"),
+            ("bl_cs7", "Sesión 7, 25 feb", "bl_st7", ("t14",), "2026-02-25 18:30", "planned",
+             "0"),
+            ("bl_cs8", "Sesión 8, 4 mar", "bl_st8", ("t14",), "2026-03-04 18:30", "planned", "0"),
+            ("bl_cs9", "Sesión 9, 11 mar", "bl_st9", ("t14",), "2026-03-11 18:30", "planned",
+             "0"),
+            ("bl_cs10", "Sesión 10, 18 mar", "bl_st10", ("t14",), "2026-03-18 18:30", "planned",
+             "0"),
+            ("bl_cs11", "Sesión 11, 25 mar", "bl_st11", ("t14",), "2026-03-25 18:30", "planned",
+             "0"),
+            ("bl_cs12", "Sesión 12, 1 abr", "bl_st12", ("t15",), "2026-04-01 18:30", "planned",
+             "0"),
+            ("bl_cs13", "Sesión 13, 8 abr", "bl_st13", ("t15",), "2026-04-08 18:30", "planned",
+             "0"),
+            ("bl_cs14", "Sesión 14, 15 abr", "bl_st14", ("t15",), "2026-04-15 18:30", "planned",
+             "0"),
+            ("bl_cs15", "Sesión 15, 22 abr", "bl_st15", ("t15",), "2026-04-22 18:30", "planned",
+             "0"),
+            ("bl_cs16", "Sesión 16, 29 abr", "bl_st16", ("t15",), "2026-04-29 18:30", "planned",
+             "0"),
+            ("bl_cs17", "Sesión 17, 6 may", "bl_st17", ("t15",), "2026-05-06 18:30", "planned",
+             "0"),
+            ("bl_cs18", "Sesión 18, 13 may", "bl_st18", ("t16",), "2026-05-13 18:30", "planned",
+             "0"),
+            ("bl_cs19", "Sesión 19, 20 may", "bl_st19", ("t16",), "2026-05-20 18:30", "planned",
+             "0"),
+            ("bl_cs20", "Sesión 20, 27 may", "bl_st20", ("t16",), "2026-05-27 18:30", "planned",
+             "0"),
+            ("bl_cs21", "Sesión 21, 3 jun", "bl_st21", ("t16",), "2026-06-03 18:30", "planned",
+             "0"),
+            ("bl_cs22", "Sesión 22, 10 jun", "bl_st22", ("t16",), "2026-06-10 18:30", "planned",
+             "0"),
+            ("bl_cs23", "Sesión 23, 13 jun", "bl_st23", ("t17",), "2026-06-13 10:00", "planned",
+             "0"),
+            ("bl_cs24", "Sesión 24, 14 jun", "bl_st24", ("t17",), "2026-06-14 10:00", "planned",
+             "0"),
+            # Two teachers on one delivery, which the six-row version carried and which is a
+            # shape the model has to keep: `teaches` is many to many and a route on which every
+            # session has exactly one teacher would not show it.
+            ("bl_cs25", "Sesión 25, 20 jun", "bl_st25", ("t17", "t16"), "2026-06-20 10:00",
              "planned", "0"),
-            ("bl_cs6", "Sesión 6, 15 mar", "bl_st6", ("t17",), "2026-03-15 10:00",
-             "planned", "0"),
+            ("bl_cs26", "Sesión 26, 21 jun", "bl_st26", ("t17",), "2026-06-21 10:00", "planned",
+             "0"),
+            ("bl_cs27", "Sesión 27, 27 jun", "bl_st27", ("t17",), "2026-06-27 10:00", "planned",
+             "0"),
+            ("bl_cs28", "Sesión 28, 28 jun", "bl_st28", ("t17",), "2026-06-28 10:00", "planned",
+             "0"),
         ],
         "host": ("bl_co_col", "Ordunte Abogados"),
         "intake": "1Q26", "starts_on": "2026-01-14",
@@ -1524,10 +1746,63 @@ def company_node(cid, supplied):
     }
 
 
+def sample_phrase(drawn, total, noun):
+    """"6 of 22 <noun>" while a drawing shows a sample, "all 28 <noun>" once it shows the lot.
+
+    ONE FORMATTER, and that is the point of it. The Programme tile, the Cohort tile and the two
+    band captions all say how much of the syllabus is on screen, and three of those four are on
+    the drawing at the same time; three copies of the sentence is three chances for a view to
+    claim "all" in a caption and "6 of 22" in a panel.
+
+    It refuses a sample larger than its population rather than writing "28 of 25". That string
+    would read as a typo in the drawing and would in fact be a wrong number in the model.
+    """
+    if drawn > total:
+        raise SystemExit(f"model: {drawn} {noun} are drawn out of a declared {total}. Either the "
+                         f"declared total is wrong or the route carries a row the syllabus does "
+                         f"not.")
+    return f"all {total} {noun}" if drawn == total else f"{drawn} of {total} {noun}"
+
+
+def check_syllabus_counts():
+    """Re-count the syllabus folders wherever they exist, and say which of the two happened.
+
+    A gate that cannot run on a machine has to say so out loud. This one runs on the machine
+    that holds the vault and cannot run in CI, and a silent skip there would read exactly like a
+    pass; HANSEI.md `2026-08-empty-input-reported-success` is the same failure in another gate.
+    """
+    keys = {s["key"] for s in PROGRAMMES}
+    if keys != set(SYLLABUS_SESSIONS):
+        raise SystemExit(f"model: SYLLABUS_SESSIONS declares "
+                         f"{', '.join(sorted(set(SYLLABUS_SESSIONS) - keys)) or 'nothing extra'} "
+                         f"that no programme uses, and misses "
+                         f"{', '.join(sorted(keys - set(SYLLABUS_SESSIONS))) or 'nothing'}.")
+    if not SYLLABUS_DIR.is_dir():
+        print(f"[model] syllabus totals: the vault is not on this machine, so the seven totals "
+              f"in SYLLABUS_SESSIONS are unverified here. They were counted on "
+              f"{SYLLABUS_COUNTED_ON}.", file=sys.stderr)
+        return
+    bad = []
+    for key in sorted(SYLLABUS_SESSIONS):
+        folder = SYLLABUS_DIR / key
+        if not folder.is_dir():
+            bad.append(f"{key}: no syllabus folder")
+            continue
+        real = len(list(folder.glob("*.md")))
+        if real != SYLLABUS_SESSIONS[key]:
+            bad.append(f"{key}: declared {SYLLABUS_SESSIONS[key]}, the folder holds {real}")
+    if bad:
+        raise SystemExit("[model] the declared syllabus totals no longer match the vault, and "
+                         "the band captions are written from them:\n  " + "\n  ".join(bad))
+    print(f"[model] syllabus totals: all {len(SYLLABUS_SESSIONS)} agree with the syllabus "
+          f"folders on this machine, counted again just now", file=sys.stderr)
+
+
 def programme_block(spec):
     """The part of a drawing that is about one programme: prog, employers, host, templates,
     instructors and cohort sessions. Seven calls, one function, no branch on which programme."""
     pfx, nodes, edges = spec["pfx"], [], []
+    total = SYLLABUS_SESSIONS[spec["key"]]
     prog = pfx + "prog"
     prog_node = {
         "id": prog, "type": "Programme", "label": f"{spec['code']} {spec['name']}",
@@ -1535,7 +1810,11 @@ def programme_block(spec):
             p("programme_code", spec["code"], D),
             p("name", spec["name"], D),
             p("delivery", spec["delivery"][0], spec["delivery"][1]),
-            p("session_templates", "6 shown, of a longer syllabus", E),
+            # Issue 83. This row used to read "6 shown, of a longer syllabus" on all seven
+            # routes, which was true and unfalsifiable: it named neither how long the syllabus
+            # is nor, once two routes were expanded, whether this one is a sample at all.
+            p("session_templates", sample_phrase(len(spec["templates"]), total, "in the syllabus"),
+              E),
             p("owner", "academic team", E),
         ],
     }
@@ -1578,6 +1857,25 @@ def programme_block(spec):
             ],
         })
 
+    # Issue 83. sessions_taught is a count of the `teaches` edges this route draws for this
+    # instructor, and it was typed beside the instructor while the edges were declared under the
+    # sessions. That held while a route had six sessions and one could read both lists at once;
+    # at twenty eight it is a number nobody would recount, sitting on a tile a reader would
+    # believe. It is still written by hand, because it reads better beside the person than
+    # inferred from a scan, and it is now refused when it disagrees with the edges.
+    _teaches = {}
+    for _c in spec["sessions"]:
+        for _t in _c[3]:
+            _teaches[_t] = _teaches.get(_t, 0) + 1
+    for tid, _lab, _emp, taught, _pr in spec["instructors"]:
+        if str(_teaches.get(tid, 0)) != taught:
+            raise SystemExit(f"model: {spec['key']} says {tid} teaches {taught} session(s) and "
+                             f"the session list gives it {_teaches.get(tid, 0)}.")
+    _unknown = sorted(set(_teaches) - {_t[0] for _t in spec["instructors"]})
+    if _unknown:
+        raise SystemExit(f"model: {spec['key']} assigns {', '.join(_unknown)} to a session and "
+                         f"declares no such instructor.")
+
     for tid, label, emp, taught, progs in spec["instructors"]:
         props = [
             p("name", "invented", D),
@@ -1594,19 +1892,27 @@ def programme_block(spec):
         if emp:
             edges.append((tid, emp, "employed by"))
 
-    for sid, title, code, dmode, lmode, dur in spec["templates"]:
+    # A template row is six fields, and a seventh is allowed and is a dict of overrides. Only
+    # one row in the model carries it: the Z-BL visit whose firm the name gate withholds, whose
+    # label is therefore not the syllabus string and which has to say so on its own tile rather
+    # than under its route's title provenance. A dict and not two more positional fields,
+    # because the next override will not be the same one.
+    for tpl in spec["templates"]:
+        sid, title, code, dmode, lmode, dur = tpl[:6]
+        over = tpl[6] if len(tpl) > 6 else {}
+        prov = over.get("title_provenance", spec["title_provenance"])
         node = {
             "id": sid, "type": "SessionTemplate", "label": title,
             "props": [
-                p("title", spec["title_provenance"][0], spec["title_provenance"][1]),
+                p("title", prov[0], prov[1]),
                 p("template_code", code, D),
                 p("delivery_mode", dmode, D) if dmode else p("delivery_mode", NOT_RECORDED, A),
                 p("location_mode", lmode, D) if lmode else p("location_mode", NOT_RECORDED, A),
                 p("duration_min", dur, D) if dur else p("duration_min", NOT_RECORDED, A),
             ],
         }
-        if spec.get("template_note"):
-            node["note"] = spec["template_note"]
+        if over.get("note") or spec.get("template_note"):
+            node["note"] = over.get("note") or spec["template_note"]
         nodes.append(node)
         edges.append((prog, sid, "includes"))
 
@@ -1644,6 +1950,7 @@ def tail_block(spec):
     """The part of a drawing that is not about a programme: the cohort, the students card, the
     four drawn Students, the enrolment to claim chain and the four ghosts. Fourteen nodes."""
     pfx = spec["pfx"]
+    total = SYLLABUS_SESSIONS[spec["key"]]
     cohort, students = pfx + "cohort", pfx + "students"
     enrol, agree = pfx + "enrol", pfx + "agree"
     charge, claim = pfx + "charge", pfx + "claim"
@@ -1666,7 +1973,15 @@ def tail_block(spec):
                 p("cohort_id", "no identifier in any system", A),
                 p("intake", spec["intake"], D),
                 p("starts_on", spec["starts_on"], D),
-                p("sessions_scheduled", str(len(spec["sessions"])), D),
+                # Issue 83. This used to be the number of session tiles the drawing carries,
+                # which made it a statement about the picture wearing the clothes of a statement
+                # about the cohort: a reader asking how many sessions this cohort holds got the
+                # answer six on every one of the seven routes. A cohort holds one delivery per
+                # syllabus row, so the total is the syllabus total, and it is `estimated` and
+                # not `dummy` because that one-per-row correspondence is an inference from the
+                # syllabus rather than a number read out of any system.
+                p("sessions_scheduled",
+                  sample_phrase(len(spec["sessions"]), total, "drawn"), E),
                 p("students_enrolled", str(head), D),
             ],
         },
@@ -1811,6 +2126,7 @@ def tail_block(spec):
 
 
 # ---- assemble the seven -----------------------------------------------------
+check_syllabus_counts()
 VIEWS = []
 for _spec in PROGRAMMES:
     if "roster" not in _spec:
@@ -1824,6 +2140,21 @@ for _spec in PROGRAMMES:
         "key": _spec["key"], "code": _spec["code"], "name": _spec["name"],
         "label": f"{_spec['code']} {_spec['name']}",
         "nodes": _pn + _tn, "edges": _pe + _te, "roster": _roster,
+        # ---- how much of the syllabus this view draws, issue 83 -----------------------------
+        # `drawn` is counted off the nodes that were just built and never declared, so a view
+        # cannot state a sample it does not draw. `total` is the one declared number, and it is
+        # the same one the Programme and Cohort tiles above are written from. It sits in the
+        # instance document rather than in the layout because how much of a thing a document
+        # holds is a fact about the document; what the band caption then says about it is the
+        # layout's own sentence, in build/build_layout.py.
+        "counts": {
+            "SessionTemplate": {
+                "drawn": sum(1 for _n in _pn if _n["type"] == "SessionTemplate"),
+                "total": SYLLABUS_SESSIONS[_spec["key"]]},
+            "CohortSession": {
+                "drawn": sum(1 for _n in _pn if _n["type"] == "CohortSession"),
+                "total": SYLLABUS_SESSIONS[_spec["key"]]},
+        },
     })
 
 # One id may name a tile on more than one route, and it must be the same tile when it does: the
@@ -1990,6 +2321,48 @@ for _v in VIEWS:
                  for _r in _v["roster"]["rows"]
                  for _f in ("name", "uni", "state", "source_system", "source_key")]
 _check_names(_strings)
+
+
+# ---- a session template is not a session, and the source does not agree ------
+# Issue 78 found one Z-SC template labelled with a venue and a start time, which are properties
+# of a DELIVERY. Issue 83 then took the same two routes from six rows to twenty eight and twenty
+# five, drawing fifty three rows of a source that carries at least six more of the same kind of
+# string, and the reasoning that caught the first one was a reading somebody did once. So it is a
+# gate.
+#
+# THREE MARKS, AND EACH IS A DELIVERY IN DISGUISE. A clock says when this one ran. An `@` says
+# where. A date says which occurrence. A template has none of the three, and the tile carrying
+# one would be sitting on the template side of the split that this whole drawing exists to
+# demonstrate. The cohort session beside it is where all three belong, and `scheduled_at` on it
+# already holds two of them.
+#
+# It reads the emitted labels rather than the declaration, so a string arriving through an
+# override or through some later route into a label meets the same rule.
+_TEMPLATE_INSTANCE_MARKS = (
+    (re.compile(r"\d{1,2}[.:]\d{2}\s*h?\b"), "a clock time"),
+    (re.compile(r"@"), "an @ venue"),
+    (re.compile(r"\b\d{1,2}[/-]\d{1,2}([/-]\d{2,4})?\b"), "a date"),
+    (re.compile(r"\b\d{1,2}\s+(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)\b", re.I),
+     "a date"),
+)
+_instance_like = []
+for _v in VIEWS:
+    for _n in _v["nodes"]:
+        if _n["type"] != "SessionTemplate":
+            continue
+        for _rx, _what in _TEMPLATE_INSTANCE_MARKS:
+            if _rx.search(_n["label"]):
+                _instance_like.append((f"{_v['key']} {_n['id']}", _what, _n["label"]))
+if _instance_like:
+    for _where, _what, _lab in _instance_like:
+        print(f"[model] {_where} is a session template labelled with {_what}: {_lab!r}")
+    raise SystemExit("[model] refusing to build a template that is really an instance. A clock, "
+                     "a venue and a date are properties of a delivery; the vault separates "
+                     "`title_raw` from `name_norm` for exactly this, and `name_norm` is the "
+                     "label to take.")
+_n_templates = sum(1 for _v in VIEWS for _n in _v["nodes"] if _n["type"] == "SessionTemplate")
+print(f"[model] session templates: {_n_templates} scanned, none carries a clock, an @ venue or "
+      f"a date", file=sys.stderr)
 
 # ---- the palette is a claim about a surface ---------------------------------
 # Each of the thirteen colours above is painted as a tile's stroke, at full opacity, and again
@@ -2838,6 +3211,7 @@ def instance_document():
                        "ghost": 1 if (_ghost_ids(v).intersection((s, t))) else None}
                       for s, t, verb in v["edges"]],
             "roster": v["roster"],
+            "counts": v["counts"],
         } for v in VIEWS],
     }
 
