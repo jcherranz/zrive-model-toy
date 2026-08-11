@@ -842,3 +842,156 @@ _strings += [(f"edge {_s}->{_t}", _v) for _s, _t, _v in EDGES]
 _strings += [(f"roster {_r['id']}", _r[_f])
              for _r in ROSTER_ROWS for _f in ("name", "uni", "state")]
 _check_names(_strings)
+
+# ---- the palette is a claim about a surface ---------------------------------
+# Each of the thirteen colours above is painted as a tile's stroke, at full opacity, and again
+# as a wash inside it: a 14 per cent tint of the same hex for twelve of them, and a fixed 7 per
+# cent literal of the same grey for the ghost. The stroke is the one that has to be legible on
+# its own, because it is the boundary of the tile and the tile is a control: it takes focus, it
+# takes a click, and it is what a reader picks a type out by.
+#
+# WHICH SURFACE THE STROKE SITS ON. Established by reading the drawing rather than chosen.
+# app.js draws one `rect.band` per lane before it draws anything else, `.band` is filled with an
+# opaque `var(--bg-panel)` in app.css, the bands span every column of the drawing and run from
+# `bandTop` to four units off the bottom, and every tile is laid out inside a lane. So a tile's
+# stroke sits on the band plate, in both themes, and never on the page ground. The two are
+# different colours and the difference is not cosmetic: it moves the verdict for three of the
+# twenty-six measurements, and in both directions, two colours passing on the plate that the
+# ground would fail and one failing that the ground would pass. The ground is measured as well
+# and reported for exactly that reason, and it is not the surface anything is judged against.
+#
+# The plate is read out of site/app.css through the custom property `.band` actually paints
+# with, not through a hex typed here. Painting the lanes from another token would then move this
+# measurement with them instead of leaving it measuring a surface the page no longer has, and a
+# token that stops resolving to two values stops the build rather than defaulting to one.
+#
+# WHERE THE VERDICT IS. Not here. This file computes ratios; scripts/check_repo.sh holds the
+# threshold, the declared exceptions and the pass or fail, because it is the only one of the two
+# that CI runs on every push and every pull request. No workflow in this repository runs the
+# build at all: site/graph.js is committed and deployed as it stands. A gate that only ever runs
+# on the machine of whoever remembered to rebuild is not a gate.
+#
+# A TYPE MAY CARRY MORE THAN ONE COLOUR. Issue 56 proposes a second hex per type, chosen against
+# the dark plate, and leaves the light column untouched. Nothing here implements it. What is
+# here is the shape it lands in: the palette is asked for a colour PER GROUND rather than for a
+# colour, so filling the map below is the whole of the change on this side and the check does
+# not move.
+TYPE_COLOUR_DARK = {}
+
+# The two constants of the sRGB transfer function, written with a trailing zero. They are the
+# one shape scripts/check_repo.sh reads as a Spanish-grouped amount, a digit and a dot and
+# exactly three digits, and the repair for that is the number and never the rule. The values are
+# unchanged.
+_SRGB_OFFSET = 0.0550
+_SRGB_SCALE = 1.0550
+
+_CSS_PATH = pathlib.Path(__file__).resolve().parent.parent / "site" / "app.css"
+# The stylesheet's dark theme is one block and the whole theme, so a token's light value is its
+# definition before this line and its dark value is the one after it. Split on the block rather
+# than taking the first and second match in file order: the order is the thing that would be
+# quietly wrong if the block ever moved.
+_DARK_BLOCK = "@media (prefers-color-scheme: dark)"
+
+
+def relative_luminance(colour):
+    """WCAG 2.x relative luminance of an #rrggbb colour."""
+    ch = []
+    for i in (1, 3, 5):
+        c = int(colour[i:i + 2], 16) / 255
+        ch.append(c / 12.92 if c <= 0.03928 else ((c + _SRGB_OFFSET) / _SRGB_SCALE) ** 2.4)
+    return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2]
+
+
+def contrast_ratio(a, b):
+    """WCAG 2.x contrast ratio between two #rrggbb colours. Symmetric, 1 to 21."""
+    la, lb = relative_luminance(a), relative_luminance(b)
+    hi, lo = max(la, lb), min(la, lb)
+    return (hi + 0.05) / (lo + 0.05)
+
+
+def _css_text():
+    try:
+        return _CSS_PATH.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise SystemExit(f"model: cannot read {_CSS_PATH.name} ({exc}). The surfaces the type "
+                         f"colours are drawn on live there and cannot be guessed at.")
+
+
+def surface_token(selector, prop):
+    """The custom property a rule paints with, read from the stylesheet and never retyped."""
+    import re as _re
+    css = _css_text()
+    # [^}] cannot cross a closing brace, so this cannot read a declaration out of the next rule.
+    m = _re.search(_re.escape(selector) + r"\s*\{[^}]*?\b" + _re.escape(prop)
+                   + r"\s*:\s*var\((--[a-z0-9-]+)\)", css)
+    if not m:
+        raise SystemExit(f"model: app.css no longer paints {selector} with a custom property "
+                         f"for {prop}. The surface the type colours are measured against is "
+                         f"read from there and this check is now measuring nothing.")
+    return m.group(1)
+
+
+def surface_values(token):
+    """A custom property's two values, light and dark, from the one stylesheet that holds them."""
+    import re as _re
+    css = _css_text()
+    if _DARK_BLOCK not in css:
+        raise SystemExit("model: app.css no longer carries the dark theme block. The dark "
+                         "surface cannot be read and this check will not guess one.")
+    light_half, dark_half = css.split(_DARK_BLOCK, 1)
+    out = {}
+    for ground, half in (("light", light_half), ("dark", dark_half)):
+        found = _re.findall(_re.escape(token) + r"\s*:\s*(#[0-9a-fA-F]{6})\b", half)
+        if len(found) != 1:
+            raise SystemExit(f"model: {token} is defined {len(found)} time(s) in the {ground} "
+                             f"half of app.css and this check needs exactly one.")
+        out[ground] = found[0].lower()
+    return out
+
+
+def type_colour(key, colour, ground):
+    """The hex a type is painted in on one ground. One colour today, two the day 56 lands."""
+    if ground == "dark":
+        return TYPE_COLOUR_DARK.get(key, colour)
+    return colour
+
+
+def contrast_rows():
+    """One row per type per ground: what is painted, what it is painted on, and the ratio.
+
+    The plate is the gated surface. The ground is carried beside it because the two disagree,
+    and a check that quietly measured the more flattering of them would be worth nothing.
+    """
+    plate = surface_values(surface_token(".band", "fill"))
+    canvas = surface_values(surface_token("html, body", "background"))
+    rows = []
+    for key, label, colour, _glyph, _col in TYPES:
+        for ground in ("light", "dark"):
+            hexc = type_colour(key, colour, ground)
+            rows.append({"key": key, "label": label, "ground": ground, "hex": hexc,
+                         "plate": plate[ground], "ratio": contrast_ratio(hexc, plate[ground]),
+                         "canvas": canvas[ground],
+                         "canvas_ratio": contrast_ratio(hexc, canvas[ground])})
+    return rows
+
+
+def emit_contrast():
+    """The rows, pipe separated, for scripts/check_repo.sh to judge.
+
+    Four decimal places, and that is not decoration. Two would be readable and would put every
+    ratio in the shape the repository gate's money rule reads as a grouped amount, and rounding
+    to two before comparing would hand the threshold a hundredth of slack it was not argued for.
+    A fourth digit removes both: the printed figure is the compared figure, and the comparison
+    is exact.
+    """
+    for r in contrast_rows():
+        print(f"{r['key']}|{r['label']}|{r['ground']}|{r['hex']}|{r['plate']}|"
+              f"{r['ratio']:.4f}|{r['canvas']}|{r['canvas_ratio']:.4f}")
+
+
+if __name__ == "__main__":
+    import sys as _sys
+    if _sys.argv[1:] == ["--contrast"]:
+        emit_contrast()
+    else:
+        raise SystemExit("usage: model.py --contrast")

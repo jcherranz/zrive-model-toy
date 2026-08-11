@@ -157,6 +157,78 @@ FORBIDDEN_EXEMPT=(
   "citation|scripts/check_repo.sh|kaizen-no-such-lesson"
 )
 
+# ---------------------------------------------------------------------------------------
+# THE CONTRAST RULE, which is about a drawing rather than about content.
+#
+# WHY IT IS HERE AND NOT IN THE BUILD. The thirteen type colours live in build/model.py and
+# reach the page through site/graph.js, so the build is where they are known and would be the
+# obvious home. It is the wrong one, for a reason that is about this repository and not about
+# taste: no workflow runs the build. site/graph.js is committed and pages.yml deploys it as it
+# stands, so a check inside build/build_layout.py runs only when somebody rebuilds, which is
+# exactly the person who already knows what they changed. This script runs on every push and
+# every pull request, it already carries a declared-exception mechanism with a staleness rule,
+# and it already has a self-test. All three are needed here on the first day.
+#
+# The split is therefore: build/model.py computes, because that is where the colours and the
+# stylesheet are; this file decides, because this is what runs. `model.py --contrast` emits one
+# row per type per ground and holds no threshold and no verdict.
+#
+# WHAT THIS DOES NOT CHECK, said here rather than left to be discovered. It measures the palette
+# in the model. Nothing in CI rebuilds site/graph.js and compares it, so a colour hand edited
+# into the drawing and not into the model would be measured by nobody. That hole is older than
+# this rule and wider than it, and closing it is a build-reproducibility card rather than a
+# contrast one.
+#
+# WHAT IS MEASURED, AND ON WHAT. A tile's stroke, at full opacity, against the band plate it
+# sits on. Not against the page ground: app.js fills one opaque `rect.band` per lane before it
+# draws a tile and every tile is laid out inside a lane, so the plate is the surface, and the
+# two differ enough to move three of the twenty-six verdicts, in both directions. The rows carry
+# the page ground as well and the run prints how far apart the two answers are, so the choice
+# stays visible rather than becoming a thing somebody once decided.
+#
+# THE THRESHOLD is 3:1, WCAG 2.2 SC 1.4.11 Non-text Contrast, which is the figure for the visual
+# boundary of a user interface component and for a graphical object needed to understand the
+# content. A tile is both: it takes focus, it takes a click, it opens the panel, and its outline
+# is what a reader tells one type from another by. It is not 4.5:1, which is SC 1.4.3 and about
+# text; the same colours are also written as 11px bold text in the panel and eight of the
+# thirteen are under 4.5:1 there, which is real, is issue 56's card, and is not what a check on
+# a stroke can honestly claim to have gated. It is not lower than 3:1 either. Six of the
+# twenty-six measurements fail today and every one of them is declared below rather than
+# legalised by moving the line.
+#
+# The comparison is on the figure the table prints, to four decimals, so a verdict can always be
+# reproduced from what is on the screen and no rounding stands between the two.
+CONTRAST_MIN="3.0000"
+
+# ---------------------------------------------------------------------------------------
+# DECLARED CONTRAST EXCEPTIONS.  type|ground|hex|ratio|why it is tolerated
+#
+# The same shape and the same discipline as the self-match table above. An entry licenses
+# exactly itself: the same type on the other ground still fails, the same colour at another hex
+# still fails, and the same colour at another ratio still fails, which means a hex nudged by a
+# shade cannot hide behind a declaration written about the shade before it. Every entry must be
+# used, so a colour that is repaired or removed makes the run say the declaration is now
+# unnecessary instead of leaving it sitting there. An entry with no reason is rejected.
+#
+# These six are the palette as it stands and none of them is repaired here. Repairing them is a
+# palette decision with a designed answer already written down, and writing a second answer
+# inside a gate card is how a page ends up with two.
+CONTRAST_EXEMPT=(
+  # Under 3:1 on the white plate since the palette was chosen, and issue 56 does not repair
+  # them: it adds a dark sibling per type and moves no light colour at all. So these three
+  # survive that card and need one of their own. They are declared here so that the day
+  # somebody writes it, the gate is what tells them it is done.
+  "StudentGroup|light|#8eb125|2.4806|the light palette's own, unrepaired by 56, which moves no light colour"
+  "CohortSession|light|#d1980b|2.5587|the light palette's own, unrepaired by 56, which moves no light colour"
+  "Ghost|light|#8f99a8|2.8807|the light palette's own, unrepaired by 56, which moves no light colour"
+
+  # The three the dark theme broke. Issue 56 proposes a second hex for each, measured against
+  # this plate, and these declarations go stale the day it lands, which is the point of them.
+  "Programme|dark|#9d3f9d|2.4972|issue 56 names this colour and gives it a dark sibling; that card is not this one"
+  "Company|dark|#5f6b7c|2.6686|issue 56 names this colour and gives it a dark sibling; that card is not this one"
+  "Agreement|dark|#946638|2.8998|issue 56 names this colour and gives it a dark sibling; that card is not this one"
+)
+
 WORKDIR=""
 # `return 0` is load-bearing. An EXIT trap that ends on a failed command hands its own status
 # to the shell, so a cleanup that finds nothing to delete turns a clean verdict into exit 1,
@@ -327,6 +399,137 @@ scan_citations() {  # defsfile
   done < <(git ls-files)
 }
 
+# ---------------------------------------------------------------------------------------
+# The contrast rule's machinery. Counted apart from the content findings and from the citation
+# findings for the same reason those two are counted apart from each other: the three want
+# different sentences at the end of a run. A name is removed from the tree and then reckoned
+# with in the history, a dangling citation is repointed, and a colour under the threshold is
+# either repaired in the palette or declared here with a reason.
+CONTRAST_FAILURES=0
+declare -A CONTRAST_EXEMPT_HITS=()
+
+# Its own marker rather than [FORBIDDEN]. A reader skims the one word that says what to do
+# about a finding, and nothing about a stroke that is hard to see is forbidden content.
+contrast_fail() {
+  FAILURES=$((FAILURES + 1))
+  CONTRAST_FAILURES=$((CONTRAST_FAILURES + 1))
+  echo "  [CONTRAST] $*"
+}
+
+assert_contrast_table_well_formed() {
+  local e key ground hex ratio why
+  for e in ${CONTRAST_EXEMPT[@]+"${CONTRAST_EXEMPT[@]}"}; do
+    IFS='|' read -r key ground hex ratio why <<< "$e"
+    case "$ground" in
+      light|dark) ;;
+      *) echo "ASSERTION FAILED: declared contrast exception names an unknown ground: $e" >&2
+         exit 2 ;;
+    esac
+    # A reason is not paperwork. An exception with none is a colour somebody stopped looking at.
+    if [ -z "$key" ] || [ -z "$hex" ] || [ -z "$ratio" ] || [ -z "$why" ]; then
+      echo "ASSERTION FAILED: declared contrast exception must name a type, a ground, a hex, a" >&2
+      echo "                  ratio and a reason: $e" >&2
+      exit 2
+    fi
+  done
+}
+
+# The first four fields are the exact measurement; the fifth is the reason and is free text, so
+# the lookup matches on the prefix and the reason cannot widen what an entry licenses.
+contrast_exempt() {  # type ground hex ratio -> 0 if declared
+  local prefix="$1|$2|$3|$4|" e
+  for e in ${CONTRAST_EXEMPT[@]+"${CONTRAST_EXEMPT[@]}"}; do
+    if [ "${e:0:${#prefix}}" = "$prefix" ]; then
+      CONTRAST_EXEMPT_HITS["$e"]=1
+      return 0
+    fi
+  done
+  return 1
+}
+
+report_unused_contrast_exemptions() {
+  local e unused=0
+  for e in ${CONTRAST_EXEMPT[@]+"${CONTRAST_EXEMPT[@]}"}; do
+    if [ -z "${CONTRAST_EXEMPT_HITS[$e]:-}" ]; then
+      echo "  [STALE] declared contrast exception is now unnecessary: $e"
+      unused=$((unused + 1))
+    fi
+  done
+  [ "$unused" -eq 0 ]
+}
+
+# awk and not bash arithmetic, which is integer only and would read every ratio as its whole
+# part: 2 and 3 and 5, with the threshold at 3, which passes exactly the colours it should fail.
+above_threshold() {  # ratio -> 0 if at or over CONTRAST_MIN
+  awk -v a="$1" -v b="$CONTRAST_MIN" 'BEGIN { exit !(a + 0 >= b + 0) }'
+}
+
+# One row per type per ground, from the file that holds the palette. A missing interpreter is an
+# assertion and not a skip: a gate that shrugs when it cannot run reports clean, which is the
+# loudest lie it can tell, and this one would do it silently on the day python3 moved.
+contrast_rows() {  # -> stdout
+  command -v python3 >/dev/null 2>&1 || {
+    echo "ASSERTION FAILED: python3 is not on PATH; the type colours cannot be measured" >&2
+    exit 2; }
+  python3 build/model.py --contrast || {
+    echo "ASSERTION FAILED: build/model.py refused to emit its palette" >&2
+    exit 2; }
+}
+
+scan_contrast_rows() {  # rowsfile
+  local rows="$1" n key label ground hex plate ratio canvas cratio verdict
+  n="$(grep -c . "$rows" || true)"
+  # The same poka-yoke as the name rule and the citation rule. A palette with nothing in it
+  # would pass every colour it does not have.
+  [ "$n" -gt 0 ] || {
+    echo "ASSERTION FAILED: no type colour to measure" >&2; exit 2; }
+
+  local -A LBL=() CELL=() SEEN=() CANVAS=()
+  local -a order=()
+  local under=0 declared=0 disagree=0 ok_plate ok_canvas
+
+  while IFS='|' read -r key label ground hex plate ratio canvas cratio; do
+    [ -n "$key" ] || continue
+    if [ -z "${SEEN[$key]:-}" ]; then SEEN[$key]=1; order+=("$key"); LBL[$key]="$label"; fi
+    CANVAS[$ground]="$canvas"
+
+    if above_threshold "$ratio"; then
+      verdict="ok"
+    elif contrast_exempt "$key" "$ground" "$hex" "$ratio"; then
+      verdict="declared"
+      under=$((under + 1)); declared=$((declared + 1))
+    else
+      verdict="UNDER"
+      under=$((under + 1))
+      contrast_fail "$label, $hex on the $ground band plate $plate: $ratio, under the" \
+                    "$CONTRAST_MIN a drawn boundary needs, and not declared"
+    fi
+    CELL["$key|$ground"]="$hex $ratio $verdict"
+
+    # How much the choice of surface is worth, computed rather than asserted. A tile is drawn on
+    # the plate; this counts the colours whose verdict would move had the page ground been
+    # measured instead.
+    ok_plate=0; if above_threshold "$ratio"; then ok_plate=1; fi
+    ok_canvas=0; if above_threshold "$cratio"; then ok_canvas=1; fi
+    [ "$ok_plate" = "$ok_canvas" ] || disagree=$((disagree + 1))
+  done < "$rows"
+
+  echo "contrast: type colour strokes on the band plate, threshold $CONTRAST_MIN, WCAG 2.2 SC 1.4.11"
+  printf '  %-30s %-25s %-25s\n' "type" "light plate" "dark plate"
+  for key in "${order[@]}"; do
+    printf '  %-30s %-25s %-25s\n' "${LBL[$key]}" \
+           "${CELL["$key|light"]:-not measured}" "${CELL["$key|dark"]:-not measured}"
+  done
+  echo "  $n measurements, $under under the threshold: $declared declared, $((under - declared)) not"
+  echo "  against the page ground instead (${CANVAS[light]:-?} light, ${CANVAS[dark]:-?} dark) the" \
+       "verdict would move for $disagree of $n"
+}
+
+scan_contrast() {
+  contrast_rows > "$WORKDIR/contrast_rows"
+  scan_contrast_rows "$WORKDIR/contrast_rows"
+}
+
 scan_repo() {
   local n_files n_hashes bytes f
 
@@ -346,6 +549,7 @@ scan_repo() {
 
   echo "scanning $n_files tracked files, $bytes bytes, against $n_hashes name hashes"
   echo "declared self-matches: ${#FORBIDDEN_EXEMPT[@]}"
+  echo "declared contrast exceptions: ${#CONTRAST_EXEMPT[@]}"
   echo
 
   scan_worktree "$HASHES"
@@ -353,6 +557,9 @@ scan_repo() {
 
   citation_defs > "$WORKDIR/citation_defs"
   scan_citations "$WORKDIR/citation_defs"
+
+  echo
+  scan_contrast
 }
 
 # ---------------------------------------------------------------------------------------
@@ -493,6 +700,100 @@ self_test() {
   cite_probe "a definition written outside the two documents defines nothing" 'trip' \
         '`2026-08-10-no-such-entry` &middot; 2026-08-10 ... and see `2026-08-10-no-such-entry`'
 
+  # The contrast rule is proved against synthetic rows for the same reason the other two rules
+  # are proved against synthetic inputs: a probe that read the real palette would start passing
+  # or failing because somebody changed a colour, which is the one thing a test must not do.
+  contrast_probe() {  # name expect rows [exempt-entry ...]
+    local name="$1" expect="$2" payload="$3"; shift 3
+    local table=("$@") rc=0
+    total=$((total + 1))
+    printf '%s\n' "$payload" > "$tmp/rows"
+    (
+      CONTRAST_EXEMPT=(${table[@]+"${table[@]}"})
+      unset CONTRAST_EXEMPT_HITS; declare -A CONTRAST_EXEMPT_HITS=()
+      FAILURES=0
+      CONTRAST_FAILURES=0
+      scan_contrast_rows "$tmp/rows" >/dev/null 2>&1
+      [ "$FAILURES" -eq 0 ]
+    ) || rc=$?
+    if { [ "$expect" = trip ] && [ "$rc" -ne 0 ]; } || { [ "$expect" = pass ] && [ "$rc" -eq 0 ]; }; then
+      echo "  [OK]   $name"
+      pass=$((pass + 1))
+    else
+      echo "  [MISS] $name"
+    fi
+  }
+
+  echo
+  echo "self-test: a type colour under the threshold is a finding unless it is declared"
+  contrast_probe "a colour under the threshold" 'trip' \
+        'Probe|Probe|dark|#9d3f9d|#252a31|2.4972|#1c2127|2.8016'
+  contrast_probe "a colour exactly on the threshold" 'pass' \
+        'Probe|Probe|dark|#9d3f9d|#252a31|3.0000|#1c2127|3.4000'
+  contrast_probe "a colour declared exactly" 'pass' \
+        'Probe|Probe|dark|#9d3f9d|#252a31|2.4972|#1c2127|2.8016' \
+        "Probe|dark|#9d3f9d|2.4972|declared for the probe"
+  # The three ways a declaration could quietly widen, each shut. A shade nudged, a theme
+  # confused, a measurement drifted: none of them is covered by yesterday's entry.
+  contrast_probe "a declaration whose hex has moved still trips" 'trip' \
+        'Probe|Probe|dark|#9d3f9e|#252a31|2.4972|#1c2127|2.8016' \
+        "Probe|dark|#9d3f9d|2.4972|declared for the probe"
+  contrast_probe "a declaration for the other ground still trips" 'trip' \
+        'Probe|Probe|dark|#9d3f9d|#252a31|2.4972|#1c2127|2.8016' \
+        "Probe|light|#9d3f9d|2.4972|declared for the probe"
+  contrast_probe "a declaration whose ratio has moved still trips" 'trip' \
+        'Probe|Probe|dark|#9d3f9d|#252a31|2.4900|#1c2127|2.8016' \
+        "Probe|dark|#9d3f9d|2.4972|declared for the probe"
+
+  # And a declaration that is no longer needed must fail the run, exactly as a self-match that
+  # matches nothing does. This is the half that keeps a tolerance from outliving the defect.
+  total=$((total + 1))
+  rc=0
+  (
+    CONTRAST_EXEMPT=("Probe|dark|#9d3f9d|2.4972|declared for the probe")
+    unset CONTRAST_EXEMPT_HITS; declare -A CONTRAST_EXEMPT_HITS=()
+    report_unused_contrast_exemptions >/dev/null 2>&1
+  ) || rc=$?
+  if [ "$rc" -ne 0 ]; then
+    echo "  [OK]   a contrast exception that was not needed failed the run"
+    pass=$((pass + 1))
+  else
+    echo "  [MISS] a contrast exception that was not needed was tolerated"
+  fi
+
+  total=$((total + 1))
+  rc=0
+  ( CONTRAST_EXEMPT=("Probe|midday|#9d3f9d|2.4972|there is no such ground")
+    assert_contrast_table_well_formed >/dev/null 2>&1 ) || rc=$?
+  if [ "$rc" -eq 2 ]; then
+    echo "  [OK]   a contrast exception naming an unknown ground was rejected"
+    pass=$((pass + 1))
+  else
+    echo "  [MISS] a contrast exception naming an unknown ground was accepted (exit $rc)"
+  fi
+
+  total=$((total + 1))
+  rc=0
+  ( CONTRAST_EXEMPT=("Probe|dark|#9d3f9d|2.4972|")
+    assert_contrast_table_well_formed >/dev/null 2>&1 ) || rc=$?
+  if [ "$rc" -eq 2 ]; then
+    echo "  [OK]   a contrast exception carrying no reason was rejected"
+    pass=$((pass + 1))
+  else
+    echo "  [MISS] a contrast exception carrying no reason was accepted (exit $rc)"
+  fi
+
+  # An empty palette must abort, not report every colour it does not have clean.
+  total=$((total + 1))
+  rc=0
+  ( : > "$tmp/emptyrows"; scan_contrast_rows "$tmp/emptyrows" >/dev/null 2>&1 ) || rc=$?
+  if [ "$rc" -eq 2 ]; then
+    echo "  [OK]   an empty palette aborted instead of judging no colours"
+    pass=$((pass + 1))
+  else
+    echo "  [MISS] an empty palette did not abort (exit $rc)"
+  fi
+
   echo
   echo "self-test: the structural guards"
 
@@ -604,6 +905,7 @@ main() {
   echo
 
   assert_table_well_formed
+  assert_contrast_table_well_formed
   cd "$ROOT"
   WORKDIR="$(mktemp -d)"
   scan_repo
@@ -616,12 +918,20 @@ main() {
     exit 1
   fi
 
+  if ! report_unused_contrast_exemptions; then
+    echo
+    echo "VERDICT: a declared contrast exception is no longer needed."
+    echo "The colour it was written about now clears the threshold, or it is gone. Delete the"
+    echo "entry: a tolerance nobody has to tolerate is a tolerance nobody is reading."
+    exit 1
+  fi
+
   if [ "$FAILURES" -eq 0 ]; then
     echo "VERDICT: clean"
     exit 0
   fi
 
-  local content=$((FAILURES - CITATION_FAILURES))
+  local content=$((FAILURES - CITATION_FAILURES - CONTRAST_FAILURES))
   if [ "$content" -gt 0 ]; then
     echo "VERDICT: FORBIDDEN CONTENT IS COMMITTED ($content findings)"
     echo "Remove it from the working tree first; then decide what the history needs."
@@ -629,6 +939,12 @@ main() {
   if [ "$CITATION_FAILURES" -gt 0 ]; then
     echo "VERDICT: $CITATION_FAILURES citation(s) name an entry that does not exist"
     echo "Cite the slug the entry carries, or add the entry the citation was written about."
+  fi
+  if [ "$CONTRAST_FAILURES" -gt 0 ]; then
+    echo "VERDICT: $CONTRAST_FAILURES type colour(s) are under $CONTRAST_MIN on the plate they"
+    echo "are drawn on. Repair the hex in build/model.py, or declare it above with the ratio it"
+    echo "achieves and the reason it is tolerated. Leaving it undeclared is the one option that"
+    echo "is not open."
   fi
   exit 1
 }

@@ -22,7 +22,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from model import (TYPES, NODES, EDGES, ROSTER_ROWS, COHORT_HEADCOUNT,  # noqa: E402
-                   DRAWN_STUDENTS)
+                   DRAWN_STUDENTS, contrast_rows)
 
 COL_W = [166, 232, 122, 124, 80, 102, 92, 92]
 GAP_X, MARGIN_X = 18, 22
@@ -590,6 +590,23 @@ dest.write_text(
     "window.G=" + json.dumps(base, ensure_ascii=False, separators=(",", ":")) + ";\n",
     encoding="utf-8")
 print(f"wrote {dest.name}  {dest.stat().st_size / 1024:.1f} KB")
+
+# ---- the palette, reported where it is edited -------------------------------
+# The verdict is not here, and that is a choice rather than an omission. scripts/check_repo.sh
+# holds the threshold and the declared exceptions, because that is what CI runs on every push
+# and no workflow runs this file at all; two places holding the same tolerance is how they come
+# to disagree about it. What is here is the measurement, printed beside the build that ships the
+# colours, so that somebody nudging a hex reads the consequence in the same breath instead of on
+# a pull request an hour later.
+_worst = {}
+for _r in contrast_rows():
+    _g = _r["ground"]
+    if _g not in _worst or _r["ratio"] < _worst[_g]["ratio"]:
+        _worst[_g] = _r
+print("contrast: {} type colours on the band plate, worst {} at {:.4f} light and {} at {:.4f} "
+      "dark. The threshold and the declared exceptions are in scripts/check_repo.sh.".format(
+          len(TYPES), _worst["light"]["label"], _worst["light"]["ratio"],
+          _worst["dark"]["label"], _worst["dark"]["ratio"]))
 
 # ---- what the measurement bought -------------------------------------------
 # How far the old hand written estimate was from the truth, and where the widths came from.

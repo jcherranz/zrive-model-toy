@@ -11,6 +11,33 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- Contrast is a gate and no longer a measurement somebody once took, #59. `build/model.py`
+  computes WCAG 2.x contrast for all thirteen type colours against both band plates and emits one
+  row per colour per ground; `scripts/check_repo.sh` holds the threshold, the declared exceptions
+  and the verdict, and prints the whole table on every run. The split is not taste: no workflow
+  runs the build, `site/graph.js` is committed and deployed as it stands, so a check living in the
+  build runs only for whoever remembered to rebuild, while the repository gate runs on every push
+  and every pull request and already carries a declared-exception mechanism, a staleness rule and
+  a self-test. The surface is the band plate, established by reading the drawing rather than
+  chosen: `app.js` fills one opaque `rect.band` per lane before it draws a tile and every tile is
+  laid out inside a lane, so a stroke never touches the page ground. The plate is read out of
+  `app.css` through the token `.band` actually paints with, never typed into the model, and a
+  token that stops resolving to two values stops the build. The choice earns its argument:
+  measured against the page ground instead, three of the twenty-six verdicts move, and in both
+  directions. The threshold is 3:1, WCAG 2.2 SC 1.4.11, which is the figure for the boundary of a
+  control and for a graphical object a reader needs; not 4.5:1, which is text, is what the panel's
+  type label needs and is #56's card; and not lower, which is the one repair this card refused.
+  Six of the twenty-six fail today and all six are declared, each naming the colour, the hex, the
+  ratio it achieves and why it is tolerated: Students 2.48, Cohort session 2.56 and the ghost grey
+  2.88 on the white plate, Programme 2.50, Company 2.67 and Agreement 2.90 on the dark one. A
+  declaration licenses exactly itself, so a hex nudged by a shade, a ground confused or a ratio
+  that has drifted still fails, and one that stops being needed fails the run as loudly as a stale
+  self-match. The palette is asked for a colour per ground rather than for a colour, so #56's dark
+  siblings plug in with no change to the check: proved by handing Agreement #56's `#bd8750` for
+  dark only, which measures 4.64 and makes the gate say the declaration is now unnecessary. The
+  three light failures survive #56, which moves no light colour, and need a card of their own.
+  Ratios are carried to four decimals so the printed figure is the compared figure and no rounding
+  stands between them. Self-test 42 probes, up from 32; `site/graph.js` byte identical.
 - Every type says how it gets filled, Issue 4. Four rows in front of each node's own properties,
   `route_system`, `route_entered_by` and `route_event`, plus `route_source` naming the file the
   answer was read in, grounded in the 55 entity ontology, five adversarial reviews and the read of
