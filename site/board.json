@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T17:29:35Z",
+  "generated": "2026-08-11T17:58:26Z",
   "columns": [
     {
       "key": "raw",
@@ -84,16 +84,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/71"
-        },
-        {
-          "id": 72,
-          "title": "Seam 3: make the populate routes a machine-readable adapter registry",
-          "labels": [
-            "data model",
-            "enhancement",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/72"
         }
       ]
     },
@@ -101,6 +91,16 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 72,
+          "title": "Seam 3: make the populate routes a machine-readable adapter registry",
+          "labels": [
+            "data model",
+            "enhancement",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/72"
+        },
         {
           "id": 68,
           "title": "A frozen run record will hang anything that gates on run status, including the freshness watchdog",
@@ -165,20 +165,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/61"
-        },
-        {
-          "id": 60,
-          "title": "Architecture: the seams this needs before it can take real data",
-          "labels": [
-            "documentation",
-            "enhancement",
-            "model",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/60"
         }
       ],
-      "hidden": 45,
+      "hidden": 46,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
