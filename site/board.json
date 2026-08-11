@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T20:35:10Z",
+  "generated": "2026-08-11T20:35:44Z",
   "columns": [
     {
       "key": "raw",
@@ -33,6 +33,15 @@
             "feedback"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/76"
+        },
+        {
+          "id": 77,
+          "title": "Do a full redesign of the header funciontional and from UI UX point…",
+          "labels": [
+            "bug",
+            "feedback"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/77"
         }
       ]
     },
