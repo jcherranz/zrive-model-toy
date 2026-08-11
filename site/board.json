@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T14:06:27Z",
+  "generated": "2026-08-11T14:12:23Z",
   "columns": [
     {
       "key": "raw",
@@ -24,15 +24,6 @@
             "limitation"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
-        },
-        {
-          "id": 57,
-          "title": "A theme control in the header, so a reader can override the operating system",
-          "labels": [
-            "idea",
-            "layout"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/57"
         }
       ]
     },
@@ -49,6 +40,16 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/43"
+        },
+        {
+          "id": 57,
+          "title": "A theme control in the header, so a reader can override the operating system",
+          "labels": [
+            "idea",
+            "layout",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/57"
         },
         {
           "id": 60,
