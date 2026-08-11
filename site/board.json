@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T23:54:06Z",
+  "generated": "2026-08-11T23:54:36Z",
   "columns": [
     {
       "key": "raw",
@@ -54,21 +54,12 @@
         },
         {
           "id": 91,
-          "title": "Remove all this taggs, I know that. Remove all of them.",
+          "title": "Cut the invented-value warnings back to one: six distinct copies on one screen",
           "labels": [
             "bug",
             "feedback"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/91"
-        },
-        {
-          "id": 92,
-          "title": "The EVERY VALUE IN THIS TABLE IS INVENTED row is transparent and I…",
-          "labels": [
-            "bug",
-            "feedback"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/92"
         },
         {
           "id": 93,
@@ -133,6 +124,16 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/75"
+        },
+        {
+          "id": 92,
+          "title": "The sticky invented-value banner is transparent and rows show through it",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/92"
         }
       ]
     },
