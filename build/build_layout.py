@@ -766,6 +766,15 @@ PATH_RE = re.compile(rf"M {_N} {_N} C {_N} {_N} {_N} {_N} {_N} {_N}")
 
 
 def refuse_mixed(inst, lay):
+    # The populate registry, issue 72. It is a top-level block of the instance document rather
+    # than a per-node key, so the node walk below cannot see it, and a block no gate reads is
+    # where the next geometry key lands. Its entries are flat, so the same blacklist does the
+    # job; the vocabularies are not walked because they are prose about the tokens.
+    for cid, entry in inst.get("routes", {}).get("classes", {}).items():
+        bad = sorted(set(entry) & GEOMETRY_KEYS)
+        if bad:
+            sys.exit(f"[layout] the populate registry carries geometry: class {cid} has "
+                     f"{', '.join(bad)}. Where a thing is drawn belongs in site/layout.js.")
     for v in inst["views"]:
         for kind in ("nodes", "edges"):
             for o in v[kind]:

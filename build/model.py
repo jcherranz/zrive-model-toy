@@ -53,12 +53,12 @@ def p(name, value, flag):
     return {"k": name, "v": value, "f": flag}
 
 
-# ---- the populate route, one per type -----------------------------------------
+# ---- the populate route, and it is a registry rather than a caption -----------
 # Issue 4, reframed by the owner's stated destination: a management tool showing every item and
 # every element of the funnel. Under that objective the question a drawing of object types has to
 # answer first is not what an object's fields are. It is whether the object can be got hold of at
-# all. So every type on this page now carries three answers, and they are answered in the model
-# rather than in prose beside it, because a fact kept beside the drawing drifts from it.
+# all. So every class on this page carries a route, answered in the model rather than in prose
+# beside it, because a fact kept beside the drawing drifts from it.
 #
 #   route_system      which system holds the row.
 #   route_entered_by  who puts it there, BY ROLE and never by name.
@@ -69,137 +69,531 @@ def p(name, value, flag):
 # hardest to check, and a reader who cannot see where a claim came from has to take all of it or
 # none of it.
 #
-# THE THREE FLAGS DO REAL WORK HERE AND THE DIFFERENCE BETWEEN TWO OF THEM IS THE POINT OF THE
-# CARD. `estimated` is a route that was found: a system, a role or a moment the analysis records.
-# `absent` is a row that records an absence, and it covers two different absences which the text
-# of the row has to tell apart:
+# ISSUE 72 IS WHAT CHANGED HERE, AND IT IS NOT THE ANSWERS. #4 wrote those four as strings a
+# person reads. Every one of them is still here, verbatim, and still the first four rows of every
+# panel. What is new is that each is now the DISPLAY side of a declaration carrying machine
+# fields beside it, and the machine fields are the thing a source adapter would be written
+# against. A route_system row reading "Notion. A collaborator directory row, and a select option
+# on the calendar" is a sentence; system "notion" with unit "collaborator-directory-row" is a
+# specification, and the two cannot drift because one declaration carries both.
 #
-#   "none", "no row is created", "nobody"   the analysis establishes that nothing holds it. This
-#                                           is a finding and it is the useful half.
-#   "not recorded"                          the analysis does not say. NOT the same claim, and
-#                                           writing a plausible answer here instead would be
-#                                           worse than leaving it blank, because the whole use of
-#                                           this table is telling the two apart.
+# WHAT A ROUTE HAS TO SAY FOR SOMEBODY TO IMPLEMENT IT. Four questions, and the fourth was asked
+# nowhere in this repository before this card:
 #
-# Nothing below is guessed. Where the corpus is silent the row says so.
+#   which system holds the rows                    `system`, a machine name, or null
+#   what one row is and what identifies it         `unit`, `partition`, `key`
+#   what event creates one, and who causes it      `event`, `entered_by`
+#   whether that system can be read at all today   `read`
 #
-# WHERE IT COMES FROM. An ontology of 55 entities, five adversarial reviews and a read of the
-# company's own workspace, none of which lives in this repository: `analysis/ontology/` and
-# `analysis/notion/` in the private analysis repo, plus the company notes in the vault. The
-# route_source rows name the file and the entity, so any one of them can be gone back to.
+# The fourth decides whether any of the other three is actionable, and its honest answer for all
+# seventeen classes today is that nothing here has ever read anything: see READ_STATE below. A
+# registry that could not say so would be a list of intentions wearing a specification's clothes.
+#
+# WHERE THE REGISTRY LIVES: in the instance document, site/instance.js, beside the objects it is
+# about, and not in site/layout.js. Three reasons, in the order they bind. It is data about the
+# model rather than geometry, which is the line seam 1 drew and the build gates in both
+# directions. It has to travel with the data: build_layout.py already takes --instance and lays
+# out a DIFFERENT document, and a private deployment reading a real estate has different systems
+# and different keys, so a registry left in the layout would lay that document out against this
+# toy's routes and nothing would say it had. And a reader of the published document can then ask
+# what each class could be filled from without running anything, which is the use of it.
+#
+# THE ROUTE IS PER CLASS. Not per type, not per object, and not per view, and the disagreements
+# are real rather than hypothetical:
+#
+#   per type is too coarse. Seventeen classes are drawn as thirteen types. Company is one type
+#   doing two jobs, an employer of instructors that no system holds and an empresa colaboradora
+#   that has a Notion page, and issue 49 deliberately gave them one type and one verb. Ghost is
+#   one type standing for four classes that share nothing but a way of failing.
+#
+#   per object is too fine, and the shape this replaces proved it: the per-node table had to be
+#   copied across seven route prefixes by a loop, because co_col and sc_co_col and hr_co_col are
+#   three objects of ONE class and a route is a fact about the class. That loop is still here and
+#   it now copies a class binding, which is one word, rather than four strings.
+#
+#   per view is wrong outright. Nothing about which system holds an enrolment changes because the
+#   reader is looking at Z-HR.
+#
+#   WHERE IT DISAGREES WITH SEAM 4, AND BOTH ARE RIGHT. Identity is per OBJECT: source_key names
+#   one row, and the four drawn students carry four keys under one class. A route names a class
+#   of rows and a key names a row in it. The two sit at different grains on purpose, and the
+#   registry is what says which grain each question belongs to.
 #
 # NO PERSON IS NAMED IN A ROLE. The sources name individuals on nearly every route. Every one is
 # written here as the role, which is what a tool has to be built against anyway: a route that
 # says a named person does it is a route that ends when they leave, and the analysis records
 # people leaving these roles. The name gate at the foot of this file would refuse the build in
 # any case, and it is right to.
+#
+# WHERE IT COMES FROM. An ontology of 55 entities, five adversarial reviews and a read of the
+# company's own workspace, none of which lives in this repository: `analysis/ontology/` and
+# `analysis/notion/` in the private analysis repo, plus the company notes in the vault. The
+# `source` field names the file and the entity, so any one of them can be gone back to.
 NO_SYSTEM = "no system holds it"
 
+# ---- the vocabularies the registry is written in ------------------------------
+# Every enumerated field below is checked against one of these tables and the build refuses a
+# token that is in none of them. They ship with the document rather than staying in this file, so
+# a reader of site/instance.js has the meaning of every value without reading Python: a registry
+# whose values only mean something to the program that wrote them is not machine readable, it is
+# machine writable.
+#
+# THREE OF THEM DECLARE STATES NOTHING IS IN TODAY, on purpose. `readable`, `implemented` and
+# `named` are the states this registry exists to tell apart from the ones everything is in, and a
+# field with one possible value is not a field. That nothing is in them is the finding: nothing
+# here has been read and nothing here has been built.
 
-def route(system, entered_by, event, source):
-    """Four rows, in the order the questions get asked, ready to sit in front of a node's own."""
-    return [p("route_system", system[0], system[1]),
-            p("route_entered_by", entered_by[0], entered_by[1]),
-            p("route_event", event[0], event[1]),
-            p("route_source", source, E)]
-
-
-# Keyed by type. A node whose instances play more than one role overrides it by id, below: the
-# five Company tiles that employ an instructor and the one that hosts a visit are the same type
-# and are not the same object, and issue 49 deliberately gave them one type and one verb. The
-# difference between them lives here, in the data, which is where that card said it would live.
-ROUTES = {
-    "Programme": route(
-        ("no registry. Four lists of programmes disagree with each other", A),
-        ("not recorded", A),
-        ("no row is created. A programme appears when last quarter's folder is copied", A),
-        "ontology.yaml, Programme, finding F25"),
-    "Company": route(
-        ("no company record. A firm is a free text name in a Notion select", A),
-        ("not recorded", A),
-        ("not recorded. No moment creates a company row", A),
-        "ontology.yaml, Company, identity key"),
-    "SessionTemplate": route(
-        ("no template object. The template is last quarter's calendar rows, copied", A),
-        ("operations", E),
-        ("when the quarter's folder is duplicated at promotion setup", E),
-        "notion 01_runbooks, Duplicar la anterior"),
-    "Instructor": route(
-        ("Notion. A collaborator directory row, and a select option on the calendar", E),
-        ("operations keeps the calendar. Who confirms an instructor is not recorded", E),
-        ("when a session is scheduled. The directory row has no recorded event", E),
-        "ontology.yaml, Instructor, finding F7"),
-    "CohortSession": route(
-        ("Notion, one session calendar per programme per quarter", E),
-        ("operations", E),
-        ("on duplicating last quarter's calendar at setup, then edited by hand", E),
-        "ontology.yaml, Session; notion 01_runbooks"),
-    "Cohort": route(
-        ("none. A cohort is the intersection of a roster, a calendar, a campus "
-         "group and a website record", A),
-        ("not recorded. Nobody is named as the owner of setting a cohort up", A),
-        ("no row is created", A),
-        "ontology.yaml, Cohort, finding F26"),
-    "StudentGroup": route(
-        ("the learning platform. A private campus group per intake, with its course", E),
-        ("not recorded. The campus manual names no owner and says we throughout", A),
-        ("created by hand, once per intake. There is no duplicate button", E),
-        "notion 01_runbooks, campus creation"),
-    "Student": route(
-        ("the applicant tracker holds an application. No person record spans the systems", E),
-        ("the student", E),
-        ("on submitting the application form", E),
-        "vault Data model, six identity spaces"),
-    "Enrolment": route(
-        ("Notion, one roster database per quarter", E),
-        ("operations, by hand", E),
-        ("when the candidate is marked hired and the roster row is typed", E),
-        "ontology.yaml, Enrolment, finding F3"),
-    "Agreement": route(
-        ("none for a standard enrolment. An income share contract is a file on a Notion row", A),
-        ("not recorded for a standard enrolment", A),
-        ("no row is created. Nothing anywhere stores what a student owes", A),
-        "ontology.yaml, PaymentPlan, finding F16"),
-    "Charge": route(
-        ("Stripe. A payment made by bank transfer leaves no row there", E),
-        ("nobody types it. Stripe writes the row when the student pays", E),
-        ("on payment through the link the acceptance email carries", E),
-        "ontology.yaml, Charge, finding F4"),
-    "Claim": route(
-        ("Notion. Hand built exception lists, one of them for two intakes. No ledger", E),
-        ("operations, row by row", E),
-        ("when operations decides to chase. There is no ageing rule", E),
-        "ontology.yaml, Listado de impagados"),
+# Whether the system holding a class can be read at all today. The question #4 never asked.
+READ_STATE = {
+    "no-source": "nothing holds a row for this class, so there is nothing to read",
+    "not-attempted": "a system holds the rows and nothing here has ever read it: no adapter, no "
+                     "credential held, and the analysis does not record whether it can be read",
+    "readable": "a read has been demonstrated against the system itself",
+    "refused": "a read was attempted and the system would not serve it",
 }
 
-# Per node, where one type carries two different objects, and for every ghost, since a ghost is
-# a class of its own and four of them share one type only because they share one way of failing.
-ROUTE_BY_ID = {
-    "co_col": route(
-        ("Notion, one page per invitation. Not a database, and the visit is not recorded", E),
-        ("operations", E),
-        ("when operations invites firms for the in person weekend", E),
-        "notion 07_universities, Visitas a empresas"),
-    "g_inst": route(
-        ("none. A paid instalment is an ordinary charge; the expected schedule is nowhere", A),
-        ("nobody. Nothing writes down an expectation", A),
-        ("no row is created. A failed card leaves no row at all", A),
-        "ontology.yaml, Instalment"),
-    "g_place": route(
-        ("none, and the analysis attests it from both directions", A),
-        ("the student, under the income share contract. Nothing collects it", A),
-        ("no row is created", A),
-        "ontology.yaml, Placement, finding F38"),
-    "g_beca": route(
-        ("none. The learning platform holds an action that sends an email, not a register", A),
-        ("operations presses the action. Who presses it is not recorded", A),
-        ("on the action at acceptance. No award row is created", A),
-        "ontology.yaml, Scholarship, finding F17"),
-    "g_ref": route(
-        ("none. The processor executes them and the payment export cannot see them", A),
-        ("the student elects; operations executes and types a free text row", A),
-        ("on the student asking. It ran once as a campaign, not as a standing process", A),
-        "ontology.yaml, Refund, finding F18"),
+# What has been built. `impossible` is the state this card exists to make first class: a class
+# with no source is not a class whose adapter field is empty, it is a class where an adapter
+# cannot exist, and those are two different claims.
+ADAPTER_STATE = {
+    "impossible": "no adapter can exist here, because nothing holds the rows it would read",
+    "not-implemented": "an adapter could be written against this entry and none has been",
+    "implemented": "a module named on this entry reads the system it names",
+}
+
+# What identifies one row in the holding system. Not one of the eight real routes names a key,
+# which is why seam 4 had to mint one: source_key stands in, and stands in visibly.
+KEY_STATE = {
+    "none": "there is no row, so there is nothing to identify",
+    "not-recorded": "a system holds the row and the analysis names no field to join it on",
+    "named": "the analysis names the field a row is identified by",
+}
+
+# Used by the role and by the event. The first, third and fourth are #4's own distinction between
+# two kinds of blank made into tokens: an absence that was established is a finding, an absence
+# nobody looked into is a hole in the analysis, and writing a plausible answer into either would
+# destroy the only thing this registry is for. `nominal` is the third shape #4 found and had no
+# word for, on the Placement row: a who with no system, an answer that exists on paper and in no
+# system, which is not the same as no answer.
+FIELD_STATE = {
+    "recorded": "the analysis records an answer",
+    "nominal": "a role or a moment is named and no row comes of it, so the answer exists on "
+               "paper and in no system",
+    "not-recorded": "the analysis is silent, and a plausible answer would be worse than none",
+    "none": "the analysis establishes there is no answer: nobody does it, or no moment creates "
+            "a row",
+}
+
+# The flag each state maps onto in the four display rows, so the panel and the registry cannot
+# come to disagree about which rows record an absence.
+FIELD_FLAG = {"recorded": E, "nominal": A, "not-recorded": A, "none": A}
+
+# A state that names something, as against one that records there is nothing to name.
+FIELD_NAMES_SOMETHING = ("recorded", "nominal")
+
+# Roles, never names.
+ROLE = {
+    "operations": "the operations team",
+    "student": "the student themselves",
+    "written-by-the-system": "no person types it; the holding system writes the row",
+}
+
+# WHY NOTHING HOLDS IT, for the nine that nothing holds. The rule #4 stated is that a populate
+# route exists when some system holds a ROW for the object, and a value inside another object's
+# field is not a row. That rule sorts the nine into different shapes of absence, and the shape is
+# what an implementer needs: `value-not-a-row` is a class somebody could make real by adding a
+# table, `intersection-only` is not.
+ABSENCE = {
+    "contested-enumerations": "several lists enumerate it and they disagree; no one of them is "
+                              "the register",
+    "value-not-a-row": "it appears as a value inside another object's field and never as a row "
+                       "of its own",
+    "copy-not-a-template": "the thing it would be a template of is last period's rows, copied by "
+                           "hand; no template object comes out of it",
+    "intersection-only": "it can only be picked out as the intersection of several other things, "
+                         "each held somewhere else",
+    "file-not-a-row": "what exists is a document attached to another object's row, which cannot "
+                      "be queried as a row",
+    "no-expectation-written": "nothing anywhere writes down what is expected, so nothing can be "
+                              "compared against it and a failure leaves no row at all",
+    "nothing-collects-it": "a role is nominally responsible for reporting it and no system "
+                           "collects what they report",
+    "action-not-a-register": "the system holds an action that fires and leaves nothing behind, "
+                             "rather than a register of what it did",
+    "outside-the-export": "the processor performs it and the export in hand cannot see that it "
+                          "happened",
+}
+
+# QUALIFICATIONS ON A ROUTE THAT DOES EXIST. #4 recorded that four of the eight are partial and
+# said which part is missing rather than rounding them up to a whole route; those four are the
+# first four here. An implementer reads these as the work an adapter cannot do however well it
+# is written.
+CAVEAT = {
+    "confirming-actor-not-recorded": "the role that confirms the row is not recorded anywhere",
+    "owner-not-recorded": "no role is named as the owner of creating the row",
+    "no-record-spans-the-systems": "the object is held in several systems and no record joins "
+                                   "them, so the rows cannot be reconciled into one",
+    "no-ageing-rule": "a row is created by somebody deciding to, and no rule says when one is "
+                      "due, so the set cannot be predicted",
+    "no-ledger": "the rows are hand built lists rather than a ledger, so the set is not complete "
+                 "by construction",
+    "incomplete-by-construction": "an event of this kind can happen and leave no row at all, so "
+                                  "the rows are not the whole population",
+    "not-a-database": "the rows are pages rather than database rows, so they cannot be listed or "
+                      "filtered as a table",
+    "outcome-not-recorded": "the thing the row is created for is not recorded on it, so the row "
+                            "says the event was planned and never that it happened",
+}
+
+# id -> the entry that ships, and id -> the three sentences the panel prints. Two maps and not
+# one: the sentences belong to the panel and the entry belongs to whatever reads the registry,
+# and carrying the prose inside the shipped entry would put every one of those strings in the
+# document twice.
+ROUTES = {}
+ROUTE_SAYS = {}
+
+
+def route_class(cid, *, cls, drawn_as, system, unit=None, partition=None, entered_by, event,
+                source, says, absence=None, caveats=(), key=None, read=None, module=None):
+    """One class's route: the machine declaration and the four rows a reader sees, together.
+
+    Everything derivable is derived and nothing is declared twice. `attachable` is whether a
+    system holds the rows; the adapter state follows from that and from whether a module exists;
+    the flag on each display row is the state of the field it displays. There is no way to
+    satisfy one of those by editing another.
+    """
+    attachable = system is not None
+    ROUTE_SAYS[cid] = says
+    ROUTES[cid] = {
+        "id": cid,
+        "class": cls,
+        "type": drawn_as,
+        "attachable": attachable,
+        "system": system,
+        "unit": unit,
+        "partition": partition,
+        "key": {"status": key or ("not-recorded" if attachable else "none"),
+                # What a join runs on until a real key is established. Seam 4's invented key is
+                # not standing in for a key the source has and nobody here has read; it stands in
+                # for a key nothing names, which is a different and worse hole.
+                "stands_in": "source_key" if attachable else None},
+        "entered_by": {"role": entered_by[0], "status": entered_by[1]},
+        "event": {"token": event[0], "status": event[1]},
+        "read": read or ("not-attempted" if attachable else "no-source"),
+        "adapter": {"status": ("implemented" if module else
+                               "not-implemented" if attachable else "impossible"),
+                    "module": module,
+                    "blocked_by": None if attachable else absence},
+        "absence": absence,
+        "caveats": list(caveats),
+        "source": source,
+    }
+    return ROUTES[cid]
+
+
+def route_props(entry):
+    """The four rows, in the order the questions get asked, ready to sit in front of a node's own.
+
+    The strings are #4's, unchanged. The flags are read off the machine fields, so a row that
+    records an absence and a field saying nothing holds it cannot come apart.
+    """
+    says = ROUTE_SAYS[entry["id"]]
+    return [p("route_system", says[0], E if entry["attachable"] else A),
+            p("route_entered_by", says[1], FIELD_FLAG[entry["entered_by"]["status"]]),
+            p("route_event", says[2], FIELD_FLAG[entry["event"]["status"]]),
+            p("route_source", entry["source"], E)]
+
+
+route_class(
+    "programme", cls="Programme", drawn_as="Programme",
+    system=None, absence="contested-enumerations",
+    entered_by=(None, "not-recorded"),
+    event=("quarter-setup", "nominal"),
+    source="ontology.yaml, Programme, finding F25",
+    says=("no registry. Four lists of programmes disagree with each other",
+          "not recorded",
+          "no row is created. A programme appears when last quarter's folder is copied"))
+
+route_class(
+    "company-employer", cls="Company, employer of an instructor", drawn_as="Company",
+    system=None, absence="value-not-a-row",
+    entered_by=(None, "not-recorded"),
+    event=(None, "none"),
+    source="ontology.yaml, Company, identity key",
+    says=("no company record. A firm is a free text name in a Notion select",
+          "not recorded",
+          "not recorded. No moment creates a company row"))
+
+route_class(
+    "company-colaboradora", cls="Company, empresa colaboradora", drawn_as="Company",
+    system="notion", unit="invitation-page", partition="invitation",
+    entered_by=("operations", "recorded"),
+    event=("invitation-sent", "recorded"),
+    caveats=("not-a-database", "outcome-not-recorded"),
+    source="notion 07_universities, Visitas a empresas",
+    says=("Notion, one page per invitation. Not a database, and the visit is not recorded",
+          "operations",
+          "when operations invites firms for the in person weekend"))
+
+route_class(
+    "session-template", cls="Session template", drawn_as="SessionTemplate",
+    system=None, absence="copy-not-a-template",
+    entered_by=("operations", "recorded"),
+    event=("quarter-setup", "recorded"),
+    source="notion 01_runbooks, Duplicar la anterior",
+    says=("no template object. The template is last quarter's calendar rows, copied",
+          "operations",
+          "when the quarter's folder is duplicated at promotion setup"))
+
+route_class(
+    "instructor", cls="Instructor", drawn_as="Instructor",
+    system="notion", unit="collaborator-directory-row", partition="single",
+    entered_by=("operations", "recorded"),
+    event=("session-scheduled", "recorded"),
+    caveats=("confirming-actor-not-recorded",),
+    source="ontology.yaml, Instructor, finding F7",
+    says=("Notion. A collaborator directory row, and a select option on the calendar",
+          "operations keeps the calendar. Who confirms an instructor is not recorded",
+          "when a session is scheduled. The directory row has no recorded event"))
+
+route_class(
+    "cohort-session", cls="Cohort session", drawn_as="CohortSession",
+    system="notion", unit="session-calendar-row", partition="programme-quarter",
+    entered_by=("operations", "recorded"),
+    event=("quarter-setup", "recorded"),
+    source="ontology.yaml, Session; notion 01_runbooks",
+    says=("Notion, one session calendar per programme per quarter",
+          "operations",
+          "on duplicating last quarter's calendar at setup, then edited by hand"))
+
+route_class(
+    "cohort", cls="Cohort", drawn_as="Cohort",
+    system=None, absence="intersection-only",
+    entered_by=(None, "not-recorded"),
+    event=(None, "none"),
+    source="ontology.yaml, Cohort, finding F26",
+    says=("none. A cohort is the intersection of a roster, a calendar, a campus "
+          "group and a website record",
+          "not recorded. Nobody is named as the owner of setting a cohort up",
+          "no row is created"))
+
+route_class(
+    "student-group", cls="Students", drawn_as="StudentGroup",
+    system="campus", unit="campus-group", partition="intake",
+    entered_by=(None, "not-recorded"),
+    event=("intake-created", "recorded"),
+    caveats=("owner-not-recorded",),
+    source="notion 01_runbooks, campus creation",
+    says=("the learning platform. A private campus group per intake, with its course",
+          "not recorded. The campus manual names no owner and says we throughout",
+          "created by hand, once per intake. There is no duplicate button"))
+
+route_class(
+    "student", cls="Student", drawn_as="Student",
+    system="applicant-tracker", unit="application", partition="single",
+    entered_by=("student", "recorded"),
+    event=("application-submitted", "recorded"),
+    caveats=("no-record-spans-the-systems",),
+    source="vault Data model, six identity spaces",
+    says=("the applicant tracker holds an application. No person record spans the systems",
+          "the student",
+          "on submitting the application form"))
+
+route_class(
+    "enrolment", cls="Enrolment", drawn_as="Enrolment",
+    system="notion", unit="roster-row", partition="quarter",
+    entered_by=("operations", "recorded"),
+    event=("roster-row-typed", "recorded"),
+    source="ontology.yaml, Enrolment, finding F3",
+    says=("Notion, one roster database per quarter",
+          "operations, by hand",
+          "when the candidate is marked hired and the roster row is typed"))
+
+route_class(
+    "agreement", cls="Agreement", drawn_as="Agreement",
+    system=None, absence="file-not-a-row",
+    entered_by=(None, "not-recorded"),
+    event=(None, "none"),
+    source="ontology.yaml, PaymentPlan, finding F16",
+    says=("none for a standard enrolment. An income share contract is a file on a Notion row",
+          "not recorded for a standard enrolment",
+          "no row is created. Nothing anywhere stores what a student owes"))
+
+route_class(
+    "charge", cls="Charge", drawn_as="Charge",
+    system="stripe", unit="payment", partition="single",
+    entered_by=("written-by-the-system", "recorded"),
+    event=("payment-made", "recorded"),
+    caveats=("incomplete-by-construction",),
+    source="ontology.yaml, Charge, finding F4",
+    says=("Stripe. A payment made by bank transfer leaves no row there",
+          "nobody types it. Stripe writes the row when the student pays",
+          "on payment through the link the acceptance email carries"))
+
+route_class(
+    "claim", cls="Claim", drawn_as="Claim",
+    system="notion", unit="exception-list-row", partition="hand-built-list",
+    entered_by=("operations", "recorded"),
+    event=("chase-decided", "recorded"),
+    caveats=("no-ledger", "no-ageing-rule"),
+    source="ontology.yaml, Listado de impagados",
+    says=("Notion. Hand built exception lists, one of them for two intakes. No ledger",
+          "operations, row by row",
+          "when operations decides to chase. There is no ageing rule"))
+
+# The four ghosts are four classes and not one. They share the Ghost type because they share a
+# way of failing, and the absence token is where they stop sharing: an expectation nobody writes
+# down, a report nobody collects, an action that leaves nothing behind and a movement of money
+# the export cannot see are four different things to build and four different things to be
+# unable to build. Three of the four also carry a role that acts, which is `nominal` and not
+# `none`: somebody presses the action, somebody elects the refund, and no row comes of it.
+route_class(
+    "ghost-instalment", cls="Instalment", drawn_as="Ghost",
+    system=None, absence="no-expectation-written",
+    entered_by=(None, "none"),
+    event=(None, "none"),
+    source="ontology.yaml, Instalment",
+    says=("none. A paid instalment is an ordinary charge; the expected schedule is nowhere",
+          "nobody. Nothing writes down an expectation",
+          "no row is created. A failed card leaves no row at all"))
+
+route_class(
+    "ghost-placement", cls="Placement", drawn_as="Ghost",
+    system=None, absence="nothing-collects-it",
+    entered_by=("student", "nominal"),
+    event=(None, "none"),
+    source="ontology.yaml, Placement, finding F38",
+    says=("none, and the analysis attests it from both directions",
+          "the student, under the income share contract. Nothing collects it",
+          "no row is created"))
+
+route_class(
+    "ghost-beca", cls="Beca", drawn_as="Ghost",
+    system=None, absence="action-not-a-register",
+    entered_by=("operations", "nominal"),
+    event=("acceptance-action", "nominal"),
+    source="ontology.yaml, Scholarship, finding F17",
+    says=("none. The learning platform holds an action that sends an email, not a register",
+          "operations presses the action. Who presses it is not recorded",
+          "on the action at acceptance. No award row is created"))
+
+route_class(
+    "ghost-refund", cls="Refund", drawn_as="Ghost",
+    system=None, absence="outside-the-export",
+    entered_by=("student", "nominal"),
+    event=("student-asks", "nominal"),
+    source="ontology.yaml, Refund, finding F18",
+    says=("none. The processor executes them and the payment export cannot see them",
+          "the student elects; operations executes and types a free text row",
+          "on the student asking. It ran once as a campaign, not as a standing process"))
+
+
+# ---- the registry has to be well formed before anything is built against it ---
+# Jidoka, and every rule below is a way one of these entries could be wrong while still looking
+# right in a panel. The expensive pair is the last: a class claiming to have been read, or an
+# adapter claiming to exist, when this repository ships neither. That claim would be believed by
+# the next person to read the document, and nothing else in the build could catch it.
+def _check_registry():
+    for cid, e in ROUTES.items():
+        def bad(why, _cid=cid):
+            raise SystemExit(f"model: route {_cid}: {why}")
+
+        if e["read"] not in READ_STATE:
+            bad(f"read state {e['read']!r} is not one of {sorted(READ_STATE)}")
+        if e["adapter"]["status"] not in ADAPTER_STATE:
+            bad(f"adapter state {e['adapter']['status']!r} is not one of {sorted(ADAPTER_STATE)}")
+        if e["key"]["status"] not in KEY_STATE:
+            bad(f"key state {e['key']['status']!r} is not one of {sorted(KEY_STATE)}")
+        if len(ROUTE_SAYS[cid]) != 3:
+            bad("a route displays exactly three sentences and its source")
+
+        # A named role or a named moment, and a state that says whether there is one to name.
+        # Declaring a token under a state that says there is nothing to name is a contradiction
+        # a reader would never see, because the panel prints the sentence and not the token.
+        for field, named in (("entered_by", "role"), ("event", "token")):
+            st = e[field]["status"]
+            if st not in FIELD_STATE:
+                bad(f"{field} state {st!r} is not one of {sorted(FIELD_STATE)}")
+            if (e[field][named] is not None) != (st in FIELD_NAMES_SOMETHING):
+                bad(f"{field} names {e[field][named]!r} under the state {st!r}. A state that "
+                    f"records nothing to name cannot carry a name, and one that does must.")
+        if e["entered_by"]["role"] is not None and e["entered_by"]["role"] not in ROLE:
+            bad(f"role {e['entered_by']['role']!r} is not one of {sorted(ROLE)}")
+        for c in e["caveats"]:
+            if c not in CAVEAT:
+                bad(f"caveat {c!r} is not one of {sorted(CAVEAT)}")
+
+        # A route exists precisely when a system holds the rows, and every field depending on
+        # that has to move with it. Refusals in both directions on purpose: the failure this card
+        # is against is a class quietly acquiring an empty table.
+        if e["attachable"]:
+            if e["absence"] is not None:
+                bad("a system holds the rows and an absence is recorded as well")
+            if not e["unit"] or not e["partition"]:
+                bad("a system holds the rows and nothing says what one row is or how the rows "
+                    "are split. An adapter cannot be written against that.")
+            if e["read"] == "no-source":
+                bad("a system holds the rows and the read state says there is nothing to read")
+            if e["key"]["status"] == "none":
+                bad("a system holds the rows and the key state says there is nothing to identify")
+        else:
+            if e["absence"] not in ABSENCE:
+                bad(f"nothing holds the rows and the absence {e['absence']!r} is not one of "
+                    f"{sorted(ABSENCE)}. Why nothing holds it is the finding.")
+            if e["unit"] or e["partition"]:
+                bad("nothing holds the rows and a unit or a partition is declared anyway")
+            if e["read"] != "no-source":
+                bad("nothing holds the rows and the read state claims otherwise")
+            if e["key"]["status"] != "none" or e["key"]["stands_in"]:
+                bad("nothing holds the rows and a key is claimed for them")
+            if e["caveats"]:
+                bad("a caveat qualifies a route that exists, and this class has none")
+            if e["adapter"]["status"] != "impossible":
+                bad("nothing holds the rows and the adapter state is not impossible. That state "
+                    "is the point of this registry: no adapter POSSIBLE is not an empty field.")
+
+        # Nothing in this repository reads any system and nothing in it is an adapter, so an
+        # entry claiming either is wrong however it got there. The card that built this registry
+        # put that in its own scope, and a scope nothing enforces is a hope.
+        if e["adapter"]["module"] is not None:
+            bad("an adapter module is named and this repository ships none")
+        if e["read"] in ("readable", "refused"):
+            bad(f"read state {e['read']!r} claims a system was reached, and nothing here has "
+                f"ever reached one. That state is declared so the field can move, not so it "
+                f"can be asserted.")
+
+
+_check_registry()
+
+
+# ---- which class an object belongs to -----------------------------------------
+# The binding, and it is the whole of what used to be two tables of prose. A type binds to one
+# class by default; an id overrides it where one type carries two. Both are checked at the foot
+# of this file: an object bound to nothing stops the build, and so does a class nothing binds to.
+CLASS_OF_TYPE = {
+    "Programme": "programme",
+    "Company": "company-employer",
+    "SessionTemplate": "session-template",
+    "Instructor": "instructor",
+    "CohortSession": "cohort-session",
+    "Cohort": "cohort",
+    "StudentGroup": "student-group",
+    "Student": "student",
+    "Enrolment": "enrolment",
+    "Agreement": "agreement",
+    "Charge": "charge",
+    "Claim": "claim",
+}
+
+# Per node, where one type carries more than one class. The visit host is one of the five and the
+# four ghosts are the rest: Ghost is deliberately absent from the table above, so a ghost with no
+# entry here stops the build rather than inheriting a sibling's route.
+CLASS_OF_ID = {
+    "co_col": "company-colaboradora",
+    "g_inst": "ghost-instalment",
+    "g_place": "ghost-placement",
+    "g_beca": "ghost-beca",
+    "g_ref": "ghost-refund",
 }
 
 
@@ -221,33 +615,22 @@ ROUTE_BY_ID = {
 # mark saying so. Inventing a key to fill that column would delete the one thing this drawing has
 # to say about it.
 #
-# WHICH OBJECTS ARE NULL IS DERIVED AND NEVER DECLARED TWICE, exactly as the mark is. An object
-# has a source system precisely when its own route_system row is not flagged absent, and the map
-# below supplies only the NAME of the system for the ones that have one. A type with a route and
-# no name here stops the build; a name here for a type whose route says nothing holds it stops
-# the build too. There is no third state and nowhere to forget one.
+# WHERE THE SYSTEM NAME COMES FROM, AND IT IS NO LONGER A LIST OF ITS OWN. Seam 4 kept a
+# SOURCE_SYSTEM map beside the routes: a second place saying which system holds a class, and so a
+# second place for it to disagree with the sentence the panel prints. It was held together by two
+# refusals in the loop at the foot of this file. Issue 72 folded it into the registry, so
+# source_system is now the `system` field of the very entry whose route_system row the panel is
+# showing. One declaration, no second list, and no way at all to key an object in Stripe while
+# its route says nothing holds it: there is nowhere left to write the disagreement down.
 #
 # THE KEYS ARE INVENTED AND THEY DELIBERATELY DO NOT IMITATE THE VENDORS' OWN FORMATS. A string
 # shaped exactly like a Stripe charge id or a Notion page id, on a page anyone with the URL can
 # read, invites being read as a real one. Each key is the system's own name, a hyphen and ten
 # digits derived from the object's seed: stable across builds, one per object, and unmistakably
 # a toy. What a management tool needs from this column is that it joins, not that it looks
-# plausible.
-SOURCE_SYSTEM = {
-    "Instructor": "notion",
-    "CohortSession": "notion",
-    "StudentGroup": "campus",        # the learning platform, which the route calls the campus
-    "Student": "applicant-tracker",
-    "Enrolment": "notion",
-    "Charge": "stripe",
-    "Claim": "notion",
-}
-
-# Per node, for the ids whose route overrides their type's. The visit host is the whole of it
-# today and it is the case that makes the point: it is a Company like the five employers, the
-# employers have no record anywhere, and this one has a Notion page. One type, two answers about
-# identity, and the difference lives in the data exactly where ROUTE_BY_ID already puts it.
-SOURCE_SYSTEM_BY_ID = {"co_col": "notion"}
+# plausible. The registry says the same thing in machine form: every attachable class carries
+# key.status "not-recorded" and key.stands_in "source_key", because not one of the eight routes
+# names a field a real adapter could join on.
 
 
 def source_key(system, seed):
@@ -913,18 +1296,22 @@ GHOST_SPEC = [
 
 TYPES = TYPES + [GHOST_TYPE]
 
-# The per-node populate routes are written once, for the unprefixed ids, and then repeated for
-# every route's own copy. A generated id that had no entry would stop the build at the loop at
-# the foot of this file, which is the behaviour that is wanted; repeating them here is what keeps
-# a visit host on Z-HR saying the same thing about Notion as the one on Z-IB.
+# The per-node class bindings are written once, for the unprefixed ids, and then repeated for
+# every route's own copy. A generated id that bound to nothing would stop the build at the loop
+# at the foot of this file, which is the behaviour that is wanted; repeating them here is what
+# keeps a visit host on Z-HR the same CLASS as the one on Z-IB.
+#
+# THIS LOOP IS THE ARGUMENT FOR PER CLASS, MADE MECHANICALLY. Before issue 72 it copied four
+# strings and a system name to thirty five ids; a route is a fact about the class and the seven
+# copies of a visit host are seven objects of one class, so the copying was the model saying so
+# in the only way the old shape allowed. It now copies one word, which is a binding and not a
+# route, and there is nothing left in it that could come out different on one prefix.
 for _spec in PROGRAMMES:
     _pfx = _spec["pfx"]
     if not _pfx:
         continue
     for _base in ("co_col",) + tuple(gs[0] for gs in GHOST_SPEC):
-        ROUTE_BY_ID[_pfx + _base] = ROUTE_BY_ID[_base]
-        if _base in SOURCE_SYSTEM_BY_ID:
-            SOURCE_SYSTEM_BY_ID[_pfx + _base] = SOURCE_SYSTEM_BY_ID[_base]
+        CLASS_OF_ID[_pfx + _base] = CLASS_OF_ID[_base]
 
 
 # ---- the three builders -----------------------------------------------------
@@ -1225,7 +1612,11 @@ def tail_block(spec):
     # A roster row is a Student, so it carries identity on the same terms a drawn Student tile
     # does, seeded on the person. Four of these rows are also tiles and the pair then holds one
     # source key under two drawing ids, which is checked at the foot of this file rather than
-    # asserted here.
+    # asserted here. The system it is keyed in is read off the Student class's own registry entry
+    # and not out of a table beside it, which is issue 72's whole point: a roster row and a
+    # Student tile cannot end up keyed in two different systems, because there is one place that
+    # says which system holds a Student.
+    _stu = ROUTES[CLASS_OF_TYPE["Student"]]["system"]
     rows = [
         {
             "id": f"STU-{i:04d}",
@@ -1235,8 +1626,8 @@ def tail_block(spec):
             "enrol": f"ENR-{i:04d}",
             "state": state,
             "node": f"{pfx}s{i}" if i <= drawn else None,
-            "source_system": SOURCE_SYSTEM["Student"],
-            "source_key": source_key(SOURCE_SYSTEM["Student"], f"{pfx}STU-{i:04d}"),
+            "source_system": _stu,
+            "source_key": source_key(_stu, f"{pfx}STU-{i:04d}"),
         }
         for i, (name, uni, yob, state) in enumerate(roster, start=1)
     ]
@@ -1287,9 +1678,12 @@ ALL_EDGES = [_e for _v in VIEWS for _e in _v["edges"]]
 # would hold; a panel that answers them the other way round buries the one that decides whether
 # the second question is worth asking.
 #
-# THE MARK IS DERIVED AND NEVER TYPED. A tile carries "no system holds it" exactly when its own
-# route_system row is flagged absent, so the drawing and the panel cannot disagree about which
-# types have nowhere to live. Editing the row moves the mark; there is no second place to forget.
+# THE MARK IS DERIVED AND NEVER TYPED. A tile carries "no system holds it" exactly when the class
+# it belongs to is not attachable, so the drawing, the panel and the registry cannot disagree
+# about which classes have nowhere to live. Setting a system on the entry takes the mark off;
+# there is no second place to forget. Before issue 72 it read the flag on the route_system row,
+# which is now itself derived from the same field, so the mark is one step further from anything
+# a person types and lands on exactly the same tiles.
 #
 # GHOSTS ARE EXEMPT, AND NOT FOR TIDINESS. A ghost tile is already the strongest statement this
 # drawing makes: unfilled, dashed, italic, and its type reads "does not exist in any system" at
@@ -1302,41 +1696,44 @@ ALL_EDGES = [_e for _v in VIEWS for _e in _v["edges"]]
 # different dict on each route it appears on, because sessions_taught is a fact about the route
 # and not about the person, and prepending the route rows twice to one shared dict would print
 # them twice on one tile.
+_BOUND = set()
 for _n in ALL_NODES:
-    _r = ROUTE_BY_ID.get(_n["id"]) or ROUTES.get(_n["type"])
-    if _r is None:
-        raise SystemExit(f"model: node {_n['id']} ({_n['type']}) has no populate route. Every "
-                         f"type needs one, and 'unknown' is written as a route and not omitted.")
+    _cid = CLASS_OF_ID.get(_n["id"]) or CLASS_OF_TYPE.get(_n["type"])
+    if _cid is None:
+        raise SystemExit(f"model: node {_n['id']} ({_n['type']}) belongs to no class in the "
+                         f"populate registry. Bind its type in CLASS_OF_TYPE or its id in "
+                         f"CLASS_OF_ID, and 'unknown' is written as a route and not omitted.")
+    _r = ROUTES[_cid]
+    _BOUND.add(_cid)
     if _n.get("mark"):
         raise SystemExit(f"model: node {_n['id']} carries a hand written mark. The mark says "
-                         f"whether a system holds the type and is derived from route_system.")
-    if "source_system" in _n or "source_key" in _n:
-        raise SystemExit(f"model: node {_n['id']} carries a hand written source id. Identity is "
-                         f"derived from route_system and SOURCE_SYSTEM, in one place.")
-    # ---- identity, seam 4, derived from the route that is already written above -------------
-    # A route flagged absent says no system holds the type, so there is no system to name and no
-    # key to carry. Anything else says a system holds it, so it has to be named. The two
-    # refusals below are the whole of the rule and there is no way to satisfy one by editing the
-    # other.
-    _held = _r[0]["f"] != A
-    _sys = SOURCE_SYSTEM_BY_ID.get(_n["id"], SOURCE_SYSTEM.get(_n["type"]))
-    if _held and _sys is None:
-        raise SystemExit(f"model: node {_n['id']} ({_n['type']}) has a populate route naming a "
-                         f"system and no entry in SOURCE_SYSTEM. Name the system it is keyed "
-                         f"in, or say in the route that nothing holds it.")
-    if not _held and _sys is not None:
-        raise SystemExit(f"model: node {_n['id']} ({_n['type']}) is keyed in {_sys!r} and its "
-                         f"populate route says no system holds it. One of the two is wrong and "
-                         f"the route is the one the panel prints.")
-    _n["source_system"] = _sys
-    _n["source_key"] = source_key(_sys, _n.pop("source_seed", _n["id"]))
-    _n["props"] = _r + _n["props"]
+                         f"whether a system holds the class and is derived from the registry.")
+    if "source_system" in _n or "source_key" in _n or "class" in _n:
+        raise SystemExit(f"model: node {_n['id']} carries a hand written class or source id. "
+                         f"Both are derived from the populate registry, in one place.")
+    # ---- identity, seam 4, read off the registry entry the route above already names ---------
+    # There is nothing left to reconcile here. Seam 4 had to refuse in both directions because
+    # the system name lived in a second table beside the route; issue 72 put it on the entry, so
+    # a class with no system HAS no system to carry and the two cannot be made to disagree.
+    # _check_registry above is what now holds the pair together, one class at a time.
+    _n["class"] = _cid
+    _n["source_system"] = _r["system"]
+    _n["source_key"] = source_key(_r["system"], _n.pop("source_seed", _n["id"]))
+    _rows = route_props(_r)
+    _n["props"] = _rows + _n["props"]
     # How many of the rows at the front of the list are the route, so the panel can rule a line
     # under them. A count and not a name: the browser never has to know that a key beginning
     # "route_" is special, and renaming a row here cannot silently move the line.
-    _n["route"] = len(_r)
-    if _r[0]["f"] == A and not _n.get("ghost"):
+    _n["route"] = len(_rows)
+    if not _r["attachable"] and not _n.get("ghost"):
         _n["mark"] = NO_SYSTEM
+
+# A class nothing is drawn as is a route nobody can check against a tile, and it is exactly how a
+# registry rots: an entry edited for a class that left the model months ago reads as current.
+_UNBOUND = sorted(set(ROUTES) - _BOUND)
+if _UNBOUND:
+    raise SystemExit(f"model: the populate registry declares {', '.join(_UNBOUND)} and no object "
+                     f"on any view belongs to that class. Remove the entry or draw the class.")
 
 # ---- and identity has to join, which is the only reason to carry it ----------
 # A key that names two objects is worse than no key, because a join on it silently merges them.
@@ -1374,7 +1771,28 @@ for _v in VIEWS:
 # rather than as a node id, and everything is checked here so that nothing gets through by not
 # being a name. Comments are not in this set and do not need to be: the repository gate reads the
 # file whole, which is how a real name in a comment in this very block was caught.
+#
+# THE REGISTRY IS IN THIS SET TOO, and it is not a formality. Every string it ships is on the
+# public page: seventeen class names, the systems, the units, the partitions, the tokens, the
+# citations and the whole of every vocabulary. A registry is exactly the sort of document a role
+# quietly becomes a person's name in, and the folding treats "notion" and a surname alike.
 _strings = [("TYPES", t[1]) for t in TYPES]
+_strings += [(f"registry {_cid} {_k}", _s)
+             for _cid, _e in ROUTES.items()
+             for _k, _s in (("class", _e["class"]), ("system", _e["system"]),
+                            ("unit", _e["unit"]), ("partition", _e["partition"]),
+                            ("absence", _e["absence"]), ("read", _e["read"]),
+                            ("key", _e["key"]["status"]), ("source", _e["source"]),
+                            ("role", _e["entered_by"]["role"]),
+                            ("event", _e["event"]["token"]),
+                            ("adapter", _e["adapter"]["status"]))
+             if _s]
+_strings += [(f"registry {_cid} caveat", _c) for _cid, _e in ROUTES.items() for _c in _e["caveats"]]
+_strings += [(f"registry vocabulary {_name}", _s)
+             for _name, _tbl in (("read", READ_STATE), ("adapter", ADAPTER_STATE),
+                                 ("key", KEY_STATE), ("field", FIELD_STATE), ("role", ROLE),
+                                 ("absence", ABSENCE), ("caveat", CAVEAT))
+             for _tok, _why in _tbl.items() for _s in (_tok, _why)]
 for _v in VIEWS:
     for _n in _v["nodes"]:
         _w = f"{_v['key']} node {_n['id']}"
@@ -1686,10 +2104,29 @@ def instance_document():
                    "cDark": type_colour(k, col, "dark"), "glyph": glyph,
                    "ghost": 1 if k == "Ghost" else None}
                   for k, lab, col, glyph in TYPES],
+        # ---- the populate registry, issue 72 -------------------------------------------------
+        # Seventeen classes, keyed by class id, each one a declaration a source adapter could be
+        # written against: which system holds the rows, what a row is, how the rows are split,
+        # what identifies one, who enters it, on what event, whether the system can be read at
+        # all today, and whether an adapter exists. Every node carries `class`, which is the join
+        # back to this table, and nine of the entries say that no adapter can exist here at all,
+        # with the reason as a token rather than as an empty field.
+        #
+        # The vocabularies travel with it. A reader of these bytes needs no Python to know what
+        # `not-attempted` or `intersection-only` means, and a token that is in no vocabulary
+        # stops the build.
+        "routes": {"vocab": {"read": READ_STATE, "adapter": ADAPTER_STATE, "key": KEY_STATE,
+                             "field": FIELD_STATE, "role": ROLE, "absence": ABSENCE,
+                             "caveat": CAVEAT},
+                   "classes": ROUTES},
         "views": [{
             "key": v["key"], "code": v["code"], "name": v["name"], "label": v["label"],
             "route": "#/p/" + v["key"],
-            "nodes": [{"id": n["id"], "type": n["type"], "label": n["label"],
+            # `class` is the join to the populate registry above and `route` is the number of
+            # rows at the front of `props` that the registry produced. Two different questions
+            # under two names that read alike, and the shorter one is the count because it is the
+            # one app.js has always read.
+            "nodes": [{"id": n["id"], "type": n["type"], "label": n["label"], "class": n["class"],
                        "count": n.get("count"), "props": n["props"], "route": n["route"],
                        "source_system": n["source_system"], "source_key": n["source_key"],
                        "ghost": 1 if n.get("ghost") else None,

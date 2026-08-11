@@ -42,6 +42,59 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- The populate routes are a machine-readable adapter registry, #60 seam 3, #72. #4 recorded, for
+  every object type, which system holds the record, who enters it and on what event, as four
+  strings a person reads. Every one of those sentences is still here, verbatim, and still the
+  first four rows of every panel: the props, marks, identity, edges and roster of all 248 objects
+  are byte identical to the previous document, compared node by node. What is new is that each
+  sentence is now the display side of a declaration carrying machine fields beside it, in
+  `site/instance.js` under `routes`, keyed by class: which `system`, what one row is (`unit`), how
+  the rows are split (`partition`), what identifies one (`key`), who enters it and on what
+  `event`, whether the system can be `read` at all today, and whether an `adapter` exists. Every
+  node carries `class`, which is the join back. The seven vocabularies ship with it, 34 tokens
+  each with its meaning, so a reader of the bytes needs no Python and a token in no vocabulary
+  stops the build. 11810 bytes of registry on a document that grew from 276899 to 294455, written
+  without a thousands separator because the safety gates read a dot grouped figure as money.
+- **`read` is the question #4 never asked and it is the one that decides whether the rest is
+  actionable.** Its honest answer on all seventeen classes is that nothing here has ever read
+  anything: `no-source` on the nine, `not-attempted` on the eight, where `not-attempted` says a
+  system holds the rows and there is no adapter, no credential held and no record of whether it
+  could be read. `readable` and `refused` are declared so the field can move and the build refuses
+  an entry that claims either, because nothing in this repository could have demonstrated it. No
+  adapter was written and nothing was connected to anything; every value on the page stays
+  invented.
+- **"No adapter is possible here" is a state and not an empty field**, which is the whole of what
+  #4 bought and the thing a management tool built on this must not lose. The nine unhoused classes
+  carry `adapter.status` `impossible` with `blocked_by` naming one of nine absence tokens, so the
+  reason is machine readable and different per class rather than a shared blank:
+  `contested-enumerations` for Programme, `value-not-a-row` for Company as employer,
+  `copy-not-a-template` for Session template, `intersection-only` for Cohort, `file-not-a-row` for
+  Agreement, and one each for the four ghosts, which stop sharing anything but the type at exactly
+  that field. Six of the eight real routes carry caveats an adapter cannot write its way out of,
+  four of them #4's own partials. Not one of the eight names a key: `key.status` is
+  `not-recorded` on all of them and seam 4's minted `source_key` is what stands in, said in the
+  registry rather than left to be noticed.
+- **The route is per class**, established rather than assumed: seventeen classes drawn as thirteen
+  types, Company being one type doing two jobs and Ghost one type standing for four. Per type is
+  too coarse and per object too fine, and the old shape proved the second by having to copy four
+  strings and a system name across seven route prefixes; that loop now copies one word, a binding
+  and not a route. Per view never applied. Where it disagrees with seam 4 both are right: identity
+  is per object, because a route names a class of rows and a key names a row in it.
+  `SOURCE_SYSTEM` is gone, folded into the registry, and with it the two refusals that used to
+  hold it level with the route: there is nowhere left to write the disagreement down.
+- The mark is unmoved and now one step further from anything typed: 85 marked tiles across the
+  seven views before and after, on the same tiles, derived from `attachable` rather than from the
+  flag on a row that is itself derived from the same field. Seam 1's two-way gate was extended to
+  the new block, so geometry in a registry entry stops the build like geometry anywhere else in
+  the instance document.
+- `scripts/routes.py` is the proof that the registry is machine readable, and it is deliberately
+  not an adapter: it reads `site/instance.js`, the bytes the page loads, imports nothing from
+  `build/`, opens no socket and knows the name of no system it does not read out of the file. It
+  prints every class, which are attachable and which are not and why, how many objects each
+  governs, and refuses if any class is declared and drawn nowhere or any object names a class the
+  document does not declare. **8 attachable, 9 not, 17 in all, 248 objects all bound, 0 adapters
+  implemented and 0 systems read.** Nine negative controls were run against the new refusals, each
+  producing its own message, with the unmodified build as the positive control.
 - Every object carries a source system and a source key, both nullable, #60 seam 4. A drawing id
   joins a tile to an edge and means nothing outside this repository; a management tool joins on
   the key the holding system uses, so the two are now different columns and the second exists
