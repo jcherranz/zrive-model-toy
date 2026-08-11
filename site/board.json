@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T23:52:04Z",
+  "generated": "2026-08-11T23:53:08Z",
   "columns": [
     {
       "key": "raw",
@@ -60,6 +60,15 @@
             "feedback"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/91"
+        },
+        {
+          "id": 92,
+          "title": "The EVERY VALUE IN THIS TABLE IS INVENTED row is transparent and I…",
+          "labels": [
+            "bug",
+            "feedback"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/92"
         }
       ]
     },
