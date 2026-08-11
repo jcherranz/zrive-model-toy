@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T23:17:39Z",
+  "generated": "2026-08-11T23:48:02Z",
   "columns": [
     {
       "key": "raw",
@@ -88,16 +88,6 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/75"
-        },
-        {
-          "id": 86,
-          "title": "The sheet overlay covers the whole header, so every page-level control is unreachable",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/86"
         }
       ]
     },
@@ -110,6 +100,16 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 86,
+          "title": "The sheet overlay covers the whole header, so every page-level control is unreachable",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/86"
+        },
         {
           "id": 85,
           "title": "Session-level detail on a template: real module structure exists and is not shipped",
@@ -183,20 +183,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/79"
-        },
-        {
-          "id": 78,
-          "title": "A Strategy Consulting session template carries a time and a venue, so it is an instance",
-          "labels": [
-            "bug",
-            "feedback",
-            "model",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/78"
         }
       ],
-      "hidden": 61,
+      "hidden": 62,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
