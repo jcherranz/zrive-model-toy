@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T19:08:47Z",
+  "generated": "2026-08-11T20:19:47Z",
   "columns": [
     {
       "key": "raw",
@@ -24,6 +24,15 @@
             "limitation"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
+        },
+        {
+          "id": 75,
+          "title": "It does not host visit for the programme but rather for the cohort",
+          "labels": [
+            "bug",
+            "feedback"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/75"
         }
       ]
     },
