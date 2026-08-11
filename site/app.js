@@ -33,17 +33,29 @@
   // mixing with `transparent` is premultiplied, so the result is exactly C at alpha 0.14. It is
   // Baseline (Chrome 111, Safari 16.2, Firefox 113, all 2023) and the site ships no polyfill and
   // no build step, which is the whole reason it had to be checked on a real engine.
+  //
+  // ONE :root BLOCK AND NO MEDIA QUERY, which is the half of this that issue 57 changed. This
+  // was `:root` plus `@media (prefers-color-scheme: dark)`, one pair of blocks, and it was
+  // correct while the operating system was the only thing with an opinion. A reader can now
+  // disagree with the machine, and a colour whose only definition is inside a media block is a
+  // colour that disagreement cannot reach. app.css answers the choice through `color-scheme`,
+  // and `light-dark()` reads the used value of that property, so writing the pair as one
+  // function puts these thirteen on exactly the mechanism the rest of the palette is on. The
+  // tiles turn with the chrome rather than a frame later, and still with no JavaScript running
+  // at all: nothing here listens for a theme change, because there is nothing to listen for.
+  // Checked on the same engine and in the same way as color-mix above: light-dark() resolves in
+  // an SVG presentation attribute, resolves through var(), nests inside color-mix(), and the
+  // thirteen fills it produces are pixel for pixel the fills the media query produced, in both
+  // schemes. Baseline: Chrome 123, Safari 17.5, Firefox 120, all 2024.
   (function () {
-    var light = [], dark = [];
+    var decls = [];
     G.types.forEach(function (t) {
       COLOR[t.k] = 'var(--type-' + t.k + ')';
-      light.push('--type-' + t.k + ':' + t.c + ';');
-      dark.push('--type-' + t.k + ':' + (t.cDark || t.c) + ';');
+      decls.push('--type-' + t.k + ':light-dark(' + t.c + ',' + (t.cDark || t.c) + ');');
     });
     var st = document.createElement('style');
     st.id = 'type-palette';
-    st.textContent = ':root{' + light.join('') + '}\n' +
-                     '@media (prefers-color-scheme: dark){:root{' + dark.join('') + '}}\n';
+    st.textContent = ':root{' + decls.join('') + '}\n';
     (document.head || document.documentElement).appendChild(st);
   })();
 
@@ -1004,6 +1016,68 @@
     setTimeout(function () { ensureVisible(n); }, 30);
   }
 
+  // ---- the theme, and the reader's right to disagree with the machine --------
+  // #55 made the page follow prefers-color-scheme, which is the correct default and stays the
+  // default here. What it could not do is let a reader disagree with a laptop that turns over at
+  // sunset, so this is the override, and the only honest set of states is three: system, light,
+  // dark. A two-state switch has nowhere to put "whatever the machine says", and a reader who
+  // has flipped it once can never get back to following the machine.
+  //
+  // ALL OF THE CASCADE IS IN app.css AND NONE OF IT IS HERE. This function sets one attribute on
+  // the root element and reads one key out of localStorage. It picks no colour, reads no media
+  // query and listens for no change: `color-scheme` is `light dark` when the attribute is
+  // absent, so the operating system keeps answering by itself, and the attribute pins it when
+  // the reader has said otherwise. The thirteen type colours in the generated stylesheet at the
+  // top of this file are on the same property, so the tiles and the chrome turn together.
+  //
+  // The attribute is set twice on a load, and that is on purpose rather than an oversight: the
+  // four lines inline in index.html set it before the first paint, because this file is at the
+  // foot of the body and a reader who chose dark on a light machine would otherwise watch a
+  // white page turn over on every load. Those four lines know one thing, the two attribute
+  // values; everything else about the choice is here, so there is one place to change and not
+  // two. Issue 57.
+  var THEME_KEY = 'zmt.theme';        // namespaced as feedback.js namespaces zmt.gh.token
+  var THEMES = ['system', 'light', 'dark'];
+  // What the control says about the state it is in, and what pressing it will do next. The
+  // hint matters more here than on a two-state toggle: the reader cannot see the third state
+  // from the second one.
+  var THEME_TITLE = {
+    system: 'the theme follows the operating system. Press for light',
+    light: 'the theme is light, whatever the operating system says. Press for dark',
+    dark: 'the theme is dark, whatever the operating system says. Press to follow the ' +
+          'operating system again'
+  };
+  var thBtn = document.getElementById('thtoggle');
+  var theme = 'system';
+
+  function applyTheme(choice) {
+    theme = THEMES.indexOf(choice) === -1 ? 'system' : choice;
+    // Absent for system, so the media half of app.css's switch is what answers, which is the
+    // page exactly as it behaved before this control existed.
+    if (theme === 'system') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', theme);
+    if (thBtn) {
+      // The state, in the row's own idiom: `feedback` says `feedback: on (Esc to exit)` in the
+      // same place for the same reason. The button's text is its accessible name, so a screen
+      // reader is told the state by the same string a reader sees, and the title is the hint.
+      thBtn.textContent = 'theme: ' + theme;
+      thBtn.title = THEME_TITLE[theme];
+    }
+  }
+
+  if (thBtn) {
+    var stored = null;
+    try { stored = localStorage.getItem(THEME_KEY); } catch (e) { stored = null; }
+    applyTheme(stored);
+    thBtn.addEventListener('click', function () {
+      applyTheme(THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length]);
+      // `system` is written out rather than removed, because "I chose to follow the machine" and
+      // "I have never chosen" are different facts even though they draw the same page. An
+      // unreadable or absent key still means system, so clearing storage falls back correctly.
+      try { localStorage.setItem(THEME_KEY, theme); } catch (e) { /* nothing persists, page still turns */ }
+    });
+  }
+
   // ---- ghosts on or off ----------------------------------------------------
   // Shown by default. The absences are the finding, so the reader meets them first, and the
   // toggle is there for the times the question is only about what the systems do hold.
@@ -1209,6 +1283,23 @@
     },
     view: function () { return { x: view.x, y: view.y, k: view.k, w: vw, h: vh }; },
     fit: fit,
+    // The theme, for the same reason view() is here: which of the three the reader is on, what
+    // the machine is saying underneath it, and what the page actually resolved to are three
+    // different claims, and a driver checking an override should be able to read all three off
+    // the running page rather than infer them from a screenshot. `resolved` is taken from the
+    // used value of color-scheme, which is the one property the whole cascade turns on.
+    theme: function () {
+      var attr = document.documentElement.getAttribute('data-theme');
+      var used = getComputedStyle(document.documentElement).colorScheme;
+      return {
+        choice: theme,
+        attr: attr,
+        system: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+        resolved: used === 'light dark'
+          ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          : used
+      };
+    },
     // Which nodes the drawing is not painting, for the same reason view() is here: whether a
     // reveal put exactly the intended set on screen is a claim a driver should be able to read
     // off the running page rather than infer from a screenshot. Derived from the rule table, so

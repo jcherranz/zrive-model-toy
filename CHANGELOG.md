@@ -64,8 +64,8 @@ of what changed and when, and it is meant to be scannable.
   the sessions lane on four routes. Every view is still inside the 650 the layout's own docstring
   targets and inside one 1440x900 viewport, and Z-CFA lands at exactly the 576 the card predicted,
   for exactly the reason it gave. Nothing was tuned to make the numbers agree.
-- `build/label_widths.json` is 2.733 strings across seven contexts, up from 466, and the build
-  reports 1.500 measured widths and 0 estimated, #43. Measured in the same browser and the same
+- `build/label_widths.json` is 2733 strings across seven contexts, up from 466, and the build
+  reports 1500 measured widths and 0 estimated, #43. Measured in the same browser and the same
   envelope as before. Without it every new title would be laid out from the hand written per
   character estimate, which on this model undershoots by up to 21,8 per cent at the weight a
   selected label is drawn.

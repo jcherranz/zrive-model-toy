@@ -5,44 +5,127 @@
  * affiliation with or endorsement by its authors is claimed or implied.
  */
 
+/* ---- the palette, both schemes on one line each ---------------------------
+   Every colour on this page is here and every one of them is written twice, light first and
+   dark second, inside light-dark(). Which of the two is used is decided by one property,
+   color-scheme, and by nothing else in this file. Issues 55 and 57.
+
+   WHY color-scheme AND NOT A MEDIA QUERY. #55 shipped this palette as a second copy of itself
+   inside @media (prefers-color-scheme: dark), which is the right shape while the operating
+   system is the only thing with an opinion. #57 gave the reader an opinion too, and a colour
+   whose only definition is inside a media block is a colour an explicit choice cannot reach:
+   overriding it means a third copy of the palette under the attribute, and three copies of one
+   set of colours is how they come to disagree. color-scheme already had to be set here for the
+   scrollbars and the native select menus, so making it the switch adds no mechanism, it removes
+   one. There is now no media query in this file that has anything to do with the theme.
+
+     color-scheme: light dark   the reader has said nothing, so the operating system decides
+     color-scheme: light        the reader chose light, whatever the operating system says
+     color-scheme: dark         the reader chose dark, whatever the operating system says
+
+   light-dark() reads that used value, so all three follow from the two rules under this block
+   and every token follows in both directions at once. site/app.js writes the thirteen type
+   colours as the same function into a generated stylesheet, so the tiles turn with the chrome
+   rather than a repaint later. It is Baseline (Chrome 123, Safari 17.5, Firefox 120, 2024) and
+   it was checked on a real engine rather than looked up, because the site ships no build step
+   and no polyfill: driven in Chrome 149, light-dark() resolves in an SVG presentation
+   attribute, resolves through var(), and nests inside color-mix(), and the thirteen tile fills
+   it produces are pixel for pixel the fills the media query produced, on both schemes.
+
+   The dark values are not the light ones inverted. Each was chosen against the surface it lands
+   on and measured there, and the two places an inverted palette fails are commented where they
+   occur: the muted grey, and the translucent tokens, which are set from the lightness step they
+   take rather than from their alpha, because the ground they step from is at the other end of
+   the scale.
+
+   The --c-* entries are the raw ramp the semantic tokens are drawn from and it does not flip: a
+   scale entry named light-5 is #f6f7f9 in both schemes, and four of the six are read by nothing
+   in site/ at all, so they paint nothing either way. --c-gray-3 is the exception and only
+   because nine rules read it directly as "the grey of a line": the edges, the arrowheads, the
+   three dashed marks of the ghosts, two greyed controls and the separator in the narrow student
+   list. A ramp entry being read as a semantic token has to follow the theme, so it is the one
+   ramp entry carrying a pair; the honest repair is a --line token for those nine rules, and
+   that is a card and not a thing to do inside a palette. */
 :root {
+  /* Not decoration, and not only the switch above. Without a dark used value the scrollbars of
+     the panel, the board and the student list stay light, and so does the menu the browser
+     draws for the two selects in the capture popover: none of the four is reachable from any
+     rule in this file, in either direction. */
+  color-scheme: light dark;
+
   --c-gray-1: #5f6b7c;
-  --c-gray-3: #8f99a8;
+  --c-gray-3: light-dark(#8f99a8, #738091);
   --c-light-2: #dce0e5;
   --c-light-3: #e5e8eb;
   --c-light-5: #f6f7f9;
   --c-white: #ffffff;
 
-  --i-primary: #2d72d2;
-  --i-primary-fg: #ffffff;
+  /* The mid blue and not a pale one on the dark side, because this token is a surface as well
+     as a link: the selected tile and the capture toggle are filled with it and carry
+     --i-primary-fg on top. A pale blue reads as a link and fails as a fill. And the mark on
+     that fill goes dark: white on #4c90f0 measures 3.2:1 and the page's own ground on it
+     measures 5.1:1, which is the right way round anyway, since on a dark page the selected tile
+     is the bright thing and what is written on it is a hole in the light. */
+  --i-primary: light-dark(#2d72d2, #4c90f0);
+  --i-primary-fg: light-dark(#ffffff, #1c2127);
 
-  --bg-app: #f6f7f9;
-  --bg-panel: #ffffff;
-  --bg-elevated: #edeff2;
-  --fg-body: #1c2127;
-  --fg-muted: #5f6b7c;
-  --rule: rgba(17, 20, 24, 0.15);
-  --rule-muted: rgba(17, 20, 24, 0.10);
+  /* The ground and the plates on it, in one order read twice: the app is the plane, a panel
+     sits on it, and the elevated fill sits on the panel. In light the panel steps up from the
+     app and the elevated fill steps back down; in dark both steps go the one way, away from the
+     ground, because on a dark page depth is light. */
+  --bg-app: light-dark(#f6f7f9, #1c2127);
+  --bg-panel: light-dark(#ffffff, #252a31);
+  --bg-elevated: light-dark(#edeff2, #2f343c);
+
+  --fg-body: light-dark(#1c2127, #f6f7f9);
+  /* The dark half is not the light grey inverted. Mirroring it onto the ramp gives #8f99a8,
+     which reads well enough on the panel and then fails at 4.4:1 on --bg-elevated, which is
+     exactly where the muted grey does its hardest work: the captured-context block in the
+     feedback popover, and the sticky heading row of the student list. One step up the ramp
+     clears every surface it lands on. */
+  --fg-muted: light-dark(#5f6b7c, #abb3bf);
+  --rule: light-dark(rgba(17, 20, 24, 0.15), rgba(255, 255, 255, 0.13));
+  --rule-muted: light-dark(rgba(17, 20, 24, 0.10), rgba(255, 255, 255, 0.09));
   /* The dots of the canvas ground. Quieter than --rule-muted on purpose: the grid has to say
      "this plane continues" and nothing else, and a grid a reader can count is a grid competing
-     with the drawing on it. One token, because the day this site grows a dark theme the grid
-     follows it from here and from nowhere else. That day is here and the promise held: the dark
-     palette below redefines this one property and the ground follows, with no second rule for
-     the grid anywhere in this file. */
-  --grid-dot: rgba(17, 20, 24, 0.17);
-  --tint-hover: rgba(143, 153, 168, 0.15);
-  --rule-select: rgba(45, 114, 210, 0.45);
-  --tint-warning: rgba(200, 118, 25, 0.10);
-  --tint-neutral: rgba(143, 153, 168, 0.15);
-  --fg-warning: #935610;
+     with the drawing on it. One token, so the grid follows the theme from here and from nowhere
+     else, and the dark half is held a shade under step parity on top of that: a light mark on a
+     dark ground reads heavier than a dark mark of the same step on a light one, and a grid a
+     reader can count is a starfield rather than a plane. */
+  --grid-dot: light-dark(rgba(17, 20, 24, 0.17), rgba(255, 255, 255, 0.12));
+  --tint-hover: light-dark(rgba(143, 153, 168, 0.15), rgba(255, 255, 255, 0.07));
+  --rule-select: light-dark(rgba(45, 114, 210, 0.45), rgba(76, 144, 240, 0.55));
+  --tint-warning: light-dark(rgba(200, 118, 25, 0.10), rgba(236, 154, 60, 0.12));
+  --tint-neutral: light-dark(rgba(143, 153, 168, 0.15), rgba(255, 255, 255, 0.07));
+  --fg-warning: light-dark(#935610, #ec9a3c);
   /* What makes the canvas inert while the student list is up. It was written into .roster-back
-     as a literal, which is the one colour in this file a dark palette could not have reached:
-     a scrim mixed for a light page is not dark enough to sit over a dark one. Same value as
-     before, read from here now. */
-  --scrim: rgba(17, 20, 24, 0.28);
+     as a literal, which is the one colour in this file a second palette could not have reached.
+     The dark half is darker and heavier and is black rather than the near-black of the ramp: a
+     scrim's job is to put the canvas behind the list, and against a ground that is already dark
+     a 28 per cent wash of a colour close to it does nothing at all. */
+  --scrim: light-dark(rgba(17, 20, 24, 0.28), rgba(0, 0, 0, 0.55));
 
+  /* The one token that is not a colour, and the one exception to everything above: a shadow
+     list, whose dark form moves the geometry as well as the colours, and light-dark() takes
+     colours and not lengths. Both forms are written here on :root, where an attribute can reach
+     them; the two rules at the foot of this file are what point the live token at the dark one.
+
+     A four stop form was tried first, so that one declaration could carry both geometries by
+     painting each scheme's unused soft shadow in `transparent`. IT IS NOT FREE, and that is
+     worth the sentence because it looks free: measured against the tree it replaced, it moved
+     eight pixels by one 255th on the antialiased corners of the panel's `estimated` badges, at
+     1536x839 and again at 1440x900. A stop painted in `transparent` is still a paint layer. It
+     was rejected for that, and this token is the exception because of a measurement rather than
+     because of a preference.
+
+     Why the two forms differ at all: a dropped shadow is nearly invisible on a dark ground, so
+     the hairline in the first stop carries the separation and becomes a rim of light rather than
+     a ring of black, and the two soft shadows go deeper, because a floating panel still has to
+     sit off the plane and not in it. */
   --elev-1: 0 0 0 1px rgba(0, 0, 0, .10), 0 1px 3px 0 rgba(0, 0, 0, .10),
             0 1px 2px -1px rgba(0, 0, 0, .10);
+  --elev-1-dark: 0 0 0 1px rgba(255, 255, 255, .10), 0 2px 5px 0 rgba(0, 0, 0, .40),
+                 0 1px 2px -1px rgba(0, 0, 0, .40);
 
   --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
              Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
@@ -55,89 +138,27 @@
   --radius: 4px;
 }
 
-/* ---- the same page in the dark -------------------------------------------
-   One block, and it is the whole theme. Every rule under it was already written against the
-   tokens above, so a dark page is this palette and nothing else: no second copy of a rule, no
-   second @media further down, and no surface that can be missed, because a surface that could
-   be missed here is a surface that never had a token in the first place. Issue 55.
+/* ---- the reader disagreeing with the operating system ---------------------
+   The whole of the override, and the two rules are each other's mirror so that a choice wins in
+   both directions: light on a machine set to dark, and dark on a machine set to light. The
+   attribute is absent when the reader has chosen `system`, which is the default and which
+   leaves `light dark` above answering prefers-color-scheme exactly as the page did before this
+   existed. site/index.html sets the attribute before the first paint from the stored choice, and
+   site/app.js owns the control and the storage. Issue 57. */
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
 
-   It answers the operating system rather than a switch in the header. A switch is markup and
-   script, and neither is a stylesheet's to write; what "for low light" asks for is that this
-   page agrees with everything else the reader has open at that hour. An explicit override is a
-   card of its own.
-
-   The values are not the light ones inverted. Each was chosen against the surface it lands on
-   and measured there, and the two places an inverted palette fails are handled below where they
-   occur: the muted grey, and the translucent tokens. Those are set from the lightness step they
-   take in the light theme and not from their alpha, which is a smaller number here because the
-   ground they step from is now at the dark end of the scale.
-
-   The --c-* block above is the raw ramp the semantic tokens are drawn from and it does not
-   flip: a scale entry named light-5 is #f6f7f9 in both themes, and four of the six are read by
-   nothing in site/ at all, so they paint nothing either way. --c-gray-3 is the exception and
-   only because nine rules read it directly as "the grey of a line": the edges, the arrowheads,
-   the three dashed marks of the ghosts, two greyed controls and the separator in the narrow
-   student list. A ramp entry being read as a semantic token has to follow the theme, so it is
-   redefined here; the honest repair is a --line token for those nine rules, and that is a card
-   and not a thing to do inside a palette.
-
-   color-scheme is not decoration. Without it the scrollbars of the panel, the board and the
-   student list stay light, and so does the menu the browser draws for the two selects in the
-   capture popover: none of the four is reachable from any rule in this file. */
+/* And the one token that cannot ride on color-scheme, wired to the same three states by hand.
+   This is the only place in this file where the theme is spelled twice, and the pair is what a
+   token that is not a colour costs: the media query answers a reader who has said nothing, and
+   is written `:not([data-theme="light"])` rather than `:not([data-theme])` because what it has
+   to stand out of the way of is a reader who chose light on a machine set to dark. The value
+   itself is on :root above, not in here, so neither rule can drift from the palette or from the
+   other. */
 @media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-
-    /* The ground and the plates on it, in the light theme's own order: the app is the plane,
-       a panel sits on it, and the elevated fill sits on the panel. In light the panel steps up
-       from the app and the elevated fill steps back down; here both steps go the one way, away
-       from the ground, because on a dark page depth is light. */
-    --bg-app: #1c2127;
-    --bg-panel: #252a31;
-    --bg-elevated: #2f343c;
-
-    --fg-body: #f6f7f9;
-    /* Not the light grey inverted. Mirroring --fg-muted onto the ramp gives #8f99a8, which
-       reads well enough on the panel and then fails at 4.4:1 on --bg-elevated, which is exactly
-       where the muted grey does its hardest work: the captured-context block in the feedback
-       popover, and the sticky heading row of the student list. One step up the ramp clears
-       every surface it lands on. */
-    --fg-muted: #abb3bf;
-    --c-gray-3: #738091;
-
-    /* The mid blue and not the pale one, because this token is a surface as well as a link: the
-       selected tile and the capture toggle are filled with it and carry --i-primary-fg on top.
-       A pale blue reads as a link and fails as a fill. */
-    --i-primary: #4c90f0;
-    /* And the mark on that fill goes dark. White on #4c90f0 measures 3.2:1 and the page's own
-       ground on it measures 5.1:1, which is the right way round anyway: on a dark page the
-       selected tile is the bright thing and what is written on it is a hole in the light. */
-    --i-primary-fg: #1c2127;
-
-    --rule: rgba(255, 255, 255, 0.13);
-    --rule-muted: rgba(255, 255, 255, 0.09);
-    /* Set from the step the light dot takes off the light ground, and then held a shade under
-       it: a light mark on a dark ground reads heavier than a dark mark of the same step on a
-       light one, and a grid a reader can count is a starfield rather than a plane. */
-    --grid-dot: rgba(255, 255, 255, 0.12);
-    --tint-hover: rgba(255, 255, 255, 0.07);
-    --tint-neutral: rgba(255, 255, 255, 0.07);
-    --rule-select: rgba(76, 144, 240, 0.55);
-    --tint-warning: rgba(236, 154, 60, 0.12);
-    --fg-warning: #ec9a3c;
-    /* Darker and heavier than the light scrim, and black rather than the near-black of the
-       ramp. A scrim's job is to put the canvas behind the list, and against a ground that is
-       already dark a 28 per cent wash of a colour close to it does nothing at all. */
-    --scrim: rgba(0, 0, 0, 0.55);
-
-    /* A dropped shadow is nearly invisible on a dark ground, so the hairline in the first stop
-       carries the separation and it becomes a rim of light rather than a ring of black. The two
-       soft shadows stay and go deeper, because a floating panel still has to sit off the plane
-       and not in it. */
-    --elev-1: 0 0 0 1px rgba(255, 255, 255, .10), 0 2px 5px 0 rgba(0, 0, 0, .40),
-              0 1px 2px -1px rgba(0, 0, 0, .40);
-  }
+  :root:not([data-theme="light"]) { --elev-1: var(--elev-1-dark); }
 }
+:root[data-theme="dark"] { --elev-1: var(--elev-1-dark); }
 
 * { box-sizing: border-box; }
 

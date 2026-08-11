@@ -6,6 +6,22 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Zrive operating model, toy instance diagram</title>
 <link rel="stylesheet" href="app.css">
+<!-- The reader's stored theme, applied before the first paint, and the only script in this file.
+     It has to be here and it has to be inline: app.js is at the foot of the body, so a reader who
+     chose dark on a machine set to light would meet a white page and watch it turn over, on every
+     load. Four lines, and deliberately no more than four: it sets the attribute app.css answers
+     and nothing else. app.js owns the control, the storage and the meaning of the three choices,
+     and re-derives all of it from the same key. `system` is the default and writes no attribute,
+     so a browser with no storage, or a reader who has never chosen, gets exactly the operating
+     system's own answer. Issue 57. -->
+<script>
+(function () {
+  try {
+    var t = localStorage.getItem('zmt.theme');
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* storage unavailable: the page follows the operating system, as it always did */ }
+})();
+</script>
 </head>
 <body>
 
@@ -24,6 +40,17 @@
       </p>
     </div>
     <nav class="hnav">
+      <!-- The theme, and it is first in the row on purpose: it is the only item here that
+           belongs to the page rather than to a view. `ghosts` is hidden on the board and
+           `students` and `board` are places to go, so an item present in every view and about
+           every view is the row's anchor. It costs no row of its own: it is one more .linkbtn
+           in a nav that already grows by more than its width when the capture toggle turns on,
+           and its text is the current choice, which is the same idiom as `feedback` becoming
+           `feedback: on (Esc to exit)`. Three states, because system, light and dark is the only
+           honest set: a two-state switch cannot say "whatever the machine says". app.js writes
+           the text and the title and owns the stored choice. Issue 57. -->
+      <button id="thtoggle" class="linkbtn" type="button"
+              title="colour theme: follow the operating system, or choose light or dark">theme: system</button>
       <button id="ghtoggle" class="linkbtn" type="button" aria-pressed="true"
               title="show or hide the classes that do not exist in any system">ghosts</button>
       <button id="fbtoggle" class="linkbtn" type="button" aria-pressed="false"
