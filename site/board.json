@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T23:53:08Z",
+  "generated": "2026-08-11T23:53:38Z",
   "columns": [
     {
       "key": "raw",
@@ -69,6 +69,15 @@
             "feedback"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/92"
+        },
+        {
+          "id": 93,
+          "title": "Remove all this text. A good UI must be self explanatory. Too verbose",
+          "labels": [
+            "bug",
+            "feedback"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/93"
         }
       ]
     },
