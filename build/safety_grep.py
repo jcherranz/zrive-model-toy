@@ -63,6 +63,21 @@ def files(args):
 def main():
     targets = files(sys.argv[1:] or ["site"])
     terms = teacher_terms()
+    # Poka-yoke, and the same one scan_dir in scripts/check_forbidden.sh already carries. This
+    # gate reads the register out of the vault, so on any machine without the vault
+    # teacher_terms() returns an empty set, every name comparison then runs zero times and the
+    # gate prints VERDICT: clean. A gate handed nothing to scan and reporting clean is the
+    # loudest lie it can tell (HANSEI.md `2026-08-empty-input-reported-success`). Exit 2, which
+    # is the code scripts/verify.sh reads as "did not run" rather than as "passed".
+    if not targets:
+        print(f"ASSERTION FAILED: nothing to scan in {sys.argv[1:] or ['site']}", file=sys.stderr)
+        return 2
+    if not terms:
+        print(f"ASSERTION FAILED: the faculty register at {FACULTY} yielded no name terms, so "
+              f"the real-name rule would compare against nothing. This gate needs the vault; it "
+              f"is the local half of the safety machinery and the two CI gates, which hold "
+              f"salted hashes instead, are the half that does not.", file=sys.stderr)
+        return 2
     print(f"scanning {len(targets)} files against {len(terms)} real teacher name terms")
     hits = {"banned word": [], "real teacher name": [], "money": [], "notion id": []}
     for f in targets:

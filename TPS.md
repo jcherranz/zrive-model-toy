@@ -17,9 +17,9 @@ and `scripts/` are not.
 
 | Pillar | Status | Where |
 |---|---|---|
-| Jidoka, stop the line | `[OK]` best developed | `scripts/check_forbidden.sh`, `scripts/check_repo.sh`, and the three workflows that deploy or gate. `issue-status.yml` runs neither gate and is the one workflow that writes no file and publishes nothing |
-| Poka-Yoke, mistake-proofing | `[OK]` | `scripts/check_forbidden.sh`, `scripts/check_repo.sh`, `scripts/forbidden_names.sha256`, `scripts/sync_board.mjs` |
-| Genchi Genbutsu, go and see | `[OK]` learned the hard way | `~/bin/shot`, KAIZEN.md acceptance rule |
+| Jidoka, stop the line | `[OK]` best developed | `scripts/check_forbidden.sh`, `scripts/check_repo.sh`, `scripts/smoke.mjs`, and the four workflows that deploy or gate. `issue-status.yml` runs no check and is the one workflow that writes no file and publishes nothing |
+| Poka-Yoke, mistake-proofing | `[OK]` | `scripts/check_forbidden.sh`, `scripts/check_repo.sh`, `scripts/forbidden_names.sha256`, `scripts/sync_board.mjs`, `scripts/verify.sh` |
+| Genchi Genbutsu, go and see | `[OK]` learned the hard way | `~/bin/shot`, `scripts/smoke.mjs`, KAIZEN.md acceptance rule |
 | Standard work | `[OK]` | `build/build_layout.py`, `build/model.py` |
 | Heijunka, level the work | `[OK]` | GitHub Issues, `scripts/sync_board.mjs` |
 | Kanban | `[OK]` | `scripts/sync_board.mjs`, `scripts/set_status.sh`, `.github/workflows/board.yml`, `.github/workflows/issue-status.yml`, `site/board.json` |
@@ -48,6 +48,18 @@ on a rule that can false-fire would take the site down on a CSS decimal, and the
 a human takes to look is cheaper than the class of failure where a workflow deletes things on its
 own. `[OPEN]` The cost of that choice is real: between the gate turning red and a person acting,
 the content is public.
+
+**And a third check, which is not a safety gate.** Both of the above ask whether anything
+forbidden is here. Neither has ever asked whether the page works, and for the first two hundred
+commits nothing did: roughly ten substantive changes landed on 2026-08-10 and 11, every one
+verified by driving a headless browser by hand, and every one of those verifications was thrown
+away with the session that made it. `scripts/smoke.mjs` is those verifications kept. It serves
+`site/` locally, drives Chrome over the DevTools Protocol with no dependency of any kind, and
+asserts the behaviours the closed cards established, at 1536x839, 1440x900 and 390x844.
+`.github/workflows/smoke.yml` runs it on every push and every pull request, in a workflow of its
+own and deliberately not in the deploy path: a check that can leave the site half published is a
+worse thing than a check that runs a minute earlier, and a red safety gate and a red behaviour
+suite have to stay distinguishable at a glance. Issue 58.
 
 ## Poka-Yoke
 
@@ -84,6 +96,13 @@ Six places where the mistake is made hard rather than remembered against.
   KAIZEN is not: two changelog entries citing its last lesson already meant two different ones,
   and the cost was an agent withholding a lesson rather than repointing them by adding it, issue
   54.
+- **One entrypoint, so the list is not reconstructed from prose.** `scripts/verify.sh` runs, in
+  order, the syntax check on every shipped script, the layout reproducibility check, both gates
+  with their self-tests, the local token grep and the smoke suite. Every one of those already
+  existed and every one was findable only by reading a different paragraph of a different file,
+  which makes the list a thing somebody rebuilds by hand and therefore a thing somebody rebuilds
+  short. A step that cannot run says `[SKIP]` and why, because a clean run that skipped two checks
+  must not read as a clean run that did nine.
 - **Each gate is proved armed before it is trusted.** Every workflow runs the relevant
   `--self-test` alongside the live check. Each builds one synthetic payload per rule and asserts
   it trips, asserts the two declared invented figures do not, and asserts an empty input aborts;
@@ -104,6 +123,14 @@ screenshot that vouched for it was taken before the JavaScript had run. `~/bin/s
 HANSEI.md, whose thesis is the generalisation: an artefact's name, a green tick, a file's
 existence and a description of a thing are all evidence about the thing, and none of them is the
 thing.
+
+`scripts/smoke.mjs` does not replace that rule and is written so that it cannot pretend to. It
+never takes a screenshot, because a screenshot it looked at itself would be the weakest form of
+both practices at once. It reads values off the running document, and it waits on a condition the
+page answers rather than on a tool's idea of ready, which is exactly what went wrong above. A
+picture is still what a person looks at. What the suite adds is that the things a picture is bad
+at, a count, an arithmetic identity, a hidden set and a coordinate under a cursor, now have
+somewhere to fail.
 
 ## Standard work
 
@@ -174,9 +201,9 @@ because a rejected pillar with no substitute is a hole.
 
 | Pillar | Primary file |
 |---|---|
-| Jidoka | `scripts/check_forbidden.sh`, `scripts/check_repo.sh`, `.github/workflows/pages.yml`, `.github/workflows/board.yml`, `.github/workflows/repo-gate.yml` |
-| Poka-Yoke | `scripts/check_forbidden.sh`, `scripts/check_repo.sh`, `scripts/forbidden_lib.sh`, `scripts/gen_forbidden_hashes.sh` |
-| Genchi Genbutsu | `HANSEI.md`, `KAIZEN.md` acceptance rule |
+| Jidoka | `scripts/check_forbidden.sh`, `scripts/check_repo.sh`, `scripts/smoke.mjs`, `.github/workflows/pages.yml`, `.github/workflows/board.yml`, `.github/workflows/repo-gate.yml`, `.github/workflows/smoke.yml` |
+| Poka-Yoke | `scripts/check_forbidden.sh`, `scripts/check_repo.sh`, `scripts/forbidden_lib.sh`, `scripts/gen_forbidden_hashes.sh`, `scripts/verify.sh` |
+| Genchi Genbutsu | `HANSEI.md`, `KAIZEN.md` acceptance rule, `scripts/smoke.mjs` |
 | Standard work | `build/model.py`, `build/build_layout.py` |
 | Heijunka, Kanban | `scripts/sync_board.mjs`, `scripts/set_status.sh`, `.github/workflows/board.yml`, `.github/workflows/issue-status.yml` |
 | Hansei | `HANSEI.md` |

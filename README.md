@@ -16,7 +16,9 @@ What is invented: every instructor name, the empresa colaboradora, every identif
 date, every count, and all three money figures. No real person is named. No figure comes from
 the corpus.
 
-Three gates enforce that: one local, and two in CI that ask different questions.
+Three gates enforce that: one local, and two in CI that ask different questions. A fourth check,
+`scripts/smoke.mjs`, asks a different question again, whether the page still works; see Verifying
+below.
 
 `build/safety_grep.py` runs against the local `site/` before a push. It reads the vault faculty
 register directly, so it needs the vault, and it scans for any real teacher name, for Notion
@@ -115,6 +117,8 @@ build/
   measure_labels.py  measures every label in a real browser -> label_widths.json
   safety_grep.py     the local forbidden content gate
 scripts/
+  verify.sh               run everything below, in order, before pushing
+  smoke.mjs               the headless behaviour suite, at three viewports
   check_forbidden.sh      the CI gate, against deployed bytes
   check_repo.sh           the CI gate, against every tracked file
   forbidden_lib.sh        the rules, the folding and the scan, shared by both gates
@@ -139,6 +143,41 @@ triage step and no model call anywhere in that path.
 **Issue titles are published.** They are rendered onto the page through `board.json`, so an
 issue carries no real name, no real figure and no link into the private corpus.
 
+## Verifying
+
+**One command, and it is the whole list.**
+
+```bash
+bash scripts/verify.sh                   # everything that can run against the working tree
+bash scripts/verify.sh https://jcherranz.github.io/zrive-model-toy/   # and against the origin
+```
+
+It runs, in order: `node --check` on every shipped script, the layout reproducibility check, both
+safety gates with their self-tests, the local token grep, and the smoke suite. Every step reports
+`[OK]`, `[FAIL]` or `[SKIP]`, every step runs whatever the ones before it did, and the exit code is
+non-zero if anything failed. A step that cannot run here, the token grep without the vault and the
+deployed-bytes gate without an origin, says `[SKIP]` and why: a clean run that skipped two things
+must not read as a clean run that did nine.
+
+`scripts/smoke.mjs` is the behaviour half, and can be run on its own:
+
+```bash
+node scripts/smoke.mjs                                          # serve site/ and test it
+node scripts/smoke.mjs https://jcherranz.github.io/zrive-model-toy/
+```
+
+Seventy assertions across three viewports, 1536x839, 1440x900 and 390x844: the six Company nodes
+of which five are hidden employers, each instructor revealing its own employer and nothing else,
+the students card and the roster agreeing on how many of the cohort the drawing left out, the
+pointer-anchored zoom holding the point under the cursor, a click and a 2px wobble selecting where
+a 40px drag pans, capture mode filing nothing on a pan and producing an unchanged element
+descriptor, the board's four columns and its arithmetic, no sideways scroll at any width, and no
+console error beyond the favicon 404. Plain Node driving Chrome over the DevTools Protocol; no
+framework, no dependency, and no GitHub token. It cannot file an issue: the page's own network
+calls are stubbed, `github.com` is blocked below the page, and both are asserted.
+`.github/workflows/smoke.yml` runs it on every push and every pull request. It is deliberately not
+in the deploy path, so a behaviour regression can never leave the site half published.
+
 ## Regenerating
 
 ```bash
@@ -146,6 +185,8 @@ python3 build/build_layout.py     # rewrites site/graph.js
 python3 build/safety_grep.py site # must print VERDICT: clean
 python3 -m http.server -d site 8000
 ```
+
+`scripts/verify.sh` runs the first two of those and checks that the rebuild is byte identical.
 
 No framework, no build step for the site itself, no CDN, no web font. On load the page makes
 one request, the same origin fetch of `board.json`, and no third party request at all. The one

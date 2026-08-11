@@ -1,0 +1,1451 @@
+#!/usr/bin/env node
+// The regression net. Issue 58.
+//
+// site/ ships 2.685 lines of JavaScript and this repository had no functional test of any kind.
+// Both existing gates are SAFETY gates: check_repo.sh asserts nothing forbidden is committed,
+// check_forbidden.sh asserts nothing forbidden is published. Neither has ever had an opinion
+// about whether the page works. Roughly ten substantive changes landed on 2026-08-10 and 11,
+// every one of them verified by driving a headless browser by hand, and every one of those
+// verifications is gone. What is left is prose in closed issues, which is not a place a
+// regression can be caught. This file is those verifications, kept.
+//
+// WHY PLAIN NODE AND NO FRAMEWORK. The site has no build step, no framework, no CDN and no
+// dependency, and a test suite that arrived with a package.json, a lockfile and a browser
+// automation library would be a larger thing than the artefact it tests. Node 22 ships a global
+// WebSocket, so the Chrome DevTools Protocol is reachable with no dependency at all, which is
+// how every driver written against this page during that work already reached it.
+//
+// ---------------------------------------------------------------------------------------------
+// WHAT IT ASSERTS AND WHERE EACH INVARIANT CAME FROM
+//
+//   model/reveal      #48 hid the employers until their instructor is clicked; #49 gave the
+//                     other four instructors real Company nodes and `employed by` edges. The
+//                     rule keys on the verb and never on the type, because a sixth Company,
+//                     `co_col`, employs nobody and must stay on the page: app.js's VEIL_RULES
+//                     comment says a rule reading `type === 'Company'` would delete exactly the
+//                     distinction the toy exists to show.
+//   students          #51 asked for the alumnos card to disaggregate. The build draws four of
+//                     thirty four and the card carries a line saying how many it did not draw;
+//                     #/students is the whole roster as a route of its own.
+//   canvas            #46 made the diagram an infinite canvas. The anchored zoom and the click
+//                     versus drag thresholds are in app.js's canvas section, which records that
+//                     view.k and the rendered scale disagreed at the fourth decimal until the
+//                     box was measured off its rect rather than off clientWidth.
+//   capture           #41 #42 #45 #46 #48 #51 were all filed through the capture popover and
+//                     each carries the element descriptor the page produced. #45's is the
+//                     baseline below. A pan must file nothing: app.js's window-level capture
+//                     listener calls stopImmediatePropagation so a drag cannot reach
+//                     feedback.js.
+//   board             board.js's own header, which mirrors scripts/sync_board.mjs: four columns,
+//                     a closed issue goes to Done, a NOT_PLANNED closure appears in no column,
+//                     Done is drawn newest first and capped at 8, and drawn plus hidden equals
+//                     every closed issue.
+//   every width       1536x839 is the viewport every one of those six issues was filed at, and
+//                     is on each of them in the context block. 1440x900 is the size README
+//                     claims the whole drawing fits without scrolling. 390x844 is the narrow
+//                     end the stylesheet's breakpoint is written for.
+//
+// ---------------------------------------------------------------------------------------------
+// WHAT IT IS ROBUST AGAINST, AND IT IS THE HARNESS RATHER THAN THE PAGE
+//
+// Three times this repository has had a driver report a defect that was not there.
+//
+//   1. A screenshot taken before the page had drawn, twice, once reporting a working page broken
+//      and once shipping a blank one (HANSEI.md `2026-08-09-screenshot-before-javascript`). So
+//      nothing here waits on a tool's idea of ready. app.js publishes window.ZT as its last
+//      statement, so ZT existing means app.js ran to completion, and DIAGRAM_READY below polls a
+//      condition the page itself answers: ZT published, a node and a relationship painted, and the
+//      canvas holding a measured box. Where no page-provided signal exists the wait is on a value
+//      settling and the comment says so.
+//   2. A click that landed outside the viewport, on a control that was drawn and unreachable
+//      (KAIZEN.md `kaizen-a-widened-control-keeps-its-neighbours-reachable`). So every synthetic
+//      click here goes through hitTest(), which asks the page what document.elementFromPoint
+//      returns at that exact coordinate and fails naming what it found instead. A dispatched
+//      click that lands on nothing is otherwise indistinguishable from a click on a control that
+//      does nothing.
+//   3. A stale browser answering on the debug port. So the profile directory is created fresh
+//      per run, the port is 0 and is read back out of that profile's own DevToolsActivePort
+//      file, and the file is required to be newer than the launch. A browser we did not start
+//      cannot have written it, so there is no port to guess at and nothing to collide with.
+//
+// And the fourth, which is not a false defect but a false size: headless Chrome runs pages in a
+// window no narrower than 500px whatever --window-size says
+// (KAIZEN.md `kaizen-a-tool-that-refuses-the-size-you-asked-for`). Every viewport below prints
+// what it asked for beside what it got, and by which mechanism.
+//
+// ---------------------------------------------------------------------------------------------
+// IT MUST NEVER FILE A REAL ISSUE. Three layers, because one of them is a stub inside the page
+// and a stub is a thing that can be bypassed. window.fetch, XMLHttpRequest, navigator.sendBeacon
+// and window.open are replaced before any page script runs and every call is recorded;
+// Network.setBlockedURLs refuses github.com and api.github.com at the network layer, below the
+// page entirely; and Network.requestWillBeSent is watched, so a request that somehow reached the
+// stack is a failure rather than a silence. Nothing here needs a GitHub token and nothing here
+// reads one.
+//
+// DETERMINISTIC. No assertion depends on an issue number, on the clock, or on any network state
+// beyond the page under test. The board's arithmetic is proved against a synthetic fixture with
+// issue numbers in the 900s that cannot collide with anything real, and the served board.json is
+// read from the same origin as the page rather than from the GitHub API.
+//
+// Usage:
+//   node scripts/smoke.mjs                 serve site/ locally and test the working tree
+//   node scripts/smoke.mjs <url>           test a deployed origin instead
+//   node scripts/smoke.mjs --help
+//
+// Env: SMOKE_CHROME / CHROME_PATH / CHROME_BIN  the browser to drive
+//      SMOKE_TIMEOUT_MS                          per-wait deadline, default 20000
+
+import { spawn } from 'node:child_process';
+import fs from 'node:fs';
+import http from 'node:http';
+import os from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const SITE = path.join(ROOT, 'site');
+const TIMEOUT = Number(process.env.SMOKE_TIMEOUT_MS || 20000);
+
+// ---- the viewports ---------------------------------------------------------------------------
+// Each is inner width by inner height, which is what the page reports and what every context
+// block on the six issues this suite is built from carries. `emulate` is not a preference: it is
+// the browser's 500px window floor, named here rather than discovered at run time. Below that
+// floor a real window cannot be had, and a pointer gesture driven into an emulated viewport whose
+// widget is a different size is measuring the harness, which app.js's wheel comment records at
+// length: six wheels out of six were dropped that way. So the narrow viewport runs the
+// assertions that are about layout and console output and does not drive a pointer.
+const VIEWPORTS = [
+  { w: 1536, h: 839, emulate: false, pointer: true },
+  { w: 1440, h: 900, emulate: false, pointer: false },
+  { w: 390, h: 844, emulate: true, pointer: false }
+];
+const WINDOW_FLOOR_PX = 500;
+
+// The one console error this page is expected to produce. It ships no favicon, so every browser
+// asks for one and every origin answers 404. Allowed by URL and not by message text, so a 404 on
+// any other file is still a failure.
+const KNOWN_404 = /\/favicon\.ico$/;
+
+// ---- the element descriptor baseline -----------------------------------------------------------
+// Recorded, not invented. This is the exact string feedback.js produced on the deployed page when
+// the reader clicked the tile of t4 and filed issue 45, and it is quoted from that issue's Element
+// field. It is a good baseline for one reason: it exercises the whole of describe(), the ancestor
+// walk that stops at the nearest data-node rather than at #graph, the empty text snippet a <rect>
+// gives, and the five deep tag path. If any of those changes, every report ever filed against this
+// drawing stops being locatable, which is what app.js's viewBox-not-a-wrapper-group comment is
+// about: a wrapper element between the node and the svg would silently change all of them.
+const DESCRIPTOR_BASELINE = {
+  node: 't4',
+  text: 'ancestor [data-node="t4"] · div>svg>g>g>rect',
+  from: 'issue 45, Element field, filed at 1536x839'
+};
+
+// ---- the anchored-zoom tolerance ---------------------------------------------------------------
+// Stated and argued rather than tuned. applyView() writes the viewBox as a string with three
+// decimal places, so the rendered origin is quantised to a thousandth of a drawing unit and the
+// rendered scale to the ratio of two such strings; over the four step gesture below, ending near
+// three times the fitted scale, the accumulated residual is bounded well under a twentieth of a
+// CSS pixel. Half a pixel is an order of magnitude of headroom over that and two orders below
+// both the 34 unit tile and the 5px drag threshold. The failure this is guarding against is not
+// subtle: a zoom that anchors on the centre of the box instead of on the pointer moves the point
+// under the cursor by hundreds of pixels. The measured error is printed beside the tolerance so
+// the margin is visible rather than asserted.
+const ZOOM_TOLERANCE_PX = 0.5;
+
+// =================================================================================================
+// The report. Every assertion runs and every failure is printed: a suite that stops at the first
+// one hides the other four, and a bare "assertion failed" costs the reader the debugging session
+// the message was supposed to save them.
+// =================================================================================================
+const results = [];
+let where = '-';
+
+function setWhere(label) { where = label; }
+
+function pass(name, detail) {
+  results.push({ ok: true, name, where });
+  console.log(`[PASS] ${where}  ${name}${detail ? '  (' + detail + ')' : ''}`);
+}
+
+function fail(name, expected, found) {
+  results.push({ ok: false, name, where, expected, found });
+  console.log(`[FAIL] ${where}  ${name}`);
+  console.log(`         expected: ${expected}`);
+  console.log(`         found:    ${found}`);
+}
+
+function assert(name, ok, expected, found, detail) {
+  if (ok) pass(name, detail); else fail(name, expected, found);
+  return ok;
+}
+
+function assertEqual(name, actual, wanted, note) {
+  const a = JSON.stringify(actual), w = JSON.stringify(wanted);
+  return assert(name, a === w, w + (note ? ' (' + note + ')' : ''), a);
+}
+
+// A group that throws must not take the groups after it down with it. The throw is reported as a
+// failure of that group, named, with the message, and the suite carries on.
+async function group(name, fn) {
+  try {
+    await fn();
+  } catch (err) {
+    fail(name + ' (the group threw before it finished)',
+         'the group to run to completion',
+         (err && err.stack ? err.stack.split('\n').slice(0, 4).join(' | ') : String(err)));
+  }
+}
+
+// =================================================================================================
+// The static server. site/ over HTTP on an ephemeral port, so the default run tests the working
+// tree and a developer can run it before pushing. Missing files 404 rather than being invented,
+// because the favicon 404 is one of the things asserted and a server that served something for it
+// would hide the assertion rather than satisfy it.
+// =================================================================================================
+const MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.svg': 'image/svg+xml'
+};
+
+function serveSite(dir) {
+  return new Promise((resolve, reject) => {
+    const server = http.createServer((req, res) => {
+      let rel = decodeURIComponent(req.url.split('?')[0].split('#')[0]);
+      if (rel === '/' || rel === '') rel = '/index.html';
+      const file = path.join(dir, path.normalize(rel).replace(/^(\.\.[/\\])+/, ''));
+      // Never serve outside the directory, however the path was spelled.
+      if (!file.startsWith(dir + path.sep)) { res.writeHead(403).end('forbidden'); return; }
+      fs.readFile(file, (err, body) => {
+        if (err) { res.writeHead(404, { 'content-type': 'text/plain' }).end('not found'); return; }
+        res.writeHead(200, {
+          'content-type': MIME[path.extname(file)] || 'application/octet-stream',
+          'cache-control': 'no-store'
+        });
+        res.end(body);
+      });
+    });
+    server.on('error', reject);
+    server.listen(0, '127.0.0.1', () => {
+      resolve({ server, base: `http://127.0.0.1:${server.address().port}/` });
+    });
+  });
+}
+
+// =================================================================================================
+// The browser, and the CDP client.
+// =================================================================================================
+function resolveChrome() {
+  const tried = [];
+  const named = [process.env.SMOKE_CHROME, process.env.CHROME_PATH, process.env.CHROME_BIN]
+    .filter(Boolean);
+  const guesses = [
+    // The local development machine. Named first among the guesses because it is the one this
+    // suite was written against, and it is deliberately not the only one: in CI it does not
+    // exist, which is exactly the case the message below has to be useful for.
+    path.join(os.homedir(), '.cache/ms-playwright/chromium-1228/chrome-linux64/chrome'),
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
+    '/snap/bin/chromium',
+    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+  ];
+  for (const p of [...named, ...guesses]) {
+    tried.push(p);
+    try { fs.accessSync(p, fs.constants.X_OK); return { path: p, tried }; } catch { /* next */ }
+  }
+  const lines = [
+    'No browser found. This suite drives Chrome over the DevTools Protocol and cannot run without one.',
+    'Set SMOKE_CHROME (or CHROME_PATH, or CHROME_BIN) to an executable Chrome or Chromium.',
+    'Paths tried, in order:'
+  ].concat(tried.map(p => '  ' + p));
+  throw new Error(lines.join('\n'));
+}
+
+class Cdp {
+  constructor(ws) {
+    this.ws = ws;
+    this.id = 0;
+    this.pending = new Map();
+    this.handlers = new Map();
+    ws.addEventListener('message', ev => {
+      const m = JSON.parse(ev.data);
+      if (m.id && this.pending.has(m.id)) {
+        const { resolve, reject } = this.pending.get(m.id);
+        this.pending.delete(m.id);
+        if (m.error) reject(new Error(m.error.message || JSON.stringify(m.error)));
+        else resolve(m.result);
+        return;
+      }
+      const list = this.handlers.get(m.method);
+      if (list) list.forEach(fn => fn(m.params, m.sessionId));
+    });
+    ws.addEventListener('close', () => {
+      this.pending.forEach(({ reject }) => reject(new Error('the browser closed the connection')));
+      this.pending.clear();
+    });
+  }
+
+  on(method, fn) {
+    if (!this.handlers.has(method)) this.handlers.set(method, []);
+    this.handlers.get(method).push(fn);
+  }
+
+  send(method, params = {}, sessionId) {
+    const msg = { id: ++this.id, method, params };
+    if (sessionId) msg.sessionId = sessionId;
+    return new Promise((resolve, reject) => {
+      this.pending.set(msg.id, { resolve, reject });
+      this.ws.send(JSON.stringify(msg));
+    });
+  }
+}
+
+async function launchBrowser(chrome, width, height) {
+  // A fresh profile per run, and it is the whole of the answer to a stale browser answering on
+  // the debug port: the port is 0, so the browser picks one and writes it into this directory,
+  // and this directory did not exist a moment ago. There is nothing to guess and nothing that
+  // could have been left behind by an earlier run.
+  const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'zmt-smoke-'));
+  const launchedAt = Date.now();
+  const proc = spawn(chrome, [
+    '--headless=new',
+    '--remote-debugging-port=0',
+    `--user-data-dir=${profile}`,
+    // Two flags that are about the container and not about the page. The profile is a throwaway
+    // and the only document it ever loads is a static file from a local server, with every
+    // external host blocked below at the network layer.
+    '--no-sandbox',
+    '--disable-dev-shm-usage',
+    '--no-first-run',
+    '--no-default-browser-check',
+    '--disable-gpu',
+    // A background tab that throttles its timers would make board.js's poll and app.js's
+    // reveal() land at times nothing here can wait on.
+    '--disable-background-timer-throttling',
+    '--disable-backgrounding-occluded-windows',
+    '--disable-renderer-backgrounding',
+    '--disable-features=Translate,MediaRouter,OptimizationHints',
+    `--window-size=${width},${height}`,
+    'about:blank'
+  ], { stdio: ['ignore', 'ignore', 'pipe'] });
+
+  const stderr = [];
+  proc.stderr.on('data', d => stderr.push(String(d)));
+
+  const portFile = path.join(profile, 'DevToolsActivePort');
+  let port = null;
+  const deadline = Date.now() + TIMEOUT;
+  while (Date.now() < deadline) {
+    if (fs.existsSync(portFile)) {
+      const st = fs.statSync(portFile);
+      const lines = fs.readFileSync(portFile, 'utf8').split('\n');
+      // Newer than the launch, so a file from anything else is refused rather than trusted.
+      if (st.mtimeMs >= launchedAt - 1000 && lines[0] && lines[1]) { port = Number(lines[0]); break; }
+    }
+    if (proc.exitCode !== null) {
+      throw new Error(`the browser exited with ${proc.exitCode} before it opened a debug port\n` +
+                      stderr.join(''));
+    }
+    await sleep(25, 'polling for the browser to write its own debug port');
+  }
+  if (!port) throw new Error(`the browser wrote no DevToolsActivePort in ${TIMEOUT}ms\n${stderr.join('')}`);
+
+  const version = await (await fetch(`http://127.0.0.1:${port}/json/version`)).json();
+  const ws = new WebSocket(version.webSocketDebuggerUrl);
+  await new Promise((resolve, reject) => {
+    ws.addEventListener('open', resolve, { once: true });
+    ws.addEventListener('error', () => reject(new Error('could not open the CDP socket')), { once: true });
+  });
+
+  return {
+    cdp: new Cdp(ws),
+    browser: version.Browser,
+    close() {
+      try { ws.close(); } catch { /* already gone */ }
+      try { proc.kill('SIGKILL'); } catch { /* already gone */ }
+      try { fs.rmSync(profile, { recursive: true, force: true }); } catch { /* best effort */ }
+    }
+  };
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// =================================================================================================
+// One page, wired.
+// =================================================================================================
+async function openPage(cdp, viewport) {
+  const { targetId } = await cdp.send('Target.createTarget', { url: 'about:blank' });
+  const { sessionId } = await cdp.send('Target.attachToTarget', { targetId, flatten: true });
+
+  await cdp.send('Page.enable', {}, sessionId);
+  await cdp.send('Runtime.enable', {}, sessionId);
+  await cdp.send('Log.enable', {}, sessionId);
+  await cdp.send('Network.enable', {}, sessionId);
+
+  // The network layer's own refusal, under the page and under any stub the page could undo.
+  await cdp.send('Network.setBlockedURLs', {
+    urls: ['*://github.com/*', '*://api.github.com/*', '*://*.githubusercontent.com/*']
+  }, sessionId);
+
+  const console_ = [];      // console errors and page exceptions
+  const requests = [];      // every request the page attempted
+  cdp.on('Runtime.consoleAPICalled', p => {
+    if (p.type === 'error') {
+      console_.push({ kind: 'console.error', text: (p.args || []).map(describeArg).join(' '), url: '' });
+    }
+  });
+  cdp.on('Log.entryAdded', p => {
+    if (p.entry && p.entry.level === 'error') {
+      console_.push({ kind: 'log:' + p.entry.source, text: p.entry.text, url: p.entry.url || '' });
+    }
+  });
+  cdp.on('Runtime.exceptionThrown', p => {
+    const d = p.exceptionDetails || {};
+    console_.push({
+      kind: 'exception',
+      text: (d.exception && (d.exception.description || d.exception.value)) || d.text || 'exception',
+      url: d.url || ''
+    });
+  });
+  cdp.on('Network.requestWillBeSent', p => {
+    requests.push({ url: p.request.url, method: p.request.method });
+  });
+
+  const page = {
+    sessionId,
+    console: console_,
+    requests,
+    viewport,
+    actual: null,
+    mechanism: null,
+
+    send: (method, params) => cdp.send(method, params, sessionId),
+
+    async evaluate(expression) {
+      const r = await cdp.send('Runtime.evaluate',
+        { expression, returnByValue: true, awaitPromise: true }, sessionId);
+      if (r.exceptionDetails) {
+        const d = r.exceptionDetails;
+        throw new Error('page threw: ' +
+          ((d.exception && (d.exception.description || d.exception.value)) || d.text));
+      }
+      return r.result.value;
+    },
+
+    async navigate(url) {
+      const loaded = new Promise(resolve => {
+        const off = p => { if (p) resolve(); };
+        cdp.on('Page.loadEventFired', off);
+      });
+      await cdp.send('Page.navigate', { url }, sessionId);
+      await Promise.race([loaded, sleep(TIMEOUT)]);
+    },
+
+    // Wait on a condition the page answers. Returns nothing and throws with the last reason the
+    // page gave, which is the difference between "the page never became ready" and a useful
+    // message saying which half of ready was missing.
+    async waitFor(expression, what) {
+      const deadline = Date.now() + TIMEOUT;
+      let last = 'no answer yet';
+      while (Date.now() < deadline) {
+        last = await this.evaluate(expression);
+        if (last === '' || last === true) return;
+        await sleep(20);
+      }
+      throw new Error(`waiting for ${what}: ${JSON.stringify(last)} after ${TIMEOUT}ms`);
+    }
+  };
+
+  // The three stubs, installed before any page script runs, so nothing this suite drives can
+  // reach a network the browser has not already been told to refuse. Recording rather than
+  // silently swallowing: an assertion below reads the record.
+  await cdp.send('Page.addScriptToEvaluateOnNewDocument', {
+    source: STUB_SOURCE
+  }, sessionId);
+
+  // The size the harness actually got, stated rather than assumed. --window-size is the OUTER
+  // window and headless Chrome reserves a constant band of height inside it, so asking for the
+  // page's own innerHeight means measuring the difference and correcting for it rather than
+  // hardcoding a number that would be wrong on the next Chrome. Below the 500px window floor
+  // no real window exists and the emulation override is used instead, which is the case
+  // KAIZEN.md `kaizen-a-tool-that-refuses-the-size-you-asked-for` is about.
+  await page.navigate('about:blank');
+  if (viewport.emulate || viewport.w < WINDOW_FLOOR_PX) {
+    await cdp.send('Emulation.setDeviceMetricsOverride', {
+      width: viewport.w, height: viewport.h, deviceScaleFactor: 1, mobile: false
+    }, sessionId);
+    page.mechanism = 'Emulation.setDeviceMetricsOverride (below the ' + WINDOW_FLOOR_PX +
+                     'px window floor)';
+  } else {
+    const { windowId } = await cdp.send('Browser.getWindowForTarget', { targetId });
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const [iw, ih] = await page.evaluate('[innerWidth, innerHeight]');
+      if (iw === viewport.w && ih === viewport.h) break;
+      const b = await cdp.send('Browser.getWindowForTarget', { targetId });
+      await cdp.send('Browser.setWindowBounds', {
+        windowId,
+        bounds: {
+          width: b.bounds.width + (viewport.w - iw),
+          height: b.bounds.height + (viewport.h - ih)
+        }
+      });
+    }
+    page.mechanism = 'a real window (Browser.setWindowBounds), no emulation';
+  }
+  const [aw, ah] = await page.evaluate('[innerWidth, innerHeight]');
+  page.actual = { w: aw, h: ah };
+
+  return page;
+}
+
+function describeArg(a) {
+  if (a.value !== undefined) return String(a.value);
+  return a.description || a.type;
+}
+
+// The stub, as source, because it has to run before the page's own scripts and therefore cannot
+// be a function in this file. window.__smoke is the record every network assertion reads.
+const STUB_SOURCE = `(function () {
+  var rec = { calls: [], opens: [] };
+  Object.defineProperty(window, '__smoke', { value: rec, writable: false, configurable: false });
+  var realFetch = window.fetch;
+  function note(url, method) { rec.calls.push({ url: String(url), method: String(method).toUpperCase() }); }
+  window.fetch = function (input, init) {
+    var url = (typeof input === 'string') ? input : (input && input.url) || String(input);
+    var method = (init && init.method) || (input && input.method) || 'GET';
+    note(url, method);
+    // The board's live path, answered from a fixture this suite plants, so that board.js's own
+    // column rule and its arithmetic assertion are exercised against a known set of issues with
+    // no network and no credential anywhere in it.
+    if (window.__smokeIssues && /^https:\\/\\/api\\.github\\.com\\/repos\\/[^/]+\\/[^/]+\\/issues/.test(url)) {
+      return Promise.resolve(new Response(JSON.stringify(window.__smokeIssues), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json',
+          'etag': 'W/"smoke-fixture"',
+          'x-ratelimit-remaining': '4999'
+        }
+      }));
+    }
+    if (/^https?:\\/\\/(api\\.)?github\\.com/.test(url)) {
+      return Promise.reject(new TypeError('refused by the smoke suite: this page must reach no host'));
+    }
+    return realFetch.apply(this, arguments);
+  };
+  var RealXhr = window.XMLHttpRequest;
+  function StubXhr() {
+    var x = new RealXhr();
+    var open = x.open;
+    x.open = function (method, url) { note(url, method); return open.apply(x, arguments); };
+    return x;
+  }
+  window.XMLHttpRequest = StubXhr;
+  if (navigator.sendBeacon) {
+    navigator.sendBeacon = function (url) { note(url, 'POST'); return false; };
+  }
+  window.open = function (url) { rec.opens.push(String(url)); return null; };
+})();`;
+
+// =================================================================================================
+// WHAT THIS SUITE IS ALLOWED TO READ, AND WHY IT IS NOT window.G
+//
+// site/graph.js today is one blob holding two different things: the instance data, which is the
+// objects, their types, their properties and the provenance flag on each, and the layout, which is
+// every coordinate, tile size, edge path and band. That fusion is going to be split, so that the
+// data document can be swapped without touching the presentation and one codebase can serve
+// invented data on the public origin and real data on a private deployment. A suite reading
+// `G.nodes[i].props[j].f` would break on the day that split lands, which would make it a tax on
+// the refactor instead of the net under it.
+//
+// So nothing below reads window.G. Every fact is taken from one of three places, all of which are
+// what the page presents rather than how it is fed:
+//
+//   the rendered DOM      `[data-node]` and `[data-edge]`, which are the instance and relationship
+//                         keys app.js writes and every feedback report already quotes; each node's
+//                         <title>, which carries its label and its type as the reader is told them;
+//                         the verb chip's own text; the detail panel; the student list.
+//   window.ZT             published by app.js deliberately, and its comment says so: the view, the
+//                         selection and the veiled set are there "for a driver to read and assert
+//                         against rather than for the page".
+//   window.ZMT            published by feedback.js on the same footing, and read by board.js.
+//
+// A count this suite needs and the DOM does not carry is a count it does not assert. Where the
+// page presents a number as text, that text is the source: the marker under the students card, the
+// panel's own "see all N students", and the student list's header are three renderings of one
+// fact, and making them agree is a stronger check than reading the fact once out of the blob.
+//
+// The page's own readiness is on the same footing. app.js publishes window.ZT as its last
+// statement, so ZT existing means app.js ran to completion; a node in the DOM means draw() painted;
+// a measured view means the canvas has a box, which is the state the whole canvas section is
+// written against.
+// =================================================================================================
+const DIAGRAM_READY = `(function () {
+  if (!window.ZT || typeof window.ZT.veiled !== 'function') return 'window.ZT is not published';
+  if (!document.querySelector('#graph [data-node]')) return 'the drawing has painted no node';
+  if (!document.querySelector('#graph [data-edge]')) return 'the drawing has painted no relationship';
+  var v = window.ZT.view();
+  if (!(v.k > 0) || !(v.w > 2) || !(v.h > 2)) return 'the canvas has no measured box yet';
+  return '';
+})()`;
+
+// The drawing, read off the document. A node's <title> is written by app.js as
+// `label (Type label)`, which is the type as the reader is told it, and a relationship's verb is
+// the text of its own chip. Both are the strings a reader sees and a feedback report quotes.
+const READ_DRAWING = `(function () {
+  function typeOf(g) {
+    var t = g.querySelector('title');
+    var m = t ? /\\(([^()]*)\\)\\s*$/.exec(t.textContent) : null;
+    return m ? m[1] : '';
+  }
+  function labelOf(g) {
+    var t = g.querySelector('title');
+    return t ? t.textContent.replace(/\\s*\\([^()]*\\)\\s*$/, '') : '';
+  }
+  var nodes = Array.prototype.slice.call(document.querySelectorAll('#graph g[data-node]'))
+    .map(function (g) {
+      return { id: g.getAttribute('data-node'), type: typeOf(g), label: labelOf(g),
+               veiled: g.classList.contains('veil-hidden') };
+    });
+  // One chip per relationship, and the chip carries the verb. The line and the arrowhead share the
+  // same data-edge key and carry no text, so reading the chips is reading each relationship once.
+  var edges = Array.prototype.slice.call(document.querySelectorAll('#graph g[data-edge] text.chip-tx'))
+    .map(function (t) {
+      var key = t.closest('[data-edge]').getAttribute('data-edge');
+      var cut = key.indexOf('->');
+      return { key: key, s: key.slice(0, cut), t: key.slice(cut + 2), verb: t.textContent };
+    });
+  return { nodes: nodes, edges: edges };
+})()`;
+
+// =================================================================================================
+// Pointer helpers, every one of them hit tested first.
+// =================================================================================================
+async function rectOf(page, selector) {
+  const r = await page.evaluate(`(function () {
+    var el = document.querySelector(${JSON.stringify(selector)});
+    if (!el) return null;
+    var b = el.getBoundingClientRect();
+    return { x: b.x, y: b.y, w: b.width, h: b.height, cx: b.x + b.width / 2, cy: b.y + b.height / 2 };
+  })()`);
+  if (!r) throw new Error(`no element matches ${selector}`);
+  return r;
+}
+
+// What is actually at this coordinate. The reason this exists rather than a bare dispatch is
+// KAIZEN.md `kaizen-a-widened-control-keeps-its-neighbours-reachable`: a control that is drawn and
+// outside the viewport is invisible to a screenshot and to a click alike, and a dispatched click
+// that lands on nothing looks exactly like a click on a control that does nothing.
+async function hitTest(page, x, y) {
+  return page.evaluate(`(function () {
+    var el = document.elementFromPoint(${x}, ${y});
+    if (!el) return { hit: false, why: 'nothing at that point (it is outside the viewport, or covered by nothing)' };
+    var node = el.closest ? el.closest('[data-node]') : null;
+    return {
+      hit: true,
+      tag: el.tagName.toLowerCase(),
+      id: el.id || '',
+      cls: el.getAttribute('class') || '',
+      node: node ? node.getAttribute('data-node') : null,
+      inViewport: ${x} >= 0 && ${y} >= 0 && ${x} < innerWidth && ${y} < innerHeight
+    };
+  })()`);
+}
+
+async function requireHit(page, x, y, want) {
+  const h = await hitTest(page, x, y);
+  const ok = h.hit && h.inViewport && (!want.node || h.node === want.node) &&
+             (!want.id || h.id === want.id) && (!want.tag || h.tag === want.tag);
+  if (!ok) {
+    throw new Error(`the point (${x.toFixed(1)}, ${y.toFixed(1)}) does not reach ` +
+      `${JSON.stringify(want)}: ${JSON.stringify(h)}`);
+  }
+  return h;
+}
+
+// EVERY COORDINATE THIS SUITE DISPATCHES IS AN INTEGER, and this refuses rather than rounds.
+//
+// Input.dispatchMouseEvent takes a float and the browser floors it. Give it 322.948 and the page
+// anchors its zoom on 322, while the driver goes on doing arithmetic about 322.948, and the two
+// differ by (1 - k1/k0) times that fraction: at the four step gesture below, 1.78px of apparent
+// drift on the vertical axis and 0.15px on the horizontal, from an anchor chosen as a fraction of
+// the canvas rect. That is what the first run of this suite reported as a page defect. It was
+// checked before it was believed, by predicting both numbers from the floor alone, and they came
+// out at 1.779 and 0.150 against 1.781 and 0.149 measured, so the page was right and the driver
+// was wrong. KAIZEN.md `kaizen-verifier-not-exempt-from-verification` and
+// `kaizen-a-harness-and-a-page-must-agree-on-the-coordinate`.
+//
+// It throws rather than rounding here because rounding here is exactly the bug: the caller would
+// still hold the float it did its arithmetic with, and the mismatch would be silent again. The
+// caller has to choose an integer, and then the point it dispatched and the point it reasons about
+// are the same point. Same shape as HANSEI.md `2026-08-empty-input-reported-success`: coercing a
+// bad input into a valid one turns a loud error into a quiet wrong answer.
+function px(name, v) {
+  if (!Number.isInteger(v)) {
+    throw new Error(`${name}=${v} is not an integer. The browser floors a dispatched pointer ` +
+      `coordinate, so a driver that measures at ${v} and dispatches at ${Math.floor(v)} is ` +
+      `measuring its own rounding. Round the point once, then use it for both.`);
+  }
+  return v;
+}
+
+async function mouse(page, type, x, y, buttons) {
+  await page.send('Input.dispatchMouseEvent', {
+    type, x: px('x', x), y: px('y', y), button: 'left', buttons, clickCount: 1, pointerType: 'mouse'
+  });
+}
+
+async function click(page, x, y) {
+  await mouse(page, 'mousePressed', x, y, 1);
+  await mouse(page, 'mouseReleased', x, y, 0);
+}
+
+async function dragBy(page, x, y, dx, dy, steps) {
+  await mouse(page, 'mousePressed', x, y, 1);
+  const n = steps || 8;
+  for (let i = 1; i <= n; i++) {
+    await mouse(page, 'mouseMoved', Math.round(x + (dx * i) / n), Math.round(y + (dy * i) / n), 1);
+  }
+  await mouse(page, 'mouseReleased', x + dx, y + dy, 0);
+}
+
+// The view stops moving. Used where the page offers no signal for "nothing further will happen":
+// select() schedules ensureVisible() 30ms later through reveal(), so a reading taken the instant a
+// gesture ends can be a reading taken mid-pan. This waits for two identical readings 40ms apart
+// rather than sleeping a fixed amount and hoping, and it is the only wait in the suite that is
+// about elapsed time at all.
+async function viewSettled(page) {
+  let last = null;
+  const deadline = Date.now() + TIMEOUT;
+  while (Date.now() < deadline) {
+    const v = await page.evaluate('JSON.stringify(window.ZT.view())');
+    if (v === last) return JSON.parse(v);
+    last = v;
+    await sleep(40);
+  }
+  throw new Error('the view never stopped moving');
+}
+
+async function clearSelection(page) {
+  // Through the page's own way out rather than by calling into it: Escape is what a reader
+  // presses and is registered in the bubble phase in app.js.
+  await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+  await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+  await page.waitFor('window.ZT.selected() === null', 'the selection to clear');
+}
+
+// A point on the canvas that no node occupies. Found by asking the page rather than by computing
+// one from the layout, because what matters is where a click would land and that is a question
+// about the rendered document.
+async function backgroundPoint(page) {
+  const p = await page.evaluate(`(function () {
+    var c = document.getElementById('canvas').getBoundingClientRect();
+    for (var fy = 0.12; fy < 0.95; fy += 0.06) {
+      for (var fx = 0.06; fx < 0.95; fx += 0.05) {
+        var x = c.left + c.width * fx, y = c.top + c.height * fy;
+        var el = document.elementFromPoint(x, y);
+        if (!el) continue;
+        if (el.closest('[data-node]') || el.closest('[data-edge]')) continue;
+        if (el.closest('#zoomctl') || el.closest('#panel') || el.closest('header')) continue;
+        if (el.closest('svg') !== document.getElementById('graph')) continue;
+        return { x: Math.round(x), y: Math.round(y) };
+      }
+    }
+    return null;
+  })()`);
+  if (!p) throw new Error('found no point on the canvas that is not a node, an edge or a control');
+  return p;
+}
+
+// =================================================================================================
+// THE CHECKS
+// =================================================================================================
+
+// ---- model and reveal ---------------------------------------------------------------------------
+async function checkModelAndReveal(page) {
+  const drawing = await page.evaluate(READ_DRAWING);
+  const veil = await page.evaluate('window.ZT.veiled()');
+
+  const companies = drawing.nodes.filter(n => n.type === 'Company').map(n => n.id).sort();
+  const employ = drawing.edges.filter(e => e.verb === 'employed by');
+  const employers = employ.map(e => e.t).sort();
+  const students = drawing.edges.filter(e => e.verb === 'member of').map(e => e.s).sort();
+
+  // The keys have to name nodes that are on the page. This is the one structural claim about the
+  // drawing that costs nothing and would catch a half-drawn graph: a relationship pointing at a
+  // node nobody painted is an arrow into an empty lane, which is a stronger claim than it means.
+  const ids = new Set(drawing.nodes.map(n => n.id));
+  const dangling = drawing.edges.filter(e => !ids.has(e.s) || !ids.has(e.t)).map(e => e.key);
+  assert('every relationship on the page joins two nodes that are on the page',
+    dangling.length === 0, 'no data-edge key naming a node the drawing does not carry',
+    dangling.join(', ') || 'none',
+    `${drawing.nodes.length} nodes, ${drawing.edges.length} relationships`);
+
+  assert('six Company nodes exist',
+    companies.length === 6, '6 nodes whose type reads Company',
+    companies.length + ': ' + companies.join(', '));
+
+  assert('five of them are the target of an `employed by` edge',
+    employers.length === 5 && new Set(employers).size === 5,
+    '5 distinct employers', employers.join(', ') || 'none');
+
+  // The sixth Company. Aretxa Capital hosts a visit and employs nobody, and it stays on the page:
+  // app.js's VEIL_RULES comment is explicit that a rule keyed on `type === 'Company'` would take it
+  // off along with the five and delete exactly the distinction this toy exists to show, that one
+  // type is playing two roles. Which id that is comes out of the drawing rather than being typed
+  // here: it is the Company that no `employed by` edge points at.
+  const idle = companies.filter(id => !employers.includes(id));
+  assert('the sixth Company is the one no `employed by` edge points at',
+    idle.length === 1, 'exactly one Company employing nobody', idle.join(', ') || 'none');
+  if (idle.length === 1) {
+    const on = drawing.nodes.find(n => n.id === idle[0]);
+    const vis = await page.evaluate(
+      `getComputedStyle(document.querySelector('[data-node=${JSON.stringify(idle[0])}]')).visibility`);
+    assert('and it is on the page before anything is clicked',
+      on.veiled === false && vis !== 'hidden' && !veil.hidden.includes(idle[0]),
+      `${idle[0]} painted and outside the veil`,
+      `veil-hidden ${on.veiled}, computed visibility ${vis}, in the veiled set ` +
+      `${veil.hidden.includes(idle[0])}`);
+  }
+
+  // The default state. Nine nodes are laid out and not painted: the five employers and the four
+  // students. Read off ZT.veiled(), which app.js derives from the rule table itself, so it cannot
+  // report a set the stylesheet is not acting on, and checked against the two sets the drawing's
+  // own verbs name rather than against a list written here.
+  const expectedHidden = employers.concat(students).sort();
+  assertEqual('nothing is revealed before anything is clicked',
+    veil.hidden.slice().sort(), expectedHidden,
+    'the five employers and the four drawn students');
+  assertEqual('and nothing at all is shown', veil.shown, []);
+
+  // Clicking each instructor reveals exactly its own employer and nothing else.
+  for (const e of employ.slice().sort((a, b) => a.key < b.key ? -1 : 1)) {
+    const r = await rectOf(page, `[data-node="${e.s}"] rect.tile-bg`);
+    const p = { x: Math.round(r.cx), y: Math.round(r.cy) };
+    await requireHit(page, p.x, p.y, { node: e.s });
+    await click(page, p.x, p.y);
+    await page.waitFor(`window.ZT.selected() && window.ZT.selected().id === ${JSON.stringify(e.s)}`,
+      `${e.s} to be selected`);
+    const shown = await page.evaluate('window.ZT.veiled().shown');
+    assertEqual(`clicking ${e.s} reveals exactly ${e.t}`, shown, [e.t]);
+    await clearSelection(page);
+  }
+
+  // The last one is cleared the other way a reader clears it, by clicking the canvas away from
+  // everything, because that is a different listener from the Escape used above: app.js binds
+  // clear() to the svg itself, and a node's own handler stops propagation so only a click that
+  // reached no node ever gets there.
+  const last = employ[employ.length - 1];
+  const lr = await rectOf(page, `[data-node="${last.s}"] rect.tile-bg`);
+  await click(page, Math.round(lr.cx), Math.round(lr.cy));
+  await page.waitFor(`window.ZT.selected() !== null`, 'a node to be selected before clearing it');
+  const bg = await backgroundPoint(page);
+  await click(page, bg.x, bg.y);
+  await page.waitFor('window.ZT.selected() === null', 'a click on the canvas to clear the selection');
+
+  const afterClear = await page.evaluate('window.ZT.veiled()');
+  assertEqual('clearing the selection hides all five employers again',
+    afterClear.hidden.slice().sort(), expectedHidden);
+  assertEqual('and leaves nothing revealed', afterClear.shown, []);
+}
+
+// ---- students -----------------------------------------------------------------------------------
+async function checkStudents(page) {
+  // Which card stands for the cohort is read off the drawing rather than typed here: it is the one
+  // node the `member of` edges point at.
+  const drawing = await page.evaluate(READ_DRAWING);
+  const members = drawing.edges.filter(e => e.verb === 'member of');
+  const owners = [...new Set(members.map(e => e.t))];
+  if (!assert('the drawn students are members of exactly one card',
+      owners.length === 1, 'one node at the far end of every `member of` edge',
+      owners.join(', ') || 'none')) return;
+  const card = owners[0];
+  const drawnStudents = members.map(e => e.s).sort();
+
+  const r = await rectOf(page, `[data-node="${card}"] rect.tile-bg`);
+  const p = { x: Math.round(r.cx), y: Math.round(r.cy) };
+  await requireHit(page, p.x, p.y, { node: card });
+  await click(page, p.x, p.y);
+  await page.waitFor(`window.ZT.selected() && window.ZT.selected().id === ${JSON.stringify(card)}`,
+    'the students card to be selected');
+
+  // Three renderings of one fact, all of them text a reader can see: the marker under the card,
+  // the panel's link out to the list, and the hint under it. Nothing here holds a copy of 34 or of
+  // 30, so a cohort that grew by one and a marker that did not would fail rather than pass quietly.
+  const s = await page.evaluate(`(function () {
+    var tail = document.querySelector('[data-node=${JSON.stringify(card)}] text.lbl-tail');
+    var link = document.querySelector('#pmore .pmore-link');
+    var hint = document.querySelector('#pmore .pmore-hint');
+    return {
+      shown: window.ZT.veiled().shown,
+      tailText: tail ? tail.textContent : null,
+      tailPainted: tail ? !tail.classList.contains('veil-hidden') : false,
+      linkText: link ? link.textContent : null,
+      linkHref: link ? link.getAttribute('href') : null,
+      hintText: hint ? hint.textContent : null
+    };
+  })()`);
+
+  assertEqual('clicking the students card reveals the drawn subset and nothing else',
+    s.shown, drawnStudents);
+
+  const nInPanel = Number((/see all (\d+) students/.exec(s.linkText || '') || [])[1]);
+  const drawnInPanel = Number((/^(\d+) of them are drawn here/.exec(s.hintText || '') || [])[1]);
+  const stated = Number((/and (\d+) more/.exec(s.tailText || '') || [])[1]);
+
+  assert('the panel says how big the cohort is and how much of it is drawn',
+    Number.isInteger(nInPanel) && Number.isInteger(drawnInPanel),
+    'a "see all N students" link and an "N of them are drawn here" hint',
+    `link ${JSON.stringify(s.linkText)}, hint ${JSON.stringify(s.hintText)}`);
+  assert('the number of tiles revealed is the number the panel claims is drawn',
+    s.shown.length === drawnInPanel, `${drawnInPanel} tiles`, `${s.shown.length} tiles`);
+  assert('the marker under the card says how many were not drawn',
+    stated === nInPanel - drawnInPanel,
+    `${nInPanel} in the cohort less ${drawnInPanel} drawn = ${nInPanel - drawnInPanel}`,
+    `the card says ${JSON.stringify(s.tailText)}`);
+  assert('and the marker is painted while the members are on screen',
+    s.tailPainted === true, 'the tail line visible beside the four tiles', String(s.tailPainted));
+  assert('the panel links to the route that holds the whole list',
+    s.linkHref === '#/students', '#/students', JSON.stringify(s.linkHref));
+
+  await clearSelection(page);
+
+  // The whole cohort as its own route. The expected row count comes from the list's own header,
+  // which is itself counted off the rows by app.js, so what is asserted is that the table, the
+  // header and the panel all say the same number.
+  await page.evaluate(`location.hash = '#/students'`);
+  await page.waitFor('window.ZT.roster() === true', 'the student list to open');
+  const roster = await page.evaluate(`(function () {
+    return {
+      rows: document.querySelectorAll('#rosterrows tbody tr').length,
+      drawnMarked: document.querySelectorAll('#rosterrows tbody tr.roster-drawn').length,
+      title: (document.getElementById('rostertitle') || {}).textContent || '',
+      sub: (document.getElementById('rostersub') || {}).textContent || ''
+    };
+  })()`);
+  const titleN = Number((/all (\d+) students/.exec(roster.title) || [])[1]);
+  const subRows = Number((/^(\d+) rows/.exec(roster.sub) || [])[1]);
+  const subDrawn = Number((/·\s*(\d+) of them drawn on the canvas/.exec(roster.sub) || [])[1]);
+
+  assert('#/students renders a row for every student it says the cohort has',
+    roster.rows === titleN && roster.rows === subRows,
+    `${titleN} rows, the number the heading claims`,
+    `${roster.rows} rows drawn, heading says ${titleN}, subheading says ${subRows}`);
+  assert('and it is the same cohort the diagram card counts',
+    titleN === nInPanel && subDrawn === drawnInPanel,
+    `${nInPanel} students, ${drawnInPanel} of them drawn`,
+    `${titleN} students, ${subDrawn} of them drawn`);
+  assert('the cohort is still the thirty four the documentation claims',
+    roster.rows === 34, '34 rows', `${roster.rows} rows`);
+  assert('the rows the drawing carries are marked as such',
+    roster.drawnMarked === subDrawn,
+    `${subDrawn} rows marked drawn`, `${roster.drawnMarked} rows marked drawn`);
+
+  await page.evaluate(`location.hash = '#/'`);
+  await page.waitFor('window.ZT.roster() === false', 'the student list to close');
+}
+
+// ---- the canvas ---------------------------------------------------------------------------------
+async function checkCanvas(page) {
+  await page.evaluate('window.ZT.fit()');
+  const before = await viewSettled(page);
+
+  // An off-centre point, deliberately: a zoom about the centre of the box and a zoom about the
+  // pointer are the same gesture at the centre and differ everywhere else, so an anchor test taken
+  // at the middle of the screen proves nothing at all.
+  const canvas = await rectOf(page, '#canvas');
+  // Rounded here, once, and then used for both the dispatch and every line of arithmetic below.
+  // See px(): the browser floors what it is given, and measuring at the float while dispatching at
+  // the floor is what made the first run of this suite report a defect the page did not have.
+  const ax = Math.round(canvas.x + canvas.w * 0.28);
+  const ay = Math.round(canvas.y + canvas.h * 0.36);
+
+  const read = () => page.evaluate(`(function () {
+    var svg = document.getElementById('graph');
+    var r = svg.getBoundingClientRect();
+    var m = svg.getScreenCTM();
+    var v = window.ZT.view();
+    return { left: r.left, top: r.top, k: v.k, x: v.x, y: v.y,
+             ctm: { a: m.a, d: m.d, e: m.e, f: m.f } };
+  })()`);
+
+  const b = await read();
+  // Two readings of the same point: one from the three numbers app.js holds, and one from the
+  // matrix the browser is actually rendering with. app.js's own comment records the two
+  // disagreeing at the fourth decimal until the box was measured off its rect, so the matrix is
+  // the one that is asserted on and the other is printed beside it.
+  const docBefore = { x: b.x + (ax - b.left) / b.k, y: b.y + (ay - b.top) / b.k };
+  const renderBefore = { x: (ax - b.ctm.e) / b.ctm.a, y: (ay - b.ctm.f) / b.ctm.d };
+
+  for (let i = 0; i < 4; i++) {
+    await page.send('Input.dispatchMouseEvent', {
+      type: 'mouseWheel', x: ax, y: ay, deltaX: 0, deltaY: -120, pointerType: 'mouse'
+    });
+  }
+  const a = await viewSettled(page).then(read);
+  const docAfter = { x: a.x + (ax - a.left) / a.k, y: a.y + (ay - a.top) / a.k };
+  const renderAfter = { x: (ax - a.ctm.e) / a.ctm.a, y: (ay - a.ctm.f) / a.ctm.d };
+
+  // The gesture must have done something. Without this the anchor assertion passes perfectly on a
+  // wheel event the page never received, which is the exact shape of the harness failure app.js's
+  // wheel comment records: six wheels out of six dropped, looking like a container listener being
+  // deaf over its own children.
+  const grew = a.k / b.k;
+  if (!assert('the wheel gesture reached the page and changed the zoom',
+      grew > 1.5, 'the scale to grow by more than half again over four wheel steps',
+      `scale went ${b.k.toFixed(4)} to ${a.k.toFixed(4)}, a factor of ${grew.toFixed(3)}`)) {
+    return;   // an anchor measured across a gesture that did not happen is not evidence
+  }
+
+  const errX = Math.abs(renderAfter.x - renderBefore.x) * a.ctm.a;
+  const errY = Math.abs(renderAfter.y - renderBefore.y) * a.ctm.d;
+  const modelErr = Math.max(Math.abs(docAfter.x - docBefore.x) * a.k,
+                            Math.abs(docAfter.y - docBefore.y) * a.k);
+  assert('the document point under the cursor does not move across the zoom',
+    errX <= ZOOM_TOLERANCE_PX && errY <= ZOOM_TOLERANCE_PX,
+    `the point under (${ax.toFixed(0)}, ${ay.toFixed(0)}) to move less than ` +
+      `${ZOOM_TOLERANCE_PX}px, measured off the rendered matrix`,
+    `it moved ${errX.toFixed(4)}px across and ${errY.toFixed(4)}px down ` +
+      `(the same point off view(): ${modelErr.toFixed(4)}px)`,
+    `${errX.toFixed(4)}px / ${errY.toFixed(4)}px, tolerance ${ZOOM_TOLERANCE_PX}px`);
+
+  await page.evaluate('window.ZT.fit()');
+  await viewSettled(page);
+  await clearSelectionIfAny(page);
+
+  // Click or drag. Three gestures on the same tile, because the thresholds are the whole of what
+  // tells them apart and app.js carries two of them: 5px of travel, or 3px travelled slowly.
+  const node = await someInstructor(page);
+  const t = await rectOf(page, `[data-node="${node}"] rect.tile-bg`);
+  const tx = Math.round(t.cx), ty = Math.round(t.cy);
+  const isSel = `window.ZT.selected() && window.ZT.selected().id === ${JSON.stringify(node)}`;
+  await requireHit(page, tx, ty, { node });
+
+  await click(page, tx, ty);
+  await page.waitFor(isSel, 'a 0px click to select');
+  pass('a click with no movement at all selects the node under it');
+  await clearSelection(page);
+
+  // Two pixels of travel. Below DRAG_PX (5) and below SLOW_PX (3), so neither of app.js's two
+  // thresholds fires however long the gesture takes, which is what makes this deterministic rather
+  // than a race against SLOW_MS.
+  await mouse(page, 'mousePressed', tx, ty, 1);
+  await mouse(page, 'mouseMoved', tx + 2, ty + 1, 1);
+  await mouse(page, 'mouseReleased', tx + 2, ty + 1, 0);
+  let selected = null;
+  try {
+    await page.waitFor(isSel, 'a 2px click to select');
+    selected = node;
+  } catch { selected = await page.evaluate('JSON.stringify(window.ZT.selected())'); }
+  assert('two pixels of hand shake is still a click, not a drag',
+    selected === node, 'the node under the press to be selected', String(selected));
+  await clearSelectionIfAny(page);
+
+  const viewBeforeDrag = await viewSettled(page);
+  await dragBy(page, tx, ty, 40, 0);
+  const viewAfterDrag = await viewSettled(page);
+  const movedPx = Math.abs(viewAfterDrag.x - viewBeforeDrag.x) * viewAfterDrag.k;
+  const sel = await page.evaluate('JSON.stringify(window.ZT.selected())');
+  assert('a forty pixel drag pans the canvas',
+    Math.abs(movedPx - 40) < 2, 'the plane to move 40px under the pointer',
+    `it moved ${movedPx.toFixed(2)}px`, `${movedPx.toFixed(2)}px`);
+  assert('and a forty pixel drag beginning on a node selects nothing',
+    sel === 'null', 'no selection', sel);
+}
+
+async function clearSelectionIfAny(page) {
+  const sel = await page.evaluate('window.ZT.selected() === null');
+  if (!sel) await clearSelection(page);
+}
+
+// A node that is on the page and stays there. Taken from the drawing rather than named here: it is
+// the source of an `employed by` edge, which is what an instructor is in this model, and the first
+// one in key order so the choice is the same on every run.
+async function someInstructor(page) {
+  const d = await page.evaluate(READ_DRAWING);
+  const e = d.edges.filter(x => x.verb === 'employed by').sort((a, b) => a.key < b.key ? -1 : 1)[0];
+  if (!e) throw new Error('the drawing carries no `employed by` edge to click on');
+  return e.s;
+}
+
+// ---- capture mode -------------------------------------------------------------------------------
+async function checkCapture(page) {
+  await page.evaluate('window.ZT.fit()');
+  await viewSettled(page);
+  await clearSelectionIfAny(page);
+
+  const toggle = await rectOf(page, '#fbtoggle');
+  const gx = Math.round(toggle.cx), gy = Math.round(toggle.cy);
+  await requireHit(page, gx, gy, { id: 'fbtoggle' });
+  await click(page, gx, gy);
+  await page.waitFor(`document.body.classList.contains('fb-mode')`, 'capture mode to turn on');
+
+  // A pan while capture mode is on. app.js swallows the click a drag leaves behind on the window,
+  // in the capture phase, with stopImmediatePropagation, precisely so that it never reaches
+  // feedback.js's document-level listener. If that ever stops holding, every drag on the canvas
+  // opens a popover and a reader who moves the drawing files a card about wherever they let go.
+  const node = await someInstructor(page);
+  const t = await rectOf(page, `[data-node="${node}"] rect.tile-bg`);
+  const tx = Math.round(t.cx), ty = Math.round(t.cy);
+  await requireHit(page, tx, ty, { node });
+  const before = await viewSettled(page);
+  await dragBy(page, tx, ty, 60, 20);
+  const after = await viewSettled(page);
+
+  const state = await page.evaluate(`(function () {
+    return {
+      popover: !!document.querySelector('.fb-popover'),
+      calls: window.__smoke.calls,
+      opens: window.__smoke.opens
+    };
+  })()`);
+  assert('a pan in capture mode moves the canvas',
+    Math.abs(after.x - before.x) * after.k > 30, 'the plane to move under the drag',
+    `it moved ${(Math.abs(after.x - before.x) * after.k).toFixed(1)}px`);
+  assert('a pan in capture mode opens no popover',
+    state.popover === false, 'no .fb-popover in the document', `popover present: ${state.popover}`);
+  const posts = state.calls.filter(c => c.method !== 'GET');
+  assert('a pan in capture mode files nothing',
+    posts.length === 0 && state.opens.length === 0,
+    'no request other than a GET, and no issue form opened',
+    `${posts.length} non-GET request(s) ${JSON.stringify(posts)}, ` +
+    `${state.opens.length} window.open(s) ${JSON.stringify(state.opens)}`);
+
+  // The element descriptor, against the string the deployed page produced when issue 45 was
+  // filed. Clicked at 35% of the tile out from its centre, which is inside the 34 unit tile and
+  // outside the 16 unit glyph box, so the click lands on the tile rect rather than on a glyph
+  // stroke: the point is chosen from the measured rect rather than from an offset in pixels,
+  // so it stays right at any zoom.
+  const t4 = await rectOf(page, `[data-node="${DESCRIPTOR_BASELINE.node}"] rect.tile-bg`);
+  const bx = Math.round(t4.cx + t4.w * 0.35), by = Math.round(t4.cy + t4.h * 0.35);
+  await requireHit(page, bx, by, { node: DESCRIPTOR_BASELINE.node, tag: 'rect' });
+  await click(page, bx, by);
+  await page.waitFor(`!!document.querySelector('.fb-popover .fb-el')`, 'the capture popover to open');
+  const descriptor = await page.evaluate(`document.querySelector('.fb-popover .fb-el').textContent`);
+  assert('the element descriptor for a stable node is unchanged',
+    descriptor === DESCRIPTOR_BASELINE.text,
+    `${JSON.stringify(DESCRIPTOR_BASELINE.text)}, recorded from ${DESCRIPTOR_BASELINE.from}`,
+    JSON.stringify(descriptor));
+
+  // Out, the way a reader leaves: 3 closes the box, Escape leaves the mode.
+  await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: '3', code: 'Digit3', windowsVirtualKeyCode: 51 });
+  await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: '3', code: 'Digit3', windowsVirtualKeyCode: 51 });
+  await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+  await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+  await page.waitFor(`!document.body.classList.contains('fb-mode')`, 'capture mode to turn off');
+
+  const net = await page.evaluate('JSON.stringify(window.__smoke)');
+  const rec = JSON.parse(net);
+  assert('nothing in the whole capture pass filed an issue',
+    rec.calls.every(c => c.method === 'GET') && rec.opens.length === 0,
+    'every recorded request a GET, and no issue form opened',
+    `calls ${JSON.stringify(rec.calls)}, opens ${JSON.stringify(rec.opens)}`);
+}
+
+// ---- the board ----------------------------------------------------------------------------------
+const DONE_VISIBLE = 8;                                     // board.js DONE_VISIBLE and sync_board.mjs
+const COLUMN_KEYS = ['raw', 'backlog', 'in_progress', 'done'];
+const COLUMN_TITLES = ['Raw', 'Backlog', 'In progress', 'Done'];
+
+// A synthetic set of issues, in the shape the REST API answers with, planted into the page so that
+// board.js's own columnFor() and buildColumns() run against a set whose right answer is known.
+// Numbers in the 900s so that nothing here can be confused with a real card, and so that no
+// assertion depends on an issue number that changes.
+function boardFixture(repo) {
+  const url = n => `https://github.com/${repo}/issues/${n}`;
+  const iss = (n, state, labels, reason) => ({
+    number: n, title: `fixture ${n}`, html_url: url(n), state,
+    state_reason: reason || null, labels: labels.map(name => ({ name }))
+  });
+  const out = [
+    iss(901, 'open', ['status:raw']),
+    iss(902, 'open', ['status:raw', 'bug']),
+    iss(903, 'open', []),                       // unlabelled: the default column is Raw
+    iss(904, 'open', ['status:backlog']),
+    iss(905, 'open', ['status:in-progress']),
+    iss(906, 'open', ['status:in-progress'])
+  ];
+  for (let i = 0; i < 10; i++) out.push(iss(910 + i, 'closed', ['status:done'], 'completed'));
+  // Two closed as not planned. They are closed, so they count towards the closed total that the
+  // Done column's arithmetic has to account for, and they belong in no column at all.
+  out.push(iss(930, 'closed', ['status:raw'], 'not_planned'));
+  out.push(iss(931, 'closed', [], 'not_planned'));
+  return out;
+}
+
+async function checkBoard(page, base) {
+  // --- the snapshot the origin actually serves ---------------------------------------------------
+  const snapshotText = await (await fetch(new URL('board.json', base))).text();
+  const snapshot = JSON.parse(snapshotText);
+
+  assertEqual('the published board has exactly four columns, in order',
+    (snapshot.columns || []).map(c => c.key), COLUMN_KEYS);
+  assertEqual('and they carry the four titles the board draws',
+    (snapshot.columns || []).map(c => c.title), COLUMN_TITLES);
+
+  const done = (snapshot.columns || []).find(c => c.key === 'done') || {};
+  const drawn = (done.cards || []).length;
+  assert('Done is capped at eight cards in the published snapshot',
+    drawn <= DONE_VISIBLE, `at most ${DONE_VISIBLE} cards`, `${drawn} cards`);
+  assert('and the remainder is carried as a number rather than dropped',
+    typeof done.hidden === 'number' && done.hidden >= 0 && Number.isInteger(done.hidden),
+    'a non-negative integer count of the closed issues not drawn', JSON.stringify(done.hidden));
+
+  const ids = [].concat(...(snapshot.columns || []).map(c => (c.cards || []).map(x => x.id)));
+  assert('no card is in two columns at once',
+    new Set(ids).size === ids.length, `${ids.length} distinct card ids`,
+    `${ids.length} cards, ${new Set(ids).size} distinct`);
+
+  await page.evaluate(`location.hash = '#/board'`);
+  await page.waitFor(`document.querySelectorAll('#bbody .bcol').length === 4`,
+    'the board to draw four columns');
+  const drawnBoard = await page.evaluate(`(function () {
+    var cols = Array.prototype.slice.call(document.querySelectorAll('#bbody .bcol'));
+    return cols.map(function (c) {
+      var more = c.querySelector('.bmore');
+      return {
+        title: c.querySelector('h2').firstChild.textContent,
+        heading: c.querySelector('h2 span').textContent,
+        cards: c.querySelectorAll('.bcard').length,
+        more: more ? more.textContent : null
+      };
+    });
+  })()`);
+  assertEqual('the drawn board carries the same four columns',
+    drawnBoard.map(c => c.title), COLUMN_TITLES);
+  assert('every column heading counts the cards under it',
+    drawnBoard.every((c, i) => Number(c.heading) === c.cards &&
+      c.cards === (snapshot.columns[i].cards || []).length),
+    'each heading equal to the cards drawn and to the snapshot',
+    JSON.stringify(drawnBoard.map(c => [c.heading, c.cards])));
+  assert('the Done column says how many closed issues it is not drawing',
+    (done.hidden > 0) === (drawnBoard[3].more !== null) &&
+      (done.hidden === 0 || drawnBoard[3].more === `and ${done.hidden} more closed`),
+    done.hidden > 0 ? `"and ${done.hidden} more closed"` : 'no remainder line',
+    JSON.stringify(drawnBoard[3].more));
+
+  // --- the shipped rule, against a fixture whose answer is known ---------------------------------
+  // The snapshot cannot prove that drawn plus hidden is every closed issue, because the total is
+  // exactly what the generator used to compute the hidden figure: reading it back is reading the
+  // generator's own arithmetic. board.js carries a second copy of that rule for its live path, so
+  // that copy is driven here against a set of issues this file wrote, which is a claim that can
+  // fail. No network and no credential: the fetch stub answers the API from the fixture.
+  const repo = await page.evaluate('window.ZMT && window.ZMT.repo');
+  const fixture = boardFixture(repo || 'jcherranz/zrive-model-toy');
+  await page.evaluate(`(function () {
+    window.__smokeIssues = ${JSON.stringify(fixture)};
+    // A stand-in, not a credential: board.js only asks whether a token is stored before choosing
+    // its live path, and the request it then makes is answered by the stub above without ever
+    // leaving the page. Nothing here reads or needs a real GitHub token.
+    localStorage.setItem('zmt.gh.token', 'smoke-suite-placeholder-not-a-token');
+    location.hash = '#/';
+  })()`);
+  await page.evaluate(`location.hash = '#/board'`);
+  await page.waitFor(`(function () {
+    var c = document.querySelectorAll('#bbody .bcol');
+    if (c.length !== 4) return 'the board has ' + c.length + ' columns';
+    var ids = Array.prototype.slice.call(document.querySelectorAll('#bbody .bnum'))
+      .map(function (n) { return n.textContent; });
+    return ids.indexOf('#901') === -1 ? 'the fixture is not drawn yet' : '';
+  })()`, 'the board to redraw from the planted fixture');
+
+  const live = await page.evaluate(`(function () {
+    var cols = Array.prototype.slice.call(document.querySelectorAll('#bbody .bcol'));
+    var all = Array.prototype.slice.call(document.querySelectorAll('#bbody .bnum'))
+      .map(function (n) { return n.textContent; });
+    var doneCol = cols[3];
+    var more = doneCol.querySelector('.bmore');
+    return {
+      titles: cols.map(function (c) { return c.querySelector('h2').firstChild.textContent; }),
+      counts: cols.map(function (c) { return c.querySelectorAll('.bcard').length; }),
+      more: more ? more.textContent : null,
+      ids: all
+    };
+  })()`);
+
+  assertEqual('the live path draws the same four columns', live.titles, COLUMN_TITLES);
+  assertEqual('and puts each fixture issue in the column its label names',
+    live.counts, [3, 1, 2, DONE_VISIBLE],
+    'three raw including the unlabelled one, one backlog, two in progress, eight of twelve closed');
+  assert('Done is capped at eight',
+    live.counts[3] === DONE_VISIBLE, `${DONE_VISIBLE} cards drawn`, `${live.counts[3]} cards drawn`);
+  // Twelve closed in the fixture, eight drawn, so four are hidden, and the two closed as not
+  // planned are among them: the count is of closed issues and not of finished ones, which is why
+  // the line says "closed" and not "done".
+  assert('drawn plus hidden accounts for every closed issue',
+    live.more === 'and 4 more closed',
+    '"and 4 more closed": 12 closed in the fixture, 8 drawn, 4 not',
+    JSON.stringify(live.more));
+  assert('a not-planned closure appears in no column',
+    !live.ids.includes('#930') && !live.ids.includes('#931'),
+    'neither #930 nor #931 drawn anywhere on the board',
+    JSON.stringify(live.ids.filter(i => i === '#930' || i === '#931')));
+
+  await page.evaluate(`(function () {
+    delete window.__smokeIssues;
+    localStorage.removeItem('zmt.gh.token');
+    location.hash = '#/';
+  })()`);
+  await page.waitFor(`!document.body.classList.contains('board')`, 'the diagram to come back');
+}
+
+// ---- every width --------------------------------------------------------------------------------
+async function checkWidth(page, base) {
+  const routes = [['#/', 'the diagram'], ['#/board', 'the board'], ['#/students', 'the student list']];
+  for (const [hash, what] of routes) {
+    await page.evaluate(`location.hash = ${JSON.stringify(hash)}`);
+    if (hash === '#/board') {
+      await page.waitFor(`document.querySelectorAll('#bbody .bcol').length === 4`, 'the board to draw');
+    } else if (hash === '#/students') {
+      await page.waitFor('window.ZT.roster() === true', 'the student list to open');
+    } else {
+      await page.waitFor('window.ZT.roster() === false', 'the diagram to be on screen');
+    }
+    const m = await page.evaluate(`(function () {
+      var d = document.documentElement;
+      return { scrollWidth: d.scrollWidth, clientWidth: d.clientWidth, inner: innerWidth };
+    })()`);
+    assert(`${what} does not scroll sideways`,
+      m.scrollWidth === m.clientWidth,
+      `scrollWidth to equal clientWidth (${m.clientWidth})`,
+      `scrollWidth ${m.scrollWidth}, clientWidth ${m.clientWidth}, innerWidth ${m.inner}`);
+  }
+  await page.evaluate(`location.hash = '#/'`);
+  await page.waitFor('window.ZT.roster() === false', 'the diagram to come back');
+}
+
+function checkConsole(page) {
+  const unexpected = page.console.filter(e => !(KNOWN_404.test(e.url) && /404/.test(e.text)));
+  const known = page.console.length - unexpected.length;
+  assert('no console error beyond the known favicon 404',
+    unexpected.length === 0,
+    'nothing on the error channel except the favicon 404 this page has no favicon for',
+    unexpected.length === 0 ? 'none' :
+      unexpected.map(e => `${e.kind}: ${e.text.slice(0, 160)}${e.url ? ' @ ' + e.url : ''}`).join(' | '),
+    `${known} favicon 404(s) allowed`);
+}
+
+function checkRequests(page, base) {
+  const host = new URL(base).host;
+  const foreign = page.requests.filter(r => {
+    if (r.url.startsWith('data:') || r.url.startsWith('blob:') || r.url === 'about:blank') return false;
+    try { return new URL(r.url).host !== host; } catch { return true; }
+  });
+  assert('the page reached no host but its own origin',
+    foreign.length === 0, `every request to ${host}`,
+    foreign.length === 0 ? 'none' : foreign.map(r => `${r.method} ${r.url}`).join(' | '));
+}
+
+// =================================================================================================
+// The run
+// =================================================================================================
+async function runViewport(chrome, viewport, base, full) {
+  const label = `${viewport.w}x${viewport.h}`;
+  // A window big enough that the height correction below has somewhere to go, and the width
+  // asked for where the browser will grant it.
+  const b = await launchBrowser(chrome, Math.max(viewport.w, WINDOW_FLOOR_PX), viewport.h);
+  try {
+    const page = await openPage(b.cdp, viewport);
+    setWhere(label);
+    console.log(`\n--- ${label} ---`);
+    console.log(`  browser:   ${b.browser}`);
+    console.log(`  requested: ${viewport.w} by ${viewport.h}`);
+    console.log(`  actual:    ${page.actual.w} by ${page.actual.h}   via ${page.mechanism}`);
+    assert('the viewport the harness got is the viewport it asked for',
+      page.actual.w === viewport.w && page.actual.h === viewport.h,
+      `${viewport.w} by ${viewport.h}`, `${page.actual.w} by ${page.actual.h}`);
+
+    await page.navigate(new URL('#/', base).toString());
+    await page.waitFor(DIAGRAM_READY, 'the diagram to draw');
+    pass('the page draws, and says so itself rather than being photographed');
+
+    await group('every width', () => checkWidth(page, base));
+
+    if (full) {
+      await group('model and reveal', () => checkModelAndReveal(page));
+      await group('students', () => checkStudents(page));
+      if (viewport.pointer) await group('canvas', () => checkCanvas(page));
+      if (viewport.pointer) await group('capture', () => checkCapture(page));
+      await group('board', () => checkBoard(page, base));
+    }
+
+    checkConsole(page);
+    checkRequests(page, base);
+  } finally {
+    b.close();
+  }
+}
+
+async function main() {
+  const args = process.argv.slice(2);
+  if (args.includes('--help') || args.includes('-h')) {
+    console.log([
+      'node scripts/smoke.mjs [url]',
+      '',
+      '  With no argument, serves site/ from this working tree on a local port and tests that.',
+      '  With a url, tests the origin at that url instead.',
+      '',
+      '  SMOKE_CHROME / CHROME_PATH / CHROME_BIN   which browser to drive',
+      '  SMOKE_TIMEOUT_MS                          per-wait deadline, default 20000'
+    ].join('\n'));
+    return 0;
+  }
+
+  const chrome = resolveChrome();
+  let server = null;
+  let base = args.find(a => !a.startsWith('-'));
+  if (base) {
+    if (!base.endsWith('/')) base += '/';
+    console.log(`target:  ${base}  (a deployed origin)`);
+  } else {
+    const s = await serveSite(SITE);
+    server = s.server;
+    base = s.base;
+    console.log(`target:  ${base}  (site/ from this working tree)`);
+  }
+  console.log(`browser: ${chrome.path}`);
+
+  try {
+    // The behavioural assertions are about the model, the reveal rule, the gestures and the board,
+    // none of which is a claim about a width, so they run once. They run in the viewport that can
+    // drive a pointer, which is the condition they need and not the position in the list: below the
+    // window floor there is no real widget to dispatch into and the gesture would be measuring the
+    // harness. Everything that IS a claim about a width runs at every width.
+    let doneFull = false;
+    for (const v of VIEWPORTS) {
+      const full = v.pointer && !doneFull;
+      if (full) doneFull = true;
+      await group(`the ${v.w}x${v.h} run`, () => runViewport(chrome.path, v, base, full));
+    }
+    if (!doneFull) {
+      fail('the behavioural assertions ran at all',
+        'one viewport in VIEWPORTS able to drive a pointer',
+        'none of them is marked pointer: true, so only the width checks ran');
+    }
+  } finally {
+    if (server) server.close();
+  }
+
+  setWhere('-');
+  const failed = results.filter(r => !r.ok);
+  console.log(`\n${'='.repeat(80)}`);
+  console.log(`${results.length} assertions, ${results.length - failed.length} passed, ${failed.length} failed`);
+  if (failed.length) {
+    console.log('\nfailures:');
+    for (const f of failed) {
+      console.log(`  [FAIL] ${f.where}  ${f.name}`);
+      console.log(`           expected: ${f.expected}`);
+      console.log(`           found:    ${f.found}`);
+    }
+  }
+  console.log(failed.length ? 'VERDICT: the page has regressed' : 'VERDICT: clean');
+  return failed.length ? 1 : 0;
+}
+
+main().then(code => process.exit(code)).catch(err => {
+  console.error('\nthe suite could not run:\n' + (err && err.message ? err.message : err));
+  process.exit(2);
+});

@@ -289,6 +289,22 @@ build on a cited slug that resolves to nothing.
   click and make the coordinates a function of the selection. The question is not whether a hidden
   node costs the layout something. It is whether what it costs buys the reader the drawing in front
   of them.
+- `kaizen-a-harness-and-a-page-must-agree-on-the-coordinate` &middot; **Where a harness and the
+  thing it drives both need a number, exactly one of them owns it.** The first run of
+  `scripts/smoke.mjs` reported the anchored zoom drifting 1.78px, which is a defect this
+  repository would have taken seriously: the anchor is the whole of issue 46's canvas. It was the
+  driver. The browser floors a dispatched pointer coordinate, so a suite that picks an anchor as a
+  fraction of a rect, dispatches 322.9488 and then does arithmetic about 322.9488 is measuring its
+  own rounding, and the residual it invents is the fraction times one minus the ratio of the two
+  scales, which is 1.7789 on the vertical axis and 0.1500 on the horizontal against 1.7814 and 0.1486
+  observed. Predicting both numbers from the floor alone is what settled it, and it settled it in
+  a minute where re-reading the page's arithmetic would have taken an afternoon and found nothing.
+  The repair is not a tolerance wide enough to swallow it, which would also swallow a real
+  regression: the driver rounds the point once and then uses that integer for the dispatch and for
+  every line of arithmetic, and `px()` throws on a non-integer rather than rounding, because
+  rounding at the point of dispatch leaves the caller still holding the float. Second instance of
+  `kaizen-verifier-not-exempt-from-verification`, and the first where the tell was quantitative:
+  a discrepancy that is an exact function of a known rounding is evidence about the harness.
 - `kaizen-a-scanner-cannot-tell-use-from-mention` &middot; **A mechanism that reads prose cannot
   tell a use of a token from a mention of it, and the documentation is where the two collide.**
   Twice in one day. `#48` in a sentence about issue 48 was read as a claim to be working on it and

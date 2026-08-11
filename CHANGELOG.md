@@ -11,6 +11,85 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- A regression net, #58. `scripts/smoke.mjs`, 70 assertions over three viewports, driving Chrome
+  through the DevTools Protocol on Node 22's own WebSocket: no framework, no dependency, no build
+  step, nothing added to `site/`. Ten substantive changes landed on 2026-08-10 and 11, each
+  verified by hand in a headless browser, and every one of those verifications was thrown away
+  with the session; the invariants survived only as prose on closed cards, which is not a place a
+  regression can be caught. Covered: six Company nodes of which five are hidden employers and the
+  sixth, which employs nobody, stays painted, #48 and #49; each instructor revealing its own
+  employer and nothing else, and a clear hiding all five, by Escape and by a click on the canvas,
+  which are two different listeners; the students card, its marker and the `#/students` roster
+  agreeing on the cohort size and on how many of it the drawing left out, #51; the anchored zoom
+  holding the point under the cursor to 0.0014px across a four step wheel gesture where the
+  tolerance is 0.5px, and a click at 0px and at 2px selecting where a 40px drag pans and selects
+  nothing, #46; capture mode filing nothing on a pan and producing the element descriptor issue 45
+  was filed with, byte for byte; the board's four columns, the Done cap and the closed arithmetic;
+  and at 1536x839, 1440x900 and 390x844, no sideways scroll on any of the three routes and no
+  console error beyond the favicon 404. It reports every failure rather than the first, and each
+  one names what was expected, what was found and at which viewport.
+- The suite is robust to the harness rather than to the page, and each measure is bought, #58.
+  A profile directory created per run with the debug port at 0 and read back out of that
+  directory, so a stale browser cannot answer; a readiness condition the page itself answers,
+  `window.ZT` published plus a painted node plus a measured canvas box, rather than a screenshot
+  or a sleep, which is HANSEI.md `2026-08-09-screenshot-before-javascript`; and
+  `document.elementFromPoint` in front of every synthetic click, which is
+  KAIZEN.md `kaizen-a-widened-control-keeps-its-neighbours-reachable`, since a dispatched click
+  that lands on nothing is indistinguishable from a control that does nothing. Every viewport
+  prints requested beside actual and by which mechanism: 390x844 is emulated because the window
+  floor is 500px, and the two wide ones are real windows corrected by measurement, since
+  `--window-size` is the outer window and headless Chrome keeps 143px of it.
+- Proved failing before it was believed, #58. Seven invariants were broken one at a time in a
+  scratch copy and the suite caught each: the reveal rule rekeyed on the type Company, which is
+  the regression app.js's own comment warns of, 3 failures; the wheel zooming about the centre,
+  which moved the anchored point 633.7px; the drag threshold cut from 5px to 1px; the Done cap
+  moved to 9, 3 failures; the descriptor path shortened by one level; a 760px canvas minimum,
+  caught only at 390x844; and the drag no longer swallowing its own click, which selected a node
+  and opened a capture popover on a pan.
+- The anchored zoom was reported broken by the driver and was not, #58. The first run measured
+  1.78px of drift, and the browser floors a dispatched pointer coordinate: measuring at 322.9488
+  while dispatching at 322 invents exactly the fraction times one minus the ratio of the scales,
+  1.7789px vertically and 0.1500px horizontally against 1.7814 and 0.1486 observed. Predicting both
+  from the floor settled it in a minute. The repair is not a wider tolerance, which would swallow
+  a real regression too: the point is rounded once and used for both, and `px()` throws on a
+  non-integer rather than rounding, because rounding at the dispatch leaves the caller holding the
+  float. New lesson, KAIZEN.md `kaizen-a-harness-and-a-page-must-agree-on-the-coordinate`.
+- `scripts/verify.sh`, one entrypoint for everything a contributor previously had to reconstruct
+  from prose, #58: `node --check` on every shipped script, the layout rebuild byte compared against
+  the committed `site/graph.js`, both gates with their self-tests, the local token grep, and the
+  smoke suite, with the deployed-bytes gate and a second smoke run added when an origin is passed.
+  Every step runs whatever the ones before it did. A step that cannot run reports `[SKIP]` with its
+  reason and is counted separately in the summary, because a clean run that skipped two checks must
+  not read as a clean run that did nine.
+- `.github/workflows/smoke.yml`, its own workflow and not a step in `repo-gate.yml`, #58. The two
+  ask different questions, one whether anything forbidden is committed and one whether the page
+  works, and a browser that fails to start would otherwise turn the safety gate red for a reason
+  that has nothing to do with safety; TPS.md's Andon section is that a red run is the whole signal
+  here. It is deliberately outside the deploy path: a check between the upload and the publish is a
+  check that can leave the site half published. `permissions: contents: read`, no token, its own
+  concurrency group with `queue: max` for the reason in
+  KAIZEN.md `kaizen-a-guard-covers-only-the-state-it-names`. The browser is the one the runner
+  image already ships, so the pin is `ubuntu-24.04` rather than `ubuntu-latest`, and the run prints
+  the exact version it drove; stated plainly, that pins the image and not the build, and the
+  alternative buys a 150MB third party download on every run.
+- The suite cannot file an issue, and that is asserted rather than intended, #58. `window.fetch`,
+  `XMLHttpRequest`, `navigator.sendBeacon` and `window.open` are replaced before any page script
+  runs and every call recorded; `Network.setBlockedURLs` refuses github.com below the page; and
+  `Network.requestWillBeSent` is watched, so a request that got past the stub is a failure rather
+  than a silence. The board's live path is driven against a synthetic fixture numbered in the 900s,
+  so no assertion depends on an issue number, on the clock, or on any network state beyond the page
+  itself. The repository held 47 issues before this work and 47 after.
+
+### Changed
+
+- `build/safety_grep.py` aborts instead of reporting clean when the faculty register yields no
+  name terms, #58. It reads the register straight out of the vault, so on any machine without one
+  the real-name comparison ran zero times and the gate printed `VERDICT: clean`, which is the
+  empty-input lie `scripts/check_forbidden.sh` already asserts against in `scan_dir`
+  (HANSEI.md `2026-08-empty-input-reported-success`). Exit 2, which `scripts/verify.sh` reads as
+  "did not run" rather than as "passed". Found by chaining it into `verify.sh` and asking what the
+  step would report on a machine that is not this one.
+
 - Contrast is a gate and no longer a measurement somebody once took, #59. `build/model.py`
   computes WCAG 2.x contrast for all thirteen type colours against both band plates and emits one
   row per colour per ground; `scripts/check_repo.sh` holds the threshold, the declared exceptions

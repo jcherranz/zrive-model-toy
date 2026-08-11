@@ -1,0 +1,99 @@
+name: smoke
+
+# Drive the page in a headless browser and fail the build on any behavioural regression.
+# scripts/smoke.mjs carries the invariants and the argument for each; this file is only the
+# wiring, and the wiring has three decisions in it worth stating.
+#
+# ---------------------------------------------------------------------------------------------
+# WHY THIS IS ITS OWN WORKFLOW AND NOT A STEP IN repo-gate.yml. Issue 58.
+#
+# repo-gate.yml answers one question, whether anything forbidden has been committed, and it
+# answers it in about fifteen seconds with git and bash. This job downloads nothing but does start
+# a browser, drive three of them, and dispatch pointer gestures, which is a different kind of
+# thing to be wrong: a browser that fails to start, or a runner image that stops shipping Chrome,
+# turns the SAFETY gate red for a reason that has nothing to do with safety. TPS.md's Andon
+# section says the red run is the whole signal on this project and that nothing shortens the gap
+# between a red run and somebody noticing. A signal people learn to squint at is worse than a
+# slower one, so the two stay separable: repo-gate red means a name or a figure is committed,
+# smoke red means the page has regressed, and neither can be mistaken for the other.
+#
+# It is also a different question in the sense the repository already uses. Both existing gates
+# ask "is anything forbidden here". This asks "does it work". Those have never been the same check
+# and putting them behind one tick would be the first place they could be confused.
+#
+# ---------------------------------------------------------------------------------------------
+# AND WHY IT IS NOT IN THE DEPLOY PATH. pages.yml is untouched by this card, deliberately.
+#
+# pages.yml uploads an artifact, publishes it and then reads the deployed bytes back through the
+# forbidden-content gate, and that gate's own comment records the choice this repository already
+# made: the gate reports and a person takes the page down, because an automated unpublish on a
+# rule that can false-fire would take the site down on a CSS decimal. A smoke failure has exactly
+# the same shape and a weaker claim: it says a behaviour changed, not that anything unsafe was
+# published. Putting it between the upload and the deploy would be a check that can leave the site
+# half published, and putting it after the deploy would light a second andon in the workflow whose
+# andon is already about something more serious. It runs on the tree instead, in front of the
+# push, where a regression is cheap to fix.
+#
+# ---------------------------------------------------------------------------------------------
+# THE BROWSER, AND WHAT "PINNED" MEANS HERE. The smallest install is no install: the GitHub-hosted
+# Ubuntu image ships Google Chrome, so the pin is `runs-on: ubuntu-24.04` rather than
+# `ubuntu-latest`, and the browser moves only when somebody edits that line. Stated honestly: that
+# pins the IMAGE and not the BUILD, and Chrome inside the 24.04 image is refreshed with the image.
+# The alternative, downloading a fixed Chrome for Testing build on every run, pins harder and buys
+# a 150MB third-party download on a repository whose whole safety posture is that it fetches
+# nothing it does not have to. Every run prints the exact version it drove, so a failure caused by
+# a browser change is diagnosable from the log rather than guessed at, and if the image ever stops
+# shipping Chrome the suite fails with the list of paths it tried, which is the message that
+# failure needs.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Read the repository and nothing else. The suite needs no token: it serves site/ from the runner
+# and drives a browser that is blocked from reaching github.com at the network layer.
+permissions:
+  contents: read
+
+# Its own group, not `pages` and not `repo-gate`: this job deploys nothing and must never queue
+# behind a deploy. cancel-in-progress is stated rather than inherited, and false, because a
+# cancelled check reads as a check that ran; queue: max for the reason the repository gate's own
+# comment gives, that false only protects a RUNNING job while the default single pending slot lets
+# a second push evict the run that has not started yet.
+# KAIZEN.md `kaizen-a-guard-covers-only-the-state-it-names`.
+concurrency:
+  group: smoke-${{ github.ref }}
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  smoke:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Say what was driven. KAIZEN.md `kaizen-a-tool-that-refuses-the-size-you-asked-for` is
+      # about a harness that quietly gave back something other than what was asked for; the
+      # cheapest countermeasure is that every run states what it actually got.
+      - name: Name the browser this run drove
+        run: |
+          set -euo pipefail
+          for c in "${CHROME_BIN:-}" /usr/bin/google-chrome /usr/bin/google-chrome-stable \
+                   /usr/bin/chromium /usr/bin/chromium-browser; do
+            if [ -n "$c" ] && [ -x "$c" ]; then
+              echo "SMOKE_CHROME=$c" >> "$GITHUB_ENV"
+              echo "$c"
+              "$c" --version
+              exit 0
+            fi
+          done
+          echo "::warning::no preinstalled browser found on this image; the suite will print the paths it tried"
+
+      # The suite serves site/ from this checkout on a local port and tests that. It is
+      # deliberately not pointed at the deployed origin: a check that reads the origin answers a
+      # question about the last deploy, and this one has to answer a question about the commit in
+      # front of it.
+      - name: The page behaves, at every width
+        run: node scripts/smoke.mjs
