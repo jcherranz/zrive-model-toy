@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T20:55:26Z",
+  "generated": "2026-08-11T20:56:10Z",
   "columns": [
     {
       "key": "raw",
@@ -51,15 +51,6 @@
             "feedback"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/81"
-        },
-        {
-          "id": 83,
-          "title": "For Z-BL and Z-SC that have more up to date and structured…",
-          "labels": [
-            "bug",
-            "feedback"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/83"
         }
       ]
     },
@@ -130,6 +121,17 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/82"
+        },
+        {
+          "id": 83,
+          "title": "Show every session for Z-BL and Z-SC, and declare the sample on the five that stay sampled",
+          "labels": [
+            "bug",
+            "feedback",
+            "model",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/83"
         }
       ]
     },
