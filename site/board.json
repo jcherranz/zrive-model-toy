@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T14:05:55Z",
+  "generated": "2026-08-11T14:06:27Z",
   "columns": [
     {
       "key": "raw",
@@ -60,15 +60,6 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/60"
-        },
-        {
-          "id": 61,
-          "title": "Nothing in CI runs the build, so the drawing is unverified",
-          "labels": [
-            "bug",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/61"
         }
       ]
     },
@@ -85,6 +76,15 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/56"
+        },
+        {
+          "id": 61,
+          "title": "Nothing in CI runs the build, so the drawing is unverified",
+          "labels": [
+            "bug",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/61"
         }
       ]
     },
