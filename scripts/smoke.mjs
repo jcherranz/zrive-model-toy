@@ -438,6 +438,14 @@ async function openPage(cdp, viewport) {
       return r.result.value;
     },
 
+    // A real reload, waited on properly. Setting location.hash is a same-document navigation and
+    // raises no load event, so it must never be waited on as though it were one.
+    async reload() {
+      const loaded = new Promise(resolve => { cdp.on('Page.loadEventFired', () => resolve()); });
+      await cdp.send('Page.reload', {}, sessionId);
+      await Promise.race([loaded, sleep(TIMEOUT)]);
+    },
+
     async navigate(url) {
       const loaded = new Promise(resolve => {
         const off = p => { if (p) resolve(); };
@@ -522,9 +530,16 @@ const STUB_SOURCE = `(function () {
     note(url, method);
     // The board's live path, answered from a fixture this suite plants, so that board.js's own
     // column rule and its arithmetic assertion are exercised against a known set of issues with
-    // no network and no credential anywhere in it.
-    if (window.__smokeIssues && /^https:\\/\\/api\\.github\\.com\\/repos\\/[^/]+\\/[^/]+\\/issues/.test(url)) {
-      return Promise.resolve(new Response(JSON.stringify(window.__smokeIssues), {
+    // no network and no credential anywhere in it. The fixture is read out of localStorage rather
+    // than off a page global so that it survives a reload, which is what lets the board be tested
+    // on a page whose very first poll is the live one; see checkBoard for why that matters.
+    var fixture = null;
+    try {
+      var raw = localStorage.getItem('__smoke.issues');
+      fixture = raw ? JSON.parse(raw) : null;
+    } catch (e) { fixture = null; }
+    if (fixture && /^https:\\/\\/api\\.github\\.com\\/repos\\/[^/]+\\/[^/]+\\/issues/.test(url)) {
+      return Promise.resolve(new Response(JSON.stringify(fixture), {
         status: 200,
         headers: {
           'content-type': 'application/json',
@@ -1275,16 +1290,27 @@ async function checkBoard(page, base) {
   // generator's own arithmetic. board.js carries a second copy of that rule for its live path, so
   // that copy is driven here against a set of issues this file wrote, which is a claim that can
   // fail. No network and no credential: the fetch stub answers the API from the fixture.
+  // PLANTED, THEN RELOADED, AND THE RELOAD IS THE POINT. Switching a live token on under a board
+  // that is already on screen looked simpler and is a race: board.js keeps one request in the air
+  // at a time, so a tick that arrives while the snapshot fetch is still out returns without
+  // rescheduling, and the next poll is a whole SNAPSHOT_MS away. Against a local server the
+  // snapshot answers in a millisecond and the race never happens; against the deployed origin it
+  // did, and the suite sat waiting for a board that was going to redraw thirty seconds later. That
+  // is the page behaving exactly as documented, so the driver is what changes: the fixture and the
+  // stand-in token go into localStorage, the page is reloaded, and the board's very first poll is
+  // the live one, with nothing in flight to queue behind.
   const repo = await page.evaluate('window.ZMT && window.ZMT.repo');
   const fixture = boardFixture(repo || 'jcherranz/zrive-model-toy');
   await page.evaluate(`(function () {
-    window.__smokeIssues = ${JSON.stringify(fixture)};
+    localStorage.setItem('__smoke.issues', ${JSON.stringify(JSON.stringify(fixture))});
     // A stand-in, not a credential: board.js only asks whether a token is stored before choosing
-    // its live path, and the request it then makes is answered by the stub above without ever
-    // leaving the page. Nothing here reads or needs a real GitHub token.
+    // its live path, and the request it then makes is answered by the stub without ever leaving
+    // the page. Nothing here reads or needs a real GitHub token.
     localStorage.setItem('zmt.gh.token', 'smoke-suite-placeholder-not-a-token');
     location.hash = '#/';
   })()`);
+  await page.reload();
+  await page.waitFor(DIAGRAM_READY, 'the diagram to draw again after the reload');
   await page.evaluate(`location.hash = '#/board'`);
   await page.waitFor(`(function () {
     var c = document.querySelectorAll('#bbody .bcol');
@@ -1292,7 +1318,7 @@ async function checkBoard(page, base) {
     var ids = Array.prototype.slice.call(document.querySelectorAll('#bbody .bnum'))
       .map(function (n) { return n.textContent; });
     return ids.indexOf('#901') === -1 ? 'the fixture is not drawn yet' : '';
-  })()`, 'the board to redraw from the planted fixture');
+  })()`, 'the board to draw from the planted fixture');
 
   const live = await page.evaluate(`(function () {
     var cols = Array.prototype.slice.call(document.querySelectorAll('#bbody .bcol'));
@@ -1327,7 +1353,7 @@ async function checkBoard(page, base) {
     JSON.stringify(live.ids.filter(i => i === '#930' || i === '#931')));
 
   await page.evaluate(`(function () {
-    delete window.__smokeIssues;
+    localStorage.removeItem('__smoke.issues');
     localStorage.removeItem('zmt.gh.token');
     location.hash = '#/';
   })()`);

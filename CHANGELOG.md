@@ -54,6 +54,16 @@ of what changed and when, and it is meant to be scannable.
   a real regression too: the point is rounded once and used for both, and `px()` throws on a
   non-integer rather than rounding, because rounding at the dispatch leaves the caller holding the
   float. New lesson, KAIZEN.md `kaizen-a-harness-and-a-page-must-agree-on-the-coordinate`.
+- Two harness races were found by running the suite somewhere other than where it was written,
+  #58, and both are recorded because the shape repeats. `select()` schedules a pan 30ms out through
+  `reveal()` and clearing the selection does not cancel it, so a rect measured just after a clear
+  can be panned out from under the click; the runner hit it where three local runs had not, and the
+  log said only that a selection never arrived. And board.js keeps one request in the air at a
+  time, so switching a token on under a board already on screen can leave the next poll a whole
+  30 seconds away; the local server answers the snapshot in a millisecond and never showed it, the
+  deployed origin did. Neither is a page defect and neither is repaired by a longer wait: rects are
+  now read until two consecutive readings match, and the board fixture is planted in localStorage
+  and the page reloaded so the first poll is the live one.
 - `scripts/verify.sh`, one entrypoint for everything a contributor previously had to reconstruct
   from prose, #58: `node --check` on every shipped script, the layout rebuild byte compared against
   the committed `site/graph.js`, both gates with their self-tests, the local token grep, and the
