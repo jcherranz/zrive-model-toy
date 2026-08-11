@@ -1,7 +1,66 @@
 (function () {
   'use strict';
 
-  var G = window.G;
+  // ---- the seven programmes, and which of them this page is showing ----------
+  // The build ships seven drawings, one per programme, as window.GV.views, each with its own
+  // nodes, edges, band captions and extent, and window.G is the first of them. Until issue 66
+  // this file read window.G and nothing else, so six of the seven had never been on a screen.
+  //
+  // A VIEW IS CHOSEN BEFORE THE FIRST draw() AND NEVER AFTER IT. Everything below reads G, and
+  // draw() reassigns it, so resolving the address up here is what makes a deep link draw its own
+  // programme once rather than draw Investment Banking and then replace it. A reader who follows
+  // a link to #/p/ZCFA and a reader who clicks their way there see the same page produced by the
+  // same path.
+  //
+  // #/p/<CODE>, in the shape #/board and #/students already have. The code is matched with the
+  // punctuation and the case taken out, so the key the build writes (ZCFA), the code the drawing
+  // is captioned with (Z-CFA) and a hand-typed z-cfa all reach the same view; nothing is rewritten
+  // in the address bar, because both spellings are the programme's own and a page that silently
+  // edits the URL a reader typed is a page that is arguing with them.
+  //
+  // AN ADDRESS THAT IS NOT A PROGRAMME ADDRESS HAS NO OPINION, which is the difference between
+  // null and the default below and is the whole of the interaction with the other two routes.
+  // #/students and #/board say nothing about which programme is drawn, so they leave it alone: a
+  // reader on Z-CFA who opens the student list gets the Z-CFA cohort, and one who looks at the
+  // board and comes back to #/ finds Z-CFA still on the canvas. An address that IS a programme
+  // address and names nothing, #/p/ or #/p/NOPE, falls back to the default rather than drawing
+  // nothing, because the reader asked for a programme and the honest answer to an unknown one is
+  // the page they would have got with no code at all.
+  var GV = window.GV || null;
+  var VIEWS = (GV && GV.views && GV.views.length) ? GV.views
+    : [{ key: '', code: '', name: '', label: '', route: '#/', drawing: window.G }];
+  var PGPREFIX = '#/p/';
+
+  function normCode(s) {
+    return String(s === null || s === undefined ? '' : s).toUpperCase().replace(/[^A-Z0-9]/g, '');
+  }
+
+  var DEFAULT_VIEW = (function () {
+    var want = normCode(GV && GV.default);
+    for (var i = 0; i < VIEWS.length; i++) if (normCode(VIEWS[i].key) === want) return VIEWS[i];
+    return VIEWS[0];
+  })();
+
+  function viewByCode(code) {
+    var c = normCode(code);
+    if (!c) return null;
+    for (var i = 0; i < VIEWS.length; i++) {
+      if (normCode(VIEWS[i].key) === c || normCode(VIEWS[i].code) === c) return VIEWS[i];
+    }
+    return null;
+  }
+
+  // null means "this address is not about a programme", which is not the same answer as the
+  // default and must not be collapsed into it.
+  function viewFromHash(h) {
+    h = String(h || '');
+    if (h.slice(0, PGPREFIX.length).toLowerCase() !== PGPREFIX) return null;
+    return viewByCode(h.slice(PGPREFIX.length).split('/')[0].split('?')[0]) || DEFAULT_VIEW;
+  }
+
+  var pgView = viewFromHash(location.hash) || DEFAULT_VIEW;
+
+  var G = pgView.drawing;
   var NS = 'http://www.w3.org/2000/svg';
   var TILE = G.tile, R = TILE / 2;
   var COLOR = {}, TLABEL = {}, GLYPH = {};
@@ -111,12 +170,12 @@
   // name and the glyph of each tile.
 
   // ---- svg scaffolding -----------------------------------------------------
-  // One drawing, one cohort, and no way into any other view. The page used to carry a second
-  // coordinate set for a two cohort drawing on a header switch; issue 42 took it out, and it
-  // was taken out of the build rather than hidden in the browser, so there is nothing left here
-  // to switch to. draw() still takes its drawing as an argument because everything below reads
-  // G rather than reaching for a global, which is what kept the two views from moving each
-  // other and is worth keeping now that only one of them is left.
+  // draw() takes its drawing as an argument and everything below reads G rather than reaching
+  // for a global. That was written for the two cohort switch issue 42 removed, kept afterwards
+  // when only one drawing was left, and is now what the seven programme routes run on: issue 66
+  // added a caller and not a mechanism. The drawings are the same shape as each other and the
+  // same shape as the one this function was written against, so nothing in here knows how many
+  // there are, which one is on screen, or that the reader can change it.
   var svg = document.getElementById('graph');
   var canvas = document.getElementById('canvas');
   svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
@@ -866,15 +925,19 @@
                 t.isContentEditable)) return;
       if (document.querySelector('.fb-popover')) return;
       // The student list is over the canvas and the canvas is behind it. A digit typed there is
-      // not an instruction to move a drawing the reader cannot see.
-      if (rosterOpen()) return;
+      // not an instruction to move a drawing the reader cannot see. The programme list is the
+      // same case for the same reason: while it is open the keys belong to it, and `0` there is
+      // a reader walking a list of seven and not a reader asking to reframe the one behind it.
+      if (rosterOpen() || pgMenuOpen()) return;
       if (e.key === '0') { e.preventDefault(); fit(); }
       else if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomStep(1.3); }
       else if (e.key === '-' || e.key === '_') { e.preventDefault(); zoomStep(1 / 1.3); }
     });
   }
 
-  draw(window.G);
+  // The address has already chosen which of the seven this is, at the top of the file, so this
+  // draws the reader's programme and not the default followed by the reader's.
+  draw(G);
   initView();
 
   // ---- selection -----------------------------------------------------------
@@ -1137,8 +1200,11 @@
     rosterBuilt = true;
     var r = G.roster, rows = r.rows || [];
 
+    // Which cohort, by name. There are seven of them now and this view is whichever one the
+    // canvas behind it is drawing, so a list headed "The cohort" would be the same heading over
+    // seven different sets of rows.
     document.getElementById('rostertitle').textContent =
-      'The cohort, all ' + r.n + ' students';
+      'The ' + (pgView.code ? pgView.code + ' ' : '') + 'cohort, all ' + r.n + ' students';
 
     // Counted off the rows rather than written down, so the summary cannot disagree with the
     // table under it, and so it stays true if a row changes.
@@ -1187,6 +1253,19 @@
     var host = document.getElementById('rosterrows');
     host.textContent = '';
     host.appendChild(table);
+  }
+
+  // A different programme is a different cohort, so the list built for the last one is thrown
+  // away rather than reused. buildRoster() is a once-per-load function guarded by a flag, which
+  // was true while there was one cohort; the flag is what is reset here, and the rows with it, so
+  // that the next open builds from the drawing that is now on the canvas. Rebuilt at once if the
+  // list happens to be open, which is reachable with the back button from #/students to a
+  // programme address and back.
+  function resetRoster() {
+    rosterBuilt = false;
+    var host = document.getElementById('rosterrows');
+    if (host) host.textContent = '';
+    if (rosterOpen()) buildRoster();
   }
 
   function showRoster(on) {
@@ -1251,6 +1330,197 @@
     rosterRoute();
   }
 
+  // ---- moving between the seven ----------------------------------------------
+  // The control is the programme's own name in the subtitle, which was already the sentence
+  // saying what is on screen. It costs the header no row and the nav no item, which was the
+  // constraint: issue 32 reclaimed a row by deleting the legend and issue 57 protected it, and a
+  // sixth .linkbtn in the nav would have pushed `board` towards the edge at 390px, where the nav
+  // already wraps when capture mode widens the feedback toggle.
+  //
+  // WHAT PRESSING IT OPENS IS SEVEN LINKS AND NOT A WIDGET. The theme toggle cycles because it
+  // has three states and any of them is one press away; seven is not, and a reader looking for
+  // Big Law should not have to walk past four other programmes to reach it. Ordinary anchors to
+  // the seven addresses mean the keyboard, the middle mouse button, the context menu and the back
+  // button all work without this file implementing any of them, and the navigation goes through
+  // the hash exactly as it would if the reader had typed it, so there is one code path into a
+  // view and not two.
+  //
+  // A ROUTE CHANGE REFITS THE VIEW, and the alternative was to keep the reader's pan and zoom.
+  // Keeping it is defensible while a switch is between two pictures of the same thing; these are
+  // seven different drawings of seven different programmes, 576 to 610 units tall, with different
+  // node counts and one of them missing a whole lane. A reader zoomed into the agreement lane of
+  // Z-IB and moved to Z-CFA would land on a rectangle of another drawing chosen by arithmetic
+  // rather than by meaning. Two further reasons, both about not lying to the reader: the zoom
+  // readout is a percentage OF THE FIT, so carrying k across a change of extent silently changes
+  // what the number means, and a refit makes a followed link and a clicked control produce the
+  // same screen, which is what lets somebody paste an address and know what the other person saw.
+  var pgBtn = document.getElementById('pgbtn');
+  var pgMenu = document.getElementById('pgmenu');
+  var pgItems = [];
+
+  function pgMenuOpen() { return !!pgMenu && !pgMenu.hidden; }
+
+  function openPgMenu() {
+    if (!pgMenu || pgMenuOpen()) return;
+    pgMenu.hidden = false;
+    if (pgBtn) pgBtn.setAttribute('aria-expanded', 'true');
+  }
+
+  function closePgMenu(refocus) {
+    if (!pgMenuOpen()) return;
+    pgMenu.hidden = true;
+    if (pgBtn) pgBtn.setAttribute('aria-expanded', 'false');
+    if (refocus && pgBtn && pgBtn.focus) pgBtn.focus();
+  }
+
+  function buildPgMenu() {
+    if (!pgMenu) return;
+    pgMenu.textContent = '';
+    pgItems = [];
+    VIEWS.forEach(function (v) {
+      var a = document.createElement('a');
+      a.className = 'pgitem';
+      a.href = v.route || (PGPREFIX + v.key);
+      a.textContent = v.label || v.name || v.code;
+      // The list closes on the way out. The navigation itself is the anchor's, so nothing here
+      // decides which view is drawn: the hash changes, and the one listener below answers it.
+      a.addEventListener('click', function () { closePgMenu(false); });
+      pgMenu.appendChild(a);
+      pgItems.push({ v: v, a: a });
+    });
+  }
+
+  // Every place on the page that names the programme, written from the view rather than typed
+  // into index.html, because a number or a name typed into that file is right on one of the seven.
+  function describeProgramme() {
+    var v = pgView;
+    var label = v.label || v.name || v.code;
+    if (pgBtn) {
+      pgBtn.textContent = label;
+      pgBtn.title = 'programme drawn: ' + label + '. Press for the other ' + (VIEWS.length - 1);
+    }
+    pgItems.forEach(function (it) {
+      if (it.v === v) it.a.setAttribute('aria-current', 'true');
+      else it.a.removeAttribute('aria-current');
+    });
+
+    // The cohort, off its own node rather than out of a second list of names. The code is
+    // dropped from the front of it because the sentence has just said the code.
+    var coh = null;
+    G.nodes.forEach(function (n) { if (n.type === 'Cohort' && !coh) coh = n; });
+    var cohLabel = coh ? coh.label : '';
+    if (v.code && cohLabel.indexOf(v.code + ' ') === 0) cohLabel = cohLabel.slice(v.code.length + 1);
+    var cohEl = document.getElementById('subcohort');
+    if (cohEl) cohEl.textContent = cohLabel;
+
+    // The footer's two counts. The cohorts are 34, 27, 21, 18, 24, 16 and 30, so a footer holding
+    // one of them in words is a footer that is wrong six times out of seven.
+    var r = G.roster || {};
+    var fd = document.getElementById('footdrawn');
+    var fn = document.getElementById('footn');
+    if (fd && typeof r.drawn === 'number') fd.textContent = r.drawn;
+    if (fn && typeof r.n === 'number') fn.textContent = r.n;
+
+    // The drawing has no text in it saying what it is of, so this is the only name a screen
+    // reader gets for the whole svg, and the tab title is what a second window is told apart by.
+    svg.setAttribute('aria-label',
+      'Instance diagram of programme ' + label + (cohLabel ? ', cohort ' + cohLabel : ''));
+    document.title = (v.code ? v.code + ' · ' : '') + PAGE_TITLE;
+
+    // The sentence changed length, and below the breakpoint that can change how many lines the
+    // header takes. --hh is what keeps the detail panel off the header's own buttons. Skipped on
+    // the first call, which runs before hdr is measured and is followed by the measurement.
+    if (hdr) measureHeader();
+  }
+
+  function setProgramme(v) {
+    if (!v || v === pgView) return;
+    // The selection belongs to the drawing that is leaving. Cleared before the redraw, because
+    // clear() repaints the selected tile and after draw() that tile is gone: on six of the seven
+    // routes the id would not even exist.
+    clear();
+    pgView = v;
+    draw(v.drawing);
+    describeProgramme();
+    resetRoster();
+    // Refit, but through the same door a first paint uses rather than by calling fit() here. On a
+    // route change arriving from #/board the canvas is still display:none at this instant, since
+    // board.js answers the same hashchange and loads after this file, so a fit() taken now would
+    // frame a box of nothing. Dropping the flag makes the next real measurement the fit, which is
+    // the path the page already has for a canvas that has just been given a size.
+    fitted = false;
+    measure();
+    if (vw > 2 && vh > 2) { fitted = true; fit(); }
+  }
+
+  var PAGE_TITLE = document.title;
+
+  if (pgBtn && pgMenu) {
+    buildPgMenu();
+
+    pgBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (pgMenuOpen()) closePgMenu(false);
+      else openPgMenu();
+    });
+    // Down into the list from the button, which is the disclosure keyboard and costs one line.
+    pgBtn.addEventListener('keydown', function (e) {
+      if (e.key !== 'ArrowDown' && e.key !== 'Down') return;
+      e.preventDefault();
+      openPgMenu();
+      if (pgItems.length) pgItems[0].a.focus();
+    });
+    pgMenu.addEventListener('keydown', function (e) {
+      var i = pgItems.map(function (it) { return it.a; }).indexOf(document.activeElement);
+      if (e.key === 'ArrowDown' || e.key === 'Down') {
+        e.preventDefault();
+        if (pgItems.length) pgItems[Math.min(pgItems.length - 1, i + 1)].a.focus();
+      } else if (e.key === 'ArrowUp' || e.key === 'Up') {
+        e.preventDefault();
+        if (i <= 0) { if (pgBtn.focus) pgBtn.focus(); }
+        else pgItems[i - 1].a.focus();
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        if (pgItems.length) pgItems[0].a.focus();
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        if (pgItems.length) pgItems[pgItems.length - 1].a.focus();
+      }
+    });
+    // Anywhere else on the page closes it, and so does tabbing out of it. Both are read off the
+    // one container, so neither has to know what the list is made of.
+    document.addEventListener('click', function (e) {
+      var t = e.target;
+      if (t && t.closest && t.closest('#pgpick')) return;
+      closePgMenu(false);
+    });
+    document.addEventListener('focusin', function (e) {
+      var t = e.target;
+      if (t && t.closest && t.closest('#pgpick')) return;
+      closePgMenu(false);
+    });
+    // Escape, in the capture phase, ahead of the bubble listener that clears the selection: a
+    // reader who opens the list and changes their mind must not also lose the node they had open
+    // behind it. Capture mode is left alone for the reason the student list leaves it alone,
+    // that Escape is how a reader gets out of capture mode.
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape' || !pgMenuOpen()) return;
+      if (document.body.classList.contains('fb-mode')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      closePgMenu(true);
+    }, true);
+  }
+
+  // One listener, and it answers only the addresses that are about a programme. #/students and
+  // #/board reach it too and it says nothing to them, which is what leaves the drawing where it
+  // was while a reader looks at the list or the board.
+  window.addEventListener('hashchange', function () {
+    var v = viewFromHash(location.hash);
+    if (v) setProgramme(v);
+  });
+  describeProgramme();
+
   // The panel is a fixed overlay and the header runs the full width, so the panel is told
   // where the header ends. Without it the open panel covers the header's own buttons.
   var hdr = document.querySelector('header');
@@ -1283,6 +1553,15 @@
     },
     view: function () { return { x: view.x, y: view.y, k: view.k, w: vw, h: vh }; },
     fit: fit,
+    // Which of the seven is drawn, for the same reason view() and theme() are here: a driver
+    // checking that an address reached the right drawing should read the page's own answer rather
+    // than infer it from a screenshot of seven near identical pictures. The extent comes off the
+    // drawing that is loaded, so it is the number fit() is framing and not a copy of it.
+    programme: function () {
+      return { key: pgView.key, code: pgView.code, label: pgView.label,
+               digest: G.drawingDigest || 'unknown', w: G.w, h: G.h,
+               menu: pgMenuOpen() };
+    },
     // The theme, for the same reason view() is here: which of the three the reader is on, what
     // the machine is saying underneath it, and what the page actually resolved to are three
     // different claims, and a driver checking an override should be able to read all three off

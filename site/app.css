@@ -309,6 +309,82 @@ h1 {
   color: var(--fg-muted);
 }
 
+/* ---- the programme picker ------------------------------------------------
+   Seven drawings, one control, and no row spent on it. The subtitle already had to name the
+   programme on screen, so the name is the button: it sits inside the sentence, it is a .linkbtn
+   like the rest of the page's controls, and the header is exactly as tall with it as without.
+   Nothing here is a new control style. The list under it is seven ordinary links to the seven
+   addresses, so the keyboard reaches them by tabbing, the middle button opens one in a tab and
+   the address bar shows which one is drawn. Issue 66, on top of issue 32's reclaimed row and
+   issue 57's protection of it.
+
+   The button carries aria-expanded and .linkbtn already answers that with a weight, which is
+   the same "the control says what state it is in" the theme toggle and the ghosts chip use. */
+.pgpick {
+  position: relative;
+  display: inline-block;
+  /* .linkbtn pads 2px either side, which is right for a control in a row with gaps and wrong
+     for one in the middle of a sentence: the comma after it read as though it had a space in
+     front of it. The padding stays, because it is what the focus ring is drawn around, and the
+     sentence takes it back on the side the punctuation is on. */
+  margin-right: -2px;
+}
+
+/* Absolute, so opening it moves nothing: the sentence, the header's height and the canvas under
+   it are the same before and after. z-index 15 puts it over the canvas at 5 and the detail panel
+   at 10, and under the student list at 20 and the capture popover at 30, which is the order those
+   four already have among themselves. */
+.pgmenu {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  z-index: 15;
+  min-width: 100%;
+  max-width: calc(100vw - 40px);
+  padding: 4px;
+  background: var(--bg-panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--elev-1);
+}
+
+.pgmenu[hidden] { display: none; }
+
+/* The gutter is not padding. The programme on screen is marked in it with a character, so which
+   one it is survives a forced-colours mode and a reader who cannot see the weight or the blue. */
+.pgitem {
+  position: relative;
+  display: block;
+  padding: 4px 10px 4px 20px;
+  border-radius: var(--radius);
+  font-size: var(--fs-sm);
+  color: var(--fg-body);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.pgitem:hover {
+  background: var(--tint-hover);
+  text-decoration: none;
+}
+
+.pgitem:focus-visible {
+  outline: 2px solid var(--i-primary);
+  outline-offset: -2px;
+}
+
+.pgitem[aria-current="true"] {
+  font-weight: 600;
+  color: var(--i-primary);
+}
+
+.pgitem[aria-current="true"]::before {
+  content: "\00b7";
+  position: absolute;
+  left: 9px;
+  font-weight: 700;
+}
+
 .warn {
   display: inline-block;
   margin-left: 6px;

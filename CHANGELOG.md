@@ -11,6 +11,24 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- A route per programme, `#/p/<CODE>`, so the seven drawings are reachable, #66. #43 built them
+  and `site/app.js` named `window.GV` zero times, so six of the seven had been rendered by nothing
+  but a verification harness. The address is resolved before the first `draw()`, which is what
+  makes a followed link draw its own programme once instead of drawing Investment Banking and
+  replacing it; the code is matched with case and punctuation removed, so `ZCFA`, `Z-CFA` and
+  `z-cfa` are one view; `#/` is unchanged and still Investment Banking; and an address that begins
+  `#/p/` and names nothing falls back to the default rather than drawing nothing. `#/students` and
+  `#/board` say nothing about the programme and therefore leave it alone, so the student list over
+  Z-CFA is the Z-CFA cohort and coming back from the board returns to the drawing the reader left.
+- The control is the programme's own name in the subtitle, and it costs the header no row, #66.
+  That sentence was already the statement of what is on screen, which seven near identical
+  drawings need more and not less, so the words became the button: one `.linkbtn` whose text is
+  its state, exactly the idiom of `theme: system` and `feedback: on`, opening the other six as
+  ordinary links to their own addresses. No item was added to the nav, which is the row #32
+  reclaimed and #57 protected and the thing that wraps at 390px; measured, the header is the same
+  height with the list open as closed. The cohort in the subtitle, the two counts in the footer,
+  the student list's heading, the tab title and the svg's accessible name all follow the view,
+  because a number typed into `index.html` is a number that is right on one of the seven.
 - Six more programmes, so there are seven, #43. Z-SC Strategy Consulting, Z-BL Big Law, Z-PE
   Private Equity, Z-HR Human Resources, Z-DS Applied Data Science and Z-CFA CFA preparation, each
   laid out as its own drawing from the real syllabi in the vault. All seven are built by the same
@@ -44,6 +62,15 @@ of what changed and when, and it is meant to be scannable.
 
 ### Changed
 
+- A route change refits the view, #66. The seven drawings are 576 to 610 units tall with
+  different node sets and one of them missing a whole lane, so a reader zoomed into the agreement
+  lane of Z-IB and moved to Z-CFA would have landed on a rectangle chosen by arithmetic rather
+  than by meaning. Two further reasons: the zoom readout is a percentage of the fit, so carrying
+  the scale across a change of extent silently changes what the number means, and a refit makes a
+  followed link and a clicked control produce the same screen, which is what lets an address be
+  pasted and mean something. It refits through the flag a first paint uses rather than by calling
+  `fit()` on the spot, because a change arriving from `#/board` reaches this file while the canvas
+  is still `display: none` and a fit taken then would frame a box of nothing.
 - The browser pin stays the runner image, decided rather than left inherited, #67. The runner drove
   Chrome 151 on the dispatch that failed to start one and Chrome 150 on the rerun of the identical
   commit, which is #58's own caveat coming true: `runs-on: ubuntu-24.04` pins the image and not the

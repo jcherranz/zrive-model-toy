@@ -30,9 +30,24 @@
     <div class="htitle">
       <h1>Zrive operating model, one cohort as instances</h1>
       <!-- One sentence per view. The header sits above both, so it says what is on screen and
-           not what is on the other page. -->
+           not what is on the other page.
+
+           THE PROGRAMME NAME IN THIS SENTENCE IS THE CONTROL, and that is the whole reason the
+           seven routes cost the header nothing. The row was already saying which programme is
+           drawn, because a drawing of instances has to name the instance it is of; seven near
+           identical drawings need that sentence more, not less. So the words that were already
+           the statement become the button as well, instead of a sixth item in the nav pushing
+           `board` towards the edge at 390px, and instead of the row #32 reclaimed and #57
+           protected. It is a .linkbtn like every other control on this page, its text is its
+           state, and pressing it opens the other six as ordinary links to their own addresses.
+           The cohort and the two counts in the footer follow the same view, written by app.js
+           from the drawing rather than typed here, because a number typed into this file is a
+           number that is right on one of the seven. Issue 66. -->
       <p class="sub">
-        <span class="sub-diagram">Programme Z-IB Investment Banking, cohort 1Q26, drawn as
+        <span class="sub-diagram">Programme <span class="pgpick" id="pgpick"><button id="pgbtn"
+        class="linkbtn" type="button" aria-expanded="false" aria-controls="pgmenu">Z-IB Investment
+        Banking</button><span class="pgmenu" id="pgmenu" hidden></span></span>, cohort <span
+        id="subcohort">1Q26</span>, drawn as
         named instances joined by the verbs that relate them.<span
         class="warn">every value is dummy or estimated, nothing is measured</span></span>
         <span class="sub-board">The work on this drawing, one card per issue, in the column its
@@ -89,9 +104,10 @@
     programme code are real and published. All identifiers, dates, counts and amounts are
     invented, including every person in the cohort. Click a node for its properties; clicking an
     instructor also brings out the employer that instructor works for, and clicking the students
-    card draws four of the thirty four as individuals. <b>students</b> in the header lists all
-    thirty four. Drag the canvas to move it, scroll or pinch to zoom, and <b>fit</b> brings the
-    whole drawing back.
+    card draws <span id="footdrawn">4</span> of the <span id="footn">34</span> as individuals.
+    <b>students</b> in the header lists every one of them. Drag the canvas to move it, scroll or
+    pinch to zoom, and <b>fit</b> brings the whole drawing back. The programme name above the
+    drawing opens the other six.
   </footer>
 </main>
 
