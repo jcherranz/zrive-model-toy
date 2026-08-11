@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T12:48:35Z",
+  "generated": "2026-08-11T13:19:47Z",
   "columns": [
     {
       "key": "raw",
@@ -75,17 +75,7 @@
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": [
-        {
-          "id": 58,
-          "title": "A regression net: headless smoke tests in CI",
-          "labels": [
-            "enhancement",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/58"
-        }
-      ]
+      "cards": []
     },
     {
       "key": "done",
@@ -99,6 +89,15 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/59"
+        },
+        {
+          "id": 58,
+          "title": "A regression net: headless smoke tests in CI",
+          "labels": [
+            "enhancement",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/58"
         },
         {
           "id": 55,
@@ -159,18 +158,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/48"
-        },
-        {
-          "id": 47,
-          "title": "The build id in a feedback report does not identify the deployed code",
-          "labels": [
-            "bug",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/47"
         }
       ],
-      "hidden": 33,
+      "hidden": 34,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
