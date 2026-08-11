@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T16:09:50Z",
+  "generated": "2026-08-11T16:15:22Z",
   "columns": [
     {
       "key": "raw",
@@ -68,16 +68,6 @@
       "title": "In progress",
       "cards": [
         {
-          "id": 65,
-          "title": "Three type colours fail contrast on the light page and always have",
-          "labels": [
-            "bug",
-            "model",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/65"
-        },
-        {
           "id": 66,
           "title": "Seven programme drawings ship in the data and no route reaches six of them",
           "labels": [
@@ -110,6 +100,16 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 65,
+          "title": "Three type colours fail contrast on the light page and always have",
+          "labels": [
+            "bug",
+            "model",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/65"
+        },
         {
           "id": 63,
           "title": "The visit edge points at the Cohort and the data says Programme",
@@ -175,19 +175,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/56"
-        },
-        {
-          "id": 55,
-          "title": "A dark theme for low light",
-          "labels": [
-            "feedback",
-            "layout",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/55"
         }
       ],
-      "hidden": 40,
+      "hidden": 41,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
