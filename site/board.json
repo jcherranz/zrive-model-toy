@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-11T23:16:55Z",
+  "generated": "2026-08-11T23:17:39Z",
   "columns": [
     {
       "key": "raw",
@@ -90,17 +90,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/75"
         },
         {
-          "id": 85,
-          "title": "Session-level detail on a template: real module structure exists and is not shipped",
-          "labels": [
-            "bug",
-            "feedback",
-            "model",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/85"
-        },
-        {
           "id": 86,
           "title": "The sheet overlay covers the whole header, so every page-level control is unreachable",
           "labels": [
@@ -121,6 +110,17 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 85,
+          "title": "Session-level detail on a template: real module structure exists and is not shipped",
+          "labels": [
+            "bug",
+            "feedback",
+            "model",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/85"
+        },
         {
           "id": 84,
           "title": "Scope the outline to one programme, and make the lane caption the way in",
@@ -194,19 +194,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/78"
-        },
-        {
-          "id": 77,
-          "title": "Redesign the header: the controls fail WCAG 2.2 target size and the row is ragged",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/77"
         }
       ],
-      "hidden": 60,
+      "hidden": 61,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
