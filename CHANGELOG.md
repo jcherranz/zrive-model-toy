@@ -11,6 +11,53 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- A stale origin announces itself, #62, which is the half of that card that mattered. On
+  2026-08-11 `origin/main` carried a new palette and the deployed site did not, for 24 minutes, and
+  nothing in the pipeline said so: `repo gate`, `smoke` and `build` were all green on that commit,
+  and a green board over a stale origin reads exactly like a shipped change, so an agent verifying
+  against the origin measured the previous build and looked stalled while behaving correctly.
+  `.github/workflows/origin-freshness.yml` fetches `version.js` from the published site, the deploy
+  stamp #47 built for this class of question, and compares it with main's head. Every path names
+  both shas, including the passing ones. A different pair is not automatically a failure, because a
+  deploy legitimately in flight makes them differ for a minute or two: the verdict is fresh when
+  they agree, in flight while an unfinished Pages run is younger than the grace, and stale
+  otherwise, where stale with nothing in flight says so separately because nothing is coming to fix
+  it. The grace is 10 minutes, `actions/deploy-pages`' own default timeout, so the check loses
+  patience no sooner than the deploy loses its; against the incident it would have fired at minute
+  10 of 24. It runs on a 15 minute schedule and on dispatch, and an unreadable API exits 2 with a
+  message saying the check did not run, which is not the same finding as a stale origin and must
+  not read as one.
+- Its own workflow rather than an extension of `scripts/check_forbidden.sh`, #62, on a structural
+  argument and not a stylistic one. That gate runs inside `pages.yml` after the deploy, and the
+  failure here is a deploy that never ran: a check that only runs when a deploy runs cannot report
+  a deploy that did not, and in the incident it did not run once in 24 minutes. It also asks a
+  fourth question, in the sense the repository already uses to keep workflows apart, so repo-gate
+  red means a name or a figure is committed, smoke red means the page has regressed, build red
+  means the drawing is not what its own builder produces, and freshness red means the origin is
+  behind main. And it stays out of the deploy path, which `pages.yml`, `smoke.yml` and `build.yml`
+  have each already decided for themselves.
+- Superseded Pages runs are cancelled before they can jam the queue, #62, the residual #39 named
+  and declined to fix until it recurred. A `supersede` job in `pages.yml`, in no concurrency group,
+  cancels older runs of the same workflow that have not begun publishing. It cancels almost
+  nothing: the rule is the strictest the evidence supports, that a run is cancellable only if no
+  job of it has started a single step, read twice over from the same payload because a run held at
+  the run level has no jobs at all while a job admitted and starved of a runner has a job and zero
+  steps. A run that has started is left alone, which costs at most one redundant publish and can
+  never publish the wrong thing, because the deploy job checks out `ref: main` rather than its
+  triggering sha and so publishes whatever main holds when it runs. It carries a byte-identical
+  copy of the deploy job's loop guard, without which a board-bot push whose skip marker had been
+  dropped would cancel a legitimate deploy and then skip its own, publishing nothing.
+- What makes a cancellation safe, established from the deployment record rather than argued, #62.
+  The deploy job targets the `github-pages` environment, so GitHub opens a deployment the moment
+  the job is admitted and before any step runs. In both jams the starved head-of-queue job sat with
+  zero steps while its deployment carried an empty status history, where the deployment that
+  actually published went `waiting`, `queued`, `in_progress`, `success`. A deployment with no
+  status has never been handed to the Pages build and publish pipeline; cancelling it writes one
+  `error` status, releases the environment and changes nothing the origin serves. Observed twice,
+  each time followed by the head publishing within a minute and the smoke suite green against the
+  freshly deployed origin. Recorded against a hope that turned out to be false: `actions/deploy-pages`
+  v5.0.0 declares no `post` step, so it does not cancel its own deployment when a job is cancelled,
+  and nothing may be assumed about cancelling a run that is mid-publish. Hence the strict rule.
 - CI runs the build, #61. Nothing in this repository ever did. `site/graph.js` was committed and
   deployed exactly as it sat in the tree, so two guarantees the repository believed it had were
   held by habit alone: reproducibility, asserted on every card for two days and checked only by
@@ -145,6 +192,23 @@ of what changed and when, and it is meant to be scannable.
   itself. The repository held 47 issues before this work and 47 after.
 
 ### Changed
+
+- `pages.yml`'s concurrency group moved from the workflow to the deploy job, #62. Nothing about the
+  group changed: same name, same `cancel-in-progress: false`, same `queue: max`, same argument
+  reproduced verbatim beside it. Only its scope moved, and only because a workflow-level group
+  holds the whole run including the job whose purpose is to clear the queue that group is stuck in.
+  Measured rather than assumed: in the jam the newest run sat at status `pending` with zero jobs for
+  24 minutes, so no step anywhere in that file could have run and a supersede step inside a queued
+  run is unreachable by construction. The move was proved before it was made, because board.yml's
+  own comment records what a concurrency key that does something other than what it says has
+  already cost here. A throwaway probe workflow was pushed, dispatched three times in thirteen
+  seconds and read back: its ungated job started immediately on all three while its gated job was
+  held, and its gated jobs ran strictly first in, first out with none evicted, where the default
+  `queue: single` would have evicted the middle one. `queue: max` is honoured on a job-level block.
+  The probe was deleted in the commit that used its answer. Permissions moved with it: the workflow
+  floor is now `contents: read`, `pages: write` and `id-token: write` sit on the job that deploys,
+  and the job that cancels runs holds `actions: write` and nothing else, so neither can do the
+  other's work by accident.
 
 - `build/safety_grep.py` aborts instead of reporting clean when the faculty register yields no
   name terms, #58. It reads the register straight out of the vault, so on any machine without one

@@ -1,0 +1,226 @@
+name: origin freshness
+
+# Fail when the deployed origin is not serving what main says it should. Issue 62.
+#
+# ---------------------------------------------------------------------------------------------
+# WHY THIS EXISTS AT ALL, AND WHY IT IS THE HALF THAT MATTERED.
+#
+# On 2026-08-11 three Pages runs stalled and origin/main carried a palette the deployed site did
+# not, for 24 minutes. The delay was not the damage. The damage was that nothing said so: `repo
+# gate`, `smoke` and `build` were all green on that commit, and a green board with a stale origin
+# reads exactly like a shipped change. Anything verifying against the origin was measuring the
+# previous build and looked stalled while behaving correctly. A person eventually noticed.
+#
+# The jam guard in pages.yml prevents the multi-push pile-up that caused this one. It does NOT
+# cover a single run that starves on its own, because there is no newer run to supersede it. That
+# gap is why this check is not optional: pages.yml stops the queue forming, this announces a stale
+# origin whatever caused it, including causes nobody has seen yet.
+#
+# ---------------------------------------------------------------------------------------------
+# WHY A SEPARATE WORKFLOW AND NOT AN EXTENSION OF scripts/check_forbidden.sh.
+#
+# The forbidden-content gate already fetches deployed bytes, so the mechanism was there and the
+# temptation was real. It loses on three counts, and the first is decisive.
+#
+#   1. STRUCTURAL. That gate runs inside pages.yml, after the deploy. The failure this check exists
+#      to catch is a deploy that never ran. A check that only runs when a deploy runs cannot report
+#      a deploy that did not, and in the incident it did not run once in 24 minutes. This has to be
+#      triggered by the clock, not by a deploy, or it cannot see the thing it is for.
+#   2. IT IS A DIFFERENT QUESTION, in the sense this repository already uses to keep its workflows
+#      apart. repo-gate asks "is anything forbidden here", smoke asks "does it work", build asks
+#      "is what shipped what the source says", and this asks "is what the origin serves what main
+#      says". smoke.yml and build.yml each carry the same argument for being their own file, and
+#      TPS.md's Andon section is why: a signal people learn to squint at is worse than a slower
+#      one. A red here means the origin is behind, and it cannot be mistaken for a name having
+#      been committed or the page having regressed.
+#   3. AND IT STAYS OUT OF THE DEPLOY PATH, which pages.yml, smoke.yml and build.yml have all
+#      already decided for themselves for the same reason: a check near a deploy that can
+#      false-fire is a check that can leave the site half published.
+#
+# Stated plainly rather than left to be inferred: the agent that wrote this could write to
+# .github/workflows/ and CHANGELOG.md and nothing else, so extending a file under scripts/ was not
+# available to it. That constraint agrees with the argument above; it did not produce it.
+#
+# ---------------------------------------------------------------------------------------------
+# HOW IT DECIDES, and why the verdict is not simply "different means stale".
+#
+# A deploy legitimately in flight makes the origin differ from main for a minute or two, and a
+# monitor that goes red on that is a monitor people turn off. So:
+#
+#   origin == main head                      -> pass.
+#   origin != main head, no incomplete run   -> stale, and nothing is coming to fix it. Fail. One
+#                                               settle pass first, so a check that lands in the
+#                                               seconds between a push and the run being created
+#                                               cannot false-fire.
+#   origin != main head, something in flight -> pass while it is younger than the grace, fail once
+#                                               it is older. A deploy that has been in flight for
+#                                               longer than the grace IS the andon; that is what
+#                                               the incident looked like from minute three onward.
+#
+# The grace defaults to 10 minutes, which is also actions/deploy-pages' own default timeout, so a
+# deploy that is still legitimately trying has not yet exhausted its own patience when this loses
+# its. It would have fired at minute 10 of a 24 minute outage.
+#
+# THE SHAS ARE ALWAYS NAMED, both of them, on every path including the passing ones. The report
+# that costs nothing to read is the one that gets read.
+
+on:
+  schedule:
+    # Every 15 minutes. GitHub does not promise punctuality on cron and this does not need it:
+    # the claim is "a stale origin is noticed within about a quarter of an hour", not "within 900
+    # seconds". The incident ran 24 minutes.
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: "Sha the origin should serve. Empty means main's head. A test affordance: set it to prove the check fires."
+        required: false
+        default: ""
+      grace_minutes:
+        description: "How long a deploy may be in flight before a stale origin is a failure."
+        required: false
+        default: "10"
+
+# Read three things and write nothing. actions: read is for the in-flight run listing, contents:
+# read for main's head sha, pages: read for the published URL.
+permissions:
+  contents: read
+  actions: read
+  pages: read
+
+# Its own group, not `pages`: this job deploys nothing and must never queue behind a deploy, which
+# would be the check reporting on a state it had itself waited out. cancel-in-progress is false and
+# stated, because a cancelled check reads as a check that ran, and queue: max for the reason
+# repo-gate.yml gives, that false only protects a RUNNING job while the default single pending slot
+# lets the next tick evict the one that has not started.
+concurrency:
+  group: origin-freshness
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  freshness:
+    runs-on: ubuntu-latest
+    steps:
+      - name: The origin serves what main says
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          OWNER: ${{ github.repository_owner }}
+          EXPECTED_IN: ${{ inputs.expected_sha }}
+          GRACE_IN: ${{ inputs.grace_minutes }}
+        run: |
+          set -euo pipefail
+
+          grace_minutes="${GRACE_IN:-10}"
+          [ -n "$grace_minutes" ] || grace_minutes=10
+          grace=$((grace_minutes * 60))
+
+          # WHAT THE ORIGIN SHOULD SERVE.
+          if [ -n "${EXPECTED_IN:-}" ]; then
+            expected="$EXPECTED_IN"
+            echo "::warning::running against a supplied sha, not main's head. This is the test"
+            echo "::warning::affordance; a scheduled run never takes this path."
+          else
+            expected="$(gh api "repos/${GH_REPO}/commits/main" --jq '.sha' || echo APIFAIL)"
+            if [ "$expected" = APIFAIL ]; then
+              echo "::error::could not read main's head sha. The freshness check did not run, which"
+              echo "::error::is not the same finding as a stale origin and must not read as one."
+              exit 2
+            fi
+          fi
+
+          # WHERE THE ORIGIN IS. Ask Pages rather than assume, and fall back to the derived URL
+          # rather than fail, because a check that cannot find the site is not the same finding as
+          # a site that is behind and must not be reported as one.
+          page_url="$(gh api "repos/${GH_REPO}/pages" --jq '.html_url' 2>/dev/null || true)"
+          if [ -z "$page_url" ] || [ "$page_url" = "null" ]; then
+            page_url="https://${OWNER}.github.io/${GH_REPO#*/}/"
+            echo "the Pages API did not answer; using the derived URL ${page_url}"
+          fi
+          url="${page_url%/}/version.js"
+
+          # site/version.js is written at deploy time by pages.yml and names the commit that was
+          # published. Issue 47 built it for exactly this class of question, and it makes the
+          # comparison one fetch of a few hundred bytes rather than a diff of the whole site.
+          # The `|| true` is not decoration. Under `set -o pipefail` a grep that matches nothing
+          # fails the whole pipeline, the assignment inherits that status, and `set -e` would take
+          # the step down before it could report an origin serving no commit at all, which is a
+          # real state this check has to be able to name.
+          read_origin() {
+            local body sha
+            body="$(curl -sS -L --max-time 20 "$url" || true)"
+            sha="$(printf '%s' "$body" \
+                    | grep -oE 'commit: "[0-9a-f]{40}"' \
+                    | grep -oE '[0-9a-f]{40}' \
+                    | head -1 || true)"
+            printf '%s' "$sha"
+          }
+
+          # The oldest run of pages.yml that has not finished, as an age in seconds. Empty when
+          # nothing is in flight.
+          oldest_inflight_age() {
+            local created
+            created="$(gh api "repos/${GH_REPO}/actions/workflows/pages.yml/runs?per_page=100" \
+                        --jq '[ .workflow_runs[] | select(.status != "completed") | .created_at ]
+                              | sort | .[0] // empty' || echo APIFAIL)"
+            if [ "$created" = APIFAIL ]; then
+              echo "::error::could not list Pages runs. The freshness check did not run." >&2
+              exit 2
+            fi
+            [ -n "$created" ] || return 0
+            echo $(( $(date -u +%s) - $(date -u -d "$created" +%s) ))
+          }
+
+          verdict=""
+          for pass in 1 2; do
+            found="$(read_origin)"
+            age="$(oldest_inflight_age)"
+
+            echo "pass ${pass}"
+            echo "  origin:   ${url}"
+            echo "  expected: ${expected:-none}"
+            echo "  found:    ${found:-none}"
+            echo "  in flight: ${age:-nothing} ${age:+seconds old}"
+
+            if [ "${found:-none}" = "$expected" ]; then
+              verdict=fresh
+              break
+            fi
+
+            if [ -n "$age" ] && [ "$age" -le "$grace" ]; then
+              verdict=inflight
+              break
+            fi
+
+            # Stale on this reading. Settle once and look again, so a check that lands between a
+            # push and the creation of its deploy run cannot report a jam that does not exist.
+            if [ "$pass" -eq 1 ]; then
+              echo "  stale on the first reading; settling for 30 seconds before deciding."
+              sleep 30
+              continue
+            fi
+            verdict=stale
+          done
+
+          echo
+          case "$verdict" in
+            fresh)
+              echo "the origin serves ${expected}, which is what main says. Fresh."
+              ;;
+            inflight)
+              echo "the origin serves ${found:-nothing} and main says ${expected}, but a deploy has"
+              echo "been in flight for ${age}s, inside the ${grace}s grace. Not called stale yet."
+              ;;
+            *)
+              echo "::error::THE DEPLOYED ORIGIN IS STALE. Expected ${expected}, found ${found:-no commit at all}."
+              echo "::error::origin ${url}"
+              if [ -n "${age:-}" ]; then
+                echo "::error::a Pages run has been in flight for ${age}s, past the ${grace}s grace, and is holding the queue."
+              else
+                echo "::error::no Pages run is in flight, so nothing is coming to fix this on its own."
+              fi
+              echo "::error::anything verified against this origin is measuring an older build."
+              exit 1
+              ;;
+          esac

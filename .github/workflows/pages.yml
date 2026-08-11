@@ -17,40 +17,168 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# The floor. Each job narrows it, so the job that cancels runs cannot publish and the job that
+# publishes cannot cancel runs. Before issue 62 this block carried pages: write and id-token: write
+# for the whole workflow; those now sit on the one job that deploys.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
-# One group, and now one workflow in it: board.yml left when it stopped deploying. It is kept as a
-# named group rather than folded away, because it is the queue every Pages deploy in this
-# repository passes through and the next thing that wants to deploy belongs in it too.
-# cancel-in-progress is false explicitly rather than by default, because a true value here silently
-# cancels a deploy with zero steps run and the run still reads as finished.
+# THE CONCURRENCY GROUP MOVED FROM THE WORKFLOW TO THE JOB. Issue 62, and nothing about the group
+# itself changed: same name, same cancel-in-progress: false, same queue: max, same argument, which
+# is reproduced verbatim on the deploy job below. What changed is its SCOPE, and only because a
+# workflow-level group holds the whole run, including a job whose entire purpose is to clear the
+# queue that group is stuck in. Measured, not assumed: in the jam of 2026-08-11 the newest run sat
+# at status `pending` with `total_count: 0` jobs for 24 minutes, so no step anywhere in this file
+# could have run. A supersede step inside a queued run is unreachable by construction.
 #
-# queue: max covers the other half of that, which cancel-in-progress never did: false protects a
-# RUNNING job, while the group is capped at one PENDING run by default (queue: single) and a new
-# same-group trigger evicts the waiting one before it starts, with no error anywhere. See the
-# concurrency comment in board.yml for the runs that went that way here. queue: max (GA
-# 2026-05-07) raises the pending limit to 100 and processes them first in, first out.
-#
-# Caveat: no released actionlint recognises the queue key inside concurrency and it reports it
-# as an unexpected key. This repository does not lint its workflows; a lint workflow added later
-# needs the ignore rule rather than a smaller concurrency block.
-concurrency:
-  group: pages
-  cancel-in-progress: false
-  queue: max
+# The move was proved before it was made, because board.yml's concurrency comment records what a
+# concurrency key doing something other than what it says costs here: three runs evicted inside
+# five minutes with zero steps run and no error anywhere. A throwaway probe workflow was pushed,
+# dispatched three times in thirteen seconds and read back. Its ungated job started immediately on
+# all three (14:55:40, 14:55:46, 14:55:53) while its gated job was held, which is the property the
+# supersede job below depends on; its gated jobs ran strictly first in, first out and NONE was
+# evicted (14:55:40-14:56:29, 14:56:40-14:57:28, 14:57:31-14:58:19). Under the default queue:
+# single the middle one would have been evicted by the third dispatch while it was still pending.
+# So queue: max is honoured on a job-level block, and the probe was deleted in the commit that
+# used the answer.
 
 jobs:
+  # SUPERSEDE, AND WHY IT CANCELS ALMOST NOTHING. Issue 62.
+  #
+  # Only the newest commit is worth publishing, so an older Pages run that has not begun publishing
+  # has no value and can only block. This job cancels those, and it can do it because it is in no
+  # concurrency group and is therefore never held by the one the deploy job waits in.
+  #
+  # WHAT MAKES A CANCELLATION SAFE, established by reading the deployment record rather than by
+  # reasoning about it. The deploy job below targets the github-pages environment, so GitHub opens
+  # a deployment the moment the job is admitted, BEFORE any step runs. In the 2026-08-11 jam the
+  # head-of-queue job sat with zero steps for 24 minutes and its deployment (5852717266, and
+  # 5852232804 in the first occurrence) carried an EMPTY status history the whole time, while the
+  # deployment that actually published went waiting -> queued -> in_progress -> success. A
+  # deployment with no status has never been handed to the Pages build and publish pipeline;
+  # cancelling it writes one `error` status, releases the environment, and changes nothing the
+  # origin serves. That was observed twice, both times followed by the head publishing correctly
+  # and the smoke suite green against the freshly deployed origin.
+  #
+  # So the rule is the strictest one the evidence supports: cancel a run ONLY if its job has not
+  # started a single step. Anything that has started is left alone, which costs at most one
+  # redundant publish and can never publish the wrong thing, because the deploy job checks out
+  # `ref: main` rather than its triggering sha and therefore publishes whatever main holds at the
+  # moment it runs. A run that is doing something is also not what jams the queue; a run that never
+  # starts is.
+  #
+  # A red here means the jam guard broke, not that the deploy did. The deploy reports itself.
+  supersede:
+    runs-on: ubuntu-latest
+    # The same loop guard the deploy job carries, and it has to be repeated rather than inherited:
+    # without it a board-bot push whose skip marker had been dropped would run this job, cancel a
+    # legitimate deploy that had not started yet, and then skip its own deploy, publishing nothing.
+    # THE TWO COPIES MOVE TOGETHER. Changing one and not the other is the defect.
+    if: >-
+      github.event_name != 'push' ||
+      (github.event.head_commit != null &&
+       github.event.head_commit.author.email != '41898282+github-actions[bot]@users.noreply.github.com' &&
+       !contains(github.event.head_commit.message, 'chore(board): sync from issues'))
+    permissions:
+      # actions: write is the whole of it. No pages: write and no id-token: write, so this job
+      # cannot deploy even by accident, and contents is not needed because it checks nothing out.
+      actions: write
+    steps:
+      - name: Cancel older Pages runs that have not begun publishing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          THIS_NUMBER: ${{ github.run_number }}
+        run: |
+          set -euo pipefail
+
+          echo "this run is number ${THIS_NUMBER}; anything older and not yet started is superseded."
+
+          # Every run of this workflow that has not finished. `completed` is the only terminal
+          # status, so this covers requested, queued, pending, waiting and in_progress in one
+          # filter and does not have to enumerate them.
+          gh api "repos/${GH_REPO}/actions/workflows/pages.yml/runs?per_page=100" \
+            --jq '.workflow_runs[] | select(.status != "completed")
+                  | "\(.run_number) \(.id) \(.status) \(.head_sha[0:7])"' > runs.txt || {
+            echo "::error::could not list runs of this workflow; the jam guard did not run"
+            exit 1
+          }
+
+          cancelled=0
+          left=0
+          # Read the list on file descriptor 3, not on stdin. `gh` inside the loop reads stdin and
+          # would eat the remaining lines, so the loop would silently examine only the first
+          # candidate and report a clean sweep.
+          while read -r number id status sha <&3; do
+            [ -n "${number:-}" ] || continue
+            if [ "$number" -ge "$THIS_NUMBER" ]; then
+              continue
+            fi
+
+            gh api "repos/${GH_REPO}/actions/runs/${id}/jobs" > jobs.json
+
+            # Two independent readings of the same claim, because one of them alone would be a
+            # guess. A run held at the run level has no jobs at all; a job admitted but starved of
+            # a runner has a job and zero steps. Neither has published anything.
+            running="$(jq '[ .jobs[] | select(.status != "queued" and .status != "waiting") ] | length' jobs.json)"
+            steps="$(jq '[ .jobs[].steps[]? ] | length' jobs.json)"
+
+            if [ "$running" -eq 0 ] && [ "$steps" -eq 0 ]; then
+              echo "  run ${number} (${id}, ${sha}, ${status}): no job has started a step, cancelling."
+              if gh api -X POST "repos/${GH_REPO}/actions/runs/${id}/cancel" --silent; then
+                cancelled=$((cancelled + 1))
+              else
+                # A run that finished between the listing and here answers 409. That is the race
+                # resolving itself in the safe direction and is not a failure.
+                echo "  run ${number} (${id}) refused the cancel, most likely already finished."
+              fi
+            else
+              echo "  run ${number} (${id}, ${sha}, ${status}): ${running} job(s) running and ${steps} step(s) begun, LEFT ALONE."
+              left=$((left + 1))
+            fi
+          done 3< runs.txt
+
+          echo "superseded ${cancelled} older run(s); left ${left} alone because they had begun."
+
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    # One group, and now one workflow in it: board.yml left when it stopped deploying. It is kept
+    # as a named group rather than folded away, because it is the queue every Pages deploy in this
+    # repository passes through and the next thing that wants to deploy belongs in it too.
+    # cancel-in-progress is false explicitly rather than by default, because a true value here
+    # silently cancels a deploy with zero steps run and the run still reads as finished.
+    #
+    # queue: max covers the other half of that, which cancel-in-progress never did: false protects
+    # a RUNNING job, while the group is capped at one PENDING run by default (queue: single) and a
+    # new same-group trigger evicts the waiting one before it starts, with no error anywhere. See
+    # the concurrency comment in board.yml for the runs that went that way here. queue: max (GA
+    # 2026-05-07) raises the pending limit to 100 and processes them first in, first out.
+    #
+    # Caveat: no released actionlint recognises the queue key inside concurrency and it reports it
+    # as an unexpected key. This repository does not lint its workflows; a lint workflow added
+    # later needs the ignore rule rather than a smaller concurrency block.
+    #
+    # No `needs: supersede`, on purpose. The two jobs run side by side so a deploy is never delayed
+    # by the guard, and the ordering still works: this job enters the group and waits, the
+    # supersede job cancels whatever is starving at the head of it, and this job is admitted. A
+    # supersede job that fails therefore cannot stop a deploy either.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+      queue: max
     # Loop guard, and it still earns its place now that board.yml wakes this workflow by hand.
     # board.yml commits site/board.json and then dispatches this workflow. Its commit carries
     # [skip ci], which normally stops the push from starting this workflow at all; this condition
     # is the second line, in case the marker is ever dropped by a squash, a rebase or an org
     # policy. Without the pair, one board change would deploy twice, once from the dispatch and
     # once from the push.
+    #
+    # The supersede job above carries a byte-identical copy, for a different reason of its own that
+    # its comment states. THE TWO MOVE TOGETHER.
     if: >-
       github.event_name != 'push' ||
       (github.event.head_commit != null &&
