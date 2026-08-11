@@ -1,0 +1,111 @@
+name: build
+
+# Run the real builder and refuse any difference from the committed drawing.
+# scripts/check_build.sh carries the checks and the argument for each; this file is the wiring,
+# and the wiring has four decisions in it worth stating.
+#
+# ---------------------------------------------------------------------------------------------
+# WHY THIS IS ITS OWN WORKFLOW AND NOT A STEP IN repo-gate.yml. Issue 61.
+#
+# It is the argument smoke.yml already makes for itself, and it applies here for the same two
+# reasons. repo-gate.yml answers one question, whether anything forbidden has been committed, and
+# it answers it in seconds with git and bash. This job runs Python, imports the model, reads the
+# stylesheet, and writes a file. A Python that moves under the runner image, an import that breaks,
+# a stylesheet read that fails, all of them turn the SAFETY gate red for a reason that has nothing
+# to do with safety, and TPS.md's Andon section says the red run is the whole signal on this
+# project. A signal people learn to squint at is worse than a slower one, so the three stay
+# separable: repo-gate red means a name or a figure is committed, smoke red means the page has
+# regressed, build red means the drawing is not what its own builder produces.
+#
+# It is also a different question in the sense the repository already uses. repo-gate asks "is
+# anything forbidden here", smoke asks "does it work", and this asks "is what shipped what the
+# source says". Putting the third behind the first tick would be the first place they could be
+# confused.
+#
+# ---------------------------------------------------------------------------------------------
+# AND WHY IT IS NOT IN THE DEPLOY PATH. pages.yml is untouched by this card, deliberately.
+#
+# pages.yml is the only workflow that creates a Pages deployment, and its own comment records the
+# choice this repository already made about checks that run near a deploy: the gate reports and a
+# person takes the page down, because an automated unpublish on a rule that can false-fire would
+# take the site down. This check has the same shape. Putting it between the upload and the deploy
+# would be a check that can leave the site half published; putting it after the deploy would light
+# a second andon in the workflow whose andon is already about something more serious. It runs on
+# the tree instead, in front of the push, where a stale drawing is cheap to rebuild. It also has to
+# run on pull requests, and pages.yml does not.
+#
+# ---------------------------------------------------------------------------------------------
+# AND WHY IT IS NOT A STEP IN board.yml EITHER, which is the one place a check can genuinely be
+# needed twice.
+#
+# board.yml's commit carries the CI skip marker, so it reaches main with no push-triggered
+# workflow in front of it, and that is exactly why board.yml runs the repository gate itself
+# before committing. The same reasoning does not reach this check. board.yml writes
+# site/board.json and nothing else, and site/board.json is neither an input nor an output of the
+# build: established by running the builder on a clean tree and reading what moved, its inputs are
+# build/model.py, build/label_widths.json, site/app.css and the name gate's rules under scripts/,
+# and its only tracked output is site/graph.js. A board sync therefore cannot change what this
+# check reads or what it compares, so running it there would add a Python build to the hot path of
+# an idempotent sync and buy no claim at all.
+#
+# NOR CAN A BOARD SYNC TURN THIS RED, and the guard is structural rather than textual. The board
+# commit carries the skip marker, so the push raises no run of this workflow. If that marker were
+# ever dropped by a squash, a rebase or an org policy, the run would happen and would be green,
+# because the tree it would check differs from its parent only in site/board.json. In the other
+# direction this job has contents: read, writes nothing back and pushes nothing, and board.yml has
+# no push trigger at all, so there is no arrow from here to there to loop.
+#
+# ---------------------------------------------------------------------------------------------
+# NO PATHS FILTER, on purpose. It is tempting, because the only pushes this check can have an
+# opinion about are those touching build/ or site/. It is refused for the reason the skip marker
+# is already enough: a paths filter is a second and much quieter reason for a check not to run,
+# and a check that silently did not run is reported by GitHub in a way that reads like a check
+# that passed. Neither repo-gate.yml nor smoke.yml carries one either.
+#
+# NO setup-python, and no third-party action beyond the checkout. Every module the build imports
+# is in the standard library, and the GitHub-hosted image ships python3, so the smallest install
+# is no install. The run prints the interpreter it used, so a failure caused by an interpreter
+# change is diagnosable from the log rather than guessed at.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Read the repository and nothing else. This job rebuilds a file in the workspace, compares it,
+# puts it back, and pushes nothing anywhere.
+permissions:
+  contents: read
+
+# Its own group, not `pages`, not `repo-gate` and not `smoke`: this job deploys nothing and must
+# never queue behind a deploy. cancel-in-progress is stated rather than inherited, and false,
+# because a cancelled check reads as a check that ran; queue: max for the reason repo-gate.yml's
+# own comment gives, that false only protects a RUNNING job while the default single pending slot
+# lets a second push evict the run that has not started yet.
+# KAIZEN.md `kaizen-a-guard-covers-only-the-state-it-names`.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Say what was run. KAIZEN.md `kaizen-a-tool-that-refuses-the-size-you-asked-for` is about a
+      # harness that quietly gave back something other than what was asked for; the cheapest
+      # countermeasure is that every run states what it actually got.
+      - name: Name the interpreter this run used
+        run: python3 --version
+
+      # Jidoka. Prove the check refuses a bad drawing before believing it when it says clean.
+      # A gate that cannot be shown to fire is not a gate. Both other gates in this repository
+      # are run this way and this one is no different.
+      - name: Prove the build check fires
+        run: bash scripts/check_build.sh --self-test
+
+      - name: The committed drawing is what the builder produces
+        run: bash scripts/check_build.sh

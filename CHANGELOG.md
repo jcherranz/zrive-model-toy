@@ -11,6 +11,60 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- CI runs the build, #61. Nothing in this repository ever did. `site/graph.js` was committed and
+  deployed exactly as it sat in the tree, so two guarantees the repository believed it had were
+  held by habit alone: reproducibility, asserted on every card for two days and checked only by
+  whoever remembered to run the builder, and measurement, since the contrast gate reads the palette
+  out of `build/model.py` while the page draws from `site/graph.js`, so a colour typed into the
+  drawing would be measured by nobody and would ship. The same hole covered the name gate, which
+  hashes every shipped string at build time and therefore never meets a name pasted straight into
+  the drawing. `scripts/verify.sh` had carried the local half of this since #58; no workflow had.
+  `scripts/check_build.sh` deletes `site/graph.js`, runs the real builder, compares byte for byte
+  and puts the file back whatever happens. Deleting first is the poka-yoke: a build that writes
+  nothing is otherwise indistinguishable from a build that writes the same bytes, and the check
+  would report clean about a run that produced nothing. The refusal names the file, prints both
+  digests, the offset of the first differing byte and the text either side of it, and says the fix
+  is to run the builder and commit its output rather than to edit the drawing.
+- `build/label_widths.json` is covered by coverage and deliberately not by a byte diff, #61. It is
+  generated, but by `build/measure_labels.py` and not by the builder, and it is not reproducible
+  off the machine that wrote it: measured in a real browser, each value the widest that string
+  takes across every font family that machine can resolve, with the engine and the resolvable
+  envelope recorded in the file itself. A runner holds a different font set, so a byte diff would
+  go red on a correct table and light the andon for something that is not a defect. What is
+  checkable everywhere, and what actually goes wrong, is coverage: a string the layout measures
+  that the table does not hold is laid out from the old hand written estimate, wrong by up to a
+  fifth at the weight a selected label is drawn, and the wrong width is then baked into the shipped
+  coordinates. The set that must be covered is asked of `measure_labels.py`'s own `collect()`, the
+  function the measuring tool uses, so the two cannot drift; it opens no browser. A string in the
+  table that no context asks for is reported and is not a failure, being dead weight rather than a
+  wrong coordinate.
+- Proved failing before it was believed, #61. `scripts/check_build.sh --self-test`, 12 cases, run
+  in CI ahead of the check itself: identical bytes reported clean, a one byte difference refused,
+  an empty rebuild refused rather than read as a small drawing, and the refusal shown to name the
+  file and to carry both halves of the remedy; then the committed table reported as covering the
+  layout, a table with one measured string removed refused, and an empty and an unreadable table
+  aborting instead of reporting clean. Separately, one hex digit of a type colour was hand edited
+  into `site/graph.js` in a scratch worktree, and the check named the byte and printed the
+  committed and the rebuilt text either side of it.
+- `.github/workflows/build.yml`, its own workflow and not a step in `repo-gate.yml`, #61, which is
+  the argument #58 already made for the smoke suite: the repository gate answers a git and bash
+  question in seconds and this one runs Python, and the three questions stay separable so that
+  repo-gate red means a name or a figure is committed, smoke red means the page has regressed and
+  build red means the drawing is not what its own builder produces. Not a step in `board.yml`
+  either, which is the one place a check can genuinely be needed twice, because the builder neither
+  reads nor writes `site/board.json`: established by running it on a clean tree and reading what
+  moved, its inputs are `build/model.py`, `build/label_widths.json`, `site/app.css` and the name
+  gate's rules under `scripts/`, and its only tracked output is `site/graph.js`. A board sync
+  therefore cannot change what this check reads, cannot turn it red, and cannot loop with it: the
+  board commit carries the skip marker so it raises no run at all, and this job takes
+  `contents: read`, writes nothing back and pushes nothing. No paths filter, for the reason the
+  skip marker is already enough and a filter is a second and quieter reason for a check not to run.
+  Its own concurrency group with `queue: max`, outside the deploy path, no third-party action
+  beyond the checkout and that pinned to a full commit sha, and no `setup-python`, since every
+  module the build imports is in the standard library.
+- The tree the check was added to passes it, #61. `origin/main` rebuilds `site/graph.js` byte for
+  byte, twice, and the width table covers all 466 strings across seven contexts with none spare.
+  The finding this card was filed for is the missing workflow and not a stale drawing.
 - A regression net, #58. `scripts/smoke.mjs`, 70 assertions over three viewports, driving Chrome
   through the DevTools Protocol on Node 22's own WebSocket: no framework, no dependency, no build
   step, nothing added to `site/`. Ten substantive changes landed on 2026-08-10 and 11, each
