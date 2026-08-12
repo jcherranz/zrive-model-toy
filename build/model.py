@@ -4839,6 +4839,24 @@ def check_structure(doc):
                            "altogether; one that declares it and puts nothing in it would have "
                            "every rule below walk nothing and report clean about the half of "
                            "the document a reader is most likely to be looking at.")
+    # Issue 117, F1. A top level list of view-shaped entries under any name but the declared ones
+    # is refused here rather than walked past. doc_views() resolves by name and scripts/routes.py
+    # resolves the same question by shape, and the difference is invisible on every document that
+    # gets this far only because of this rule.
+    stray = undeclared_view_lists(doc)
+    if stray:
+        bad("view-list-declared",
+            f"the document carries {len(stray)} top level list(s) of view-shaped entries under "
+            f"{', '.join(repr(s) for s in stray)}, and this gate walks "
+            f"{', '.join(repr(s) for s in VIEW_LISTS)}. Every rule in this file, every rule in "
+            f"check_provenance, and build_layout.py's geometry blacklist ask doc_views(), which "
+            f"answers by name, so a view under any other name ships checked by nothing while the "
+            f"build prints a view count and a node count that are both short of what it wrote to "
+            f"disk. scripts/routes.py, reading the same bytes, finds it BY SHAPE and reports it, "
+            f"so the two readers of one document would be answering differently about it. If the "
+            f"list belongs here, add its name to VIEW_LISTS and the gates walk it; if it does "
+            f"not, it is a block of the document nothing is judging.")
+
     views = doc_views(doc)
     classes = doc.get("routes", {}).get("classes", {})
     if not isinstance(classes, dict) or not classes:
@@ -5003,6 +5021,29 @@ def emit_view(v):
     }
 
 
+# The declared top level lists of views, in the order a gate walks them. Written down here once
+# and read by doc_views() and by the rule that refuses an undeclared one, so the walk and the
+# rule cannot disagree about what the allow list is.
+VIEW_LISTS = ("views", "collapsed")
+
+# What makes a list a list of views, to a reader that does not know its name. The same three
+# keys scripts/routes.py matches on, and that is not an accident: that file resolves the lists
+# BY SHAPE and this one by name, and the rule below is what keeps a document from existing on
+# which the two answers differ.
+VIEW_SHAPE = ("key", "grain", "nodes")
+
+
+def view_shaped(value):
+    """True of a non-empty list every entry of which carries a key, a grain and a set of nodes."""
+    return (isinstance(value, list) and bool(value)
+            and all(isinstance(v, dict) and all(k in v for k in VIEW_SHAPE) for v in value))
+
+
+def undeclared_view_lists(doc):
+    """Every top level list of view-shaped entries filed under a name no gate walks."""
+    return sorted(k for k, v in doc.items() if k not in VIEW_LISTS and view_shaped(v))
+
+
 def doc_views(doc):
     """Every view in an instance document, at either altitude.
 
@@ -5011,8 +5052,22 @@ def doc_views(doc):
     cards: a block a gate's walk cannot see is where the next unchecked thing lands. Issue 89
     added a second list of NODES, which is the largest such block this document has ever grown,
     so every gate asks this rather than reaching for `views` and being right about half of it.
+
+    IT RESOLVES BY NAME AND IT IS NOW SAFE TO, which it was not. Issue 117. scripts/routes.py
+    asks the same question of the shipped bytes and resolves BY SHAPE, and its own comment says
+    so, and every reader of both took the two to be the same question answered twice. They are
+    not: a third top level list of view-shaped entries is read by that file and walked by
+    nothing here, so a view under any name but these two shipped un-provenance-checked,
+    un-structure-checked and with no geometry blacklist over it, and the build printed a view
+    count and a node count that were both short of what it had written to disk. Proved by
+    construction on the card.
+
+    The repair is not to make this one shape-based. It is the rule in check_structure that
+    refuses an undeclared list outright, which fails on the day the list is added rather than
+    silently widening the walk, and which is what makes the by-name and by-shape answers the
+    same answer on every document that can be built.
     """
-    return list(doc.get("views") or []) + list(doc.get("collapsed") or [])
+    return [v for name in VIEW_LISTS for v in (doc.get(name) or [])]
 
 
 def instance_document():
@@ -5086,7 +5141,7 @@ def instance_document():
 # which is the whole point: a count taken from the run itself cannot notice a probe that is no
 # longer there. Edited together with the probes or not at all.
 PROVENANCE_PROBES = 37
-STRUCTURE_PROBES = 20
+STRUCTURE_PROBES = 22
 
 
 def _probe_doc(stance="invented"):
@@ -5481,6 +5536,30 @@ def structure_self_test():
            "an edge to a node the collapsed view does not declare", says="'zz'")
     expect("edge-is-not-a-loop", _structure_probe(collapsed_self_loop),
            "a self-loop in the collapsed view", says="'b' -'leads to'-> 'b'")
+
+    # A THIRD LIST, issue 117 F1, and the mutation is the audit's own. The list below is a legal
+    # view in every respect: the rule fires on the NAME and not on the contents, which is the
+    # whole point, because a list nothing walks is where the next unchecked thing lands whether
+    # or not anything is wrong with it today. Proved by construction on the card: a `zoomed` list
+    # carrying one violation of each of four separate rules was built, shipped, and reported on
+    # by nothing, while the byte-identical node placed in `collapsed` was refused.
+    def third_list(d):
+        d["zoomed"] = [{"key": "PROBE", "grain": "zoomed",
+                        "nodes": [{"id": "z", "class": "probe", "route": 1}],
+                        "edges": []}]
+
+    # And the control that keeps it from being a rule against top level lists in general. The
+    # shipped document carries several, `types` and `apto` among them, and none of them names a
+    # key, a grain and a set of nodes.
+    def third_list_not_view_shaped(d):
+        d["notes"] = [{"k": "a", "text": "not a view"}, {"k": "b", "text": "nor this"}]
+
+    expect("view-list-declared", _structure_probe(third_list),
+           "a third top level list of views under a name no gate walks, which routes.py reads "
+           "by shape and every gate in this file misses by name", says="'zoomed'")
+    expect_clean(_structure_probe(third_list_not_view_shaped),
+                 "a top level list that is not view-shaped is left alone, so the rule is about "
+                 "views under an undeclared name and not about lists")
 
     # And the document this repository actually ships, which is the only one that matters.
     expect_clean(instance_document(), "the model's own instance document passes")

@@ -80,6 +80,24 @@ def doc_views(doc):
     being repaired for. It also cannot import the answer from build/: this file works from the
     document alone, on purpose, because whether the DOCUMENT carries enough to work from is the
     only question it exists to settle.
+
+    AND FOR TWO CARDS THIS WAS THE STRONGER OF TWO COPIES OF ONE QUESTION, WITH THE WEAKER ONE
+    WIRED TO THE GATES. Issue 117, F1. build/model.py's doc_views() resolves by name, and it is
+    the copy check_structure, check_provenance and build_layout.py's geometry blacklist all ask,
+    while this copy only prints a table. A third top level list of view-shaped entries was
+    therefore read here and walked by nothing there: proved by construction, a `zoomed` list
+    carrying one violation of each of four separate rules built clean while the byte-identical
+    node placed in `collapsed` was refused. The repair is in build/model.py, as a rule named
+    `view-list-declared` that refuses any top level list of view-shaped entries under a name the
+    gates do not walk. So the two resolvers can no longer disagree about a document that can be
+    built, and this file's shape-based answer is now an independent recomputation of a rule
+    rather than a second opinion nobody compares.
+
+    WHAT WOULD BE STRONGER, AND WHY IT IS NOT DONE HERE. If the document itself declared which
+    of its top level lists are view lists, this file could compare its by-shape answer against
+    that declaration and refuse a difference, with the allow list written down exactly once and
+    in the bytes both readers read. That means adding a key to the shipped document, which is a
+    rebuild of site/, and site/ was another agent's file for the length of this card.
     """
     out = []
     for name, value in doc.items():
