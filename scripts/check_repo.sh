@@ -684,6 +684,20 @@ scan_repo() {
   scan_contrast
 }
 
+# The title a rendered board carries for one card id. Used only by the self-test, and kept out
+# of it so the probes read as assertions rather than as JSON handling.
+board_title() {  # board.json id
+  python3 -c 'import json,sys
+board = json.load(open(sys.argv[1]))
+want = int(sys.argv[2])
+for column in board["columns"]:
+    for card in column["cards"]:
+        if card["id"] == want:
+            print(card["title"])
+            raise SystemExit(0)
+raise SystemExit(1)' "$1" "$2" 2>/dev/null || true
+}
+
 # ---------------------------------------------------------------------------------------
 # Self-test. Every probe runs the same scan_file, or the same scan_citations_file, that the
 # real scan runs.
@@ -1151,6 +1165,131 @@ Probe|Probe|dark|#9d3f9d|#252a31|2.4972|#1c2127|2.8015
     pass=$((pass + 1))
   else
     echo "  [MISS] an empty list of defined slugs did not abort (exit $rc)"
+  fi
+
+  echo
+  echo "self-test: the name rule, applied by a caller that cannot source the library"
+
+  # scripts/sync_board.mjs is the one thing in this repository that writes a public byte
+  # authored outside it: a GitHub issue title, typed into a text box. It is node, so it reaches
+  # the name rule through scripts/forbidden_lib.sh --name-lines rather than through a second
+  # implementation of the folding. Issue 105. The probes below are about that interface and
+  # about the caller's use of it, and none of them prints a token: the interface answers with
+  # positions for exactly that reason, and the probe that checks it says so.
+  #
+  # The register is the synthetic one throughout, except in the one probe that names the real
+  # one, and that probe reads nothing out of it: it asks whether a string the caller wrote
+  # carries anything the real register holds, and the answer it wants is silence.
+  local nl_out
+  total=$((total + 1))
+  nl_out="$(printf '%s\n' 'a card nobody has to withhold' \
+                          'the handle quillfarthingKestrelvane in a title' \
+                          'another card nobody has to withhold' \
+              | bash "$ROOT/scripts/forbidden_lib.sh" --name-lines "$fake_hashes" 2>/dev/null || true)"
+  if [ "$nl_out" = "2" ]; then
+    echo "  [OK]   the name rule answered with the position of the one candidate carrying a token"
+    pass=$((pass + 1))
+  else
+    echo "  [MISS] the name rule did not answer with that one position"
+  fi
+
+  # And the answer is positions and nothing else. A CI log is a place a real name must not
+  # become public, so an interface that echoed the token, or the candidate it came from, would
+  # be a leak wearing the shape of a gate.
+  total=$((total + 1))
+  if [ -n "$nl_out" ] && [ -z "$(printf '%s' "$nl_out" | tr -d '0-9')" ]; then
+    echo "  [OK]   the answer is positions only, so no token and no candidate text is in it"
+    pass=$((pass + 1))
+  else
+    echo "  [MISS] the answer carried something other than a position"
+  fi
+
+  # The poka-yoke both gates apply to their own inputs. A matcher holding no register matches
+  # nothing and would report every candidate clean, which is the loudest lie this rule can tell.
+  total=$((total + 1))
+  rc=0
+  printf '# a register holding no hashes at all\n' > "$tmp/nohashes"
+  ( printf 'anything at all\n' \
+      | bash "$ROOT/scripts/forbidden_lib.sh" --name-lines "$tmp/nohashes" >/dev/null 2>&1 ) || rc=$?
+  if [ "$rc" -eq 2 ]; then
+    echo "  [OK]   a register holding no hashes aborted instead of calling every candidate clean"
+    pass=$((pass + 1))
+  else
+    echo "  [MISS] a register holding no hashes answered clean (exit $rc)"
+  fi
+
+  # The caller, end to end. A fake `gh` stands in for the tracker, so no network and no real
+  # issue is involved; BOARD_PATH sends the render to a throwaway file, so a probe can never
+  # touch site/board.json; the register is synthetic.
+  local ghdir="$tmp/ghbin" board="$tmp/probe-board.json" withheld="" kept="" expected=""
+  mkdir -p "$ghdir"
+  cat > "$tmp/issues.json" <<'JSON'
+[{"number":1,"title":"a card nobody has to withhold","state":"OPEN","labels":[],"url":"https://example.invalid/1","stateReason":""},
+ {"number":2,"title":"Ada Kestrelvane asks about the lane heading","state":"OPEN","labels":[],"url":"https://example.invalid/2","stateReason":""}]
+JSON
+  printf '#!/usr/bin/env bash\ncat %q\n' "$tmp/issues.json" > "$ghdir/gh"
+  chmod +x "$ghdir/gh"
+  rc=0
+  ( cd "$ROOT" && PATH="$ghdir:$PATH" BOARD_PATH="$board" FORBIDDEN_HASHES="$fake_hashes" \
+      node "$ROOT/scripts/sync_board.mjs" >/dev/null 2>&1 ) || rc=$?
+  if [ "$rc" -eq 0 ] && [ -s "$board" ]; then
+    withheld="$(board_title "$board" 2)"
+    kept="$(board_title "$board" 1)"
+  fi
+  expected="$(python3 -c 'import json,sys
+issues = json.load(open(sys.argv[1]))
+print([i["title"] for i in issues if i["number"] == 1][0])' "$tmp/issues.json")"
+
+  # What the board carries in the poisoned card's place must carry nothing the register holds.
+  # Written this way rather than as a comparison against the placeholder, so the probe does not
+  # hold a second copy of a string that lives in the caller
+  # (KAIZEN.md `kaizen-a-computed-value-is-never-typed-twice`).
+  total=$((total + 1))
+  rc=0
+  nl_out="$(printf '%s\n' "$withheld" \
+              | bash "$ROOT/scripts/forbidden_lib.sh" --name-lines "$fake_hashes" 2>/dev/null || true)"
+  if [ -n "$withheld" ] && [ -z "$nl_out" ]; then
+    echo "  [OK]   the title the board carries in place of the poisoned one holds no token"
+    pass=$((pass + 1))
+  else
+    echo "  [MISS] a title carrying a token from the register reached the board"
+  fi
+
+  # The other direction. A gate that withheld everything would pass the probe above and be
+  # useless, so the clean card has to arrive exactly as it was typed.
+  total=$((total + 1))
+  if [ -n "$kept" ] && [ "$kept" = "$expected" ]; then
+    echo "  [OK]   a title the register says nothing about reached the board unchanged"
+    pass=$((pass + 1))
+  else
+    echo "  [MISS] a clean title did not reach the board unchanged"
+  fi
+
+  # And the string the caller writes instead must be clean against the register that is really
+  # in use, not only against the synthetic one this self-test hands it.
+  total=$((total + 1))
+  nl_out="$(printf '%s\n' "$withheld" \
+              | bash "$ROOT/scripts/forbidden_lib.sh" --name-lines "$HASHES" 2>/dev/null || true)"
+  if [ -n "$withheld" ] && [ -z "$nl_out" ]; then
+    echo "  [OK]   what the caller writes instead is clean against the register in use"
+    pass=$((pass + 1))
+  else
+    echo "  [MISS] what the caller writes instead is not clean against the register in use"
+  fi
+
+  # Fail closed. A rule that could not be asked has not answered clean, so the caller must
+  # write no board at all rather than a board nothing gated.
+  total=$((total + 1))
+  rc=0
+  rm -f "$tmp/board-norule.json"
+  ( cd "$ROOT" && PATH="$ghdir:$PATH" BOARD_PATH="$tmp/board-norule.json" \
+      FORBIDDEN_HASHES="$tmp/no-register-at-this-path" \
+      node "$ROOT/scripts/sync_board.mjs" >/dev/null 2>&1 ) || rc=$?
+  if [ "$rc" -ne 0 ] && [ ! -e "$tmp/board-norule.json" ]; then
+    echo "  [OK]   a name rule that could not be run wrote no board at all"
+    pass=$((pass + 1))
+  else
+    echo "  [MISS] a name rule that could not be run still let a board be written (exit $rc)"
   fi
 
   echo
