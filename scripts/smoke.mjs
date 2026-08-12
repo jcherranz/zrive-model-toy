@@ -261,8 +261,9 @@ const PHASES = {
   'term':                 { count: 54, when: 'behavioural' },
   'header':               { count: 8, when: 'behavioural' },
   'canvas':               { count: 7, when: 'behavioural' },
-  'capture':              { count: 14, when: 'behavioural' },
+  'capture':              { count: 15, when: 'behavioural' },
   'board':                { count: 13, when: 'behavioural' },
+  'the gutter on a phone': { count: 2, when: 'narrow' },
   'console and requests': { count: 2, when: 'every' },
   'two artefacts':        { count: 4, when: 'grain' },
   'the count':            { count: 3, when: 'grain' },
@@ -426,7 +427,7 @@ const PHASES = {
 // page wrote on location.hash, and reloads that. F8 added nothing to the total and changed two
 // assertions in `keeping place`, which read `sel.type` alone and so could not tell the module the
 // reader came from from any other module.
-const EXPECTED_ASSERTIONS = 189;
+const EXPECTED_ASSERTIONS = 192;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -3466,7 +3467,7 @@ async function someInstructor(page) {
 }
 
 // ---- capture mode -------------------------------------------------------------------------------
-async function checkCapture(page) {
+async function checkCapture(page, base) {
   await page.evaluate('window.ZT.fit()');
   await viewSettled(page);
   await clearSelectionIfAny(page);
@@ -3535,10 +3536,91 @@ async function checkCapture(page) {
 
   const net = await page.evaluate('JSON.stringify(window.__smoke)');
   const rec = JSON.parse(net);
-  assert('nothing in the whole capture pass filed an issue',
+  assert('nothing in the whole capture pass filed an issue until it was asked to',
     rec.calls.every(c => c.method === 'GET') && rec.opens.length === 0,
     'every recorded request a GET, and no issue form opened',
     `calls ${JSON.stringify(rec.calls)}, opens ${JSON.stringify(rec.opens)}`);
+
+  await checkItCanFile(page, base);
+}
+
+// ---- and that it CAN file, which is the control this phase never had --------------------------
+// ISSUE 118's F2, AND IT IS THE PUREST DEAD CONTROL IN THE SET. Every assertion this phase makes
+// about the recorder is an ABSENCE: no popover, nothing filed, no non-GET request, no window
+// opened. The suite never once pressed the file control, so `window.__smoke.opens` was never
+// observed non-empty and the stub's own `window.open` override was never proved to be live.
+// Two failure modes were therefore indistinguishable from a pass: the page's filing path broken,
+// so nothing files, so nothing is recorded; and the override never taking, so nothing is
+// recorded. `fileIssue()` in site/feedback.js made a no-op that returns without opening anything
+// was 177 of 177 and verify.sh exit 0, with the one channel by which a reader reports a defect
+// dead on the published origin.
+//
+// SO THE BUTTON IS PRESSED, WITH NO TOKEN STORED, WHICH IS THE ROUTE A READER MEETS. With no
+// credential the page falls back to GitHub's prefilled issue form, which is a `window.open` and
+// not a request, so this proves the fallback path AND the override in the same press, and it is
+// the press that makes every "filed nothing" assertion above mean something.
+//
+// THE REPOSITORY IS NOT WRITTEN HERE. It is read off the published board snapshot, whose cards
+// carry their own issue urls: the page has to file into the repository whose issues it draws, and
+// a page rebuilt against another repository with a board still pointing at this one is a defect
+// rather than a thing this driver should be taught to expect.
+async function checkItCanFile(page, base) {
+  const snapshot = await (await fetch(new URL('board.json', base))).json();
+  const anIssue = [].concat(...(snapshot.columns || []).map(c => c.cards || []))
+    .map(c => c.url).filter(Boolean)[0] || '';
+  const repo = (/^https:\/\/github\.com\/([^/]+\/[^/]+)\/issues\//.exec(anIssue) || [])[1];
+
+  const before = JSON.parse(await page.evaluate('JSON.stringify(window.__smoke.opens)'));
+  const hasToken = await page.evaluate(
+    `(function () { try { return !!localStorage.getItem('zmt.gh.token'); } ` +
+    `catch (e) { return false; } })()`);
+
+  const tog = await stableRect(page, '#fbtoggle');
+  await click(page, Math.round(tog.cx), Math.round(tog.cy));
+  await page.waitFor(`document.body.classList.contains('fb-mode')`,
+    'capture mode to turn on for the filing control');
+  // The same point the descriptor assertion above clicks, inside the tile and outside the glyph
+  // box, so the body this control prefills can be held to the same recorded string.
+  const tile = await stableRect(page, `[data-node="${DESCRIPTOR_BASELINE.node}"] rect.tile-bg`);
+  await click(page, Math.round(tile.cx + tile.w * 0.35), Math.round(tile.cy + tile.h * 0.35));
+  await page.waitFor(`!!document.querySelector('.fb-popover .fb-file')`,
+    'the capture popover to open over the tile');
+  await page.evaluate(`document.querySelector('.fb-popover .fb-file').click()`);
+  await page.waitFor(`window.__smoke.opens.length > ${before.length} ||
+                      /form|filed|could/.test((document.querySelector('.fb-file-result') || {})
+                        .textContent || '')`,
+    'the page to answer the filing control');
+
+  const filed = JSON.parse(await page.evaluate(`(function () {
+    var r = document.querySelector('.fb-file-result');
+    return JSON.stringify({ opens: window.__smoke.opens,
+                            calls: window.__smoke.calls.filter(function (c) {
+                              return c.method !== 'GET';
+                            }),
+                            said: r ? r.textContent : null });
+  })()`));
+  const opened = filed.opens.slice(before.length);
+  const url = opened.length === 1 ? new URL(opened[0]) : null;
+  const q = url ? url.searchParams : new URLSearchParams();
+  assert('and pressing the file control opens the prefilled form for this repository',
+    hasToken === false && !!repo && opened.length === 1 && !!url &&
+      url.origin === 'https://github.com' && url.pathname === `/${repo}/issues/new` &&
+      !!q.get('title') && (q.get('labels') || '').split(',').indexOf('feedback') !== -1 &&
+      (q.get('body') || '').indexOf(DESCRIPTOR_BASELINE.text) !== -1 &&
+      filed.calls.length === 0,
+    `exactly one window opened, at https://github.com/${repo}/issues/new, carrying a title, the ` +
+      'feedback label and a body quoting the element the capture named, and no request made ' +
+      'without a credential',
+    `${opened.length} opened ${JSON.stringify(opened.slice(0, 2))}, ` +
+      `${filed.calls.length} non-GET request(s), the popover said ${JSON.stringify(filed.said)}`);
+
+  await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+  await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+  await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+  await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+  await page.waitFor(`!document.body.classList.contains('fb-mode')`,
+    'capture mode to turn off after the filing control');
+  await clearSelectionIfAny(page);
 }
 
 // ---- issue 86: the header over an open sheet, and a capture taken from inside one ---------------
@@ -4001,6 +4083,50 @@ async function checkWidth(page, base) {
     `${row.length} controls on one height, none under 24 by 24`,
     small.length ? small.map(c => `${c.id} ${c.w}x${c.h}`).join(', ')
                  : `${row.length} controls, heights ${JSON.stringify(heights)}`);
+}
+
+// ---- the gutter, at the width where it is declared a second time --------------------------------
+// ISSUE 113 AT THE PHONE BREAKPOINT, WHICH IS ISSUE 115's F22. The two gutter assertions in the
+// `term` phase are the same relationships as these and they run at 1536 only, because that is the
+// viewport that can drive a pointer and `term` is a behavioural phase. app.css declares
+// `--sheet-gutter` and `--row-inset` twice, and the card's whole argument is that 6 plus 10 and
+// 4 plus 12 both sum to the head's 16, so the pair at 390 is a second declaration with nothing
+// pointed at it: zeroing both shipped green while the outline group heading, the outline data
+// cell and the calendar month heading all went from 16 to 0 on a phone.
+//
+// NEITHER OF THESE NAMES A PIXEL EITHER, for the reason the pair at 1536 does not: what is
+// asserted is that the rows start where the sheet's own title starts and inside the box they
+// scroll in, and that the two readings of the term agree with each other. That claim is the same
+// at both widths and survives a breakpoint changing the two numbers, which is what makes it the
+// claim rather than the declaration.
+async function checkGutter(page) {
+  await page.evaluate(`location.hash = '#/outline'`);
+  await page.waitFor(`window.ZT.term().open === true &&
+                      window.ZT.term().reading === 'outline'`,
+    'the outline reading to open on the narrow viewport');
+  const out = await page.evaluate(TERM_READ);
+  await page.evaluate(`location.hash = '#/calendar'`);
+  await page.waitFor(`window.ZT.term().open === true &&
+                      window.ZT.term().reading === 'calendar'`,
+    'the calendar reading to open on the narrow viewport');
+  const cal = await page.evaluate(TERM_READ);
+
+  assert('the sheet indents its rows from the box they scroll in, to where its own title starts',
+    !!out.gutter && out.gutter.cell !== null && out.gutter.title !== null &&
+      out.gutter.cell > out.gutter.box && out.gutter.pad > 0 &&
+      out.gutter.cell === out.gutter.title,
+    'the first text on a row starting inside the container and on the title\'s own left edge',
+    JSON.stringify(out.gutter));
+
+  assert('and both readings of the term start their text on the same left edge',
+    !!out.gutter && !!cal.gutter && cal.gutter.month !== null &&
+      cal.gutter.month === out.gutter.cell && out.gutter.group === out.gutter.cell,
+    'the calendar month heading, the outline group heading and the outline rows on one x',
+    `month ${cal.gutter && cal.gutter.month}, group ${out.gutter.group}, ` +
+      `cell ${out.gutter.cell}`);
+
+  await page.evaluate(`location.hash = '#/'`);
+  await page.waitFor('window.ZT.term().open === false', 'the sheet to close again');
 }
 
 function checkConsole(page) {
@@ -4909,7 +5035,7 @@ function grainReport(KEYS, per, heights, filteredReflow) {
 // =================================================================================================
 // The run
 // =================================================================================================
-async function runViewport(chrome, viewport, base, full) {
+async function runViewport(chrome, viewport, base, full, narrow) {
   const label = `${viewport.w}x${viewport.h}`;
   setWhere(label);
   console.log(`\n--- ${label} ---`);
@@ -4950,8 +5076,12 @@ async function runViewport(chrome, viewport, base, full) {
       await group('term', () => checkTerm(page));
       await group('header', () => checkHeader(page));
       await group('canvas', () => checkCanvas(page));
-      await group('capture', () => checkCapture(page));
+      await group('capture', () => checkCapture(page, base));
       await group('board', () => checkBoard(page, base));
+    }
+
+    if (narrow) {
+      await group('the gutter on a phone', () => checkGutter(page));
     }
 
     setPhase('console and requests');
@@ -4972,6 +5102,17 @@ async function runViewport(chrome, viewport, base, full) {
 // =================================================================================================
 const BEHAVIOURAL_VIEWPORT = VIEWPORTS.findIndex(v => v.pointer);
 
+// AND A FOURTH KIND OF PHASE, WHICH IS ISSUE 115's F22. `behavioural` runs at the one viewport
+// that can drive a pointer, and that viewport is the widest, so a claim about a declaration made
+// only at the phone breakpoint had nowhere to run: app.css declares the sheet's gutter twice,
+// once for the desk and once at 390, and zeroing the phone pair was 177 of 177 with the outline
+// heading, the outline cell and the calendar month heading all back on the container's own edge,
+// which is the exact defect #113 was filed on. `narrow` is the other end of the same rule as
+// `behavioural`: a claim that is about the narrowest width and nothing else runs there and only
+// there. Chosen by measurement rather than by position, the same way the pointer viewport is.
+const NARROW_VIEWPORT = VIEWPORTS.reduce(
+  (best, v, i) => (best < 0 || v.w < VIEWPORTS[best].w ? i : best), -1);
+
 // The membership test is written out rather than left as "everything at the behavioural viewport",
 // which is what it said until issue 109. That form was correct while there were two kinds of phase
 // and would have silently swept the grain phases into the behavioural viewport's plan the moment a
@@ -4979,7 +5120,8 @@ const BEHAVIOURAL_VIEWPORT = VIEWPORTS.findIndex(v => v.pointer);
 function plannedPhases(index) {
   return Object.entries(PHASES)
     .filter(([, p]) => p.when === 'every' ||
-                       (p.when === 'behavioural' && index === BEHAVIOURAL_VIEWPORT))
+                       (p.when === 'behavioural' && index === BEHAVIOURAL_VIEWPORT) ||
+                       (p.when === 'narrow' && index === NARROW_VIEWPORT))
     .map(([name, p]) => ({ name, count: p.count, where: `${VIEWPORTS[index].w}x${VIEWPORTS[index].h}` }));
 }
 
@@ -5128,7 +5270,8 @@ async function main() {
     for (let i = 0; i < VIEWPORTS.length; i++) {
       const v = VIEWPORTS[i];
       try {
-        await runViewport(chrome.path, v, base, i === BEHAVIOURAL_VIEWPORT);
+        await runViewport(chrome.path, v, base, i === BEHAVIOURAL_VIEWPORT,
+                          i === NARROW_VIEWPORT);
       } catch (err) {
         if (err instanceof HarnessFailure) {
           // Not a finding about the page. Nothing in this viewport ran, so nothing in this
