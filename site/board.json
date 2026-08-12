@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T11:18:15Z",
+  "generated": "2026-08-12T11:18:59Z",
   "columns": [
     {
       "key": "raw",
@@ -33,24 +33,6 @@
             "feedback"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/89"
-        },
-        {
-          "id": 96,
-          "title": "Tile frame is too tight on the drawing",
-          "labels": [
-            "bug",
-            "feedback"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/96"
-        },
-        {
-          "id": 97,
-          "title": "Not centered in the frame",
-          "labels": [
-            "bug",
-            "feedback"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/97"
         },
         {
           "id": 98,
@@ -121,6 +103,26 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/94"
+        },
+        {
+          "id": 96,
+          "title": "Tile frame is too tight on the drawing",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/96"
+        },
+        {
+          "id": 97,
+          "title": "Not centered in the frame",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/97"
         }
       ]
     },
