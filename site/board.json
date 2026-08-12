@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T00:26:37Z",
+  "generated": "2026-08-12T00:27:10Z",
   "columns": [
     {
       "key": "raw",
@@ -33,15 +33,6 @@
             "feedback"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/89"
-        },
-        {
-          "id": 90,
-          "title": "A time-window filter: the best-argued management feature so far, with one blocker",
-          "labels": [
-            "bug",
-            "feedback"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/90"
         },
         {
           "id": 91,
@@ -146,6 +137,16 @@
       "title": "Done",
       "cards": [
         {
+          "id": 90,
+          "title": "A time-window filter: the best-argued management feature so far, with one blocker",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/90"
+        },
+        {
           "id": 88,
           "title": "Calendar view needs month and week grids, and the data says which one earns its place",
           "labels": [
@@ -217,20 +218,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/81"
-        },
-        {
-          "id": 80,
-          "title": "A cohort calendar route: the data is already shipped, and the model says no such calendar exists",
-          "labels": [
-            "bug",
-            "feedback",
-            "model",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/80"
         }
       ],
-      "hidden": 66,
+      "hidden": 67,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
