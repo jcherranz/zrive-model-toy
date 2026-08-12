@@ -306,6 +306,29 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- **A transform framed against a box the canvas did not have, #114, and it is not a runner flake.**
+  `model and reveal` failed in CI on three commits and went green on a re-run of each, twice logged
+  as a flake; two of the three report the hit test at the same absurd pair, 511294 by 192646, which
+  is 333 times the widest viewport it runs at. `#/board` is the one route that sets `display: none`
+  on the drawing, `viewport.js` clamps a rect of nothing up to one pixel, and `applyView()` framed
+  that one pixel across the whole element: a viewBox under a unit wide, a rendered scale of 900
+  where `view.k` held 1.19, and every tile in it six figures wide. `board.js` loads after `app.js`,
+  so the class comes off one hashchange listener later than `refit()` reads the box, and the
+  `ResizeObserver` that repairs it delivers in the next rendering update. **No reader ever meets
+  that frame**, because the observer runs before paint; anything reading `getBoundingClientRect()`
+  in the gap does. Forced locally by delaying only the repairing delivery, the suite as it stood
+  reproduces `the point (511294.0, 192646.0)` to the pixel, on `t1`, and loses 66 of its 177
+  assertions to it. **Fixed at the write and not at the reading**: `applyView()` takes the same
+  `vw > 2 && vh > 2` test `init()` and `refit()` already use, in the one place that writes the
+  transform. `scripts/smoke.mjs` keeps its own guard beside it, because a rect on a pan and zoom
+  surface means what it says only while the rendered transform is the one the page's three numbers
+  describe: `stableRect()` now demands `ZT.view().w` and `.h` equal the canvas box, which over 98
+  samples differ by 0 and are asserted as equality with no tolerance, and `getScreenCTM().a` agree
+  with `view.k`, which over the same samples agree to 3.6e-6 and are given 1e-3. **Neither is a
+  retry and neither widens what `requireHit()` demands**: the point is measured once, in a state the
+  page agrees it is in, and a state that never arrives is reported with both numbers. One assertion
+  at every width, on the cause rather than the symptom, since whether the six figure rect is still
+  there when a driver looks depends on the runner and whether the page wrote it at all does not.
 - **The chip queue sorted one tiebreak short of the build's, #106.** `build_layout.py` orders the
   verb chips `(-span, s, t)` and `render.js` ordered them `(-span, s)`, which differs only where
   two lines leave one node with one span. Counted at `5f32209`: 34 such groups over 175 of the 455

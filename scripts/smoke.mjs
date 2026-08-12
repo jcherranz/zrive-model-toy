@@ -254,7 +254,7 @@ const ZOOM_TOLERANCE_PX = 0.5;
 // the total below, and a change that forgets is a red run rather than a quiet one.
 const PHASES = {
   'the viewport opened':  { count: 2, when: 'every' },
-  'every width':          { count: 4, when: 'every' },
+  'every width':          { count: 5, when: 'every' },
   'model and reveal':     { count: 14, when: 'behavioural' },
   'students':             { count: 11, when: 'behavioural' },
   'term':                 { count: 53, when: 'behavioural' },
@@ -412,7 +412,12 @@ const PHASES = {
 // against the two suites that were: 144 assertions in this file, 33 in build/check_grain.mjs, 177
 // after, and the phase table above carries the nine grain phases at the counts that file declared.
 // A merge landing on anything else would have lost a probe.
-const EXPECTED_ASSERTIONS = 177;
+// 180 with issue 114. One claim, at all three widths, and it is the cause of that card and not its
+// symptom: the drawing keeps the frame it was fitted to while #/board has the canvas off screen.
+// The symptom was a hit test six figures from the tile, which is a race and would have wanted a
+// tolerance or a retry; the cause is a transform written from a box the element did not have, and
+// that is either written or it is not.
+const EXPECTED_ASSERTIONS = 180;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -1128,25 +1133,72 @@ async function clearSelection(page) {
 // Two identical readings, which is a condition about the document rather than an interval chosen
 // to be long enough, and then the point is measured, hit tested and clicked with nothing in
 // between that could move it again.
+//
+// AND TWO IDENTICAL READINGS ARE NOT ENOUGH, WHICH IS ISSUE 114 AND THE SECOND HALF OF THIS
+// FUNCTION. A client rect of anything on the drawing is a statement about a pan and zoom surface,
+// so it means what it says only while the transform the browser is rendering is the transform the
+// page's own three numbers describe. A frame in which those two disagree is perfectly still: both
+// readings agree, the rect is returned, and the point clicked is six figures from the tile it was
+// measured on. That is not a hypothetical. The group failed in CI three times at (511294, 192646),
+// the same pair twice, which is a deterministic state reached by a race and not a runner flake,
+// and forcing the race locally reproduces 511294 to the pixel on the tile the drawing calls t4.
+//
+// SO THE SETTLED TEST IS THE PAGE'S OWN INVARIANT AND NOT AN INTERVAL. Two things are read beside
+// the rect, in the same evaluate so they are the same instant:
+//
+//   the window   window.ZT.view() publishes the box viewport.js measured, and applyView() frames
+//                exactly that box. It has to be the box the canvas actually has. Measured over
+//                seven programmes, two grains and seven zoom steps, the difference is 0 and not
+//                a small number, so this is asserted as equality and given no tolerance at all.
+//   the scale    getScreenCTM().a is the scale the browser is rendering the drawing at and
+//                view.k is the scale the page believes it is at. Same 98 samples: they agree to
+//                3.6e-6 relative, which is the viewBox attribute's three decimal places and
+//                nothing else. The tolerance below is 1e-3, three hundred times that residual and
+//                six orders inside the failure it is here to catch, which was a factor of 756.
+//
+// THIS IS NOT A RETRY AND MUST NOT BECOME ONE. Nothing here clicks, nothing here loosens what
+// requireHit demands, and no assertion is softened. The point is measured once, in a state the
+// page agrees it is in, and then hit tested exactly as before. If that state never arrives inside
+// the deadline the drawing is rendering at a scale the page does not hold, which is a finding
+// about the page and is reported with both numbers rather than as a rect that would not sit still.
 async function stableRect(page, selector) {
-  let last = null;
+  let last = null, why = 'nothing has been read yet';
   const deadline = Date.now() + TIMEOUT;
   while (Date.now() < deadline) {
     const now = await page.evaluate(`(function () {
       var el = document.querySelector(${JSON.stringify(selector)});
       if (!el) return null;
       var b = el.getBoundingClientRect();
-      return JSON.stringify({ x: b.x, y: b.y, w: b.width, h: b.height });
+      var svg = document.getElementById('graph');
+      var canvas = document.getElementById('canvas');
+      var v = (window.ZT && window.ZT.view) ? window.ZT.view() : null;
+      var cr = canvas ? canvas.getBoundingClientRect() : null;
+      var m = svg ? svg.getScreenCTM() : null;
+      var why = '';
+      // Only while the canvas has a box of its own. Where it has none the drawing is off screen,
+      // there is no transform to be in the space of, and what is being measured is a control in
+      // the chrome rather than a tile on the plane.
+      if (v && cr && cr.width > 2 && cr.height > 2) {
+        if (v.w !== cr.width || v.h !== cr.height) {
+          why = 'the page has framed a window of ' + v.w + ' by ' + v.h +
+                ' and the canvas measures ' + cr.width + ' by ' + cr.height;
+        } else if (m && Math.abs(m.a - v.k) > v.k * 1e-3) {
+          why = 'the page holds a scale of ' + v.k +
+                ' and the browser is rendering the drawing at ' + m.a;
+        }
+      }
+      return JSON.stringify({ x: b.x, y: b.y, w: b.width, h: b.height, why: why });
     })()`);
     if (now === null) throw new Error(`no element matches ${selector}`);
-    if (now === last) {
-      const b = JSON.parse(now);
-      return { ...b, cx: b.x + b.w / 2, cy: b.y + b.h / 2 };
+    const b = JSON.parse(now);
+    if (now === last && !b.why) {
+      return { x: b.x, y: b.y, w: b.w, h: b.h, cx: b.x + b.w / 2, cy: b.y + b.h / 2 };
     }
+    why = b.why || `${selector} is still moving`;
     last = now;
     await sleep(40);
   }
-  throw new Error(`${selector} never stopped moving`);
+  throw new Error(`${selector} never settled: ${why}`);
 }
 
 // Click a node by its data-node key, on a rect that has settled, hit tested first.
@@ -3606,12 +3658,39 @@ async function checkBoard(page, base) {
 }
 
 // ---- every width --------------------------------------------------------------------------------
+// The frame the drawing is fitted to, and the box it was fitted against. Issue 114.
+const FRAME_READ = `(function () {
+  var svg = document.getElementById('graph');
+  var c = document.getElementById('canvas').getBoundingClientRect();
+  var v = window.ZT.view();
+  return JSON.stringify({ viewBox: svg.getAttribute('viewBox'), k: v.k, w: v.w, h: v.h,
+                          canvas: [c.width, c.height] });
+})()`;
+
 async function checkWidth(page, base) {
+  // Read before the sweep below takes the canvas off screen, and again while it is off. Issue
+  // 114: #/board is the one route that sets display:none on the drawing, viewport.js clamps a rect
+  // of nothing up to one pixel, and applyView() framed that one pixel across the whole element.
+  // The transform that came out was a scale of 900 where the page held 1.19, and it stayed on the
+  // element until the ResizeObserver delivered, which is one rendering update after board.js gives
+  // the canvas its box back. A reader never meets that frame because the observer runs before
+  // paint. Anything measuring a rect in the gap does, and this suite did, three times in CI, and
+  // reported the page broken for it.
+  //
+  // ASSERTED ON THE FRAME AND NOT ON THE CONSEQUENCE, because the consequence is a race and the
+  // frame is not: whether the six figure rect is still there when a driver looks depends on the
+  // runner, and whether the page wrote it at all does not. Here rather than in the reveal group
+  // because this phase is the one that takes the canvas off screen, and at every width because
+  // the box that is or is not framed is a different box at each of them.
+  const framedAt = JSON.parse(await page.evaluate(FRAME_READ));
+  let framedOff = null;
+
   const routes = [['#/', 'the diagram'], ['#/board', 'the board'], ['#/students', 'the student list']];
   for (const [hash, what] of routes) {
     await page.evaluate(`location.hash = ${JSON.stringify(hash)}`);
     if (hash === '#/board') {
       await page.waitFor(`document.querySelectorAll('#bbody .bcol').length === 4`, 'the board to draw');
+      framedOff = JSON.parse(await page.evaluate(FRAME_READ));
     } else if (hash === '#/students') {
       await page.waitFor('window.ZT.roster() === true', 'the student list to open');
     } else {
@@ -3628,6 +3707,15 @@ async function checkWidth(page, base) {
   }
   await page.evaluate(`location.hash = '#/'`);
   await page.waitFor('window.ZT.roster() === false', 'the diagram to come back');
+
+  assert('the drawing keeps the frame it was fitted to while the canvas is off screen',
+    framedOff !== null && framedOff.viewBox === framedAt.viewBox,
+    `the viewBox ${framedAt.viewBox} still on the drawing while #/board is up`,
+    framedOff === null ? 'the board route was never reached'
+                       : `${framedOff.viewBox}, framed against a canvas of ` +
+                         `${framedOff.canvas[0]} by ${framedOff.canvas[1]}`,
+    `fitted against ${framedAt.canvas[0]} by ${framedAt.canvas[1]} at a scale of ` +
+    `${framedAt.k.toFixed(6)}`);
 
   // ONE ROW, ONE BASELINE, AT EVERY WIDTH. Issue 77 found eleven of eleven controls in this header
   // failing WCAG 2.2 SC 2.5.8 and two baselines a pixel apart inside a line that reads as one line,

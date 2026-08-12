@@ -141,6 +141,20 @@
 
     function applyView() {
       if (!(view.k > 0) || !isFinite(view.k)) return;
+      // AND THE WINDOW HAS TO BE A WINDOW. Issue 114. measure() clamps a rect of nothing up to
+      // 1x1, so a canvas that is display:none reports a box of one pixel rather than of none, and
+      // the line below would then frame one pixel's worth of plane across the whole element: a
+      // viewBox eight tenths of a unit wide, a rendered scale of 900 where view.k says 1.19. On
+      // #/board the canvas IS display:none, board.js loads after app.js and so removes the class
+      // one hashchange listener later than refit() reads the box, and the ResizeObserver that
+      // repairs it delivers in the next rendering update. Between those two the element is on
+      // screen carrying a transform derived from a box it did not have, and every tile in it
+      // measures six figures wide. No reader ever sees that frame, because the observer runs
+      // before paint; a driver reading getBoundingClientRect() in the gap does, and it read one,
+      // and it reported the page broken three times for it.
+      // The same test init() and refit() already use for "is this a real measurement", in the one
+      // place that writes the transform, so a fourth caller cannot reintroduce the gap.
+      if (!(vw > 2 && vh > 2)) return;
       // Three decimals rather than two: the attribute is a string, so its precision is the
       // precision of the scale the browser actually renders at, and the anchored zoom is only as
       // exact as that. Three places puts the residual under a thousandth of a pixel.
