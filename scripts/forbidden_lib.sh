@@ -210,8 +210,21 @@ fail() {
 
 # All matches of a pattern in a file, deduplicated. Empty output when there are none, and no
 # non-zero exit: a rule that finds nothing is a normal outcome, not an error.
+#
+# ALL MEANS ALL, AND IT DID NOT. Issue 103. This carried an undocumented `head -20`, and the
+# value it truncated is the one scan_file's rule loops iterate, not a printed report: the
+# twenty first distinct match in a file was never compared against the exemption table and never
+# reached fail(), so a file holding twenty one corpus links, uuids or email addresses was judged
+# on twenty of them and the gate said clean about the rest. The docstring above said "all
+# matches" the whole time, which is the difference this card is about.
+#
+# The cap is gone rather than raised. A higher number is the same defect further away, and there
+# is nothing to trade for it: `sort -u` has already collapsed the repeats, these three patterns
+# match nothing at all in a healthy tree, and a file that really does hold hundreds of them is a
+# file whose findings a reader needs in full. Truncating the DECIDING path to keep a log short
+# is trading the answer for the report.
 collect() {
-  grep -aoP "$1" "$2" | sort -u | head -20 || true
+  grep -aoP "$1" "$2" | sort -u || true
 }
 
 # Declared self-matches. The repository-side gate has to scan the gate's own source, which

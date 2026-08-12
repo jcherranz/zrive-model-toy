@@ -702,6 +702,33 @@ raise SystemExit(1)' "$1" "$2" 2>/dev/null || true
 # Self-test. Every probe runs the same scan_file, or the same scan_citations_file, that the
 # real scan runs.
 # ---------------------------------------------------------------------------------------
+#
+# HOW MANY PROBES THIS SUITE INTENDS, WRITTEN DOWN BY HAND. Issue 103. `total` below is
+# incremented by each probe as it executes, so `pass -eq total` is invariant under any probe
+# that is deleted, commented out, or never reached: a suite emptied one probe at a time keeps
+# printing a clean ratio all the way down to 0/0. That is this repository's signature failure,
+# a check reporting on less than it claims, and the two places it has already been fixed both
+# fixed it the same way: build/model.py emits a `#rows|N` terminator carrying the count it meant
+# to write and scan_contrast_rows refuses a table that does not match it, and scripts/smoke.mjs
+# declares EXPECTED_ASSERTIONS and refuses a run that recorded a different number. This is that
+# same terminator in this file.
+#
+# It is written by hand and it must stay written by hand. A count taken from the run cannot
+# notice a probe that did not run, which is the whole of the defect. Editing a probe in or out
+# without editing this number is meant to be a red run.
+#
+# A short run exits 2 and not 1: the suite could not answer for itself, which is the same
+# distinction smoke.mjs draws between "the page has regressed" and "the suite could not answer".
+# A run that ALSO recorded a real MISS reports the MISS and exits 1, because evidence about the
+# gate beats a complaint about the harness.
+EXPECTED_PROBES=86
+
+# How many cases build/model.py's stylesheet reader emits into the block below. Same argument,
+# and it lives here rather than in the emitter because here is where the cases are judged and
+# where a reader looking at the ratio would be misled by a short one. See that block for what
+# the old floor of one could not see.
+EXPECTED_PALETTE_CASES=22
+
 self_test() {
   local tmp fake_hashes fake_defs pass=0 total=0
   WORKDIR="$(mktemp -d)"; tmp="$WORKDIR"
@@ -802,6 +829,25 @@ self_test() {
   probe "the real-name rule ignores every declaration" 'trip' \
         'Palantir, and taught by Ada Kestrelvane' \
         "banned-word|probe.txt|Palantir" "corpus-link|probe.txt|collection://"
+
+  # THE MATCH THE CAP COULD NOT SEE. Issue 103. collect() in scripts/forbidden_lib.sh truncated
+  # its output at twenty and the rule loops iterate that list, so the twenty first distinct match
+  # in a file was never compared against the exemption table and never reached fail(). A file
+  # holding twenty one was judged on twenty of them and the gate answered clean about the rest.
+  #
+  # This probe is that file: twenty one distinct uuids, the first twenty declared as self-matches
+  # so they are known and tolerated, and the twenty first the only thing left to find. It trips
+  # only if the rule was shown all twenty one. The payload is built in a loop rather than typed,
+  # so no complete uuid is a literal in this file and the gate scanning its own source has no new
+  # payload to declare.
+  local cap_payload="" cap_i
+  local -a cap_ex=()
+  for cap_i in $(seq -w 1 21); do
+    cap_payload+="row ${cap_i}, id 3f2504e0-4f89-11d3-9a0c-0305e82c33${cap_i}"$'\n'
+    [ "$cap_i" = 21 ] || cap_ex+=("uuid|probe.txt|3f2504e0-4f89-11d3-9a0c-0305e82c33${cap_i}")
+  done
+  probe "the 21st distinct match in one file is still judged" 'trip' \
+        "$cap_payload" "${cap_ex[@]}"
 
   # THE ORIGINAL DEFECT, kept as a probe rather than as a sentence in a document. On the day
   # this discipline was written, a real surname stood in exactly this position: the worked
@@ -1002,7 +1048,20 @@ Probe|Probe|dark|#9d3f9d|#252a31|2.4972|#1c2127|2.8015
   # is judged, and a probe suite counted nowhere is a probe suite that can quietly stop running.
   echo
   echo "self-test: the stylesheet reader the contrast gate measures its plates with"
-  local palette_cases=0 verdict name
+  #
+  # A FLOOR OF ONE IS NOT A COUNT. Issue 103, and this block carried the defect its own comment
+  # above warns about. It asserted `palette_cases > 0` and ran the producer under `|| true`, so
+  # a non-zero exit was swallowed and a stream truncated to a single case was indistinguishable
+  # from a complete one. Measured: an edit in build/model.py that made the emitter yield 1 case
+  # instead of 22 took this suite from 73/73 to 52/52 at exit 0, while the line meant to notice
+  # printed `[OK] the stylesheet reader's own probes ran at all`. Twenty one assertions retired
+  # by an edit in a file that is not gate code, and nothing said so.
+  #
+  # So the count is declared (EXPECTED_PALETTE_CASES) and the producer's exit status is read
+  # instead of discarded. The stream goes through a file rather than a process substitution for
+  # exactly that second reason: `< <(cmd || true)` has no exit status a caller can see.
+  local palette_cases=0 palette_rc=0 verdict name
+  python3 "$ROOT/build/model.py" --palette-self-test > "$tmp/palette" 2>/dev/null || palette_rc=$?
   while IFS='|' read -r verdict name; do
     [ -n "$name" ] || continue
     palette_cases=$((palette_cases + 1))
@@ -1013,15 +1072,22 @@ Probe|Probe|dark|#9d3f9d|#252a31|2.4972|#1c2127|2.8015
     else
       echo "  [MISS] $name"
     fi
-  done < <(python3 "$ROOT/build/model.py" --palette-self-test || true)
-  # And the poka-yoke this file applies to every other scan: a suite that emitted no case at all
-  # must read as a failure, not as a clean run over nothing.
+  done < "$tmp/palette"
+
   total=$((total + 1))
-  if [ "$palette_cases" -gt 0 ]; then
-    echo "  [OK]   the stylesheet reader's own probes ran at all"
+  if [ "$palette_cases" -eq "$EXPECTED_PALETTE_CASES" ]; then
+    echo "  [OK]   the stylesheet reader emitted all $EXPECTED_PALETTE_CASES cases it intends"
     pass=$((pass + 1))
   else
-    echo "  [MISS] the stylesheet reader emitted no probe at all"
+    echo "  [MISS] the stylesheet reader intends $EXPECTED_PALETTE_CASES cases and emitted $palette_cases"
+  fi
+
+  total=$((total + 1))
+  if [ "$palette_rc" -eq 0 ]; then
+    echo "  [OK]   the stylesheet reader's own suite exited clean"
+    pass=$((pass + 1))
+  else
+    echo "  [MISS] the stylesheet reader's own suite exited $palette_rc and the cases above are what it managed to print"
   fi
 
   echo
@@ -1293,8 +1359,21 @@ print([i["title"] for i in issues if i["number"] == 1][0])' "$tmp/issues.json")"
   fi
 
   echo
-  echo "self-test: $pass/$total"
-  [ "$pass" -eq "$total" ]
+  echo "self-test: $pass/$total, of $EXPECTED_PROBES intended"
+  local short=0
+  if [ "$total" -ne "$EXPECTED_PROBES" ]; then
+    short=1
+    echo
+    echo "ASSERTION FAILED: this suite intends $EXPECTED_PROBES probes and $total ran."
+    echo "A ratio is not a count. Either a probe stopped running, in which case the rule it"
+    echo "proved is now proved by nothing, or one was added and EXPECTED_PROBES was not moved"
+    echo "with it. Both are edits somebody has to make on purpose."
+  fi
+  if [ "$pass" -ne "$total" ]; then
+    return 1
+  fi
+  [ "$short" -eq 0 ] || return 2
+  return 0
 }
 
 # ---------------------------------------------------------------------------------------

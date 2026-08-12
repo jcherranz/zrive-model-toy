@@ -118,6 +118,18 @@ fetch_deployed() {
 # against the real register: proving the matcher works must not require a real name to exist
 # anywhere in this repository, in a temporary file or in a log.
 # ---------------------------------------------------------------------------------------
+#
+# HOW MANY PROBES THIS SUITE INTENDS, WRITTEN DOWN BY HAND. Issue 103, and the same terminator
+# scripts/check_repo.sh now carries and scripts/smoke.mjs has carried since issue 67. `total` is
+# incremented by each probe as it executes, so `pass -eq total` holds however many probes were
+# deleted, commented out or never reached, and a suite emptied one probe at a time keeps
+# printing a clean ratio down to 0/0. A count taken from the run cannot notice a probe that did
+# not run, so this one is not taken from the run. Moving a probe means moving this number.
+#
+# A short run exits 2, which is "the suite could not answer for itself" and not "the gate is
+# broken"; a run that also recorded a MISS reports the MISS and exits 1.
+EXPECTED_PROBES=16
+
 self_test() {
   local tmp fake_hashes whole_hashes rc pass=0 total=0
   WORKDIR="$(mktemp -d)"; tmp="$WORKDIR"
@@ -232,8 +244,20 @@ self_test() {
   fi
 
   echo
-  echo "self-test: $pass/$total"
-  [ "$pass" -eq "$total" ]
+  echo "self-test: $pass/$total, of $EXPECTED_PROBES intended"
+  local short=0
+  if [ "$total" -ne "$EXPECTED_PROBES" ]; then
+    short=1
+    echo
+    echo "ASSERTION FAILED: this suite intends $EXPECTED_PROBES probes and $total ran."
+    echo "A ratio is not a count. Either a probe stopped running and the rule it proved is now"
+    echo "proved by nothing, or one was added and EXPECTED_PROBES was not moved with it."
+  fi
+  if [ "$pass" -ne "$total" ]; then
+    return 1
+  fi
+  [ "$short" -eq 0 ] || return 2
+  return 0
 }
 
 # ---------------------------------------------------------------------------------------
