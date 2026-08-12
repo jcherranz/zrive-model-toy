@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T11:49:25Z",
+  "generated": "2026-08-12T11:52:15Z",
   "columns": [
     {
       "key": "raw",
@@ -77,15 +77,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/104"
         },
         {
-          "id": 105,
-          "title": "Every open issue title reaches the public origin verbatim, past a gate proved bypassable",
-          "labels": [
-            "audit",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/105"
-        },
-        {
           "id": 106,
           "title": "Seven false or dead records in the repository, and no gate can see any of them",
           "labels": [
@@ -100,16 +91,6 @@
       "key": "in_progress",
       "title": "In progress",
       "cards": [
-        {
-          "id": 96,
-          "title": "Tile frame is too tight on the drawing",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/96"
-        },
         {
           "id": 97,
           "title": "Not centered in the frame",
@@ -129,6 +110,15 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/98"
+        },
+        {
+          "id": 105,
+          "title": "Every open issue title reaches the public origin verbatim, past a gate proved bypassable",
+          "labels": [
+            "audit",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/105"
         }
       ]
     },
@@ -154,6 +144,16 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/99"
+        },
+        {
+          "id": 96,
+          "title": "Tile frame is too tight on the drawing",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/96"
         },
         {
           "id": 94,
@@ -204,19 +204,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/90"
-        },
-        {
-          "id": 88,
-          "title": "Calendar view needs month and week grids, and the data says which one earns its place",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/88"
         }
       ],
-      "hidden": 74,
+      "hidden": 75,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
