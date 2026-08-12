@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T00:01:26Z",
+  "generated": "2026-08-12T00:19:27Z",
   "columns": [
     {
       "key": "raw",
@@ -103,26 +103,6 @@
       "key": "backlog",
       "title": "Backlog",
       "cards": [
-        {
-          "id": 70,
-          "title": "The inner edge of a tile stroke is ungated, and three light colours are under 3:1 there",
-          "labels": [
-            "documentation",
-            "model",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/70"
-        },
-        {
-          "id": 74,
-          "title": "Ten type hexes were chosen against 4.5 for a label that no longer takes them",
-          "labels": [
-            "enhancement",
-            "model",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/74"
-        },
         {
           "id": 75,
           "title": "The visit edge should terminate on the Cohort, not the Programme",
@@ -259,7 +239,7 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/79"
         }
       ],
-      "hidden": 63,
+      "hidden": 65,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
