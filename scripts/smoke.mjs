@@ -258,7 +258,7 @@ const PHASES = {
   'model and reveal':     { count: 14, when: 'behavioural' },
   'cold load':            { count: 4, when: 'behavioural' },
   'students':             { count: 11, when: 'behavioural' },
-  'term':                 { count: 53, when: 'behavioural' },
+  'term':                 { count: 54, when: 'behavioural' },
   'header':               { count: 8, when: 'behavioural' },
   'canvas':               { count: 7, when: 'behavioural' },
   'capture':              { count: 14, when: 'behavioural' },
@@ -268,7 +268,7 @@ const PHASES = {
   'the count':            { count: 3, when: 'grain' },
   'well formed':          { count: 6, when: 'grain' },
   'the fold':             { count: 3, when: 'grain' },
-  'reflow':               { count: 4, when: 'grain' },
+  'reflow':               { count: 8, when: 'grain' },
   'the address':          { count: 3, when: 'grain' },
   'keeping place':        { count: 3, when: 'grain' },
   'composing':            { count: 4, when: 'grain' },
@@ -426,7 +426,7 @@ const PHASES = {
 // page wrote on location.hash, and reloads that. F8 added nothing to the total and changed two
 // assertions in `keeping place`, which read `sel.type` alone and so could not tell the module the
 // reader came from from any other module.
-const EXPECTED_ASSERTIONS = 184;
+const EXPECTED_ASSERTIONS = 189;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -1792,6 +1792,54 @@ const TERM_READ = `(function () {
   };
 })()`;
 
+// ---- what the page says about the standing of its own content, issues 110 and 115 -------------
+// ROUND 6 FOUND THIS GUARD NARROWER THAN ITS NAME AND PROVED IT TWICE. What stood here read leaf
+// `textContent` under `#term *` and the `footer`'s text, matched against one word stem, on the
+// calendar route alone. So the exact sentence #110 deleted, put straight back into the chip's
+// `title` attribute, shipped green; and a synonym in the footer's visible text shipped green
+// through verify.sh. A guard that can see one channel and one word is a guard against the last
+// edit rather than against the next one.
+//
+// THREE THINGS WIDENED, AND EACH OF THEM IS ONE OF THE TWO PROOFS. The whole document rather than
+// two containers, so a statement in the header, the menus, the panel or the help box is seen.
+// ATTRIBUTES as well as text, because a tooltip is read by the reader and `textContent` cannot
+// see one, and because that is exactly where construction A put it. And a VOCABULARY rather than
+// a stem, because the instruction was about the claim and not about a word: a page that says the
+// same thing in other words has said it.
+//
+// SCRIPT AND STYLE ARE SKIPPED AND #/board IS NOT SWEPT, both for the same reason and it is not
+// convenience. This is a rule about what the page says about ITS OWN content; a card drawn on the
+// board is a repository issue whose title was written by somebody else and is quoted, and this
+// suite's own board fixture is written by this file. Sweeping either would make the guard fail on
+// text that is not the page's statement about itself, and a guard that cries wolf is turned off.
+const STANDING_WORDS =
+  /invent|fictit|fictic|ficción|ficcion|fabricat|placeholder|made up|make believe|not real|no es real|dummy|fake|falso|synthetic|simulated|imaginar/i;
+
+const STANDING_READ = `(function () {
+  var HITS = ${STANDING_WORDS.toString()};
+  var ATTRS = ['title', 'aria-label', 'aria-description', 'aria-roledescription', 'alt',
+               'placeholder', 'aria-placeholder', 'aria-valuetext', 'content'];
+  var SKIP = { SCRIPT: 1, STYLE: 1, TEMPLATE: 1, NOSCRIPT: 1 };
+  var out = [];
+  function name(e) {
+    var c = e.className;
+    if (c && typeof c === 'object') c = c.baseVal;
+    return e.nodeName.toLowerCase() + (e.id ? '#' + e.id : '') +
+           (c ? '.' + String(c).split(/\\s+/)[0] : '');
+  }
+  function look(where, text) {
+    if (text && HITS.test(text)) out.push(where + ' :: ' + String(text).trim().slice(0, 90));
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('*'), function (e) {
+    if (SKIP[e.nodeName]) return;
+    if (e.children.length === 0) look(name(e) + ' text', e.textContent);
+    ATTRS.forEach(function (a) {
+      if (e.hasAttribute && e.hasAttribute(a)) look(name(e) + ' @' + a, e.getAttribute(a));
+    });
+  });
+  return out;
+})()`;
+
 // Monday is 0, which is the column a day lands in on both grids. Written here rather than taken
 // off the page, because a driver that asked the page which column a date belongs in would be
 // asserting the page against itself.
@@ -1926,6 +1974,48 @@ async function checkTerm(page) {
     'module_name and sequence on the panel, both carrying the flag `real` in the document and ' +
       'neither printing it',
     JSON.stringify(tprops));
+
+  // AND THE OTHER DIRECTION, OVER ALL SIX KEYS AND EVERY ROW THAT CARRIES ONE. Issue 115's F28.
+  // The assertion above is the whole of the downgrade coverage there was, and it reads two keys
+  // off ONE selected template: `module_code` and `module` downgraded to `dummy` in the model
+  // shipped green through every gate, because check_provenance has no rule for a real value
+  // flagged dummy and, after #110, nothing renders the flag either. A downgraded row was
+  // invisible in the gate AND on the page.
+  //
+  // SO THIS ENUMERATES RATHER THAN LISTING, which is the shape the target-size row has and the
+  // reason that row is the strongest thing in this file: the six keys are walked over both lists
+  // and every node in them, so a seventh row carrying one of these keys is covered without
+  // anybody remembering to cover it. `absent` is allowed and `real` is allowed, because
+  // build/model.py argues the symmetric rule would be false: eight module_name rows are
+  // legitimately absent. What is refused is any other token, which is what a downgrade is.
+  // Each key is also required to appear at least once, so a rule that stopped emitting a key
+  // cannot pass this by having nothing left to judge.
+  const syllabus = await page.evaluate(`(function () {
+    var KEYS = ['module_name', 'sequence', 'modules', 'module_code', 'module', 'in_the_syllabus'];
+    var seen = {}, bad = [], n = 0;
+    KEYS.forEach(function (k) { seen[k] = 0; });
+    ['views', 'collapsed'].forEach(function (which) {
+      (window.GI[which] || []).forEach(function (v) {
+        (v.nodes || []).forEach(function (node) {
+          (node.props || []).forEach(function (p) {
+            if (KEYS.indexOf(p.k) < 0) return;
+            n++;
+            seen[p.k]++;
+            if (p.f !== 'real' && p.f !== 'absent') {
+              bad.push(v.key + ' ' + node.id + ' ' + p.k + ' flagged ' + p.f);
+            }
+          });
+        });
+      });
+    });
+    return { keys: KEYS, seen: seen, bad: bad, n: n };
+  })()`);
+  assert('no row carrying a syllabus key is downgraded, over all six keys and both grains',
+    syllabus.bad.length === 0 && syllabus.keys.every(k => syllabus.seen[k] > 0),
+    `every one of the ${syllabus.n} rows under ${syllabus.keys.join(', ')} flagged real or ` +
+      'absent, and each of the six keys present somewhere',
+    `${syllabus.bad.length} downgraded ${JSON.stringify(syllabus.bad.slice(0, 6))}, ` +
+      `counts ${JSON.stringify(syllabus.seen)}`);
   await clearSelection(page);
 
   // ---- the calendar reading ---------------------------------------------------
@@ -2081,10 +2171,59 @@ async function checkTerm(page) {
   // open on the footer claiming everything is invented while nearly half the shipped values are
   // flagged as read off a real system. A page that says nothing about its own truthfulness cannot
   // say something wrong about it.
+  //
+  // AND "ANYWHERE" NOW MEANS ANYWHERE, which is issue 115's F26. The reading is the sweep above,
+  // over the whole document including its attributes, on every address the page publishes rather
+  // than on the calendar alone. The two old counts are kept in the same assertion because they
+  // are the same claim read in the place the last card made it, and losing them would be trading
+  // one narrow reading for another.
+  //
+  // AND EVERY SHAPE OF EVERY ADDRESS, NOT EVERY ADDRESS. Found while proving this: the guard as
+  // first widened still missed the attribute channel, because a calendar drawn as a LIST has no
+  // chips in it and the chip's tooltip is where the deleted sentence lived. A reading has three
+  // shapes and the sheet remembers which one the reader last chose, so a sweep that visits every
+  // address in whichever shape it happens to be in has swept one third of the sheet. Each shape
+  // control is pressed and the document is read again. The outline routes are also swept with
+  // every row disclosed, since a block that is not open is not in the document at all.
+  const standing = [];
+  const standingRoutes = ['#/', '#/students'].concat(
+    JSON.parse(await page.evaluate('JSON.stringify(window.ZT.termRoutes())')));
+  for (const at of standingRoutes) {
+    const stops = [at].concat(/^#\/outline/.test(at) ? [at + '?open=all'] : []);
+    for (const stop of stops) {
+      await page.evaluate(`location.hash = ${JSON.stringify(stop)}`);
+      await sleep(90);
+      // The control offers the shapes the sheet is NOT in, so the list changes under every
+      // press. Read again after each one and stop when nothing unpressed is left.
+      const offered = `(function () {
+        return JSON.stringify(Array.prototype.map.call(
+          document.querySelectorAll('#termnotice .shape-btn'),
+          function (b) { return b.textContent; }));
+      })()`;
+      const pressed = new Set();
+      for (let turn = 0; turn < 5; turn++) {
+        const hits = await page.evaluate(STANDING_READ);
+        hits.forEach(h => standing.push(stop + '  ' + h));
+        const next = JSON.parse(await page.evaluate(offered)).filter(s => !pressed.has(s));
+        if (!next.length) break;
+        pressed.add(next[0]);
+        await pressByText(page, '#termnotice .shape-btn', next[0]);
+        await sleep(80);
+      }
+    }
+  }
+  await page.evaluate(`location.hash = '#/calendar'`);
+  await page.waitFor(`window.ZT.term().open === true &&
+                      window.ZT.term().reading === 'calendar'`,
+    'the calendar reading to come back after the sweep');
+
   assert('no statement anywhere on the page about the standing of the content',
-    cal.inventedInSheet.length === 0 && cal.inventedInFooter === 0,
-    'none in the sheet and none in the footer',
-    `${cal.inventedInSheet.length} in the sheet ${JSON.stringify(cal.inventedInSheet)}, ` +
+    standing.length === 0 && cal.inventedInSheet.length === 0 && cal.inventedInFooter === 0,
+    `nothing matching ${STANDING_WORDS} in the text or the attributes of any element, on any ` +
+      `of the ${standingRoutes.length} addresses the page publishes, in every shape each of ` +
+      'them offers',
+    `${standing.length} on the sweep ${JSON.stringify(standing.slice(0, 6))}, ` +
+      `${cal.inventedInSheet.length} in the sheet ${JSON.stringify(cal.inventedInSheet)}, ` +
       `${cal.inventedInFooter} in the footer`);
 
   // ---- the time window, issue 90 -------------------------------------------------
@@ -3887,6 +4026,248 @@ function checkRequests(page, base) {
 }
 
 // =================================================================================================
+// THE FILTERED DRAWING, RECOMPUTED HERE. Issue 115, findings F9, F11, F18 and F21.
+// =================================================================================================
+// WHAT WAS COVERED AND WHAT WAS NOT. `window.ZT.reflow()` is `faithful(CANON)`, and `CANON` is
+// written by draw() while setWindow() never touches it, so its answer is filter-independent BY
+// CONSTRUCTION: displacing the whole filtered drawing by 37px moved the picture on screen and left
+// the printed reflow line byte-identical. `filtered()` has its own call to place() and to
+// edgeGeom(), and that call site was covered by nothing at all. The edges were ungated in both
+// directions: halving the drawn lines was 177 of 177, and re-pointing a vanished end at a
+// surviving tile drew 82 lines where 28 are right, 54 of them terminating on the wrong tile, also
+// 177 of 177. The three conjuncts that looked like a cross-check were tautologies of the page's
+// own bookkeeping, and the two numbers the comment said were "asserted against each other" were
+// one number routed through the window control's `title`.
+//
+// SO THIS IS A SECOND IMPLEMENTATION, IN THE DRIVER, OF WHAT THE FILTERED DRAWING SHOULD BE. It is
+// the shape the gap count (#98) already has and the reason that row goes red on three assertions
+// when the model rule is broken: a different source read by different code. It takes site/
+// layout.js and site/instance.js as two documents and joins them here rather than through app.js's
+// join; it re-derives the column list, the pitch and the top margin; it packs the columns with
+// build_layout.py's own rule, transcribed from the pack() the build writes and the one render.js
+// reflows with; it computes each arc from the two tiles it joins; and it reads the answer off the
+// DOM. Nothing below asks the page what it did.
+//
+// AND WHAT IT TAKES FROM THE PAGE IS THE SET OF TILES ON SCREEN, WHICH IS THE INPUT AND NOT THE
+// ANSWER. Given whatever the drawing chose to show, the placement of those tiles, the set of lines
+// between them and the shape of every one of those lines are all decided, and all three are
+// checked. What decided the set itself is checked separately and from the dates, below.
+//
+// THE FOUR CONSTANTS ARE TRANSCRIBED AND THAT IS DELIBERATE. SPREAD, SPREAD_FROM, DIP, CTRL_MIN
+// and CTRL_FRAC are render.js's and build_layout.py's; a copy here is a third statement of them,
+// so retuning one file and not the others turns this red. That is the property this file wants: a
+// second opinion that has to be brought along on purpose.
+const FILTERED_TRUTH = `(function () {
+  var key = window.ZT.programme().key;
+  var grain = window.ZT.grain().grain;
+  var list = grain === 'modules' ? 'collapsed' : 'views';
+  var iv = null, lv = null;
+  (window.GI[list] || []).forEach(function (v) { if (v.key === key) iv = v; });
+  (window.GL[list] || []).forEach(function (v) { if (v.key === key) lv = v; });
+  if (!iv || !lv) return { error: 'no ' + grain + ' document for ' + key };
+  var d = lv.drawing;
+  if (iv.nodes.length !== d.nodes.length) return { error: key + ': the two documents disagree' };
+
+  // ---- the columns, over all fourteen drawings, which is what an edge's shape is indexed on ----
+  var seenX = {}, COLS = [];
+  ['views', 'collapsed'].forEach(function (which) {
+    (window.GL[which] || []).forEach(function (v) {
+      v.drawing.nodes.forEach(function (n) {
+        if (seenX[n.x]) return;
+        seenX[n.x] = true;
+        COLS.push(n.x);
+      });
+    });
+  });
+  COLS.sort(function (a, b) { return a - b; });
+  function colOf(x) {
+    var best = 0, bd = Infinity, i, gap;
+    for (i = 0; i < COLS.length; i++) {
+      gap = Math.abs(COLS[i] - x);
+      if (gap < bd) { bd = gap; best = i; }
+    }
+    return best;
+  }
+
+  // ---- the node table: geometry from layout.js, dates and label shape from instance.js ----
+  var N = {}, all = [], mismatched = [];
+  iv.nodes.forEach(function (n, i) {
+    var g = d.nodes[i];
+    if (g.id !== n.id) { mismatched.push(n.id + ' has the coordinates of ' + g.id); return; }
+    var lines = (g.wrap || []).length + (n.mark ? 1 : 0) + (n.tail ? 1 : 0);
+    var by = {};
+    (n.props || []).forEach(function (p) {
+      by[p.k] = String(p.v == null ? '' : p.v).split(' ')[0];
+    });
+    N[n.id] = { id: n.id, type: n.type, x: g.x, y: g.y,
+                box: d.tile + d.gapLabel + d.lineH * lines,
+                at: by.scheduled_at || '', from: by.first_session || '', to: by.last_session || '' };
+    all.push(n.id);
+  });
+
+  function byColumn(ids) {
+    var cols = [];
+    ids.forEach(function (id) {
+      var c = colOf(N[id].x);
+      (cols[c] || (cols[c] = [])).push(id);
+    });
+    return cols;
+  }
+
+  // MIN_GAP and the top margin, read off the canonical artefact exactly as the build's pack()
+  // reads them: the closest two boxes in any column, and the highest tile edge in the drawing.
+  var pitch = Infinity;
+  byColumn(all).forEach(function (col) {
+    var s = col.slice().sort(function (a, b) { return N[a].y - N[b].y; }), i;
+    for (i = 1; i < s.length; i++) {
+      pitch = Math.min(pitch, N[s[i]].y - N[s[i - 1]].y - N[s[i - 1]].box);
+    }
+  });
+  pitch = isFinite(pitch) ? Math.round(pitch) : 26;
+  var top = Infinity;
+  all.forEach(function (id) { top = Math.min(top, N[id].y - d.tile / 2); });
+
+  // build_layout.py's pack(), one column at a time, vertically centred, honouring the gap, with
+  // the spread on the short right hand columns.
+  var SPREAD = 0.42, SPREAD_FROM = 4;
+  function place(ids) {
+    var cols = byColumn(ids), H = 0, at = {};
+    cols.forEach(function (col) { col.sort(function (a, b) { return N[a].y - N[b].y; }); });
+    cols.forEach(function (col) {
+      var hs = 0;
+      col.forEach(function (id) { hs += N[id].box; });
+      H = Math.max(H, hs + pitch * (col.length - 1));
+    });
+    cols.forEach(function (col, c) {
+      var k = col.length, hs = 0, gap = pitch, y;
+      col.forEach(function (id) { hs += N[id].box; });
+      if (k > 1 && k < 4 && c >= SPREAD_FROM) gap = Math.max(pitch, (SPREAD * H - hs) / (k - 1));
+      y = (H - (hs + gap * (k - 1))) / 2;
+      col.forEach(function (id) {
+        var h = N[id].box;
+        at[id] = y + h / 2 - (h - d.tile) / 2;
+        y += h + gap;
+      });
+    });
+    var lift = Infinity;
+    ids.forEach(function (id) { lift = Math.min(lift, at[id] - d.tile / 2); });
+    ids.forEach(function (id) { at[id] = Math.round((at[id] + top - lift) * 10) / 10; });
+    return at;
+  }
+
+  // build_layout.py's two edge shapes: three columns or more apart is an arc slung under the row,
+  // anything closer is a hop from one tile's edge to the next.
+  var DIP = 132, CTRL_MIN = 28, CTRL_FRAC = 0.45;
+  function f1(v) { return (Math.round(v * 10) / 10).toFixed(1); }
+  function arc(a, b) {
+    var span = Math.abs(b.col - a.col);
+    var L = a.col <= b.col ? a : b, R = a.col <= b.col ? b : a;
+    var p0, p1, p2, p3, dx;
+    if (span >= 3) {
+      p0 = [L.x, L.y + d.tile / 2]; p3 = [R.x, R.y + d.tile / 2];
+      p1 = [p0[0], p0[1] + DIP]; p2 = [p3[0], p3[1] + DIP];
+    } else {
+      p0 = [L.x + d.tile / 2, L.y]; p3 = [R.x - d.tile / 2, R.y];
+      dx = Math.max(CTRL_MIN, (p3[0] - p0[0]) * CTRL_FRAC);
+      p1 = [p0[0] + dx, p0[1]]; p2 = [p3[0] - dx, p3[1]];
+    }
+    return 'M ' + f1(p0[0]) + ' ' + f1(p0[1]) + ' C ' + f1(p1[0]) + ' ' + f1(p1[1]) + ' ' +
+           f1(p2[0]) + ' ' + f1(p2[1]) + ' ' + f1(p3[0]) + ' ' + f1(p3[1]);
+  }
+
+  // ---- what is on screen ------------------------------------------------------------------
+  var drawn = {}, shown = [], strangers = [];
+  Array.prototype.forEach.call(document.querySelectorAll('#graph g[data-node]'), function (g) {
+    var id = g.getAttribute('data-node');
+    var r = g.querySelector('rect.tile-bg');
+    if (!r) return;
+    if (!N[id]) { strangers.push(id); return; }
+    drawn[id] = { x: +r.getAttribute('x') + d.tile / 2, y: +r.getAttribute('y') + d.tile / 2 };
+    shown.push(id);
+  });
+
+  // ---- the placement ----------------------------------------------------------------------
+  var at = shown.length ? place(shown) : {};
+  var worstY = 0, worstX = 0, offY = null, offX = null;
+  shown.forEach(function (id) {
+    var dy = Math.abs(drawn[id].y - at[id]);
+    var dx = Math.abs(drawn[id].x - N[id].x);
+    if (dy > worstY) { worstY = dy; offY = id + ' at ' + drawn[id].y + ' where ' + at[id]; }
+    if (dx > worstX) { worstX = dx; offX = id + ' at ' + drawn[id].x + ' where ' + N[id].x; }
+  });
+
+  // ---- the edges, both directions ---------------------------------------------------------
+  // A LINE IS DRAWN WHEN BOTH OF ITS ENDS ARE DRAWN, which is the whole of #111's rule. So the
+  // expected set is computed from the canonical relationships and the tiles on screen, and the
+  // two sets are required to be equal. Presence AND absence: the suite used to check what
+  // survived and never that the rest had gone.
+  var want = {}, wantN = 0;
+  iv.edges.forEach(function (e) {
+    if (!drawn[e.s] || !drawn[e.t]) return;
+    want[e.s + '->' + e.t] = true;
+    wantN++;
+  });
+  var got = {}, gotN = 0;
+  Array.prototype.forEach.call(document.querySelectorAll('#graph g[data-edge]'), function (g) {
+    var p = g.querySelector('path.edge, path.edge-ghost, path.edge-outside');
+    if (!p) return;
+    got[g.getAttribute('data-edge')] = p.getAttribute('d');
+    gotN++;
+  });
+  var missing = Object.keys(want).filter(function (k) { return got[k] === undefined; });
+  var extra = Object.keys(got).filter(function (k) { return !want[k]; });
+
+  var worstArc = 0, offArc = null;
+  Object.keys(want).forEach(function (k) {
+    if (got[k] === undefined) return;
+    var p = k.split('->');
+    var mine = arc({ x: N[p[0]].x, y: at[p[0]], col: colOf(N[p[0]].x) },
+                   { x: N[p[1]].x, y: at[p[1]], col: colOf(N[p[1]].x) });
+    if (mine === got[k]) return;
+    var a = mine.match(/-?\\d+(\\.\\d+)?/g) || [], b = (got[k].match(/-?\\d+(\\.\\d+)?/g) || []);
+    var worst = a.length === b.length ? 0 : Infinity, i;
+    for (i = 0; i < a.length && i < b.length; i++) worst = Math.max(worst, Math.abs(a[i] - b[i]));
+    if (worst > worstArc) { worstArc = worst; offArc = k + ': ' + got[k] + ' where ' + mine; }
+  });
+
+  // ---- who the window should have taken off, from the dates and nothing else ---------------
+  // A SESSION IS IN THE WINDOW WHEN ITS DAY IS IN IT, AND A MODULE WHEN ITS SPAN MEETS IT. The
+  // second is written as the interval overlap it is, \`from <= to of the window and to >= from\`,
+  // rather than as the negation term.js writes, so this is the arithmetic and not a copy of the
+  // expression. Reading a module's START only would take it off the picture in every week of it
+  // but the first, which is the reading its own comment calls right and wrong, and which was
+  // ungated: at three weeks it took Z-BL from 24 tiles to 0 of 34 with every gate green.
+  var w = window.ZT.term().window;
+  var range = w && w.from && w.to ? { from: w.from, to: w.to } : null;
+  var dated = { governed: 0, inside: 0, outside: 0, wrong: [] };
+  if (range) {
+    all.forEach(function (id) {
+      var n = N[id], meets = null;
+      if (n.type === 'CohortSession' && n.at) meets = n.at >= range.from && n.at <= range.to;
+      else if (n.type === 'ModuleDelivery' && n.from && n.to) {
+        meets = n.from <= range.to && n.to >= range.from;
+      }
+      if (meets === null) return;
+      dated.governed++;
+      if (meets) dated.inside++; else dated.outside++;
+      if (meets !== !!drawn[id]) {
+        dated.wrong.push(id + ' ' + (meets ? 'in the window and off the picture'
+                                           : 'outside the window and on it'));
+      }
+    });
+  }
+
+  return { key: key, grain: grain, range: range, canonNodes: iv.nodes.length,
+           canonEdges: iv.edges.length, tiles: shown.length, strangers: strangers,
+           mismatched: mismatched, pitch: pitch, top: Math.round(top * 10) / 10,
+           worstY: Math.round(worstY * 1000) / 1000, offY: offY,
+           worstX: Math.round(worstX * 1000) / 1000, offX: offX,
+           edgesWanted: wantN, edgesDrawn: gotN, missing: missing, extra: extra,
+           worstArc: Math.round(worstArc * 1000) / 1000, offArc: offArc,
+           dated: dated };
+})()`;
+
+// =================================================================================================
 // THE GRAIN CONTROL, BOTH ALTITUDES. Issue 89, folded in by issue 109 out of build/check_grain.mjs.
 //
 // EVERY ONE OF THE 33 IS A CLAIM ISSUE 89 DECIDED and not a count of what the code happens to do,
@@ -3994,7 +4375,7 @@ const GRAIN_READ = `
 // verdict says the suite did not run what it says it intends.
 async function runGrain(chrome, base) {
   const KEYS = GRAIN_KEYS;
-  const per = {}, digests = {}, heights = {}, filteredReflow = {};
+  const per = {}, digests = {}, heights = {}, filteredReflow = {}, truth = {};
   let bl = null;
   let page = null;
 
@@ -4063,10 +4444,79 @@ async function runGrain(chrome, base) {
         tails.length === bl.grain.modules && tails.length > 0,
         `${bl.grain.modules} tails ending in "session templates"`,
         `${tails.length}: ${tails.join(' | ')}`);
+      // AND THE TOTAL IT NAMES IS RECOMPUTED HERE RATHER THAN PARSED AND BELIEVED. Issue 115's
+      // F12. `tails.every(...)` over a list filtered by the same words it then matches is
+      // vacuously true on an empty list, and the number inside the idiom was read by nothing at
+      // all: a module tile could say "all 14 session templates" of a module holding fifteen and
+      // every gate in this repository was green. So the driver joins the two altitudes itself.
+      // Each module tile's own count comes from the OTHER grain, by counting the session
+      // templates the sessions-grain document files under that module's name, which is the join
+      // the collapse is made of, checked from outside rather than read back off the tile.
+      const said = await ev(`
+        function propOf(n, k) {
+          var out = null;
+          (n.props || []).forEach(function (p) { if (p.k === k) out = p.v; });
+          return out;
+        }
+        var key = window.ZT.programme().key, want = {}, total = 0, mods = {};
+        window.GI.views.forEach(function (v) {
+          if (v.key !== key) return;
+          v.nodes.forEach(function (n) {
+            if (n.type !== 'SessionTemplate') return;
+            var m = propOf(n, 'module_name') || '(none)';
+            want[m] = (want[m] || 0) + 1;
+            total++;
+          });
+        });
+        window.GI.collapsed.forEach(function (v) {
+          if (v.key !== key) return;
+          v.nodes.forEach(function (n) {
+            if (n.type !== 'Module') return;
+            // The template's own module_name carries the code and the module tile keeps the two
+            // apart, so the join is made here rather than assumed: this is the same pair of
+            // fields the collapse itself joins on.
+            var syl = /^(\\d+) of the/.exec(String(propOf(n, 'in_the_syllabus') || ''));
+            mods[n.id] = { name: propOf(n, 'module_code') + ' ' + propOf(n, 'module_name'),
+                           syllabus: syl ? Number(syl[1]) : null };
+          });
+        });
+        var got = [];
+        document.querySelectorAll('#graph g[data-node]').forEach(function (g) {
+          var t = g.querySelector('text.lbl-tail');
+          if (!t || !/session templates$/.test(t.textContent)) return;
+          var id = g.getAttribute('data-node'), m = mods[id] || null;
+          got.push({ id: id, module: m ? m.name : null, tail: t.textContent,
+                     syllabus: m ? m.syllabus : null,
+                     want: (m && want[m.name] !== undefined) ? want[m.name] : null });
+        });
+        return { got: got, total: total };`);
+      // "all N" says the drawing holds the whole module and "N of M" says it holds a sample of
+      // it, so the idiom is not free: which form is used is itself a claim and is checked.
+      const IDIOM = /^(?:all (\d+)|(\d+) of (\d+)) session templates$/;
+      const readTail = (t) => {
+        const m = IDIOM.exec(t);
+        if (!m) return null;
+        return m[1] !== undefined
+          ? { drawn: Number(m[1]), of: Number(m[1]), whole: true }
+          : { drawn: Number(m[2]), of: Number(m[3]), whole: false };
+      };
+      const wrong = said.got.filter(r => {
+        const t = readTail(r.tail);
+        return !t || r.want === null || r.syllabus === null || t.drawn !== r.want ||
+               t.of !== r.syllabus || t.whole !== (t.drawn === r.syllabus);
+      });
+      const namedDrawn = said.got.reduce((a, r) => {
+        const t = readTail(r.tail);
+        return a + (t ? t.drawn : 0);
+      }, 0);
       assert('the count is in #83\'s idiom and names the syllabus total',
-        tails.every(t => /^(all \d+|\d+ of \d+) session templates$/.test(t)),
-        'every tail reading "N of M session templates" or "all M session templates"',
-        tails.join(' | '));
+        said.got.length === bl.grain.modules && said.got.length > 0 && wrong.length === 0 &&
+          namedDrawn === said.total,
+        `one tail per module reading "N of M session templates" or "all M", each N the number ` +
+          `of session templates that module holds at the sessions grain and each M its own ` +
+          `syllabus, together accounting for all ${said.total} templates the drawing collapsed`,
+        `${said.got.length} tails of ${bl.grain.modules} modules, ${wrong.length} disagreeing ` +
+          `with the document ${JSON.stringify(wrong)}, naming ${namedDrawn} templates`);
       assert('the term lane says how many sessions each module ran',
         bl.tails.filter(t => /(^| )sessions$/.test(t)).length >= bl.grain.modules,
         'one tail per module delivery',
@@ -4148,12 +4598,26 @@ async function runGrain(chrome, base) {
           const r = await read();
           filteredReflow[k + '/' + g] = { on: r.filtered.on, reflow: r.reflow,
                                           shown: r.filtered.shown.length };
+          truth[k + '/' + g] = await page.evaluate(FILTERED_TRUTH);
         }
       }
+      const T = Object.entries(truth);
+      const errored = T.filter(([, t]) => t.error || t.mismatched.length || t.strangers.length);
+      // TILES OFF THE PICTURE, COUNTED ON THE PICTURE. Issue 115's F11: this asserted `r.on` and
+      // nothing else, and the suite computed `shown` and threw it away, so the second half of the
+      // assertion's own name was never read. Disabling the line in render.js that marks a node
+      // outside the window left the window switched on, taking nothing off, and this stayed
+      // green. What is read now is the tiles the browser drew against the size of the canonical
+      // node set, both recomputed from the two documents.
+      const notCut = T.filter(([, t]) => !(t.tiles > 0 && t.tiles < t.canonNodes));
       assert('a window is on and has taken tiles off the picture, at both grains',
-        Object.values(filteredReflow).every(r => r.on),
-        'the window reporting itself on at both altitudes',
-        JSON.stringify(filteredReflow));
+        Object.values(filteredReflow).every(r => r.on) && errored.length === 0 &&
+          T.length === 4 && notCut.length === 0,
+        'the window on at both altitudes, and each of the four drawings showing some of its ' +
+          'tiles and not all of them',
+        errored.length
+          ? errored.map(([k, t]) => `${k}: ${t.error || t.mismatched.concat(t.strangers).join(' ')}`).join('; ')
+          : T.map(([k, t]) => `${k} ${t.tiles} of ${t.canonNodes}`).join('; '));
       assert('the reflow still lands on canonical with a window on, at both grains',
         Object.values(filteredReflow).every(r => r.reflow.dy <= TOL && r.reflow.dp <= TOL &&
                                                  r.reflow.arrows <= TOL && r.reflow.rev === 0),
@@ -4161,6 +4625,57 @@ async function runGrain(chrome, base) {
         Object.entries(filteredReflow)
           .map(([k, r]) => `${k} dy ${r.reflow.dy} dp ${r.reflow.dp} arrows ${r.reflow.arrows}`)
           .join('; '));
+
+      // AND THE FILTERED DRAWING ITSELF, WHICH THE THREE ASSERTIONS ABOVE CANNOT SEE. The one
+      // above reads `faithful(CANON)`, and CANON is what the build wrote: setWindow() never
+      // touches it, so that number is the same whatever the filtered drawing does with itself.
+      // These three read the filtered drawing off the DOM against FILTERED_TRUTH's own packing.
+      const misplaced = T.filter(([, t]) => !(t.worstY <= 0.05 && t.worstX <= 0.05 && t.tiles > 1));
+      assert('and the tiles it left are packed where the build\'s own rule puts that set, recomputed here',
+        errored.length === 0 && misplaced.length === 0,
+        'every tile on every one of the four filtered drawings within a twentieth of a unit of ' +
+          'the y a second implementation of pack() gives it, and on its canonical x',
+        misplaced.length
+          ? misplaced.map(([k, t]) => `${k} worst y ${t.worstY} (${t.offY}), worst x ` +
+              `${t.worstX} (${t.offX})`).join('; ')
+          : T.map(([k, t]) => `${k} ${t.tiles} tiles, worst ${t.worstY}`).join('; '));
+
+      const wrongEdges = T.filter(([, t]) => t.missing.length || t.extra.length ||
+                                             !(t.edgesWanted > 0));
+      assert('exactly the relationships whose two ends survived are drawn, and no others',
+        errored.length === 0 && wrongEdges.length === 0,
+        'on each of the four, the set of lines on the canvas equal to the set of canonical ' +
+          'relationships with both ends on the canvas, neither short nor over',
+        wrongEdges.length
+          ? wrongEdges.map(([k, t]) => `${k} wanted ${t.edgesWanted} drew ${t.edgesDrawn}, ` +
+              `${t.missing.length} missing (${t.missing.slice(0, 3).join(' ')}), ` +
+              `${t.extra.length} over (${t.extra.slice(0, 3).join(' ')})`).join('; ')
+          : T.map(([k, t]) => `${k} ${t.edgesWanted} of ${t.canonEdges}`).join('; '));
+
+      const bentArcs = T.filter(([, t]) => !(t.worstArc <= TOL));
+      assert('and every line is the curve the two tiles it joins put it on, recomputed here',
+        errored.length === 0 && bentArcs.length === 0,
+        'every path on every one of the four within a tenth of a unit of the arc a second ' +
+          'implementation of edgeGeom() draws between its own two ends',
+        bentArcs.length
+          ? bentArcs.map(([k, t]) => `${k} worst ${t.worstArc} on ${t.offArc}`).join('; ')
+          : T.map(([k, t]) => `${k} worst ${t.worstArc}`).join('; '));
+
+      // AND THE SET ITSELF, FROM THE DATES. Issue 115's F21. The modules-grain predicate was
+      // ungated: term.js reads a module's span and its own comment names the wrong reading, and
+      // swapping to it took Z-BL from 24 tiles to 0 of 34 at 177 of 177, because the only
+      // modules-grain check was `hidden.length > 0`, which a filter that deletes everything
+      // satisfies. There is now the same both-directions reading the sessions grain has had.
+      const misdated = T.filter(([, t]) => !t.range || t.dated.wrong.length ||
+                                           !(t.dated.inside > 0 && t.dated.outside > 0));
+      assert('and every tile the window\'s weeks meet is on the picture and every one they miss is off it',
+        errored.length === 0 && misdated.length === 0,
+        'on each of the four, every dated tile judged from its own date or span against the ' +
+          'window the control reports, with tiles on both sides of the line',
+        misdated.map(([k, t]) => `${k} ${JSON.stringify(t.range)} ` +
+          `${t.dated.inside} in ${t.dated.outside} out, wrong ` +
+          `${JSON.stringify(t.dated.wrong.slice(0, 4))}`).join('; ') ||
+          T.map(([k, t]) => `${k} ${t.dated.inside} in ${t.dated.outside} out`).join('; '));
     });
 
     // ---- the address ------------------------------------------------------
@@ -4171,14 +4686,26 @@ async function runGrain(chrome, base) {
         reloaded.g.grain === 'modules' && /\/modules$/.test(reloaded.hash),
         'the modules grain on #/p/ZSC/modules',
         JSON.stringify(reloaded));
+      // EVERY ITEM AND NOT AN ITEM. Issue 115's F10. The probe here was
+      // `#pgmenu .pgitem[href$="/modules"]`, a selector that can only ever return an item which
+      // kept the altitude, beside `n === 7`, which is the picker's size and not a count of items
+      // that kept it. Six of the seven losing the grain was 177 of 177. So the items are
+      // enumerated, every href is required to carry the altitude, and the seven programmes they
+      // address are required to be the seven the document declares rather than seven of anything.
       const moved = await ev(`
-        var a = document.querySelector('#pgmenu .pgitem[href$="/modules"]');
-        return { href: a ? a.getAttribute('href') : null,
-                 n: document.querySelectorAll('#pgmenu .pgitem').length };`);
+        var items = Array.prototype.slice.call(document.querySelectorAll('#pgmenu .pgitem'));
+        return { hrefs: items.map(function (a) { return a.getAttribute('href'); }),
+                 keys: window.GI.views.map(function (v) { return v.key; }) };`);
+      const AT_MODULES = /^#\/p\/([A-Za-z0-9-]+)\/modules$/;
+      const pickerKeys = moved.hrefs.map(h => (AT_MODULES.exec(h || '') || [])[1]).filter(Boolean);
       assert('the programme picker keeps the altitude when it moves programme',
-        moved.n === 7 && /\/modules$/.test(moved.href || ''),
-        'seven items, each addressing the modules grain',
-        JSON.stringify(moved));
+        moved.hrefs.length === moved.keys.length && moved.keys.length > 1 &&
+          pickerKeys.length === moved.hrefs.length &&
+          moved.keys.every(k => pickerKeys.indexOf(k) !== -1) &&
+          new Set(pickerKeys).size === pickerKeys.length,
+        `${moved.keys.length} items, one per programme in the document, every one of them ` +
+          'addressing the modules grain',
+        JSON.stringify({ kept: pickerKeys.length, of: moved.hrefs.length, hrefs: moved.hrefs }));
       await goto(base + '#/p/ZSC/nonsense');
       assert('an altitude nobody recognises is the sessions grain and not an error',
         (await ev('return window.ZT.grain().grain;')) === 'sessions',
