@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T19:16:08Z",
+  "generated": "2026-08-12T19:30:40Z",
   "columns": [
     {
       "key": "raw",
@@ -35,22 +35,21 @@
     {
       "key": "in_progress",
       "title": "In progress",
+      "cards": []
+    },
+    {
+      "key": "done",
+      "title": "Done",
       "cards": [
         {
           "id": 118,
           "title": "The suite never loads a document cold at any address but the default, so every deep link can be broken and stay at 177 of 177",
           "labels": [
             "audit",
-            "status:in-progress"
+            "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/118"
-        }
-      ]
-    },
-    {
-      "key": "done",
-      "title": "Done",
-      "cards": [
+        },
         {
           "id": 117,
           "title": "The two copies of the token-folding rule have drifted and the local safety gate is blind at every underscore, the fifth time one rule in two places has bitten this repository",
@@ -116,17 +115,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/111"
-        },
-        {
-          "id": 110,
-          "title": "The page stops narrating its own provenance: the footer statement, the panel chips and the gaps definition come out",
-          "labels": [
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/110"
         }
       ],
-      "hidden": 95,
+      "hidden": 96,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
