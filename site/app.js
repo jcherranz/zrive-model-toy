@@ -152,6 +152,9 @@
     selection.bind(render.gfx());
     stampDigest();
     router.describe();
+    // Issue 98. A different programme is a different set of gaps, and no class on the body changed
+    // to say so, which is why this is a call and not the observer's business.
+    describeGaps();
     // A different programme is a different cohort, so the list built for the last one goes.
     router.resetRoster();
     // Last, because describing the programme can change the height of the header and the fit is
@@ -189,6 +192,10 @@
     selection.bind(render.gfx());
     stampDigest();
     router.describe();
+    // Issue 98, and it is the composition that card is for: the window moved, so what is on
+    // screen moved, so the count of what is missing in it moved. Here rather than in the observer
+    // because a window changes no class on the body.
+    describeGaps();
     viewport.refit();
   }
 
@@ -306,7 +313,7 @@
     // reader cannot see.
     busy: function () {
       return router.rosterOpen() || router.pgMenuOpen() || term.isOpen() ||
-             term.windowMenuOpen();
+             term.windowMenuOpen() || gapsMenuOpen();
     },
     // Issue 84's counter-scale. The lane headings are controls and a control keeps its size on
     // screen, so the drawing is told the scale on every change of it.
@@ -398,6 +405,257 @@
     });
   }
 
+  // ---- what needs attention, issue 98 --------------------------------------
+  // THE CARD IN ONE PARAGRAPH. A management tool answers three questions: where am I, what needs
+  // attention, what can I do. The header answered the first in the heading and the third in the
+  // nav, and answered the second nowhere, on a page whose model already knows the answer. Every
+  // property carries a provenance flag and 482 of them read `absent`, which is not a weaker kind
+  // of dummy: a dummy value stands in for something a system holds and an absent one says no
+  // system holds it. Until this control the only way to meet one was to click a tile and read the
+  // list, so the model knew eleven sessions have nobody assigned to teach them and no view said
+  // it. That sentence is one count away and it is the most useful sentence this page can show.
+  //
+  // IT COMPOSES WITH THE WINDOW, WHICH IS WHY IT IS IN THIS ROW AND NOT IN A SHEET. #100 made the
+  // time window filter the drawing rather than dim it, so the drawing on screen IS the answer to
+  // "these three weeks". Counting what is missing in what is drawn therefore costs nothing and
+  // answers the question a reader brings to a Monday meeting, which is not "what is missing" but
+  // "what is missing in the next three weeks". Two controls side by side and one sentence between
+  // them.
+  //
+  // 482 IS NOT THE NUMBER THIS SHOWS, AND THAT IS A DECISION RATHER THAN A ROUNDING. Every node's
+  // property list opens with `n.route` rows answering how a class gets filled at all, and 303 of
+  // the 482 are in there: `route_system` on the programme is "no registry, four lists disagree",
+  // which is a fact about the business's systems and is the same fact on every tile of that class.
+  // A fourth of what is left, 84 rows, is on ghost tiles, where the class itself does not exist in
+  // any system and the whole tile is already the finding, drawn dashed and switchable. What is
+  // left is 95 rows across the seven programmes, each one a value a real object should have and
+  // does not, and those are the ones a person can do something about. The boundary is the model's
+  // own `route` count and not a list of field names kept here, so a class that gains a property
+  // lands on the right side of it without this file being edited.
+  //
+  // THE COUNT IS OVER WHAT THE VIEW IS SHOWING, one rule, and every route follows from it. On the
+  // diagram it is the tiles on the canvas, which the window has already filtered and whose cascade
+  // has already taken out the templates and instructors that were only there for a filtered
+  // session. On #/calendar it is the sessions that reading lists and on #/outline the templates,
+  // scoped to one programme when the address is, and the window applies to the calendar and not to
+  // the outline because that is the split #90 shipped and #100 kept. On #/board and #/students it
+  // is withdrawn, in app.css beside the window control's own rule and for the same reason: the
+  // board is issues and not the model, the roster carries no flag on any row, and a count of the
+  // drawing behind an opaque box is `ghosts`'s defect with a number on it.
+  //
+  // THE DENOMINATOR IS THE WHOLE MODEL AND IS CONSTANT. `weeks: 3 of 24` is the idiom and this is
+  // the same one: the numerator moves with the view and the denominator says how much of the
+  // business the view is. It is counted here, once, off all seven, so a drawing that gains a
+  // programme moves it without anybody editing a number.
+  //
+  // IN THE WIRING FILE FOR THE REASON `ghosts` IS. The count needs all seven views, which only
+  // this file holds; the window, which term.js holds; the drawing on screen, which render.js
+  // holds; and the address, which four modules write onto the body between them. Any other home
+  // would have to be handed three of the four.
+  var gapsBtn = document.getElementById('gapsbtn');
+  var gapsMenu = document.getElementById('gapsmenu');
+
+  // The type's own name, from the drawing's type table, pluralised. A noun typed here would be a
+  // second name for a class that already has one, which is the mistake the footer's counts exist
+  // to avoid.
+  function plural(word, n) {
+    if (n === 1 || /s$/.test(word)) return word;
+    if (/[^aeiou]y$/.test(word)) return word.slice(0, -1) + 'ies';
+    return word + 's';
+  }
+
+  function typeWords(type, n) {
+    return plural(String(render.typeLabel(type) || type).toLowerCase(), n);
+  }
+
+  // One pass over a set of nodes. The two exclusions are argued above: the route rows, which are
+  // about the class rather than about the object, and the ghosts, which are the absence rather
+  // than a hole in something present. `n.outside` is #100's per lane count tile, which is drawn
+  // by render.js and is in no model at all.
+  function gapsOf(nodes) {
+    var by = {}, keys = [], total = 0;
+    (nodes || []).forEach(function (n) {
+      if (n.ghost || n.outside) return;
+      var props = n.props || [], first = n.route || 0, i, p, k;
+      for (i = first; i < props.length; i++) {
+        p = props[i];
+        if (p.f !== 'absent') continue;
+        k = n.type + ' ' + p.k;
+        if (!by[k]) { by[k] = { type: n.type, field: p.k, n: 0 }; keys.push(k); }
+        by[k].n++;
+        total++;
+      }
+    });
+    return {
+      total: total,
+      rows: keys.map(function (k) { return by[k]; }).sort(function (a, b) {
+        if (b.n !== a.n) return b.n - a.n;
+        if (a.type !== b.type) return a.type < b.type ? -1 : 1;
+        return a.field < b.field ? -1 : 1;
+      })
+    };
+  }
+
+  var GAPS_ALL = (function () {
+    var all = [];
+    VIEWS.forEach(function (v) { all = all.concat(v.drawing.nodes); });
+    return gapsOf(all).total;
+  })();
+
+  // The window in the words the window's own control uses, so the two cannot come to describe the
+  // same weeks differently. term.js writes the sentence; nothing here composes one.
+  function windowWords() {
+    var spec = term.windowSpec();
+    return spec ? spec.text : 'the whole term';
+  }
+
+  // Which nodes this view is showing, and how to say so. null means the control does not belong
+  // on this route at all, which app.css has already acted on.
+  function gapScope() {
+    var cls = document.body.classList;
+    if (cls.contains('board') || cls.contains('students')) return null;
+    var rows = term.readingRows();
+    if (rows) {
+      var st = term.state();
+      var spec = rows.window ? term.windowSpec() : null;
+      var views = st.scope
+        ? VIEWS.filter(function (v) { return v.key === st.scope; })
+        : VIEWS;
+      var nodes = [];
+      views.forEach(function (v) {
+        v.drawing.nodes.forEach(function (n) {
+          if (n.type !== rows.type) return;
+          if (spec && spec.out(n)) return;
+          nodes.push(n);
+        });
+      });
+      return {
+        nodes: nodes,
+        subject: 'the ' + typeWords(rows.type, 2) + ' this reading lists',
+        where: (views.length === 1 ? (views[0].label || views[0].code)
+                                   : 'all ' + VIEWS.length + ' programmes') +
+               ', ' + (rows.window ? windowWords() : 'the whole term')
+      };
+    }
+    var v = router.view();
+    return {
+      nodes: render.drawing().nodes,
+      subject: 'the tiles on this drawing',
+      where: (v.label || v.code) + ', ' + windowWords()
+    };
+  }
+
+  function gapsMenuOpen() { return !!gapsMenu && !gapsMenu.hidden; }
+
+  function showGapsMenu(on) {
+    if (!gapsMenu || gapsMenuOpen() === on) return;
+    gapsMenu.hidden = !on;
+    if (gapsBtn) gapsBtn.setAttribute('aria-expanded', on ? 'true' : 'false');
+  }
+
+  // Everything the control says, rewritten from the model on every change of view. The sentence
+  // is built first and used three times: in the box, in the control's title, and nowhere else,
+  // because a second copy of it is a second thing to keep true.
+  var gapsNow = { total: 0, of: GAPS_ALL, rows: [], scope: null };
+
+  function describeGaps() {
+    if (!gapsBtn) return;
+    var sc = gapScope();
+    if (!sc) {
+      showGapsMenu(false);
+      gapsNow = { total: null, of: GAPS_ALL, rows: [], scope: null };
+      return;
+    }
+    var g = gapsOf(sc.nodes);
+    gapsNow = { total: g.total, of: GAPS_ALL, rows: g.rows, scope: sc.subject + ': ' + sc.where };
+    gapsBtn.textContent = 'gaps: ' + g.total + ' of ' + GAPS_ALL;
+    var sentence = (g.total
+      ? g.total + ' of the ' + GAPS_ALL + ' values the model records as missing are in '
+      : 'None of the ' + GAPS_ALL + ' values the model records as missing is in ') +
+      sc.subject + ': ' + sc.where + '.';
+    gapsBtn.title = sentence + ' Press for what they are';
+    if (!gapsMenu) return;
+    gapsMenu.textContent = '';
+    var head = document.createElement('p');
+    head.className = 'gaps-scope';
+    head.textContent = sentence;
+    gapsMenu.appendChild(head);
+    g.rows.forEach(function (r) {
+      var row = document.createElement('div');
+      row.className = 'gaps-row';
+      var n = document.createElement('span');
+      n.className = 'gaps-n';
+      n.textContent = r.n;
+      var what = document.createElement('span');
+      what.className = 'gaps-what';
+      // The leading space is for the reader of the TEXT and not for the reader of the page. The
+      // 8px between the two boxes is the flex gap, and leading whitespace inside a flex item is
+      // collapsed away, so this changes no pixel; what it changes is what a capture quotes, which
+      // read `28session templates` before it. Issue 99 established that a report quotes the text
+      // a reader can see, and two boxes side by side are two words in that reading.
+      what.appendChild(document.createTextNode(' ' + typeWords(r.type, r.n) + ' with no '));
+      var code = document.createElement('code');
+      code.textContent = r.field;
+      what.appendChild(code);
+      row.appendChild(n);
+      row.appendChild(what);
+      gapsMenu.appendChild(row);
+    });
+    var foot = document.createElement('p');
+    foot.className = 'gaps-foot';
+    // model.py's own words for the flag, and the panel's. A fourth wording of a definition this
+    // page already carries twice would be a fourth thing to keep in step.
+    foot.textContent = 'A dummy value stands in for something a system holds; an absent one says ' +
+      'no system holds it. These are the absent ones, counted off the model on every change of ' +
+      'view rather than written down.';
+    gapsMenu.appendChild(foot);
+  }
+
+  // The three listeners the programme picker and the window control already have, in the same
+  // shapes and for the same reasons: the press stops at the control so the document listener does
+  // not close what it just opened, anything else closes it, and Escape closes it in the capture
+  // phase ahead of the bubble listener in selection.js that clears the selection. Capture mode is
+  // left alone, because while it is on Escape is how a reader gets out of it.
+  if (gapsBtn && gapsMenu) {
+    gapsBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      showGapsMenu(!gapsMenuOpen());
+    });
+    document.addEventListener('click', function (e) {
+      var t = e.target;
+      if (t && t.closest && t.closest('#gapspick')) return;
+      showGapsMenu(false);
+    });
+    document.addEventListener('focusin', function (e) {
+      var t = e.target;
+      if (t && t.closest && t.closest('#gapspick')) return;
+      showGapsMenu(false);
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape' || !gapsMenuOpen()) return;
+      if (document.body.classList.contains('fb-mode')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      showGapsMenu(false);
+      if (gapsBtn.focus) gapsBtn.focus();
+    }, true);
+  }
+
+  // WHY AN OBSERVER AND NOT A HASHCHANGE LISTENER, which is the same answer #77 gave for --hh. The
+  // route classes on the body are written by four different modules: router.js sets `students`
+  // where the list opens, term.js sets `calendar` and `outline` where the sheet opens, board.js
+  // sets `board`, and board.js loads after this file, so a hashchange listener registered here
+  // would run before the class it needs to read had been written. One observer on the one element
+  // all four write to answers every route, in either direction, and any reason a later card
+  // invents. The window and the programme are told directly, in windowChanged() and showView(),
+  // because those two change the count without changing a class.
+  if (window.MutationObserver) {
+    new MutationObserver(describeGaps)
+      .observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  } else {
+    window.addEventListener('hashchange', function () { setTimeout(describeGaps, 0); });
+  }
+
   // ---- how to read this ----------------------------------------------------
   // Issue 79. The footer used to carry three instructions in running text: what clicking does,
   // what the mouse does, and that the programme name opens the other six. An instruction written
@@ -456,6 +714,9 @@
   // And the address may already be one of the term's two, which is what makes a link to
   // #/calendar or #/outline open on the reading it names rather than on the diagram.
   term.start();
+  // Issue 98. After term.start(), because the address may already be a reading and the count is a
+  // count of what the view on screen is showing. The observer takes it from here.
+  describeGaps();
   measureHeader();
   window.addEventListener('resize', measureHeader);
   // The header changes height for more reasons than a resize: capture mode widens its own toggle
@@ -540,6 +801,18 @@
     // canonical coordinates, which is what makes the filtered drawing the build's own geometry
     // with tiles taken out rather than a second opinion about where things go.
     filtered: function () { return render.windowState(); },
-    reflow: function () { return render.reflowCheck(); }
+    reflow: function () { return render.reflowCheck(); },
+    // Issue 98. What the header says needs attention, read off the same object the control was
+    // written from rather than recomputed here, so a driver asserting the count is asserting the
+    // page's own arithmetic and not a second opinion about it. `total` is null on the two routes
+    // where the control is withdrawn, which is a different answer from zero and is the one thing
+    // a driver could not otherwise tell apart. `of` is the whole model and does not move.
+    gaps: function () {
+      return { total: gapsNow.total, of: gapsNow.of, scope: gapsNow.scope,
+               rows: gapsNow.rows.map(function (r) {
+                 return { type: r.type, field: r.field, n: r.n };
+               }),
+               menu: gapsMenuOpen() };
+    }
   };
 })();

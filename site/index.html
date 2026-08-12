@@ -69,8 +69,8 @@
       <span class="h-outline">The outline, all seven programmes in curriculum order</span>
     </h1>
     <nav class="hnav">
-      <!-- WHAT THIS ROW IS, DECIDED IN ISSUE 57 AND ENFORCED IN ISSUE 86. Two of these five
-           belong to the page and three belong to a view of it, and until #86 nothing acted on the
+      <!-- WHAT THIS ROW IS, DECIDED IN ISSUE 57 AND ENFORCED IN ISSUE 86. Two of these belong to
+           the page and the rest belong to a view of it, and until #86 nothing acted on the
            difference: a sheet backdrop starting at y=0 covered all five, so a reader inside
            #/outline could not reach `feedback`, and the card asking for it had to be filed from
            outside the subpage it was about.
@@ -83,12 +83,22 @@
            View level, and free to go when the view does:
              ghosts     a mark on the drawing, so app.css withdraws it on the board and on the
                         five sheet addresses, where the drawing is behind an opaque box
+             weeks      how much of the term is in focus, issue 90
+             gaps       what the view is showing that the model records as missing, issue 98
              students   navigation, and a sheet is a place, so these two stay reachable rather
              board      than covered: they are the visible way out of the place, and a reader who
                         wants the board from inside the outline should not have to find Escape
                         first. Neither acts on what the sheet is showing, so neither is dead.
            The programme picker is view level too and needs no rule, because it lives in the
            heading, which is already swapped out on every route that opens a sheet.
+
+           WHAT THE ROW ANSWERS AFTER ISSUE 98, which is that card in one paragraph. A management
+           tool answers three questions and this header answered one. Where am I is the heading,
+           and it has been since #77. What can I do is the two navigation items and the four
+           controls. What needs attention was missing entirely, on a page whose model records 482
+           absences and never once said so outside a property list a reader had to click a tile to
+           open. `gaps` is that third answer and nothing else in this row moved to make room for
+           it.
 
            The theme is first in the row on purpose: it is the item present in every view and
            about every view, so it is the row's anchor. It costs no row of its own: it is one
@@ -113,6 +123,26 @@
               aria-expanded="false" aria-controls="wnmenu"
               title="the part of the term in focus">weeks: all</button><span class="wnmenu"
               id="wnmenu" hidden></span></span>
+      <!-- WHAT NEEDS ATTENTION. Issue 98. The model carries a provenance flag on every property
+           and 482 of them say `absent`, which is not a weaker kind of dummy: a dummy value stands
+           in for something a system holds and an absent one says no system holds it. Until this
+           card the only way to meet one was to click a tile and read its property list, so the
+           page knew that eleven sessions have nobody assigned to teach them and no view said it.
+
+           IT IS NEXT TO `weeks` BECAUSE THE TWO COMPOSE, and that composition is the whole point
+           of putting it here rather than in a sheet. #100 made the window filter the drawing, so
+           "what is missing in the next three weeks" is one control beside another and is the
+           question a reader actually brings to a Monday meeting. Nothing was moved or removed to
+           fit it: the nav takes the same number of lines at 390 with it as without.
+
+           It is view level, like `ghosts` and `weeks`, and app.css withdraws it on exactly the two
+           routes the window control leaves. The count and every word in the list under it are
+           written by app.js off the model, never typed here, for the reason the cohort and the
+           footer's two counts are: a number typed into this file is right on one of seven. -->
+      <span class="gapspick" id="gapspick"><button id="gapsbtn" class="linkbtn" type="button"
+              aria-expanded="false" aria-controls="gapsmenu"
+              title="what this view is showing that the model records as missing"
+              >gaps: 0</button><span class="gapsmenu" id="gapsmenu" hidden></span></span>
       <button id="fbtoggle" class="linkbtn" type="button" aria-pressed="false"
               title="visual feedback mode: click any element to capture it with what was on screen">feedback</button>
       <!-- The cohort in full, as its own route, beside the board's. The drawing shows four of

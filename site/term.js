@@ -316,6 +316,20 @@
       });
     })();
 
+    // WHAT EACH READING LISTS, AND WHETHER THE WINDOW HAS AN OPINION ABOUT IT. Issue 98, and it is
+    // one table in the file that owns the readings rather than two facts app.js would have to
+    // learn a second time. The header's gap count is a count of what the view is SHOWING, so it
+    // has to know that the calendar lists cohort sessions and the outline lists session templates,
+    // which is collect() above in one line; and it has to know that the calendar obeys the window
+    // and the outline does not, which is neither new nor this card's call. That split is #90's,
+    // kept by #100, and the outline already says it in words over its own rows: a syllabus is in
+    // curriculum order and a window is a slice of dates, so a window over an outline would be a
+    // filter over an ordering that has no dates in it.
+    var READING = {
+      calendar: { type: 'CohortSession', window: true },
+      outline: { type: 'SessionTemplate', window: false }
+    };
+
     // ---- which rows a reading is about ----------------------------------------
     // Issue 84. One function, called with a scope of null or with one view, so the unscoped and
     // the scoped readings cannot come to count differently: there is one arithmetic and the
@@ -1424,6 +1438,12 @@
           window: windowState()
         };
       },
+      // Issue 98. What the reading on screen lists and whether the window applies to it, or null
+      // when the sheet is shut and the diagram is the view. Asked for rather than decided
+      // elsewhere, which is the shape linkFor and capLink already have: the header asks what this
+      // reading is about and this file answers, so the two types and the window split stay written
+      // down once.
+      readingRows: function () { return (reading && READING[reading]) || null; },
       // Read by app.js on the first paint, so a drawing is dimmed from the start if a window is
       // ever on before the sheet has been opened.
       windowSpec: windowSpec,

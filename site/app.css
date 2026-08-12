@@ -343,6 +343,22 @@ body.outline #ghtoggle { display: none; }
    which is exactly what #86 made possible and is why this is not in the sheet. */
 body.board .wnpick,
 body.students .wnpick { display: none; }
+/* THE GAP COUNT LEAVES ON EXACTLY THE TWO ROUTES THE WINDOW LEAVES, and the reason is the same
+   sentence twice. Issue 98. It counts the values the model records as missing IN WHAT THE VIEW IS
+   SHOWING: on the diagram that is the tiles on screen, which #100's window already filters, and on
+   both readings of the term it is the rows the reading lists, sessions on one and templates on the
+   other. The board is GitHub issues and not the model, so there is nothing there to count; the
+   student list is a roster whose rows carry no property flag at all, and a count over the drawing
+   behind an opaque box is `ghosts`'s defect with a number on it. Withdrawn rather than zeroed,
+   because a control reading `gaps: 0 of 95` on the board would be answering a question about a
+   view it is not in.
+
+   IT STAYS OVER A SHEET, which is #86 and is the difference between this and `ghosts`. The sheet
+   is a reading of the term and this control is about what that reading is showing, so it is live,
+   hit-testable at its own centre and 26 by 26 over the backdrop, exactly as `theme`, `feedback`,
+   `students` and `board` are. */
+body.board .gapspick,
+body.students .gapspick { display: none; }
 /* The detail panel describes a node in the drawing, so on the board it goes the same way. It is
    hidden rather than closed: the selection is still the selection, and switching back brings the
    panel and the node it is about back together. */
@@ -660,6 +676,94 @@ h1 {
   color: var(--fg-warning);
   font-size: 11px;
   font-weight: 600;
+}
+
+/* ---- what needs attention, issue 98 ---------------------------------------------
+   The third disclosure in this header and deliberately the third of the same thing: the box, the
+   anchoring, the rung and the three listeners are .wnmenu's, which were .pgmenu's before that. A
+   fourth idiom for the fourth control in a row of six would be four things for a reader to learn
+   where there is one.
+
+   NOTHING HERE SETS A SIZE, and that is issue 77 still holding. The control is a .linkbtn, so it
+   is 26 by 26 by construction and shares the row's one baseline; this file adds a position and a
+   box to hang from it and no dimension at all. A control added to this row after this one is the
+   right size for the same reason and without anybody remembering to make it so. */
+.gapspick {
+  position: relative;
+  display: inline-block;
+}
+
+/* Anchored right for .wnmenu's reason and measured the same way: this control sits fourth in a
+   six item nav, which is past the middle at every width, so a box anchored left leaves the
+   viewport. It is narrower than the window's box because it holds a sentence and a short table
+   rather than three rows of controls. */
+.gapsmenu {
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 0;
+  z-index: var(--z-pop);
+  width: 340px;
+  max-width: calc(100vw - 40px);
+  padding: 8px 10px;
+  background: var(--bg-panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--elev-1);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.gapsmenu[hidden] { display: none; }
+
+/* What the number is a number OF, in words, and it is first because the count above it is
+   meaningless without it: the same control says 31 on one drawing, 11 on the calendar and 65 on
+   the outline, and each of those is true of a different set. */
+.gaps-scope {
+  margin: 0 0 6px;
+  color: var(--fg-body);
+}
+
+.gaps-scope b { font-weight: 600; }
+
+/* A count and the thing it counts, on a grid rather than in a sentence, because the reader is
+   scanning for the largest number and a column of right-aligned figures is what that reading
+   wants. */
+.gaps-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 1px 0;
+}
+
+.gaps-n {
+  flex: none;
+  min-width: 2.2em;
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-body);
+}
+
+.gaps-what { color: var(--fg-muted); }
+
+/* The field, in the key the panel prints beside the value. The panel writes the model's own key
+   into its <dt> and this list writes the same string, so a reader who follows a row down to the
+   tile it is about meets the word they came in with. A friendlier name here would be a third name
+   for the same field, after the model's key and the sentence the term sheet writes. */
+.gaps-what code {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--fg-body);
+}
+
+/* The definition, once, at the foot, in the words model.py and the panel's own flag already use.
+   It is the line that keeps this control from being read as a to-do list: an absence here is
+   something the analysis established, not something nobody has got round to typing. */
+.gaps-foot {
+  margin: 6px 0 0;
+  padding-top: 6px;
+  border-top: 1px solid var(--rule-muted);
+  color: var(--fg-muted);
 }
 
 /* ---- canvas ------------------------------------------------------------- */
@@ -1531,6 +1635,19 @@ body.fb-mode .fb-popover select { cursor: pointer; }
      measured height, written by app.js and already kept current by a ResizeObserver, so a nav
      that wraps to a third line does not put the box under the row it belongs to. */
   .wnmenu {
+    position: fixed;
+    top: var(--hh);
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
+  }
+  /* The gap list is the same box in the same place for the same measured reason. Issue 98. It
+     hangs off the fourth control in a nav that wraps here, so its own right edge is nowhere near
+     the viewport's; anchored to the viewport under the header it is on screen at every width and
+     wherever the nav happens to have broken. It is one rule and not a second copy of .wnmenu's
+     because the two boxes are different widths on the desktop and identical here. */
+  .gapsmenu {
     position: fixed;
     top: var(--hh);
     left: 12px;
