@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T15:36:24Z",
+  "generated": "2026-08-12T15:37:05Z",
   "columns": [
     {
       "key": "raw",
@@ -49,26 +49,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/109"
         },
         {
-          "id": 111,
-          "title": "The week filter should leave only the window, not dim what it excludes",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/111"
-        },
-        {
-          "id": 112,
-          "title": "An outline row should open on its own title, not all rows at once",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/112"
-        },
-        {
           "id": 113,
           "title": "The sheet has no left gutter: every heading and cell sits hard on the container edge",
           "labels": [
@@ -83,7 +63,28 @@
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": []
+      "cards": [
+        {
+          "id": 111,
+          "title": "The week filter should leave only the window, not dim what it excludes",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/111"
+        },
+        {
+          "id": 112,
+          "title": "An outline row should open on its own title, not all rows at once",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/112"
+        }
+      ]
     },
     {
       "key": "done",
