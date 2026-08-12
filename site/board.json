@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T15:37:05Z",
+  "generated": "2026-08-12T15:37:56Z",
   "columns": [
     {
       "key": "raw",
@@ -47,16 +47,6 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/109"
-        },
-        {
-          "id": 113,
-          "title": "The sheet has no left gutter: every heading and cell sits hard on the container edge",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/113"
         }
       ]
     },
@@ -83,6 +73,16 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/112"
+        },
+        {
+          "id": 113,
+          "title": "The sheet has no left gutter: every heading and cell sits hard on the container edge",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/113"
         }
       ]
     },
