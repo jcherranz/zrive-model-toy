@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T11:02:14Z",
+  "generated": "2026-08-12T11:18:15Z",
   "columns": [
     {
       "key": "raw",
@@ -83,17 +83,6 @@
       "title": "In progress",
       "cards": [
         {
-          "id": 75,
-          "title": "The visit edge should terminate on the Cohort, not the Programme",
-          "labels": [
-            "bug",
-            "feedback",
-            "model",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/75"
-        },
-        {
           "id": 91,
           "title": "Cut the invented-value warnings back to one: six distinct copies on one screen",
           "labels": [
@@ -132,15 +121,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/94"
-        },
-        {
-          "id": 99,
-          "title": "Feedback capture describes elements with textContent, so it reports hidden text",
-          "labels": [
-            "bug",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/99"
         }
       ]
     },
@@ -157,6 +137,15 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/100"
+        },
+        {
+          "id": 99,
+          "title": "Feedback capture describes elements with textContent, so it reports hidden text",
+          "labels": [
+            "bug",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/99"
         },
         {
           "id": 90,
@@ -219,20 +208,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/83"
-        },
-        {
-          "id": 82,
-          "title": "A session template outline: the other half of #80, and the place reuse could finally be visible",
-          "labels": [
-            "bug",
-            "feedback",
-            "model",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/82"
         }
       ],
-      "hidden": 68,
+      "hidden": 70,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
