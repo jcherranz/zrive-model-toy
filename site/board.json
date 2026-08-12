@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T10:14:25Z",
+  "generated": "2026-08-12T10:51:17Z",
   "columns": [
     {
       "key": "raw",
@@ -126,16 +126,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/99"
         },
         {
-          "id": 100,
-          "title": "The whole poitn of this filter is to just render the diagram…",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/100"
-        },
-        {
           "id": 101,
           "title": "The public page says everything is invented. 48 per cent of its values say they were read off real systems.",
           "labels": [
@@ -149,7 +139,18 @@
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": []
+      "cards": [
+        {
+          "id": 100,
+          "title": "The whole poitn of this filter is to just render the diagram…",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/100"
+        }
+      ]
     },
     {
       "key": "done",
