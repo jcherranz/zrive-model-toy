@@ -102,6 +102,59 @@ of what changed and when, and it is meant to be scannable.
 
 ### Changed
 
+- **The per session outline is a four rung schema, and the sheet draws each row its own, #108.**
+  The owner read the first draft and rejected the register: "The per session outlines need to be
+  more serious / academic and structured". **The structure is the row key and it cost no new
+  field.** A beat has always been the same `{k, v, f, r, at}` property row every other value on
+  this page is, and `k` was carrying an ordinal, "1", "2", "3", which is the position the reader
+  can already see. `k` now names which rung of a session the beat is, out of a closed ordered set
+  of four: `scope`, the subject matter delimited; `method`, the treatment and its named
+  instruments and terminology; `practicum`, the applied work; `outcome`, what the session leaves
+  the student holding. They are the four fields a syllabus entry has, so the block reads as a
+  schema rather than as a list. `scope`, `method` and `outcome` are compulsory; `practicum` is the
+  one optional rung and is written where **the session's own title names the applied work**, which
+  is the only session level string the vault holds and therefore the only thing that can decide it
+  without adding a fact: 23 of the 83, the group practice cases, the storylining case studies, the
+  deep dives, the firm visits, the oratory sessions, the mock round, the assessment day, the Excel
+  build, the model fit and the take home case presented to committee. The three against four split
+  now carries information instead of being arbitrary. **The register of `v` is the vocabulary of a
+  syllabus**, precise nouns and named methods with no rhetorical turn: "why a perfect fit is bad
+  news" became "overfitting: in sample against held out error, and the bias variance
+  decomposition", which is ds_st3's method row verbatim. **Academic did not mean long**: 272 beats,
+  4 to 13 words, mean 8.9, against 4 to 14 and mean 8.6 for the register they replace.
+  **A standardised register makes collision more likely, not less**, because academic vocabulary
+  repeats where literary vocabulary does not, so it was measured rather than assumed: all 272
+  beats distinct, and the highest cross template word overlap over the 3403 pairs is **0.1579**,
+  down from 0.2083, Jaccard over the beat text with stop words removed and the labels excluded
+  because a closed set repeated by design would inflate every pair by the same constant. The one
+  pair the new register did put over the old maximum, the two opening sessions at 0.2609, was
+  rewritten rather than accepted. **The six Z-CFA titles stay the named exception**, their titles
+  being reading numbers with no subject in them to be academic about: their scope rows say which
+  numbered readings and the rest is about working through numbered readings. **The build gate is
+  wider by four claims**, all proved armed by mutation: a label outside the closed set, a label
+  repeated within a session, labels out of reading order, and a missing compulsory rung. The
+  agenda strings also go through the name gate at build time now, which they did not before, the
+  block being top-level and invisible to the node walk; the eponym rule is to write the
+  descriptive form, and nothing was refused.
+- **The block is drawn, and #85's staging is over, #108.** `site/term.js` reads
+  `by_template[t.id]`, so the block under a row is that row's, and each line leads with its rung.
+  Driven at all seven scopes against a local server: 272 lines over 83 blocks, one block per row,
+  no two blocks alike, every line led by one of the four rungs. The four constant lines are gone
+  rather than kept beside these, and `agenda.rows` and `agenda.per_session` are gone with them:
+  one population, walked once.
+- **No text on the page says the content is invented, on the owner's instruction, and the fields
+  that say it stay, #108.** "I don't want absolutely any text or comment about the content not
+  being real or truthful or whatever. We are focusing on building the architecture of this thing."
+  So the block's opening sentence is deleted, no `dummy` badge prints on an outline line, and the
+  toggle's own hint now says what the block is rather than where it came from. **`f: dummy` and
+  `r: 0_invented` are untouched on all 272 rows**, because those are fields and not a sentence:
+  `check_provenance()` reads them, the flag vocabulary is closed, #104's rules refuse a row wearing
+  a flag it has not earned, and dropping them would drop the architecture that decides which rows
+  a future adapter may overwrite. The provenance shape rule follows its object rather than being
+  relaxed: it asked for a note and a table, it now asks for the table, and nothing refused for its
+  rows is accepted. Because nothing renders them, `window.ZT.term()` publishes the SET of `f` and
+  the SET of `r` over the templates in scope, so a driver can still hold the model to them. The
+  model keeps knowing; the page stops saying.
 - **An invented agenda written for each session out of its own title, #85 and #108, and the owner
   reversed the safety design to get it.** The block was the same four lines under all 83 templates,
   which was the point of it: an agenda inferred from a title reads exactly like curriculum design,
