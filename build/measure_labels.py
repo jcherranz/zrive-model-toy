@@ -21,8 +21,10 @@ measurement cannot quietly drift away from what the page draws.
 import argparse
 import base64
 import json
+import os
 import pathlib
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -44,14 +46,40 @@ OUT = HERE / "label_widths.json"
 # The headless shell first. It is the same Blink text stack and the same fontconfig as the
 # full browser, so it shapes text identically, and it answers --dump-dom in about a second
 # where the full binary was seen to hang on it for minutes on this machine.
-CHROME_CANDIDATES = [
-    "/home/jcherranz/.cache/ms-playwright/chromium_headless_shell-1228/"
-    "chrome-headless-shell-linux64/chrome-headless-shell",
-    "/home/jcherranz/.cache/ms-playwright/chromium_headless_shell-1208/"
-    "chrome-headless-shell-linux64/chrome-headless-shell",
-    "/home/jcherranz/.cache/ms-playwright/chromium-1228/chrome-linux64/chrome",
-    "/home/jcherranz/.cache/ms-playwright/chromium-1208/chrome-linux64/chrome",
-]
+#
+# NOTHING HERE NAMES A HOME DIRECTORY OR A BUILD NUMBER. Both were literals until now, four of
+# them, so the script ran on exactly one account on exactly one machine and said "no Chrome
+# found" everywhere else, including in CI. No gate can see that: a hardcoded absolute path is
+# valid Python and the file it names exists on the machine the check runs on. The cache root is
+# now taken from the environment or from the running user's own home, the build number is
+# globbed rather than spelled, and $ZRIVE_CHROME overrides the lot for a browser installed
+# somewhere else entirely.
+#
+# NEWEST BUILD FIRST, and that is a sort and not an accident: two Playwright builds sit in this
+# cache at once during an upgrade, the widths are measured by whichever binary answers, and a
+# table measured by the older one would differ from the page the newer one draws. Sorting the
+# glob descending picks the same binary every run instead of whatever order the directory
+# happens to hand back.
+PLAYWRIGHT_CACHE = pathlib.Path(
+    os.environ.get("PLAYWRIGHT_BROWSERS_PATH") or (pathlib.Path.home() / ".cache/ms-playwright"))
+
+
+def chrome_candidates():
+    override = os.environ.get("ZRIVE_CHROME")
+    if override:
+        yield override
+    for pattern, leaf in (
+        ("chromium_headless_shell-*", "chrome-headless-shell-linux64/chrome-headless-shell"),
+        ("chromium-*", "chrome-linux64/chrome"),
+    ):
+        for d in sorted(PLAYWRIGHT_CACHE.glob(pattern), key=lambda p: p.name, reverse=True):
+            yield str(d / leaf)
+    # Last, whatever the machine calls a browser on PATH. A distribution Chrome or Chromium
+    # shapes text with the same Blink stack, so it is a fair fallback rather than a guess.
+    for name in ("chrome-headless-shell", "google-chrome", "chromium", "chromium-browser"):
+        found = shutil.which(name)
+        if found:
+            yield found
 
 # The band captions are laid out by build_layout.py from the column widths, not from their own
 # text, so they are measured for the overflow check rather than for wrapping. A caption that
@@ -271,10 +299,14 @@ document.getElementById('out').textContent =
 
 
 def chrome():
-    for c in CHROME_CANDIDATES:
+    tried = []
+    for c in chrome_candidates():
         if pathlib.Path(c).is_file():
             return c
-    sys.exit("measure_labels: no Chrome found; see CHROME_CANDIDATES")
+        tried.append(c)
+    sys.exit("measure_labels: no Chrome found. Set $ZRIVE_CHROME to a Chrome or "
+             "chrome-headless-shell binary, or $PLAYWRIGHT_BROWSERS_PATH to the cache holding "
+             "one. Looked at: " + (", ".join(tried) or "nothing, the cache is empty"))
 
 
 def measure(job, families):
