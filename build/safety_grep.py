@@ -9,7 +9,10 @@ import re
 import sys
 import unicodedata
 
-FACULTY = pathlib.Path("/home/jcherranz/Obsidian/02_areas/zrive/02_areas/20_academic/faculty")
+# Resolved from the running user's home rather than spelled out, which is how model.py reaches
+# the syllabi at line 1243. A literal path pins the safety machinery to one machine, and no gate
+# rule can see a home directory, so nothing would have caught it.
+FACULTY = pathlib.Path.home() / "Obsidian/02_areas/zrive/02_areas/20_academic/faculty"
 
 # No real name belongs in this list. Every name the gate looks for comes from the faculty
 # register read by teacher_terms() below, so a literal here would add a tracked copy of a real
