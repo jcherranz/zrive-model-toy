@@ -230,6 +230,31 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- **The sheet had no left gutter at all, #113.** Filed on a month heading as "a bit more space to
+  the left". Measured at 1536x839 first, and it was not a misalignment between two things: the
+  container `#termrows`, the outline's group heading, the outline's data cell and the calendar's
+  month heading all had a box at left 219, the container's own `padding-left` was 0, and the
+  painted text was at 229 on the three table readings and at 219 on the month heading, which has
+  no padding of its own. Two things wrong, then: no gutter, and the two readings ten pixels apart
+  from each other. One gutter, declared once on `.sheet-rows`, which is where the container is
+  defined, plus one token `--row-inset` that every rule positioning painted text now reads: the
+  cells, both kinds of group heading, the phone layout's row padding, and `.cal`, which had none
+  and is why the month heading was the odd one. 6 + 10 at these widths and 4 + 12 on a phone, each
+  pair summing to the 16 the head above is padded at, so the rows line up with the sheet's own
+  title at both widths with no second number to keep true. A gutter of 16 in its own right would
+  have cost 32px of a fixed-width table at 390. Painted left edges, before then after, at 1536x839:
+  outline group heading 229 to 235, module heading 229 to 235, data cell 229 to 235, calendar month
+  heading 219 to 235, container box 219 to 219 with its padding 0 to 6. At 390x844: 10, 12, 12 and
+  0, all four to 16. No horizontal overflow at 390 before or after, `scrollWidth` 390 against a
+  `clientWidth` of 390 on all three routes, and the phone chrome share is 17,3 per cent either way.
+  **#94's assertion did not fail on this and the card expected it to**, which is worth the
+  sentence: it compares the heading's painted text with the ROW's painted text, so it is already a
+  relationship rather than a pixel and a gutter on the container moves both by the same 6. It would
+  have failed a gutter smuggled in per heading, which is what the card was warning against. It is
+  unchanged. Two assertions added beside it, both relationships: the rows start inside the
+  container and on the same x as the title over them, and the two readings of the term start their
+  text on one x. Proved in the failing direction by zeroing `--sheet-gutter`, which fails the
+  first, and by taking the inset off `.cal`, which fails the second on month 225 against cell 235.
 - **`build/check_grain.mjs` was run by nothing, #107 #89.** Tracked, executable, green, 33
   assertions on the largest thing built in a day, and no step of `scripts/verify.sh` and no
   workflow invoked it: `scripts/routes.py`'s own row in #103, in a new place, dark within an hour

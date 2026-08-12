@@ -218,7 +218,7 @@ const PHASES = {
   'every width':          { count: 4, when: 'every' },
   'model and reveal':     { count: 14, when: 'behavioural' },
   'students':             { count: 11, when: 'behavioural' },
-  'term':                 { count: 48, when: 'behavioural' },
+  'term':                 { count: 50, when: 'behavioural' },
   'header':               { count: 8, when: 'behavioural' },
   'canvas':               { count: 7, when: 'behavioural' },
   'capture':              { count: 14, when: 'behavioural' },
@@ -357,7 +357,7 @@ const PHASES = {
 // stayed and reads the tokens term.js publishes for the purpose, and a third clause was added
 // requiring nothing on the page to print them. What went is three claims about copy. What stayed
 // is every claim about the fields, which are the architecture and are untouched in the document.
-const EXPECTED_ASSERTIONS = 139;
+const EXPECTED_ASSERTIONS = 141;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -1420,6 +1420,33 @@ const TERM_READ = `(function () {
                     Math.round(parseFloat(getComputedStyle(td).paddingLeft)) };
     })(),
 
+    // Issue 113. THE LEFT EDGE OF EVERY FIRST THING ON THE SHEET, on whichever reading is up, and
+    // every one of them the left edge of PAINTED TEXT for the reason issue 94 reads it that way:
+    // a gutter moved onto a margin, a border or a cell would be the same defect wearing another
+    // declaration. The one field here that is not text is the container's own border box, which
+    // is read because the claim the two assertions make is about the distance between the
+    // container and what it holds. No backtick in this comment: the driver around it is a
+    // template literal and one would end the string.
+    gutter: (function () {
+      var box = document.getElementById('termrows');
+      if (!box) return null;
+      var lf = function (e) { return e ? Math.round(e.getBoundingClientRect().left) : null; };
+      var th = document.querySelector('#termrows tbody tr.term-group th');
+      var mth = document.querySelector('#termrows tbody tr.term-module th');
+      var td = document.querySelector(
+        '#termrows tbody tr:not(.term-group):not(.term-module):not(.term-agenda) td');
+      var mh = document.querySelector('#termrows .cal-panel .cal-head');
+      return {
+        box: lf(box),
+        pad: Math.round(parseFloat(getComputedStyle(box).paddingLeft)),
+        title: lf(document.getElementById('termtitle')),
+        group: th ? lf(th.querySelector('a') || th) : null,
+        module: mth ? lf(mth.querySelector('span') || mth) : null,
+        cell: td ? lf(td) + Math.round(parseFloat(getComputedStyle(td).paddingLeft)) : null,
+        month: lf(mh)
+      };
+    })(),
+
     // ---- issue 88, the two grids ------------------------------------------------
     // A grid is not a table, so none of the row readings above see it. Everything here is read
     // off what the reader can see: the panels, the warning on the face of each one, the seven
@@ -1953,6 +1980,43 @@ async function checkTerm(page) {
     !!out.headingIndent && out.headingIndent.head === out.headingIndent.row,
     'the heading text and the row text starting at the same x',
     JSON.stringify(out.headingIndent));
+
+  // ---- issue 113, the gutter --------------------------------------------------
+  // MEASURED AT 1536x839 BEFORE THE CARD AND IT WAS NOT A MISALIGNMENT BETWEEN TWO THINGS. The
+  // container, the outline's group heading, the outline's data cell and the calendar's month
+  // heading all had a box at left 219 with `padding-left: 0px` on the container: the painted text
+  // was at 229 on the three table readings and at 219 on the month heading, which has no padding
+  // of its own. So the sheet had no gutter at all, and its two readings disagreed with each other
+  // by the ten pixels of cell padding. He caught it on a month heading because a short bold word
+  // against a hard edge is where the eye catches it.
+  //
+  // THE ASSERTION ABOVE DID NOT FAIL ON THE FIX AND THE CARD EXPECTED IT TO. Worth writing down,
+  // because the reasoning on the card is right about the principle and wrong about this
+  // assertion: it compares the heading's painted text with the ROW's painted text, which is
+  // already a relationship and not a pixel, so a gutter declared once on the container moves both
+  // of them equally and it passes on 229 and 229 as it passes on 235 and 235. What would have
+  // failed it is a gutter smuggled in per heading, which is what the card was warning against and
+  // is what these two assertions below are here to catch a later change doing.
+  //
+  // BOTH OF THESE ARE RELATIONSHIPS AND NEITHER NAMES A PIXEL. The first says the rows are inside
+  // the box rather than on its edge, and says how far in by naming the thing they have to agree
+  // with, the sheet's own title above them: 6 + 10 at these widths and 4 + 12 on a phone both sum
+  // to the 16 the head is padded at, so the claim survives the breakpoint without a second
+  // number. The second says the two readings of the term agree with each other, which is the
+  // failure the card named ahead of time: the outline looking wrong beside a fixed calendar.
+  assert('the sheet indents its rows from the box they scroll in, to where its own title starts',
+    !!out.gutter && out.gutter.cell !== null && out.gutter.title !== null &&
+      out.gutter.cell > out.gutter.box && out.gutter.pad > 0 &&
+      out.gutter.cell === out.gutter.title,
+    'the first text on a row starting inside the container and on the title\'s own left edge',
+    JSON.stringify(out.gutter));
+
+  assert('and both readings of the term start their text on the same left edge',
+    !!out.gutter && !!calMonth.gutter && calMonth.gutter.month !== null &&
+      calMonth.gutter.month === out.gutter.cell && out.gutter.group === out.gutter.cell,
+    'the calendar month heading, the outline group heading and the outline rows on one x',
+    `month ${calMonth.gutter && calMonth.gutter.month}, group ${out.gutter.group}, ` +
+      `cell ${out.gutter.cell}`);
 
   assert('the outline names every programme and links each back to its own drawing',
     out.groupLinks.length === state.programmes &&

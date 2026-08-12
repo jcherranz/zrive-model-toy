@@ -2070,11 +2070,39 @@ body.hide-ghosts .ghost { display: none; }
 #termclose:hover { text-decoration: none; background: var(--tint-hover); }
 
 /* The rows scroll, and they scroll here rather than on the page: the diagram is one screen at
-   every width and a list long enough to move it would be a second thing to scroll. */
+   every width and a list long enough to move it would be a second thing to scroll.
+
+   ---- ISSUE 113, THE GUTTER, AND IT IS DECLARED HERE BECAUSE THIS IS THE CONTAINER ------------
+   Measured at 1536x839 before the card: `#termrows`, the outline's group heading, the outline's
+   data cell and the calendar's month heading all had a box at left 219 and the container's own
+   padding-left was 0. The painted TEXT was at 229 on the three table readings, which is the cell
+   padding below, and at 219 on the month heading, which has no padding of its own. So the sheet
+   had no gutter at all and its two readings did not even agree with each other: a short bold
+   month against the hard edge of the box is where the eye catches that first, which is where he
+   caught it.
+
+   TWO VALUES AND EACH IS OWNED IN EXACTLY ONE PLACE, which is the whole of what stops the two
+   readings drifting apart again. `--sheet-gutter` is the sheet's, applied once, here, on the
+   element the rows scroll inside; nothing below adds a left margin of its own. `--row-inset` is
+   what a row's own text is offset by INSIDE that gutter, and every rule that positions the left
+   edge of painted text reads it: the table's cells, the two kinds of group heading, the phone
+   layout's row padding, and the calendar grid, which had none and is why the month heading was
+   the one thing on the sheet ten pixels left of everything else.
+
+   THE SUM IS THE SHEET'S OWN INSET AND THAT IS HOW THE NUMBERS WERE CHOSEN. The head and the
+   notice above these rows are padded at 16, so 6 + 10 at the wider widths and 4 + 12 on a phone
+   put every row's text on the same x as the title over it, at both widths, without a second
+   number to keep true. A gutter of 16 in its own right would have cost 32px of a fixed-width
+   table on a 390px viewport, which is how a sheet that scrolls inside itself starts scrolling
+   the page. */
 .sheet-rows {
+  --sheet-gutter: 6px;
+  --row-inset: 10px;
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
+  padding-left: var(--sheet-gutter);
+  padding-right: var(--sheet-gutter);
 }
 
 .sheet-table {
@@ -2094,12 +2122,12 @@ body.hide-ghosts .ghost { display: none; }
   letter-spacing: .06em;
   text-transform: uppercase;
   color: var(--fg-muted);
-  padding: 6px 10px;
+  padding: 6px var(--row-inset);
   white-space: nowrap;
 }
 
 .sheet-table td {
-  padding: 5px 10px;
+  padding: 5px var(--row-inset);
   border-top: 1px solid var(--rule-muted);
   white-space: nowrap;
 }
@@ -2132,12 +2160,17 @@ body.hide-ghosts .ghost { display: none; }
   .sheet-table thead { display: none; }
   .sheet-table, .sheet-table tbody { display: block; }
 
+  /* Issue 113. The phone's own pair: a narrower gutter and a wider row inset, summing to the same
+     16 the head above is padded at. The 12 was already here and is now read from the token, so
+     the module heading below and the calendar grid follow it without a second copy of it. */
+  .sheet-rows { --sheet-gutter: 4px; --row-inset: 12px; }
+
   .sheet-table tr {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
     gap: 0 5px;
-    padding: 7px 12px;
+    padding: 7px var(--row-inset);
     border-top: 1px solid var(--rule-muted);
   }
 
@@ -2202,7 +2235,7 @@ body.hide-ghosts .ghost { display: none; }
 .term-table tbody tr.term-group th {
   position: static;
   text-align: left;
-  padding: 10px 10px 4px;
+  padding: 10px var(--row-inset) 4px;
   border-top: 1px solid var(--rule);
   background: var(--bg-panel);
   font-size: 11px;
@@ -2238,7 +2271,7 @@ body.hide-ghosts .ghost { display: none; }
 .term-table tbody tr.term-module th {
   position: static;
   text-align: left;
-  padding: 8px 10px 3px;
+  padding: 8px var(--row-inset) 3px;
   background: var(--bg-panel);
   font-size: 11px;
   font-weight: 400;
@@ -2369,8 +2402,9 @@ body.hide-ghosts .ghost { display: none; }
   .term-table tbody tr.term-agenda td { display: block; }
   /* 12px and not 14, issue 94's phone half: the rows this heads are `.sheet-table tr`, which the
      phone layout pads at 12, so 14 put the heading two pixels right of its own children here for
-     the same reason 26 put it sixteen right of them at 1536. */
-  .term-table tbody tr.term-module th { padding-left: 12px; }
+     the same reason 26 put it sixteen right of them at 1536. Issue 113 replaced the literal with
+     the token those rows now read, so the pair cannot come apart by editing one of them. */
+  .term-table tbody tr.term-module th { padding-left: var(--row-inset); }
   .term-table tbody tr.term-agenda td { padding-left: 14px; }
   .term-table tbody tr.term-agenda td::before { content: none; }
 
@@ -2395,7 +2429,15 @@ body.hide-ghosts .ghost { display: none; }
    the outline's table already scrolls sideways inside #termrows at the wider viewports and this
    would have added the same fault to a view that has no reason to have it. With a zero minimum
    the track takes a seventh of whatever the sheet is and the content inside it wraps or clips. */
-.cal { display: block; }
+/* Issue 113. THE ONE PLACE THE TWO READINGS OF THIS SHEET USED TO DISAGREE. A grid is not a
+   table, so the calendar had no cell padding and its month heading was painted hard against the
+   container's left edge while every row of the outline sat ten pixels in. The inset is read from
+   the same token the table's cells read, so the two readings are offset by construction and not
+   by two numbers that happen to match today. `.cal-panel` and `.cal-grid` inherit it. */
+.cal {
+  display: block;
+  padding-left: var(--row-inset);
+}
 
 /* The grids carried a sticky banner over the panels, the third of the four places this sheet said
    the dates were invented. Issues 91 and 93 deleted it and the warning on the face of every panel
