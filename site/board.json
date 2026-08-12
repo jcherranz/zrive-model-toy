@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T13:44:40Z",
+  "generated": "2026-08-12T13:48:22Z",
   "columns": [
     {
       "key": "raw",
@@ -72,6 +72,15 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/107"
+        },
+        {
+          "id": 108,
+          "title": "Two owner reversals: the visit ghost goes, and the invented agenda becomes per-session",
+          "labels": [
+            "model",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/108"
         }
       ]
     },
