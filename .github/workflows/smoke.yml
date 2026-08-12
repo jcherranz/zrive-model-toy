@@ -143,7 +143,19 @@ jobs:
       # with different words, because the header of this file argues at length that a browser
       # failing to start must not read as the page having regressed, and until now the suite said
       # `VERDICT: the page has regressed` for a browser that never started.
-      - name: The page behaves, at every width
+      #
+      # ONE STEP, BECAUSE THERE IS ONE SUITE. Issue 107 added a second step here for
+      # build/check_grain.mjs, whose 33 assertions about the two altitudes of the drawing were run
+      # by nothing at all; issue 109 folded that file into scripts/smoke.mjs, so this step runs 177
+      # assertions where it ran 144. The argument the second step carried was that a reader has to
+      # be able to see which suite said which, and the merged suite answers it better than two
+      # steps did: it prints an intended-against-ran count for every phase, named, so a log says
+      # which phase failed rather than which file. The other half of that argument was that the
+      # grain assertions must still run when the ones before them failed, and they do, for the same
+      # reason every other phase does: each is a group() that reports its own throw and does not
+      # stop the run, and the grain phases get a browser of their own, so a viewport that never
+      # opened costs them nothing.
+      - name: The page behaves, at every width and at both altitudes
         run: |
           set +e
           node scripts/smoke.mjs
@@ -168,47 +180,6 @@ jobs:
               ;;
             *)
               echo "::error::the smoke suite exited $rc, which it has no meaning for."
-              ;;
-          esac
-          exit $rc
-
-      # THE GRAIN SUITE, RUN BY CI FOR THE SAME REASON THE STEP ABOVE IS. Issue 107. Issue 89's 33
-      # assertions were tracked, executable, green and run by nothing, which is issue 103's
-      # scripts/routes.py in a new place. scripts/verify.sh runs them now, and a gate that only a
-      # contributor's own machine runs is half of one: routes.py was wired into verify.sh AND into
-      # the workflow that rebuilds what it reads, and this is the same pairing.
-      #
-      # A SEPARATE STEP AND NOT A SECOND COMMAND IN THE ONE ABOVE, because the exit codes mean the
-      # same three things and a reader has to be able to see which suite said which. It runs even
-      # when the step above failed, so a regression in one is never a reason the other went
-      # unmeasured; the job fails if either did.
-      #
-      # `!cancelled()` and not `always()`. Both survive a failed step, which is the property wanted
-      # here, and `always()` also survives a CANCELLATION, which would make this step hold a run
-      # somebody had asked to stop for another two minutes of browser. A cancelled run is not a run
-      # whose measurements anybody wants.
-      - name: Both altitudes of the drawing behave
-        if: ${{ !cancelled() }}
-        run: |
-          set +e
-          node build/check_grain.mjs
-          rc=$?
-          set -e
-          case "$rc" in
-            0)
-              echo "grain: clean, every assertion the suite intends." >> "$GITHUB_STEP_SUMMARY"
-              ;;
-            1)
-              echo "::error::THE GRAIN CONTROL HAS REGRESSED. An assertion about one of the two altitudes failed."
-              echo "grain: **regressed**. See the failures in the log." >> "$GITHUB_STEP_SUMMARY"
-              ;;
-            2)
-              echo "::error::THE GRAIN SUITE COULD NOT ANSWER. Harness, not the page: a browser that never"
-              echo "::error::started, or a run that recorded fewer assertions than it intends."
-              echo "grain: **could not answer** (harness, not the page)." >> "$GITHUB_STEP_SUMMARY"
-              ;;
-            *)
-              echo "::error::the grain suite exited $rc, which it has no meaning for."
               ;;
           esac
           exit $rc

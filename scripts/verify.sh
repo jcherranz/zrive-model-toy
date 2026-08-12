@@ -521,27 +521,22 @@ fi
 
 # smoke.mjs serves site/ on a local port of its own and drives a browser at it, so this step is
 # already "the suite against a local server over these bytes".
-step "12. the smoke suite, against a local server over site/"  node scripts/smoke.mjs
-
-# THE GRAIN SUITE, WHICH NOTHING RAN. Issue 107, reported by the agent on issue 89 about its own
-# work an hour after issue 103 closed. The grain control is the largest thing built in a day and
-# its 33 assertions live in build/check_grain.mjs, which was tracked, executable, green, and run by
-# no step of this file and no workflow. That is scripts/routes.py's row in issue 103 in a new
-# place, and the file's own header says why it landed there: scripts/smoke.mjs was held by another
-# agent for the whole of that card, so the checks were written in the half of the repository the
-# card owned.
 #
-# WIRED IN RATHER THAN ADOPTED INTO scripts/smoke.mjs, and the choice is not the cheap one being
-# dressed up. Nothing is duplicated at the level of CLAIMS: not one of the 33 restates something
-# the smoke suite asserts, so this is not the two-copies-of-one-rule shape issue 106 is about. What
-# the two files duplicate is harness, a static server, a CDP client and a browser resolver, which
-# is a maintenance cost and not a gate that can go dark. The defect reported was that nobody runs
-# it, and one line fixes that today. Folding five hundred lines of browser probes into a suite of
-# three thousand, at the end of a card about something else, is the shape of change that drops a
-# probe without anyone noticing; both files carry the same terminator, a total written by hand and
-# asserted against the phase table before the run, so neither can be emptied one probe at a time
-# while the merge waits for a card that can measure it.
-step "13. the grain suite, both altitudes in a browser"   node build/check_grain.mjs
+# IT IS ONE SUITE NOW AND IT WAS TWO. Issue 107 found that build/check_grain.mjs was tracked,
+# executable, green and run by no step of this file and no workflow, which was scripts/routes.py's
+# row in issue 103 in a new place, and it wired the file in here as a step of its own. Issue 109
+# folded it into scripts/smoke.mjs instead, so the 33 assertions that were a fourteenth step are
+# inside this one: 144 assertions before, 177 after, one phase table, one hand-written total. The
+# step count went from 14 to 13 and no claim went with it.
+#
+# WHY THE STEP WENT RATHER THAN STAYING AS A SECOND INVOCATION. The reason the grain suite could
+# go dark is that a suite in its own file has no terminator above it. Its own EXPECTED_ASSERTIONS
+# said what it intended to run and nothing said it had to be run at all, so it was written, it was
+# green, and for its whole life until issue 107 no gate would have noticed it being deleted. Under
+# one total, deleting it means editing 177 in front of a reader, and a hand that deletes the code
+# and forgets the number gets a red run. That is a stronger guarantee than a line in this file,
+# which is itself a line somebody can delete.
+step "12. the smoke suite, against a local server over site/"  node scripts/smoke.mjs
 
 # WHICH IS WHY THIS ONE IS NOT RUN LOCALLY WHEN THERE IS NO ORIGIN, AND IS NOT QUIETLY DELETED
 # EITHER. The step above and this one are two runs only while there are two copies of the bytes:
@@ -551,10 +546,14 @@ step "13. the grain suite, both altitudes in a browser"   node build/check_grain
 # with the reason, which is loud in the summary and makes the verdict say a step did not run. That
 # is the difference between a step whose subject is absent and a step that was removed for being
 # red, and it has to be visible.
+#
+# AND IT NOW READS THE ORIGIN FOR THE GRAIN CONTROL TOO, which is not a step that was lost but a
+# check that was gained: the grain suite only ever ran against the working tree, and the two
+# altitudes of the drawing are now driven on the published bytes as well.
 if [ "$TARGET_KIND" = remote ]; then
-  step "14. the smoke suite, against the origin at $TARGET_URL" node scripts/smoke.mjs "$TARGET_URL"
+  step "13. the smoke suite, against the origin at $TARGET_URL" node scripts/smoke.mjs "$TARGET_URL"
 else
-  skip "14. the smoke suite, against the origin" \
+  skip "13. the smoke suite, against the origin" \
        "there is no origin, so there is no second copy of these bytes to drive a browser at. The suite itself ran in full one step above, against a local server over site/; what did not happen is the run that would have proved a published copy behaves. scripts/publish.sh on brings it back."
 fi
 
