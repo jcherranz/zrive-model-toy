@@ -3365,7 +3365,12 @@ async function checkEmptyWindow(page) {
       title: document.getElementById('wnbtn').title,
       off: window.ZT.filtered().off, canonNodes: window.ZT.filtered().canonNodes,
       h: window.ZT.programme().h,
-      k: v.k, vw: v.w, vh: v.h, boxW: canvas.width, boxH: canvas.height, ctm: m ? m.a : null
+      k: v.k, vw: v.w, vh: v.h, boxW: canvas.width, boxH: canvas.height, ctm: m ? m.a : null,
+      // The drawing's own top and bottom edge in client pixels, through the transform the browser
+      // is rendering it with. Nothing is measured off an element here: this is where the extent
+      // itself has landed, which is the question the fit answers.
+      top: m ? m.f : null, bot: m ? m.f + m.d * window.ZT.programme().h : null,
+      boxTop: canvas.top, boxBot: canvas.bottom
     });
   })()`).then(JSON.parse);
 
@@ -3383,21 +3388,29 @@ async function checkEmptyWindow(page) {
     `${back.outside} stub tiles, ${back.capWindow} window captions, title ` +
       JSON.stringify(back.title));
 
-  // ---- 6. and the page still holds the transform it is rendering at ---------------
+  // ---- 6. and the fit framed it, at a transform the page holds --------------------
   // ISSUE 114'S READING GUARD, IN THE ONE STATE THAT COULD BREAK IT. A floored height is a new
-  // number for the fit to frame, and a fit computed from a height of 0 divided by it. The window
-  // is the canvas box with no tolerance at all, as #114 measured it; the scale keeps that card's
-  // own 1e-3 relative, which is three hundred times the residual it measured and is not loosened
-  // here. The whole of the floored drawing has to be inside the canvas as well, or the fit framed
-  // something else.
-  assert('and the page holds the transform the browser is rendering the empty drawing at',
+  // number for the fit to frame, and the fit it replaces divided by a height of 0. The window is
+  // the canvas box with NO tolerance at all, as #114 measured it, and the scale keeps that card's
+  // own 1e-3 relative, which is three hundred times the residual it measured. Neither is loosened.
+  //
+  // AND THE FRAMING IS ASSERTED WHERE IT CAN FAIL, which the height alone could not: every fit
+  // this page can compute leaves `h * k` inside the canvas, so that clause passes under any
+  // arithmetic at all and proves nothing. What a refit that did not run would show is a drawing
+  // 126 units tall still hanging in the frame of the 596 it was cut from, so the claim is where
+  // the extent LANDED: both of its edges inside the canvas, and its centre on the canvas's, taken
+  // off the transform the browser is rendering with rather than off any element.
+  const centred = Math.abs((back.top + back.bot) / 2 - (back.boxTop + back.boxBot) / 2);
+  assert('and the fit frames the empty drawing at a transform the page holds',
     back.vw === back.boxW && back.vh === back.boxH &&
       back.ctm !== null && Math.abs(back.ctm - back.k) <= back.k * 1e-3 &&
-      back.h * back.k <= back.boxH + 2,
+      back.top >= back.boxTop - 2 && back.bot <= back.boxBot + 2 && centred <= 2,
     `a window of exactly ${back.boxW} by ${back.boxH}, the browser's scale on the page's own ` +
-      `${back.k.toFixed(6)}, and all ${back.h} units of the drawing inside the canvas`,
+      `${back.k.toFixed(6)}, and all ${back.h} units of the drawing inside the canvas and ` +
+      'centred in it',
     `view ${back.vw} by ${back.vh} against ${back.boxW} by ${back.boxH}, ctm ${back.ctm}, ` +
-      `${(back.h * back.k).toFixed(0)}px of drawing in a ${back.boxH.toFixed(0)}px canvas`);
+      `drawing ${back.top.toFixed(1)} to ${back.bot.toFixed(1)} in a canvas ` +
+      `${back.boxTop.toFixed(1)} to ${back.boxBot.toFixed(1)}, off centre by ${centred.toFixed(1)}px`);
 
   // Left as it was found: the window off, and the address back on the diagram. Every phase after
   // this one starts on a page nobody filtered.

@@ -308,6 +308,72 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- **An empty window painted six lane plates at `height: -47`, and nothing had ever driven one,
+  #119 F20.** The term runs 2026-01-12 to 2026-06-28 with real gaps in April and May, so a one week
+  window over one programme can cover no session at all. `filtered()` starts its extent at 0 and
+  maxes it over the node set and the edge set, both empty in that state, and `paint()` draws the
+  lane plate at `G.h - G.bandTop - 4`, which is then 0 minus 43 minus 4. Reproduced at `28a67cd` on
+  `#/p/ZIB`, one week from `2026-02-16`: six `Error: <rect> attribute height: A negative value is
+  not valid. ("-47")` per repaint, 0 tiles, 0 lines, 39 of 39 hidden. **Counted in Python off
+  `site/instance.js` at that sha: thirteen (programme, one week) pairs whose anchor falls inside
+  that programme's own term hold no session, Z-IB 3, Z-HR 5, Z-CFA 5, and ninety one over the whole
+  anchor range the control offers.**
+- **The interesting half was never the rects.** A negative rect is not painted, so no reader ever
+  saw a broken page and nothing visible was wrong: **the only witness was six rendering errors on
+  `Log.entryAdded`, a channel with no exception and no stack, and `checkConsole` had never been
+  aimed at the state most likely to fill it.** 192 assertions drove a three week window on Z-BL and
+  a one week window on Z-BL at the modules grain, neither of which empties. **Proved: with the
+  floor removed and everything else in place the run is 195 of 198 and the third failure is
+  `checkConsole` itself**, so the guard was live the whole time and had simply never been pointed
+  here.
+- **The extent is floored by the drawing's own arithmetic and not by a number typed into the file.**
+  An emptied drawing is exactly as tall as the same drawing holding one single line tile in its top
+  row: `topOf(g) + tile + gapLabel + lineH + FOOT`, every term read off the canonical artefact, so
+  a build that retunes any of them moves this with it. Z-IB comes out 126 units tall, the plates
+  79, and the fit frames it at the same scale it framed the 0.
+- **A clamp alone would have been right and would have left the card open**, because the suite still
+  would not have gone there. It goes there now, which is the other half below.
+
+### Added
+
+- **An empty window says what it is, in the sentence the list already used, #119.** `#/calendar`'s
+  list has answered a window it filtered down to nothing since #90: what the window is, and the two
+  controls that move it. `term.js` now owns that sentence in `windowEmptyText()` and hands it to
+  the drawing on the window spec, so both surfaces read one string and cannot come to say different
+  things about the same empty window. One line, centred on the lanes, `--fg-muted` on `--bg-band`
+  at 5.2231 light and 7.2900 dark against the 4.5 SC 1.4.3 asks. **It is not a new idiom and it is
+  not the count coming back**: #111 moved the per lane arithmetic into the header on the owner's
+  instruction and it stays there, at its limit, `39 of 39 tiles and 45 relationships are off the
+  drawing`. **It says nothing about the standing of the content**, which is #110's rule and is
+  exactly where a reassuring sentence would otherwise have appeared.
+- **A phase that drives the state, six assertions, `192` to `198`.** The pair is chosen by
+  measurement off the page's own two documents under the harder reading, an anchor between that
+  programme's first and last session so the window is a gap in a running term rather than a park
+  past the end of it, and the address is the one `site/instance.js` carries. It is driven through
+  the anchor and week controls a reader presses, never through a setter. It asserts **the absence
+  as set equality**, #115's standard: `shown` is exactly the empty list and `hidden` is exactly the
+  canonical node set, against the model's own dates. Then the rects in both directions, since "no
+  negative rect" alone is satisfied by a page that draws none; the console as a **delta over that
+  one repaint**; the canvas sentence against the list sentence in the same state; the header's
+  arithmetic at its limit; and #114's reading guard, `ZT.view()` equal to the canvas box with no
+  tolerance and `getScreenCTM().a` on the page's own `k`, on a height the fit had never been given.
+- **Proved by planting seven defects, one at a time, each reverted.** Removing the floor gives 195
+  of 198, naming the rects, the console delta and `checkConsole`; a negative floor instead of the
+  derived one gives the same three. Removing the sentence gives 197 and names it; letting
+  `buildTable` keep a second copy of the sentence gives 197 and names it as well, which is the
+  claim that one place writes it. Dropping one id from the hidden set gives 195, the set equality
+  beside #100's reflow and #111's header count; taking one off the header's tile count gives 195,
+  the header at its limit beside #111's own pair. **All six are caught, and none of them by a count
+  alone.**
+- **And the sixth assertion was rewritten because its first form could not fail.** It ended
+  `h * k <= boxH`, which every fit this page can compute satisfies under any arithmetic at all:
+  dropping either term of `fitScale` still passes it. What a refit that did not run would show is a
+  126 unit drawing hanging in the frame of the 596 it was cut from, so the claim is where the
+  extent LANDED, both edges inside the canvas and its centre on the canvas's, read off the
+  transform the browser is rendering with rather than off any element. **Suppressing
+  `viewport.refit()` on the repaint that empties the drawing then gives 197 of 198, off centre by
+  279.6px, and it is the only failure.**
+
 - **A `real` chip needed a key with the right name and now needs a seat a declared source filled,
   #118 F27.** `real-flag-needs-a-source` tested one thing, whether the row's key was one of six
   words in a tuple in `build/model.py`, so the audit renamed a Programme row of invented prose to
