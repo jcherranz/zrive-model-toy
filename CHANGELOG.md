@@ -249,7 +249,9 @@ of what changed and when, and it is meant to be scannable.
   controls have to compose on both altitudes or the collapse is a way of escaping the window.
 - **`SYLLABUS_KEYS` gains `module_code`, `module` and `in_the_syllabus`.** The same vault
   frontmatter at module altitude, re-read and refused on drift by `check_module_structure()`. The
-  rule is unchanged and still refuses a `real` chip on any key not in the tuple.
+  rule is unchanged and still refuses a `real` chip on any key not in the tuple. **Superseded by
+  #118: the tuple is gone, the rule reads the (node type, property key) seats a source declares in
+  the document, and those three keys are seats on the three module-altitude types.**
 
 ### Changed
 
@@ -306,6 +308,57 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- **A `real` chip needed a key with the right name and now needs a seat a declared source filled,
+  #118 F27.** `real-flag-needs-a-source` tested one thing, whether the row's key was one of six
+  words in a tuple in `build/model.py`, so the audit renamed a Programme row of invented prose to
+  `module`, ranked it `3_observed`, and #104's own flagship mutation shipped green. Re-run at
+  `24b45b5` to confirm rather than quoted: the builder exits 0, `check_build.sh` says clean, the
+  provenance self-test still says 37 of 37, and `site/instance.js` carries
+  `{"k": "module", "v": "academic team", "f": "real", "r": "3_observed"}` on the Z-IB Programme
+  tile. The escape was a spelling and not a forgery, which is the direction that matters.
+- **What "has a stated source" means is now written down, in the document, and it is three
+  things.** `provenance.sources` declares each source: the `corpus` that was read, the date it was
+  `read_on`, the `rechecked_by` gate that re-reads that corpus wherever it exists, the `rank` and
+  `flags` its rows carry, and `covers`, the (node type, property key) seats it filled. A `real`
+  value on an invented document has to sit in one of those seats. Read off the document and not off
+  `build/model.py`, like the four vocabularies beside it, so an `--instance` deployment is judged
+  against the sources it declares; a document declaring none may carry no `real` value at all,
+  which is stricter than the tuple was.
+- **A seat is a population and not a permission, which is the part that stops a rename.** Every node
+  of a covered type carries each covered key exactly once, checked before the row walk. Two rows
+  under one key is a row taking a name that is already spoken for, and a covered key missing
+  altogether is a reading deleted, which the membership test could not see either because it only
+  ever looked at the rows still there. `module` on a ModuleDelivery is a seat and `module` on a
+  Programme is not, and that sentence is the whole of the audit's A3.
+- **The six key names are a consequence now and `SYLLABUS_KEYS` is gone rather than derived.** A
+  tuple nobody reads is the next thing somebody edits instead of the table. They fall out of
+  `covers` and the gate prints them from it when it refuses. Adding a value with a source is
+  declaring the source, the corpus, the date and the gate that re-reads it.
+- **And the source's own claim about a recheck is joined to the code.** `check_module_structure()`
+  and `check_syllabus_counts()` record themselves when they run, and a source naming a gate this
+  program defines and did not record is refused. A gate that does not run re-reads nothing, and
+  every value resting on it would be resting on nothing.
+- **The limit is stated and is not closed by any of this.** The vault is not on the machine that
+  builds this document, so nothing here can compare a string against the corpus. Delete the genuine
+  `modules` row off a Programme and rename an invented row into the empty seat and the population
+  is intact and the seat is forged. That is a different act from renaming a row into a list, it is
+  irreducible without the corpus, and on a machine that holds the vault
+  `check_module_structure()` re-reads and refuses the drift.
+- **The downgrade direction of the same seat, which is F28's gate-side half and was an open gap.**
+  `check_provenance` had no rule for a value from a real source flagged `dummy`, and the model's
+  argument against the symmetric rule was correct as far as it went: eight `module_name` rows and
+  two `modules` rows are legitimately `absent`, so "every syllabus row is `real`" is false. The
+  rule that survives that objection is the narrower one: a covered row wears one of the flags ITS
+  SOURCE declares, `real` or `absent`, and no third thing. Proved by construction at `24b45b5` on
+  the audit's own B2, `module_code` and `module` downgraded to `dummy`: the pre-fix builder exits
+  0 and ships them, this one refuses with `source-row-flag`.
+- **Provenance self-test 37 to 52 probes**, fourteen new refusals and one new control, and all
+  fifteen were run against the pre-fix body in a checkout at `24b45b5`: **15 MISS of 15**, so every
+  one of them is a document that body accepted. The commit message that landed the change says
+  thirteen refusals and is wrong; the count is fourteen. The 328 rows that carry `real` at
+  `24b45b5`, 164 in `views` and 164 in `collapsed`, are byte identical row for row and in the same
+  order after the change, and the only difference in the whole shipped document is the new
+  `provenance.sources` block.
 - **Nine assertions were narrower than their names and the behaviour each one is named for could be
   deleted at 184 of 184, #115.** Every row below was closed the way the card asked and not by
   reading: the defect its name describes was planted, the whole suite run, the named assertion
