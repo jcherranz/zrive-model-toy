@@ -44,14 +44,58 @@ COLLECTION_RE='collection://'
 # ---------------------------------------------------------------------------------------
 
 # stdin -> one folded token per line, deduplicated, stop-words removed.
-# Folding: transliterate to ASCII (Muñoz -> Munoz), lowercase, split on anything not a letter.
+# Folding: transliterate to ASCII (Muñoz -> Munoz), split on anything that is not a letter,
+# lowercase. Digits are not letters, so they have always separated: "kestrelvane2026" was never
+# one token.
+#
+# EVERY NAME IN THIS COMMENT IS INVENTED, and has to be. The worked example that makes the point
+# is the exact position a real surname stood in once already
+# (HANSEI.md `2026-08-09-gate-scoped-to-the-public-surface`), and the first draft of this comment
+# put another one there: it was written with a real camelCase pair, the rule below caught it on
+# the first run, and the example was replaced rather than the rule.
+#
+# AND EACH RUN OF LETTERS IS ALSO CUT AT ITS CASE BOUNDARIES. A name glued to another word
+# survives the split on punctuation, and the old order lowercased first, which destroyed the one
+# boundary left, so "quillfarthingKestrelvane" folded to a single token that matched nothing
+# while both halves were sitting in the register. Every run is now emitted whole AND cut at
+# every lower-to-upper and acronym-to-word boundary, and every piece is looked up.
+#
+# EMITTING THE WHOLE RUN AS WELL IS WHAT MAKES THIS ADDITIVE, and additive is the only safe
+# direction for a change to the folding: no token the previous folding produced is lost, the
+# register regenerates as a superset of itself, and the net can only get finer. A decomposition
+# that replaced the run with its pieces would have dropped "mcquillfarthing" on the way to
+# finding "quillfarthing", which is a hole opened while closing one.
+#
+# WHAT IT STILL DOES NOT SEE. A run with no case boundary at all is still one token, so a name
+# concatenated in lower case ("xxkestrelvane") is not decomposed. Catching that needs substring
+# matching, which is a different rule with a different false-positive profile, and it is not
+# this one. Stated rather than implied.
 fold_tokens() {
   iconv -c -f UTF-8 -t ASCII//TRANSLIT \
-    | tr 'A-Z' 'a-z' \
-    | tr -cs 'a-z' '\n' \
+    | tr -cs 'A-Za-z' '\n' \
     | awk -v min="$FORBIDDEN_MIN_TOKEN" -v stop="$FORBIDDEN_STOP" '
         BEGIN { n = split(stop, s, " "); for (i = 1; i <= n; i++) drop[s[i]] = 1 }
-        length($0) >= min && !($0 in drop) { print }
+        function emit(t,   l) {
+          l = tolower(t)
+          if (length(l) >= min && !(l in drop)) print l
+        }
+        {
+          w = $0
+          if (w == "") next
+          emit(w)
+          piece = substr(w, 1, 1)
+          for (i = 2; i <= length(w); i++) {
+            c = substr(w, i, 1)
+            p = substr(w, i - 1, 1)
+            q = substr(w, i + 1, 1)
+            if (c ~ /[A-Z]/ && (p ~ /[a-z]/ || (p ~ /[A-Z]/ && q ~ /[a-z]/))) {
+              emit(piece); piece = c
+            } else {
+              piece = piece c
+            }
+          }
+          emit(piece)
+        }
       ' \
     | sort -u
 }

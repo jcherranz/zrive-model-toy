@@ -38,15 +38,40 @@ def fold(s):
     return unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode().lower()
 
 
+# Case and digit boundaries, as zero-width positions. A name glued to another word or to an
+# acronym or to a year survives a split on whitespace, and \b sees no boundary inside a run of
+# word characters, so "quillfarthingKestrelvane" and "Kestrelvane2026" both used to read as one
+# opaque word here. This is the same rule scripts/forbidden_lib.sh applies in fold_tokens, and
+# the two must be changed together; that file is the owner of the rule and this is the local
+# copy it says can drift. Every name in these comments is invented and has to be.
+CASE_BOUNDARY = re.compile(r"(?<=[a-z])(?=[A-Z])"        # quillfarthingKestrelvane
+                           r"|(?<=[A-Z])(?=[A-Z][a-z])"  # ZBLKestrelvane
+                           r"|(?<=[A-Za-z])(?=[0-9])"    # Kestrelvane2026
+                           r"|(?<=[0-9])(?=[A-Za-z])")   # 2026Kestrelvane
+
+
+def split_case(s):
+    """A copy of s with a space at every case and digit boundary.
+
+    Used ALONGSIDE the unsplit text, never instead of it: a term whose only form in the
+    register is the joined one ("Mcquillfarthing") must still match, so the decomposition can
+    only add matches and can never remove one.
+    """
+    return CASE_BOUNDARY.sub(" ", s)
+
+
 def teacher_terms():
     terms = set()
     for f in sorted(FACULTY.glob("*.md")):
         person = f.stem.split(" - ")[0].strip()
         if person:
             terms.add(person)
-            for tok in re.split(r"[\s.]+", person):
-                if len(tok) >= 4 and fold(tok) not in STOP:
-                    terms.add(tok)
+            for raw in re.split(r"[\s.]+", person):
+                # The whole run first, then its case-boundary pieces. Additive, for the same
+                # reason split_case is applied alongside the plain text and not instead of it.
+                for tok in [raw] + split_case(raw).split():
+                    if len(tok) >= 4 and fold(tok) not in STOP:
+                        terms.add(tok)
     return sorted(terms)
 
 
@@ -86,11 +111,16 @@ def main():
         except (UnicodeDecodeError, OSError):
             continue
         low = fold(text)
+        # The same bytes read a second way, with a separator at every case and digit boundary,
+        # so a name concatenated into an identifier is visible to \b. Both views are searched.
+        low_split = fold(split_case(text))
         for w in BANNED_WORDS:
-            if re.search(r"\b" + re.escape(fold(w)) + r"\b", low):
+            pat = r"\b" + re.escape(fold(w)) + r"\b"
+            if re.search(pat, low) or re.search(pat, low_split):
                 hits["banned word"].append(f"{f}: {w}")
         for t in terms:
-            if re.search(r"\b" + re.escape(fold(t)) + r"\b", low):
+            pat = r"\b" + re.escape(fold(t)) + r"\b"
+            if re.search(pat, low) or re.search(pat, low_split):
                 hits["real teacher name"].append(f"{f}: {t}")
         for m in MONEY.finditer(ISO_TS.sub(lambda t: " " * len(t.group(0)), text)):
             hits["money"].append(f"{f}: {m.group(0).strip()}")

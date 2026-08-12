@@ -759,6 +759,16 @@ self_test() {
   probe "a grouped money figure"       'trip' 'turnover of 1.138.000,00 EUR last year'
   probe "a figure beside a timestamp"  'trip' '{"generated":"2026-08-09T16:42:46.932Z","fee":"2.750,00 EUR"}'
   probe "a real name (synthetic)"      'trip' 'taught by Ada Kestrelvane in March'
+  # The folding cuts a run of letters at its case boundaries, so a name concatenated with
+  # another word or with an acronym is decomposed and every piece is looked up. The whole run
+  # is still emitted as well, which is what keeps the change additive; scripts/check_forbidden.sh
+  # proves that half against a register that holds only the joined form. The first two payloads
+  # passed this gate before the case boundaries were added; the digit one did not, because a
+  # digit was already a separator, and it is here to keep that true rather than to report new
+  # coverage.
+  probe "a camelCase concatenation"    'trip' 'the handle quillfarthingKestrelvane in a log line'
+  probe "an acronym glued to a name"   'trip' 'the ZBLKestrelvane row of the export'
+  probe "a digit glued to a name"      'trip' 'user Kestrelvane2026 signed the record'
   probe "a figure spelled with euros"  'trip' 'raised 1.000.000 euros in the round'
   probe "a figure with a currency tag" 'trip' 'a fee of 500 EUR per session'
 
@@ -805,6 +815,10 @@ self_test() {
         'total_price 4.000,00 EUR and amount_claimed 1.000,00 EUR, --lh-ui: 1.28581'
   probe "a fractional-second timestamp"     'pass' '{"generated":"2026-08-09T16:42:46.932Z"}'
   probe "Company inside a firm name"        'pass' 'Kestrel Analytics Company Limited, a supplier'
+  # The other direction of the case-boundary folding: a finer net is only worth having if it
+  # still passes the code it has to read, and site/ is camelCase throughout.
+  probe "ordinary camelCase identifiers"    'pass' \
+        'document.getElementById(id); ZT.termRoutes(); new XMLHttpRequest(); bandPlate'
   probe "the bare English words euro/euros" 'pass' 'the euro figures, priced in euros, in prose'
   probe "an ordinary decimal, not grouped"  'pass' 'stroke-width 1.28581 and ratio 0.75'
 

@@ -119,10 +119,15 @@ fetch_deployed() {
 # anywhere in this repository, in a temporary file or in a log.
 # ---------------------------------------------------------------------------------------
 self_test() {
-  local tmp fake_hashes rc pass=0 total=0
+  local tmp fake_hashes whole_hashes rc pass=0 total=0
   WORKDIR="$(mktemp -d)"; tmp="$WORKDIR"
   fake_hashes="$tmp/hashes"
   { echo "# synthetic"; hash_token "kestrelvane"; } > "$fake_hashes"
+  # A second synthetic register holding ONLY a token that has an internal case boundary, so the
+  # probe below can prove the decomposition is additive. Against this list a folding that
+  # replaced a run of letters with its pieces would find nothing, and the probe would miss.
+  whole_hashes="$tmp/hashes-whole"
+  { echo "# synthetic"; hash_token "mcquillfarthing"; } > "$whole_hashes"
 
   probe() {
     local name="$1" payload="$2" hashes="$3"
@@ -147,6 +152,17 @@ self_test() {
   probe "email address"            'contact alguien@example.com for detail'  "$fake_hashes"
   probe "undeclared money figure"  'turnover of 1.138.000,00 EUR last year'  "$fake_hashes"
   probe "real name (synthetic)"    'taught by Ada Kestrelvane in March'      "$fake_hashes"
+  # The folding cuts a run of letters at its case boundaries, so a name concatenated with
+  # another word or with an acronym is decomposed and each piece is checked. The first two
+  # payloads passed this gate before the case boundaries were added; the third did not, because
+  # a digit was already a separator, and it is here to keep that true rather than to report new
+  # coverage.
+  probe "camelCase concatenation"  'the handle quillfarthingKestrelvane in a log line' "$fake_hashes"
+  probe "acronym glued to a name"  'the ZBLKestrelvane row of the export'    "$fake_hashes"
+  probe "digit glued to a name"    'user Kestrelvane2026 signed the record'  "$fake_hashes"
+  # Additive, proved rather than asserted: against a register that holds only the joined form,
+  # the whole run must still be emitted and still match.
+  probe "a name matchable only whole" 'Mcquillfarthing taught in March'      "$whole_hashes"
 
   echo
   echo "self-test: the probes below MUST NOT trip the gate"
@@ -160,6 +176,21 @@ self_test() {
     pass=$((pass + 1))
   else
     echo "  [MISS] the two declared invented figures were rejected"
+  fi
+
+  # The other direction of the case-boundary folding. A finer net is only worth having if it
+  # still passes the code it has to read, and site/ is written in camelCase throughout, so the
+  # decomposition runs on every identifier on the page.
+  local c="$tmp/camel"; mkdir -p "$c"
+  printf '%s\n' 'document.getElementById(id); ZT.termRoutes(); new XMLHttpRequest(); bandPlate' > "$c/probe.txt"
+  total=$((total + 1))
+  rc=0
+  ( FAILURES=0; scan_dir "$c" "$fake_hashes" >/dev/null 2>&1; [ "$FAILURES" -eq 0 ] ) || rc=$?
+  if [ "$rc" -eq 0 ]; then
+    echo "  [OK]   ordinary camelCase identifiers passed"
+    pass=$((pass + 1))
+  else
+    echo "  [MISS] ordinary camelCase identifiers were rejected"
   fi
 
   # The timestamp mask, in both directions: a fractional-second instant must not read as
