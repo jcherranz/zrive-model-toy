@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T15:20:37Z",
+  "generated": "2026-08-12T15:22:17Z",
   "columns": [
     {
       "key": "raw",
@@ -91,21 +91,20 @@
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": [
-        {
-          "id": 110,
-          "title": "The page stops narrating its own provenance: the footer statement, the panel chips and the gaps definition come out",
-          "labels": [
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/110"
-        }
-      ]
+      "cards": []
     },
     {
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 110,
+          "title": "The page stops narrating its own provenance: the footer statement, the panel chips and the gaps definition come out",
+          "labels": [
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/110"
+        },
         {
           "id": 107,
           "title": "There is no origin: the gates that reach for one have lost their subject, not their nerve",
@@ -168,18 +167,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/100"
-        },
-        {
-          "id": 99,
-          "title": "Feedback capture describes elements with textContent, so it reports hidden text",
-          "labels": [
-            "bug",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/99"
         }
       ],
-      "hidden": 84,
+      "hidden": 85,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
