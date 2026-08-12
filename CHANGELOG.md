@@ -11,6 +11,17 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- **`scripts/publish.sh`, one command each way, #107.** `on` creates the Pages site with
+  `build_type: workflow`, sets the switch and dispatches the deploy; `off` clears the switch and
+  deletes the site; `status` prints three different questions and their three answers, the
+  repository variable, what the Pages API has configured, and what the url actually returns, which
+  during a takedown or a deploy disagree. `on` prints the terms before it asks: the account is on
+  Pro, private Pages needs Enterprise Cloud, so there is no authentication available and on means
+  world-readable. That sentence is the reason the site is off and it belongs at the terminal of
+  whoever turns it on, not in a document. `--dry-run` prints every call and makes none.
+- **The switch itself, a repository variable `PUBLISH`, set to `off`.** Absent counts as off, so
+  the safe state needs no configuration and a fork publishes nothing until somebody says so.
+
 - **Collapse sessions into modules and back, #89.** The first thing asked of this artefact that is
   about working with the model rather than reading it, and the north star named on the card was
   "this will be a management tool". `grain: sessions` / `grain: modules` in the view level group of
@@ -91,6 +102,42 @@ of what changed and when, and it is meant to be scannable.
 
 ### Changed
 
+- **`scripts/verify.sh` looks for an origin instead of being told about one, and says which server
+  answered, #107.** #101 ended with the Pages site deleted, so the two steps that read bytes back
+  over HTTP had nothing to read. They are not repaired by being pointed at the tree and left
+  printing what they printed before, which is the green-when-the-subject-is-gone defect #103 spent
+  a night removing. The run probes the derived url; if it answers 200 the steps read that, and if
+  it does not, `python3 -m http.server` serves `site/` on a kernel-assigned port and they read
+  that. The verdict is a different sentence in each case, `The origin serves this.` against
+  `These bytes serve. No origin was checked, because there is none.`, and the header names how the
+  target was chosen. Republishing needs no edit here: the next run finds it.
+- **The forbidden-content gate names the server it read, in the banner and in both verdicts.** Its
+  file list and its five rules are identical either way and its CLAIM is not, so
+  `FORBIDDEN CONTENT IS PUBLIC` is now printed only when something public is serving it and
+  `FORBIDDEN CONTENT IS IN THE BYTES THIS TREE WOULD PUBLISH` otherwise. A url whose host is
+  loopback is classified from the url, not from how the caller described it, in the gate and in
+  `smoke.mjs`, which used to label any argument "a deployed origin". The dead default url is gone
+  and no argument is now an abort naming `verify.sh` and `publish.sh status`.
+- **`pages.yml` and `origin-freshness.yml` are gated on `PUBLISH`, not deleted.** Deleting
+  `pages.yml` would make the next publication a job of writing a deploy workflow again, and leaving
+  it armed was the worse half in the other direction, because `actions/configure-pages` creates the
+  Pages site and the next push would have republished what the owner had just removed.
+  `origin-freshness.yml` has no subject at all without an origin and would go red every fifteen
+  minutes about a state nobody intends to change, which is the permanent red its own Andon argument
+  says not to build. A gated job is SKIPPED, which is neither green nor red; neither of them passes
+  vacuously. `board.yml` carries the same condition on its dispatch so the run list does not fill
+  with runs that never intended to do anything.
+- **The smoke run against the origin is recorded as a `[SKIP]` with its reason, and is not pointed
+  at a second local server.** The step above it already drives the suite at a local server over the
+  same `site/`, so a second one would say the same sentence twice and a reader counting green steps
+  would count a check that checked nothing new. A skip is loud in the summary and makes the verdict
+  say a step did not run, which is the difference between a step whose subject is absent and a step
+  deleted for being red.
+- **`site/version.js` is unchanged, which is the answer and not an omission.** The tree copy names
+  no commit and says `working tree, not a deployment`, which was already the truthful value; the
+  stamp is written by `pages.yml` into the artifact at deploy time, so it stays absent while nothing
+  deploys and comes back correct on the first deploy after `publish.sh on`, with nothing edited by
+  hand. Nothing in the tree claims a deploy that did not happen.
 - **`views` still means the seven programmes, and the second grain ships as `collapsed`.** Built as
   one list of fourteen it made `scripts/smoke.mjs` count 146 gaps where the page says 95 and compare
   Z-SC's drawing against Z-IB's document, which is a false regression report about a page that is
