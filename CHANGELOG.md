@@ -102,6 +102,26 @@ of what changed and when, and it is meant to be scannable.
 
 ### Changed
 
+- **An invented agenda written for each session out of its own title, #85 and #108, and the owner
+  reversed the safety design to get it.** The block was the same four lines under all 83 templates,
+  which was the point of it: an agenda inferred from a title reads exactly like curriculum design,
+  and a reader who opened a second row and met the identical four could not take it for a plan. He
+  asked for "something ad hoc minimal imagined with the session title", so there are now three or
+  four short beats per template, 259 of them, 73 threes and 10 fours, written from the title and
+  from nothing else. **What makes the reversal acceptable is conditional and is recorded for that
+  reason.** The identical lines bought protection for a world-readable page and there is no longer
+  one, the deployment having been taken down under #101 with no private Pages available on Pro. If
+  the page is ever republished the trade changes back and this block is the first thing to
+  re-examine. Every beat carries `dummy` and `0_invented`, the flag vocabulary is untouched, and
+  `check_provenance()` walks the new rows through the same three rules in the same loop as the four
+  constant ones, so a rule cannot be applied to one half and forgotten on the other. One statement
+  that the block is invented, not the six #91 cut. Two properties are checked rather than promised,
+  both in the build: the table covers the drawn templates exactly, so a renamed template loses its
+  agenda loudly, and no two templates carry the same beat, which is the mechanical half of not
+  collapsing into a formula. The six Z-CFA titles are the stated exception, their titles being
+  reading numbers with no subject in them to be ad hoc about. **Staged and not yet drawn**:
+  `site/term.js` renders the constant `rows` and `scripts/smoke.mjs` asserts their sameness, both
+  held elsewhere, so the sheet is unchanged and smoke is untouched at 139.
 - **`scripts/verify.sh` looks for an origin instead of being told about one, and says which server
   answered, #107.** #101 ended with the Pages site deleted, so the two steps that read bytes back
   over HTTP had nothing to read. They are not repaired by being pointed at the tree and left
@@ -389,6 +409,20 @@ of what changed and when, and it is meant to be scannable.
 
 ### Removed
 
+- **The visit's ghost edge to the Programme, #75 and #108, on the owner's reversal.** #75 had
+  shipped two edges under one verb from the empresa colaboradora, a solid `hosts visit` to the
+  Cohort and a declared ghost to the Programme; he wants the cohort edge alone. The solid edge is
+  untouched. Both readings of the visit were true, so this is not a correction of a fact but a
+  judgement about how much one relationship should be made to say, and the absence the ghost marked
+  is already stated on the host's own note and in its `cohort_that_attended` row. 461 edges to 455,
+  six of the seven routes each losing one; 330 nodes, 3113 values and all seven drawing heights
+  unchanged. #63's arc goes with it: the span of 3 belonged to the line that reached the Programme,
+  and no route now draws an edge as an arc slung under its row. **The declared-ghost mechanism is
+  deliberately kept and is now exercised by nothing.** A ghost declared as a fourth element on an
+  edge tuple, unpacked in `edge_parts()` alone, is a capability distinct from a ghost derived from
+  a ghost node at an end, and whether the model keeps a mechanism no edge uses is the owner's call
+  rather than a tidy-up. Derivation still runs and still covers the four ghost nodes; both the
+  ghosts block and the edges block in `instance_document()` now say plainly that nothing declares.
 - **Five of the six statements that the data is invented, #91 and #93, and he asked twice.**
   "Remove all this taggs, I know that. Remove all of them." and "Remove all this text. A good UI
   must be self explanatory. Too verbose". Measured on the deployed page before the cut: on
