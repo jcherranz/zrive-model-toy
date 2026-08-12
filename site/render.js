@@ -969,8 +969,18 @@
 
       // ---- the edges, three kinds ---------------------------------------------------
       var out = [], folds = {}, sameLane = 0;
+      // The separator is a UNIT SEPARATOR WRITTEN AS AN ESCAPE, and both halves of that
+      // matter. It has to be a character no id and no verb can hold, which is why it was
+      // never an ordinary one; it must not be a NUL, which is what it was, because three
+      // raw NUL bytes in the source make every text tool call this file binary. Measured
+      // on this machine: `grep -c function site/render.js` finds nothing and exits 1 while
+      // `grep -a` finds 121, so a sweep over site/*.js silently skips the 1159 lines that
+      // paint the drawing. The safety gates were checked rather than assumed and they are
+      // clean, every one of them passing -a or reading the file in Python, and a banned
+      // word planted after the NULs was caught; the cost was never the gates, it was every
+      // reader and every audit after them.
       function fold(sId, tId, e) {
-        var k = sId + ' ' + tId + ' ' + e.v + ' ' + (e.ghost ? 'g' : '');
+        var k = sId + '\u001f' + tId + '\u001f' + e.v + '\u001f' + (e.ghost ? 'g' : '');
         var f = folds[k];
         if (f) { f.n++; return; }
         folds[k] = { s: sId, t: tId, e: e, n: 1 };
