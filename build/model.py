@@ -7,6 +7,7 @@
 import copy
 import datetime
 import hashlib
+import json
 import math
 import pathlib
 import re
@@ -5068,6 +5069,146 @@ def doc_views(doc):
     same answer on every document that can be built.
     """
     return [v for name in VIEW_LISTS for v in (doc.get(name) or [])]
+
+
+# ---- what a digest is FOR, and therefore what is inside one -------------------
+# Issue 116. The fourteen drawing digests were correct and they covered less than the drawing.
+# The card asked for a decided scope and not a bigger hash, so the decision is written here,
+# beside the machinery, rather than left to be inferred from what the code happens to hash.
+#
+# THE DRAWING DIGEST ANSWERS ONE QUESTION: are two pages drawing the same picture from the same
+# data. It is a fingerprint of everything the build hands the renderer for one drawing, and of
+# nothing else. That makes its scope a fact rather than a judgement: it is exactly the object
+# site/app.js assembles in joinList and site/render.js is called with. Today that object is the
+# view's instance payload, the geometry laid out from it, and the type registry.
+#
+# THE TYPE REGISTRY IS IN IT BECAUSE IT PAINTS EVERY TILE. site/render.js reads each type's
+# glyph name, its colour pair and its accessible label out of `drawing.types`, which app.js
+# feeds from the top level `types` block. Before this card that block was outside all fourteen
+# digests: one glyph changed in TYPES above repainted ninety one tiles across nine of the
+# fourteen drawings, and every digest, both generated documents and the whole verify run said
+# nothing had moved.
+#
+# THE WHOLE REGISTRY AND NOT THE TYPES ONE DRAWING USES. A page is handed one registry and
+# paints all fourteen drawings from it, so a page whose registry differs is not painting the
+# same way whatever tiles it happens to hold. Over-covering costs a digest that moves on a type
+# no drawing shows; under-covering costs the failure this card is about.
+#
+# THE CODE THAT PAINTS IS OUTSIDE IT, DELIBERATELY, and this is the row the card said had to be
+# argued rather than answered by reflex. site/render.js is not data. Folding it into the drawing
+# digest would make every presentation edit invalidate all fourteen drawings at once, which
+# destroys the only thing the value is good for: telling a data difference from a code
+# difference. Which code a page is running is already answered, by the commit in
+# site/version.js. What render.js held that belongs under a digest is the glyph GEOMETRY, and
+# that is glyph_table() below: one value for the whole symbol table, carried by the geometry
+# document, so that changing a drawn symbol moves something and changing a comment about the
+# chrome moves nothing.
+#
+# THE PREIMAGE IS CANONICAL AND NOT THE SHIPPED BYTES, which is the card's row F6 and is a
+# choice. A digest is worth having only if a second implementation can recompute it from the
+# document, and the shipped bytes carry a separator and key-order convention that has nothing to
+# do with the picture. The shipped bytes have a stronger gate of their own: scripts/
+# check_build.sh byte-compares both generated documents against a rebuild of them.
+def canonical(obj):
+    """The one serialization every digest in this repository is taken over.
+
+    Sorted keys and no whitespace, so the value is a function of what the document SAYS and not
+    of the order the builder happened to write it in.
+    """
+    return json.dumps(obj, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def short_digest(text):
+    """Seven hex characters, the length every digest in this repository is quoted at."""
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:7]
+
+
+def drawing_digest(types, view, geometry):
+    """The digest of one drawing: the registry, the payload and the geometry together.
+
+    ONE FUNCTION AND NOT TWO. build/build_layout.py computes it and scripts/check_build.sh
+    recomputes it from the shipped documents to prove the shipped value is the one these bytes
+    produce. A second copy of the preimage in the checker would be a checker that agrees with
+    itself, which is the defect this repository has already filed once as two copies of one rule.
+
+    `geometry` must not already carry its own digest. A value cannot cover itself, and a caller
+    that handed one in would be hashing a previous run's answer into this one.
+    """
+    if "drawingDigest" in geometry:
+        raise ValueError("drawing_digest was handed geometry that already carries a digest; the "
+                         "value cannot be part of its own preimage")
+    return short_digest(canonical({"types": types, "view": view, "geometry": geometry}))
+
+
+def document_digest(inst):
+    """The digest of a whole instance document, every top-level block of it.
+
+    A SECOND QUESTION AND NOT A WIDER ANSWER TO THE FIRST. A drawing digest asks whether two
+    pages draw one picture the same way; this asks whether they read the same data at all. The
+    blocks that reach no drawing still reach the reader: `agenda` fills the session sheet,
+    `routes` fills the populate panel, `provenance` decides what every value on the page is
+    allowed to be acted on, and `default` decides which programme opens. None of them is in a
+    drawing digest and it would be wrong to put them there, so they are covered here instead,
+    and nothing in the data document is now outside every digest.
+    """
+    return short_digest(canonical(inst))
+
+
+# ---- the glyph table, which is drawing geometry living in code ----------------
+# Issue 116 row F4. Two facts about one tile are written in two files: build/model.py names the
+# symbol a type is drawn with and site/render.js holds the strokes that symbol is made of.
+# Nothing joined them, so a path edited under an unchanged name repainted ninety one tiles with
+# every generated document byte-identical, and a name with no path would have thrown on the
+# first tile that reached it.
+#
+# THE TABLE IS READ, NEVER PARSED INTO VALUES. What is wanted is a fingerprint of the strokes
+# and the set of names, and a JavaScript object literal with comments in it is not JSON. The
+# slice of source text is the honest preimage: it moves when a stroke moves, when a symbol is
+# renamed and when a symbol is added, which is every change that can alter what a reader sees.
+# It also moves when a comment inside the table is edited, which is the price and is small,
+# because the comments inside this table are about the symbols.
+GLYPH_TABLE_RE = re.compile(r"^  var PATHS = \{$.*?^  \};$", re.S | re.M)
+GLYPH_KEY_RE = re.compile(r"^    (\w+):", re.M)
+
+
+def glyph_table(path):
+    """The stroke glyph table as site/render.js declares it: (source text, key list).
+
+    Raises ValueError when the table cannot be found, which is an abort and not an empty
+    answer: a reader that returned no keys would report every glyph unbound and every binding
+    covered at the same time.
+    """
+    src = pathlib.Path(path).read_text(encoding="utf-8")
+    m = GLYPH_TABLE_RE.search(src)
+    if not m:
+        raise ValueError(f"{path} holds no `var PATHS = {{ ... }};` block at the indentation "
+                         f"this reader knows. The glyph table is what every tile is drawn from "
+                         f"and a fingerprint of a table that was not found is worth nothing.")
+    keys = GLYPH_KEY_RE.findall(m.group(0))
+    if not keys:
+        raise ValueError(f"the glyph table in {path} declares no symbols at all")
+    return m.group(0), keys
+
+
+def glyph_binding(inst, keys):
+    """The glyph names this document will actually paint with, and the ones with no strokes.
+
+    NOT EVERY NAME IN THE REGISTRY, and the difference is the whole precision of the rule. A
+    tile draws its glyph only when it is neither a ghost nor a count: a ghost tile is
+    deliberately empty and a tile standing for many draws the number instead. Two of the
+    fourteen names declared today, `ghost` and `stack`, are therefore never reached, and a rule
+    that refused over them would be refusing over a symbol nobody can see. What is refused is
+    exactly the crash: a tile that will be painted with a name the renderer cannot draw.
+    """
+    glyph_of = {t["k"]: t.get("glyph") for t in inst["types"]}
+    painted = {}
+    for v in doc_views(inst):
+        for n in v["nodes"]:
+            if n.get("ghost") or n.get("count"):
+                continue
+            painted.setdefault(glyph_of.get(n["type"]), set()).add(f"{v['key']} {n['id']}")
+    unbound = sorted((g, sorted(where)) for g, where in painted.items() if g not in set(keys))
+    return sorted(k for k in painted if k), unbound
 
 
 def instance_document():

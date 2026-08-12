@@ -30,7 +30,6 @@ build/bands.py. The plane from issue 46 is what makes the tall pair navigable, a
 only reason a drawing this shape is shippable at all.
 """
 import argparse
-import hashlib
 import json
 import math
 import os
@@ -42,8 +41,9 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from bands import (BAND_KEYS, BANDS, CAP_DELIVERIES, CAP_DELIVERIES_NO_HOST, CAP_MODULES,  # noqa: E402,E501
                    CAP_MODULES_LOOSE, CAP_NO_EMPLOYERS, CAP_NO_HOST, CAP_NO_INSTRUCTORS,
                    CAP_NO_MODULES, MAX_CAP_LINES, fill)
-from model import (check_provenance, check_structure, contrast_rows, doc_views, floor4,  # noqa: E402,E501
-                   instance_document, value_status)
+from model import (check_provenance, check_structure, contrast_rows, doc_views,  # noqa: E402,E501
+                   document_digest, drawing_digest, floor4, glyph_binding, glyph_table,
+                   instance_document, short_digest, value_status)
 
 COL_W = [166, 232, 122, 124, 80, 102, 92, 92]
 GAP_X, MARGIN_X = 18, 22
@@ -386,7 +386,7 @@ def dist_to_path(pt, pts, n=400):
                for x, y in (bez(pts, i / n) for i in range(n + 1)))
 
 
-def layout(view, tag, bands, col_of):
+def layout(view, tag, bands, col_of, types):
     """Lay one view of the instance document out and return the geometry the browser draws.
 
     It is a function rather than module-level code because it once laid out two drawings, a
@@ -692,9 +692,12 @@ def layout(view, tag, bands, col_of):
     # showing what mine is, and a page whose coordinates match and whose roster does not is not
     # showing the same thing. So the digest is taken over this view's instance payload and its
     # geometry together, and it answers exactly the question it answered when they were one blob.
-    payload = (json.dumps(view, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-               + json.dumps(out, ensure_ascii=False, sort_keys=True, separators=(",", ":")))
-    out["drawingDigest"] = hashlib.sha256(payload.encode("utf-8")).hexdigest()[:7]
+    #
+    # AND SINCE ISSUE 116 OVER THE TYPE REGISTRY AS WELL, which is the third of the three things
+    # site/app.js hands site/render.js and was the one outside. The scope, the argument for it
+    # and the argument for what is still outside are written once, in build/model.py above
+    # drawing_digest(), and this line calls that function rather than restating its preimage.
+    out["drawingDigest"] = drawing_digest(types, view, out)
 
     print(f"[{tag}] nodes {len(out['nodes'])}  edges {len(out['edges'])}  "
           f"viewBox {W}x{out['h']}  aspect {W / out['h']:.2f}  "
@@ -905,7 +908,8 @@ def build(inst, out_dir):
             tag = view["key"] + ("" if grain == "sessions" else "/" + grain)
             col_of = columns_for(view, tag)
             out.append({"key": view["key"], "grain": grain,
-                        "drawing": layout(view, tag, bands_for(view, col_of), col_of)})
+                        "drawing": layout(view, tag, bands_for(view, col_of), col_of,
+                                          inst["types"])})
         return out
 
     views = lay_out(inst["views"])
@@ -913,6 +917,36 @@ def build(inst, out_dir):
     if inst.get("collapsed"):
         lay["collapsed"] = lay_out(inst["collapsed"])
     refuse_mixed(inst, lay)
+
+    # ---- the two document-wide digests, issue 116 -------------------------------------------
+    # Neither is a wider drawing digest and neither is inside one. See build/model.py above
+    # drawing_digest() for the argument; what follows is only where they go and why here.
+    #
+    # THEY ARE CARRIED BY THE GEOMETRY DOCUMENT. `documentDigest` is this layout's statement
+    # about which instance document it was laid out from, which is a fact about the join between
+    # the two files and belongs on the side that was written second. `glyphDigest` is a
+    # fingerprint of drawing geometry that lives in code for a good reason, the strokes being
+    # constant across every build, and site/layout.js is where this repository keeps geometry.
+    #
+    # AND BOTH ARE GENERATED, WHICH IS WHAT MAKES THEM LOAD BEARING RATHER THAN DECORATIVE.
+    # scripts/check_build.sh rebuilds this file and refuses anything a rebuild does not
+    # reproduce byte for byte, so a stroke edited in site/render.js now moves a byte of a
+    # generated document and the existing gate fires. That check recomputes both values from the
+    # shipped documents as well, so the refusal names the symbol table rather than the file.
+    glyph_src, glyph_keys = glyph_table(SITE / "render.js")
+    painted, unbound = glyph_binding(inst, glyph_keys)
+    if unbound:
+        sys.exit("[layout] a tile will be painted with a symbol site/render.js cannot draw: "
+                 + "; ".join(f"{g!r} on {', '.join(w[:4])}" for g, w in unbound)
+                 + ". The renderer looks the name up in its PATHS table and a name with no "
+                 "entry throws on the first tile that reaches it, taking the whole drawing "
+                 "down. Add the strokes to site/render.js or change the glyph in build/"
+                 "model.py's TYPES.")
+    lay["documentDigest"] = document_digest(inst)
+    lay["glyphDigest"] = short_digest(glyph_src)
+    print(f"  digests: {len(doc_views(lay))} drawings, each over the type registry, its own "
+          f"view and its own geometry; document {lay['documentDigest']}; glyph table "
+          f"{lay['glyphDigest']}, {len(glyph_keys)} symbols of which {len(painted)} are painted")
 
     # The width of the drawing is computed here and read by the stylesheet through the
     # --drawing-w custom property that app.js writes. If it is ever typed into app.css as well

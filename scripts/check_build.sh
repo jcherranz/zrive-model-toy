@@ -494,6 +494,172 @@ check_structure_live() { _model_says --structure; }
 check_structure_armed() { _model_says --structure-self-test; }
 
 # ---------------------------------------------------------------------------------------------
+# 4. The digest census. Issue 116.
+# ---------------------------------------------------------------------------------------------
+# Before this card `drawingDigest` occurred zero times in every gate this repository runs. The
+# value was correct, nothing read it, and the audit changed one glyph in build/model.py, rebuilt
+# for real and repainted ninety one tiles across nine of the fourteen drawings with all fourteen
+# digests unchanged and the whole verify run clean. Widening what the digest covers is
+# build/model.py's half of the repair; reading it at all is this one.
+#
+# THE NUMBER OF DRAWINGS IS WRITTEN BY HAND, and that is the point of the constant rather than a
+# shortcoming of it. Issue 116 row F7: the smoke suite asserts "each of the fourteen drawings
+# carries its own digest" over a population it derives from the document, so a loop over
+# thirteen passes as fourteen and only the assertion's NAME says otherwise. A count taken from
+# the run cannot notice a drawing that is not there. This is the same terminator EXPECTED_PROBES
+# below and STRUCTURE_PROBES in build/model.py are, and a grain or a programme added has to
+# change it in the same commit.
+EXPECTED_DRAWINGS=14
+
+# The three documents are arguments and none has a default, so the self-test drives the same
+# function CI runs against doctored copies without going near the tree. site/render.js is in the
+# list because the glyph table is drawing geometry that lives in code: see build/model.py above
+# drawing_digest() for why it is fingerprinted separately instead of being folded into the
+# fourteen.
+#
+# The output is captured and filtered for the same reason _model_says above captures and filters
+# it: importing build/model.py prints that file's own notes about the vault it read, to stderr,
+# and a census of digests is not the place to read them.
+check_digests() {  # instance.js layout.js render.js [expected-drawings]
+  local out rc
+  out="$(ZRIVE_INSTANCE="$1" ZRIVE_LAYOUT="$2" ZRIVE_RENDER="$3" \
+         ZRIVE_DRAWINGS="${4:-$EXPECTED_DRAWINGS}" python3 - <<'PY' 2>&1
+import json
+import os
+import pathlib
+import sys
+
+sys.path.insert(0, "build")
+from model import (doc_views, document_digest, drawing_digest, glyph_binding,  # noqa: E402
+                   glyph_table, short_digest)
+
+
+def abort(msg):
+    # Exit 2, never 1. "I could not read the documents" and "the documents are wrong" are two
+    # different sentences and a gate that cannot tell them apart has told you less than it
+    # claims. Same discipline as the baseline naming above.
+    print(f"::error::{msg}")
+    sys.exit(2)
+
+
+def load(var, kind):
+    path = pathlib.Path(os.environ[var])
+    try:
+        txt = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        abort(f"cannot read {path} ({type(exc).__name__}); no census was taken")
+    i, j = txt.find("{"), txt.rfind("}")
+    if i < 0 or j < i:
+        abort(f"{path} carries no {kind} object; no census was taken")
+    try:
+        return path, json.loads(txt[i:j + 1])
+    except ValueError as exc:
+        abort(f"{path} is not readable as {kind} ({exc}); no census was taken")
+
+
+ipath, inst = load("ZRIVE_INSTANCE", "an instance document")
+lpath, lay = load("ZRIVE_LAYOUT", "a layout document")
+rpath = pathlib.Path(os.environ["ZRIVE_RENDER"])
+want = int(os.environ["ZRIVE_DRAWINGS"])
+BUILDER = "python3 build/build_layout.py"
+bad = []
+
+# ---- the symbol table, read before anything is recomputed from it ----------------------------
+try:
+    glyph_src, glyph_keys = glyph_table(rpath)
+except (OSError, ValueError) as exc:
+    abort(f"{exc}")
+
+painted, unbound = glyph_binding(inst, glyph_keys)
+for name, where in unbound:
+    bad.append(f"a tile will be painted with {name!r}, which {rpath} cannot draw. "
+               f"First at {', '.join(where[:3])}. The renderer looks the name up in its PATHS "
+               f"table and a name with no entry throws on the first tile that reaches it.")
+
+# ---- the two document-wide digests ----------------------------------------------------------
+for key, got, expect, what in (
+        ("documentDigest", lay.get("documentDigest"), document_digest(inst),
+         f"the whole of {ipath}, every top-level block of it"),
+        ("glyphDigest", lay.get("glyphDigest"), short_digest(glyph_src),
+         f"the glyph table in {rpath}")):
+    if got is None:
+        bad.append(f"{lpath} carries no {key}. It is written by the builder and covers {what}.")
+    elif not (isinstance(got, str) and len(got) == 7
+              and all(c in "0123456789abcdef" for c in got)):
+        bad.append(f"{lpath}'s {key} is {got!r} and not seven lowercase hex characters.")
+    elif got != expect:
+        bad.append(f"{lpath} says {key} is {got} and {what} digests to {expect}. Those bytes "
+                   f"changed and the document that fingerprints them did not. Run {BUILDER} "
+                   f"and commit what it writes.")
+
+# ---- the fourteen -----------------------------------------------------------------------------
+iv, lv = doc_views(inst), doc_views(lay)
+
+# THE TERMINATOR, AND IT IS FIRST. Everything after it walks a population the documents
+# themselves supply, so every one of those assertions is true of thirteen drawings, or of one.
+# It is asserted before the two documents are compared with each other for the same reason: a
+# pair that agrees on thirteen agrees about the wrong number.
+if len(lv) != want:
+    bad.append(f"{lpath} carries {len(lv)} drawing(s) and this check intends {want}. Either a "
+               f"drawing was lost, in which case the page is short a picture, or the model grew "
+               f"one, in which case EXPECTED_DRAWINGS in scripts/check_build.sh belongs in the "
+               f"same commit.")
+if len(iv) != len(lv):
+    bad.append(f"{ipath} holds {len(iv)} view(s) and {lpath} {len(lv)}. They are joined by "
+               f"position, so a pair that does not line up draws one view's tiles at another "
+               f"view's coordinates.")
+
+seen = {}
+for i, (v, d) in enumerate(zip(iv, lv)):
+    tag = f"{d.get('key')}/{d.get('grain')}"
+    if v.get("key") != d.get("key") or v.get("grain") != d.get("grain"):
+        bad.append(f"drawing {i} is {tag} in {lpath} and {v.get('key')}/{v.get('grain')} in "
+                   f"{ipath}; they are joined by position and this pair does not line up.")
+        continue
+    geom = dict(d.get("drawing") or {})
+    got = geom.pop("drawingDigest", None)
+    if got is None:
+        bad.append(f"the drawing {tag} carries no drawingDigest.")
+        continue
+    if not (isinstance(got, str) and len(got) == 7
+            and all(c in "0123456789abcdef" for c in got)):
+        bad.append(f"the drawing {tag} has a drawingDigest of {got!r} and not seven lowercase "
+                   f"hex characters.")
+        continue
+    if got in seen:
+        bad.append(f"the drawings {seen[got]} and {tag} carry the same digest {got}. Two "
+                   f"pictures reported as one is the failure a digest exists to prevent.")
+    seen[got] = tag
+    expect = drawing_digest(inst["types"], v, geom)
+    if got != expect:
+        bad.append(f"the drawing {tag} says its digest is {got} and the type registry, its own "
+                   f"view and its own geometry digest to {expect}. Something that paints this "
+                   f"picture moved and the value that answers 'is this the drawing we built' "
+                   f"did not. Run {BUILDER} and commit what it writes.")
+
+if bad:
+    print(f"::error::the digest census refused {len(bad)} thing(s)")
+    print()
+    for line in bad:
+        print(f"    {line}")
+    print()
+    print("  DO NOT edit a digest by hand and DO NOT edit site/layout.js. Every value above is")
+    print(f"  written by {BUILDER} and is meant to be a function of the bytes it covers.")
+    sys.exit(1)
+
+print(f"    {len(lv)} drawings, {len(lv)} distinct digests, each recomputed from the type "
+      f"registry, its own view and its own geometry")
+print(f"    documentDigest {lay['documentDigest']} over every top-level block of {ipath.name}")
+print(f"    glyphDigest {lay['glyphDigest']} over the {len(glyph_keys)} symbols in "
+      f"{rpath.name}, {len(painted)} of which this document paints with")
+PY
+)"
+  rc=$?
+  printf '%s\n' "$out" | grep -v '^\[model\] '
+  return "$rc"
+}
+
+# ---------------------------------------------------------------------------------------------
 # The verdict, which names the snapshot it is about.
 # ---------------------------------------------------------------------------------------------
 # A function rather than two echoes at the foot of the file, so the self-test can read the text
@@ -536,7 +702,7 @@ verdict() {  # clean|bad ; reads BASELINE_ORIGIN
 # probe at a time prints a clean ratio all the way down to 0/0. A count taken from the run cannot
 # notice a probe that did not run. A short run exits 2, "the suite could not answer"; a run that
 # also recorded a failure reports it and exits 1.
-EXPECTED_PROBES=36
+EXPECTED_PROBES=53
 PASS=0
 TOTAL=0
 probe() {
@@ -603,6 +769,43 @@ scratch_repo() {  # dir
 in_dir() {  # dir cmd...
   local d="$1"; shift
   ( cd "$d" && "$@" )
+}
+
+# A doctored copy of one of the generated documents, so the census probes never go near the tree.
+# The mutation is one line of Python over `doc`, and the `window.GI=` / `;\n` wrapper is put back
+# unchanged, because a probe that also changed the wrapper would be proving two things at once.
+doctor_doc() {  # src dest python-statement-over-doc
+  ZRIVE_SRC="$1" ZRIVE_DEST="$2" ZRIVE_MUT="$3" python3 - <<'PY'
+import json
+import os
+import pathlib
+
+src = pathlib.Path(os.environ["ZRIVE_SRC"]).read_text(encoding="utf-8")
+i, j = src.find("{"), src.rfind("}")
+doc = json.loads(src[i:j + 1])
+exec(os.environ["ZRIVE_MUT"])  # noqa: S102
+pathlib.Path(os.environ["ZRIVE_DEST"]).write_text(
+    src[:i] + json.dumps(doc, ensure_ascii=False, separators=(",", ":")) + src[j + 1:],
+    encoding="utf-8")
+PY
+}
+
+# The same, for the one hand written file the census reads. `old` must occur exactly once, so a
+# probe cannot quietly edit nothing and then assert that nothing was refused.
+doctor_text() {  # src dest old new
+  ZRIVE_SRC="$1" ZRIVE_DEST="$2" ZRIVE_OLD="$3" ZRIVE_NEW="$4" python3 - <<'PY'
+import os
+import pathlib
+import sys
+
+src = pathlib.Path(os.environ["ZRIVE_SRC"]).read_text(encoding="utf-8")
+old = os.environ["ZRIVE_OLD"]
+if src.count(old) != 1:
+    print(f"doctor_text: {old!r} occurs {src.count(old)} times, not once")
+    sys.exit(1)
+pathlib.Path(os.environ["ZRIVE_DEST"]).write_text(
+    src.replace(old, os.environ["ZRIVE_NEW"]), encoding="utf-8")
+PY
 }
 
 self_test() {
@@ -710,6 +913,92 @@ PY
   probe_says "[OK]   edge-endpoint-exists" "the suite proved a dangling edge is named" \
         check_structure_armed
   probe 0 "the model's own graph passed the live check" check_structure_live
+
+  echo
+  echo "self-test: the digest census"
+  # Issue 116. EVERY PROBE IN THIS BLOCK MISSES AGAINST THE BODY THIS FILE HAD BEFORE THE CARD,
+  # and two of them miss against the BUILDER this repository had before it as well: the census
+  # did not exist, and the type registry was not in the preimage, so "a glyph changed and no
+  # digest moved" was the shipped behaviour rather than a refusal.
+  local gi gl gr dgi dgl dgr
+  gi="$dir/instance.js"; gl="$dir/layout.js"; gr="$dir/render.js"
+  dgi="$dir/doctored-instance.js"; dgl="$dir/doctored-layout.js"; dgr="$dir/doctored-render.js"
+  cp site/instance.js "$gi"; cp site/layout.js "$gl"; cp site/render.js "$gr"
+
+  probe 0 "the shipped documents were reported clean" \
+        check_digests "$gi" "$gl" "$gr"
+
+  # The terminator, row F7. The population every other assertion walks comes out of the document,
+  # so all of them are true of thirteen drawings.
+  doctor_doc "$gl" "$dgl" 'doc["collapsed"].pop()'
+  probe 1 "a document one drawing short was refused rather than counted clean" \
+        check_digests "$gi" "$dgl" "$gr"
+  probe_says "intends 14" "the refusal said how many drawings it intends to check" \
+        check_digests "$gi" "$dgl" "$gr"
+  probe_says "EXPECTED_DRAWINGS" "and named the constant a real fifteenth drawing would change" \
+        check_digests "$gi" "$dgl" "$gr"
+
+  doctor_doc "$gl" "$dgl" \
+    'doc["views"][1]["drawing"]["drawingDigest"] = doc["views"][0]["drawing"]["drawingDigest"]'
+  probe 1 "two drawings carrying one digest were refused" \
+        check_digests "$gi" "$dgl" "$gr"
+
+  doctor_doc "$gl" "$dgl" 'del doc["views"][0]["drawing"]["drawingDigest"]'
+  probe 1 "a drawing with no digest at all was refused" \
+        check_digests "$gi" "$dgl" "$gr"
+
+  doctor_doc "$gl" "$dgl" 'doc["views"][0]["drawing"]["drawingDigest"] = "0000000"'
+  probe 1 "a digest that is not the one those bytes produce was refused" \
+        check_digests "$gi" "$dgl" "$gr"
+  probe_says "$BUILDER" "the refusal said to run the builder" \
+        check_digests "$gi" "$dgl" "$gr"
+
+  doctor_doc "$gl" "$dgl" 'doc["views"][0]["drawing"]["drawingDigest"] = "not hex"'
+  probe 1 "a malformed digest was refused rather than compared" \
+        check_digests "$gi" "$dgl" "$gr"
+
+  doctor_doc "$gl" "$dgl" 'doc["documentDigest"] = "0000000"'
+  probe 1 "a documentDigest that is not the one the instance document produces was refused" \
+        check_digests "$gi" "$dgl" "$gr"
+
+  doctor_doc "$gl" "$dgl" 'del doc["glyphDigest"]'
+  probe 1 "a layout carrying no glyphDigest was refused" \
+        check_digests "$gi" "$dgl" "$gr"
+
+  # Row F4, and the proof is the audit's own: one stroke moved in the glyph table, both generated
+  # documents untouched. Before this card that repainted ninety one tiles and every gate in the
+  # repository said clean.
+  doctor_text "$gr" "$dgr" "'M3 8h10'" "'M3 9h10'"
+  probe 1 "a stroke edited in the glyph table with the fingerprint left alone was refused" \
+        check_digests "$gi" "$gl" "$dgr"
+  probe_says "glyph table" "the refusal named the symbol table and not just a file" \
+        check_digests "$gi" "$gl" "$dgr"
+
+  # Row F3, the card's headline, at the seam it actually came through: the type registry changed
+  # and no drawing digest moved. This probe passes clean against the pre-card builder.
+  doctor_doc "$gi" "$dgi" \
+    'doc["types"] = [dict(t, glyph="coin") if t["k"] == "SessionTemplate" else t
+                     for t in doc["types"]]'
+  probe 1 "a type registry repainted with every drawing digest left alone was refused" \
+        check_digests "$dgi" "$gl" "$gr"
+
+  # A glyph name the renderer has no strokes for. It is refused before any digest is recomputed,
+  # because the page would throw on the first tile that reached it and a digest mismatch is the
+  # less useful of the two things to be told.
+  doctor_doc "$gi" "$dgi" \
+    'doc["types"] = [dict(t, glyph="nosuchsymbol") if t["k"] == "SessionTemplate" else t
+                     for t in doc["types"]]'
+  probe_says "cannot draw" "a tile bound to a symbol the renderer lacks was named" \
+        check_digests "$dgi" "$gl" "$gr"
+
+  # And the two aborts. A census that cannot read its inputs has nothing to say, and saying it
+  # with exit 2 is what keeps "I could not look" out of the same bucket as "I looked and it is
+  # wrong".
+  printf 'nothing here\n' >"$dgr"
+  probe 2 "a renderer with no glyph table aborted instead of reporting every digest clean" \
+        check_digests "$gi" "$gl" "$dgr"
+  probe 2 "a missing document aborted instead of reporting clean" \
+        check_digests "$dir/not-a-file.js" "$gl" "$gr"
 
   echo
   echo "self-test: the baseline is taken from git, and is named when it is not"
@@ -821,6 +1110,20 @@ check_structure_live || bad=1
 echo
 echo "== and the gate that says so refuses the graphs it names"
 check_structure_armed || bad=1
+
+echo
+echo "== the fourteen drawings each carry the digest these bytes produce"
+# The working tree copies, which check_reproducible above has already proved are the index
+# copies and are what the builder writes. Reading them here rather than the rebuild's own output
+# is deliberate: this is the census of the documents that ship.
+check_digests site/instance.js site/layout.js site/render.js
+rc=$?
+if [ "$rc" -eq 2 ]; then
+  echo
+  echo "ABORTED: the digest census could not read the documents it is about."
+  exit 2
+fi
+[ "$rc" -eq 0 ] || bad=1
 
 echo
 if [ "$bad" -ne 0 ]; then
