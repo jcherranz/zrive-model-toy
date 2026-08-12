@@ -215,10 +215,11 @@ const ZOOM_TOLERANCE_PX = 0.5;
 // the total below, and a change that forgets is a red run rather than a quiet one.
 const PHASES = {
   'the viewport opened':  { count: 2, when: 'every' },
-  'every width':          { count: 3, when: 'every' },
+  'every width':          { count: 4, when: 'every' },
   'model and reveal':     { count: 14, when: 'behavioural' },
   'students':             { count: 11, when: 'behavioural' },
   'term':                 { count: 48, when: 'behavioural' },
+  'header':               { count: 8, when: 'behavioural' },
   'canvas':               { count: 7, when: 'behavioural' },
   'capture':              { count: 14, when: 'behavioural' },
   'board':                { count: 13, when: 'behavioural' },
@@ -323,7 +324,27 @@ const PHASES = {
 // could not make: that the caption is INSIDE the frame drawn around it and evenly placed in it.
 // The old assertion measured the target and passed for as long as the defect shipped, which is
 // the same shape as every other gate here that measured less than it claimed.
-const EXPECTED_ASSERTIONS = 128;
+// 139 with issue 98, which opens a `header` phase of eight and takes `every width` from three to
+// four. The card put a COUNT in the header, and a count is the easiest thing on this page to ship
+// wrong in a way that looks right: a number taken over the wrong set still renders, still updates
+// and still reads as an answer. So none of the eight reads the count and asserts the count. The
+// denominator and every one of the seven per-drawing numerators are recomputed here, in this file,
+// by a second implementation over window.GI, and the control is checked against them; the windowed
+// number is recomputed a third way, over render.js's own record of which tiles the window left, so
+// a count that agreed with the model but not with the picture fails. The rest are the decisions the
+// card took rather than the code it happens to contain: that the list under the control adds up to
+// the number on it, which is #83's and #100's failure mode both times; that each reading counts the
+// rows IT lists and that the calendar's number is the one the term sheet has carried under another
+// name since #80, so the header and the sheet cannot drift apart about the same eleven sessions;
+// that the window reaches the calendar and not the outline, on one press, so a window that reached
+// everything and one that reached nothing both fail; that the control is withdrawn on the board and
+// the student list and says `null` there rather than zero, because "nothing is missing" and "this
+// question is not about this view" are different answers; and that it is reachable at its own
+// centre and 24 by 24 on every address that opens a sheet, which is #86 and #77 held against the
+// newest control in the row. The fourth `every width` assertion is #77's own claim rather than this
+// control's: every control in that nav on one height and none under 24 by 24, at all three widths
+// including the one where the row wraps, which is where a size regression would hide.
+const EXPECTED_ASSERTIONS = 139;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -2426,6 +2447,254 @@ async function checkTerm(page) {
   await viewSettled(page);
 }
 
+// ---- what the header says needs attention, issue 98 ---------------------------------------------
+// EIGHT ASSERTIONS AND EVERY ONE OF THEM IS A DECISION THAT CARD TOOK, not a reading of what the
+// code happens to do. The card put a count in the header, and a count is the easiest thing on a
+// page to ship wrong in a way that looks right: a number that is off by the wrong set is still a
+// number, still updates, still renders, and nothing but arithmetic can tell it from the true one.
+//
+// SO NOTHING HERE READS THE COUNT AND THEN ASSERTS THE COUNT. Every figure below is recomputed in
+// the page from window.GI, the instance document itself, by a second implementation written here
+// and not shared with app.js, and the control's own answer is checked against it. A change that
+// broke the boundary between a route row and a value row would move one of the two and not the
+// other. This is the same shape as the term phase counting its rows rather than trusting the
+// subtitle over them, and as the reflow check in the drawing.
+const GAPS_FROM_MODEL = `(function () {
+  var out = { value: 0, route: 0, ghost: 0, byView: {}, byType: {} };
+  window.GI.views.forEach(function (v) {
+    var n = 0;
+    v.nodes.forEach(function (node) {
+      var first = node.route || 0;
+      (node.props || []).forEach(function (p, i) {
+        if (p.f !== 'absent') return;
+        if (i < first) { out.route++; return; }
+        if (node.ghost) { out.ghost++; return; }
+        n++; out.value++;
+        var k = node.type + '.' + p.k;
+        out.byType[k] = (out.byType[k] || 0) + 1;
+      });
+    });
+    out.byView[v.key] = n;
+  });
+  return JSON.stringify(out);
+})()`;
+
+// The same arithmetic again, over the ids the drawing says are on screen. It reads
+// window.ZT.filtered().shown, which is render.js's own record of what the window left, so a count
+// that agreed with the model but not with the picture would fail here.
+const GAPS_ON_SHOWN = `(function () {
+  var shown = {}, n = 0, key = window.ZT.programme().key;
+  window.ZT.filtered().shown.forEach(function (id) { shown[id] = true; });
+  window.GI.views.forEach(function (v) {
+    if (v.key !== key) return;
+    v.nodes.forEach(function (node) {
+      if (!shown[node.id] || node.ghost) return;
+      var first = node.route || 0;
+      (node.props || []).forEach(function (p, i) { if (p.f === 'absent' && i >= first) n++; });
+    });
+  });
+  return n;
+})()`;
+
+const GAPS_MENU_READ = `(function () {
+  var rows = Array.prototype.slice.call(document.querySelectorAll('#gapsmenu .gaps-row'));
+  return JSON.stringify({
+    open: !document.getElementById('gapsmenu').hidden,
+    expanded: document.getElementById('gapsbtn').getAttribute('aria-expanded'),
+    text: document.getElementById('gapsbtn').textContent,
+    sum: rows.reduce(function (n, r) {
+      return n + Number(r.querySelector('.gaps-n').textContent);
+    }, 0),
+    rows: rows.length,
+    scope: (document.querySelector('#gapsmenu .gaps-scope') || {}).textContent || '',
+    fields: rows.map(function (r) { return r.querySelector('code').textContent; })
+  });
+})()`;
+
+async function gapsMenu(page, want) {
+  const open = await page.evaluate(`!document.getElementById('gapsmenu').hidden`);
+  if (open !== want) await page.evaluate(`document.getElementById('gapsbtn').click()`);
+  await page.waitFor(`(!document.getElementById('gapsmenu').hidden) === ${want ? 'true' : 'false'}`,
+    `the gap list to ${want ? 'open' : 'close'}`);
+}
+
+async function checkHeader(page) {
+  await page.evaluate(`location.hash = '#/'`);
+  await page.waitFor('window.ZT.term().open === false', 'the diagram to be on screen');
+  // Which drawing this phase started on, because it walks all seven and `#/` is not a way back:
+  // an address that is not a programme address has no opinion about which of the seven is drawn,
+  // which is router.js's rule and the reason the term phase records the same value.
+  const startedOn = await page.evaluate('window.ZT.programme().key');
+  const model = JSON.parse(await page.evaluate(GAPS_FROM_MODEL));
+
+  // ONE. The denominator is every value the model records as missing, anywhere in it, and it is
+  // the model's own arithmetic rather than a number this file or that one holds. The two other
+  // populations are printed beside it because they are the boundary this card drew: the route rows
+  // that say how a class gets filled at all, which are the same fact on every tile of that class,
+  // and the ghost rows, where the tile is already the finding.
+  const all = await page.evaluate('window.ZT.gaps()');
+  assert('the header counts against every value the model records as missing, recomputed from the document',
+    all.of === model.value && model.value > 0 && model.route > 0 && model.ghost > 0,
+    `${model.value}, counted off window.GI in this driver`,
+    `the page says ${all.of}`,
+    `${model.value} value rows, against ${model.route} route rows and ${model.ghost} on ghosts, ` +
+      `${model.value + model.route + model.ghost} absent rows in all`);
+
+  // TWO. Every one of the seven drawings answers with its own arithmetic. Asserted across all
+  // seven rather than on one, because a scope bug that returned the same set whatever the address
+  // would pass on any single view, and because the seven differ by an order of magnitude.
+  const perView = [];
+  for (const key of Object.keys(model.byView)) {
+    await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(key)}`);
+    await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(key)}`, `the ${key} drawing`);
+    const g = await page.evaluate('window.ZT.gaps()');
+    const txt = await page.evaluate(`document.getElementById('gapsbtn').textContent`);
+    perView.push({ key, said: g.total, wanted: model.byView[key], txt });
+  }
+  const wrong = perView.filter(v => v.said !== v.wanted ||
+    v.txt !== `gaps: ${v.wanted} of ${model.value}`);
+  assert('and each of the seven drawings says its own number, in the control and in the object',
+    wrong.length === 0 && perView.length === 7 &&
+      new Set(perView.map(v => v.said)).size > 1,
+    'every drawing counting the gaps on its own tiles',
+    wrong.length ? wrong.map(v => `${v.key} said ${v.said} for ${v.wanted}, text ${JSON.stringify(v.txt)}`).join(', ')
+                 : perView.map(v => `${v.key} ${v.said}`).join(', '));
+
+  // THREE. THE COMPOSITION THIS CARD IS FOR. A window filters the drawing, so it moves the count,
+  // and it has to move it to the gaps that are still on the page rather than to some other number
+  // that also went down. Both halves are asserted: the count falls, and it equals the arithmetic
+  // taken over render.js's own record of which tiles the window left.
+  const heavy = perView.slice().sort((a, b) => b.wanted - a.wanted)[0];
+  await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(heavy.key)}`);
+  await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(heavy.key)}`,
+    `the ${heavy.key} drawing`);
+  await wnMenu(page, true);
+  await pressByText(page, '#wnmenu .wn-weeks', '3 weeks');
+  await page.waitFor('window.ZT.term().window.weeks === 3', 'a three week window');
+  await wnMenu(page, false);
+  const windowed = await page.evaluate('window.ZT.gaps()');
+  const onShown = await page.evaluate(GAPS_ON_SHOWN);
+  assert('a window moves the count, and moves it to the gaps left on the drawing',
+    windowed.total === onShown && windowed.total < heavy.wanted && windowed.total >= 0,
+    `fewer than ${heavy.key}'s ${heavy.wanted}, and equal to the ${onShown} on the tiles the ` +
+      'window left',
+    `the page says ${windowed.total}, the tiles on screen carry ${onShown}`,
+    `${heavy.key} ${heavy.wanted} over the whole term, ${windowed.total} over three weeks`);
+
+  // FOUR. The list is the count. #83 and #100 both turned on an aggregate that lost its own
+  // number, so the rows under the control are added up and checked against the headline rather
+  // than merely counted.
+  await gapsMenu(page, true);
+  const menu = JSON.parse(await page.evaluate(GAPS_MENU_READ));
+  assert('the list under the control adds up to the number on it',
+    menu.open && menu.expanded === 'true' && menu.sum === windowed.total &&
+      menu.rows === windowed.rows.length && menu.rows > 0 &&
+      menu.scope.indexOf(String(windowed.total)) === 0,
+    `${menu.rows} rows summing to ${windowed.total}, under a sentence that opens with it`,
+    `${menu.rows} rows summing to ${menu.sum}, control ${JSON.stringify(menu.text)}, ` +
+      `sentence ${JSON.stringify(menu.scope.slice(0, 80))}`);
+  await gapsMenu(page, false);
+  await wnMenu(page, true);
+  await pressByText(page, '#wnmenu .wn-weeks', 'whole term');
+  await page.waitFor('window.ZT.term().window.on === false', 'the window to come off');
+  await wnMenu(page, false);
+
+  // FIVE. Each reading answers about the rows it lists and not about the model behind it. The
+  // calendar's one row is the number the sheet has carried since issues 80 and 82 under another
+  // name, so the header and the sheet cannot come to say different things about the same eleven
+  // sessions; the outline's rows are all templates. Both are asserted, because a scope that
+  // returned every node on every route would satisfy neither and a scope that returned nothing
+  // would satisfy the first half of each.
+  await page.evaluate(`location.hash = '#/calendar'`);
+  await page.waitFor(`window.ZT.term().reading === 'calendar'`, 'the calendar');
+  const cal = await page.evaluate('window.ZT.gaps()');
+  const term = await page.evaluate('window.ZT.term()');
+  await page.evaluate(`location.hash = '#/outline'`);
+  await page.waitFor(`window.ZT.term().reading === 'outline'`, 'the outline');
+  const out = await page.evaluate('window.ZT.gaps()');
+  const calRow = cal.rows.find(r => r.field === 'teacher_assigned');
+  assert('each reading counts the rows it lists, and the calendar agrees with the sheet\'s own count',
+    !!calRow && calRow.n === term.noInstructor &&
+      cal.rows.every(r => r.type === 'CohortSession') &&
+      out.rows.every(r => r.type === 'SessionTemplate') &&
+      out.total !== cal.total && out.total > 0 && cal.total > 0,
+    `the calendar on cohort sessions with ${term.noInstructor} of them lacking an instructor, ` +
+      'the outline on session templates',
+    `calendar ${cal.total} ${JSON.stringify(cal.rows.map(r => r.type + '.' + r.field))}, ` +
+      `outline ${out.total} ${JSON.stringify(out.rows.map(r => r.type + '.' + r.field))}`);
+
+  // SIX. The window applies to the calendar and not to the outline, and that split is #90's rather
+  // than this card's: a window is a slice of dates and an outline is a syllabus in curriculum
+  // order. Asserted in both directions on one press of one control, so a window that reached
+  // everything and a window that reached nothing both fail.
+  await wnMenu(page, true);
+  await pressByText(page, '#wnmenu .wn-weeks', '3 weeks');
+  await page.waitFor('window.ZT.term().window.weeks === 3', 'a three week window');
+  await wnMenu(page, false);
+  const outWin = await page.evaluate('window.ZT.gaps()');
+  await page.evaluate(`location.hash = '#/calendar'`);
+  await page.waitFor(`window.ZT.term().reading === 'calendar'`, 'the calendar again');
+  const calWin = await page.evaluate('window.ZT.gaps()');
+  assert('the window reaches the calendar\'s count and leaves the outline\'s alone',
+    outWin.total === out.total && calWin.total < cal.total && calWin.total >= 0,
+    `the outline still ${out.total} and the calendar under its ${cal.total}`,
+    `outline ${outWin.total}, calendar ${calWin.total}`);
+  await wnMenu(page, true);
+  await pressByText(page, '#wnmenu .wn-weeks', 'whole term');
+  await page.waitFor('window.ZT.term().window.on === false', 'the window to come off');
+  await wnMenu(page, false);
+
+  // SEVEN. Withdrawn where the window control is withdrawn, and the object says `null` rather than
+  // zero, because "no gaps here" and "this question does not apply to this view" are different
+  // answers and a control reading `gaps: 0 of 95` over the board would be giving the wrong one.
+  // Both directions again: back on the diagram it is present, visible and answering.
+  const off = [];
+  for (const at of ['#/board', '#/students']) {
+    await page.evaluate(`location.hash = ${JSON.stringify(at)}`);
+    await page.waitFor(at === '#/board' ? `document.body.classList.contains('board')`
+                                        : 'window.ZT.roster() === true', `the view at ${at}`);
+    const m = JSON.parse(await page.evaluate(headerProbe(['gapsbtn'])));
+    off.push({ at, visible: m.gapsbtn.visible, total: (await page.evaluate('window.ZT.gaps()')).total });
+  }
+  await page.evaluate(`location.hash = '#/'`);
+  await page.waitFor('window.ZT.roster() === false', 'the diagram to come back');
+  const back = JSON.parse(await page.evaluate(headerProbe(['gapsbtn'])));
+  const backGaps = await page.evaluate('window.ZT.gaps()');
+  assert('withdrawn on the board and the student list, and saying null there rather than zero',
+    off.every(o => !o.visible && o.total === null) && back.gapsbtn.visible &&
+      back.gapsbtn.reaches && typeof backGaps.total === 'number',
+    'gone on both, null on both, and back on the diagram answering with a number',
+    off.map(o => `${o.at} visible ${o.visible} total ${JSON.stringify(o.total)}`).join(', ') +
+      `, diagram visible ${back.gapsbtn.visible} total ${JSON.stringify(backGaps.total)}`);
+
+  // EIGHT. #86 and #77 together, on the newest control in the row. It is live over every address
+  // that opens a sheet, it answers elementFromPoint at its own centre there, and it clears the
+  // target size the whole row was taken to. A count a reader can see and cannot press over the
+  // view it is counting would be this card shipping the defect #86 was filed for.
+  const sheetAddresses = JSON.parse(await page.evaluate(`JSON.stringify(window.ZT.termRoutes())`));
+  const bad = [];
+  let smallest = Infinity;
+  for (const at of sheetAddresses) {
+    await page.evaluate(`location.hash = ${JSON.stringify(at)}`);
+    await page.waitFor(`!!document.querySelector('.sheet:not([hidden])')`, `the sheet at ${at}`);
+    const m = JSON.parse(await page.evaluate(headerProbe(['gapsbtn']))).gapsbtn;
+    smallest = Math.min(smallest, m.w, m.h);
+    if (!m.visible || !m.reaches || Math.min(m.w, m.h) < 24) {
+      bad.push(`${at} ${m.w}x${m.h} found ${m.found}`);
+    }
+  }
+  assert('the gap count is reachable and at least 24 by 24 on every address that opens a sheet',
+    bad.length === 0 && sheetAddresses.length > 1,
+    `all ${sheetAddresses.length} of them answering at their own centre, 24 by 24 or better`,
+    bad.length ? bad.join(', ') : `all ${sheetAddresses.length} reached it, smallest side ${smallest}`);
+
+  await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(startedOn)}`);
+  await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(startedOn)}`,
+    'the drawing this phase started on');
+  await page.evaluate(`location.hash = '#/'`);
+  await page.waitFor('window.ZT.term().open === false', 'the diagram to come back');
+}
+
 // ---- the canvas ---------------------------------------------------------------------------------
 async function checkCanvas(page) {
   await page.evaluate('window.ZT.fit()');
@@ -3055,6 +3324,31 @@ async function checkWidth(page, base) {
   }
   await page.evaluate(`location.hash = '#/'`);
   await page.waitFor('window.ZT.roster() === false', 'the diagram to come back');
+
+  // ONE ROW, ONE BASELINE, AT EVERY WIDTH. Issue 77 found eleven of eleven controls in this header
+  // failing WCAG 2.2 SC 2.5.8 and two baselines a pixel apart inside a line that reads as one line,
+  // and fixed both in the stylesheet so that a control added later is right without anybody
+  // remembering to make it right. Issue 98 added the sixth control to this row, which is the first
+  // test of that claim, so the claim itself is asserted here rather than the new control alone:
+  // every control in the nav, whatever it is and however many there are, the same height and at
+  // least 24 by 24. It is a width assertion and runs at all three, because the row wraps at the
+  // narrow one and a wrapped row is where a size regression would hide.
+  const row = await page.evaluate(`(function () {
+    var out = [];
+    document.querySelectorAll('.hnav button, .hnav a').forEach(function (el) {
+      var r = el.getBoundingClientRect();
+      if (!r.width && !r.height) return;
+      out.push({ id: el.id || el.className, w: +r.width.toFixed(2), h: +r.height.toFixed(2) });
+    });
+    return out;
+  })()`);
+  const heights = Array.from(new Set(row.map(c => c.h)));
+  const small = row.filter(c => Math.min(c.w, c.h) < 24);
+  assert('every control in the header row is one height and at least 24 by 24',
+    row.length >= 6 && heights.length === 1 && small.length === 0,
+    `${row.length} controls on one height, none under 24 by 24`,
+    small.length ? small.map(c => `${c.id} ${c.w}x${c.h}`).join(', ')
+                 : `${row.length} controls, heights ${JSON.stringify(heights)}`);
 }
 
 function checkConsole(page) {
@@ -3120,6 +3414,7 @@ async function runViewport(chrome, viewport, base, full) {
       await group('model and reveal', () => checkModelAndReveal(page));
       await group('students', () => checkStudents(page));
       await group('term', () => checkTerm(page));
+      await group('header', () => checkHeader(page));
       await group('canvas', () => checkCanvas(page));
       await group('capture', () => checkCapture(page));
       await group('board', () => checkBoard(page, base));
