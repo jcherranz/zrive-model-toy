@@ -1105,17 +1105,26 @@ WEBSITE = ("real, published on the company website", E)
 # One template on Z-BL carries this instead of its route's own title provenance, because its
 # label is not the syllabus string: the firm the row names is withheld. A per template override
 # and not a per route one, so the tile that is not verbatim is the only tile that says so.
+#
+# THE NOTE SAYS THAT THE NAME IS WITHHELD AND NOTHING ABOUT WHY, AND THAT IS THE WHOLE POINT OF
+# ITS CURRENT WORDING. It used to publish the reason: that the withheld string collides with an
+# entry in the register the name gate holds, and which neighbouring template was unaffected.
+# Read against the short public list of Spanish law firms named after a person, those two
+# sentences narrow the candidates to very few, so the note was an oracle for the thing the
+# withholding exists to protect. A redaction that explains itself is not a redaction. The brief
+# that produced the first wording asked for the reasoning to be shown on the tile, and that was
+# the error; it is recorded here so the next edit does not helpfully restore it.
+#
+# What the note may still say is that the name is withheld and that it was not swapped for
+# another firm's, because that is a statement about this tile's own truthfulness and it points
+# at nothing outside the tile.
 WITHHELD_FIRM = {
-    "title_provenance": ("real, with the firm withheld by the name gate", D),
-    "note": ("The syllabus row for this session names the law firm being visited. Its first "
-             "token is also a real teacher's surname in the register the name gate holds, so "
-             "the gate refuses the string, and it is right to: the comparison folds accents and "
-             "case and cannot tell a firm named after a person from the person. The name is "
-             "withheld rather than replaced with another firm's. Replacing it would have put a "
-             "visit this programme did not make on a named third party, which is a fact invented "
-             "to tidy a tile; withholding it says exactly what is known, that the session is a "
-             "visit to a law firm. The next session template along keeps its firm, because the "
-             "gate does not refuse that one."),
+    "title_provenance": ("real, with the firm name withheld", D),
+    "note": ("The syllabus row for this session names the law firm being visited. The name is "
+             "withheld here, and it is withheld rather than replaced with another firm's: "
+             "substituting one would have put a visit this programme did not make on a named "
+             "third party, which is a fact invented to tidy a tile. What the tile states is what "
+             "is known, that the session is a visit to a law firm."),
 }
 
 # ---- how many sessions each programme actually has ---------------------------
@@ -1582,15 +1591,15 @@ PROGRAMMES = [
             ("bl_st20", "Oratoria II", "ZBL-T20", "sync", "online", None),
             ("bl_st21", "Deep Dive: Contratos", "ZBL-T21", "sync", "online", None),
             ("bl_st22", "Deep Dive: Due Diligence", "ZBL-T22", "sync", "online", None),
-            # THE FIRM IS WITHHELD AND IT IS NOT SWAPPED. The real row names a law firm whose
-            # first token is also a real teacher's surname in the register, so the name gate
-            # refuses the string and is right to: the folding cannot tell a firm named after a
-            # person from the person. Two fixes were available and only one of them invents
+            # THE FIRM IS WITHHELD AND IT IS NOT SWAPPED. The name gate refuses the real row's
+            # string and is right to. Two fixes were available and only one of them invents
             # nothing. Substituting another real firm, which is what t17's employer row below
             # does, would have put a visit this programme did not make on a named third party;
-            # withholding says exactly what is known, that the visit is to a law firm, and the
-            # row beside it says why the name is not there. bl_st24 keeps its firm because the
-            # gate does not refuse it.
+            # withholding says exactly what is known, that the visit is to a law firm.
+            #
+            # The tile no longer says why the name is withheld, and must not be made to again.
+            # The reason is a description of the withheld string, so publishing it narrows the
+            # candidates for that string; see WITHHELD_FIRM above.
             ("bl_st23", "Visita a despacho", "ZBL-T23", "sync", "presencial", None, WITHHELD_FIRM),
             ("bl_st24", "Visita a Uría", "ZBL-T24", "sync", "presencial", None),
             ("bl_st25", "Recruiting Superday", "ZBL-T25", "sync", "presencial", None),
