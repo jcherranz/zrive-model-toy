@@ -31,7 +31,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
 sys.path.insert(0, str(HERE))
 from bands import every_line  # noqa: E402
-from model import VIEWS  # noqa: E402
+from model import VIEWS, edge_parts  # noqa: E402
 
 # The model as the build lays it out, and there are seven drawings to lay out since issue 43,
 # one per programme. The table is their UNION and nothing more: a string no view asks for is
@@ -125,7 +125,7 @@ def collect():
         node_strings |= runs(n["label"])
     # The 9px context holds the edge verbs, any mark a node carries under its label and any
     # tail it carries under that; all three are drawn at the chip size.
-    small = ({v for _s, _t, v in edges}
+    small = ({edge_parts(e)[2] for e in edges}
              | {n["mark"] for n in nodes if n.get("mark")}
              | {n["tail"] for n in nodes if n.get("tail")})
 
@@ -136,7 +136,15 @@ def collect():
         if n.get("ghost"):
             ghost_strings |= runs(n["label"])
     ghost_ids = {n["id"] for n in nodes if n.get("ghost")}
-    ghost_verbs = {v for s, t, v in edges if s in ghost_ids or t in ghost_ids}
+    # A ghost relationship is one with a ghost node at an end OR one declared a ghost, which is
+    # issue 75's case: a real relation between two real classes that nothing records. The same
+    # verb can be upright on one edge and italic on another, so both faces are measured and the
+    # union here is deliberate rather than an either/or.
+    ghost_verbs = set()
+    for e in edges:
+        s, t, verb, declared = edge_parts(e)
+        if declared or s in ghost_ids or t in ghost_ids:
+            ghost_verbs.add(verb)
 
     ctx = {
         # node labels as drawn: regular weight, the weight the layout wraps at

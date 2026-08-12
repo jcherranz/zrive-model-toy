@@ -238,6 +238,17 @@ def p(name, value, flag, rank=INVENTED, at=None):
     return {"k": name, "v": value, "f": flag, "r": rank, "at": at}
 
 
+def edge_parts(e):
+    """One relationship, unpacked: source, target, verb, and whether it is a ghost.
+
+    Issue 75. A relationship is a 3-tuple everywhere in this file and a fourth element is
+    allowed for the one thing about a relationship that cannot be read off its ends: that the
+    relation is real and no system anywhere records it. Every reader of an edge tuple goes
+    through here, so a fourth element cannot be silently dropped by one of them.
+    """
+    return e[0], e[1], e[2], bool(e[3]) if len(e) > 3 else False
+
+
 # ---- the populate route, and it is a registry rather than a caption -----------
 # Issue 4, reframed by the owner's stated destination: a management tool showing every item and
 # every element of the funnel. Under that objective the question a drawing of object types has to
@@ -1894,8 +1905,21 @@ PROGRAMMES = [
 # visit case is a RELATION between two classes that both exist and are both already on the page,
 # so a fifth ghost would be the first one that is not a class and would blur the vocabulary the
 # other four rely on. And it is the same shape as the Attendance class the paragraph above
-# already declined, for the same reason. The finding is not lost: it is written on the visit
-# host's own note and carried as an absent property row, where a reader meets it.
+# already declined, for the same reason.
+#
+# ISSUE 75 OVERTURNED THE FIRST HALF OF THAT AND KEPT THE SECOND. Repointing 'hosts visit' at the
+# Programme was the error, and the error was one of method: the evidence was about WHERE the
+# relation is recorded, thirteen company notes filing a visit under a programme note, and it was
+# used to decide WHAT the relation IS. A firm hosting a visit hosts it for the people who turn up,
+# and the people who turn up are a cohort. So the solid edge now terminates on the Cohort.
+#
+# The Programme keeps the same verb as a GHOST edge, which is the honest shape of the second half:
+# the visit is FOR a programme, that is a real relation, and no system writes it down. A ghost is
+# already this drawing's word for exactly that, so nothing new had to be invented; what did have
+# to change is that a ghost relationship used to be derivable only from a ghost node at one of its
+# ends, and this one runs between two classes that both exist. See the edges block in
+# instance_document(), where a ghost on a relationship is now declared as well as derived. The
+# ghost vocabulary is not blurred by it: the ghost NODES are still classes and only classes.
 GHOST_TYPE = ("Ghost", "does not exist in any system", "#8f99a8", "ghost")
 
 
@@ -2236,13 +2260,13 @@ def programme_block(spec):
             # own set from 'member of'.
             "id": host_id, "type": "Company",
             "label": host_label,
-            "note": ("An invented firm. The visit it hosts attaches to the PROGRAMME and not to "
-                     "the cohort, which is what the company register says: thirteen company "
-                     "notes point a visit at a programme note and not one of the hundred and "
-                     "fifty six mentions a cohort at all. What no system anywhere records is the "
-                     "other half of it, which cohort attended. That absence has no tile on this "
-                     "page: it is a missing relation between two classes that both exist, and "
-                     "every ghost here is a missing class."),
+            "note": ("An invented firm. It hosts the visit for the COHORT, which is the solid "
+                     "edge, and the visit is FOR the programme, which is the dashed one. Both "
+                     "relations are real and neither is written down the way the drawing draws "
+                     "it: no system anywhere relates a cohort to a visit, and what the company "
+                     "register holds is a visit filed under a programme note, thirteen of them "
+                     "across a hundred and fifty six, which is a record of where somebody put "
+                     "the paperwork and not a statement of who attended."),
             "props": [
                 p("role", "empresa colaboradora", D),
                 p("note", "invented company, not a real firm", D),
@@ -2343,14 +2367,18 @@ def programme_block(spec):
         edges.append((cid, pfx + "cohort", "scheduled for"))
 
     if spec["host"]:
-        # ISSUE 63, and the counted evidence is on the co_col note and in that commit. A span of
-        # 3 makes this the one edge on any of the seven routes that is drawn as an arc slung under
-        # the row it connects rather than as a neighbour bezier. It cost fourteen units of height
-        # on the shipped drawing when it landed on its own, 586 to 600, and this card takes them
-        # straight back: a sixth instructor moves where the barycentre puts the host, the arc's
-        # midpoint drops back inside the drawing, and Z-IB is 586 again with the edge still
-        # correct.
-        edges.append((spec["host"][0], prog, "hosts visit"))
+        # ISSUE 75. TWO EDGES, ONE VERB, AND ONLY ONE OF THEM IS DRAWN AS A THING THAT IS WRITTEN
+        # DOWN. The firm hosts the visit for the cohort, so that is the solid edge; the visit is
+        # for the programme, which is equally true and which nothing records, so that is the
+        # ghost. Reversing the card is one word: take `True` off the second line and put `prog`
+        # back on the first.
+        #
+        # ISSUE 63's arc survives on the ghost, and its counted evidence is in that commit. A span
+        # of 3 makes the edge to the programme the one edge on any of the seven routes that is
+        # drawn as an arc slung under the row it connects rather than as a neighbour bezier. The
+        # new edge to the cohort spans 1 and is an ordinary bezier.
+        edges.append((spec["host"][0], pfx + "cohort", "hosts visit"))
+        edges.append((spec["host"][0], prog, "hosts visit", True))
     return nodes, edges
 
 
@@ -2725,7 +2753,7 @@ for _v in VIEWS:
         for _pr in _n["props"]:
             _strings += [(f"{_w} prop {_pr['k']}", _pr["k"]),
                          (f"{_w} prop {_pr['k']}", _pr["v"])]
-    _strings += [(f"{_v['key']} edge {_s}->{_t}", _v2) for _s, _t, _v2 in _v["edges"]]
+    _strings += [(f"{_v['key']} edge {_e[0]}->{_e[1]}", edge_parts(_e)[2]) for _e in _v["edges"]]
     _strings += [(f"{_v['key']} roster {_r['id']}", _r[_f])
                  for _r in _v["roster"]["rows"]
                  for _f in ("name", "uni", "state", "source_system", "source_key")]
@@ -3708,13 +3736,22 @@ def instance_document():
                        "ghost": 1 if n.get("ghost") else None,
                        "mark": n.get("mark"), "tail": n.get("tail"), "note": n.get("note")}
                       for n in v["nodes"]],
-            # `ghost` on a relationship is derived from its ends rather than declared, and it is
-            # here rather than in the layout because whether a relationship is one the model
-            # cannot record is a fact about the model. The layout only reads it, to pick the
-            # face its verb chip is measured in.
-            "edges": [{"s": s, "t": t, "v": verb,
-                       "ghost": 1 if (_ghost_ids(v).intersection((s, t))) else None}
-                      for s, t, verb in v["edges"]],
+            # `ghost` on a relationship is DERIVED from its ends and, since issue 75, may also be
+            # DECLARED. It is here rather than in the layout because whether a relationship is one
+            # the model cannot record is a fact about the model. The layout only reads it, to pick
+            # the face its verb chip is measured in.
+            #
+            # WHY DECLARING IT HAD TO BE POSSIBLE. Derivation answers one question only, whether
+            # an end of the relationship is a class nothing holds, and it answers it correctly for
+            # the four ghost nodes. It cannot see the other case: two classes that both exist, a
+            # relation between them that is real, and no system that writes the relation down.
+            # That is the programme's side of the visit, and inferring it from the ends would be
+            # the same inversion issue 75 was filed about, reading a fact about the recording off
+            # a fact about the objects.
+            "edges": [{"s": _e[0], "t": _e[1], "v": edge_parts(_e)[2],
+                       "ghost": 1 if (edge_parts(_e)[3]
+                                      or _ghost_ids(v).intersection(_e[:2])) else None}
+                      for _e in v["edges"]],
             "roster": v["roster"],
             "counts": v["counts"],
         } for v in VIEWS],
