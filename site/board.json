@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T14:01:44Z",
+  "generated": "2026-08-12T14:11:31Z",
   "columns": [
     {
       "key": "raw",
@@ -48,6 +48,15 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/106"
+        },
+        {
+          "id": 108,
+          "title": "Two owner reversals: the visit ghost goes, and the invented agenda becomes per-session",
+          "labels": [
+            "model",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/108"
         }
       ]
     },
@@ -62,15 +71,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/107"
-        },
-        {
-          "id": 108,
-          "title": "Two owner reversals: the visit ghost goes, and the invented agenda becomes per-session",
-          "labels": [
-            "model",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/108"
         }
       ]
     },
