@@ -196,6 +196,10 @@
 
     var G = null;
     var nodeById = {}, edgesOf = {}, gfxNode = {}, gfxEdge = [];
+    // Issue 90. The question the time window asks of a node, or null when there is no window.
+    // Held here and re-applied at the end of every draw(), because a change of programme repaints
+    // from scratch and a window the reader set on one drawing is still set on the next.
+    var dimFn = null;
     // Issue 84. The counter-scaled caption controls, and the last scale they were told about, so
     // that a repaint puts them back at the size the reader was already looking at rather than at
     // the size they were built with.
@@ -512,6 +516,36 @@
         gfxNode[n.id] = { g: g2, tile: tile, mark: mark, col: col, count: !!n.count, frame: frame,
                           ghost: !!n.ghost, rest: tile.getAttribute('fill'), tail: tail };
       });
+
+      applyDim();
+    }
+
+    // ---- the time window, issue 90 --------------------------------------------
+    // DIMMING AND NOT REMOVING, AND THE GATE IS THE REASON. The layout is generated at build time,
+    // site/layout.js carries a drawingDigest and scripts/check_build.sh refuses anything a rebuild
+    // does not reproduce. A window is a continuous parameter over the term's twenty four weeks, so
+    // it cannot be precomputed; laying it out at run time would buy a truly filtered drawing and
+    // cost the reproducibility guarantee. A class costs nothing: no coordinate moves, the digest
+    // is the digest of a drawing this file did not change, and the shape of the whole term stays
+    // on screen behind the window, which is what a picture is for.
+    //
+    // THIS FILE KNOWS NO DATES. It is handed a question about a node and paints the answer, which
+    // is the same division the lane headings run on: term.js knows what a date means and this
+    // knows where a node is. Two things are marked, the node and every edge that touches it,
+    // because a dimmed tile at the bright end of a bright line reads as a rendering fault rather
+    // than as a session outside the window.
+    function applyDim() {
+      var out = {};
+      Object.keys(gfxNode).forEach(function (id) {
+        var on = !!dimFn && !!dimFn(nodeById[id]);
+        if (on) out[id] = true;
+        gfxNode[id].g.classList.toggle('out-window', on);
+      });
+      gfxEdge.forEach(function (f) {
+        var on = !!out[f.e.s] || !!out[f.e.t];
+        f.g.classList.toggle('out-window', on);
+        f.c.classList.toggle('out-window', on);
+      });
     }
 
     return {
@@ -520,6 +554,22 @@
       // the viewport's and stays there; a control that has to be the same size on screen at every
       // zoom is the one thing painted here that cannot be painted without knowing the scale.
       setCapScale: setCapScale,
+      // Issue 90. The other thing this file is told from outside, and it is a question rather
+      // than a list of ids: ids are per drawing and the window is not, so a list would have to be
+      // rebuilt on every route change by whoever holds it. `null` takes the window off.
+      setDim: function (fn) {
+        dimFn = typeof fn === 'function' ? fn : null;
+        applyDim();
+      },
+      // What is dimmed right now, for a driver, because "the window dims the drawing" is a claim
+      // about the running page and not about a screenshot of 39 near identical tiles.
+      dimState: function () {
+        var lit = [], dim = [];
+        Object.keys(gfxNode).forEach(function (id) {
+          (gfxNode[id].g.classList.contains('out-window') ? dim : lit).push(id);
+        });
+        return { on: !!dimFn, dimmed: dim, lit: lit };
+      },
       capButtons: function () { return capBtns.map(function (c) { return c.g; }); },
       // The drawing on screen, which is what the viewport frames and the router describes. Taken
       // through a call rather than handed out once, because draw() replaces it.

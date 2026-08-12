@@ -54,6 +54,38 @@
 // has never said so, and the outline is now grouped by module and ordered by sequence inside it.
 // The three programmes whose syllabus names no module for some or all of its rows say that rather
 // than showing an unexplained blank.
+//
+// ===============================================================================================
+// ISSUES 88 AND 90 ADDED THE TIME DIMENSION, AND THEY ARE ONE CARD BECAUSE THEY ARE ONE PROBLEM.
+// ===============================================================================================
+// #88 asked to see the calendar as a calendar, monthly and weekly. #90 asked for a filter down to
+// a selected range or week, and named the use: "checking the next 1-3 weeks to discuss with the
+// team". Both are the same question, which is how a reader works with a term too large to see at
+// once, and answered one at a time they would have produced two unrelated controls over the same
+// 166 days. They are answered here as two axes over one term.
+//
+// SHAPE is how the rows are laid out: a month grid, a week grid, or the list this sheet had
+// before. It belongs to the calendar reading, because there are rows only here.
+//
+// WINDOW is how much of the term is in focus. It belongs to the PAGE and not to this sheet: the
+// term is also on the drawing, one tile per session, and #90 was filed from `#graph`. So its
+// control is in the header, where a reader looking at the drawing can reach it and where #86 has
+// just made every control hit-testable over a sheet, and this module hands the drawing a
+// predicate rather than owning any part of it.
+//
+// THE THIRD FACE OF THE SAME PROBLEM IS #89, collapse and expand into modules, and it is
+// deliberately not here: it is a build-time layout change and this card is run-time only. It
+// joins without a redesign, and the two places it joins are named in this file. Shape is a
+// registry, `CAL_SHAPES` with a note and a builder each, so a fourth entry is an entry. And the
+// drawing half composes because this card never touches geometry: dimming is a class over a
+// layout that has not moved, so #89's two precomputed geometries can arrive under it and the
+// window will dim whichever of them is on screen.
+//
+// WHERE `now` COMES FROM, WHICH IS THE THING THIS CARD HAD TO DECIDE FIRST. Every date here is
+// invented and the term ended before the real clock reached it, so a window built against the
+// system clock renders empty today and forever. The answer is an anchor derived from the term,
+// shown on the control, with the reader's real date and the count of sessions on or after it
+// stated beside it. The long note over the control has the argument.
 (function () {
   'use strict';
 
@@ -69,6 +101,57 @@
   // same strings the reader is.
   var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
                 'July', 'August', 'September', 'October', 'November', 'December'];
+  // Monday first, because the window this file positions is a whole number of weeks and a week
+  // that starts on Sunday would put the two weekend sessions of a week in two different rows.
+  var DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  // ---- dates, in one place, and every one of them UTC ---------------------------------------
+  // Issues 88 and 90. The dates in this model are `YYYY-MM-DD HH:MM` with no zone, so they are
+  // read as UTC and never through the browser's local time: a session at 2026-03-01 00:00 read
+  // locally lands in February for a reader west of Greenwich, which would put it in the wrong
+  // panel of a month grid on their machine and in the right one on ours. The only local reading
+  // on this page is the real clock below, which is deliberately local, because "today" is the
+  // reader's day and not ours.
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+
+  function dnum(s) {
+    var p = String(s).split('-');
+    return Date.UTC(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+  }
+
+  function dstr(ms) {
+    var d = new Date(ms);
+    return d.getUTCFullYear() + '-' + pad2(d.getUTCMonth() + 1) + '-' + pad2(d.getUTCDate());
+  }
+
+  function addDays(s, n) { return dstr(dnum(s) + n * 86400000); }
+
+  // Monday is 0, which is the index into DAYS above and the offset back to the week's own Monday.
+  function dowMon0(s) { return (new Date(dnum(s)).getUTCDay() + 6) % 7; }
+
+  function mondayOf(s) { return addDays(s, -dowMon0(s)); }
+
+  function daysBetween(a, b) { return Math.round((dnum(b) - dnum(a)) / 86400000); }
+
+  // '2026-03-02' -> '2 March 2026'. Written out for the reason MONTHS is: the page is in English
+  // and a driver reading the anchor off the control should read the same string the reader does,
+  // on every machine and in every locale.
+  function longDate(s) {
+    return String(Number(s.slice(8, 10))) + ' ' + MONTHS[Number(s.slice(5, 7)) - 1] + ' ' +
+           s.slice(0, 4);
+  }
+
+  function shortDate(s) {
+    return String(Number(s.slice(8, 10))) + ' ' + MONTHS[Number(s.slice(5, 7)) - 1].slice(0, 3);
+  }
+
+  // The reader's day, from the reader's own clock, and the one thing on this page that is not
+  // invented. It is here so the sheet can say what it is and how far it is from the term rather
+  // than quietly pretending the term is current. Issue 90.
+  function todayStr() {
+    var d = new Date();
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  }
 
   var ZM = window.ZM = window.ZM || {};
 
@@ -106,6 +189,10 @@
   // opts.agenda   the instance document's invented session agenda block, issue 85
   // opts.onRoute  called after the sheet opens or closes, because the heading changed and the
   //               header may have changed height with it
+  // opts.onWindow called with a predicate over a node, or null, whenever the time window moves.
+  //               Issue 90. This module knows what a date means and render.js knows where a node
+  //               is drawn, and neither learns the other's half: it hands out a question and the
+  //               drawing answers it with a class.
   ZM.term = function createTerm(opts) {
     var VIEWS = opts.views || [];
     var AGENDA = opts.agenda || null;
@@ -286,6 +373,290 @@
     var noInstructor = ALL.noInstructor;
     var noRecording = ALL.noRecording;
     var maxDeliveries = ALL.maxDeliveries;
+
+    // =========================================================================================
+    // THE TIME DIMENSION. Issues 88 and 90, built as one thing because they are one thing.
+    // =========================================================================================
+    // #88 asked for the calendar as a calendar, monthly and weekly. #90 asked for a filter down
+    // to a range or a week, naming the use: "checking the next 1-3 weeks to discuss with the
+    // team". Answered apart they are two unrelated controls over the same 166 days. Answered
+    // together they are two questions about one thing: SHAPE, which is how the term is laid out,
+    // and WINDOW, which is how much of it is in focus.
+    //
+    // WHY SHAPE BELONGS TO THE SHEET AND WINDOW BELONGS TO THE PAGE. A shape is a way of drawing
+    // rows and there are rows only here. A window is a slice of the term, and the term is also on
+    // the drawing, one tile per session: #90 was filed from `#graph` on `#/p/ZSC`, so it is about
+    // the picture as well as the list. That is why the window's control is in the header, where a
+    // reader looking at the drawing can reach it, and why this module hands out a predicate for
+    // the drawing to dim by rather than owning any part of the drawing itself.
+    //
+    // MEASURED BEFORE ANYTHING WAS BUILT, and the numbers decided both shapes. Across the 83
+    // sessions the term spans 2026-01-12 to 2026-06-28, 166 days; the months hold 16, 20, 17, 9,
+    // 8 and 13, so a month grid is six panels of 8 to 20 and the April and May gaps are a fact
+    // about the term that no ordered list shows. There are 71 distinct days and only 12 of them
+    // hold more than one session, and 71 of the 83 start at 18:30, so a week grid is honestly two
+    // rows and is built as that rather than dressed up as a day planner.
+    var CAL_SHAPES = ['month', 'week', 'list'];
+    var shape = 'month';        // the month grid is what #/calendar opens on
+
+    // The term's own extent and its middle, counted off the rows for the reason every other
+    // number in this file is: a span typed here is a span that goes stale the first time a
+    // session moves.
+    var TERM = (function () {
+      if (!sessions.length) return null;
+      var first = sessions[0].date;
+      var last = sessions[sessions.length - 1].date;
+      var median = sessions[Math.floor(sessions.length / 2)].date;
+      var fm = mondayOf(first), lm = mondayOf(last);
+      return {
+        first: first, last: last, firstMonday: fm, lastMonday: lm,
+        weeks: Math.round(daysBetween(fm, lm) / 7) + 1,
+        days: daysBetween(first, last) + 1,
+        // THE ANCHOR, AND IT IS DERIVED RATHER THAN INVENTED. See the note on the control below
+        // for why there is an anchor at all. It is the Monday of the week the term's middle
+        // session falls in, which is one line to explain, is reproducible on every machine, and
+        // adds no new made-up date to a page that already has to warn about every date on it.
+        anchor: mondayOf(median),
+        medianSession: median
+      };
+    })();
+
+    var TODAY = todayStr();
+    // How many of the sessions are on or after the reader's own day. It is 0 and has been 0 since
+    // 2026-06-28, which is the whole reason the anchor exists, but it is counted rather than
+    // asserted so the sentence stays true if the model's term ever moves forward.
+    var AFTER_TODAY = sessions.filter(function (s) { return s.date >= TODAY; }).length;
+
+    var WIN_STEPS = [1, 2, 3];      // "the next 1-3 weeks", which is what the card asked for
+    var win = { weeks: 0, anchor: TERM ? TERM.anchor : null };   // 0 weeks is the whole term
+
+    function winRange() {
+      if (!win.weeks || !TERM) return null;
+      return { from: win.anchor, to: addDays(win.anchor, win.weeks * 7 - 1) };
+    }
+
+    function windowOn() { return !!winRange(); }
+
+    function inWindow(date) {
+      var r = winRange();
+      return !r || (date >= r.from && date <= r.to);
+    }
+
+    function windowShown(sc) {
+      return sessionsFor(sc).filter(function (s) { return inWindow(s.date); }).length;
+    }
+
+    // What the window is, in one sentence, written from the range rather than typed. Used by the
+    // control, by the subtitle and by the notice, so the three cannot come to say different
+    // things about the same window.
+    function windowText() {
+      var r = winRange();
+      if (!r) return 'the whole term, all ' + TERM.weeks + ' weeks of it';
+      return (win.weeks === 1 ? 'one week' : win.weeks + ' weeks') + ', ' +
+             longDate(r.from) + ' to ' + longDate(r.to);
+    }
+
+    // ---- what the drawing is told, issue 90 -------------------------------------
+    // A PREDICATE AND NOT A LIST OF IDS, and never any geometry. The layout is generated at build
+    // time, `layout.js` carries a drawingDigest and scripts/check_build.sh refuses anything a
+    // rebuild does not reproduce; a window is a continuous parameter over 24 weeks, so it cannot
+    // be precomputed and laying it out at run time would cost that guarantee. Dimming costs
+    // nothing: the geometry never changes, the digest never changes, the build gate never sees
+    // this feature at all, and the shape of the whole term stays on screen behind the window,
+    // which is better for the discussion the card describes than a drawing with holes in it.
+    //
+    // It answers about a NODE and render.js applies a class, which is the same division the lane
+    // headings run on: that file knows where a thing is drawn and this one knows what it means.
+    function dimmer() {
+      var r = winRange();
+      if (!r) return null;
+      return function (n) {
+        if (!n || n.type !== 'CohortSession') return false;
+        var d = String(prop(n, 'scheduled_at') || '').split(' ')[0];
+        return !!d && (d < r.from || d > r.to);
+      };
+    }
+
+    // ---- the window control, and where `now` comes from -------------------------
+    // THE BLOCKER THIS CARD HAD TO ANSWER BEFORE IT COULD BUILD ANYTHING. "The next three weeks"
+    // needs a now, and every date on this page is invented: the term ends 2026-06-28 and the real
+    // clock is past it, so a window built against the system clock renders empty today and every
+    // day after. Three ways out were on the table: an anchor declared inside the term, a range
+    // the reader positions with no now at all, and the real clock with "the term is over" as the
+    // answer. This is the first with the second as the override AND the third said out loud,
+    // because the one thing that would be worse than an empty view is a page that quietly invents
+    // a today.
+    //
+    // SO THE CONTROL LEADS WITH THE TRUTH. It states the reader's own date, states that no
+    // session is on or after it, and only then offers an anchor, named as an anchor and not as
+    // today. The anchor is derived from the term rather than made up, which is why nothing here
+    // carries a `dummy` badge: a badge marks a value somebody invented, and the Monday of the
+    // term's middle week is arithmetic over values that already carry theirs.
+    //
+    // IT IS IN THE HEADER AND NOT IN THE SHEET, because the sheet covers the drawing and the
+    // window acts on both. #86 made every header control hit-testable over a sheet, so one
+    // control now serves the diagram and the calendar without a second copy of it.
+    var wnBtn = document.getElementById('wnbtn');
+    var wnMenu = document.getElementById('wnmenu');
+    var onWindow = opts.onWindow;
+
+    function wnMenuOpen() { return !!wnMenu && !wnMenu.hidden; }
+
+    function openWnMenu() {
+      if (!wnMenu || wnMenuOpen()) return;
+      buildWnMenu();
+      wnMenu.hidden = false;
+      if (wnBtn) wnBtn.setAttribute('aria-expanded', 'true');
+    }
+
+    function closeWnMenu(refocus) {
+      if (!wnMenuOpen()) return;
+      wnMenu.hidden = true;
+      if (wnBtn) wnBtn.setAttribute('aria-expanded', 'false');
+      if (refocus && wnBtn && wnBtn.focus) wnBtn.focus();
+    }
+
+    // Everything that has to happen when the window moves, in one place, so a control added later
+    // cannot forget half of it: the rows are rebuilt if the sheet is open, the sentences over them
+    // are rewritten, the control restates itself, and the drawing is told.
+    function windowChanged() {
+      built = null;
+      if (reading) { buildRows(); describe(); }
+      describeWindow();
+      if (wnMenuOpen()) buildWnMenu();
+      if (onWindow) onWindow(dimmer());
+    }
+
+    function setWindowWeeks(n) {
+      if (win.weeks === n) return;
+      win.weeks = n;
+      windowChanged();
+    }
+
+    function stepAnchor(delta) {
+      if (!TERM) return;
+      var next = addDays(win.anchor, delta * 7);
+      if (next < TERM.firstMonday) next = TERM.firstMonday;
+      if (next > TERM.lastMonday) next = TERM.lastMonday;
+      if (next === win.anchor) return;
+      win.anchor = next;
+      windowChanged();
+    }
+
+    function windowState() {
+      var r = winRange();
+      return {
+        on: !!r,
+        weeks: win.weeks,
+        anchor: win.anchor,
+        from: r ? r.from : (TERM ? TERM.first : null),
+        to: r ? r.to : (TERM ? TERM.last : null),
+        shown: windowShown(scope),
+        shownAll: windowShown(null),
+        sessions: sessions.length,
+        today: TODAY,
+        afterToday: AFTER_TODAY,
+        termFrom: TERM ? TERM.first : null,
+        termTo: TERM ? TERM.last : null,
+        termWeeks: TERM ? TERM.weeks : 0,
+        firstMonday: TERM ? TERM.firstMonday : null,
+        lastMonday: TERM ? TERM.lastMonday : null,
+        menu: wnMenuOpen()
+      };
+    }
+
+    function describeWindow() {
+      if (!wnBtn || !TERM) return;
+      // The state, in the row's own idiom, and short enough not to push the nav around: `theme`
+      // says `theme: system` in the same place for the same reason.
+      wnBtn.textContent = 'weeks: ' + (win.weeks ? win.weeks + ' of ' + TERM.weeks
+                                                 : 'all ' + TERM.weeks);
+      wnBtn.title = 'the part of the term in focus: ' + windowText() +
+        '. ' + windowShown(null) + ' of ' + sessions.length + ' sessions. Press to move it';
+    }
+
+    function wnButton(cls, label, title, fn) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'zbtn ' + cls;
+      b.textContent = label;
+      if (title) b.title = title;
+      b.addEventListener('click', function (e) { e.stopPropagation(); fn(); });
+      return b;
+    }
+
+    function buildWnMenu() {
+      if (!wnMenu || !TERM) return;
+      wnMenu.textContent = '';
+
+      // Layer one, and it is the reason the rest of this is allowed to exist.
+      var lead = el('p', 'wn-now');
+      lead.appendChild(el('span', 'warn', 'this page has no today'));
+      lead.appendChild(document.createTextNode(
+        ' Your clock says ' + TODAY + '. The invented term runs ' + TERM.first + ' to ' +
+        TERM.last + ', so ' + AFTER_TODAY + ' of the ' + sessions.length +
+        ' sessions are on or after today. The window below is positioned on an anchor inside ' +
+        'the term, which is not today and is not pretending to be: it is the Monday of the week ' +
+        'the term\'s middle session falls in, and you can move it.'));
+      wnMenu.appendChild(lead);
+
+      var anch = el('p', 'wn-row');
+      anch.appendChild(el('span', 'wn-lab', 'anchor'));
+      anch.appendChild(wnButton('wn-step', '‹', 'one week earlier',
+        function () { stepAnchor(-1); }));
+      anch.appendChild(el('span', 'wn-anchor', 'Monday ' + longDate(win.anchor)));
+      anch.appendChild(wnButton('wn-step', '›', 'one week later',
+        function () { stepAnchor(1); }));
+      wnMenu.appendChild(anch);
+
+      var wk = el('p', 'wn-row');
+      wk.appendChild(el('span', 'wn-lab', 'window'));
+      WIN_STEPS.forEach(function (n) {
+        var b = wnButton('wn-weeks', n === 1 ? '1 week' : n + ' weeks',
+          'the ' + (n === 1 ? 'week' : n + ' weeks') + ' from the anchor',
+          function () { setWindowWeeks(n); });
+        b.setAttribute('aria-pressed', win.weeks === n ? 'true' : 'false');
+        wk.appendChild(b);
+      });
+      var all = wnButton('wn-weeks', 'whole term', 'no window: the whole term',
+        function () { setWindowWeeks(0); });
+      all.setAttribute('aria-pressed', win.weeks ? 'false' : 'true');
+      wk.appendChild(all);
+      wnMenu.appendChild(wk);
+
+      // What the window does to each surface, said once and here, because the answer differs by
+      // surface on purpose and a reader who is not told will read a dimmed drawing as a bug.
+      var note = el('p', 'wn-note');
+      note.textContent = 'Now: ' + windowText() + ' · ' + windowShown(null) + ' of ' +
+        sessions.length + ' sessions. The list drops what is outside it, because a list is an ' +
+        'agenda. The month and week grids keep it and mark the band, and the drawing dims it, ' +
+        'because the shape of the term is the thing a grid and a drawing are for.';
+      wnMenu.appendChild(note);
+    }
+
+    if (wnBtn && wnMenu) {
+      // The same three listeners the programme menu has, in the same shapes and for the same
+      // reasons. Escape is in the capture phase, ahead of the bubble listener in selection.js
+      // that clears the selection, and it is left alone while capture mode is on because Escape
+      // is how a reader gets out of that.
+      wnBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (wnMenuOpen()) closeWnMenu(false);
+        else openWnMenu();
+      });
+      document.addEventListener('click', function (e) {
+        var t = e.target;
+        if (t && t.closest && t.closest('#wnpick')) return;
+        closeWnMenu(false);
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape' || !wnMenuOpen()) return;
+        if (document.body.classList.contains('fb-mode')) return;
+        e.preventDefault();
+        e.stopPropagation();
+        closeWnMenu(true);
+      }, true);
+    }
 
     // ---- what the sheet says about itself -------------------------------------
     // Two paragraphs above the rows, and neither of them scrolls away. The first is the standing
@@ -468,7 +839,10 @@
           st.sessions.length + ' sessions across ' + over + ', drawn from a term ' +
           'the model counts at ' + st.totalSessions + ' · ' + st.from + ' to ' + st.to +
           ' · ' + st.stateCounts + ' · ' + st.noInstructor + ' with no instructor named' +
-          ' · ' + st.noRecording + ' with no recording'));
+          ' · ' + st.noRecording + ' with no recording' +
+          ' · ' + SHAPE_NAME[shape] +
+          (windowOn() ? ' · ' + windowShown(scope) + ' of them inside the window, ' +
+                        windowText() : '')));
         subEl.appendChild(el('span', 'warn', 'every date here is invented'));
       } else {
         titleEl.textContent = scope
@@ -492,6 +866,20 @@
         noticeEl.appendChild(el('p', 'term-finding', moduleNote(scope)));
         noticeEl.appendChild(el('p', 'term-finding', outlineLimit(st)));
       }
+      // Issue 88. The shape belongs to the calendar and only to it: an outline is curriculum
+      // order and has no date to lay out.
+      if (reading === 'calendar') {
+        noticeEl.appendChild(el('p', 'term-finding', SHAPE_NOTE[shape](scope)));
+        noticeEl.appendChild(shapeBar());
+      }
+      // Issue 90. A reader who sets a window on the calendar and switches reading would otherwise
+      // meet a full outline with a header control saying three weeks and no explanation.
+      if (reading === 'outline' && windowOn()) {
+        noticeEl.appendChild(el('p', 'term-finding',
+          'The window is off this reading. It is ' + windowText() + ' and the drawing and the ' +
+          'calendar are both obeying it, but an outline is curriculum order and a syllabus has ' +
+          'no date to filter on.'));
+      }
       // The way from one reading to the other keeps the scope, and the way back to all seven is
       // its own control, because a reader who arrived at Z-SC from a tile has no other way out
       // of it and an address they have to edit by hand is not a way out.
@@ -502,6 +890,187 @@
       if (outBtn) toggleCurrent(outBtn, reading === 'outline');
       if (calBtn) calBtn.href = addressFor('calendar', scope);
       if (outBtn) outBtn.href = addressFor('outline', scope);
+    }
+
+    // ---- the three shapes, issue 88 ---------------------------------------------
+    var SHAPE_NAME = { month: 'as a month grid', week: 'as a week grid', list: 'as a list' };
+
+    var SHAPE_TITLE = {
+      month: 'one panel per month, seven weekday columns, the default',
+      week: 'one panel per week that holds a session',
+      list: 'one row per session, the reading this sheet opened with before issue 88'
+    };
+
+    function monthName(ym) {
+      return MONTHS[Number(ym.slice(5, 7)) - 1] + ' ' + ym.slice(0, 4);
+    }
+
+    function groupBy(sc, keyOf) {
+      var out = [], byKey = {};
+      sessionsFor(sc).forEach(function (s) {
+        var k = keyOf(s);
+        if (!byKey[k]) { byKey[k] = { key: k, rows: [] }; out.push(byKey[k]); }
+        byKey[k].rows.push(s);
+      });
+      return out;
+    }
+
+    function monthsOf(sc) { return groupBy(sc, function (s) { return s.date.slice(0, 7); }); }
+    function weeksOf(sc) { return groupBy(sc, function (s) { return mondayOf(s.date); }); }
+
+    // What each shape is for, and for two of the three a fact about THIS term that the shape is
+    // what makes visible. Counted off the rows rather than written down, so a term that changed
+    // would change the sentence rather than outlive it.
+    var SHAPE_NOTE = {
+      month: function (sc) {
+        var by = monthsOf(sc);
+        if (!by.length) return 'Nothing in this scope, so there is no month to draw.';
+        var lo = by[0], hi = by[0], i;
+        for (i = 1; i < by.length; i++) {
+          if (by[i].rows.length < lo.rows.length) lo = by[i];
+          if (by[i].rows.length > hi.rows.length) hi = by[i];
+        }
+        return by.length + ' months side by side, and the unevenness is the reading: ' +
+          monthName(hi.key) + ' holds ' + hi.rows.length + ' and ' + monthName(lo.key) +
+          ' holds ' + lo.rows.length + '. The Saturday and Sunday columns are where the ' +
+          'in-person weekends fall, which no ordered list of the same rows shows.';
+      },
+      week: function (sc) {
+        var ss = sessionsFor(sc), m = {}, order = [];
+        ss.forEach(function (s) {
+          if (m[s.time] === undefined) { m[s.time] = 0; order.push(s.time); }
+          m[s.time]++;
+        });
+        order.sort(function (a, b) { return m[b] - m[a] || (a < b ? -1 : 1); });
+        if (!order.length) return 'Nothing in this scope, so there is no week to draw.';
+        var rest = order.slice(1).map(function (t) { return m[t] + ' at ' + t; }).join(', ');
+        return 'A week here is sparse and is not dressed up as a day planner: ' + m[order[0]] +
+          ' of the ' + ss.length + ' sessions start at ' + order[0] +
+          (rest ? ' and ' + rest : '') + ', so a week is two rows and not a day of stacked ' +
+          'hours. It is here because it was asked for and because one week is the unit the ' +
+          'window is counted in.';
+      },
+      list: function () {
+        return 'The list is the shape a window filters down to an agenda. The two grids keep ' +
+          'every session and mark the window instead, because a grid is there to show the shape ' +
+          'of the whole term and a grid with holes cut in it shows nothing.';
+      }
+    };
+
+    function setShape(k) {
+      if (shape === k || CAL_SHAPES.indexOf(k) === -1) return;
+      shape = k;
+      built = null;
+      buildRows();
+      describe();
+    }
+
+    function shapeBar() {
+      var bar = el('p', 'term-shape');
+      bar.appendChild(el('span', 'term-scope-lead', 'Shape. '));
+      CAL_SHAPES.forEach(function (k) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'zbtn shape-btn';
+        b.textContent = k;
+        b.title = SHAPE_TITLE[k];
+        b.setAttribute('aria-pressed', shape === k ? 'true' : 'false');
+        b.addEventListener('click', function () { setShape(k); });
+        bar.appendChild(b);
+      });
+      return bar;
+    }
+
+    // ---- the two grids ------------------------------------------------------------
+    // NOTHING IN A GRID IS A CONTROL, and that is a decision rather than an omission. #77 took
+    // every control on this page to 26 by 26 from eleven of eleven failing WCAG 2.2 SC 2.5.8, and
+    // 83 chips in seven columns at 390px cannot be 26 wide. A chip is a rendering of a row, its
+    // whole content is in its own title attribute, and the way to a session is the drawing and
+    // the panel, which is where it already was.
+    function chip(s) {
+      var c = el('div', 'cal-chip' + (s.teacher !== 'yes' ? ' cal-gap' : ''));
+      c.appendChild(el('span', 'cal-time', s.time));
+      c.appendChild(el('span', 'cal-code', s.code));
+      c.appendChild(el('span', 'cal-title', s.title));
+      c.title = s.date + ' ' + s.time + ' · ' + s.code + ' · ' + s.title + ' · ' + s.state +
+        ' · ' + (s.teacher === 'yes' ? 'instructor named' : 'no instructor named') +
+        ' · attendance ' + s.attendance + ' · drawn as ' + s.id +
+        ' · every value in this line is invented';
+      return c;
+    }
+
+    // The days a month panel draws, which is the Monday on or before the first of the month to
+    // the Sunday on or after the last of it, so every panel is whole weeks and the columns line
+    // up down the sheet.
+    function monthCells(ym) {
+      var y = Number(ym.slice(0, 4)), m = Number(ym.slice(5, 7));
+      var lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+      var end = addDays(mondayOf(ym + '-' + pad2(lastDay)), 6);
+      var out = [], d = mondayOf(ym + '-01');
+      while (d <= end) { out.push(d); d = addDays(d, 1); }
+      return out;
+    }
+
+    // ONE PANEL, AND THE WARNING IS INSIDE IT. This is the requirement a grid raises above every
+    // other view on this site. A table of invented dates still reads as a table; a month grid
+    // looks like something a reader could plan against, and it is the one view here whose
+    // screenshot would be believed. The sheet says it three times above the rows already; this is
+    // the fourth, on the face of every panel, so a crop of one month carries it.
+    function calPanel(headText, rows, days, inMonth) {
+      var sec = el('section', 'cal-panel');
+      var h = el('h3', 'cal-head');
+      h.appendChild(el('span', 'cal-headname', headText));
+      h.appendChild(el('span', 'cal-headn', rows.length +
+        (rows.length === 1 ? ' session' : ' sessions')));
+      h.appendChild(el('span', 'warn', 'every date invented'));
+      sec.appendChild(h);
+
+      var grid = el('div', 'cal-grid');
+      DAYS.forEach(function (d) { grid.appendChild(el('div', 'cal-dow', d)); });
+      var byDate = {};
+      rows.forEach(function (s) { (byDate[s.date] || (byDate[s.date] = [])).push(s); });
+      days.forEach(function (d) {
+        var cls = 'cal-day';
+        if (inMonth && d.slice(0, 7) !== inMonth) cls += ' cal-offmonth';
+        if (windowOn()) cls += inWindow(d) ? ' cal-inwin' : ' cal-outwin';
+        var cell = el('div', cls);
+        // The cell's own day, on the cell, because a grid is the one view here where WHICH day a
+        // thing landed on is the claim being made and the only thing painted in the cell is the
+        // number. A driver can check the column against the date without being handed the model,
+        // and two panels that overlap at a month boundary can be told apart by a reader of the
+        // markup rather than by arithmetic over positions.
+        cell.setAttribute('data-date', d);
+        cell.appendChild(el('span', 'cal-dnum', String(Number(d.slice(8, 10)))));
+        (byDate[d] || []).forEach(function (s) { cell.appendChild(chip(s)); });
+        grid.appendChild(cell);
+      });
+      sec.appendChild(grid);
+      return sec;
+    }
+
+    function calBanner() {
+      // The banner the table carries inside its own head, in the shape a grid can carry it: it is
+      // the top of the scroll and it is sticky, so the panels under it always have it above them.
+      return el('p', 'cal-banner', 'every date in this calendar is invented');
+    }
+
+    function buildGrid(kind) {
+      var wrap = el('div', 'cal cal-' + kind);
+      wrap.appendChild(calBanner());
+      var groups = kind === 'month' ? monthsOf(scope) : weeksOf(scope);
+      groups.forEach(function (g) {
+        if (kind === 'month') {
+          wrap.appendChild(calPanel(monthName(g.key), g.rows, monthCells(g.key), g.key));
+        } else {
+          var days = [], i;
+          for (i = 0; i < 7; i++) days.push(addDays(g.key, i));
+          wrap.appendChild(calPanel('Week of ' + longDate(g.key), g.rows, days, null));
+        }
+      });
+      if (!groups.length) {
+        wrap.appendChild(el('p', 'cal-empty', 'No session in this scope.'));
+      }
+      return wrap;
     }
 
     // ---- moving between the scopes ----------------------------------------------
@@ -593,7 +1162,17 @@
       head(table, cols);
       var tb = document.createElement('tbody');
       var month = null;
-      var rows = sessionsFor(scope);
+      // Issue 90. THE LIST IS THE SHAPE THAT FILTERS, and the reason is the use the card names:
+      // "checking the next 1-3 weeks to discuss with the team". Ten rows is an agenda and 83 is a
+      // document nobody reads in a meeting. The grids and the drawing do the opposite and keep
+      // everything, because what they are for is the shape of the whole term.
+      var rows = sessionsFor(scope).filter(function (s) { return inWindow(s.date); });
+      if (!rows.length) {
+        groupRow(tb, cols.length, function (th) {
+          th.textContent = 'No session in ' + windowText() +
+            '. Move the anchor or take the window off, in the header.';
+        });
+      }
       rows.forEach(function (s) {
         var m = s.date.slice(0, 7);
         if (m !== month) {
@@ -685,11 +1264,16 @@
       // The key is the reading, the scope AND whether the invented block is on, because all
       // three change which rows are in the table and a key that named only the first would leave
       // Z-SC's rows on screen under Z-IB's heading.
-      var key = reading + '/' + (scope ? scope.key : '') + '/' + (agendaOn ? 'a' : '');
+      // Issues 88 and 90 added two more terms to it, for the same reason the agenda is in it: the
+      // shape decides which markup the rows are, and the window decides which of them are there
+      // at all on the list and which are marked on the grids.
+      var key = reading + '/' + (scope ? scope.key : '') + '/' + (agendaOn ? 'a' : '') + '/' +
+                shape + '/' + (win.weeks ? win.weeks + '@' + win.anchor : '-');
       if (built === key) return;
       built = key;
       rowsEl.textContent = '';
-      rowsEl.appendChild(reading === 'calendar' ? buildCalendar() : buildOutline());
+      rowsEl.appendChild(reading !== 'calendar' ? buildOutline()
+                         : shape === 'list' ? buildCalendar() : buildGrid(shape));
       rowsEl.scrollTop = 0;
     }
 
@@ -840,7 +1424,12 @@
     }
 
     return {
-      start: route,
+      start: function () {
+        // The header control says what the window is before anybody has pressed anything, which
+        // is the whole of issue 90's rule that the anchor must be visible.
+        describeWindow();
+        route();
+      },
       linkFor: linkFor,
       capLink: capLink,
       isOpen: isOpen,
@@ -882,9 +1471,24 @@
             ? groupsFor(scope).reduce(function (n, g) { return n + modulesOf(g).length; }, 0)
             : 0,
           from: st.from,
-          to: st.to
+          to: st.to,
+          // Issue 88. Which of the three shapes the rows on screen are, and how many panels the
+          // grid drew, so a driver asserting a month grid is reading the page's own answer rather
+          // than counting sections and hoping they are the panels.
+          shape: shape,
+          panels: rowsEl ? rowsEl.querySelectorAll('.cal-panel').length : 0,
+          // Issue 90. Everything about the window, including the two numbers that are the reason
+          // the anchor exists at all: the reader's own day and how many sessions are on or after
+          // it. A driver that could only read the window would not be able to tell an honest
+          // anchor from a page quietly calling the anchor today.
+          window: windowState()
         };
-      }
+      },
+      // Read by app.js on the first paint, so a drawing is dimmed from the start if a window is
+      // ever on before the sheet has been opened.
+      dimmer: dimmer,
+      windowState: windowState,
+      windowMenuOpen: wnMenuOpen
     };
   };
 })();

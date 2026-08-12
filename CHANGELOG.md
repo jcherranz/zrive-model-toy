@@ -11,6 +11,34 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- **The time dimension, #88 and #90 as one card.** #88 asked for the calendar as a calendar,
+  monthly and weekly; #90 asked for a filter down to a range or a week, naming the use, "checking
+  the next 1-3 weeks to discuss with the team". They are one problem, which is how a reader works
+  with a term too large to see at once, and answered apart they would have been two unrelated
+  controls over the same 166 days. Two axes now: SHAPE, which belongs to the calendar reading, and
+  WINDOW, which belongs to the page because the term is on the drawing too.
+- **A month grid, and it is what `#/calendar` opens on.** Measured first: the months hold 16, 20,
+  17, 9, 8 and 13, so six panels of 8 to 20 fit and the April and May gaps against February's 20
+  are the reading. Seven weekday columns from a Monday, whole weeks per panel so the columns line
+  up down the sheet, and the Saturday and Sunday columns put the in-person weekends on screen,
+  which no ordered list of the same rows does. `minmax(0, 1fr)` on the tracks rather than `1fr`,
+  which is what keeps a session title from setting a column's floor: `#termrows` measures 375 of
+  375 at 390 by 844 in both themes, so the grid adds no sideways scroll to a sheet that has one
+  elsewhere.
+- **A week grid, built because it was asked for and kept honest.** 71 of the 83 sessions start at
+  18:30 and the other 12 at 10:00, so a week here is two rows rather than a day of stacked hours,
+  and the sheet says exactly that, counted off its own rows. 24 panels, one per week that holds
+  anything, each seven days.
+- **THE WARNING IS INSIDE EVERY PANEL.** A table of invented dates still reads as a table; a month
+  grid is the first view here that looks like something a reader could plan against, so the
+  disclaimer is on the face of each panel and a crop of one month carries it. Four layers on the
+  calendar now: the subtitle, the notice above the rows, a sticky banner at the top of the scroll,
+  and the panel head.
+- **A time window over the term, #90, with the anchor visible.** One to three weeks from an
+  anchor, or the whole term, from one control in the header. The list drops what is outside it,
+  because a list is an agenda and ten rows is what a team reads in a meeting; the two grids and the
+  drawing keep everything and mark the band, because the shape of the term is what a grid and a
+  picture are for. Over the 83 sessions a rolling three-week window holds a median of 10.
 - **The module structure the drawing has never had, #85.** Every syllabus note in the vault
   carries `module`, `module_name` and `sequence` beside the title the tiles are already labelled
   with, and a session template shipped five properties, none of which said where in a programme
@@ -121,6 +149,42 @@ of what changed and when, and it is meant to be scannable.
 
 ### Changed
 
+- **Where `now` comes from, which #90 had to decide before anything could be built.** The term ends
+  2026-06-28 and the real clock is past it, so 0 of 83 sessions are on or after today and a window
+  built against the system clock renders empty today and every day after. The control leads with
+  the reader's own date, states the count on or after it, and only then offers an anchor, named as
+  an anchor: the Monday of the week the term's middle session falls in. It is DERIVED and not
+  invented, so it adds no new made-up date to a page that already warns about every date on it, and
+  it cannot go stale. The reader moves it a week at a time. Nothing here carries a `dummy` badge,
+  because a badge marks a value somebody made up and this is arithmetic over values that already
+  carry theirs.
+- **The drawing is filtered by dimming and never by geometry.** The layout is generated at build
+  time, `site/layout.js` carries a `drawingDigest` and `scripts/check_build.sh` refuses anything a
+  rebuild does not reproduce; a window is a continuous parameter over 24 weeks, so it cannot be
+  precomputed and laying it out at run time would have cost that guarantee. `render.setDim()` takes
+  a predicate over a node and paints a class, so the build gate never sees this feature at all.
+  Measured on Z-BL at fit, the 2578px drawing: 25 tiles quiet at opacity 0.16 and 55 lit, 152 edge
+  and chip groups quiet with them, `drawingDigest` `1d45387` and the extent 1230 by 2578 identical
+  before and after. `.out-window` is declared above the veil block on purpose, so a node the reveal
+  rules hide stays hidden whatever the window says.
+- **The window control is in the header and not in the sheet.** A control a reader can only reach
+  by opening a sheet cannot filter a drawing the sheet is covering, and #90 was filed from `#graph`
+  on `#/p/ZSC`. It is withdrawn on the board and the student list, which have no term in them, and
+  kept on the diagram and on both readings, where the outline says in words that the window is off
+  that reading rather than ignoring it. Below the breakpoint the menu is anchored to the viewport
+  and not to its own control: the nav wraps there, so a 350px box hanging off the control's right
+  edge measured `left: -153.78` at 390, which is 154px outside the viewport with no scrollbar to
+  reach it.
+- **#89 can join without a redesign, and the two joints are named in `site/term.js`.** Shape is a
+  registry with a note and a builder per entry, so collapse and expand is an entry rather than a
+  rewrite; and the drawing half composes because this card never touches geometry, so #89's two
+  precomputed geometries can arrive under a window that dims whichever of them is on screen.
+- **Smoke 106 to 121**, `PHASES` and `EXPECTED_ASSERTIONS` edited together as #67 requires. The
+  fifteen are decisions rather than a count of the code: four on the month grid, two on the week
+  grid, five on the window including the one that matters most, that the control does not call its
+  anchor today, one on the outline saying the window is off that reading, and three on the drawing,
+  that it dims rather than redraws, that the dimming is right in both directions, and that the
+  window survives a change of programme.
 - **The smoke suite is 97 assertions, from 87**, #84 and #85. The `term` phase went 16 to 26;
   `PHASES` and `EXPECTED_ASSERTIONS` were edited together, per #67.
 - **The footer no longer says only the session titles and the programme code are real.** The

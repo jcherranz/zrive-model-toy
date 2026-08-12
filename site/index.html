@@ -101,6 +101,18 @@
               title="colour theme: follow the operating system, or choose light or dark">theme: system</button>
       <button id="ghtoggle" class="linkbtn" type="button" aria-pressed="true"
               title="show or hide the classes that do not exist in any system">ghosts</button>
+      <!-- HOW MUCH OF THE TERM IS IN FOCUS. Issue 90. It is in this row and not in the calendar
+           sheet because the term is on the drawing too, one tile per session, and the card was
+           filed from the diagram: a control a reader can only reach by opening a sheet cannot
+           filter a drawing that the sheet is covering. It is view level rather than page level,
+           since a window over a term says nothing about the board or the student list, and
+           app.css withdraws it on those two and keeps it on the diagram and on both readings of
+           the term. Its text is its state, which is the row's idiom, and term.js writes it, the
+           menu inside it and the anchor the menu declares. -->
+      <span class="wnpick" id="wnpick"><button id="wnbtn" class="linkbtn" type="button"
+              aria-expanded="false" aria-controls="wnmenu"
+              title="the part of the term in focus">weeks: all</button><span class="wnmenu"
+              id="wnmenu" hidden></span></span>
       <button id="fbtoggle" class="linkbtn" type="button" aria-pressed="false"
               title="visual feedback mode: click any element to capture it with what was on screen">feedback</button>
       <!-- The cohort in full, as its own route, beside the board's. The drawing shows four of

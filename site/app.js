@@ -174,7 +174,12 @@
     agenda: GI && GI.agenda,
     // Opening or closing the sheet swaps the heading, and below the breakpoint a heading of a
     // different length can change how many lines the header takes.
-    onRoute: function () { measureHeader(); }
+    onRoute: function () { measureHeader(); },
+    // Issue 90. The time window is a page-level state and the drawing obeys it, so the wiring
+    // file is what carries the answer from the module that knows what a date means to the module
+    // that knows where a node is drawn. render is built after this, so the first call is guarded
+    // and the initial state is applied below beside the first draw.
+    onWindow: function (fn) { if (render) render.setDim(fn); }
   });
 
   router = ZM.router({
@@ -227,6 +232,9 @@
   // The address has already chosen which of the seven this is, so this draws the reader's
   // programme and not the default followed by the reader's.
   render.draw(router.view().drawing);
+  // Issue 90. Whatever the window is at load, which is off today and is read rather than assumed
+  // so that a stored or deep-linked window would reach the first paint rather than the second.
+  render.setDim(term.dimmer());
   selection.bind(render.gfx());
 
   viewport = ZM.viewport({
@@ -240,7 +248,8 @@
     // sit over it, and a digit typed into either is not an instruction to move a drawing the
     // reader cannot see.
     busy: function () {
-      return router.rosterOpen() || router.pgMenuOpen() || term.isOpen();
+      return router.rosterOpen() || router.pgMenuOpen() || term.isOpen() ||
+             term.windowMenuOpen();
     },
     // Issue 84's counter-scale. The lane headings are controls and a control keeps its size on
     // screen, so the drawing is told the scale on every change of it.
@@ -465,6 +474,10 @@
     // it from two to sixteen and a driver enumerating them by hand would be enumerating its own
     // guess: that mistake, `#/p/Z-ZIB` against `#/p/ZIB`, produced a false alarm on this page
     // once already, and the rule it left behind is to construct nothing you can read.
-    termRoutes: function () { return term.routes.slice(); }
+    termRoutes: function () { return term.routes.slice(); },
+    // Issue 90. What the drawing is doing about the window, read off the painted classes rather
+    // than recomputed here, so a driver asserting that a window dims the picture is reading the
+    // picture. The window itself is in term() and is not copied here: one place answers it.
+    dim: function () { return render.dimState(); }
   };
 })();

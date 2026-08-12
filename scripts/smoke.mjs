@@ -218,7 +218,7 @@ const PHASES = {
   'every width':          { count: 3, when: 'every' },
   'model and reveal':     { count: 14, when: 'behavioural' },
   'students':             { count: 11, when: 'behavioural' },
-  'term':                 { count: 26, when: 'behavioural' },
+  'term':                 { count: 41, when: 'behavioural' },
   'canvas':               { count: 7, when: 'behavioural' },
   'capture':              { count: 14, when: 'behavioural' },
   'board':                { count: 13, when: 'behavioural' },
@@ -266,7 +266,25 @@ const PHASES = {
 // the half of this card worth more than the reachable button; that the report names the reading it
 // was filed from, which said `diagram` on all five sheet addresses until this card; and that one
 // Escape leaves capture mode with the sheet still open and the next one closes it.
-const EXPECTED_ASSERTIONS = 106;
+// 106 until issues 88 and 90, which took `term` from 26 to 41. The fifteen are the decisions those
+// two cards took as one card, and the reason they are one card is that they are one problem: how a
+// reader works with a term too large to see at once. Four are the month grid, which is what
+// #/calendar now opens on: that it draws a panel per month, that every panel carries the invented
+// warning ON ITS OWN FACE so a crop of one month still says so, that every session lands in the
+// weekday column its date falls on with the weekend sessions visible there, and that the
+// no-instructor gaps are marked in the grid as well as in the list. Two are the week grid, which
+// is the weaker of the two shapes and is built to say so: one panel per week that holds anything,
+// and a sentence naming the start-time concentration that makes a week here two rows rather than a
+// day of stacked hours. Five are the window: that it is off on arrival, that the control says
+// where `now` comes from and does not call its anchor today, which is the one thing that would
+// have made this feature a lie on a page whose term ended before the real clock reached it, that
+// every control both cards added clears 24 by 24, that the LIST filters down to an agenda, and
+// that the GRID keeps every session and marks the band instead. One is the outline saying the
+// window is off that reading rather than ignoring it. And three are the drawing: that a window
+// DIMS it and moves no geometry, digest and extent identical, which is what lets this ship without
+// touching the build gate; that the dimming is right in both directions rather than merely
+// present; and that the window survives a change of programme, because it belongs to the page.
+const EXPECTED_ASSERTIONS = 121;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -1293,9 +1311,115 @@ const TERM_READ = `(function () {
       var th = document.querySelector('#termrows .term-banner th');
       return th ? getComputedStyle(th).position : null;
     })(),
-    heading: (document.querySelector('h1') || {}).innerText || ''
+    heading: (document.querySelector('h1') || {}).innerText || '',
+
+    // ---- issue 88, the two grids ------------------------------------------------
+    // A grid is not a table, so none of the row readings above see it. Everything here is read
+    // off what the reader can see: the panels, the warning on the face of each one, the seven
+    // column headings, and every chip with the column it landed in. The chip's date comes out of
+    // its own title attribute, which is the whole of a session written out, so the driver can
+    // check the column against the weekday without being handed the model.
+    panels: document.querySelectorAll('#termrows .cal-panel').length,
+    panelHeads: Array.prototype.slice.call(
+      document.querySelectorAll('#termrows .cal-panel .cal-head')).map(function (h) {
+        var w = h.querySelector('.warn');
+        return { text: h.textContent, warn: w ? w.textContent : null };
+      }),
+    calBanner: (function () {
+      var p = document.querySelector('#termrows .cal-banner');
+      return p ? { text: p.textContent, position: getComputedStyle(p).position } : null;
+    })(),
+    dows: Array.prototype.slice.call(
+      document.querySelectorAll('#termrows .cal-panel:first-of-type .cal-dow')).map(function (d) {
+        return d.textContent;
+      }),
+    chips: document.querySelectorAll('#termrows .cal-chip').length,
+    gapChips: document.querySelectorAll('#termrows .cal-chip.cal-gap').length,
+    cells: (function () {
+      var out = [];
+      Array.prototype.slice.call(document.querySelectorAll('#termrows .cal-grid'))
+        .forEach(function (grid) {
+          Array.prototype.slice.call(grid.querySelectorAll('.cal-day')).forEach(function (c, j) {
+            out.push({
+              col: j % 7,
+              date: c.getAttribute('data-date'),
+              inwin: c.classList.contains('cal-inwin'),
+              outwin: c.classList.contains('cal-outwin'),
+              off: c.classList.contains('cal-offmonth'),
+              dates: Array.prototype.slice.call(c.querySelectorAll('.cal-chip')).map(function (p) {
+                return String(p.getAttribute('title') || '').split(' ')[0];
+              })
+            });
+          });
+        });
+      return out;
+    })(),
+    shapeBtns: Array.prototype.slice.call(
+      document.querySelectorAll('#termnotice .shape-btn')).map(function (b) {
+        var r = b.getBoundingClientRect();
+        return { label: b.textContent, pressed: b.getAttribute('aria-pressed'),
+                 w: r.width, h: r.height };
+      }),
+
+    // ---- issue 90, the window control -------------------------------------------
+    // The control is in the HEADER and not in the sheet, because the window acts on the drawing
+    // as well, so it is read from there on every one of these routes.
+    wn: (function () {
+      var b = document.getElementById('wnbtn');
+      if (!b) return null;
+      var r = b.getBoundingClientRect();
+      return { text: b.textContent, expanded: b.getAttribute('aria-expanded'),
+               w: r.width, h: r.height };
+    })(),
+    wnMenu: (function () {
+      var m = document.getElementById('wnmenu');
+      if (!m || m.hidden) return null;
+      return {
+        text: m.textContent,
+        btns: Array.prototype.slice.call(m.querySelectorAll('button')).map(function (b) {
+          var r = b.getBoundingClientRect();
+          return { label: b.textContent, pressed: b.getAttribute('aria-pressed'),
+                   w: r.width, h: r.height };
+        })
+      };
+    })()
   };
 })()`;
+
+// Monday is 0, which is the column a day lands in on both grids. Written here rather than taken
+// off the page, because a driver that asked the page which column a date belongs in would be
+// asserting the page against itself.
+function dowMon0(d) { return (new Date(d + 'T00:00:00Z').getUTCDay() + 6) % 7; }
+
+function mondayOf(d) {
+  const t = new Date(d + 'T00:00:00Z');
+  t.setUTCDate(t.getUTCDate() - dowMon0(d));
+  return t.toISOString().slice(0, 10);
+}
+
+// The window menu is a disclosure and closes on a click anywhere else, exactly as the programme
+// menu does, so a driver that pressed its control blind would toggle it the wrong way the moment
+// something else on the page had been clicked in between. These two ask the page what state it is
+// in first, which is the same discipline as reading the routes rather than constructing them.
+async function wnMenu(page, want) {
+  if ((await page.evaluate('window.ZT.term().window.menu')) === want) return;
+  await page.evaluate(`document.getElementById('wnbtn').click()`);
+  await page.waitFor(`window.ZT.term().window.menu === ${want}`,
+    `the window menu to be ${want ? 'open' : 'closed'}`);
+}
+
+// Press one of the buttons in the window menu by the words on it, because the words are what a
+// reader presses and an index would survive the button being renamed to something else.
+async function pressByText(page, sel, label) {
+  const ok = await page.evaluate(`(function () {
+    var bs = Array.prototype.slice.call(document.querySelectorAll(${JSON.stringify(sel)}));
+    for (var i = 0; i < bs.length; i++) {
+      if (bs[i].textContent.trim() === ${JSON.stringify(label)}) { bs[i].click(); return true; }
+    }
+    return false;
+  })()`);
+  if (!ok) throw new Error(`no control reading ${JSON.stringify(label)} at ${sel}`);
+}
 
 async function checkTerm(page) {
   const drawing = await page.evaluate(READ_DRAWING);
@@ -1390,6 +1514,89 @@ async function checkTerm(page) {
   await page.waitFor(`window.ZT.term().open === true &&
                       window.ZT.term().reading === 'calendar'`,
     'the calendar reading to open');
+  // ---- the shape of it, issue 88 ------------------------------------------------
+  // THE MONTH GRID IS WHAT #/calendar OPENS ON, and that is the card's decision rather than a
+  // detail of the markup: measured over the 83 sessions the months hold 16, 20, 17, 9, 8 and 13,
+  // so six panels of 8 to 20 fit and the April and May gaps are the reading. Everything below is
+  // checked against the chips the reader can see and the dates written on their own faces, not
+  // against the model behind them.
+  const calMonth = await page.evaluate(TERM_READ);
+  const monthState = await page.evaluate('window.ZT.term()');
+  const chipDates = calMonth.cells.reduce((a, c) => a.concat(c.dates), []);
+  const monthKeys = new Set(chipDates.map(d => d.slice(0, 7)));
+  assert('#/calendar opens on a month grid, one panel per month the term touches',
+    monthState.shape === 'month' && monthState.panels === calMonth.panels &&
+      calMonth.panels === monthKeys.size && calMonth.panels > 1 &&
+      calMonth.chips === state.sessions &&
+      calMonth.dows.join(' ') === 'Mon Tue Wed Thu Fri Sat Sun',
+    `${monthKeys.size} month panels under Mon to Sun columns, holding all ${state.sessions} ` +
+      'sessions as chips',
+    `shape ${monthState.shape}, ${calMonth.panels} panels, ${calMonth.chips} chips, ` +
+      `columns ${JSON.stringify(calMonth.dows)}`);
+
+  // THE WARNING HAS TO SURVIVE A CROP OF ONE MONTH. Every other view here is a table and a table
+  // of invented dates still reads as a table; a month grid looks like something a reader could
+  // plan against, so the disclaimer is on the face of each panel and not only above the rows.
+  assert('every month panel says on its own face that the dates are invented',
+    calMonth.panelHeads.length === calMonth.panels &&
+      calMonth.panelHeads.every(h => /invented/.test(h.warn || '')) &&
+      !!calMonth.calBanner && /invented/.test(calMonth.calBanner.text) &&
+      calMonth.calBanner.position === 'sticky',
+    `${calMonth.panels} panel headings each carrying the warning, over a sticky banner`,
+    `${calMonth.panelHeads.filter(h => /invented/.test(h.warn || '')).length} of ` +
+      `${calMonth.panels} warned, banner ${JSON.stringify(calMonth.calBanner)}`);
+
+  // THE WEEKDAY SHAPE IS THE THING A GRID SHOWS AND A LIST CANNOT, weekend sessions included, so
+  // the assertion is that every chip is in the column its own date falls in and that the two
+  // weekend columns are not empty.
+  const misplaced = calMonth.cells.filter(
+    c => dowMon0(c.date) !== c.col || c.dates.some(d => d !== c.date)).length;
+  const weekend = chipDates.filter(d => dowMon0(d) > 4).length;
+  assert('every session sits in the weekday column its date falls on, weekends included',
+    misplaced === 0 && weekend > 0 && chipDates.length === state.sessions,
+    `all ${state.sessions} chips in the right column, ${weekend} of them at a weekend`,
+    `${misplaced} cells in the wrong column or holding another day, ${weekend} at a weekend`);
+
+  // The gaps are the reason an operator opens a calendar, and they are marked in every shape or
+  // they are marked in none: a grid that dropped the mark would look complete and be quieter
+  // about the same term.
+  assert('a session with nobody to teach it is marked on the grid too',
+    calMonth.gapChips === state.noInstructor && state.noInstructor > 0,
+    `${state.noInstructor} chips marked`, `${calMonth.gapChips} chips marked`);
+
+  // ---- the week grid, built because it was asked for and kept honest ------------
+  await pressByText(page, '#termnotice .shape-btn', 'week');
+  await page.waitFor(`window.ZT.term().shape === 'week'`, 'the week grid');
+  const calWeek = await page.evaluate(TERM_READ);
+  const weekChips = calWeek.cells.reduce((a, c) => a.concat(c.dates), []);
+  const weekKeys = new Set(weekChips.map(mondayOf));
+  assert('the week grid draws one panel per week that holds a session, and each is seven days',
+    calWeek.panels === weekKeys.size && calWeek.panels > 1 &&
+      calWeek.cells.length === calWeek.panels * 7 &&
+      calWeek.chips === state.sessions &&
+      calWeek.cells.filter(c => dowMon0(c.date) !== c.col ||
+                                c.dates.some(d => d !== c.date)).length === 0,
+    `${weekKeys.size} week panels of 7 days each, holding all ${state.sessions} sessions`,
+    `${calWeek.panels} panels, ${calWeek.cells.length} day cells, ${calWeek.chips} chips`);
+
+  // AND IT SAYS IT IS SPARSE RATHER THAN BEING DRESSED UP AS A SCHEDULER. 71 of the 83 start at
+  // the same hour, so a week here is two rows; the sheet states that off its own rows, and the
+  // driver counts the same thing off the chip titles rather than trusting the sentence.
+  const byTime = {};
+  (await page.evaluate(`Array.prototype.slice.call(
+     document.querySelectorAll('#termrows .cal-chip')).map(function (c) {
+       return String(c.getAttribute('title') || '').split(' ')[1];
+     })`)).forEach(t => { byTime[t] = (byTime[t] || 0) + 1; });
+  const topTime = Object.keys(byTime).sort((a, b) => byTime[b] - byTime[a])[0];
+  assert('and the week grid says it is sparse rather than pretending to be a day planner',
+    calWeek.notice.indexOf(`${byTime[topTime]} of the ${state.sessions} sessions start at ` +
+      topTime) !== -1 && /not dressed up as a day planner/.test(calWeek.notice),
+    `the notice saying ${byTime[topTime]} of ${state.sessions} start at ${topTime}`,
+    JSON.stringify(calWeek.notice.slice(-260)));
+
+  // ---- the list, which is the shape every assertion below was written against ----
+  await pressByText(page, '#termnotice .shape-btn', 'list');
+  await page.waitFor(`window.ZT.term().shape === 'list'`, 'the list shape');
   const cal = await page.evaluate(TERM_READ);
 
   assert('#/calendar opens the term on its calendar reading',
@@ -1444,6 +1651,110 @@ async function checkTerm(page) {
       /first place it is assembled/.test(cal.notice),
     'the notice naming the seven Notion calendars and saying this is the first assembly of them',
     JSON.stringify((cal.notice || '').slice(-220)));
+
+  // ---- the time window, issue 90 -------------------------------------------------
+  // THE CARD NAMED A MEETING: "checking the next 1-3 weeks to discuss with the team". Everything
+  // here is about the one thing that had to be decided before any of it could be built, which is
+  // where `now` comes from on a page whose every date is invented and whose term ended before the
+  // real clock reached it.
+  const w0 = await page.evaluate('window.ZT.term().window');
+  const dim0 = await page.evaluate('window.ZT.dim()');
+  assert('the window is off on arrival and the header says so in whole weeks',
+    w0.on === false && w0.weeks === 0 && cal.wn &&
+      cal.wn.text === 'weeks: all ' + w0.termWeeks && w0.termWeeks > 1 &&
+      dim0.on === false && dim0.dimmed.length === 0,
+    `a control reading "weeks: all ${w0.termWeeks}" and nothing dimmed on the drawing`,
+    `${JSON.stringify(cal.wn && cal.wn.text)}, window on ${w0.on}, ` +
+      `${dim0.dimmed.length} tiles dimmed`);
+
+  await wnMenu(page, true);
+  const wnOpen = await page.evaluate(TERM_READ);
+  // THE ANCHOR MUST BE VISIBLE AND MUST NOT BE CALLED TODAY. A management tool that quietly
+  // invents a today is worse than one that shows nothing, so the control leads with the reader's
+  // real date, states how many sessions are on or after it, and only then offers the anchor. The
+  // count is recomputed here off the dates the reader can read rather than taken from the page.
+  const afterToday = chipDates.filter(d => d >= w0.today).length;
+  const menuText = (wnOpen.wnMenu || { text: '' }).text.replace(/\s+/g, ' ');
+  assert('the control says where now comes from, and does not call the anchor today',
+    !!wnOpen.wnMenu && menuText.indexOf('this page has no today') !== -1 &&
+      menuText.indexOf(w0.today) !== -1 && w0.afterToday === afterToday &&
+      menuText.indexOf(afterToday + ' of the ' + w0.sessions + ' sessions are on or after ' +
+        'today') !== -1 &&
+      /which is not today and is not pretending to be/.test(menuText) &&
+      menuText.indexOf('Monday') !== -1 &&
+      w0.anchor >= w0.firstMonday && w0.anchor <= w0.lastMonday,
+    `the reader's own date ${w0.today}, ${afterToday} sessions on or after it, and an anchor ` +
+      `between ${w0.firstMonday} and ${w0.lastMonday}`,
+    `anchor ${w0.anchor}, page says ${w0.afterToday} after today, text ` +
+      JSON.stringify(menuText.slice(0, 150)));
+
+  // #77's rule reaches the newest controls on the page or it has stopped being a rule.
+  const wnBtns = (wnOpen.wnMenu || { btns: [] }).btns;
+  const smallest = wnBtns.concat([wnOpen.wn]).concat(cal.shapeBtns)
+    .reduce((m, b) => Math.min(m, b.w, b.h), Infinity);
+  assert('every control the two cards added clears 24 by 24',
+    wnBtns.length >= 6 && cal.shapeBtns.length === 3 && smallest >= 24,
+    `${wnBtns.length + 1 + cal.shapeBtns.length} controls, the smallest side at least 24`,
+    `smallest side ${Number(smallest).toFixed(2)} over ${wnBtns.length} window controls, ` +
+      `the header button and ${cal.shapeBtns.length} shape controls`);
+
+  await pressByText(page, '#wnmenu .wn-weeks', '3 weeks');
+  await page.waitFor('window.ZT.term().window.weeks === 3', 'a three week window');
+  const w3 = await page.evaluate('window.ZT.term().window');
+  const listWin = await page.evaluate(TERM_READ);
+  const inWindow = chipDates.filter(d => d >= w3.from && d <= w3.to).length;
+  // A LIST FILTERS, BECAUSE A LIST IS AN AGENDA. Ten rows is something a team reads in a meeting
+  // and 83 is a document nobody opens, which is the whole of what the card asked for.
+  assert('a three week window cuts the list down to an agenda',
+    listWin.rows === w3.shown && listWin.rows === inWindow && listWin.rows > 0 &&
+      listWin.rows < state.sessions &&
+      listWin.wn.text === 'weeks: 3 of ' + w3.termWeeks &&
+      listWin.sub.indexOf(w3.shown + ' of them inside the window') !== -1,
+    `${inWindow} rows for ${w3.from} to ${w3.to}, out of ${state.sessions}`,
+    `${listWin.rows} rows, the page says ${w3.shown}, control ` +
+      JSON.stringify(listWin.wn.text));
+
+  await pressByText(page, '#termnotice .shape-btn', 'month');
+  await page.waitFor(`window.ZT.term().shape === 'month'`, 'the month grid back');
+  const gridWin = await page.evaluate(TERM_READ);
+  // AND A GRID MARKS INSTEAD OF FILTERING, which is the other half of the same decision: a grid
+  // exists to show the shape of the whole term and a grid with holes cut in it shows nothing.
+  // Counted over DISTINCT days, because two adjacent month panels overlap at the boundary by
+  // construction: a panel is whole weeks, so the same date can be drawn twice and a raw cell
+  // count would report more than the twenty one days a three week window has.
+  const litDays = new Set(gridWin.cells.filter(c => c.inwin).map(c => c.date));
+  const wrongMark = gridWin.cells.filter(
+    c => c.inwin !== (c.date >= w3.from && c.date <= w3.to) || c.inwin === c.outwin).length;
+  assert('and the month grid keeps every session and marks the band instead',
+    gridWin.chips === state.sessions && gridWin.panels === calMonth.panels &&
+      litDays.size === 21 && wrongMark === 0,
+    `all ${state.sessions} chips still drawn over ${calMonth.panels} panels, with the 21 days ` +
+      `of ${w3.from} to ${w3.to} lit and every other day dimmed`,
+    `${gridWin.chips} chips, ${gridWin.panels} panels, ${litDays.size} distinct days lit, ` +
+      `${wrongMark} cells marked against their own date`);
+
+  // ---- the outline reading ----------------------------------------------------
+  // The window is still on here on purpose: a reader who set one and switched reading would
+  // otherwise meet a full outline under a header control saying three weeks, with nothing on the
+  // page accounting for the difference.
+  await page.evaluate(`location.hash = '#/outline'`);
+  await page.waitFor(`window.ZT.term().reading === 'outline'`, 'the outline with a window set');
+  const outWin = await page.evaluate(TERM_READ);
+  assert('the outline says the window is off that reading rather than ignoring it',
+    /The window is off this reading/.test(outWin.notice) &&
+      /a syllabus has no date to filter on/.test(outWin.notice) &&
+      outWin.rows === state.templates,
+    'the notice saying the window does not apply, over the full outline',
+    `${outWin.rows} rows, notice ${JSON.stringify(outWin.notice.slice(-200))}`);
+
+  await wnMenu(page, true);
+  await pressByText(page, '#wnmenu .wn-weeks', 'whole term');
+  await page.waitFor('window.ZT.term().window.on === false', 'the window off again');
+  await wnMenu(page, false);
+  await page.evaluate(`location.hash = '#/calendar'`);
+  await page.waitFor(`window.ZT.term().reading === 'calendar'`, 'the calendar back');
+  await pressByText(page, '#termnotice .shape-btn', 'list');
+  await page.waitFor(`window.ZT.term().shape === 'list'`, 'the list shape back');
 
   // ---- the outline reading ----------------------------------------------------
   await page.evaluate(`location.hash = '#/outline'`);
@@ -1590,6 +1901,88 @@ async function checkTerm(page) {
     `the diagram on screen under ${JSON.stringify(headingDiagram)}`,
     `${JSON.stringify(back.heading.trim())}, display ${back.diagram}, body class ` +
     `${JSON.stringify(back.cls)}`);
+
+  // ---- the window on the drawing, issue 90 --------------------------------------
+  // HE FILED IT FROM `#graph`, so the window is about the picture as well as the list, and the
+  // three claims here are the three the architecture decision rests on: that it DIMS rather than
+  // removes, that the geometry is untouched so the build gate never sees this feature, and that
+  // the window belongs to the page rather than to a drawing.
+  const beforeWin = await page.evaluate(`(function () {
+    var p = window.ZT.programme();
+    return { digest: p.digest, w: p.w, h: p.h,
+             nodes: document.querySelectorAll('#graph [data-node]').length };
+  })()`);
+  await wnMenu(page, true);
+  await pressByText(page, '#wnmenu .wn-weeks', '3 weeks');
+  await page.waitFor('window.ZT.dim().on === true', 'the drawing to take the window');
+  const drawn = await page.evaluate(`(function () {
+    var w = window.ZT.term().window, d = window.ZT.dim(), out = [], bad = 0, lit = 0;
+    d.dimmed.forEach(function (id) {
+      var g = document.querySelector('#graph [data-node="' + id + '"]');
+      var t = g ? g.querySelector('title') : null;
+      out.push(t ? t.textContent : id);
+    });
+    // Every dimmed tile is a cohort session, and every cohort session that is NOT dimmed is one
+    // the window covers. Both directions, because dimming everything would satisfy the first.
+    window.GI.views.forEach(function (v) {
+      if (v.key !== window.ZT.programme().key) return;
+      v.nodes.forEach(function (n) {
+        if (n.type !== 'CohortSession') return;
+        var at = '';
+        (n.props || []).forEach(function (p) { if (p.k === 'scheduled_at') at = p.v; });
+        var day = String(at).split(' ')[0];
+        var inside = day >= w.from && day <= w.to;
+        if (inside) lit++;
+        if (inside !== (d.dimmed.indexOf(n.id) === -1)) bad++;
+      });
+    });
+    return { on: d.on, dimmed: d.dimmed.length, lit: d.lit.length, labels: out.slice(0, 2),
+             wrong: bad, inside: lit,
+             digest: window.ZT.programme().digest, w: window.ZT.programme().w,
+             h: window.ZT.programme().h,
+             nodes: document.querySelectorAll('#graph [data-node]').length,
+             edges: document.querySelectorAll('#graph .out-window[data-edge]').length };
+  })()`);
+  assert('the window dims the drawing and moves no geometry, which is what keeps the build gate',
+    drawn.on === true && drawn.dimmed > 0 && drawn.wrong === 0 &&
+      drawn.dimmed + drawn.lit === beforeWin.nodes &&
+      drawn.nodes === beforeWin.nodes && drawn.digest === beforeWin.digest &&
+      drawn.w === beforeWin.w && drawn.h === beforeWin.h && drawn.edges > 0 &&
+      drawn.labels.every(t => /Cohort session/.test(t)),
+    `${drawn.dimmed} tiles quiet and ${drawn.inside} left lit, every node still drawn, the ` +
+      `digest still ${beforeWin.digest} and the extent still ${beforeWin.w} by ${beforeWin.h}`,
+    `${drawn.dimmed} dimmed, ${drawn.wrong} against their own date, ${drawn.nodes} of ` +
+      `${beforeWin.nodes} nodes, digest ${drawn.digest}, ${drawn.w} by ${drawn.h}`);
+
+  // THE WINDOW BELONGS TO THE PAGE AND NOT TO A DRAWING, which is why its control is in the
+  // header rather than in the sheet. A change of programme repaints from scratch, so a window
+  // that was applied once and never re-applied would come back off on the next route.
+  await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(other)}`);
+  await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(other)}`,
+    'the other programme to be drawn');
+  const across = await page.evaluate(`(function () {
+    var d = window.ZT.dim();
+    return { on: d.on, dimmed: d.dimmed.length, lit: d.lit.length,
+             weeks: window.ZT.term().window.weeks };
+  })()`);
+  assert('and it survives a change of programme, because it belongs to the page',
+    across.on === true && across.weeks === 3 && across.dimmed > 0 && across.lit > 0,
+    `the three week window still on, dimming part of ${other}`,
+    `on ${across.on}, ${across.weeks} weeks, ${across.dimmed} dimmed on ${other}`);
+
+  await wnMenu(page, true);
+  await pressByText(page, '#wnmenu .wn-weeks', 'whole term');
+  await page.waitFor('window.ZT.dim().on === false', 'the window to come off');
+  const litAgain = await page.evaluate('window.ZT.dim()');
+  assert('taking it off lights every tile again rather than leaving the drawing half quiet',
+    litAgain.on === false && litAgain.dimmed.length === 0 && litAgain.lit.length > 0,
+    'nothing dimmed and every node lit',
+    `${litAgain.dimmed.length} still dimmed of ${litAgain.lit.length + litAgain.dimmed.length}`);
+  await wnMenu(page, false);
+  await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(here)}`);
+  await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(here)}`,
+    'the drawing this phase started on');
+  await page.evaluate(`location.hash = '#/'`);
 
   // ---- the lane heading as a control, issue 84 ----------------------------------
   // HE CLICKED THE CAPTION AND EXPECTED THE OUTLINE. Measured on the deployed page at fit, the

@@ -333,6 +333,16 @@ body.board #ghtoggle,
 body.students #ghtoggle,
 body.calendar #ghtoggle,
 body.outline #ghtoggle { display: none; }
+/* THE WINDOW CONTROL IS WITHDRAWN ON TWO OF THE FIVE AND KEPT ON THREE, and that split is the
+   whole reason it is not simply `ghosts` again. Issue 90. It acts on two surfaces at once: the
+   cohort session tiles on the drawing, which it dims, and the calendar's rows, which it filters
+   or marks. So it goes on the board, which draws neither, and on the student list, which is a
+   roster with no date in it; and it stays on the diagram and on BOTH readings of the term,
+   including the outline, where the sheet says in words that the window is off that reading. A
+   reader who set a window and then opened the calendar has to be able to move it from inside,
+   which is exactly what #86 made possible and is why this is not in the sheet. */
+body.board .wnpick,
+body.students .wnpick { display: none; }
 /* The detail panel describes a node in the drawing, so on the board it goes the same way. It is
    hidden rather than closed: the selection is still the selection, and switching back brings the
    panel and the node it is about back together. */
@@ -535,6 +545,110 @@ h1 {
   position: absolute;
   left: 9px;
   font-weight: 700;
+}
+
+/* ---- the time window, issue 90 --------------------------------------------------
+   The same disclosure the programme picker is, in the same three listeners and with the same
+   absolute box, so opening it moves nothing: the nav's height, the header's height and the fit
+   of the drawing under it are the same before and after.
+
+   IT HANGS OFF THE RIGHT AND NOT OFF THE LEFT, which is the one difference from .pgmenu and is
+   forced by where it sits: the programme picker is at the start of the heading and this is in
+   the middle of the nav, near the right edge at every width, so a box anchored left would leave
+   the viewport. `max-width` is the viewport less the header's own padding on both sides, which
+   is the same measurement .pgmenu and .helpbox already use.
+
+   IT IS INSIDE THE HEADER, so a sheet cannot reach over it either way: the header is
+   --z-chrome and a sheet is --z-sheet, and everything inside a stacking context at 25 paints
+   above everything at 20. --z-pop is the rung it takes WITHIN the header, over the nav's own
+   line, which is all it needs. The ladder and its reasons are in the palette block at the top of
+   this file. */
+.wnpick {
+  position: relative;
+  display: inline-block;
+}
+
+.wnmenu {
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 0;
+  z-index: var(--z-pop);
+  width: 460px;
+  max-width: calc(100vw - 40px);
+  padding: 8px 10px;
+  background: var(--bg-panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--elev-1);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.wnmenu[hidden] { display: none; }
+
+/* The first paragraph in the box, and it is first because it is the reason the rest of the box
+   is allowed to exist: the term ended before the real clock reached it, so the anchor under it
+   is an anchor and not a today. It takes the warning register the sheet's own provenance line
+   takes, which is the register a reader already reads on this site as "this is not real". */
+.wn-now {
+  margin: 0 0 8px;
+  color: var(--fg-muted);
+}
+
+.wn-now .warn { margin-left: 0; margin-right: 6px; }
+
+.wn-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 4px;
+}
+
+.wn-lab {
+  min-width: 52px;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  font-size: 10px;
+}
+
+.wn-anchor {
+  padding: 0 4px;
+  font-weight: 600;
+  color: var(--fg-body);
+}
+
+/* Both kinds of button in the box are .zbtn, which carries the 26 by 26 issue 77 took every
+   control on this page to, so nothing here has to restate a size. Only the pressed state is
+   added, in the idiom .term-switch already uses for the reading that is on screen. */
+.wn-step,
+.wn-weeks {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  color: var(--i-primary);
+}
+
+.wn-step:hover,
+.wn-weeks:hover { background: var(--tint-hover); }
+
+.wn-step:focus-visible,
+.wn-weeks:focus-visible {
+  outline: 2px solid var(--i-primary);
+  outline-offset: -2px;
+}
+
+.wn-weeks[aria-pressed="true"] {
+  font-weight: 700;
+  border-color: var(--i-primary);
+  background: var(--tint-hover);
+}
+
+.wn-note {
+  margin: 6px 0 0;
+  padding-top: 6px;
+  border-top: 1px solid var(--rule-muted);
+  color: var(--fg-muted);
 }
 
 .warn {
@@ -1407,6 +1521,23 @@ body.fb-mode .fb-popover select { cursor: pointer; }
      through a more specific rule, and the footer's disclosure keeps the wider one because it sits
      alone at the end of a sentence. */
   .hnav .linkbtn { padding-left: 6px; padding-right: 6px; }
+  /* THE WINDOW MENU STOPS HANGING OFF ITS OWN CONTROL BELOW THE BREAKPOINT, and this is a
+     measured repair rather than a precaution. The nav wraps here, so the control it hangs from
+     sits near the LEFT of the second row; a box anchored to that control's right edge and 350px
+     wide measured left: -153.78 at 390 by 844, which is 154px of the box outside the viewport
+     with no scrollbar to reach it, because overflow to the left of the origin creates none. It
+     is anchored to the viewport instead, under the header, which is what .helpbox does on the
+     line below for the same reason at the other end of the row. --hh is the header's own
+     measured height, written by app.js and already kept current by a ResizeObserver, so a nav
+     that wraps to a third line does not put the box under the row it belongs to. */
+  .wnmenu {
+    position: fixed;
+    top: var(--hh);
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
+  }
   footer { padding: 6px 12px; }
   .helpbox { right: 12px; }
   .bcols { display: block; }
@@ -1528,6 +1659,24 @@ body.hide-ghosts .ghost { display: none; }
 
    Two classes rather than one, so the rule beats `.dim` on specificity wherever a hidden node is
    also dimmed, which is every selection that is not one end of its own link. */
+/* ---- outside the time window, issue 90 ------------------------------------------
+   A session the reader's window does not cover. DIMMED AND NOT REMOVED, because the geometry is
+   generated at build time and gated on a digest a rebuild has to reproduce: a class costs the
+   gate nothing, and the shape of the whole term stays on screen behind the window, which is what
+   the picture is for. The reader is told the drawing is filtered by the header control, whose
+   text is the state, `weeks: 3 of 24`.
+
+   .16 IS THE VALUE THE SELECTION DIM ALREADY USES, deliberately, because this is the same claim
+   said about a different question: quiet, still there, still readable if you look. Two dims at
+   two strengths would read as two kinds of absence.
+
+   IT IS DECLARED HERE AND NOT LOWER DOWN, and the position is the rule. `.veil.veil-hidden` is
+   two classes and beats one on specificity, so a node hidden by the reveal rules stays hidden
+   whatever the window says; `.dim` is one class like this one, so the later of the two wins on
+   any node that is both, and both mean quiet. The file's own note on the veil block below
+   records the same reasoning for `.dim`. */
+.out-window { opacity: .16; }
+
 .veil {
   transition: opacity 120ms linear, visibility 0s linear 0s;
 }
@@ -2008,6 +2157,163 @@ body.hide-ghosts .ghost { display: none; }
   .term-table tbody tr.term-group th,
   .term-table tbody tr.term-module th,
   .term-table tbody tr.term-agenda td { white-space: normal; }
+}
+
+/* ---- the calendar as a calendar, issue 88 ---------------------------------------
+   Two grids and one set of rules, because a month panel and a week panel are the same seven
+   columns with a different run of days in them.
+
+   `minmax(0, 1fr)` AND NOT `1fr`, and that is the declaration that keeps this off the sideways
+   scroll at 390. A grid track's default minimum is `auto`, which is the widest thing in it, so a
+   session title in a column would set the column's floor and seven of them would set the sheet's:
+   the outline's table already scrolls sideways inside #termrows at the wider viewports and this
+   would have added the same fault to a view that has no reason to have it. With a zero minimum
+   the track takes a seventh of whatever the sheet is and the content inside it wraps or clips. */
+.cal { display: block; }
+
+/* The banner the table carries inside its own head, in the shape a grid can carry it. Sticky at
+   the top of the scroll, so the panels under it always have it above them, and it is the third of
+   the four places this sheet says the dates are invented. */
+.cal-banner {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 4px 8px;
+  background: var(--tint-warning);
+  color: var(--fg-warning);
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: var(--radius);
+}
+
+.cal-panel { margin-top: 14px; }
+
+/* THE FOURTH PLACE, AND THE ONE THIS CARD EXISTS FOR. Every other view here is a table, and a
+   table of invented dates still reads as a table. A month grid looks like something a reader
+   could plan against, so the warning is on the face of every panel: crop one month out of this
+   sheet and the crop still says the dates are invented. */
+.cal-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin: 0 0 6px;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--fg-body);
+}
+
+.cal-headn {
+  font-weight: 400;
+  color: var(--fg-muted);
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.cal-dow {
+  padding: 2px 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--fg-muted);
+  border-bottom: 1px solid var(--rule-muted);
+}
+
+.cal-day {
+  min-height: 46px;
+  padding: 2px 3px;
+  border: 1px solid var(--rule-muted);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.cal-dnum {
+  display: block;
+  font-size: 10px;
+  color: var(--fg-muted);
+  text-align: right;
+}
+
+/* The days a month panel draws that belong to the month before or after it. They are drawn
+   because a panel of whole weeks is what makes the columns line up down the sheet, and they are
+   quiet because they are not this month. */
+.cal-offmonth { background: var(--tint-hover); }
+.cal-offmonth .cal-dnum { opacity: .5; }
+
+/* Issue 90 on a grid. The window MARKS rather than filters here: the list is the shape that
+   drops what is outside, because a list is an agenda, and a grid that had holes cut in it would
+   stop being a picture of the term. So the band is lit and the rest of the term goes quiet at
+   exactly the strength the drawing's own out-of-window tiles take. */
+.cal-inwin {
+  border-color: var(--i-primary);
+  background: var(--tint-hover);
+}
+
+.cal-outwin { opacity: .38; }
+
+.cal-chip {
+  margin-top: 2px;
+  padding: 2px 3px;
+  border-left: 2px solid var(--i-primary);
+  background: var(--bg-panel);
+  font-size: 10px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.cal-time { font-weight: 700; color: var(--fg-body); }
+.cal-code { margin-left: 4px; color: var(--fg-muted); }
+.cal-title { display: block; color: var(--fg-body); }
+
+/* The same mark the list puts on a row with nobody to teach it, in the register a chip can carry
+   it: the edge of the chip rather than the colour of the text, because a chip is three short runs
+   and colouring all of them would read as an error rather than as a gap. */
+.cal-gap { border-left-color: var(--fg-warning); }
+.cal-gap .cal-time { color: var(--fg-warning); }
+
+.cal-empty { margin: 12px 0 0; color: var(--fg-muted); font-size: var(--fs-sm); }
+
+/* The shape control, issue 88. Three states and one press each, so it is three buttons and not a
+   cycle: a reader who wants the list should not have to walk past the week grid to reach it,
+   which is the same argument the programme picker is built on. */
+.term-shape { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+
+.term-shape .shape-btn {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  color: var(--i-primary);
+}
+
+.term-shape .shape-btn:hover { background: var(--tint-hover); }
+
+.term-shape .shape-btn:focus-visible {
+  outline: 2px solid var(--i-primary);
+  outline-offset: -2px;
+}
+
+.term-shape .shape-btn[aria-pressed="true"] {
+  font-weight: 700;
+  border-color: var(--i-primary);
+  background: var(--tint-hover);
+}
+
+@media (max-width: 760px) {
+  /* SEVEN COLUMNS SURVIVE THE PHONE, and that is a decision rather than an oversight. The
+     table beside them collapses to one block per row at this width, and the same treatment here
+     would turn a month grid into the list it is an alternative to. A seventh of 390px is about
+     50, which holds a time and a programme code at 9px and does not hold a session title, so the
+     title is what goes and the chip keeps its whole content in its own title attribute. */
+  .cal-day { min-height: 38px; padding: 1px 2px; }
+  .cal-chip { padding: 1px 2px; font-size: 9px; border-left-width: 2px; }
+  .cal-title { display: none; }
+  .cal-code { display: block; margin-left: 0; }
+  .cal-dow { padding: 2px 1px; font-size: 9px; }
 }
 
 /* A note is content and the relationship list is metadata, so they are two blocks and not
