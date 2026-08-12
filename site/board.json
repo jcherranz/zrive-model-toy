@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T00:32:08Z",
+  "generated": "2026-08-12T00:51:03Z",
   "columns": [
     {
       "key": "raw",
@@ -95,17 +95,6 @@
       "title": "Backlog",
       "cards": [
         {
-          "id": 75,
-          "title": "The visit edge should terminate on the Cohort, not the Programme",
-          "labels": [
-            "bug",
-            "feedback",
-            "model",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/75"
-        },
-        {
           "id": 92,
           "title": "The sticky invented-value banner is transparent and rows show through it",
           "labels": [
@@ -124,22 +113,34 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/94"
-        },
-        {
-          "id": 99,
-          "title": "Feedback capture describes elements with textContent, so it reports hidden text",
-          "labels": [
-            "bug",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/99"
         }
       ]
     },
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": []
+      "cards": [
+        {
+          "id": 75,
+          "title": "The visit edge should terminate on the Cohort, not the Programme",
+          "labels": [
+            "bug",
+            "feedback",
+            "model",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/75"
+        },
+        {
+          "id": 99,
+          "title": "Feedback capture describes elements with textContent, so it reports hidden text",
+          "labels": [
+            "bug",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/99"
+        }
+      ]
     },
     {
       "key": "done",
