@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T10:51:17Z",
+  "generated": "2026-08-12T10:52:19Z",
   "columns": [
     {
       "key": "raw",
@@ -86,17 +86,6 @@
       "title": "Backlog",
       "cards": [
         {
-          "id": 75,
-          "title": "The visit edge should terminate on the Cohort, not the Programme",
-          "labels": [
-            "bug",
-            "feedback",
-            "model",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/75"
-        },
-        {
           "id": 92,
           "title": "The sticky invented-value banner is transparent and rows show through it",
           "labels": [
@@ -117,15 +106,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/94"
         },
         {
-          "id": 99,
-          "title": "Feedback capture describes elements with textContent, so it reports hidden text",
-          "labels": [
-            "bug",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/99"
-        },
-        {
           "id": 101,
           "title": "The public page says everything is invented. 48 per cent of its values say they were read off real systems.",
           "labels": [
@@ -141,6 +121,32 @@
       "title": "In progress",
       "cards": [
         {
+          "id": 75,
+          "title": "The visit edge should terminate on the Cohort, not the Programme",
+          "labels": [
+            "bug",
+            "feedback",
+            "model",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/75"
+        },
+        {
+          "id": 99,
+          "title": "Feedback capture describes elements with textContent, so it reports hidden text",
+          "labels": [
+            "bug",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/99"
+        }
+      ]
+    },
+    {
+      "key": "done",
+      "title": "Done",
+      "cards": [
+        {
           "id": 100,
           "title": "The whole poitn of this filter is to just render the diagram…",
           "labels": [
@@ -149,13 +155,7 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/100"
-        }
-      ]
-    },
-    {
-      "key": "done",
-      "title": "Done",
-      "cards": [
+        },
         {
           "id": 90,
           "title": "A time-window filter: the best-argued management feature so far, with one blocker",
@@ -228,19 +228,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/82"
-        },
-        {
-          "id": 81,
-          "title": "Soften the lane bands: doable, but in light it turns the contrast gate red",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/81"
         }
       ],
-      "hidden": 67,
+      "hidden": 68,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
