@@ -228,6 +228,38 @@ of what changed and when, and it is meant to be scannable.
   frontmatter at module altitude, re-read and refused on drift by `check_module_structure()`. The
   rule is unchanged and still refuses a `real` chip on any key not in the tuple.
 
+### Changed
+
+- **The week filter leaves the window and nothing else, #111.** Filed on a `rect` in `#graph`:
+  "The whole point of week filter is to not see this (only the week, clean)". What he was looking
+  at is #100's own answer to the half of the problem #100 was right about. A filtered drawing
+  carried one stub tile per lane reading `N tiles outside this window`, every edge that lost an end
+  terminated on one of those stubs as a dashed folded line, and every lane caption grew a fourth
+  line reading `6 of 28 in this window`. On a three week window over Z-BL that is 56 tiles replaced
+  by four stubs, 104 relationships replaced by dashed lines into them, and six extra caption lines:
+  a picture of the filter rather than a picture of the three weeks. **Honest bookkeeping and a
+  clean view were treated as one requirement and they are two.** The stubs, the folded lines and
+  the fourth caption line are gone from `render.js`, and with them the classes that painted them,
+  the unit-separator fold key, the `outside` branch in every node and edge path, and the guard
+  `selection.js` needed against a veil rule firing on a stub. **An edge with an end outside the
+  window is not drawn.** A filtered drawing is now the tiles of the model that are in the window,
+  the lines between them, and the three caption lines the build wrote.
+- **The count moved to the header, which is where a number about what is not on screen already
+  lives, #111.** Beside `weeks: 3 of 24` and `gaps: 11 of 95`. The window control's own title
+  states it, and its menu carries the sentence and the per lane breakdown the captions used to
+  hold, each lane named with the label the build gave the band so nothing invents a second
+  vocabulary for the same six columns. `render.js` counts what it drops and hands it out on
+  `windowState()` as tiles, relationships and lines: the last two differ at the modules grain,
+  where one line stands for many, so both are reported and neither is inferred from the other.
+  `term.js` asks for it rather than caching it, at the moment the control restates itself, because
+  the answer is per drawing and the window is per page; `windowChanged()` now tells the drawing
+  before restating the control, or it would print the previous window's effect for ever, and
+  `app.js` calls `term.restateWindow()` beside `describeGaps()` after a change of programme or of
+  altitude. The menu's own note said the drawing DIMS what is outside the window, which stopped
+  being true at #100; it now says the drawing shows the window and nothing else. Both grains
+  reflow onto the build's canonical coordinates with the window on, unchanged: worst dy, dp and
+  arrows 0,1 and no edge reversed on ZBL and ZSC at both altitudes.
+
 ### Fixed
 
 - **The sheet had no left gutter at all, #113.** Filed on a month heading as "a bit more space to

@@ -2211,16 +2211,22 @@ async function checkTerm(page) {
              nodes: document.querySelectorAll('#graph [data-node]').length,
              outside: document.querySelectorAll('#graph [data-outside]').length };
   })()`);
+  // ISSUE 111 REVERSED THE LAST CONJUNCT AND CHANGED NOTHING ELSE HERE. It read `outside > 0`,
+  // because #100 answered a filtered lane with one stub tile standing for what the lane had lost.
+  // He filed #111 on one of those stubs: the point of the filter is to see the week and nothing
+  // else. There is now nothing on a filtered drawing that is not a tile of the model, which is a
+  // stronger claim than the one it replaces and is asserted as one.
   assert('the window renders the weeks in it and reflows what is left, which is what #100 asked for',
     drawn.on === true && drawn.hidden > 0 && drawn.wrong === 0 && drawn.stillDrawn === 0 &&
       drawn.nodes === drawn.shown && drawn.shown + drawn.hidden === drawn.canonNodes &&
       drawn.nodes < beforeWin.nodes && drawn.h < beforeWin.h && drawn.w === beforeWin.w &&
-      drawn.digest === beforeWin.digest && drawn.outside > 0,
+      drawn.digest === beforeWin.digest && drawn.outside === 0,
     `${drawn.inside} sessions drawn and ${drawn.hidden} tiles taken out, the drawing down from ` +
       `${beforeWin.h} to under it at the same ${beforeWin.w} wide, the canonical digest still ` +
-      `${beforeWin.digest}`,
+      `${beforeWin.digest}, and nothing on the canvas that is not a tile of the model`,
     `${drawn.nodes} of ${beforeWin.nodes} nodes drawn, ${drawn.wrong} against their own date, ` +
-      `${drawn.stillDrawn} still painted after being filtered, ${drawn.w} by ${drawn.h}`);
+      `${drawn.stillDrawn} still painted after being filtered, ${drawn.outside} stub tiles, ` +
+      `${drawn.w} by ${drawn.h}`);
 
   // THE CLAIM THE BUILD GATE CANNOT MAKE, which is the trade this card accepted out loud. Reflow
   // the whole node set with no filter and it has to come out where build/build_layout.py put it:
@@ -2307,68 +2313,79 @@ async function checkTerm(page) {
     `${dangle.loose.length} ends on nothing (${dangle.loose.slice(0, 3).join(', ')}), ` +
       `${dangle.adrift.length} arrowheads adrift (${dangle.adrift.slice(0, 3).join(', ')})`);
 
-  // FILTERED HAS TO BE TELLABLE FROM ABSENT. A drawing that silently drops a relationship is a
-  // management tool that has started lying, so what the window took out is on the page as a count
-  // and the lines that used to reach it now reach that count. Both halves are asserted: the tiles
-  // add up to what was removed, and the folded lines say how many relationships each stands for.
-  const kept = await page.evaluate(`(function () {
-    var marks = Array.prototype.slice.call(document.querySelectorAll('#graph [data-outside]'))
-      .map(function (g) {
-        var t = g.querySelector('title');
-        var n = /^(\\d+)/.exec(t ? t.textContent : '');
-        return { id: g.getAttribute('data-outside'), n: n ? Number(n[1]) : 0,
-                 text: t ? t.textContent : '' };
-      });
-    var folded = Array.prototype.slice.call(document.querySelectorAll('#graph g[data-edge].outside'))
-      .filter(function (g) { return !!g.querySelector('path'); })
-      .map(function (g) {
-        var t = g.querySelector('title');
-        return t ? t.textContent : '';
-      });
-    var sum = 0;
-    marks.forEach(function (m) { sum += m.n; });
-    return { marks: marks, sum: sum, folded: folded,
-             hidden: window.ZT.filtered().hidden.length,
-             sameLane: window.ZT.filtered().sameLane };
+  // FILTERED HAS TO BE TELLABLE FROM ABSENT, AND ISSUE 111 MOVED WHERE IT IS TOLD. A drawing that
+  // silently drops a relationship is a management tool that has started lying: the reader cannot
+  // tell filtered from absent, and absent is the more interesting of the two on a page whose whole
+  // subject is what the business does and does not record. #100 answered that ON the drawing, with
+  // one stub tile per lane carrying the count, the lines that lost an end folded onto it, and a
+  // fourth line on every lane caption. He filed #111 on one of those stubs: "The whole point of
+  // week filter is to not see this (only the week, clean)". Honest bookkeeping and a clean view
+  // were treated as one requirement and they are two.
+  //
+  // SO THIS PAIR IS THE SAME PAIR OF CLAIMS READ IN THE OTHER PLACE. The first says the count is
+  // OFF the drawing and IN the header, and checks the header's own sentence against the page's own
+  // report rather than against a number written here: the wording may change, the arithmetic may
+  // not. The second says the per lane breakdown the captions used to carry survives in the window
+  // menu, complete, and that the lane captions on the canvas are the lines the build wrote and no
+  // more. Deleting either would leave a filter that loses the number, which is the failure #100
+  // existed to prevent and which #111 did not license.
+  const off = await page.evaluate(`(function () {
+    var f = window.ZT.filtered();
+    var b = document.getElementById('wnbtn');
+    return { hidden: f.hidden.length, off: f.off, canonNodes: f.canonNodes,
+             canonEdges: f.canonEdges, drawnEdges: f.drawnEdges,
+             title: b ? b.title : '',
+             marks: document.querySelectorAll('#graph [data-outside]').length,
+             capWindow: document.querySelectorAll('#graph .cap-window').length,
+             dashed: document.querySelectorAll('#graph .edge-outside, ' +
+                     '#graph g[data-edge].outside').length,
+             drawnPaths: document.querySelectorAll('#graph g[data-edge] path.edge, ' +
+                         '#graph g[data-edge] path.edge-ghost').length };
   })()`);
-  assert('what the window took out is on the page as a count, and the lines to it say how many',
-    kept.marks.length > 0 && kept.sum === kept.hidden && kept.sameLane === 0 &&
-      kept.folded.length > 0 &&
-      kept.marks.every(m => /outside this window/.test(m.text)) &&
-      kept.folded.every(t => /^\S.*, \d+ relationships? outside this window$/.test(t)),
-    `${kept.marks.length} lanes saying so, ${kept.sum} tiles accounted for against the ` +
-      `${kept.hidden} the window removed, and ${kept.folded.length} folded lines naming their count`,
-    `${kept.sum} counted of ${kept.hidden} removed, ${kept.sameLane} relationships nowhere, ` +
-      `titles ${JSON.stringify(kept.folded.slice(0, 2))}`);
+  const said = /(\d+) of (\d+) tiles? and (\d+) relationships? are off the drawing/
+    .exec(off.title);
+  assert('what the window took off the drawing is counted in the header rather than on the canvas',
+    off.marks === 0 && off.capWindow === 0 && off.dashed === 0 &&
+      off.off.tiles === off.hidden && off.off.tiles > 0 && off.off.relationships > 0 &&
+      off.drawnEdges === off.drawnPaths &&
+      off.canonEdges - off.drawnEdges === off.off.lines &&
+      !!said && Number(said[1]) === off.off.tiles && Number(said[2]) === off.canonNodes &&
+      Number(said[3]) === off.off.relationships,
+    `nothing on the canvas standing for what is off it, and the window control saying ` +
+      `${off.off.tiles} of ${off.canonNodes} tiles and ${off.off.relationships} relationships`,
+    `${off.marks} stub tiles, ${off.capWindow} window captions, ${off.dashed} folded lines, ` +
+      `report ${JSON.stringify(off.off)} against title ${JSON.stringify(off.title)}`);
 
-  // KEEPING THE NUMBER, which is the other half of what the card asked for and the same failure as
-  // an aggregate that loses it. Every lane says what it is showing of what it had, in the idiom
-  // #83 set for the captions above it, and the numbers are checked against the tiles rather than
-  // against each other.
-  const caps = await page.evaluate(`(function () {
-    return Array.prototype.slice.call(document.querySelectorAll('#graph .lane')).map(function (l) {
-      var lines = Array.prototype.slice.call(l.querySelectorAll('.band-cap'));
-      var last = lines[lines.length - 1];
-      var plate = l.querySelector('rect.band');
-      var x0 = +plate.getAttribute('x'), x1 = x0 + +plate.getAttribute('width');
-      var drawn = 0;
-      Array.prototype.slice.call(document.querySelectorAll('#graph .node:not(.outside) .tile-bg'))
-        .forEach(function (r) {
-          var cx = +r.getAttribute('x') + +r.getAttribute('width') / 2;
-          if (cx >= x0 && cx <= x1) drawn++;
-        });
-      return { text: last ? last.textContent : '', win: last ?
-               last.classList.contains('cap-window') : false, drawn: drawn };
-    });
+  await wnMenu(page, true);
+  const menuOff = await page.evaluate(`(function () {
+    var p = document.querySelector('#wnmenu .wn-off');
+    var rows = Array.prototype.slice.call(document.querySelectorAll('#wnmenu .wn-lane'))
+      .map(function (r) {
+        var n = r.querySelector('.wn-lane-n'), k = r.querySelector('.wn-lane-k');
+        return { n: n ? n.textContent : '', k: k ? k.textContent : '' };
+      });
+    var key = window.ZT.programme().key, bands = null;
+    window.GL.views.forEach(function (v) { if (v.key === key) bands = v.drawing.bands; });
+    var want = (bands || []).reduce(function (t, b) {
+      return t + ((b.lines || [b.label]).length);
+    }, 0);
+    return { lead: p ? p.textContent : null, rows: rows, capWant: want,
+             capGot: document.querySelectorAll('#graph .band-cap').length,
+             lanes: window.ZT.filtered().lanes };
   })()`);
-  assert('and every lane says how much of itself is in the window, in the idiom #83 set',
-    caps.length > 0 && caps.every(c => c.win) &&
-      caps.every(c => {
-        const m = /^(\d+) of (\d+) (in this window|shown)$/.exec(c.text);
-        return !!m && Number(m[1]) === c.drawn && Number(m[2]) >= Number(m[1]);
-      }),
-    `${caps.length} lane captions each carrying "k of n in this window" with k the tiles in it`,
-    JSON.stringify(caps.map(c => c.text + ' against ' + c.drawn + ' drawn')));
+  const lost = menuOff.rows.map(r => /^(\d+) of (\d+)$/.exec(r.n))
+    .map(m => (m ? Number(m[2]) - Number(m[1]) : NaN));
+  assert('and the lane by lane breakdown the captions used to carry is in the window menu',
+    menuOff.rows.length > 0 && lost.every(n => n > 0) &&
+      lost.reduce((a, b) => a + b, 0) === off.off.tiles &&
+      menuOff.rows.every(r => !!r.k && menuOff.lanes.some(l => l.label === r.k)) &&
+      menuOff.capGot === menuOff.capWant,
+    `${menuOff.rows.length} lanes named as the drawing names them, summing to the ` +
+      `${off.off.tiles} tiles the window took off, and ${menuOff.capWant} caption lines on the ` +
+      'canvas, which is what the build wrote',
+    `rows ${JSON.stringify(menuOff.rows)}, captions ${menuOff.capGot} against ` +
+      `${menuOff.capWant}, lead ${JSON.stringify(menuOff.lead)}`);
+  await wnMenu(page, false);
 
   // AND THE FIT FRAMES WHAT IS ON SCREEN RATHER THAN WHAT IT CAME FROM. This is the obvious
   // regression of the whole card: the drawing is a fraction of its old height and a fit that never

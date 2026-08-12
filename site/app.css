@@ -675,6 +675,39 @@ h1 {
   color: var(--fg-muted);
 }
 
+/* ---- what the window took off the drawing, issue 111 ---------------------------
+   The count that used to be a stub tile in every lane of the filtered drawing and a fourth line
+   on every lane caption. It reads in this box in the register the box already has, and the two
+   rules below are `.gaps-scope` and `.gaps-row` with different names: the sentence first, because
+   a per lane figure is meaningless without the whole, then a column of right-aligned counts,
+   because the reading a person brings to it is scanning for the lane that lost the most. Nothing
+   here sets a size or a colour those two do not already set. */
+.wn-off {
+  margin: 6px 0 2px;
+  padding-top: 6px;
+  border-top: 1px solid var(--rule-muted);
+  color: var(--fg-body);
+}
+
+.wn-lane {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  padding: 1px 0;
+}
+
+.wn-lane-n {
+  flex: none;
+  min-width: 4.4em;
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-body);
+}
+
+.wn-lane-k { color: var(--fg-muted); }
+
 .warn {
   display: inline-block;
   margin-left: 6px;
@@ -1883,47 +1916,21 @@ body.hide-ghosts .ghost { display: none; }
 
    Two classes rather than one, so the rule beats `.dim` on specificity wherever a hidden node is
    also dimmed, which is every selection that is not one end of its own link. */
-/* ---- outside the time window, issues 90 and 100 ---------------------------------
+/* ---- outside the time window, issues 90, 100 and 111 -----------------------------
+   THREE ANSWERS TO ONE QUESTION AND THIS SECTION IS WHAT IS LEFT OF THEM, which is nothing.
    #90 answered the window with `.out-window { opacity: .16 }`: every tile stayed where the build
-   put it and the ones the window did not cover went quiet. #100 overruled it. What is outside the
-   window is now not drawn at all, so there is nothing left here to fade, and the rule is gone
-   rather than kept against a class nothing sets. What replaced it is one tile per lane standing
-   for what the window took out, and the lines that used to land on those tiles now land on it.
+   put it and the ones the window did not cover went quiet. #100 overruled it and stopped drawing
+   them at all, leaving one dashed stub tile per lane standing for what the lane had lost, dashed
+   lines folded onto those stubs, and a fourth line on every lane caption counting the lane. #111
+   overruled THAT, from the page, on the drawing: "The whole point of week filter is to not see
+   this (only the week, clean)". A filtered drawing is now the tiles that are in the window and
+   the lines between them, and nothing else at all.
 
-   IT IS PAINTED LIKE A GHOST AND IS NOT ONE, and the two classes are apart for a reason a diff
-   would not show: `body.hide-ghosts .ghost { display: none }` is the ghosts toggle, and a control
-   about what the business does not record must not be able to switch off the only thing on screen
-   saying how much of the term is off screen. Same dashes, same grey, different switch.
-
-   UPRIGHT AND NOT ITALIC, for the reason `.lbl-tail` is upright: italic in this drawing means a
-   ghost, something that does not exist anywhere, and twenty four sessions the reader has scrolled
-   past are not absent. It is the same register as the marker under a card that stands for many,
-   because it is the same kind of sentence, one about this picture rather than about the model. */
-.node.outside .tile-bg {
-  stroke-dasharray: 3 2.4;
-  stroke-width: 1.1;
-}
-
-.lbl-outside { fill: var(--fg-muted); }
-
-.edge-outside {
-  stroke: var(--c-gray-3);
-  stroke-dasharray: 3 3;
-}
-
-.arrow-outside { fill: var(--c-gray-3); opacity: .8; }
-.outside .chip-bg { stroke-dasharray: 3 2.4; }
-
-/* The lane caption's fourth line, the one that says how much of the lane is in the window. Same
-   paint and same size as the three above it, because it is the same kind of claim as "6 of 79
-   session templates" and a second colour would make a reader look for a second meaning. Only the
-   case is different: the three above it are the lane's name and this one is a count about the
-   moment, so it is not shouted. */
-.cap-window {
-  text-transform: none;
-  letter-spacing: .02em;
-  font-weight: 500;
-}
+   THE COUNT DID NOT GO WITH THEM. It is in the header, on the window control, under `.wn-off` and
+   `.wn-lane` above: the drawing shows the window and the header says what the window excludes.
+   The rules that painted a stub, its label, its folded line, its arrowhead, its chip and the
+   caption line are all deleted rather than kept against classes nothing sets, and the classes
+   themselves are gone from render.js in the same commit. */
 
 .veil {
   transition: opacity 120ms linear, visibility 0s linear 0s;

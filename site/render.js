@@ -410,7 +410,10 @@
             // Issue 100. The last line of a filtered lane's caption is the count for the window
             // and not part of the lane's name, so it is marked and the stylesheet sets it apart
             // by case alone. Nothing about the first three lines changed.
-            class: 'band-cap' + (b.winLine && i === lines.length - 1 ? ' cap-window' : ''),
+              // Issue 111 took the fourth line off. A filtered lane's caption is the three lines
+            // the build wrote and nothing else: the count for the window is in the header now,
+            // and `cap-window` marked a line this file no longer makes.
+            class: 'band-cap',
             x: b.x + b.w / 2,
             y: G.bandTop - (G.capGap || 7) - (lines.length - 1 - i) * (G.capLineH || 11)
           }, gLane);
@@ -433,29 +436,21 @@
         // data-edge is the relationship key, the counterpart of data-node below: it is what a
         // feedback capture on a line or on its verb chip reports back.
         var key = e.s + '->' + e.t;
-        // Issue 100. `outside` is the third state a line can be in. A ghost is a relationship the
-        // business does not record; an outside line is a relationship that IS recorded and whose
-        // far end the reader's window took off the picture, and the two are painted alike on
-        // purpose, quiet and dashed, because both mean "there is something here you are not
-        // looking at". They are separate classes because they answer to different controls: the
-        // ghosts toggle withdraws a ghost and must never withdraw the line that says how much of
-        // the term is off screen.
-        var eq = e.ghost ? 'ghost' : (e.outside ? 'outside' : null);
+        // Issue 100 gave a line a third state, `outside`, for a relationship whose far end the
+        // reader's window had taken off the picture; it was painted quiet and dashed and ran to a
+        // stub tile. Issue 111 took the stub off the drawing, so there is no such line: an edge
+        // with an end outside the window is not drawn, and what it would have said is counted in
+        // `filtered()` and printed by the header. A ghost is still a ghost.
+        var eq = e.ghost ? 'ghost' : null;
         var g2 = el('g', { 'data-edge': key, class: eq }, gEdge);
         // Issue 89. A line that stands for more than one relationship says how many, in its own
-        // <title>, which is #100's rule for the same case and is why the verb on the chip is
-        // left exactly as the model wrote it. `note` is the window's sentence and wins where
-        // both apply, because a line whose far end is off the picture is the stronger claim
-        // about what the reader is not seeing.
-        var etitle = e.note || (e.n > 1 ? e.v + ', ' + e.n + ' relationships drawn as one line'
-                                        : null);
+        // <title>, which is why the verb on the chip is left exactly as the model wrote it.
+        var etitle = e.n > 1 ? e.v + ', ' + e.n + ' relationships drawn as one line' : null;
         if (etitle) el('title', {}, g2).textContent = etitle;
-        el('path', { d: e.d,
-                     class: e.ghost ? 'edge edge-ghost' : (e.outside ? 'edge edge-outside'
-                                                                     : 'edge') }, g2);
+        el('path', { d: e.d, class: e.ghost ? 'edge edge-ghost' : 'edge' }, g2);
         el('path', {
           d: 'M0 0 L-6.5 2.6 L-6.5 -2.6 Z',
-          class: e.ghost ? 'arrow arrow-ghost' : (e.outside ? 'arrow arrow-outside' : 'arrow'),
+          class: e.ghost ? 'arrow arrow-ghost' : 'arrow',
           transform: 'translate(' + e.ax + ',' + e.ay + ') rotate(' + e.aa + ')'
         }, g2);
 
@@ -489,20 +484,17 @@
 
       reading.forEach(function (n) {
         var col = COLOR[n.type];
-        // Issue 100. An OUTSIDE tile is a sentence about this picture and not an object in the
-        // model: it stands for the nodes the reader's window took out of this lane. So it is not
-        // a target. It carries no `data-node`, takes no tab stop, opens no panel, and its own key
-        // goes on `data-outside`, because a capture that named it as a node would be reporting an
-        // id the instance document has never heard of. That is the same line `lbl-tail` is on:
-        // drawn by this file, said about the drawing, absent from the model.
-        var out = !!n.outside;
+        // Issue 100 drew one OUTSIDE tile per lane, a sentence about the picture rather than an
+        // object in the model, carrying `data-outside` instead of `data-node` so a capture could
+        // never report an id the instance document has never heard of. Issue 111 took it off the
+        // drawing: every tile painted here is a node of the model again, and the count it carried
+        // is in the header. Nothing reaches this loop that is not in the instance document.
         // data-node is the instance key. It is what feedback.js reads to say which node a click
         // landed on, the way monetary-lab's capture reads its own linked-highlight key.
-        var g2 = el('g', { class: n.ghost ? 'node ghost' : (out ? 'node outside' : 'node'),
-                           'data-node': out ? null : n.id,
-                           'data-outside': out ? n.id : null,
-                           tabindex: out ? null : 0,
-                           role: out ? null : 'button' }, gNode);
+        var g2 = el('g', { class: n.ghost ? 'node ghost' : 'node',
+                           'data-node': n.id,
+                           tabindex: 0,
+                           role: 'button' }, gNode);
         var titleEl = el('title', {}, g2);
         titleEl.textContent = n.title || (n.label + ' (' + TLABEL[n.type] + ')');
 
@@ -551,11 +543,11 @@
           // grey the ghost type carries rather than a second copy of that grey written here:
           // this line held `rgba(143,153,168,0.07)` as a literal, which was the palette's own
           // hex typed into a second file. The strength is unchanged.
-          fill: tint(col, (n.ghost || out) ? 7 : 14), stroke: col
+          fill: tint(col, n.ghost ? 7 : 14), stroke: col
         }, g2);
 
         var mark;
-        if (n.ghost || out) {
+        if (n.ghost) {
           // Deliberately empty. A ghost tile holds no glyph because there is nothing in it.
           mark = el('g', {}, g2);
         } else if (n.count) {
@@ -575,8 +567,7 @@
 
         var ty = n.y + R + G.gapLabel + 4;
         n.lines.forEach(function (line, i) {
-          var t = el('text', { class: n.ghost ? 'lbl lbl-ghost'
-                                              : (out ? 'lbl lbl-outside' : 'lbl'),
+          var t = el('text', { class: n.ghost ? 'lbl lbl-ghost' : 'lbl',
                                x: n.x, y: ty + i * G.lineH }, g2);
           t.textContent = line;
         });
@@ -603,7 +594,6 @@
         var frame = el('rect', { class: 'focus-frame', rx: 7 });
         g2.insertBefore(frame, titleEl.nextSibling);
 
-        if (!out) {
         g2.addEventListener('click', function (ev) { ev.stopPropagation(); onSelect(n.id); });
         g2.addEventListener('keydown', function (ev) {
           if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onSelect(n.id); }
@@ -623,9 +613,8 @@
           try { vis = g2.matches(':focus-visible'); } catch (err) { /* older engine: always */ }
           if (vis && onFocus) onFocus(n);
         });
-        }
         gfxNode[n.id] = { g: g2, tile: tile, mark: mark, col: col, count: !!n.count, frame: frame,
-                          ghost: !!n.ghost, outside: out,
+                          ghost: !!n.ghost,
                           rest: tile.getAttribute('fill'), tail: tail };
       });
     }
@@ -737,9 +726,9 @@
       var cols = byColumn(g, nodes), H = 0, at = {};
       // Down each column in the order the canonical drawing stacked them. That order is the whole
       // of what this transform inherits from the build's thirty barycentre sweeps, and re-deriving
-      // it here would be the general graph layout this deliberately is not. An outside tile comes
-      // in with no y and sorts to the foot of its own lane, which is where a count of what is not
-      // shown belongs.
+      // it here would be the general graph layout this deliberately is not. Every node reaching
+      // this function now carries the y the build gave it: issue 111 took off the one that did
+      // not, the stub tile that sorted to the foot of its lane on a y of Infinity.
       cols.forEach(function (list) { list.sort(function (a, b) { return a.y - b.y; }); });
       cols.forEach(function (list) {
         var hs = 0;
@@ -882,25 +871,32 @@
     }
 
     // ---- the transform itself -----------------------------------------------------------------
-    // WHAT AN EDGE WITH A FILTERED ENDPOINT DOES, WHICH IS THE HARD PART OF THIS CARD. It does not
-    // vanish. A drawing that quietly drops a line is a management tool that has started lying: the
-    // reader cannot tell filtered from absent, and absent is the more interesting of the two on a
-    // page whose whole subject is what the business does and does not record.
+    // WHAT AN EDGE WITH A FILTERED ENDPOINT DOES, AND ISSUE 111 REVERSED THE ANSWER. It is not
+    // drawn. Nothing stands in for it on the canvas and no line runs to a stub.
     //
-    // So every lane that loses tiles gains ONE tile reading "N outside this window", and every
-    // edge whose far end was taken out terminates on it. Edges that would then run in parallel are
-    // folded into one line per surviving node per verb, because twenty four separate lines into
-    // one tile is not a picture, and the fold carries the count it stands for in its own <title>.
-    // An edge with BOTH ends outside the window is folded into a single line between the two
-    // outside tiles, so no relationship in the model goes unrepresented; the only ones that cannot
-    // be drawn are the ones whose two ends are in the same lane, and those are counted and
-    // reported rather than dropped in silence.
+    // WHAT IT WAS UNTIL #111, because the reasoning was not wrong and only half a requirement.
+    // Every lane that lost tiles gained ONE tile reading "N tiles outside this window", every
+    // edge whose far end had gone terminated on it, parallel edges were folded into one line per
+    // surviving node per verb carrying their count in a title, and every lane caption grew a
+    // fourth line reading "6 of 28 in this window". The argument was that a filter which silently
+    // drops things is how a management tool starts lying: the reader cannot tell filtered from
+    // absent, and absent is the more interesting of the two on a page whose whole subject is what
+    // the business does and does not record.
     //
-    // THE VERB ON A FOLDED EDGE IS THE ORIGINAL VERB, UNCHANGED, and that is load bearing rather
-    // than tidy. selection.js's reveal table is keyed by verb: 'employed by' is what tells it to
-    // keep an employer off the page until its instructor is clicked. A folded edge reading
-    // 'employed by, 3' would match no rule, and the drawing would grow a line pointing into an
-    // empty lane. The count lives in the tile, in the lane caption and in the line's own title.
+    // HE OVERRULED IT FROM THE PAGE AND HE IS RIGHT: "the whole point of week filter is to not
+    // see this (only the week, clean)". Honest bookkeeping and a clean view were treated as one
+    // requirement and they are two. On a three week window over Z-BL the drawing was six lanes of
+    // stubs with more dashed lines than solid ones, which is a picture of the filter rather than
+    // a picture of the three weeks.
+    //
+    // SO THE COUNT LEAVES THE DRAWING AND DOES NOT LEAVE THE PAGE. What this function drops it
+    // COUNTS, and hands out on `windowState()`: the tiles, the relationships those tiles took
+    // with them, and the per lane breakdown the captions used to carry. The header's own window
+    // control is where a number about what is not on screen already lives, beside `weeks: 3 of 24`
+    // and `gaps: 11 of 95`, and term.js prints it there. The drawing shows the window; the header
+    // says what the window excludes. A change that stops printing it is a change that starts
+    // lying, and the smoke suite asserts the two numbers against each other rather than trusting
+    // either.
     //
     // AND THE CASCADE IS WHAT MAKES IT A BETTER PICTURE RATHER THAN A HOLED ONE. A session template
     // whose only session the window took out has nothing left to be a template of, so it goes too,
@@ -920,10 +916,10 @@
     //
     // ON AN EMPTY WEEK IT DEGENERATES, AND THAT IS THE RIGHT ANSWER RATHER THAN A HOLE IN IT. The
     // term has gaps in April and May, so a one week window can cover no session at all; the
-    // cascade then reaches everything and the drawing is six lanes each saying how much of itself
-    // is outside the window, which is a true picture of that week. The programme's own name and
-    // its cohort are chrome and are described from the canonical drawing, so the header does not
-    // empty with the lanes.
+    // cascade then reaches everything and the canvas is empty, which is a true picture of that
+    // week and is the picture #111 asked for. The header does not empty with it: the programme's
+    // own name and its cohort are chrome described from the canonical drawing, and the window
+    // control states in that same row how many tiles the window has taken off.
     function filtered(g, spec) {
       var i, gone = {}, gov = {}, adj = {};
       g.nodes.forEach(function (n) { adj[n.id] = []; });
@@ -954,71 +950,39 @@
       var keep = g.nodes.filter(function (n) { return !gone[n.id]; });
       var hidden = g.nodes.filter(function (n) { return gone[n.id]; });
 
-      // One outside tile per column that lost something, in that column's own x.
-      var lost = {}, tiles = {}, marks = [];
-      hidden.forEach(function (n) {
-        var c = colOf(n.x);
-        lost[c] = (lost[c] || 0) + 1;
-      });
-      Object.keys(lost).forEach(function (c) {
-        var x = COLUMNS[Number(c)];
-        var n = lost[c];
-        var label = n + (n === 1 ? ' tile outside' : ' tiles outside') + ' this window';
-        var node = {
-          id: '__outside_' + c, type: 'Ghost', outside: true, count: null, props: [],
-          label: label, lines: wrapTo(label, laneRoom(g, x), 'lbl'), x: x, y: Infinity,
-          title: label + '. Move or widen the window to bring them back',
-          'class': 'outside-window'
-        };
-        tiles[c] = node;
-        marks.push(node);
-      });
-      // The outside tiles sit at the foot of their own lane, after everything that stayed.
-      var nodes = keep.concat(marks);
+      // Issue 111. WHAT IS DRAWN IS WHAT STAYED, and that is the whole of the node set now. No
+      // stub tile per lane, so nothing is placed that the build did not lay out, and the lane
+      // captions are the three lines the build wrote rather than four. The line of headroom the
+      // fourth caption needed went with it, which is why `topOf(g)` and `g.bandTop` are taken
+      // bare here where they used to be offset by one caption line.
+      var nodes = keep;
 
       var gap = pitchOf(g);
-      // One more caption line on every lane, so the top margin and the plate both move down by
-      // exactly one line. The build reserves headroom for three; this is the fourth.
-      var extra = g.capLineH || 11;
-      var bandTop = g.bandTop + extra;
-      var at = place(g, nodes, gap, topOf(g) + extra);
+      var at = place(g, nodes, gap, topOf(g));
       var pos = {};
       nodes.forEach(function (n) { pos[n.id] = { x: n.x, y: at[n.id], col: colOf(n.x) }; });
 
-      // ---- the edges, three kinds ---------------------------------------------------
-      var out = [], folds = {}, sameLane = 0;
-      // The separator is a UNIT SEPARATOR WRITTEN AS AN ESCAPE, and both halves of that
-      // matter. It has to be a character no id and no verb can hold, which is why it was
-      // never an ordinary one; it must not be a NUL, which is what it was, because three
-      // raw NUL bytes in the source make every text tool call this file binary. Measured
-      // on this machine: `grep -c function site/render.js` finds nothing and exits 1 while
-      // `grep -a` finds 121, so a sweep over site/*.js silently skips the 1159 lines that
-      // paint the drawing. The safety gates were checked rather than assumed and they are
-      // clean, every one of them passing -a or reading the file in Python, and a banned
-      // word planted after the NULs was caught; the cost was never the gates, it was every
-      // reader and every audit after them.
-      function fold(sId, tId, e) {
-        var k = sId + '\u001f' + tId + '\u001f' + e.v + '\u001f' + (e.ghost ? 'g' : '');
-        var f = folds[k];
-        // Issue 89. A fold counts RELATIONSHIPS and not lines, so a line that was already a fold
-        // brings its own count with it. On the modules grain one `instance of` line can stand
-        // for fifteen, and a window folding that line onto an outside tile has taken fifteen off
-        // the picture and not one. Adding one per line would be the arithmetic that reads right
-        // and is wrong, which is exactly the undercount an aggregate invites.
-        if (f) { f.n += (e.n || 1); return; }
-        folds[k] = { s: sId, t: tId, e: e, n: (e.n || 1) };
-        out.push(folds[k]);
-      }
+      // ---- the edges, and after issue 111 there is one kind -------------------------
+      // A LINE IS DRAWN WHEN BOTH OF ITS ENDS ARE DRAWN. Anything else is counted here and said
+      // in the header, which is the trade this card made: what used to be a dashed line into a
+      // stub is a number in the row above the canvas. The fold that used to gather parallel lines
+      // onto a stub went with the stub, and with it the whole of the unit-separator key it was
+      // built on.
+      //
+      // IT COUNTS RELATIONSHIPS AND NOT LINES, which is issue 89's arithmetic and survives this
+      // card unchanged. At the modules grain one `instance of` line can stand for fifteen, so a
+      // window that takes that line off the picture has taken fifteen relationships off it and
+      // not one. Counting one per line would be the arithmetic that reads right and is wrong,
+      // which is exactly the undercount an aggregate invites. Both figures are reported, because
+      // they answer different questions and neither is derivable from the other.
+      var out = [], offRel = 0, offLines = 0;
       g.edges.forEach(function (e) {
-        var ds = !!gone[e.s], dt = !!gone[e.t];
-        if (!ds && !dt) {
-          out.push({ s: e.s, t: e.t, e: e, n: (e.n || 1), keep: true });
+        if (gone[e.s] || gone[e.t]) {
+          offRel += (e.n || 1);
+          offLines++;
           return;
         }
-        var sId = ds ? '__outside_' + colOf(nodeAt(g, e.s).x) : e.s;
-        var tId = dt ? '__outside_' + colOf(nodeAt(g, e.t).x) : e.t;
-        if (sId === tId) { sameLane++; return; }
-        fold(sId, tId, e);
+        out.push({ s: e.s, t: e.t, e: e, n: (e.n || 1) });
       });
 
       var edges = out.map(function (r) {
@@ -1030,12 +994,6 @@
                   // whole term and false of every filtered reading of it.
                   n: r.n > 1 ? r.n : null,
                   d: geo.d, rev: geo.rev, ax: geo.ax, ay: geo.ay, aa: geo.aa };
-        if (!r.keep) {
-          e.outside = true;
-          e.ghost = null;
-          e.note = r.e.v + ', ' + r.n +
-                   (r.n === 1 ? ' relationship' : ' relationships') + ' outside this window';
-        }
         e.pts = geo.pts;
         e.span = geo.span;
         return e;
@@ -1086,31 +1044,34 @@
       });
       edges.forEach(function (e) { delete e.pts; delete e.span; });
 
-      // KEEPING THE COUNT VISIBLE, which is the other half of what this card asked for. A filter
-      // that loses the number is the same failure as an aggregate that loses it, so every lane
-      // says what it is showing of what it had, in the idiom #83 set for the captions above it.
-      // The line is added to EVERY lane and not only the ones that lost something, because "6 of 6
-      // in this window" is a claim and a lane with no fourth line would read as a lane nobody
-      // counted.
+      // KEEPING THE COUNT, WHICH IS THE HALF OF #100 THAT #111 DID NOT OVERRULE. Every lane still
+      // reports what it is showing of what it had; what changed is where it is reported. It used
+      // to be a fourth line on the lane's own caption, in the idiom #83 set for the three above
+      // it, and that line is the count on the drawing this card takes off. The numbers are
+      // computed here all the same, because this is the only place that knows which tiles fell in
+      // which lane, and go out on `windowState()` for the header to print. The lanes are handed
+      // over with the NAME the build gave them, so whoever prints them names a lane as the drawing
+      // does rather than inventing a second vocabulary for the same six columns.
       var lanes = [], bands = (g.bands || []).map(function (b) {
         var was = 0, now = 0;
         g.nodes.forEach(function (n) { if (n.x >= b.x && n.x <= b.x + b.w) was++; });
         keep.forEach(function (n) { if (n.x >= b.x && n.x <= b.x + b.w) now++; });
-        var line = now + ' of ' + was + ' in this window';
-        if (widthOf(line, 'band-cap', null, false) > b.w - 4) line = now + ' of ' + was + ' shown';
-        lanes.push({ key: b.key, shown: now, of: was });
-        var copy = { key: b.key, x: b.x, w: b.w, winLine: true,
-                     lines: (b.lines || [b.label]).concat([line]) };
-        copy.label = copy.lines.join(' ');
-        return copy;
+        lanes.push({ key: b.key, label: (b.lines && b.lines[0]) || b.label || b.key,
+                     shown: now, of: was });
+        return b;
       });
 
       WINFO = {
         on: true, hidden: hidden.map(function (n) { return n.id; }),
         shown: keep.map(function (n) { return n.id; }),
-        outside: marks.map(function (n) { return { id: n.id, label: n.label }; }),
-        lanes: lanes, foldedEdges: edges.filter(function (e) { return e.outside; }).length,
-        sameLane: sameLane, canonNodes: g.nodes.length, canonEdges: g.edges.length,
+        // Issue 111. WHAT THE DRAWING NO LONGER SAYS ABOUT ITSELF, in the three numbers a reader
+        // needs to be told it: the tiles the window took off, the relationships that went with
+        // them, and the lines those relationships were drawn as. The last two differ at the
+        // modules grain, where one line stands for many, so both are here and neither is inferred
+        // from the other. `outside` was a list of the stub tiles and there are none.
+        off: { tiles: hidden.length, relationships: offRel, lines: offLines },
+        lanes: lanes, canonNodes: g.nodes.length, canonEdges: g.edges.length,
+        drawnEdges: edges.length,
         digest: g.drawingDigest || 'unknown'
       };
 
@@ -1124,7 +1085,6 @@
       });
       d.edges = edges;
       d.bands = bands;
-      d.bandTop = bandTop;
       d.h = Math.round(h);
       d.filteredFrom = g;
       return d;
@@ -1140,15 +1100,17 @@
       if (!CANON) return;
       if (!WIN) {
         WINFO = { on: false, hidden: [], shown: CANON.nodes.map(function (n) { return n.id; }),
-                  outside: [], foldedEdges: 0, sameLane: 0,
+                  off: { tiles: 0, relationships: 0, lines: 0 },
                   canonNodes: CANON.nodes.length, canonEdges: CANON.edges.length,
+                  drawnEdges: CANON.edges.length,
                   digest: CANON.drawingDigest || 'unknown',
                   lanes: (CANON.bands || []).map(function (b) {
                     var n = 0;
                     CANON.nodes.forEach(function (x) {
                       if (x.x >= b.x && x.x <= b.x + b.w) n++;
                     });
-                    return { key: b.key, shown: n, of: n };
+                    return { key: b.key, label: (b.lines && b.lines[0]) || b.label || b.key,
+                             shown: n, of: n };
                   }) };
         paint(CANON);
         return;

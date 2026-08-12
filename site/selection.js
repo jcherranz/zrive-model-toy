@@ -103,16 +103,15 @@
         VEIL_RULES.forEach(function (r) {
           if (x.e.v !== r.verb) return;
           var hid = r.hide === 't' ? x.e.t : x.e.s;
-          // ISSUE 100. NEVER AN OUTSIDE TILE. Under a time window render.js gives each lane that
-          // lost tiles one standing for them, and folds the lines that used to reach those tiles
-          // onto it, keeping the verb so that a folded line into a node this table hides is hidden
-          // with it. That is the case this rule is for and it still works. What it must not do is
-          // fire on the count tile itself: an 'employed by' fold between two outside tiles named
-          // the employers' one as the thing to hide and the instructors' one as the thing that
-          // reveals it, and the second is not a target, so the count sat in the lane taking its
-          // space and could never be shown. A count of what is off the picture is a sentence about
-          // the picture; nothing in this table is about that.
-          if (gfxNode[hid] && gfxNode[hid].outside) return;
+          // ISSUE 100 NEEDED A GUARD HERE AND ISSUE 111 REMOVED THE THING IT GUARDED AGAINST.
+          // Under a time window render.js used to give each lane that lost tiles one standing for
+          // them and fold the lines that used to reach those tiles onto it. This table is keyed
+          // by verb, so an 'employed by' fold between two of those count tiles named the
+          // employers' one as the thing to hide and the instructors' one as the thing that
+          // reveals it; the second was not a target, so the count sat in its lane taking space and
+          // could never be shown, and the guard was a test for `outside` on the node about to be
+          // hidden. #111 took the count tiles and the folds off the drawing, so every node this
+          // loop can now reach is a node of the model and the guard has nothing left to catch.
           var by = r.by === 't' ? x.e.t : x.e.s;
           var rec = veiled[hid] || (veiled[hid] = { by: {}, edges: [], group: null });
           rec.by[by] = true;

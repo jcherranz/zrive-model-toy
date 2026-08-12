@@ -196,6 +196,12 @@
   // opts.agenda   the instance document's invented session agenda block, issue 85
   // opts.onRoute  called after the sheet opens or closes, because the heading changed and the
   //               header may have changed height with it
+  // opts.windowEffect asks what the window has done to the drawing on screen and answers with
+  //               render.js's own report, or null before the wiring is finished. Issue 111. It is
+  //               a QUESTION asked at the moment the control restates itself and not a value
+  //               pushed in, for the reason the window itself is a predicate and not a list of
+  //               ids: the answer is per drawing and the window is not, so anything cached here
+  //               would be stale on the next change of programme or of grain.
   // opts.onWindow called with a predicate over a node, or null, whenever the time window moves.
   //               Issue 90. This module knows what a date means and render.js knows where a node
   //               is drawn, and neither learns the other's half: it hands out a question and the
@@ -204,6 +210,7 @@
     var VIEWS = opts.views || [];
     var AGENDA = opts.agenda || null;
     var onRoute = opts.onRoute;
+    var windowEffect = opts.windowEffect;
 
     var sheet = document.getElementById('term');
     var titleEl = document.getElementById('termtitle');
@@ -582,13 +589,26 @@
 
     // Everything that has to happen when the window moves, in one place, so a control added later
     // cannot forget half of it: the rows are rebuilt if the sheet is open, the sentences over them
-    // are rewritten, the control restates itself, and the drawing is told.
+    // are rewritten, the drawing is told, and the control restates itself.
+    //
+    // ISSUE 111 REORDERED THIS AND THE ORDER IS NOW LOAD BEARING. The control states how many
+    // tiles the window has taken off the drawing, which is an answer only render.js can give and
+    // only after it has been told. Restating before telling would print the effect of the window
+    // the reader just left, one press behind, for ever.
     function windowChanged() {
       built = null;
       if (reading) { buildRows(); describe(); }
+      if (onWindow) onWindow(windowSpec());
+      restateWindow();
+    }
+
+    // The same restatement, for a caller that changed the drawing rather than the window. A change
+    // of programme or of altitude leaves the window exactly where it was and changes every number
+    // the control quotes about it, so app.js calls this beside the other things it restates. Issue
+    // 111.
+    function restateWindow() {
       describeWindow();
       if (wnMenuOpen()) buildWnMenu();
-      if (onWindow) onWindow(windowSpec());
     }
 
     function setWindowWeeks(n) {
@@ -629,14 +649,42 @@
       };
     }
 
+    // ---- what the window took off the drawing, issue 111 ------------------------
+    // WHERE THE COUNT WENT WHEN IT LEFT THE PICTURE. #100 answered a filtered drawing with one
+    // stub tile per lane reading "N tiles outside this window", folded the lines that lost an end
+    // onto it, and gave every lane caption a fourth line reading "6 of 28 in this window". He
+    // filed #111 on one of those stubs: "The whole point of week filter is to not see this (only
+    // the week, clean)". Honest bookkeeping and a clean view were treated as one requirement and
+    // they are two. render.js draws the window and counts what it dropped; this row is where the
+    // number lives now, beside `weeks: 3 of 24` and `gaps: 11 of 95`, which is the established
+    // home on this page for a number about what is not on screen.
+    //
+    // IT IS ASKED FOR AND NEVER CACHED. `windowEffect` reaches render.js's own report of the
+    // drawing that is on screen at the moment this runs, so a change of programme or of altitude
+    // moves it without anything here subscribing to either.
+    function windowOff() {
+      var f = windowEffect ? windowEffect() : null;
+      if (!f || !f.on || !f.off || !f.off.tiles) return null;
+      return f;
+    }
+
+    function offWords(f) {
+      var o = f.off;
+      return o.tiles + ' of ' + f.canonNodes + (o.tiles === 1 ? ' tile' : ' tiles') + ' and ' +
+             o.relationships + (o.relationships === 1 ? ' relationship' : ' relationships') +
+             ' are off the drawing';
+    }
+
     function describeWindow() {
       if (!wnBtn || !TERM) return;
       // The state, in the row's own idiom, and short enough not to push the nav around: `theme`
       // says `theme: system` in the same place for the same reason.
       wnBtn.textContent = 'weeks: ' + (win.weeks ? win.weeks + ' of ' + TERM.weeks
                                                  : 'all ' + TERM.weeks);
+      var f = windowOff();
       wnBtn.title = 'the part of the term in focus: ' + windowText() +
-        '. ' + windowShown(null) + ' of ' + sessions.length + ' sessions. Press to move it';
+        '. ' + windowShown(null) + ' of ' + sessions.length + ' sessions' +
+        (f ? '. ' + offWords(f) : '') + '. Press to move it';
     }
 
     function wnButton(cls, label, title, fn) {
@@ -689,13 +737,37 @@
       wnMenu.appendChild(wk);
 
       // What the window does to each surface, said once and here, because the answer differs by
-      // surface on purpose and a reader who is not told will read a dimmed drawing as a bug.
+      // surface on purpose. The clause about the drawing said it DIMS what is outside the window,
+      // which stopped being true at #100 and is corrected here under #111: it draws the window
+      // and nothing else.
       var note = el('p', 'wn-note');
       note.textContent = 'Now: ' + windowText() + ' · ' + windowShown(null) + ' of ' +
         sessions.length + ' sessions. The list drops what is outside it, because a list is an ' +
-        'agenda. The month and week grids keep it and mark the band, and the drawing dims it, ' +
-        'because the shape of the term is the thing a grid and a drawing are for.';
+        'agenda. The month and week grids keep it and mark the band, because the shape of the ' +
+        'term is what a grid is for. The drawing shows the window and nothing else.';
       wnMenu.appendChild(note);
+
+      // ---- and the count the drawing no longer carries, issue 111 --------------
+      // THE NUMBER DID NOT GO ANYWHERE, IT MOVED HERE. One line for the whole drawing and one row
+      // per lane, which is what the lane captions used to say and is the finer answer a reader
+      // who wants it should still be able to get. The lanes are named as the DRAWING names them:
+      // the label comes over on render.js's report, off the band the build wrote, so nothing here
+      // invents a second vocabulary for the same six columns.
+      var f = windowOff();
+      if (!f) return;
+      var off = el('p', 'wn-off');
+      off.textContent = offWords(f) + '.' +
+        (f.off.lines === f.off.relationships ? ''
+          : ' They were ' + f.off.lines + (f.off.lines === 1 ? ' line' : ' lines') +
+            ', because at this altitude one line can stand for several.');
+      wnMenu.appendChild(off);
+      (f.lanes || []).forEach(function (l) {
+        if (l.shown === l.of) return;      // a lane that lost nothing has nothing to report
+        var row = el('p', 'wn-lane');
+        row.appendChild(el('span', 'wn-lane-n', l.shown + ' of ' + l.of));
+        row.appendChild(el('span', 'wn-lane-k', l.label));
+        wnMenu.appendChild(row);
+      });
     }
 
     if (wnBtn && wnMenu) {
@@ -1535,6 +1607,9 @@
       // ever on before the sheet has been opened.
       windowSpec: windowSpec,
       windowState: windowState,
+      // Issue 111. Called by app.js after anything that changes the drawing without changing the
+      // window, because the control now quotes a number about the drawing.
+      restateWindow: restateWindow,
       windowMenuOpen: wnMenuOpen
     };
   };

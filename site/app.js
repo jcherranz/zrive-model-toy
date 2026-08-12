@@ -220,6 +220,9 @@
     // Issue 98. A different programme is a different set of gaps, and no class on the body changed
     // to say so, which is why this is a call and not the observer's business.
     describeGaps();
+    // Issue 111. And beside it for exactly the same reason: the window did not move and the
+    // drawing under it did, so how many tiles the window is taking off has changed.
+    term.restateWindow();
     // A different programme is a different cohort, so the list built for the last one goes.
     router.resetRoster();
     describeGrain();
@@ -306,7 +309,6 @@
     var cx = s.x + s.w / (2 * s.k), cy = s.y + s.h / (2 * s.k);
     var best = null, bd = Infinity;
     g.nodes.forEach(function (n) {
-      if (n.outside) return;
       var d = (n.x - cx) * (n.x - cx) + (n.y - cy) * (n.y - cy);
       if (d < bd) { bd = d; best = n.id; }
     });
@@ -324,6 +326,7 @@
     stampDigest();
     router.describe();
     describeGaps();
+    term.restateWindow();
     describeGrain();
     // The fit first and the anchor after it, which is the order #100 settled for the same
     // question: the extent has changed by up to a factor of four, so a view that was not refitted
@@ -409,7 +412,12 @@
     // file is what carries the answer from the module that knows what a date means to the module
     // that knows where a node is drawn. render is built after this, so the first call is guarded
     // and the initial state is applied below beside the first draw.
-    onWindow: function (spec) { windowChanged(spec); }
+    onWindow: function (spec) { windowChanged(spec); },
+    // Issue 111. The count that used to be a stub tile on every filtered lane is a sentence on
+    // the window control now, and the numbers in it are render.js's. Handed over as a question
+    // rather than as a value: `render` is built after this, so an eager read would be a read of
+    // nothing, and the answer is per drawing while the window is per page.
+    windowEffect: function () { return render ? render.windowState() : null; }
   });
 
   router = ZM.router({
@@ -669,12 +677,13 @@
 
   // One pass over a set of nodes. The two exclusions are argued above: the route rows, which are
   // about the class rather than about the object, and the ghosts, which are the absence rather
-  // than a hole in something present. `n.outside` is #100's per lane count tile, which is drawn
-  // by render.js and is in no model at all.
+  // than a hole in something present. It used to exclude `n.outside` as well, #100's per lane
+  // count tile, which was drawn by render.js and was in no model at all; #111 took those tiles off
+  // the drawing, so nothing reaching this function is anything but a node of the model.
   function gapsOf(nodes) {
     var by = {}, keys = [], total = 0;
     (nodes || []).forEach(function (n) {
-      if (n.ghost || n.outside) return;
+      if (n.ghost) return;
       var props = n.props || [], first = n.route || 0, i, p, k;
       for (i = first; i < props.length; i++) {
         p = props[i];
@@ -1052,6 +1061,10 @@
   // Issue 98. After term.start(), because the address may already be a reading and the count is a
   // count of what the view on screen is showing. The observer takes it from here.
   describeGaps();
+  // Issue 111. term.start() described the window before render had drawn anything, so the count
+  // of what the window takes off the drawing was the one thing it could not state. Restated here,
+  // once, for the same reason describeGaps is called here.
+  term.restateWindow();
   // Issue 89. Beside it and for the same reason: the control's text is its state, and its state
   // may already have come out of the address a reader followed.
   describeGrain();
