@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T19:38:12Z",
+  "generated": "2026-08-12T20:14:51Z",
   "columns": [
     {
       "key": "raw",
@@ -35,22 +35,21 @@
     {
       "key": "in_progress",
       "title": "In progress",
+      "cards": []
+    },
+    {
+      "key": "done",
+      "title": "Done",
       "cards": [
         {
           "id": 119,
           "title": "Nothing drives an empty window, the state that paints six rects at a negative height",
           "labels": [
             "bug",
-            "status:in-progress"
+            "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/119"
-        }
-      ]
-    },
-    {
-      "key": "done",
-      "title": "Done",
-      "cards": [
+        },
         {
           "id": 118,
           "title": "The suite never loads a document cold at any address but the default, so every deep link can be broken and stay at 177 of 177",
@@ -115,19 +114,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/112"
-        },
-        {
-          "id": 111,
-          "title": "The week filter should leave only the window, not dim what it excludes",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/111"
         }
       ],
-      "hidden": 96,
+      "hidden": 97,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
