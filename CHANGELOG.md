@@ -313,8 +313,9 @@ of what changed and when, and it is meant to be scannable.
   window over one programme can cover no session at all. `filtered()` starts its extent at 0 and
   maxes it over the node set and the edge set, both empty in that state, and `paint()` draws the
   lane plate at `G.h - G.bandTop - 4`, which is then 0 minus 43 minus 4. Reproduced at `28a67cd` on
-  `#/p/ZIB`, one week from `2026-02-16`: six `Error: <rect> attribute height: A negative value is
-  not valid. ("-47")` per repaint, 0 tiles, 0 lines, 39 of 39 hidden. **Counted in Python off
+  `#/p/ZIB`, the one week window anchored on Monday 16 February 2026: six `Error: <rect> attribute
+  height: A negative value is not valid. ("-47")` per repaint, 0 tiles, 0 lines, 39 of 39 hidden.
+  **Counted in Python off
   `site/instance.js` at that sha: thirteen (programme, one week) pairs whose anchor falls inside
   that programme's own term hold no session, Z-IB 3, Z-HR 5, Z-CFA 5, and ninety one over the whole
   anchor range the control offers.**
