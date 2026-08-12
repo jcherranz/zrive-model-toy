@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T11:26:58Z",
+  "generated": "2026-08-12T11:27:33Z",
   "columns": [
     {
       "key": "raw",
@@ -65,36 +65,6 @@
       "title": "In progress",
       "cards": [
         {
-          "id": 92,
-          "title": "The sticky invented-value banner is transparent and rows show through it",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/92"
-        },
-        {
-          "id": 93,
-          "title": "Remove all this text. A good UI must be self explanatory. Too verbose",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/93"
-        },
-        {
-          "id": 94,
-          "title": "Module headings are indented further left-padded than the rows they head",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/94"
-        },
-        {
           "id": 96,
           "title": "Tile frame is too tight on the drawing",
           "labels": [
@@ -140,6 +110,36 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/99"
         },
         {
+          "id": 94,
+          "title": "Module headings are indented further left-padded than the rows they head",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/94"
+        },
+        {
+          "id": 93,
+          "title": "Remove all this text. A good UI must be self explanatory. Too verbose",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/93"
+        },
+        {
+          "id": 92,
+          "title": "The sticky invented-value banner is transparent and rows show through it",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/92"
+        },
+        {
           "id": 91,
           "title": "Cut the invented-value warnings back to one: six distinct copies on one screen",
           "labels": [
@@ -168,40 +168,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/88"
-        },
-        {
-          "id": 86,
-          "title": "The sheet overlay covers the whole header, so every page-level control is unreachable",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/86"
-        },
-        {
-          "id": 85,
-          "title": "Session-level detail on a template: real module structure exists and is not shipped",
-          "labels": [
-            "bug",
-            "feedback",
-            "model",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/85"
-        },
-        {
-          "id": 84,
-          "title": "Scope the outline to one programme, and make the lane caption the way in",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/84"
         }
       ],
-      "hidden": 71,
+      "hidden": 74,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
