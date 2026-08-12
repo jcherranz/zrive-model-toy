@@ -11,6 +11,23 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- **One reading the header did not have, `tiles`, #120.** The model knows 482 absences over the
+  seven session grain drawings, 328 rows flagged `real` over all fourteen, 83 templates and 272
+  outline beats, and the header surfaced one number of it. This adds one more and it is deliberately
+  not a tenth control: it cannot be pressed, it opens nothing, it holds no state. It is the number
+  every other control in the header moves, so the readings beside it compose into a picture rather
+  than into an argument in a comment: the window takes tiles off the drawing, the altitude folds
+  tiles into one another, the programme replaces the set and `ghosts` withdraws the tiles no system
+  holds. **The page already knew it and said it in a tooltip**: #111 took #100's stub tiles off the
+  canvas and moved their count into the window control's `title`, which is where a number goes when
+  the row it belongs in has no shape to hold it. It reads `62` while nothing is filtering the
+  drawing and `27 of 62` while something is, so the denominator appears exactly when there is a
+  difference to report, and it counts what is PAINTED rather than what was built, which is the half
+  a count taken off the artefact would get wrong while looking entirely correct. It is a count and
+  it carries no adjective, which is #101's and #110's line held: withdrawn on `#/board`, `#/students`
+  and both readings of the term, wherever `ghosts` is withdrawn and for that control's own reason,
+  since a count of a drawing behind an opaque box is a number about something the reader cannot see.
+
 - **`scripts/publish.sh`, one command each way, #107.** `on` creates the Pages site with
   `build_type: workflow`, sets the switch and dispatches the deploy; `off` clears the switch and
   deletes the site; `status` prints three different questions and their three answers, the
@@ -102,6 +119,69 @@ of what changed and when, and it is meant to be scannable.
 
 ### Changed
 
+- **The header is a readout and an action bar, not nine buttons in a row, #120.** "I think that
+  this header can be improved a lot if we start to think about it as a control dashboard instead of
+  just a web page. The features are okay and work okay, but they are not thought of as dashboard
+  management tools." The fourth card in that direction after #89, #90 and #98, **and each of those
+  three answered by adding a control to the row**. Measured before touching anything, on `#/p/ZSC`
+  at 1536x839: nine controls in a 43px row, four of them carrying a value the reader needs to know
+  and five carrying a verb the reader performs, every one of them a `.linkbtn` 26px tall, and
+  nothing anywhere saying which kind any of them was. That is a nav bar that grew values into it one
+  card at a time, and it is the whole reason the features worked and the row did not read as a
+  dashboard. **So the row is split rather than extended.** `weeks`, `grain`, `tiles` and `gaps` sit
+  on a recessed plate with a rule around it, in that order, because how much of the term, at what
+  altitude, how many tiles that leaves and how many of the missing values are among them is one
+  statement about a term rather than four chips. The verbs stay in the nav after it. **The two are
+  told apart by treatment and not by position, which is what they already had**: a reading is a
+  muted label beside a value in the body colour on a plate the header does not paint, an action is
+  the link colour on the header's own ground. Nothing on the plate is a new control: the same three
+  buttons with the same ids, menus, withdrawal rules and behaviour, each carrying a label span and a
+  value span instead of a colon, since `weeks: all 24` is what a nav bar writes and a label beside
+  its value is what an instrument writes. **The programme stays in the heading**, which is the fourth
+  value he counted: it is the subject of the sentence the plate is the predicate of, it has been the
+  control that switches drawings since #66, and taking it out would leave the heading saying "cohort
+  1Q26, as instances" about no cohort in particular.
+- **It costs the header nothing, measured before and after on every route.** 43px at 1536x839 and
+  107px at 390x844, byte for byte what it was; phone chrome 17.3 per cent before and after;
+  `#/board` 67px and `#/calendar` 99px at 390, both unchanged; no sideways scroll at 390; every
+  control 26 by 26 on one baseline at all three widths. **The rule around the plate is an inset
+  shadow and not a border, and that is a measurement rather than a preference**: as a border it is
+  26px of readings inside a 28px box, the row takes the taller, and the header goes to 45 and 109
+  and the phone's chrome share to 17.5, which is the one budget this card was told not to spend.
+  At 390 the plate takes the line the second wrapped nav line used to take, so the phone still has
+  the same three lines: the heading, what is on screen, what a reader can do about it.
+- **The theme is behind a press and last in the row, #120 and #57.** `theme: system` was first in
+  the nav and 96.75px wide, spending the row's anchor position on a choice a reader makes about once
+  and on a value the page is already showing them: a light page is the theme saying light. It is a
+  disclosure now, 53.19px, with the three states in the box and the one that is on marked.
+  **#57's finding is kept and better served, not dropped**: what a reader could not tell was which
+  of three states was on, and a list of three with a mark on the current one says that AND says what
+  the other two are, without a reader pressing twice to find out what pressing does. It keeps its
+  id, so it is the same control to the gates that hold it live and hit testable over every sheet,
+  which is #86.
+- **What each surface answers, since a dashboard reading is view level.** On `#/board` and
+  `#/students` the whole plate withdraws, one rule naming the two routes rather than a container
+  reasoning about its own children: the board is issues and not the model, and the roster carries no
+  flag on any row. On both readings of the term the plate stays with three readings on it, since
+  `weeks`, `grain` and `gaps` are about the reading in front of the reader, and `tiles` goes, since
+  the drawing it counts is behind an opaque box. Everything in the nav stays reachable and hit
+  testable over a sheet, which is #86 unchanged.
+- **Smoke 198 to 207, `PHASES` and `EXPECTED_ASSERTIONS` together, and every one of the nine proved
+  by planting the defect its name describes.** Six are a `the readout` phase. The split is asserted
+  twice on purpose, as placement and as paint, because the row already had the two kinds in two
+  places and had no way of telling them apart by looking: a plate drawn around readings still
+  painted in the link colour is the card's own defect with a box around it. Three are the tile
+  reading, which is the thing here that can be shipped looking right and being wrong: that it names
+  a denominator only while something is filtering the drawing, that the ghost toggle moves it by
+  exactly the ghost tiles `window.GI` records, and that the altitude moves it. One is the theme
+  behind its press. The other three are one per viewport for the static reading, which is a span and
+  which the assertion holding every control on one line cannot see, asserted against that row's own
+  measured height rather than against 26. **That older assertion changed scope from `.hnav` to the
+  header in the same edit, which is a strengthening and not a repair**: after the split it was
+  measuring five of the nine controls in this header, and it had never covered the programme picker
+  in the heading, one of the eleven #77 measured. Proved by shrinking that picker under the target
+  size on one tree: red under the new scope at all three widths and in the grain phase, and green
+  under the old one, on the same tree with the defect shipping.
 - **One browser suite where there were two, #109 #107 #89.** `build/check_grain.mjs` held 33
   assertions about the two altitudes of the drawing and a second copy of the plumbing under them,
   a static server, a Chrome resolver, a CDP client, a launcher, a phase table and a hand-written
