@@ -5109,6 +5109,26 @@ def doc_views(doc):
 # document, and the shipped bytes carry a separator and key-order convention that has nothing to
 # do with the picture. The shipped bytes have a stronger gate of their own: scripts/
 # check_build.sh byte-compares both generated documents against a rebuild of them.
+#
+# NOTHING RECOMPUTES ANY OF THESE WHILE THE PAGE IS OPEN, which is the card's row F5, and it is
+# recorded here rather than repaired because the repair is not the one it looks like.
+# scripts/check_build.sh recomputes all fourteen and both document-wide values on every push, so
+# the values are load bearing in the tree; what is not covered is the PUBLISHED ORIGIN, where
+# nothing byte-compares the served generated documents against the ones that were built.
+#
+# A browser-side recompute cannot answer that, and not for want of effort: JavaScript cannot
+# rebuild this preimage from the parsed document AT ALL. Every coordinate in site/layout.js is a
+# rounded float, `JSON.parse('{"x":105.0}')` and `JSON.parse('{"x":105}')` produce the same
+# object, and `JSON.stringify` writes `105` for both where Python writes `105.0`. A page would
+# have to hash the served TEXT instead, which is a different value answering a different
+# question, and one no build could produce because the digest lives inside the text it would
+# cover.
+#
+# The question the origin actually raises, "is the origin serving the drawing we built", is
+# answered completely and without a digest by fetching site/instance.js and site/layout.js and
+# comparing their bytes with the committed copies: one request and one sha256 each, in
+# scripts/verify.sh's origin steps beside the two that already fetch from there. That is the
+# instrument, it is cheap, and it is a change to a file this card does not own.
 def canonical(obj):
     """The one serialization every digest in this repository is taken over.
 
