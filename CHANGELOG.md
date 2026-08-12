@@ -357,13 +357,17 @@ of what changed and when, and it is meant to be scannable.
   sentence now says the suite prints it, and says the list under it is not exhaustive either, which
   was the second half of that defect and the reason the row was left for this card rather than
   fixed with a new numeral.
-- **A changelog entry above went false in the present tense and is corrected in place, #106.** The
-  Z-BL withheld-firm row says the tile's note "says why", which was true when written and stopped
-  being true at `7d2d121`, where #101 took the reason out. The entry is not rewritten, because an
-  entry edited to match today reports a state that never existed on the day it claims; a bracketed
-  correction sits under it naming the commit and pointing at #101's own row and at
-  `build/model.py`, which is the live copy and already correct. `CHANGELOG.md` is not served, so
-  this was a record defect and never an exposure one.
+- **Two entries above went false and are corrected in place rather than rewritten, #106.** The Z-BL
+  withheld-firm row says the tile's note "says why", which was true when written and stopped being
+  true at `7d2d121`, where #101 took the reason out; and the #65 ghost-grey row states "nine rules"
+  twice, right at `62d5384` and a count of nothing since. Neither entry is edited, because an entry
+  rewritten to match today reports a state that never existed on the day it claims. Each carries a
+  bracketed correction under it naming the commit that falsified it and pointing at the live copy,
+  `build/model.py` beside `WITHHELD_FIRM` for the first and `site/app.css` for the second. **This
+  is a record defect and was never an exposure one**: `CHANGELOG.md` is not served, and the public
+  half of the withheld-firm finding closed at `7d2d121`. Adopting the bracket as the house shape
+  for it: history stays, and the reader is told at the point of reading rather than three hundred
+  lines later.
 - **The sheet had no left gutter at all, #113.** Filed on a month heading as "a bit more space to
   the left". Measured at 1536x839 first, and it was not a misalignment between two things: the
   container `#termrows`, the outline's group heading, the outline's data cell and the calendar's
@@ -1785,6 +1789,13 @@ of what changed and when, and it is meant to be scannable.
   other two, which pass this gate because it asks 3:1 of a boundary. Filed as #69. The honest
   repair of the drawn grey, if it is ever wanted, is a `--line` token across those nine rules,
   which moves every edge on the page and is its own card with its own look.
+  <br>**[Correction, issue 106. Both "nine rules" above were right at `62d5384`, where this entry
+  was written, and are not a count of anything today: 10 at `a39bf13`, 12 at `3c7be9e`, 10 at
+  `1bf3ad2`. The entry stands, because it recorded what was true when it was written. The number
+  is flagged here rather than updated because the second use of it sizes the `--line` repair, and
+  a repair sized from any fixed count converts some of the rules and leaves the rest. Count them
+  when the card is taken; the live copies in `site/app.css` and `scripts/check_repo.sh` no longer
+  state a figure at all.]**
 - `hosts visit` ends on the Programme and no longer on the Cohort, #63. Counted across the 156
   company notes in the vault: 13 carry a visit and every one of them points at a Programme note, no
   note anywhere contains the string `cohort`, and the 30 key company schema has no cohort field, so
