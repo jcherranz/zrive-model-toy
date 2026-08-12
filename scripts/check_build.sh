@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Rebuild the drawing and refuse any difference from the committed file.
+# Rebuild the drawing and refuse any difference from the snapshot git holds.
 #
 # WHY THIS EXISTS. Issue 61. Nothing in CI ran the build. The generated documents were
 # committed and deployed exactly as they sat in the tree, and two guarantees this repository
@@ -19,11 +19,25 @@
 # WHAT IT CHECKS, and the argument for each.
 #
 #   1. BOTH DOCUMENTS REPRODUCE. site/instance.js and site/layout.js are deleted, the real
-#      builder is run, and each file it writes is compared byte for byte with the bytes that
-#      were there. Deleting first is the poka-yoke: a builder that silently wrote nothing would
+#      builder is run, and each file it writes is compared byte for byte with the snapshot git
+#      holds. Deleting first is the poka-yoke: a builder that silently wrote nothing would
 #      otherwise be indistinguishable from one that wrote the same bytes, and the check would
 #      report clean about a run that produced nothing. Both files are always put back, whatever
 #      happens, because a check that dirties the tree it checks is a check nobody runs twice.
+#
+#      AND THE BASELINE IS READ OUT OF GIT, WHICH IT WAS NOT. Issue 103 row B10. This file said
+#      the word "committed" seven times and never once consulted git. It copied the WORKING TREE
+#      copy aside, deleted it, rebuilt, and compared against that copy, so the sentence it
+#      actually established was "the file on disk is what the builder just produced" while the
+#      sentence it printed was "the committed drawing is the build's own output". Those are two
+#      different sentences and the audit proved it by returning a clean verdict, exit 0, over a
+#      modified and uncommitted site/instance.js: the hand edit was saved aside, the rebuild
+#      reproduced it because the check had made it the baseline, and the gate called the tree
+#      clean about bytes no commit had ever seen. See BASELINES below for which snapshot is read
+#      now and why, and note that the defect was a false LOCAL reassurance: in CI the workspace
+#      is the commit, so all three snapshots agree there and the sentence was true where it did
+#      not matter. As of issue 103 scripts/verify.sh runs this gate before a push, which is the
+#      run the false sentence misled.
 #
 #   2. THE LABEL WIDTH TABLE COVERS EVERY STRING THE LAYOUT MEASURES, and this is deliberately
 #      NOT a byte diff. build/label_widths.json is generated, but by build/measure_labels.py
@@ -59,11 +73,16 @@
 #      control with a single thing changed, and the refusal read for the id, the edge and the
 #      counts it is supposed to name rather than only for its exit code.
 #
-#      WHERE THIS WOULD HAVE GONE IF THE FENCES WERE DIFFERENT: beside step 4 of
-#      scripts/verify.sh, which is where the provenance self-test sits and where a reader would
-#      look for it. verify.sh already exercises the LIVE structure gate at its step 3, because
-#      that step runs the builder and the builder calls it. What verify.sh does not do is prove
-#      the gate fires. One line there would close it and it is recorded in the report on #102.
+#      WHERE THIS WOULD HAVE GONE IF THE FENCES WERE DIFFERENT: beside the provenance self-test
+#      in scripts/verify.sh, which is where a reader would look for it. That was written when
+#      verify.sh carried its own copy of the build comparison and ran neither this file nor its
+#      self-test. It no longer holds and it is recorded rather than deleted, because it names the
+#      reason the self-test lives here: verify.sh exercises the LIVE structure gate whenever it
+#      runs the builder, and it did not prove the gate fires. Issue 103 closed that from the
+#      other side. verify.sh now runs this file and then runs it again with --self-test, so both
+#      halves are in the run a contributor makes before pushing. Deliberately not written here as
+#      a step number: two of this repository's cross-references to verify.sh step numbers went
+#      stale the first time a step was inserted in the middle (issue 106 E4).
 #
 # WHAT THE BUILDER TOUCHES, established by running it on a clean tree rather than assumed.
 # It reads build/model.py, build/label_widths.json, site/app.css and the name gate's rules in
@@ -73,11 +92,40 @@
 # site/board.json, which is what makes this safe to run on a board sync commit; see the header
 # of .github/workflows/build.yml.
 #
+# BASELINES. WHICH SNAPSHOT OF A GENERATED DOCUMENT THIS CHECK COMPARES AGAINST, AND WHY.
+#
+# A tracked path exists in three places and they are three different questions. The working tree
+# is what is on disk. The INDEX is what a commit will carry. HEAD is what the repository already
+# carries. They diverge exactly when somebody edits without committing, which is the ordinary
+# state of a working session, and it is the state this gate is read in.
+#
+#   THE INDEX IS THE BASELINE. "What I am about to commit is the build's own output" is the
+#   question worth asking of a gate that runs before a push, and the index is the git side of
+#   that question. HEAD answers a question about the past: it is a useful thing to know and it is
+#   not what a contributor is deciding. Reading `git cat-file blob :site/instance.js` rather than
+#   the disk is the whole of the repair.
+#
+#   AND THE DISK COPY IS CHECKED AGAINST THE INDEX AS WELL, because in this repository a commit
+#   is made with an explicit path, `git commit -- site/instance.js`, which stages the copy on
+#   disk at commit time. So a disk copy that differs from the index is also a commit candidate,
+#   and it is precisely the audit's scenario. When they differ this check refuses and names the
+#   working tree, rather than answering about one snapshot while the other is the one that ships.
+#   The everyday fix is one `git add` and the refusal says so.
+#
+#   AND IT DEGRADES BY NAMING, NEVER BY GUESSING. Untracked path, no repository at all, or a blob
+#   git will not hand over: the baseline falls back to the working tree, every finding and the
+#   verdict say WORKING TREE, and the word "committed" is not printed about bytes that were not
+#   read out of git. This is scripts/forbidden_lib.sh's FORBIDDEN_ORIGIN discipline, whose
+#   comment is the argument: "the file is clean" and "what you are about to commit is clean" are
+#   two different sentences and a finding has to say which one it is about. A gate that cannot
+#   tell you which snapshot it read has told you less than it claims.
+#
 # Usage:
-#   scripts/check_build.sh              rebuild and compare
+#   scripts/check_build.sh              rebuild and compare against the snapshot git holds
 #   scripts/check_build.sh --self-test  prove the check refuses a bad input before believing it
 #
-# Exit: 0 clean, 1 a difference or a missing width.
+# Exit: 0 clean, 1 a difference, a divergent working tree or a missing width, 2 the check could
+# not establish a baseline at all and is not evidence of anything.
 
 set -uo pipefail
 
@@ -93,22 +141,75 @@ BUILDER="build/build_layout.py"
 WIDTHS_DEFAULT="build/label_widths.json"
 
 # ---------------------------------------------------------------------------------------------
+# Which snapshot the baseline came from. See BASELINES in the header for the argument.
+# ---------------------------------------------------------------------------------------------
+# Three tokens and nothing else is ever used as one: `index`, `head`, `worktree`. Every finding
+# and the verdict are labelled with one of them, and `worktree` is the one that must never be
+# dressed up, because a working-tree baseline is not a statement about anything committed.
+baseline_source() {  # path -> index | head | worktree
+  local g="$1"
+  git rev-parse --git-dir >/dev/null 2>&1 || { printf 'worktree\n'; return 0; }
+  if git rev-parse -q --verify ":$g" >/dev/null 2>&1; then printf 'index\n'; return 0; fi
+  if git rev-parse -q --verify "HEAD:$g" >/dev/null 2>&1; then printf 'head\n'; return 0; fi
+  printf 'worktree\n'
+}
+
+# The phrase a verdict is allowed to use about each of them.
+#
+# THE WORD "committed" IS RESERVED. It appears in no line this file prints while the baseline is
+# the working tree, not even in a sentence disclaiming it, which is what makes the absence
+# mechanically checkable: the self-test asserts the literal never occurs in a working-tree
+# finding or verdict. A disclaimer a probe cannot distinguish from a claim is worth less than the
+# rule it is trying to state.
+baseline_phrase() {  # source -> prose
+  case "$1" in
+    index)    printf 'in the index (what a commit will carry)\n' ;;
+    head)     printf 'at HEAD (what the repository holds; this path is in no index)\n' ;;
+    worktree) printf 'in the WORKING TREE (git was not asked)\n' ;;
+    *)        printf 'from an unnamed snapshot\n' ;;
+  esac
+}
+
+# Put the baseline bytes in a file. Non-zero means the snapshot could not be read, which is an
+# abort and not a clean verdict: a check that cannot obtain the bytes it compares against has
+# nothing to say.
+baseline_read() {  # path source dest
+  case "$2" in
+    index)    git cat-file blob ":$1" >"$3" 2>/dev/null ;;
+    head)     git cat-file blob "HEAD:$1" >"$3" 2>/dev/null ;;
+    worktree) [ -f "$1" ] && cp "$1" "$3" ;;
+    *)        return 1 ;;
+  esac
+}
+
+# ---------------------------------------------------------------------------------------------
 # The report. One function, so the self-test exercises the same text CI prints.
 # ---------------------------------------------------------------------------------------------
 # It takes the two files as arguments rather than reading the tree itself, which is what lets
 # the
 # self-test hand it a tampered pair without going anywhere near the working tree.
+#
+# THE ORIGIN IS AN ARGUMENT AND IT HAS NO DEFAULT. Issue 103 row B10. A default here would be a
+# word this function prints about bytes whose provenance it was never told, which is the defect
+# rather than the repair, so a caller that forgets it gets an abort and not a plausible sentence.
 report_difference() {
-  local expected="$1" actual="$2" named="$3"
+  local expected="$1" actual="$2" named="$3" origin="${4:-}"
+  if [ -z "$origin" ]; then
+    echo "ASSERTION FAILED: report_difference was given no snapshot name for ${named}." >&2
+    echo "  This check reports which snapshot it read. It will not print a finding it cannot" >&2
+    echo "  attribute; that is the defect issue 103 row B10 is about." >&2
+    return 2
+  fi
   if cmp -s "$expected" "$actual"; then
     return 0
   fi
-  echo "::error::${named} is not what ${BUILDER} produces"
+  echo "::error::the ${origin} copy of ${named} is not what ${BUILDER} produces"
   echo
-  echo "  ${named} is GENERATED and it does not match the output of ${BUILDER}."
-  printf '    committed  %s bytes  sha256 %s\n' \
+  echo "  ${named} is GENERATED and the copy in the ${origin} does not match the output of"
+  echo "  ${BUILDER}. This finding is about the ${origin} copy and about no other."
+  printf '    %-9s  %s bytes  sha256 %s\n' "$origin" \
     "$(wc -c <"$expected")" "$(sha256sum <"$expected" | cut -c1-16)"
-  printf '    rebuilt    %s bytes  sha256 %s\n' \
+  printf '    %-9s  %s bytes  sha256 %s\n' "rebuilt" \
     "$(wc -c <"$actual")" "$(sha256sum <"$actual" | cut -c1-16)"
   # The offset, and the bytes around it. Each document is one very long line, so a diff says
   # nothing
@@ -120,11 +221,12 @@ report_difference() {
   if [ -n "$off" ]; then
     echo "    first difference at byte ${off}"
     from=$(( off > 40 ? off - 40 : 1 ))
-    printf '      committed  ...%s...\n' "$(tail -c "+${from}" "$expected" | head -c 90 | tr -d '\n')"
-    printf '      rebuilt    ...%s...\n' "$(tail -c "+${from}" "$actual" | head -c 90 | tr -d '\n')"
+    printf '      %-9s  ...%s...\n' "$origin" "$(tail -c "+${from}" "$expected" | head -c 90 | tr -d '\n')"
+    printf '      %-9s  ...%s...\n' "rebuilt" "$(tail -c "+${from}" "$actual" | head -c 90 | tr -d '\n')"
   fi
   echo
-  echo "  THE FIX: run  python3 ${BUILDER}  and commit the ${named} it writes."
+  echo "  THE FIX: run  python3 ${BUILDER}  and \`git add\` the ${named} it writes, so that the"
+  echo "  snapshot this check reads is the snapshot a commit will carry."
   echo
   echo "  DO NOT edit ${named} by hand. It is the build's output. Every gate in this repository"
   echo "  measures the source and not the drawing: the contrast gate reads the palette out of"
@@ -134,28 +236,123 @@ report_difference() {
 }
 
 # ---------------------------------------------------------------------------------------------
-# 1. The drawing reproduces.
+# 1. The drawing reproduces, and the thing it reproduces is a snapshot git holds.
 # ---------------------------------------------------------------------------------------------
+# The disk copy is still saved and put back, because the rebuild deletes it. It is no longer the
+# baseline. It is now a THIRD set of bytes that has to agree with the baseline, and the reason is
+# in BASELINES in the header: `git commit -- <path>` stages the disk copy, so a divergent disk
+# copy is a commit candidate that no rebuild produced.
 SAVEDIR=""
+BASEDIR=""
+BASE_SRC=()          # parallel to GENERATED: index | head | worktree
+BASELINE_ORIGIN=""   # the one word, or "mixed" if the documents did not agree
 restore_graph() {
   if [ -n "$SAVEDIR" ] && [ -d "$SAVEDIR" ]; then
     local g
     for g in "${GENERATED[@]}"; do
-      [ -f "$SAVEDIR/$(basename "$g")" ] && cp "$SAVEDIR/$(basename "$g")" "$g"
+      if [ -f "$SAVEDIR/$(basename "$g")" ]; then
+        cp "$SAVEDIR/$(basename "$g")" "$g"
+      elif [ -f "$SAVEDIR/absent-$(basename "$g")" ]; then
+        # It was not on disk when this check started and it is not left behind by it.
+        rm -f "$g"
+      fi
     done
     rm -rf "$SAVEDIR"
     SAVEDIR=""
   fi
+  [ -n "$BASEDIR" ] && rm -rf "$BASEDIR"
+  BASEDIR=""
   return 0
 }
 trap restore_graph EXIT INT TERM
 
+# Establish the baseline BEFORE anything is deleted, and abort rather than fall back silently.
+# Exit 2, which scripts/verify.sh reads as an abort and not as a decline: a check that could not
+# get the bytes it compares against is not evidence of anything.
+resolve_baselines() {
+  local g src
+  BASE_SRC=()
+  BASEDIR="$(mktemp -d)"
+  for g in "${GENERATED[@]}"; do
+    src="$(baseline_source "$g")"
+    if ! baseline_read "$g" "$src" "$BASEDIR/$(basename "$g")"; then
+      echo "ASSERTION FAILED: the ${src} copy of ${g} could not be read, so there is no baseline"
+      echo "  to compare a rebuild against. This check reports which snapshot it read and it has"
+      echo "  read none, so it is aborting rather than judging the disk and calling it something"
+      echo "  else."
+      return 2
+    fi
+    BASE_SRC+=("$src")
+    printf '  baseline for %s: the %s copy\n' "$g" "$src"
+  done
+
+  BASELINE_ORIGIN="${BASE_SRC[0]}"
+  for src in "${BASE_SRC[@]}"; do
+    [ "$src" = "$BASELINE_ORIGIN" ] || BASELINE_ORIGIN="mixed"
+  done
+  if [ "$BASELINE_ORIGIN" = "worktree" ]; then
+    echo "  NOTE: git was not consulted for these bytes. Nothing this run prints is a statement"
+    echo "  about what is committed, and the verdict below says so."
+  fi
+  return 0
+}
+
+# The disk copy against the baseline. Its own function so the self-test can drive it with three
+# files, and so the live path and the self-test print the same text.
+report_worktree_divergence() {  # baseline worktree_copy named origin
+  local base="$1" wt="$2" named="$3" origin="$4"
+  [ "$origin" = "worktree" ] && return 0   # same bytes by construction; nothing to compare
+  if [ ! -f "$wt" ]; then
+    echo "::error::${named} is tracked in the ${origin} and is not on disk"
+    echo "  A commit made with an explicit path would carry the ${origin} copy unchanged, and"
+    echo "  nothing here has seen the bytes a reader of the working tree sees."
+    return 1
+  fi
+  if cmp -s "$base" "$wt"; then
+    return 0
+  fi
+  echo "::error::the working tree copy of ${named} is not the ${origin} copy this check judged"
+  echo
+  printf '    %-9s  %s bytes  sha256 %s\n' "$origin" \
+    "$(wc -c <"$base")" "$(sha256sum <"$base" | cut -c1-16)"
+  printf '    %-9s  %s bytes  sha256 %s\n' "worktree" \
+    "$(wc -c <"$wt")" "$(sha256sum <"$wt" | cut -c1-16)"
+  echo
+  echo "  The rebuild above was compared against the ${origin} copy, and that comparison is the"
+  echo "  only thing this check's verdict is about. The copy on disk is different bytes. In this"
+  echo "  repository a commit is made with an explicit path (\`git commit -- ${named}\`), which"
+  echo "  stages the copy on disk, so the bytes judged here and the bytes a commit would carry"
+  echo "  are not the same bytes and no verdict can cover both."
+  echo
+  echo "  THIS IS THE DEFECT ISSUE 103 ROW B10 IS ABOUT, SEEN FROM THE OTHER SIDE. Until that"
+  echo "  card, this check took the disk copy as its baseline and then called the result"
+  echo "  committed, so a hand edit sitting in the working tree was reproduced by a rebuild that"
+  echo "  had been handed it, and the gate returned clean, exit 0, over bytes no commit had seen."
+  echo
+  echo "  THE FIX: \`git add ${named}\` if the disk copy is the one you want, or \`git checkout --"
+  echo "  ${named}\` if it is not. Do not edit ${named} by hand either way; it is the build's"
+  echo "  output and every gate here measures the source rather than the drawing."
+  return 1
+}
+
 check_reproducible() {
-  local rc log g bad=0
+  local rc log g i bad=0
+
+  resolve_baselines
+  rc=$?
+  if [ "$rc" -ne 0 ]; then
+    restore_graph
+    return "$rc"
+  fi
+
   log="$(mktemp)"
   SAVEDIR="$(mktemp -d)"
   for g in "${GENERATED[@]}"; do
-    cp "$g" "$SAVEDIR/$(basename "$g")"
+    if [ -f "$g" ]; then
+      cp "$g" "$SAVEDIR/$(basename "$g")"
+    else
+      : >"$SAVEDIR/absent-$(basename "$g")"
+    fi
     # Deleted on purpose. See the poka-yoke note in the header.
     rm -f "$g"
   done
@@ -171,7 +368,8 @@ check_reproducible() {
     return 1
   fi
 
-  for g in "${GENERATED[@]}"; do
+  for i in "${!GENERATED[@]}"; do
+    g="${GENERATED[$i]}"
     if [ ! -f "$g" ]; then
       restore_graph
       echo "::error::${BUILDER} exited 0 and wrote no ${g}"
@@ -179,8 +377,15 @@ check_reproducible() {
       echo "  writes nothing cannot be mistaken for a build which writes the same bytes."
       return 1
     fi
-    if report_difference "$SAVEDIR/$(basename "$g")" "$g" "$g"; then
-      echo "  ${g} is byte identical after a rebuild"
+    if report_difference "$BASEDIR/$(basename "$g")" "$g" "$g" "${BASE_SRC[$i]}"; then
+      echo "  the ${BASE_SRC[$i]} copy of ${g} is byte identical to what the builder just produced"
+    else
+      bad=1
+    fi
+    if report_worktree_divergence \
+         "$BASEDIR/$(basename "$g")" "$SAVEDIR/$(basename "$g")" "$g" "${BASE_SRC[$i]}"; then
+      [ "${BASE_SRC[$i]}" = "worktree" ] || \
+        echo "  and the working tree copy of ${g} is that same ${BASE_SRC[$i]} copy"
     else
       bad=1
     fi
@@ -289,10 +494,49 @@ check_structure_live() { _model_says --structure; }
 check_structure_armed() { _model_says --structure-self-test; }
 
 # ---------------------------------------------------------------------------------------------
+# The verdict, which names the snapshot it is about.
+# ---------------------------------------------------------------------------------------------
+# A function rather than two echoes at the foot of the file, so the self-test can read the text
+# that ships and can assert what it must NOT say. The old verdict was two lines of prose ending
+# in "The committed drawing is the build's own output", printed unconditionally, and it was that
+# sentence and not the comparison that issue 103 row B10 filed.
+verdict() {  # clean|bad ; reads BASELINE_ORIGIN
+  local how="$1" origin="${BASELINE_ORIGIN:-}"
+  if [ -z "$origin" ]; then
+    echo "ASSERTION FAILED: no baseline snapshot was established, so there is no verdict to give."
+    return 2
+  fi
+  if [ "$how" = "clean" ]; then
+    echo "VERDICT: clean. The drawing $(baseline_phrase "$origin") is the build's own"
+    echo "         output, the working tree agrees with it, and the model it came from carries no"
+    echo "         repeated id, no dangling edge and no self-loop."
+  else
+    echo "VERDICT: the drawing $(baseline_phrase "$origin") is not the build's own"
+    echo "         output, or the working tree does not agree with it, or the model it was built"
+    echo "         from is not one a drawing can be made of."
+  fi
+  if [ "$origin" = "worktree" ]; then
+    echo "         READ THAT SNAPSHOT NAME. These bytes were not read out of git, so nothing above"
+    echo "         is a statement about what the repository holds or about what a commit"
+    echo "         would carry."
+  fi
+  return 0
+}
+
+# ---------------------------------------------------------------------------------------------
 # The self-test. Jidoka: prove the check refuses a bad input before believing it says clean.
 # ---------------------------------------------------------------------------------------------
 # It never touches the generated documents or build/label_widths.json. The byte-difference cases run
-# against temporary copies, and the coverage cases run against a temporary table.
+# against temporary copies, the coverage cases run against a temporary table, and the snapshot
+# cases run inside throwaway repositories built under mktemp.
+#
+# THE INTENDED PROBE COUNT IS WRITTEN BY HAND. Issue 103 row B1, applied here because this suite
+# had the same hole: TOTAL is incremented by each probe as it executes, so PASS -eq TOTAL is
+# invariant under any probe deleted, commented out or never reached, and a suite emptied one
+# probe at a time prints a clean ratio all the way down to 0/0. A count taken from the run cannot
+# notice a probe that did not run. A short run exits 2, "the suite could not answer"; a run that
+# also recorded a failure reports it and exits 1.
+EXPECTED_PROBES=36
 PASS=0
 TOTAL=0
 probe() {
@@ -323,6 +567,44 @@ probe_says() {
   fi
 }
 
+# The negative of the above, and it is the shape row B10 needs. "It printed the right word" and
+# "it did not print the wrong word" are different assertions, and the defect was entirely in the
+# second: the old text named a snapshot it had not read, which no positive probe can catch.
+probe_says_not() {
+  local needle="$1" name="$2"; shift 2
+  local out
+  out="$("$@" 2>&1)"
+  TOTAL=$((TOTAL + 1))
+  if printf '%s' "$out" | grep -qF -- "$needle"; then
+    printf '  [FAIL] %s (the report said %s)\n' "$name" "$needle"
+    printf '%s\n' "$out" | grep -F -- "$needle" | sed 's/^/         /'
+  else
+    PASS=$((PASS + 1))
+    printf '  [OK]   %s\n' "$name"
+  fi
+}
+
+# A throwaway repository, so the snapshot probes never go near the tree being checked. It carries
+# one committed file whose name is the one this check reads, so `baseline_source` is answering the
+# same question in the probe as it answers live.
+scratch_repo() {  # dir
+  local d="$1"
+  mkdir -p "$d/site"
+  git -c init.defaultBranch=main init -q "$d" >/dev/null 2>&1 || return 1
+  printf 'window.GI={"a":1};\n' >"$d/site/instance.js"
+  git -C "$d" add site/instance.js >/dev/null 2>&1 || return 1
+  git -C "$d" -c user.email=probe@invalid -c user.name=probe \
+      commit -q -m probe -- site/instance.js >/dev/null 2>&1 || return 1
+  return 0
+}
+
+# baseline_source and baseline_read read git relative to the current directory, so a probe about
+# another repository has to stand in it. Run in a subshell, so the cd cannot escape.
+in_dir() {  # dir cmd...
+  local d="$1"; shift
+  ( cd "$d" && "$@" )
+}
+
 self_test() {
   local dir a b
   dir="$(mktemp -d)"
@@ -334,22 +616,41 @@ self_test() {
 
   echo "self-test: the drawing comparison"
   probe 0 "an identical pair was reported clean" \
-        report_difference "$a" "$b" "${GENERATED[0]}"
+        report_difference "$a" "$b" "${GENERATED[0]}" index
 
   # One byte, which is the size of the edit this check exists to catch: a colour nudged, a
   # digit changed, a letter added to a label.
   printf 'window.GL={"a":2};\n' >"$b"
   probe 1 "a one byte difference was refused" \
-        report_difference "$a" "$b" "${GENERATED[0]}"
+        report_difference "$a" "$b" "${GENERATED[0]}" index
   probe_says "${GENERATED[0]}" "the refusal named the file" \
-        report_difference "$a" "$b" "${GENERATED[0]}"
+        report_difference "$a" "$b" "${GENERATED[0]}" index
   probe_says "python3 $BUILDER" "the refusal said to run the builder" \
-        report_difference "$a" "$b" "${GENERATED[0]}"
+        report_difference "$a" "$b" "${GENERATED[0]}" index
   probe_says "DO NOT edit ${GENERATED[0]} by hand" "the refusal said not to edit the drawing" \
-        report_difference "$a" "$b" "${GENERATED[0]}"
+        report_difference "$a" "$b" "${GENERATED[0]}" index
 
   : >"$b"
   probe 1 "an empty rebuild was refused rather than read as a small drawing" \
+        report_difference "$a" "$b" "${GENERATED[0]}" index
+
+  echo
+  echo "self-test: the finding says which snapshot it read"
+  # Issue 103 row B10. Every probe in this block fails against the body this check had before
+  # that card: report_difference took three arguments, ignored a fourth, and printed the word
+  # "committed" over bytes it had copied off the disk.
+  printf 'window.GL={"a":2};\n' >"$b"
+  probe_says "index" "a finding about the index said index" \
+        report_difference "$a" "$b" "${GENERATED[0]}" index
+  probe_says_not "committed" "a finding about the index did not call it committed" \
+        report_difference "$a" "$b" "${GENERATED[0]}" index
+  probe_says "worktree" "a finding about the disk said worktree" \
+        report_difference "$a" "$b" "${GENERATED[0]}" worktree
+  probe_says_not "committed" "a finding about the disk did not call it committed" \
+        report_difference "$a" "$b" "${GENERATED[0]}" worktree
+  # And a caller that names no snapshot gets an abort rather than a plausible sentence, which is
+  # the only way a default can be kept out of a text whose whole subject is attribution.
+  probe 2 "a finding with no snapshot named was refused rather than printed" \
         report_difference "$a" "$b" "${GENERATED[0]}"
 
   echo
@@ -410,9 +711,78 @@ PY
         check_structure_armed
   probe 0 "the model's own graph passed the live check" check_structure_live
 
+  echo
+  echo "self-test: the baseline is taken from git, and is named when it is not"
+  # Issue 103 row B10, the half the finding text cannot cover: WHERE the bytes come from. These
+  # run inside throwaway repositories under mktemp, so the tree being checked is never touched
+  # and never has to be dirtied to prove the point.
+  local repo bare
+  repo="$dir/repo"
+  bare="$dir/norepo"
+  if scratch_repo "$repo"; then
+    probe_says "index" "a tracked path takes its baseline from the index" \
+          in_dir "$repo" baseline_source site/instance.js
+    probe_says_not "worktree" "and does not fall back to the disk while an index entry exists" \
+          in_dir "$repo" baseline_source site/instance.js
+
+    # The audit's own scenario, in miniature: the disk copy edited and nothing committed. The
+    # index still holds the original, so the baseline does not move with the edit, which is the
+    # entire defect. Before this card the check copied the edited disk file aside and compared a
+    # rebuild against THAT.
+    printf 'window.GI={"a":999};\n' >"$repo/site/instance.js"
+    probe_says "index" "an edited but unstaged path still takes its baseline from the index" \
+          in_dir "$repo" baseline_source site/instance.js
+    probe_says "999" "and the disk copy is the one that carries the edit" \
+          cat "$repo/site/instance.js"
+    in_dir "$repo" baseline_read site/instance.js index "$dir/frombaseline.js"
+    probe_says_not "999" "the baseline read out of the index does not carry the working tree edit" \
+          cat "$dir/frombaseline.js"
+    probe 1 "and the divergence between them was refused, not reported clean" \
+          report_worktree_divergence "$dir/frombaseline.js" "$repo/site/instance.js" \
+          "${GENERATED[0]}" index
+    probe_says "working tree" "the refusal named the working tree" \
+          report_worktree_divergence "$dir/frombaseline.js" "$repo/site/instance.js" \
+          "${GENERATED[0]}" index
+
+    # A path git has never been told about. There is no snapshot to read and the check must say
+    # so rather than quietly judging the disk under a git-sounding name.
+    printf 'window.GI={};\n' >"$repo/site/untracked.js"
+    probe_says "worktree" "an untracked path is named as the working tree" \
+          in_dir "$repo" baseline_source site/untracked.js
+  else
+    printf '  [FAIL] the scratch repository could not be built, so the snapshot probes did not run\n'
+    TOTAL=$((TOTAL + 8))
+  fi
+
+  # No repository at all. A tarball, an unpacked artefact, a directory somebody copied.
+  mkdir -p "$bare/site"
+  printf 'window.GI={};\n' >"$bare/site/instance.js"
+  probe_says "worktree" "with no repository at all the baseline is named as the working tree" \
+        in_dir "$bare" baseline_source site/instance.js
+
+  echo
+  echo "self-test: the verdict says which snapshot it is about"
+  BASELINE_ORIGIN=index
+  probe_says "in the index" "a clean verdict over the index said so" verdict clean
+  probe_says_not "committed" "a clean verdict over the index did not say committed" verdict clean
+  BASELINE_ORIGIN=worktree
+  probe_says "WORKING TREE" "a clean verdict over the disk named the working tree" verdict clean
+  probe_says_not "committed" "a clean verdict over the disk did not say committed" verdict clean
+  probe_says_not "committed" "and neither did a refusal over the disk" verdict bad
+  BASELINE_ORIGIN=""
+  probe 2 "a verdict with no baseline established was refused rather than printed" verdict clean
+  BASELINE_ORIGIN=""
+
   rm -rf "$dir"
   echo
-  echo "self-test: ${PASS}/${TOTAL}"
+  # The count is asserted against the constant at the top, not against itself. See the note there.
+  echo "self-test: ${PASS}/${TOTAL}, of ${EXPECTED_PROBES} intended"
+  if [ "$TOTAL" -ne "$EXPECTED_PROBES" ]; then
+    echo "ASSERTION FAILED: this suite intends ${EXPECTED_PROBES} probes and ${TOTAL} ran."
+    echo "  A suite that counts only what executed cannot notice a probe that did not. Fix the"
+    echo "  suite, or change EXPECTED_PROBES in the same commit that changes the probes."
+    return 2
+  fi
   [ "$PASS" -eq "$TOTAL" ]
 }
 
@@ -426,8 +796,19 @@ fi
 
 bad=0
 
-echo "== the committed drawing is what the builder produces"
-check_reproducible || bad=1
+# The banner does not name a snapshot, because which snapshot this is depends on what git says
+# and git has not been asked yet. resolve_baselines prints one line per document naming it, and
+# the verdict at the foot repeats it. A heading that named a snapshot before the lookup would be
+# the same class of sentence as the one this card is about.
+echo "== the drawing git holds is what the builder produces"
+check_reproducible
+rc=$?
+if [ "$rc" -eq 2 ]; then
+  echo
+  echo "ABORTED: no baseline. Nothing below was run and nothing here is evidence."
+  exit 2
+fi
+[ "$rc" -eq 0 ] || bad=1
 
 echo
 echo "== the width table covers every string the layout measures"
@@ -443,10 +824,8 @@ check_structure_armed || bad=1
 
 echo
 if [ "$bad" -ne 0 ]; then
-  echo "VERDICT: the build does not reproduce what is committed, or the model it was built "
-  echo "         from is not one a drawing can be made of."
+  verdict bad
   exit 1
 fi
-echo "VERDICT: clean. The committed drawing is the build's own output, and the model it came "
-echo "         from carries no repeated id, no dangling edge and no self-loop."
+verdict clean
 exit 0
