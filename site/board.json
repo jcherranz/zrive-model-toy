@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T18:01:43Z",
+  "generated": "2026-08-12T18:18:51Z",
   "columns": [
     {
       "key": "raw",
@@ -41,15 +41,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/115"
         },
         {
-          "id": 116,
-          "title": "One glyph changed repaints 91 tiles across nine of the fourteen drawings, with all fourteen digests unchanged and verify.sh clean",
-          "labels": [
-            "audit",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/116"
-        },
-        {
           "id": 118,
           "title": "The suite never loads a document cold at any address but the default, so every deep link can be broken and stay at 177 of 177",
           "labels": [
@@ -72,6 +63,15 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/114"
+        },
+        {
+          "id": 116,
+          "title": "One glyph changed repaints 91 tiles across nine of the fourteen drawings, with all fourteen digests unchanged and verify.sh clean",
+          "labels": [
+            "audit",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/116"
         },
         {
           "id": 117,
