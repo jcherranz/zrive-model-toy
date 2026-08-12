@@ -4,6 +4,7 @@
 # the session titles (published on the company's own public website) and the names of firms
 # that are companies rather than people. All teacher names are invented. All identifiers,
 # dates, counts and money figures are invented. No value in this file is measured.
+import collections
 import copy
 import datetime
 import hashlib
@@ -240,19 +241,89 @@ APTO = ("fresh", "aging")
 # `fresh`, `fresh` is apto, and a value fit to act on inside a document whose stance is invented
 # is refused by the rule above and should be. The syllabus is not on the machine that builds this
 # in CI, so the honest state is `unread`: real, and not fit to act on.
-# The property keys whose values may carry the `real` flag on a document whose stance is
-# invented, because they are the only ones read off anything: the vault's own syllabus
-# frontmatter, re-read and refused on drift by check_module_structure() on any machine that holds
-# it. Everything else on this page was made up.
-#
-# ISSUE 89 ADDED THREE, and every one of them is the same corpus at module altitude rather than a
-# new kind of claim: `module_code` is the vault's `module` field, `module` on a delivery is that
-# field and its `module_name` together, and `in_the_syllabus` is how many rows of the syllabus
-# carry that code, which is what SYLLABUS_MODULES counts and what the vault is re-counted
-# against. The rule is unchanged and still refuses a `real` chip on any key not in this tuple;
-# what moved is the list of values there is a source for.
-SYLLABUS_KEYS = ("module_name", "sequence", "modules", "module_code", "module", "in_the_syllabus")
 SYLLABUS_RANK = OBSERVED
+
+# ---- what "has a stated source" means, mechanically. Issue 118, audit round 6 F27 -----------
+# THE RULE USED TO BE A LIST OF SIX WORDS AND THE AUDIT WALKED THROUGH IT. `real-flag-needs-a-
+# source` tested one thing: whether the row's key was one of `module_name`, `sequence`,
+# `modules`, `module_code`, `module`, `in_the_syllabus`. So issue 104's flagship mutation, a
+# Programme row of invented prose forced to `real` at rank `3_observed`, shipped green the
+# moment the row was RENAMED to `module`. The escape was to spell a key differently, which
+# costs nothing, rather than to forge a source, which is the thing the rule is about. A six
+# name allowlist is a weaker rule than the card claims, and it fails in the cheap direction.
+#
+# AND THE LIMIT IS STATED FIRST, because a check whose reach is oversold is what this repository
+# is named for. NOTHING HERE CAN PROVE A VALUE IS REAL. The vault these rows are read from is
+# not on the machine that builds this document in CI, so no gate here can open the corpus and
+# compare a string against it. What follows makes the claim STRUCTURAL instead: a `real` value
+# has to sit in a seat that a declared source says it produced, and every such seat is occupied
+# and accounted for.
+#
+# So a source is declared, in the document, and it says four things:
+#
+#   `corpus`      what was read. A sentence, because the reader of these bytes is a person.
+#   `read_on`     when it was read. Judged against the document's own as_of.
+#   `rechecked_by`  the gate that re-reads the corpus wherever the corpus exists and refuses a
+#                 drift. Named, so the claim joins to code rather than floating; and this build
+#                 refuses a source naming one of ITS OWN gates that did not run, which is the
+#                 seam a gate defined and never wired would otherwise hide.
+#   `covers`      which (node type, property key) seats the source filled, and `rank` and
+#                 `flags` are what it filled them with.
+#
+# THE THREE THINGS THAT MAKE THIS A RULE ABOUT THE SOURCE AND NOT ABOUT A SPELLING:
+#
+#   1. The pair is (TYPE, KEY) and not a bare key. A Programme row renamed `module` is not a
+#      ModuleDelivery's `module` row, and the audit's A3 is refused for that reason.
+#   2. A covered seat is a POPULATION and not a permission. Every node of a covered type carries
+#      each covered key EXACTLY ONCE, checked. So a row cannot join the population by taking its
+#      name: the seat is already occupied, two rows under one key is refused, and a covered seat
+#      left empty is refused as well, which is a deletion the old rule could not see either.
+#   3. The six names are now a CONSEQUENCE, and SYLLABUS_KEYS is gone rather than derived: a
+#      tuple nobody reads is the next thing somebody edits instead of the table. They fall out
+#      of `covers` and are printed from it when the gate refuses. Adding a value with a source
+#      is declaring where it came from and which seats it fills, not typing a word into a list.
+#
+# WHAT IS STILL REACHABLE, said plainly. Delete the genuine `modules` row off a Programme and
+# rename an invented row to `modules`, and the population is intact and the seat is forged. That
+# is the residual, it is irreducible without the corpus, and it is a different act from the one
+# this card closes: it forges the source's own row rather than renaming a row into a list. On
+# the machine that holds the vault, check_module_structure() re-reads and refuses the drift.
+#
+# THE DECLARATION SHIPS WITH THE DOCUMENT, like the rank, status, stance and flag vocabularies,
+# and for issue 72's reason: check_provenance() reads it off the document under judgement, so a
+# private deployment laid out through --instance is judged against the sources IT declares and
+# not against this toy's. A document declaring no source may carry no `real` value at all on an
+# invented stance, which is stricter than the tuple was and is the honest default.
+VALUE_SOURCES = {
+    "programme-syllabus": {
+        "corpus": "the programme syllabus notes in the owner's private vault, one note per "
+                  "session, carrying `module`, `module_name` and `sequence` in their "
+                  "frontmatter. The same corpus every session title on this page comes from",
+        "read_on": "2026-08-11",
+        "rechecked_by": "check_module_structure",
+        "rank": SYLLABUS_RANK,
+        # Two flags and not one, because an absence read off a real source is a reading and not
+        # a placeholder: eight session templates sit in no module and Z-CFA has no module
+        # structure at all, and those rows say so as `absent`. A covered row wearing any other
+        # flag is refused, which closes the downgrade direction on this population as well.
+        "flags": [R, A],
+        # The seats, and the whole of what may wear this source's flag. Issue 85 filled the
+        # SessionTemplate pair, issue 89 the three module-altitude types.
+        "covers": {
+            "Programme": ["modules"],
+            "SessionTemplate": ["module_name", "sequence"],
+            "Module": ["module_code", "module_name", "in_the_syllabus", "sequence"],
+            "ModuleDelivery": ["module"],
+        },
+    },
+}
+
+# The gates that re-read a corpus, filled in by the gates themselves when they run. A source
+# naming a gate this program defines and did not run is refused: the claim is that the corpus is
+# re-read wherever it exists, and a function nobody called re-reads nothing. A source naming a
+# gate this program does not define at all is a foreign document's own gate, and this one says
+# nothing about it rather than pretending to.
+RECHECK_GATES_RUN = set()
 
 FRESH_DAYS = 120
 AGING_DAYS = 240
@@ -1243,7 +1314,9 @@ WITHHELD_FIRM = {
 # loud when it could not check rather than passing in silence.
 SYLLABUS_DIR = pathlib.Path.home() / "Obsidian/02_areas/zrive/02_areas/20_academic/syllabi"
 SYLLABUS_SESSIONS = {"ZIB": 79, "ZCFA": 45, "ZPE": 36, "ZBL": 28, "ZSC": 25, "ZHR": 25, "ZDS": 22}
-SYLLABUS_COUNTED_ON = "2026-08-11"
+# One owner for one fact, issue 118: the date this corpus was read is declared once, in the
+# source block above, and shipped in the document. A second copy here is how two dates drift.
+SYLLABUS_COUNTED_ON = VALUE_SOURCES["programme-syllabus"]["read_on"]
 
 # ---- and the module structure inside them, issue 85 --------------------------
 # THE SYLLABUS NOTES HAVE CARRIED THIS SINCE BEFORE THIS REPOSITORY EXISTED AND THE DRAWING HAS
@@ -2127,6 +2200,9 @@ def check_syllabus_counts():
     that holds the vault and cannot run in CI, and a silent skip there would read exactly like a
     pass; HANSEI.md `2026-08-empty-input-reported-success` is the same failure in another gate.
     """
+    # Issue 118, and the same line check_module_structure carries: this is a gate that re-reads a
+    # corpus, and a source citing it by name is refused if this line was never reached.
+    RECHECK_GATES_RUN.add("check_syllabus_counts")
     keys = {s["key"] for s in PROGRAMMES}
     if keys != set(SYLLABUS_SESSIONS):
         raise SystemExit(f"model: SYLLABUS_SESSIONS declares "
@@ -2170,6 +2246,11 @@ def check_module_structure():
     carries that sequence. The second is what catches a template silently coming to claim
     somebody else's place in the syllabus, which is the failure a table typed by hand has.
     """
+    # Issue 118. VALUE_SOURCES names this function as the gate that re-reads its corpus, and
+    # check_provenance refuses that claim if this line was never reached. Recorded on entry
+    # rather than on the clean path, because the claim is that the corpus is re-read wherever it
+    # exists, and the branch below saying the vault is absent has honoured it.
+    RECHECK_GATES_RUN.add("check_module_structure")
     keys = {s["key"] for s in PROGRAMMES}
     for name, table in (("SYLLABUS_MODULES", SYLLABUS_MODULES), ("SYLLABUS_ROWS", SYLLABUS_ROWS)):
         if keys != set(table):
@@ -2195,7 +2276,6 @@ def check_module_structure():
         print(f"[model] module structure: the vault is not on this machine, so the module table "
               f"is unverified here. It was read on {SYLLABUS_COUNTED_ON}.", file=sys.stderr)
         return
-    import collections
     bad, rows_checked = [], 0
     for spec in PROGRAMMES:
         key = spec["key"]
@@ -4530,6 +4610,93 @@ def check_provenance(doc):
                               f"fresh window inside the aging one. Staleness has to be "
                               f"computable, which is the whole of what this block is for.")
 
+    # ---- the sources, and what "has a stated source" is allowed to mean. Issue 118 -----------
+    # Read off the DOCUMENT and not off this file, like the four vocabularies above, so an
+    # --instance document is judged against the sources it declares. See VALUE_SOURCES in this
+    # file for the argument; what follows is only the shape rule and the coverage map it builds.
+    #
+    # A document declaring nothing is legal and means what it says: nothing in it was read off
+    # anything, so nothing in it may wear the `real` chip on an invented stance. That is the
+    # honest default and it is stricter than the six name tuple this replaced.
+    sources = pr.get("sources")
+    if sources is None:
+        sources = {}
+    if not isinstance(sources, dict):
+        bad("source-declaration",
+            f"the provenance block's sources are {sources!r} and not a table of them, keyed by "
+            f"the name of the source. `real` means a value was read off something, and the "
+            f"something is what this block is for.")
+    covered = {}
+    for sname, spec in sorted(sources.items()):
+        where = f"source {sname!r}"
+        if not isinstance(spec, dict):
+            bad("source-declaration", f"{where} is {spec!r} and not a declaration.")
+        # The three things a source has to say about itself, and none of them is decoration.
+        # A corpus nobody named, a read nobody dated and a recheck nobody wired are three
+        # different ways of saying `real` and meaning nothing by it.
+        for field in ("corpus", "read_on", "rechecked_by"):
+            if not isinstance(spec.get(field), str) or not spec[field].strip():
+                bad("source-declaration",
+                    f"{where} states no {field!r}. A source is what was read, when it was read, "
+                    f"and the gate that re-reads it wherever the corpus exists; a declaration "
+                    f"missing any of the three is a word, and every value pointing at it would "
+                    f"carry a claim nobody can follow.")
+        try:
+            read_on = datetime.date.fromisoformat(spec["read_on"])
+        except ValueError:
+            read_on = None
+            bad("source-declaration",
+                f"{where} was read on {spec['read_on']!r}, which is not a date.")
+        if read_on > datetime.date.fromisoformat(as_of):
+            bad("source-declaration",
+                f"{where} was read on {spec['read_on']}, after this document was written on "
+                f"{as_of}. One of the two dates is wrong.")
+        # THE GATE IT NAMES HAS TO HAVE RUN, where this program is the one that owns it. A
+        # source citing a re-read that never happens is the drift class this repository has been
+        # bitten by five times: a rule declared in one place and not wired in the other. A name
+        # this program does not define at all belongs to a foreign document's own builder, and
+        # this gate says nothing about it rather than pretending to judge it.
+        gate = spec["rechecked_by"]
+        if gate in globals() and callable(globals()[gate]) and gate not in RECHECK_GATES_RUN:
+            bad("source-recheck-did-not-run",
+                f"{where} says {gate}() re-reads its corpus and refuses a drift, and this build "
+                f"recorded no re-read under that name. A gate that does not run re-reads "
+                f"nothing, and every value this source covers would be resting on it.")
+        if spec.get("rank") not in ranks:
+            bad("source-declaration",
+                f"{where} produced values at rank {spec.get('rank')!r}, which is not one of "
+                f"{sorted(ranks)}.")
+        if spec.get("rank") == INVENTED:
+            bad("source-declaration",
+                f"{where} produced values at rank {INVENTED!r}, whose own definition is that "
+                f"nothing was read. A source that read nothing is not a source.")
+        sflags = spec.get("flags")
+        if not isinstance(sflags, list) or not sflags or R not in sflags \
+                or any(f not in flags for f in sflags):
+            bad("source-declaration",
+                f"{where} declares the flags {sflags!r}. A source's rows are flagged from a "
+                f"closed list, every token of it in the document's own flag vocabulary, and "
+                f"{R!r} is in it or the source covers nothing this rule is about.")
+        covers = spec.get("covers")
+        if not isinstance(covers, dict) or not covers \
+                or not all(isinstance(t, str) and isinstance(ks, list) and ks
+                           and len(set(ks)) == len(ks)
+                           and all(isinstance(k, str) for k in ks)
+                           for t, ks in covers.items()):
+            bad("source-declaration",
+                f"{where} covers {covers!r}, which is not a set of property keys per node type. "
+                f"What a source produced is (type, key) seats and not a list of words: a bare "
+                f"key is a spelling any row can adopt, which is exactly what this rule stopped "
+                f"being in issue 118.")
+        for ntype, keys in sorted(covers.items()):
+            for k in keys:
+                if (ntype, k) in covered:
+                    bad("source-declaration",
+                        f"{where} and source {covered[(ntype, k)][0]!r} both claim to have "
+                        f"produced {k!r} on a {ntype}. Two sources for one seat means no row "
+                        f"there can say which one it came from.")
+                covered[(ntype, k)] = (sname, spec)
+
     classes = doc.get("routes", {}).get("classes", {})
     seen = 0
     # Issue 85's agenda. A top-level block, so the node walk below cannot see it, and this file
@@ -4585,6 +4752,26 @@ def check_provenance(doc):
             where = (f"{v['key']} node {n['id']}" if grain == "sessions"
                      else f"{v['key']} ({grain}) node {n['id']}")
             registry_rows = n.get("route") or 0
+            # ---- a covered seat is a population, issue 118 ----------------------------------
+            # THE PART THAT STOPS A ROW JOINING THE POPULATION BY TAKING ITS NAME. A source says
+            # it produced `modules` on every Programme, so every Programme has exactly one, and
+            # the seat is full before any other row reaches for it. Both directions are the
+            # rule: two rows under one covered key is the rename this card was filed about, and
+            # a covered key missing altogether is a deletion the old membership test could not
+            # see, since it only ever looked at the rows that were still there.
+            ntype = n.get("type")
+            if ntype is not None:
+                seat_count = collections.Counter(r.get("k") for r in n["props"])
+                for (ctype, ckey), (sname, _spec) in sorted(covered.items()):
+                    if ctype != ntype:
+                        continue
+                    if seat_count[ckey] != 1:
+                        bad("source-covers-a-population",
+                            f"{where} is a {ntype} and carries {seat_count[ckey]} rows keyed "
+                            f"{ckey!r}. Source {sname!r} declares it produced that value on "
+                            f"every {ntype}, exactly once. Two rows under one key is a row "
+                            f"taking a name that is already spoken for, and none at all is a "
+                            f"reading that has gone missing.")
             for i, row in enumerate(n["props"]):
                 seen += 1
                 at, rank = row.get("at"), row.get("r")
@@ -4642,19 +4829,37 @@ def check_provenance(doc):
                 # ABOVE THE STANCE GATE AND NOT BELOW IT, so that a dated syllabus row is refused
                 # for being dated rather than for the `fresh` that the date computes to. Both
                 # refusals are correct and only one of them names the defect.
-                syllabus_row = (i >= registry_rows and stance == "invented"
-                                and row["k"] in SYLLABUS_KEYS)
-                if syllabus_row and rank != SYLLABUS_RANK:
+                #
+                # ISSUE 118 CHANGED WHAT MAKES A ROW ONE OF THESE, and the two rules below are
+                # otherwise untouched. It used to be the key alone, which meant any row of any
+                # node could become a syllabus row by being renamed. It is now the SEAT: the
+                # (node type, key) pair a declared source says it produced, read off the
+                # document. `module` on a ModuleDelivery is a syllabus row and `module` on a
+                # Programme is not, which is the whole of the audit's A3.
+                src = covered.get((ntype, row["k"])) if ntype is not None else None
+                syllabus_row = (i >= registry_rows and stance == "invented" and src is not None)
+                if syllabus_row and rank != src[1]["rank"]:
                     bad("syllabus-row-not-observed",
-                        f"{what} is a syllabus value, read off the programme syllabus in the "
-                        f"vault, and it is ranked {rank!r}. It is not made up and it did not "
-                        f"come out of a system's own record, so its rank is {SYLLABUS_RANK!r}.")
+                        f"{what} is a value source {src[0]!r} says it read off {src[1]['corpus']}"
+                        f", and it is ranked {rank!r}. It is not made up and it did not come out "
+                        f"of a system's own record, so its rank is {src[1]['rank']!r}.")
                 if syllabus_row and at is not None:
                     bad("syllabus-row-carries-no-read-date",
-                        f"{what} is a syllabus value carrying the read date {at!r}. The vault is "
-                        f"not on the machine that builds this document, and a date here computes "
-                        f"fresh, which would make a value on an invented page read as fit to act "
-                        f"on.")
+                        f"{what} is a value from source {src[0]!r} carrying the read date "
+                        f"{at!r}. The corpus is not on the machine that builds this document, "
+                        f"and a date here computes fresh, which would make a value on an "
+                        f"invented page read as fit to act on.")
+                # AND THE OTHER DIRECTION OF THE SAME SEAT, issue 118. A source declares which
+                # flags its rows wear: `real` for what the corpus records, `absent` for what it
+                # records as nothing, and no third thing. Without this a covered row could be
+                # quietly downgraded to `dummy` and the reader would be told a value read off a
+                # real corpus was made up, which is the same lie pointing the other way.
+                if syllabus_row and row.get("f") not in src[1]["flags"]:
+                    bad("source-row-flag",
+                        f"{what} is a value source {src[0]!r} produced and it is flagged "
+                        f"{row.get('f')!r}. That source's rows wear "
+                        f"{' or '.join(sorted(src[1]['flags']))}: what the corpus records, or "
+                        f"that the corpus records nothing there.")
                 # ---- what `real` is allowed to mean, issue 104 ----------------------------
                 # AND THE LIMIT IS STATED FIRST, because a check whose reach is oversold is the
                 # failure this repository is named for. NOTHING HERE CAN PROVE A VALUE IS REAL.
@@ -4677,9 +4882,16 @@ def check_provenance(doc):
                 #   that has a source. Ranking alone does not close it: the four registry rows
                 #   are ranked `3_observed` too, so a route row flagged `real` clears the rule
                 #   above and would still be a made up chip, since what those rows cite is an
-                #   analysis of the systems and not the value itself. The population is the
-                #   syllabus keys at the syllabus rank, declared above, and adding one is adding
-                #   a key there rather than typing a flag onto a row.
+                #   analysis of the systems and not the value itself.
+                #
+                # AND ISSUE 118 REWROTE WHAT THAT POPULATION IS. It was six key names in a tuple
+                # in this file, so the audit renamed a row of invented prose to `module` and the
+                # flagship mutation shipped green: the escape was a spelling, not a forgery. The
+                # population is now the seats a source declared in the document itself, (type,
+                # key) pairs, each one filled exactly once on every node of that type by the
+                # rule above. Adding a value with a source is declaring the source, the corpus,
+                # the date it was read and the gate that re-reads it; it is no longer typing a
+                # word into a tuple, and a row cannot be renamed into a seat that is occupied.
                 #
                 # SCOPED TO THE INVENTED STANCE, like `toy-value-not-invented`, and for the same
                 # reason: a live document laid out through --instance is full of values read out
@@ -4698,14 +4910,15 @@ def check_provenance(doc):
                         f"value was made up, so the two halves of this row contradict each "
                         f"other and the half on the screen is the one that is wrong.")
                 if flag == R and stance == "invented" and not (
-                        i >= registry_rows and row["k"] in SYLLABUS_KEYS
-                        and rank == SYLLABUS_RANK):
+                        syllabus_row and rank == src[1]["rank"]):
+                    seats = ", ".join(f"{t}.{k}" for t, k in sorted(covered)) or "no seat at all"
                     bad("real-flag-needs-a-source",
                         f"{what} is flagged {R!r} on a document whose stance is invented. The "
-                        f"only values in such a document that were not made up are the syllabus "
-                        f"rows, {', '.join(sorted(SYLLABUS_KEYS))} at rank {SYLLABUS_RANK!r}, "
-                        f"and this row is not one of them. A `real` chip on a row with no stated "
-                        f"source is the one claim on this page a reader cannot check.")
+                        f"only values in such a document that were not made up are the ones a "
+                        f"declared source says it produced, and this document's sources produced "
+                        f"{seats}. A {row['k']!r} row on a {ntype} node is not one of them. A "
+                        f"`real` chip on a row with no stated source is the one claim on this "
+                        f"page a reader cannot check.")
                 st = value_status(rank, at, as_of, clock["fresh_days"], clock["aging_days"])
                 if st not in vocab["status"]:
                     bad("document-block", f"{what} computes to {st!r}, which the document's own "
@@ -5271,6 +5484,12 @@ def instance_document():
             "apto": list(APTO),
             "vocab": {"rank": VALUE_RANK, "status": VALUE_STATUS, "stance": STANCE,
                       "flag": VALUE_FLAG},
+            # Issue 118. The one population on this page that was read off something says what
+            # it was read off, when, which gate re-reads it, and which (type, key) seats it
+            # filled. It ships with the document for the reason every vocabulary here does:
+            # check_provenance() judges a document against the sources THAT DOCUMENT declares,
+            # so an --instance deployment states its own and this toy's tuple is not the law.
+            "sources": VALUE_SOURCES,
         },
         # ---- the invented session agenda, issue 85 --------------------------------------------
         "agenda": SESSION_AGENDA,
@@ -5301,7 +5520,7 @@ def instance_document():
 # How many probes each suite intends to run. Written by hand and asserted at the end of the run,
 # which is the whole point: a count taken from the run itself cannot notice a probe that is no
 # longer there. Edited together with the probes or not at all.
-PROVENANCE_PROBES = 37
+PROVENANCE_PROBES = 52
 STRUCTURE_PROBES = 22
 
 
@@ -5344,6 +5563,56 @@ def _probe(doc, row=None, node=None, prov=None, drop_prov=False, agenda=None, ro
     # a field can never build that document.
     if row_drop is not None:
         d["views"][0]["nodes"][0]["props"][row_drop[0]].pop(row_drop[1], None)
+    return d
+
+
+# ---- the second control document, issue 118 ---------------------------------
+# `real` is now reachable only through a seat a declared source says it filled, so a probe about
+# `real` needs a document that DECLARES ONE. This is that document: the control above with a
+# source over the node's own row, and the row filled the way the source says it filled it. Every
+# probe below is this document with one thing changed, which is the same discipline the first
+# control is held to.
+#
+# ITS KEY IS ONE OF THE SIX THE OLD RULE ALLOWED, deliberately. The probes that matter are the
+# ones the old body waved through, and the old body's whole test was the key name, so a probe
+# using a name it never heard of would prove nothing about what changed.
+PROBE_SOURCE_NAME = "probe-corpus"
+PROBE_SOURCES = {
+    PROBE_SOURCE_NAME: {
+        "corpus": "a corpus that is not on the machine this probe runs on",
+        "read_on": PROVENANCE_AS_OF,
+        # A name this program does not define, which is a foreign document's own gate: the rule
+        # about a recheck that did not run speaks only about gates THIS program owns, and the
+        # control has to sit on the side of that line where nothing is claimed.
+        "rechecked_by": "probe_recheck",
+        "rank": SYLLABUS_RANK,
+        "flags": [R, A],
+        "covers": {"Probe": ["module_name"]},
+    },
+}
+
+
+def _sourced(row=None, source=None, sources=None, add=None, node=None, drop_seat=False):
+    """The sourced control with one thing changed.
+
+    `source` edits the declaration, `sources` replaces the whole table, `row` edits the covered
+    seat, `add` appends a row to the node, and `drop_seat` renames the seat away so the seat the
+    source declared is empty.
+    """
+    src = copy.deepcopy(PROBE_SOURCES)
+    if source is not None:
+        src[PROBE_SOURCE_NAME].update(source)
+    if sources is not None:
+        src = sources
+    d = _probe("invented", node=dict(node or {}, type="Probe"), prov={"sources": src})
+    seat = d["views"][0]["nodes"][0]["props"][1]
+    seat.update({"k": "module_name", "v": "Inside consulting", "f": R, "r": SYLLABUS_RANK})
+    if drop_seat:
+        seat.update({"k": "not_the_seat", "v": "12", "f": D, "r": INVENTED})
+    if row is not None:
+        seat.update(row)
+    if add is not None:
+        d["views"][0]["nodes"][0]["props"].append(add)
     return d
 
 
@@ -5446,8 +5715,7 @@ def provenance_self_test():
     expect("agenda-row-not-dummy",
            _probe("invented", agenda={"by_template": {"t": [p("scope", "x", E)]}}),
            "an agenda line flagged as an estimate rather than as a stand-in")
-    expect_clean(_probe("invented", row=(1, {"k": "module_name", "v": "Inside consulting",
-                                             "f": R, "r": SYLLABUS_RANK})),
+    expect_clean(_sourced(),
                  "a syllabus value ranked observed and undated passes on an invented document")
     # The other side of the two flag rules, and without it they are a ban rather than a rule.
     # `real` is scoped to the invented stance for a reason, so a live document carrying it on an
@@ -5455,13 +5723,59 @@ def provenance_self_test():
     expect_clean(_probe("live", row=(1, {"r": OBSERVED, "at": "2026-08-01", "f": R})),
                  "a live document's read value flagged real passes, which is what the scoping "
                  "of the rule above claims")
-    expect("syllabus-row-not-observed",
-           _probe("invented", row=(1, {"k": "module_name", "v": "Inside consulting", "f": R})),
+    expect("syllabus-row-not-observed", _sourced(row={"r": INVENTED}),
            "a syllabus value ranked invented, which says the vault string was made up")
-    expect("syllabus-row-carries-no-read-date",
-           _probe("invented", row=(1, {"k": "sequence", "v": "7 of 25", "f": R,
-                                       "r": SYLLABUS_RANK, "at": "2026-08-08"})),
+    expect("syllabus-row-carries-no-read-date", _sourced(row={"at": "2026-08-08"}),
            "a syllabus value carrying a read date, which would compute fresh and read as apto")
+    # ---- what a stated source is, issue 118 -------------------------------------------------
+    # THE AUDIT'S A3 FIRST, because it is the reason this block exists. Every probe from here to
+    # the end of the group was ACCEPTED by the body this replaced: the old rule tested whether
+    # the row's key was one of six words, so a row of invented prose renamed `module` and ranked
+    # observed went through it wearing the real chip. Under a seat the answer is no: `module` on
+    # a node no source covers for `module` is a name, not a reading.
+    expect("real-flag-needs-a-source",
+           _sourced(add=p("module", "M04 a module nobody read", R, SYLLABUS_RANK)),
+           "a made up row RENAMED into one of the six key names the old rule allowed, ranked "
+           "observed on a node type no source covers for it. This is the audit's A3")
+    expect_clean(_sourced(row={"f": A, "v": "no module recorded in the syllabus"}),
+                 "a covered seat flagged absent passes, because an absence read off a real "
+                 "corpus is a reading and the source declares that flag")
+    expect("source-row-flag", _sourced(row={"f": D}),
+           "a covered seat downgraded to dummy, which tells the reader a value read off a real "
+           "corpus was made up")
+    expect("source-covers-a-population",
+           _sourced(add=p("module_name", "a second one", R, SYLLABUS_RANK)),
+           "two rows under one covered key, which is how a row joins a population by taking a "
+           "name that is already spoken for")
+    expect("source-covers-a-population", _sourced(drop_seat=True),
+           "a covered seat missing from a node of a covered type, which is a reading deleted "
+           "and no rule in the old body could see it")
+    expect("source-recheck-did-not-run",
+           _sourced(source={"rechecked_by": "module_stats"}),
+           "a source citing a gate this program defines and never recorded a re-read for")
+    expect("source-declaration", _sourced(source={"corpus": "  "}),
+           "a source that does not say what was read")
+    expect("source-declaration", _sourced(source={"rechecked_by": ""}),
+           "a source that names no gate to re-read it, so the drift it would catch is nobody's")
+    expect("source-declaration", _sourced(source={"read_on": "recently"}),
+           "a source read on something that is not a date")
+    expect("source-declaration", _sourced(source={"read_on": "2026-09-01"}),
+           "a source read after the document that cites it was written")
+    expect("source-declaration", _sourced(source={"rank": INVENTED}),
+           "a source producing values at the rank whose definition is that nothing was read")
+    expect("source-declaration", _sourced(source={"flags": [D]}),
+           "a source whose rows wear no flag this rule is about")
+    expect("source-declaration", _sourced(source={"covers": ["module_name"]}),
+           "a source covering a bare list of key names rather than a seat per node type, which "
+           "is the shape the whole of issue 118 is about")
+    expect("source-declaration",
+           _sourced(sources=dict(copy.deepcopy(PROBE_SOURCES),
+                                 **{"second-corpus": copy.deepcopy(
+                                     PROBE_SOURCES[PROBE_SOURCE_NAME])})),
+           "two sources claiming to have produced one seat, so no row in it can say which of "
+           "them it came from")
+    expect("source-declaration", _sourced(sources=["probe-corpus"]),
+           "a sources block that is a list of names rather than a table of declarations")
     expect("toy-value-not-invented", _probe("invented", row=(1, {"r": OBSERVED})),
            "one of the model's own made up values ranked as read")
     expect("official-needs-a-read", _probe("invented", row=(0, {"r": OFFICIAL})),
