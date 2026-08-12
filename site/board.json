@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T21:47:17Z",
+  "generated": "2026-08-12T21:48:09Z",
   "columns": [
     {
       "key": "raw",
@@ -27,7 +27,7 @@
         },
         {
           "id": 120,
-          "title": "I think that this header can be improved a lot if we start to think…",
+          "title": "The header is a nav bar carrying dashboard values, and the two are styled identically",
           "labels": [
             "bug",
             "feedback"
