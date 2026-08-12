@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T12:01:50Z",
+  "generated": "2026-08-12T12:06:37Z",
   "columns": [
     {
       "key": "raw",
@@ -74,16 +74,6 @@
       "title": "In progress",
       "cards": [
         {
-          "id": 98,
-          "title": "Redesign the header as a management tool: it names the view and says nothing about the state",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/98"
-        },
-        {
           "id": 102,
           "title": "The build accepts a duplicate node id and every static gate says clean",
           "labels": [
@@ -136,6 +126,16 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/99"
         },
         {
+          "id": 98,
+          "title": "Redesign the header as a management tool: it names the view and says nothing about the state",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/98"
+        },
+        {
           "id": 97,
           "title": "Not centered in the frame",
           "labels": [
@@ -184,19 +184,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/92"
-        },
-        {
-          "id": 91,
-          "title": "Cut the invented-value warnings back to one: six distinct copies on one screen",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/91"
         }
       ],
-      "hidden": 76,
+      "hidden": 77,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
