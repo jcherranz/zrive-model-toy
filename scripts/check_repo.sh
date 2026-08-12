@@ -730,7 +730,7 @@ raise SystemExit(1)' "$1" "$2" 2>/dev/null || true
 # distinction smoke.mjs draws between "the page has regressed" and "the suite could not answer".
 # A run that ALSO recorded a real MISS reports the MISS and exits 1, because evidence about the
 # gate beats a complaint about the harness.
-EXPECTED_PROBES=95
+EXPECTED_PROBES=120
 
 # How many cases build/model.py's stylesheet reader emits into the block below. Same argument,
 # and it lives here rather than in the emitter because here is where the cases are judged and
@@ -1366,6 +1366,174 @@ print([i["title"] for i in issues if i["number"] == 1][0])' "$tmp/issues.json")"
   else
     echo "  [MISS] a name rule that could not be run still let a board be written (exit $rc)"
   fi
+
+  echo
+  echo "self-test: the two implementations of one rule, put through the same input"
+
+  # WHY THIS SECTION EXISTS. Issue 117, and it is the fifth time one rule in two places has bitten
+  # this repository. build/safety_grep.py is the local, pre-push copy of the rules
+  # scripts/forbidden_lib.sh owns. Its header said so and the library's header said so, and the
+  # two copies of the token rule had NEVER been the same rule: the library folds with
+  # `tr -cs 'A-Za-z' '\n'`, so an underscore separates, and the Python copy searched the folded
+  # text for `\b` boundaries, where an underscore is a WORD character. A register name touching
+  # an underscore was refused by CI and reported clean by the gate a person runs before pushing.
+  # Measured at the SHA that filed it: 477 of 2607 distinct strings on the shipped page carry an
+  # underscore, and one invented name in thirteen placements scored 13 of 13 in the library and
+  # 6 of 13 in the Python copy, the seven misses being exactly the seven with an underscore in
+  # them.
+  #
+  # WHY IT IS A COMPARISON AND NOT A PATCH. The defect survived three readers, twice, each of
+  # whom confirmed the copies agreed by checking that a change was present in both files. That is
+  # a different claim from "they answer the same", and only the second one is checkable. Every
+  # probe below runs BOTH implementations, for real, through the interfaces they expose, and
+  # fails on a disagreement. Two copies that agree today are two copies that can drift tomorrow.
+  #
+  # THE DECLARED DISAGREEMENTS ARE ASSERTED IN BOTH DIRECTIONS, which is what keeps this from
+  # becoming a table of excuses: a probe that declares the Python copy stricter fails if the two
+  # ever agree, so closing one of them means editing this file in front of a reader.
+
+  local dtmp="$tmp/diff" dperson="Ada Kestrelvane" dhome="$tmp/reghome" dreg dhashes dtok
+  mkdir -p "$dtmp"
+  dhashes="$tmp/diff-hashes"
+  # Two payloads below are BUILT rather than typed, for the reason the uuid cap probe gives: a
+  # complete literal here is a payload this gate then finds in this file, and a declaration is a
+  # hole. Neither half is a match on its own.
+  local dhex='0123456789abcdef' ddot='.'
+
+  # ONE REGISTER, READ TWO WAYS. The library matches salted hashes of the folded tokens and the
+  # Python copy matches the plaintext it folds out of the register directory, so the two halves
+  # are built here from ONE string: the .md filename the Python gate reads, and the hash list the
+  # library reads, both derived from $dperson. A probe in which the two gates are looking for
+  # different names would answer about the fixture rather than about the rule. The register path
+  # is asked of the module rather than typed, the way scripts/verify.sh asks for it
+  # (KAIZEN.md `kaizen-a-computed-value-is-never-typed-twice`).
+  dreg="$(cd "$ROOT" && HOME="$dhome" python3 -c 'import sys; sys.path.insert(0, "build"); import safety_grep; print(safety_grep.FACULTY)')"
+  mkdir -p "$dreg"
+  : > "$dreg/$dperson - Kestrel Analytics.md"
+  printf '%s\n' "$dperson" | fold_tokens | while IFS= read -r dtok; do hash_token "$dtok"; done > "$dhashes"
+
+  # The corpus probes. `--fold-tokens` on either side answers with the folding ALONE, one token
+  # per line, sorted, with no register in it, which is what makes the two answers comparable at
+  # all. An empty answer from either side is a MISS and not a match: two implementations that
+  # both found nothing have agreed about nothing.
+  fold_diff() {  # name corpus-file
+    local name="$1" f="$2" a b
+    total=$((total + 1))
+    a="$(bash "$ROOT/scripts/forbidden_lib.sh" --fold-tokens < "$f" 2>/dev/null || true)"
+    b="$(cd "$ROOT" && python3 build/safety_grep.py --fold-tokens < "$f" 2>/dev/null || true)"
+    if [ -z "$a" ] || [ -z "$b" ]; then
+      echo "  [MISS] $name: one implementation answered nothing, so nothing was compared"
+    elif [ "$a" = "$b" ]; then
+      echo "  [OK]   $name: $(printf '%s\n' "$a" | wc -l) tokens, the two implementations identical"
+      pass=$((pass + 1))
+    else
+      echo "  [MISS] $name: the two implementations disagree on $(diff <(printf '%s\n' "$a") <(printf '%s\n' "$b") | grep -c '^[<>]') token(s)"
+    fi
+  }
+
+  # The bytes the public is served. The card's own instruction: the corpus is the real shipped
+  # strings, because there is no need for a synthetic one to find a disagreement.
+  ( cd "$ROOT" && find site -type f | sort | xargs cat ) > "$dtmp/site.txt" 2>/dev/null || true
+  fold_diff "the bytes the page ships" "$dtmp/site.txt"
+
+  # And every tracked file, which is the population the repository gate walks. site/ is written
+  # in camelCase and the rest of the tree is written in snake_case, so this corpus is where the
+  # underscore actually lives.
+  ( cd "$ROOT" && git ls-files -z | xargs -0 cat ) > "$dtmp/tracked.txt" 2>/dev/null || true
+  fold_diff "every tracked file" "$dtmp/tracked.txt"
+
+  # An invented name in every placement the audit measured, and the seven with an underscore are
+  # the seven the Python copy used to miss. Written here rather than derived, because a fixed
+  # list is the thing a reader can check against the finding.
+  printf '%s\n' 'Kestrelvane_2026' 'Kestrelvane_x' 'x_Kestrelvane' '_Kestrelvane' 'Kestrelvane_' \
+                'data_Kestrelvane_row' 'Kestrelvane.md' 'Kestrelvane-2026' 'node_Kestrelvane' \
+                'KestrelvaneX' 'Kestrelvane1' '1Kestrelvane' 'Kestrelvane' 'xxKestrelvane' \
+                'ZBLKestrelvane' 'myKestrelvaneRow' '__Kestrelvane__' > "$dtmp/placements.txt"
+  fold_diff "a name in seventeen placements, seven of them at an underscore" "$dtmp/placements.txt"
+
+  # THE OTHER HALF OF THE FOLDING, and it is not the boundary. The library transliterates with
+  # `iconv -c -t ASCII//TRANSLIT`, which turns a letter with no canonical decomposition into
+  # ASCII letters; Python's NFKD plus "encode ascii, ignore" deleted it, which both lost the
+  # token the library produces AND joined the letters on either side into one the library never
+  # produces. Every code point below U+0180 is put through both, in the middle of a letter run
+  # so a difference in either direction shows. Above U+0180 they still differ, on 66 code points
+  # of Latin Extended-B measured at the SHA that wrote this: that range is phonetic and African
+  # orthography, closing it means carrying a generated copy of one libc's transliteration table,
+  # and that table is not the same table on another libc. Which is also why this probe is worth
+  # running on every machine rather than once: it re-measures the local iconv.
+  local dcp dch
+  : > "$dtmp/codepoints.txt"
+  for dcp in $(seq 1 383); do
+    [ "$dcp" -eq 10 ] && continue
+    printf -v dch '\\u%04x' "$dcp"
+    printf "Aaaa%bbbbB\n" "$dch" >> "$dtmp/codepoints.txt"
+  done
+  fold_diff "every code point below U+0180, inside a letter run" "$dtmp/codepoints.txt"
+
+  # The gate probes. Above compares the folding; these compare the two GATES, end to end, on one
+  # payload, with one register. `trip` and `pass` are written per side, so a row where they
+  # differ is a declared disagreement and says why.
+  gate_diff() {  # name expect-shell expect-python payload
+    local name="$1" es="$2" ep="$3" payload="$4" rs=pass rp=pass rc=0 dir
+    total=$((total + 1))
+    dir="$dtmp/gate$total"; mkdir -p "$dir/site"
+    printf '%s\n' "$payload" > "$dir/site/probe.txt"
+    (
+      FORBIDDEN_EXEMPT=()
+      FAILURES=0
+      scan_file "$dir/site/probe.txt" probe.txt "$dhashes" >/dev/null 2>&1
+      [ "$FAILURES" -eq 0 ]
+    ) || rs=trip
+    rc=0
+    ( cd "$ROOT" && HOME="$dhome" python3 build/safety_grep.py "$dir/site" >/dev/null 2>&1 ) || rc=$?
+    case "$rc" in
+      0) rp=pass ;;
+      1) rp=trip ;;
+      *) rp="refused($rc)" ;;
+    esac
+    if [ "$rs" = "$es" ] && [ "$rp" = "$ep" ]; then
+      echo "  [OK]   $name"
+      pass=$((pass + 1))
+    else
+      echo "  [MISS] $name: wanted library=$es python=$ep, got library=$rs python=$rp"
+    fi
+  }
+
+  gate_diff "both refuse a name written on its own"            trip trip 'taught by Ada Kestrelvane in March'
+  gate_diff "both refuse a name inside an identifier"          trip trip 'the data_Kestrelvane_row column'
+  gate_diff "both refuse a name with a trailing underscore"    trip trip 'the column Kestrelvane_2026 in the export'
+  gate_diff "both refuse a name with a leading underscore"     trip trip 'the field _Kestrelvane holds it'
+  gate_diff "both refuse a name glued in camelCase"            trip trip 'the handle quillfarthingKestrelvane in a log line'
+  gate_diff "both refuse a name glued to an acronym"           trip trip 'the ZBLKestrelvane row of the export'
+  gate_diff "both refuse a name glued to a digit"              trip trip 'user Kestrelvane2026 signed the record'
+  gate_diff "both refuse a banned word inside an identifier"   trip trip 'built on the node_Palantir_row, allegedly'
+  gate_diff "both refuse a banned phrase before an underscore" trip trip 'a digital twin_of the operation'
+  gate_diff "both refuse an email address"                     trip trip 'contact alguien@example.com for detail'
+  gate_diff "both refuse a uuid"                               trip trip 'id 3f2504e0-4f89-11d3-9a0c-0305e82c3301'
+  gate_diff "both refuse a corpus link"                        trip trip 'see collection://a1b2c3 for the source'
+  gate_diff "both refuse a grouped money figure"               trip trip 'turnover of 1.138.000,00 EUR last year'
+  gate_diff "both refuse a bare page id"                       trip trip "page ${dhex}${dhex} in the export"
+  gate_diff "both refuse the corpus host"                      trip trip "see notion${ddot}so/a-page for the source"
+  gate_diff "both refuse a figure split across a line break"   trip trip 'the amount 1200'$'\n''EUR was paid'
+
+  # The controls. Without these the whole section would pass with both gates wedged shut, which
+  # is the dead-control shape this repository keeps finding in its own suites.
+  gate_diff "both pass ordinary camelCase identifiers"         pass pass \
+        'document.getElementById(id); ZT.termRoutes(); new XMLHttpRequest(); bandPlate'
+  gate_diff "both pass the two declared invented figures"      pass pass \
+        'total_price 4.000,00 EUR and amount_claimed 1.000,00 EUR, --lh-ui: 1.28581'
+  gate_diff "both pass a fractional-second timestamp"          pass pass '{"generated":"2026-08-09T16:42:46.932Z"}'
+  gate_diff "both pass a name the register does not hold"      pass pass 'taught by Bea Thistlewaite in March'
+
+  # THE ONE DECLARED DISAGREEMENT, asserted rather than tolerated. Python's `\d` is Unicode
+  # aware and PCRE's is not, so a figure written in Arabic-Indic or fullwidth digits beside a
+  # currency mark is a finding to the local gate and nothing to the two CI gates. The stricter
+  # answer is Python's and it is deliberately NOT copied into the library: matching it needs
+  # PCRE's `(*UTF)` mode, under which a file holding one invalid UTF-8 byte stops being scanned
+  # and returns no match at all, and a rule that goes quiet on a malformed file is a worse
+  # failure than the one it closes. Recorded on issue 117 rather than repaired here.
+  gate_diff "declared: only the local gate reads a figure whose digits are not ASCII" \
+        pass trip 'a fee of ١٢٣ EUR per session'
 
   echo
   echo "self-test: $pass/$total, of $EXPECTED_PROBES intended"

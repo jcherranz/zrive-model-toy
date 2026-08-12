@@ -10,7 +10,15 @@
 # caller; a rule literal that appears in a caller is a bug in this file's ownership.
 #
 # build/safety_grep.py is a third, local, pre-push copy of the same rules in Python. It cannot
-# source this file and it therefore can drift. That is stated rather than implied.
+# source this file and it therefore can drift. STATING IT WAS NOT ENOUGH, and issue 117 measured
+# how much: the two copies of the token rule had never been the same rule, because this file
+# splits on anything that is not a letter and `_` is a word character to Python's \b. Both copies
+# now answer the same question through the same interface,
+#
+#   bash scripts/forbidden_lib.sh --fold-tokens   |   python3 build/safety_grep.py --fold-tokens
+#
+# one folded token per line on stdout, and scripts/check_repo.sh --self-test puts one corpus
+# through both and refuses a disagreement. The sentence above is now a claim something checks.
 
 FORBIDDEN_SALT="zrive-model-toy/forbidden/v1"
 
@@ -38,6 +46,14 @@ ISO_TS_MASK='s/[0-9]{4}-[0-9]{2}-[0-9]{2}[T ][0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+
 UUID_RE='[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
 EMAIL_RE='[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}'
 COLLECTION_RE='collection://'
+# A page id in its unhyphenated form, and the host the private corpus is served from. Both point
+# back at the corpus exactly as COLLECTION_RE does, and until issue 117 they were a rule
+# build/safety_grep.py had and this file did not, so a page id in a tracked file was refused by
+# the gate a person runs over site/ before pushing and invisible to the two gates that read
+# every tracked file and the deployed bytes. That is F15's shape with the halves swapped, and
+# it was found the same way: by running both implementations over one corpus and reading the
+# disagreement. Measured at the SHA that added it: zero matches in any tracked file.
+NOTION_RE='(?i)\b[0-9a-f]{32}\b|notion\.so'
 
 # ---------------------------------------------------------------------------------------
 # Folding and hashing
@@ -285,13 +301,28 @@ scan_file() {  # file label hashfile
     forbidden_exempt email "$rel" "$m" || fail "$rel: email address: $m"
   done <<< "$hit"
 
+  hit="$(collect "$NOTION_RE" "$f")"
+  while IFS= read -r m; do
+    [ -n "$m" ] || continue
+    forbidden_exempt notion-id "$rel" "$m" || fail "$rel: notion id: $m"
+  done <<< "$hit"
+
   # 3. money. Anything money-shaped that is not one of the two declared invented figures.
   # An ISO 8601 instant with fractional seconds reads as a grouped figure to this pattern
   # (2026-08-09T16:42:46.932Z contains 46.932), and site/board.json carries a timestamp.
   # Timestamps are blanked out of the copy the money pattern sees, and only that copy: the
   # mask is fully anchored on digits and separators, so no euro figure can hide inside one.
-  # build/safety_grep.py carries the same rule and the two must be changed together.
-  hit="$(sed -E "$ISO_TS_MASK" "$f" | grep -aoP "$MONEY_RE" | sed 's/[[:space:]]*$//' | sort -u || true)"
+  # build/safety_grep.py carries the same rule and the two must be changed together, and issue
+  # 117 wired a probe that reads both rather than a sentence asking a reader to.
+  #
+  # THE LINE STRUCTURE IS FLATTENED BEFORE THE PATTERN SEES IT, and only after the mask has run,
+  # which is line anchored and has to stay that way. `\d[\d.,]*\s*(?:EUR|eur|€)` has a `\s*`
+  # in it, so a figure at the end of one line and its currency mark at the start of the next is
+  # one match to the Python copy, which reads the whole file, and was no match at all here,
+  # where grep reads a line at a time. Prose wraps; that is not a hypothetical shape. Measured
+  # over every tracked file at the SHA that changed it: the flattened and unflattened scans
+  # return the identical match set on all of them, so this adds reach and moves no finding.
+  hit="$(sed -E "$ISO_TS_MASK" "$f" | tr '\n' ' ' | grep -aoP "$MONEY_RE" | sed 's/[[:space:]]*$//' | sort -u || true)"
   while IFS= read -r m; do
     [ -n "$m" ] || continue
     grep -Fxq "$m" <<< "$ALLOWED_MONEY" && continue
@@ -385,7 +416,24 @@ name_lines() {  # hashfile
   done
 }
 
-# Sourced, this file defines rules and runs nothing. Run directly, it exposes exactly one of
+# ---------------------------------------------------------------------------------------
+# The token rule, for a caller that cannot source this file either.
+# ---------------------------------------------------------------------------------------
+# --name-lines above answers about a register. This answers about the FOLDING ALONE, with no
+# register in it, which is what makes it comparable: build/safety_grep.py exposes the identical
+# interface, `python3 build/safety_grep.py --fold-tokens`, and scripts/check_repo.sh --self-test
+# puts one corpus through both and diffs the two answers.
+#
+# It is exposed for the probe, and exposing it is the point. Issue 117: for five commits the
+# claim that the two copies agreed was checked by three readers looking at two files, and the
+# copies had never agreed. A rule that can be run twice over one input can be compared; a rule
+# that can only be read cannot.
+#
+# NOTHING HERE IS SECRET AND NOTHING HERE IS A REGISTER. The output is the folding of whatever
+# was on stdin, so a caller that pipes a real name in gets real name tokens back out. Every
+# caller in this repository pipes it either a tracked file or a synthetic probe corpus.
+
+# Sourced, this file defines rules and runs nothing. Run directly, it exposes exactly two of
 # them, and refuses anything else rather than doing nothing quietly.
 if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
   set -euo pipefail
@@ -395,9 +443,13 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
       [ -s "${2}" ] || { echo "ASSERTION FAILED: no name hash list at ${2}" >&2; exit 2; }
       name_lines "$2"
       ;;
+    --fold-tokens)
+      fold_tokens
+      ;;
     *)
-      echo "scripts/forbidden_lib.sh is a library. Run directly it does one thing:" >&2
+      echo "scripts/forbidden_lib.sh is a library. Run directly it does two things:" >&2
       echo "  bash scripts/forbidden_lib.sh --name-lines <hashfile>" >&2
+      echo "  bash scripts/forbidden_lib.sh --fold-tokens" >&2
       exit 2
       ;;
   esac

@@ -141,7 +141,7 @@ fetch_deployed() {
 #
 # A short run exits 2, which is "the suite could not answer for itself" and not "the gate is
 # broken"; a run that also recorded a MISS reports the MISS and exits 1.
-EXPECTED_PROBES=16
+EXPECTED_PROBES=19
 
 self_test() {
   local tmp fake_hashes whole_hashes rc pass=0 total=0
@@ -188,6 +188,19 @@ self_test() {
   # Additive, proved rather than asserted: against a register that holds only the joined form,
   # the whole run must still be emitted and still match.
   probe "a name matchable only whole" 'Mcquillfarthing taught in March'      "$whole_hashes"
+  # The three rules issue 117 added to the library, each one a hole the local Python gate over
+  # site/ already covered and these two gates did not. Every payload is BUILT rather than typed,
+  # for the reason the uuid cap probe in scripts/check_repo.sh gives: a complete literal here is
+  # a payload the repository gate then finds in this file and somebody has to declare.
+  local hex16='0123456789abcdef' dot='.'
+  probe "a bare page id, unhyphenated" "page ${hex16}${hex16} in the export" "$fake_hashes"
+  probe "the corpus host"          "see notion${dot}so/a-page for the source" "$fake_hashes"
+  # The money rule allows whitespace between a figure and its currency mark, and a line break is
+  # whitespace, so this is one match to a reader of the whole file. grep reads a line at a time,
+  # so it was two clean lines to these gates and one finding to the Python copy. The pattern is
+  # not quoted here: this file carries no rule literal of its own, which is a property the
+  # repository gate checks rather than a convention, and quoting it once already broke it.
+  probe "a figure split across a line break" 'the amount 1200'$'\n''EUR was paid' "$fake_hashes"
 
   echo
   echo "self-test: the probes below MUST NOT trip the gate"
