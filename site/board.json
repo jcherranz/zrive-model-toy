@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T11:18:59Z",
+  "generated": "2026-08-12T11:26:58Z",
   "columns": [
     {
       "key": "raw",
@@ -64,16 +64,6 @@
       "key": "in_progress",
       "title": "In progress",
       "cards": [
-        {
-          "id": 91,
-          "title": "Cut the invented-value warnings back to one: six distinct copies on one screen",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/91"
-        },
         {
           "id": 92,
           "title": "The sticky invented-value banner is transparent and rows show through it",
@@ -150,6 +140,16 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/99"
         },
         {
+          "id": 91,
+          "title": "Cut the invented-value warnings back to one: six distinct copies on one screen",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/91"
+        },
+        {
           "id": 90,
           "title": "A time-window filter: the best-argued management feature so far, with one blocker",
           "labels": [
@@ -199,20 +199,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/84"
-        },
-        {
-          "id": 83,
-          "title": "Show every session for Z-BL and Z-SC, and declare the sample on the five that stay sampled",
-          "labels": [
-            "bug",
-            "feedback",
-            "model",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/83"
         }
       ],
-      "hidden": 70,
+      "hidden": 71,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
