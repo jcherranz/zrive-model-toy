@@ -24,9 +24,16 @@
 //
 // WHAT THIS IS NOT. It is not a schedule. Every date, time, state, attendance figure and identifier
 // in it is invented, and the drawings carry 83 of the 260 sessions the model counts, so it is a
-// sample of a term as well as an invented one. Both of those are said on the sheet, in three
-// places each: the subtitle, a notice above the rows that never scrolls away, and a banner row
-// inside the table that is sticky, so a screenshot of the rows carries the disclaimer with it.
+// sample of a term as well as an invented one.
+//
+// ISSUES 91 AND 93 CUT HOW OFTEN THE SHEET SAYS SO, AND CHANGED NOTHING ABOUT WHAT IS SAID. Six
+// copies of it stood on one screen: a chip in the subtitle, a paragraph above the rows, a sticky
+// banner row inside the table, a banner over the grids, a warning on the face of every grid panel,
+// and the page footer. He asked for the marks to go, twice, and the reason is that over-marking
+// fails the way under-marking does: the sixth copy makes the first weaker. The five in the sheet
+// are gone and the footer's is untouched, word for word, because whether the claim it makes is
+// the right one is issue 101 and is his to settle, not this card's. The reasoning that used to be
+// printed above the rows is in this repository, which is where it belongs.
 //
 // IT READS THE SEVEN VIEWS AND OWNS NO PROGRAMME. Every other route on this page has an opinion
 // about which of the seven is drawn; this one has none, which is why it is not in router.js. It is
@@ -285,7 +292,7 @@
         d.nodes.forEach(function (n) {
           if (n.type !== 'Programme') return;
           var mr = propRow(n, 'modules');
-          if (mr) { group.modules = mr.v; group.noModules = mr.f === 'absent'; }
+          if (mr) group.modules = mr.v;
         });
 
         // Curriculum order, which is what the second reading is for, and it is the syllabus's
@@ -679,67 +686,25 @@
       }, true);
     }
 
-    // ---- what the sheet says about itself -------------------------------------
-    // Two paragraphs above the rows, and neither of them scrolls away. The first is the standing
-    // requirement of this project, sharpened because a table of dates is the first view here that
-    // could be mistaken for an operating document. The second is the finding, which is the most
-    // interesting thing either card turned up and belongs where the thing it is about is.
-    var NOTICE = {
-      calendar: [
-        'This is not a schedule. Every date, time, state, attendance figure and identifier ' +
-        'below is invented. Only the session titles, the module names and the programme codes ' +
-        'are real and published.',
-        'No system in the business holds this view. Every session below records that its ' +
-        'schedule lives in Notion, one calendar per programme per quarter, so one term sits in ' +
-        'seven separate places and nothing assembles it. This page is the first place it is ' +
-        'assembled.'
-      ],
-      outline: [
-        'Every identifier, mode, duration, date and state below is invented. The session ' +
-        'titles, the module headings and the position of each row in its syllabus are real and ' +
-        'published, and they are the only things here that are.',
-        'No system holds a template either. Each row below records that there is no template ' +
-        "object at all: the template is last quarter's calendar rows, copied by hand at setup."
-      ]
-    };
-
-    // Issue 85, and it is the finding rather than a caveat, so it is written from the rows and
-    // not typed. Three of the seven syllabi do not name a module for every session and one names
-    // none at all, and an outline grouped by module has to say which of those it is looking at
-    // rather than leaving a reader to read a blank.
-    function moduleNote(sc) {
-      var gs = groupsFor(sc), said = [];
-      gs.forEach(function (g) {
-        if (g.noModules) said.push(g.view.code + ' names no module on any row of its syllabus');
-        else if (g.modules && /in no module/.test(g.modules)) said.push(g.view.code + ': ' +
-          g.modules);
-      });
-      if (!said.length) {
-        return gs.length === 1
-          ? gs[0].view.code + ' groups every session in its syllabus into a named module, and ' +
-            'the headings below are those modules, in the order the syllabus itself gives.'
-          : 'The headings below are the modules the syllabi themselves declare, in the order ' +
-            'each syllabus itself gives.';
-      }
-      return 'The module structure is not the same object on every programme, and the headings ' +
-             'below say so rather than smoothing it over. ' + said.join('. ') + '.';
-    }
-
-    // The limit on the second reading, computed from the rows so that it cannot go on claiming
-    // one to one after a second cohort has arrived. It is stated as a fact about the drawing, not
-    // about Zrive: this artefact draws one cohort, so a template can have at most one delivery in
-    // it, and one to one is what the drawing was built to produce rather than something it found.
-    function outlineLimit(st) {
-      if (st.maxDeliveries > 1) {
-        return 'Some templates below carry more than one delivery, so this reading can now show ' +
-               'what a template buys.';
-      }
-      return 'Every template here has exactly one delivery, and that is a property of the ' +
-             'drawing rather than a finding about the business: it draws one cohort, so a ' +
-             'template can have at most one delivery in it. What a template is for, that it ' +
-             'outlives its deliveries and is used again, cannot be seen at one to one, and this ' +
-             'is the first view that could show it if a second cohort ever entered the model.';
-    }
+    // ---- what the sheet no longer says about itself ---------------------------
+    // ISSUES 91 AND 93 DELETED SIX PARAGRAPHS FROM HERE, AND THAT IS THE CARD. What stood above
+    // the rows was 213 words over 34 of them: two on provenance and the model finding, two more
+    // on the module structure and the one to one limit, and one per calendar shape. Each was
+    // written by a different card and none of them was written by somebody reading the total.
+    //
+    // WHERE EACH WENT. The provenance is in the footer, unchanged, and it is now the only copy on
+    // the page. The findings are in this file and in the CHANGELOG: the term across the seven
+    // exists in no system, one calendar per programme per quarter in Notion; there is no template
+    // object at all, only last quarter's calendar rows copied by hand; three of the seven syllabi
+    // name no module on some or all of their rows, which the outline still SHOWS as a heading of
+    // its own rather than a blank; and one to one between template and delivery is a property of
+    // a drawing of one cohort rather than a finding about the business. A finding that has to be
+    // read as a paragraph over a table is a finding the table failed to make.
+    //
+    // WHAT IS LEFT IN #termnotice IS CONTROLS: the shape buttons, the scope bar, and the agenda
+    // toggle on the outline. The one paragraph that can still appear is the window's, because it
+    // is state feedback for a control the reader can see set to three weeks over an unfiltered
+    // outline, and it is absent unless the reader has set one.
 
     // ---- the four addresses -----------------------------------------------------
     // One place builds them and one place reads them, which is the rule watchdog B's false alarm
@@ -833,6 +798,13 @@
       b.textContent = agendaOn
         ? 'hide the invented session agenda'
         : 'show an invented session agenda under every row';
+      // The hint that used to stand beside this control is on the control instead, issues 91 and
+      // 93. It is the same sentence, moved and not rewritten: the label already says the block is
+      // invented, the block itself repeats it under every row with a dummy badge on every line,
+      // and a third copy standing permanently on the screen was one of the six the cards counted.
+      b.title = 'No system holds one. The four lines it adds were made up on this page, they ' +
+        'are the same four under every template, and each carries the same dummy badge an ' +
+        'invented property carries in the panel.';
       b.addEventListener('click', function () {
         agendaOn = !agendaOn;
         built = null;
@@ -840,10 +812,6 @@
         describe();
       });
       wrap.appendChild(b);
-      wrap.appendChild(el('span', 'term-agendahint',
-        'No system holds one. The four lines it adds were made up on this page, they are the ' +
-        'same four under every template, and each carries the same dummy badge an invented ' +
-        'property carries in the panel.'));
       return wrap;
     }
 
@@ -864,7 +832,6 @@
           ' · ' + SHAPE_NAME[shape] +
           (windowOn() ? ' · ' + windowShown(scope) + ' of them inside the window, ' +
                         windowText() : '')));
-        subEl.appendChild(el('span', 'warn', 'every date here is invented'));
       } else {
         titleEl.textContent = scope
           ? 'The ' + scopeName() + ' outline, ' + st.templates.length +
@@ -876,21 +843,12 @@
           'syllabus the model counts at ' + st.totalTemplates + ' · ' + st.templates.length +
           ' deliveries, at most ' + st.maxDeliveries + ' to a template · ' + st.noDuration +
           ' record no duration'));
-        subEl.appendChild(el('span', 'warn', 'every value here is invented'));
       }
 
       noticeEl.textContent = '';
-      NOTICE[reading].forEach(function (line, i) {
-        noticeEl.appendChild(el('p', i === 0 ? 'term-invented' : 'term-finding', line));
-      });
-      if (reading === 'outline') {
-        noticeEl.appendChild(el('p', 'term-finding', moduleNote(scope)));
-        noticeEl.appendChild(el('p', 'term-finding', outlineLimit(st)));
-      }
       // Issue 88. The shape belongs to the calendar and only to it: an outline is curriculum
       // order and has no date to lay out.
       if (reading === 'calendar') {
-        noticeEl.appendChild(el('p', 'term-finding', SHAPE_NOTE[shape](scope)));
         noticeEl.appendChild(shapeBar());
       }
       // Issue 90. A reader who sets a window on the calendar and switches reading would otherwise
@@ -939,44 +897,16 @@
     function monthsOf(sc) { return groupBy(sc, function (s) { return s.date.slice(0, 7); }); }
     function weeksOf(sc) { return groupBy(sc, function (s) { return mondayOf(s.date); }); }
 
-    // What each shape is for, and for two of the three a fact about THIS term that the shape is
-    // what makes visible. Counted off the rows rather than written down, so a term that changed
-    // would change the sentence rather than outlive it.
-    var SHAPE_NOTE = {
-      month: function (sc) {
-        var by = monthsOf(sc);
-        if (!by.length) return 'Nothing in this scope, so there is no month to draw.';
-        var lo = by[0], hi = by[0], i;
-        for (i = 1; i < by.length; i++) {
-          if (by[i].rows.length < lo.rows.length) lo = by[i];
-          if (by[i].rows.length > hi.rows.length) hi = by[i];
-        }
-        return by.length + ' months side by side, and the unevenness is the reading: ' +
-          monthName(hi.key) + ' holds ' + hi.rows.length + ' and ' + monthName(lo.key) +
-          ' holds ' + lo.rows.length + '. The Saturday and Sunday columns are where the ' +
-          'in-person weekends fall, which no ordered list of the same rows shows.';
-      },
-      week: function (sc) {
-        var ss = sessionsFor(sc), m = {}, order = [];
-        ss.forEach(function (s) {
-          if (m[s.time] === undefined) { m[s.time] = 0; order.push(s.time); }
-          m[s.time]++;
-        });
-        order.sort(function (a, b) { return m[b] - m[a] || (a < b ? -1 : 1); });
-        if (!order.length) return 'Nothing in this scope, so there is no week to draw.';
-        var rest = order.slice(1).map(function (t) { return m[t] + ' at ' + t; }).join(', ');
-        return 'A week here is sparse and is not dressed up as a day planner: ' + m[order[0]] +
-          ' of the ' + ss.length + ' sessions start at ' + order[0] +
-          (rest ? ' and ' + rest : '') + ', so a week is two rows and not a day of stacked ' +
-          'hours. It is here because it was asked for and because one week is the unit the ' +
-          'window is counted in.';
-      },
-      list: function () {
-        return 'The list is the shape a window filters down to an agenda. The two grids keep ' +
-          'every session and mark the window instead, because a grid is there to show the shape ' +
-          'of the whole term and a grid with holes cut in it shows nothing.';
-      }
-    };
+    // Issue 88 wrote a paragraph per shape above the rows, saying what that shape was for and
+    // what it made visible about this term. Issues 91 and 93 took the paragraphs off the screen
+    // and the facts they carried are here: a month grid puts the seven months side by side and
+    // its Saturday and Sunday columns are where the in-person weekends fall, which no ordered
+    // list of the same rows shows; a week here is sparse, because 71 of the 83 sessions start at
+    // the same hour, so a week is two rows rather than a day of stacked hours, and it is here
+    // because one week is the unit the window is counted in; and the list is the shape a window
+    // filters down to an agenda, while the two grids keep every session and mark the window
+    // instead. The shape buttons keep their titles, so what each shape is for is still on the
+    // control it is about, which is where issue 79 put the other three instructions.
 
     function setShape(k) {
       if (shape === k || CAL_SHAPES.indexOf(k) === -1) return;
@@ -1032,18 +962,18 @@
       return out;
     }
 
-    // ONE PANEL, AND THE WARNING IS INSIDE IT. This is the requirement a grid raises above every
-    // other view on this site. A table of invented dates still reads as a table; a month grid
-    // looks like something a reader could plan against, and it is the one view here whose
-    // screenshot would be believed. The sheet says it three times above the rows already; this is
-    // the fourth, on the face of every panel, so a crop of one month carries it.
+    // ONE PANEL. Issue 88 put a warning on the face of every one of them, on the argument that a
+    // month grid is the one view here whose screenshot would be believed. Issues 91 and 93 took
+    // it off: at seven panels that argument was producing seven identical copies of a sentence
+    // the footer already carries once, and the reader who is looking at the page is the reader
+    // the count was hurting. The chip's own title still carries the line, so the value a reader
+    // hovers still says what it is.
     function calPanel(headText, rows, days, inMonth) {
       var sec = el('section', 'cal-panel');
       var h = el('h3', 'cal-head');
       h.appendChild(el('span', 'cal-headname', headText));
       h.appendChild(el('span', 'cal-headn', rows.length +
         (rows.length === 1 ? ' session' : ' sessions')));
-      h.appendChild(el('span', 'warn', 'every date invented'));
       sec.appendChild(h);
 
       var grid = el('div', 'cal-grid');
@@ -1069,15 +999,10 @@
       return sec;
     }
 
-    function calBanner() {
-      // The banner the table carries inside its own head, in the shape a grid can carry it: it is
-      // the top of the scroll and it is sticky, so the panels under it always have it above them.
-      return el('p', 'cal-banner', 'every date in this calendar is invented');
-    }
-
+    // The grids had a sticky banner of their own over the panels, deleted by issues 91 and 93
+    // along with the four other copies in this sheet.
     function buildGrid(kind) {
       var wrap = el('div', 'cal cal-' + kind);
-      wrap.appendChild(calBanner());
       var groups = kind === 'month' ? monthsOf(scope) : weeksOf(scope);
       groups.forEach(function (g) {
         if (kind === 'month') {
@@ -1120,19 +1045,13 @@
     }
 
     // ---- the two tables --------------------------------------------------------
+    // ONE HEADER ROW, AND IT IS THE COLUMNS. There were two: a sticky banner over the columns
+    // saying every value in the table was invented, on the argument that a cropped screenshot
+    // should carry the disclaimer with it. Issue 92 was filed because that banner is transparent
+    // and the rows scrolled visibly through it, and issues 91 and 93 deleted the element, which
+    // is why 92 has nothing left to repair. The column headers go back to the top of the scroll.
     function head(table, cols) {
       var thead = document.createElement('thead');
-      // The banner row, and it is inside the table on purpose. The notice above the rows is the
-      // reader's answer; this is the answer that survives a screenshot of the rows alone, because
-      // both header rows are sticky and this one is at the top of the scroll. A table of dates
-      // that gets cropped and pasted somewhere else takes its disclaimer with it.
-      var warnRow = document.createElement('tr');
-      warnRow.className = 'term-banner';
-      var warnTh = el('th', null, 'every value in this table is invented');
-      warnTh.colSpan = cols.length;
-      warnRow.appendChild(warnTh);
-      thead.appendChild(warnRow);
-
       var hr = document.createElement('tr');
       cols.forEach(function (c) { hr.appendChild(el('th', null, c)); });
       thead.appendChild(hr);

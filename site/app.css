@@ -1984,11 +1984,9 @@ body.hide-ghosts .ghost { display: none; }
 .term-notice p { margin: 0; font-size: 11px; line-height: 1.45; }
 .term-notice p + p { margin-top: 6px; }
 
-/* The one sentence this project requires on every page it publishes, and the sharpest place it
-   has had to sit: a table of dates is the first view here that could be read as an operating
-   document. It is given the warning colour rather than the muted one so that it is not read as
-   small print, and it is above the scroll so it cannot be scrolled away from. */
-.term-notice .term-invented { color: var(--fg-warning); font-weight: 600; }
+/* Issues 91 and 93 emptied this strip of prose and left it holding the controls. `.term-invented`
+   went with the paragraph it painted; `.term-finding` is kept because the window still writes one
+   paragraph here when a reader has set one on the other reading. */
 .term-notice .term-finding { color: var(--fg-muted); }
 
 /* The month, or the programme. A row in the table rather than a heading above it, so it scrolls
@@ -2019,12 +2017,20 @@ body.hide-ghosts .ghost { display: none; }
 /* ---- the module, issue 85 -----------------------------------------------------
    A SECOND LEVEL OF GROUP ROW, under the programme and over the rows. It is quieter than the
    programme heading and louder than a row, which is what a second level has to be for a reader
-   to see three levels rather than two kinds of heading: no top rule, indented, and the module's
-   own name at the panel's body weight with the count after it in the muted colour. */
+   to see three levels rather than two kinds of heading: no top rule, and the module's own name
+   at the panel's body weight with the count after it in the muted colour.
+
+   ISSUE 94 TOOK THE INDENT OUT, and it was the fourth of those distinctions until he filed it.
+   The heading was at `padding-left: 26px` over rows whose cells are at 10, so a heading sat 16px
+   to the RIGHT of every row it heads, which reads as a stray gap rather than as a level: an
+   indent says "these belong under the thing above", and the things under this one were not
+   indented with it. Aligning the two leaves three distinctions carrying the level, which is what
+   the paragraph above says the level needs. Measured at 1536 before and after: heading text at
+   245 over row text at 229, and 229 over 229. */
 .term-table tbody tr.term-module th {
   position: static;
   text-align: left;
-  padding: 8px 10px 3px 26px;
+  padding: 8px 10px 3px;
   background: var(--bg-panel);
   font-size: 11px;
   font-weight: 400;
@@ -2118,29 +2124,18 @@ body.hide-ghosts .ghost { display: none; }
 .term-agendactl { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
 .term-agendactl .term-agendahint { color: var(--fg-muted); }
 
-/* THE BANNER IS INSIDE THE TABLE AND THAT IS THE POINT. The notice above answers the reader who
-   is looking at the sheet; this answers the one looking at a screenshot of the rows, because both
-   header rows are sticky and this one sits at the top of the scroll for as long as there are rows
-   under it.
+/* ISSUES 91, 92 AND 93, AND THE ORDER THEY WERE WORKED IN IS THE POINT. A sticky banner row sat
+   above the column headers here reading that every value in the table was invented, and issue 92
+   was filed because it is transparent and the rows scroll visibly through it. 92 is a real defect
+   and the repair is one line, an opaque fill on a sticky `th`. It was not made, because 91 and 93
+   deleted the element: a transparent banner that is not on the page is not a banner to repair.
 
-   The 22px is written down rather than measured because two sticky rows cannot both be at top 0:
-   the second has to be offset by the height of the first, and a height that is written into the
-   rule above it is one the offset cannot fall behind. 5 + 12 + 5 is that height. */
-.term-table thead tr.term-banner th {
-  top: 0;
-  height: 22px;
-  padding: 5px 10px;
-  line-height: 12px;
-  text-align: left;
-  background: var(--tint-warning);
-  color: var(--fg-warning);
-  letter-spacing: .06em;
-  text-transform: uppercase;
-}
+   Two rules went with it. The banner's own block, and `thead tr.term-banner + tr th { top: 22px }`,
+   which offset the column headers by the banner's height because two sticky rows cannot both sit
+   at top 0. With one header row left there is nothing to offset and the columns take the `top: 0`
+   that `.sheet-table th` already gives them.
 
-.term-table thead tr.term-banner + tr th { top: 22px; }
-
-/* A gap is the only reason an operator opens a calendar, so a session with nobody to teach it
+   A gap is the only reason an operator opens a calendar, so a session with nobody to teach it
    says so in the row and not only in the count above. The colour is the warning token, which is
    the same token the invented notice takes, and it is on the cell rather than on the row: a
    coloured row would read as an error, and a session with no instructor named yet is a fact
@@ -2149,16 +2144,13 @@ body.hide-ghosts .ghost { display: none; }
 .term-table tr.term-gap td.r-name { color: var(--fg-body); }
 
 @media (max-width: 760px) {
-  /* The sheet's phone layout hides the whole of thead, which would take the banner with it. The
-     column headers are what it is right to hide, because each row carries its own run of values;
-     the banner is the one row in this table that has to survive a small screen. */
-  .term-table thead { display: block; }
-  .term-table thead tr:not(.term-banner) { display: none; }
-  .term-table thead tr.term-banner,
+  /* The phone layout hides thead, because each row carries its own run of values and a column
+     header over a stack of blocks names nothing. It used to be written as an exception, keeping
+     the banner row visible and hiding the others; issues 91 and 93 deleted the banner, so the
+     exception went with it and the rule is the sheet's own again. */
   .term-table tbody tr.term-group,
   .term-table tbody tr.term-module,
   .term-table tbody tr.term-agenda { display: block; padding: 0; border-top: 0; }
-  .term-table thead tr.term-banner th { display: block; height: auto; }
   .term-table tbody tr.term-group th { display: block; border-top: 1px solid var(--rule); }
   /* Issue 85's two new row kinds take the same treatment, and they have to: the phone layout
      turns the tbody into a block, and a row left as a table-row inside it puts the whole table
@@ -2167,7 +2159,10 @@ body.hide-ghosts .ghost { display: none; }
      regression the rule prevents rather than a limitation it works around. */
   .term-table tbody tr.term-module th,
   .term-table tbody tr.term-agenda td { display: block; }
-  .term-table tbody tr.term-module th { padding-left: 14px; }
+  /* 12px and not 14, issue 94's phone half: the rows this heads are `.sheet-table tr`, which the
+     phone layout pads at 12, so 14 put the heading two pixels right of its own children here for
+     the same reason 26 put it sixteen right of them at 1536. */
+  .term-table tbody tr.term-module th { padding-left: 12px; }
   .term-table tbody tr.term-agenda td { padding-left: 14px; }
   .term-table tbody tr.term-agenda td::before { content: none; }
 
@@ -2177,7 +2172,6 @@ body.hide-ghosts .ghost { display: none; }
      the only cells here that carry running text, so they are the four that wrap. */
   .term-table td.r-name,
   .term-table td.s-delivered,
-  .term-table thead tr.term-banner th,
   .term-table tbody tr.term-group th,
   .term-table tbody tr.term-module th,
   .term-table tbody tr.term-agenda td { white-space: normal; }
@@ -2195,23 +2189,11 @@ body.hide-ghosts .ghost { display: none; }
    the track takes a seventh of whatever the sheet is and the content inside it wraps or clips. */
 .cal { display: block; }
 
-/* The banner the table carries inside its own head, in the shape a grid can carry it. Sticky at
-   the top of the scroll, so the panels under it always have it above them, and it is the third of
-   the four places this sheet says the dates are invented. */
-.cal-banner {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  margin: 0;
-  padding: 4px 8px;
-  background: var(--tint-warning);
-  color: var(--fg-warning);
-  font-size: 11px;
-  font-weight: 600;
-  border-radius: var(--radius);
-}
-
+/* The grids carried a sticky banner over the panels, the third of the four places this sheet said
+   the dates were invented. Issues 91 and 93 deleted it and the warning on the face of every panel
+   with it, so the first thing in the scroll is the first panel. */
 .cal-panel { margin-top: 14px; }
+.cal-panel:first-child { margin-top: 0; }
 
 /* THE FOURTH PLACE, AND THE ONE THIS CARD EXISTS FOR. Every other view here is a table, and a
    table of invented dates still reads as a table. A month grid looks like something a reader

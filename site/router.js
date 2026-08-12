@@ -143,12 +143,13 @@
         states[x.state]++;
       });
       var sub = document.getElementById('rostersub');
+      // No chip after it, issues 91 and 93. This list carried the same subtitle chip the term
+      // sheet carried, in the same idiom, and it is the same defect one route along: the footer
+      // says it once for the page and a second copy over the rows makes the first weaker. He
+      // asked for the marks to go and said "all of them", so the sheet next door does not get to
+      // keep one because the cards were filed from the other.
       sub.textContent = rows.length + ' rows · ' + r.drawn + ' of them drawn on the canvas · ' +
         order.map(function (s) { return states[s] + ' ' + s; }).join(', ');
-      var warn = document.createElement('span');
-      warn.className = 'warn';
-      warn.textContent = 'every person here is invented';
-      sub.appendChild(warn);
 
       var table = document.createElement('table');
       // .sheet-table, because the box this list sits in is the same box #/calendar and #/outline

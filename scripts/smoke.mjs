@@ -302,6 +302,23 @@ const PHASES = {
 // failure as an aggregate that loses it. And that the fit frames the filtered drawing rather than
 // the one it was cut from, which is the obvious regression of the whole card: Z-BL is 2578px
 // unfiltered and a fit that never ran would leave the reader on the same postage stamp.
+// 127 AND STILL 127 AFTER ISSUES 91, 92, 93 AND 94, which is worth writing down because it is the
+// unusual case: cards that DELETE page elements this suite asserts. Six assertions changed and not
+// one was dropped, because a subtraction is a decision and a decision is a thing to assert. Four
+// are the old ones turned around: that the month panels and the banner over the grid carry no
+// disclaimer, where they were required to carry one; that the list has no banner row, no notice
+// and no subtitle chip; that each calendar shape says what it is on its own control rather than in
+// a paragraph over the rows, asserted in both directions so that deleting the paragraph and
+// putting nothing in its place fails; and the count, which is the whole of 91 and 93, that there
+// is exactly ONE statement on the page that the data is invented and it is the footer's. That last
+// one reads a COUNT and never the sentence, deliberately: issue 101 is open on whether the claim
+// is even true, 1,493 of the 3,109 shipped values being flagged observed while the stance says
+// invented, and a driver pinning the wording would be this card taking a decision that is his.
+// One was narrowed: the module-heading assertion lost the conjunct requiring the deleted paragraph
+// and keeps the finding where the page still makes it, in the headings themselves. And one slot
+// was reused for issue 94, the paragraph about one to one giving way to the measurement that a
+// module heading is never painted right of the rows it heads. Issue 92 added nothing: its banner
+// was deleted by 91 before it could be repaired, and the assertion that it is gone is 91's.
 const EXPECTED_ASSERTIONS = 127;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
@@ -1331,6 +1348,40 @@ const TERM_READ = `(function () {
     })(),
     heading: (document.querySelector('h1') || {}).innerText || '',
 
+    // ---- issues 91 and 93, the subtraction ---------------------------------------
+    // WHAT IS COUNTED IS COPIES AND NOT WORDING, which is the whole shape of those two cards. He
+    // asked twice for the marks to go and the reason is arithmetic: six statements that the data
+    // is invented stood on one screen and the sixth made the first weaker. So the driver counts
+    // every element on the page whose own text claims invention, split into the sheet and the
+    // footer, and asserts the sheet's count is zero and the page's is one. It does not read what
+    // the surviving sentence says: issue 101 is open on whether the claim is even true, that is
+    // his to settle, and a driver that pinned the wording would be this card taking his decision.
+    inventedInSheet: Array.prototype.slice.call(
+      document.querySelectorAll('#term *')).filter(function (e) {
+        return e.children.length === 0 && /invent/i.test(e.textContent || '');
+      }).map(function (e) { return e.className + ': ' + e.textContent.trim().slice(0, 60); }),
+    inventedInFooter: Array.prototype.slice.call(
+      document.querySelectorAll('footer')).filter(function (e) {
+        return /invent/i.test(e.textContent || '');
+      }).length,
+    noticeProse: Array.prototype.slice.call(
+      document.querySelectorAll('#termnotice > p')).filter(function (p) {
+        return !p.querySelector('button') && !p.querySelector('a');
+      }).map(function (p) { return p.textContent.trim().slice(0, 60); }),
+    subWarn: document.querySelectorAll('#termsub .warn').length,
+    // Issue 94. Read as the left edge of the painted TEXT and not as a padding declaration, so
+    // that a later change moving the indent onto a margin, a border or the cell would be caught
+    // by the same assertion. The heading and the first cell of the row under it.
+    headingIndent: (function () {
+      var th = document.querySelector('#termrows tr.term-module th');
+      var td = document.querySelector('#termrows tbody tr:not(.term-group):not(.term-module) td');
+      if (!th || !td) return null;
+      var s = th.querySelector('span') || th;
+      return { head: Math.round(s.getBoundingClientRect().left),
+               row: Math.round(td.getBoundingClientRect().left) +
+                    Math.round(parseFloat(getComputedStyle(td).paddingLeft)) };
+    })(),
+
     // ---- issue 88, the two grids ------------------------------------------------
     // A grid is not a table, so none of the row readings above see it. Everything here is read
     // off what the reader can see: the panels, the warning on the face of each one, the seven
@@ -1376,7 +1427,7 @@ const TERM_READ = `(function () {
       document.querySelectorAll('#termnotice .shape-btn')).map(function (b) {
         var r = b.getBoundingClientRect();
         return { label: b.textContent, pressed: b.getAttribute('aria-pressed'),
-                 w: r.width, h: r.height };
+                 title: b.getAttribute('title') || '', w: r.width, h: r.height };
       }),
 
     // ---- issue 90, the window control -------------------------------------------
@@ -1552,17 +1603,19 @@ async function checkTerm(page) {
     `shape ${monthState.shape}, ${calMonth.panels} panels, ${calMonth.chips} chips, ` +
       `columns ${JSON.stringify(calMonth.dows)}`);
 
-  // THE WARNING HAS TO SURVIVE A CROP OF ONE MONTH. Every other view here is a table and a table
-  // of invented dates still reads as a table; a month grid looks like something a reader could
-  // plan against, so the disclaimer is on the face of each panel and not only above the rows.
-  assert('every month panel says on its own face that the dates are invented',
-    calMonth.panelHeads.length === calMonth.panels &&
-      calMonth.panelHeads.every(h => /invented/.test(h.warn || '')) &&
-      !!calMonth.calBanner && /invented/.test(calMonth.calBanner.text) &&
-      calMonth.calBanner.position === 'sticky',
-    `${calMonth.panels} panel headings each carrying the warning, over a sticky banner`,
-    `${calMonth.panelHeads.filter(h => /invented/.test(h.warn || '')).length} of ` +
-      `${calMonth.panels} warned, banner ${JSON.stringify(calMonth.calBanner)}`);
+  // ISSUES 91 AND 93 REVERSED THIS ASSERTION AND IT IS THE SAME CLAIM READ THE OTHER WAY. It used
+  // to say every month panel carried the invented warning on its own face, so that a crop of one
+  // month took the disclaimer with it. Seven panels meant seven copies of a sentence the page
+  // already made five other times, and he asked twice for the marks to go. What is asserted now
+  // is what the subtraction decided: the grid carries none of its own, neither on the panels nor
+  // on the banner that stood over them, and the panels are still all there.
+  assert('the month grid carries no disclaimer of its own, on the panels or over them',
+    calMonth.panelHeads.length === calMonth.panels && calMonth.panels > 1 &&
+      calMonth.panelHeads.every(h => h.warn === null) &&
+      calMonth.calBanner === null,
+    `${calMonth.panels} panel headings, none of them warning, and no banner over the grid`,
+    `${calMonth.panelHeads.filter(h => h.warn !== null).length} of ` +
+      `${calMonth.panels} still warn, banner ${JSON.stringify(calMonth.calBanner)}`);
 
   // THE WEEKDAY SHAPE IS THE THING A GRID SHOWS AND A LIST CANNOT, weekend sessions included, so
   // the assertion is that every chip is in the column its own date falls in and that the two
@@ -1597,20 +1650,21 @@ async function checkTerm(page) {
     `${weekKeys.size} week panels of 7 days each, holding all ${state.sessions} sessions`,
     `${calWeek.panels} panels, ${calWeek.cells.length} day cells, ${calWeek.chips} chips`);
 
-  // AND IT SAYS IT IS SPARSE RATHER THAN BEING DRESSED UP AS A SCHEDULER. 71 of the 83 start at
-  // the same hour, so a week here is two rows; the sheet states that off its own rows, and the
-  // driver counts the same thing off the chip titles rather than trusting the sentence.
-  const byTime = {};
-  (await page.evaluate(`Array.prototype.slice.call(
-     document.querySelectorAll('#termrows .cal-chip')).map(function (c) {
-       return String(c.getAttribute('title') || '').split(' ')[1];
-     })`)).forEach(t => { byTime[t] = (byTime[t] || 0) + 1; });
-  const topTime = Object.keys(byTime).sort((a, b) => byTime[b] - byTime[a])[0];
-  assert('and the week grid says it is sparse rather than pretending to be a day planner',
-    calWeek.notice.indexOf(`${byTime[topTime]} of the ${state.sessions} sessions start at ` +
-      topTime) !== -1 && /not dressed up as a day planner/.test(calWeek.notice),
-    `the notice saying ${byTime[topTime]} of ${state.sessions} start at ${topTime}`,
-    JSON.stringify(calWeek.notice.slice(-260)));
+  // WHAT EACH SHAPE IS FOR IS ON THE CONTROL AND NO LONGER IN A PARAGRAPH OVER THE ROWS. Issue 88
+  // wrote one per shape, saying what that shape made visible about this term; issue 93 called the
+  // strip too verbose and it was, at 213 words over 34 rows. The paragraphs went and the buttons
+  // kept the titles they already had, which is the pattern issue 79 used on the zoom readout and
+  // the programme button. Asserted in both directions, because deleting a paragraph and leaving
+  // nothing in its place is the failure mode of a subtraction pass: three distinct non-empty
+  // titles, and no prose left in the strip.
+  assert('each calendar shape says what it is on its own control and not over the rows',
+    calWeek.shapeBtns.length === 3 &&
+      calWeek.shapeBtns.every(b => b.title.length > 10) &&
+      new Set(calWeek.shapeBtns.map(b => b.title)).size === 3 &&
+      calWeek.noticeProse.length === 0,
+    'three shape buttons carrying three different titles, over a strip with no prose in it',
+    `titles ${JSON.stringify(calWeek.shapeBtns.map(b => b.title.slice(0, 24)))}, ` +
+      `${calWeek.noticeProse.length} paragraphs left: ${JSON.stringify(calWeek.noticeProse)}`);
 
   // ---- the list, which is the shape every assertion below was written against ----
   await pressByText(page, '#termnotice .shape-btn', 'list');
@@ -1652,23 +1706,30 @@ async function checkTerm(page) {
     `${state.noInstructor} rows marked, and the subtitle saying so`,
     `${cal.gapRows} rows marked, ${cal.gapCells} cells marked, subtitle says ${statedGaps}`);
 
-  // A DATE SHAPED VIEW RAISES THE STAKES ON THE PROVENANCE. Said above the rows, where it cannot
-  // be scrolled away, and again inside the table on a sticky row, where it survives a screenshot
-  // of the rows on their own.
-  assert('the calendar says its values are invented, above the rows and inside the table',
-    /invented/.test(cal.notice) && /is not a schedule/i.test(cal.notice) &&
-      /invented/.test(cal.banner || '') && cal.bannerSticky === 'sticky',
-    'a notice reading "not a schedule" and a sticky banner row saying every value is invented',
-    `notice ${JSON.stringify((cal.notice || '').slice(0, 80))}, banner ` +
-    `${JSON.stringify(cal.banner)} (${cal.bannerSticky})`);
+  // ISSUES 91 AND 93, AND BOTH OF THESE ARE THE OLD ASSERTION TURNED AROUND. The first used to
+  // require a notice reading "not a schedule" above the rows and a sticky banner row inside the
+  // table; the second required the fragmentation finding in the same strip. He asked twice for
+  // the marks to go, so what the sheet must now NOT have is what is asserted, and the banner is
+  // the same element issue 92 was filed against: it is transparent and rows scroll through it,
+  // which is why deleting it closed that card instead of repairing it.
+  assert('the calendar list carries no banner row, no notice and no chip of its own',
+    cal.banner === null && cal.bannerSticky === null &&
+      cal.noticeProse.length === 0 && cal.subWarn === 0,
+    'no banner row in the table head, no prose in the strip and no chip in the subtitle',
+    `banner ${JSON.stringify(cal.banner)} (${cal.bannerSticky}), ` +
+      `${cal.noticeProse.length} paragraphs ${JSON.stringify(cal.noticeProse)}, ` +
+      `${cal.subWarn} subtitle chips`);
 
-  // The finding, and it is the most interesting thing either card turned up: the model says this
-  // view does not exist in the business.
-  assert('and it says that nothing in the business assembles this',
-    /one calendar per programme per quarter/.test(cal.notice) &&
-      /first place it is assembled/.test(cal.notice),
-    'the notice naming the seven Notion calendars and saying this is the first assembly of them',
-    JSON.stringify((cal.notice || '').slice(-220)));
+  // THE COUNT, WHICH IS THE WHOLE OF WHAT THOSE TWO CARDS DECIDED. Six statements that the data
+  // is invented stood on this one screen and the sixth made the first weaker. One is left and it
+  // is the page's, in the footer, where it was. Nothing here reads what it says: issue 101 is
+  // open on whether that claim is true at all, since 1,493 of 3,109 shipped values are flagged
+  // observed while the stance says invented, and settling that is his call and not a driver's.
+  assert('exactly one statement on the page that the data is invented, and it is the footer\'s',
+    cal.inventedInSheet.length === 0 && cal.inventedInFooter === 1,
+    'none in the sheet, one in the footer',
+    `${cal.inventedInSheet.length} in the sheet ${JSON.stringify(cal.inventedInSheet)}, ` +
+      `${cal.inventedInFooter} in the footer`);
 
   // ---- the time window, issue 90 -------------------------------------------------
   // THE CARD NAMED A MEETING: "checking the next 1-3 weeks to discuss with the team". Everything
@@ -1798,12 +1859,17 @@ async function checkTerm(page) {
   // Z-CFA IS A FINDING AND NOT A BLANK. Its syllabus names no module on any of its 45 rows, and
   // the drawing says so where the modules would be rather than showing nothing. The same shape
   // covers Z-HR and Z-PE, whose syllabi name a module on some rows and not others.
+  //
+  // ISSUE 93 TOOK THE FOURTH CONJUNCT OFF THIS ONE AND CHANGED NOTHING ELSE. It also required a
+  // paragraph above the rows saying the module structure is not the same object on every
+  // programme, and that paragraph is the exact element he filed 93 against. The finding it stated
+  // is still ON the page and is still asserted, in the headings themselves, which is where a
+  // finding about the headings belongs; the sentence describing them was the copy of it a reader
+  // had to get through first.
   assert('a syllabus that names no module says so where the module heading goes',
     out.noModuleGroups > 0 && out.modules > out.noModuleGroups &&
-      out.noModuleNames.every(t => /no module recorded in the syllabus/.test(t)) &&
-      /not the same object on every programme/.test(out.notice),
-    'headings of both kinds, the absent ones saying no module is recorded, and the notice ' +
-      'saying the structure differs by programme',
+      out.noModuleNames.every(t => /no module recorded in the syllabus/.test(t)),
+    'headings of both kinds, the absent ones saying no module is recorded',
     `${out.noModuleGroups} of ${out.modules} headings are the absence: ` +
       JSON.stringify(out.noModuleNames.slice(0, 2)));
 
@@ -1815,12 +1881,21 @@ async function checkTerm(page) {
     state.maxDeliveries === 1 && delivered === state.templates,
     `${state.templates} rows each carrying 1 delivery`,
     `${delivered} rows carrying 1, the page reports a maximum of ${state.maxDeliveries}`);
-  const outNotice = out.notice.replace(/\s+/g, ' ');
-  assert('and the sheet says that is a property of the drawing rather than a finding',
-    /property of the drawing rather than a finding about the business/.test(outNotice) &&
-      /it draws one cohort/.test(outNotice),
-    'the notice naming one cohort as the reason a template can have at most one delivery',
-    JSON.stringify(outNotice.slice(-260)));
+  // ISSUE 94, AND IT TAKES THE SLOT THE ONE-TO-ONE PARAGRAPH HELD. That paragraph said the one to
+  // one was a property of a drawing of one cohort rather than a finding about the business, and
+  // issue 93 deleted it with the other five; the limit it stated is in this file and in the
+  // CHANGELOG, and the arithmetic it described is still asserted, immediately above.
+  //
+  // WHAT REPLACES IT IS THE DEFECT HE FILED AGAINST THE SAME TABLE. A module heading sat at
+  // `padding-left: 26px` over rows whose cells are at 10, so the heading was painted 16px to the
+  // RIGHT of every row it heads and read as a stray gap. Measured as the left edge of the painted
+  // text on both, not as a padding declaration, so moving the indent onto a margin or a border
+  // would fail the same assertion. Equal, not merely closer: a heading is at or left of its own
+  // children or the indent is saying the opposite of what an indent says.
+  assert('a module heading is never painted right of the rows it heads',
+    !!out.headingIndent && out.headingIndent.head === out.headingIndent.row,
+    'the heading text and the row text starting at the same x',
+    JSON.stringify(out.headingIndent));
 
   assert('the outline names every programme and links each back to its own drawing',
     out.groupLinks.length === state.programmes &&
