@@ -314,6 +314,38 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- **The redaction explained itself, #101, first of the two safe pieces.** The withheld firm's tile
+  published the reason for the withholding: which register the refused string collides with, and
+  which neighbouring template was unaffected. Against the short public list of Spanish law firms
+  named after a person, those two sentences narrow the candidates to very few, so the explanation
+  was an oracle for the string the withholding exists to protect. The withholding is unchanged; the
+  note now says the name is withheld and that it was not swapped for another firm's, and nothing
+  about the reason, the register or any other template. The title row reads "real, with the firm
+  name withheld". The first wording came from a brief that asked for the reasoning to be on the
+  tile; that was the error and it is recorded beside the value so a later edit does not restore it.
+  The same reasoning survives in two places that are not served, both left as findings: this
+  changelog above, which is history, and `build/model.py`'s own comment, trimmed of the pointer and
+  of its now false claim that the tile says why. `site/instance.js` 315 bytes shorter,
+  `site/layout.js` differing only in `drawingDigest`, every coordinate identical, both regenerated.
+- **The name gate was blind to a concatenated token, #101, second of the two.** `fold_tokens`
+  lowercased before splitting, so a run of letters with no punctuation in it stayed one token
+  however many names were glued together inside it. Each run is now emitted whole AND cut at every
+  lower-to-upper and acronym-to-word boundary. Emitting the whole run as well is what makes it
+  additive: no token the previous folding produced is lost, so the net can only get finer and the
+  register regenerates as a superset of itself. `build/safety_grep.py`, the declared drift-prone
+  third copy, gets the same boundary set as a second view of the bytes searched alongside the plain
+  one, and picks up the digit boundary the shell folding already had. Measured over the whole
+  tracked tree before committing: 5597 distinct tokens before, 5622 after, none of the 25 new ones
+  in the register. The single false positive it produced was in the comment introducing it, which
+  had used a real camelCase pair as its worked example; the example was replaced, not the rule.
+  Self-tests extended and never relaxed, `check_forbidden.sh` 11 to 16 and `check_repo.sh` 73 to 77,
+  with the two genuinely new trip probes checked to fail against the old folding and an additivity
+  probe run against a register holding only a joined form.
+- **The committed name hash list was one token behind the vault.** Found by regenerating it, not
+  caused by the folding change: the previous generator run against today's register also yields 138
+  where the committed file held 137. The real size is 138 hashes over 87 people, and the 224 quoted
+  in earlier briefs is a different number, `build/safety_grep.py`'s term count, which is those 87
+  full names plus the 137 tokens its own coarser splitting produces.
 - **The header could not be clicked while a sheet was open, #86.** He filed "feedback must be
   available when I am in this subpage", and he filed it from outside the subpage, because he had
   to. The sheets were `inset: 0` with a backdrop at z-index 20 and the header set none, so
