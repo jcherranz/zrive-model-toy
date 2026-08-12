@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T11:52:51Z",
+  "generated": "2026-08-12T12:01:50Z",
   "columns": [
     {
       "key": "raw",
@@ -50,15 +50,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/101"
         },
         {
-          "id": 102,
-          "title": "The build accepts a duplicate node id and every static gate says clean",
-          "labels": [
-            "audit",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/102"
-        },
-        {
           "id": 103,
           "title": "The gate set measures less than it claims in ten places, one of them a gate nothing runs",
           "labels": [
@@ -66,15 +57,6 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/103"
-        },
-        {
-          "id": 104,
-          "title": "121 invented values shipped flagged real, with all seven gates green",
-          "labels": [
-            "audit",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/104"
         },
         {
           "id": 106,
@@ -100,6 +82,24 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/98"
+        },
+        {
+          "id": 102,
+          "title": "The build accepts a duplicate node id and every static gate says clean",
+          "labels": [
+            "audit",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/102"
+        },
+        {
+          "id": 104,
+          "title": "121 invented values shipped flagged real, with all seven gates green",
+          "labels": [
+            "audit",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/104"
         },
         {
           "id": 105,
