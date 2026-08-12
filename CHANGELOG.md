@@ -489,6 +489,49 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- **The build gate said "committed" seven times and never consulted git, #103 row B10.** It copied
+  the working-tree `site/instance.js` and `site/layout.js` aside, deleted them, rebuilt and
+  compared against those copies, so what it established was "the file on disk is what the builder
+  just produced" while what it printed was "VERDICT: clean. The committed drawing is the build's
+  own output". Proved with a hand edit staged into the index and the builder's own output left on
+  disk: the pre-fix gate printed `site/instance.js is byte identical after a rebuild`, `both
+  documents are a pure function of the model` and the clean verdict, **exit 0**, over a staged blob
+  no build had ever produced. The baseline is now read out of git with
+  `git cat-file blob :site/instance.js`. The index and not HEAD, because "what I am about to commit
+  is the build's own output" is the question a pre-push gate is asked and HEAD answers a question
+  about the past. Post-fix on the same tree: `::error::the index copy of site/instance.js is not
+  what build/build_layout.py produces`, exit 1.
+- **And the disk copy is checked against that same snapshot, because a commit here stages it.**
+  Commits in this repository are made with an explicit path, so a working-tree copy that differs
+  from the index is also a commit candidate and no verdict can cover both sets of bytes at once.
+  The other direction of the same failing input, the disk edited and the index canonical, now
+  passes the index comparison and is refused on the divergence, naming the working tree, where the
+  pre-fix body refused with a message calling the disk copy `committed`.
+- **It degrades by naming rather than by guessing.** Untracked path, unreadable blob, or no
+  repository at all: the baseline falls back to the working tree, every finding and the verdict
+  say so, and the word `committed` appears in no line the file prints on that path. That absence is
+  mechanically checked rather than asserted in prose, which is why the word is reserved even inside
+  a sentence disclaiming it. Run in a directory with the `.git` removed the verdict reads
+  `The drawing in the WORKING TREE (git was not asked) is the build's own output`, followed by
+  `READ THAT SNAPSHOT NAME`. This is `forbidden_lib.sh`'s `FORBIDDEN_ORIGIN` discipline, whose own
+  comment is the argument.
+- **`check_build.sh --self-test` 16 probes to 36, with the intended count declared by hand.**
+  `EXPECTED_PROBES` here as in the other two shell suites, #103 row B1, since this suite had the
+  same hole. **18 of the 36 MISS against the pre-fix bodies**, measured by grafting the 1eb377a
+  implementations under the new suite: 5 on findings that name no snapshot, 7 on where the baseline
+  comes from, 6 on the verdict. The other 18 pass in both directions, two of them deliberately, so
+  the 18 mean something. Counts at `1a2dde3`.
+- **`verify.sh`'s step numbers are asserted rather than swept, #106 E4.** That row filed two stale
+  numbers read at `3c7be9e`: a section header numbered 8 introducing the function invoked as step
+  9, and the untracked-files message sending a contributor to "steps 4 and 5" for a repository gate
+  that had moved. **Both were already correct at `1eb377a`** and neither was repaired deliberately;
+  one was fixed by #103's renumbering from eleven steps to thirteen and one because its section
+  header had lost its number. A record settled by accident twice is a record nothing is watching,
+  so the nth step registered must now begin `n. ` and a renumbering that misses one aborts at exit
+  2 before the step runs. Proved with a step inserted between the build gate and the provenance
+  self-test: `ASSERTION FAILED: this is step 6 and it is registered as "5. prove the provenance
+  gate fires"`. Every remaining cross-reference in `scripts/` names a step by what it does; the two
+  numbers left describe the historic defect and point at nothing live.
 - **Seven gates reported on less than they claimed, #103.** The repository's signature failure,
   swept. Each fix is proved against the input that should fail it and then against the real tree,
   at `0f41655`.
