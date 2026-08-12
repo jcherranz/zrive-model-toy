@@ -1933,12 +1933,13 @@ async function checkTerm(page) {
   // canonical coordinates, which is what makes the filtered drawing the build's own geometry with
   // tiles taken out rather than a second opinion about where things go.
   //
-  // A TENTH OF A UNIT ON A CONTROL POINT AND NOT A TWENTIETH, which is one rounding rule and not
-  // slack. layout.js writes its coordinates to one decimal; Python rounds a half to even and
-  // JavaScript rounds it away from zero, so a control point landing exactly on x.x5 is written
-  // 876.2 by the build and computed 876.3 here. Thirty five of the four hundred and fifty five
-  // edges across the seven drawings do that and no other difference exists: the tiles, the
-  // arrowheads and the directions are exact.
+  // A TENTH OF A UNIT AND NOT A TWENTIETH, which is one rounding rule and not slack. layout.js
+  // writes its coordinates to one decimal; Python rounds a half to even and JavaScript rounds it
+  // away from zero, so a value landing exactly on x.x5 is written 876.2 by the build and computed
+  // 876.3 here. Thirty five of the four hundred and fifty five edges across the seven drawings do
+  // it on a control point and Z-CFA does it on a tile. Nothing else differs at all: measured on
+  // all seven, the arrowheads and the directions are exact and the worst of everything else is
+  // that one tenth.
   // ON THE DENSEST OF THE SEVEN, chosen by measurement and not by name. The card was filed from a
   // drawing 2578px tall with three lit tiles in it, and a filter asserted on the six-session view
   // the suite happens to start on would prove almost nothing: the reflow has to have work to do.
@@ -2010,7 +2011,7 @@ async function checkTerm(page) {
   // what site/layout.js rounds its coordinates to, so that is the tolerance and nothing looser.
   const reflow = await page.evaluate('window.ZT.reflow()');
   assert('and the reflow reproduces the generated layout, which is the cover check_build.sh cannot give',
-    !!reflow && reflow.dy <= 0.05 && reflow.dp <= 0.1 && reflow.arrows <= 0.05 &&
+    !!reflow && reflow.dy <= 0.1 && reflow.dp <= 0.1 && reflow.arrows <= 0.05 &&
       reflow.rev === 0 && reflow.nodes === beforeWin.nodes && reflow.edges > 0,
     `the full node set reflowing onto the build's own coordinates, worst node and worst control ` +
       `point inside the tenth of a unit layout.js rounds to`,
