@@ -41,6 +41,30 @@
 #      A string in the table that no context asks for is reported and is not a failure: it is
 #      dead weight rather than a wrong coordinate, and clearing it costs a browser run.
 #
+#   3. THE MODEL IS WELL FORMED, AND THE GATE THAT SAYS SO IS PROVED ARMED. Issue 102, and this
+#      is the check whose absence made the whole of check 1 above worth less than it read. A
+#      duplicate node id was injected into build/model.py, the real build was run, and this file
+#      printed "VERDICT: clean. The committed drawing is the build's own output." That verdict
+#      was TRUE. The drawing was the build's own output; the build had agreed to draw twenty
+#      eight nodes carrying twenty seven ids, two tiles on one point, and ninety units of
+#      reserved height for a tile nobody can see. Reproducibility says the drawing follows from
+#      the model. It says nothing whatever about whether the model is one a drawing can be made
+#      of, and until issue 102 nothing anywhere said that.
+#
+#      The rules live in build/model.py as check_structure(), which build/build_layout.py calls
+#      on the document it lays out, so a private deployment coming in through --instance meets
+#      them too. Two things are run from here. The live verdict, which restates on this check's
+#      own face what the build asserted inside its log. And the self-test, which is the half that
+#      makes the first half worth anything: one synthetic graph per rule, each one the passing
+#      control with a single thing changed, and the refusal read for the id, the edge and the
+#      counts it is supposed to name rather than only for its exit code.
+#
+#      WHERE THIS WOULD HAVE GONE IF THE FENCES WERE DIFFERENT: beside step 4 of
+#      scripts/verify.sh, which is where the provenance self-test sits and where a reader would
+#      look for it. verify.sh already exercises the LIVE structure gate at its step 3, because
+#      that step runs the builder and the builder calls it. What verify.sh does not do is prove
+#      the gate fires. One line there would close it and it is recorded in the report on #102.
+#
 # WHAT THE BUILDER TOUCHES, established by running it on a clean tree rather than assumed.
 # It reads build/model.py, build/label_widths.json, site/app.css and the name gate's rules in
 # scripts/, and it writes exactly two tracked files, site/instance.js and site/layout.js. It
@@ -246,6 +270,25 @@ PY
 }
 
 # ---------------------------------------------------------------------------------------------
+# 3. The model is well formed.
+# ---------------------------------------------------------------------------------------------
+# stderr is KEPT and not discarded, which is the whole reason these are two lines rather than
+# one. A refusal from check_structure() is a SystemExit and its message is on stderr, so a
+# quieter form of this function would report an exit code and swallow the diagnosis the rules
+# were written to produce. What is dropped is only build/model.py's own [model] chatter about
+# the vault it read, which is a note about the machine and not about the model.
+_model_says() {
+  local out rc
+  out="$(python3 "$ROOT/build/model.py" "$1" 2>&1)"
+  rc=$?
+  printf '%s\n' "$out" | grep -v '^\[model\] ' | sed 's/^/    /'
+  return "$rc"
+}
+
+check_structure_live() { _model_says --structure; }
+check_structure_armed() { _model_says --structure-self-test; }
+
+# ---------------------------------------------------------------------------------------------
 # The self-test. Jidoka: prove the check refuses a bad input before believing it says clean.
 # ---------------------------------------------------------------------------------------------
 # It never touches the generated documents or build/label_widths.json. The byte-difference cases run
@@ -349,6 +392,24 @@ PY
   probe 1 "an unreadable table aborted instead of reporting clean" \
         check_widths_cover "$dir/not-a-file.json"
 
+  echo
+  echo "self-test: the model is well formed"
+  # The whole suite in build/model.py, one synthetic graph per rule, run from here because
+  # nothing else in the repository runs it. Its own probe total is asserted against a written
+  # constant inside it, so a rule deleted with its probe takes it red instead of shrinking it.
+  probe 0 "the structure gate refused every graph it names and passed the shipped one" \
+        check_structure_armed
+  # AND THE TWO PROVED DEFECTS ARE NAMED HERE AS WELL, which is deliberate duplication and the
+  # only duplication in this file. A suite can be emptied one probe at a time and still print a
+  # clean ratio; asserting from outside that these two rules were exercised means removing either
+  # of them takes two files rather than one, and both of these are mutations that were BUILT and
+  # SHIPPED past every gate in this repository rather than imagined.
+  probe_says "[OK]   node-id-unique" "the suite proved the duplicate id is refused" \
+        check_structure_armed
+  probe_says "[OK]   edge-endpoint-exists" "the suite proved a dangling edge is named" \
+        check_structure_armed
+  probe 0 "the model's own graph passed the live check" check_structure_live
+
   rm -rf "$dir"
   echo
   echo "self-test: ${PASS}/${TOTAL}"
@@ -373,9 +434,19 @@ echo "== the width table covers every string the layout measures"
 check_widths_cover || bad=1
 
 echo
+echo "== the model is a graph a drawing can be made of"
+check_structure_live || bad=1
+
+echo
+echo "== and the gate that says so refuses the graphs it names"
+check_structure_armed || bad=1
+
+echo
 if [ "$bad" -ne 0 ]; then
-  echo "VERDICT: the build does not reproduce what is committed."
+  echo "VERDICT: the build does not reproduce what is committed, or the model it was built "
+  echo "         from is not one a drawing can be made of."
   exit 1
 fi
-echo "VERDICT: clean. The committed drawing is the build's own output."
+echo "VERDICT: clean. The committed drawing is the build's own output, and the model it came "
+echo "         from carries no repeated id, no dangling edge and no self-loop."
 exit 0
