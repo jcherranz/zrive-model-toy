@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T15:19:08Z",
+  "generated": "2026-08-12T15:19:48Z",
   "columns": [
     {
       "key": "raw",
@@ -59,7 +59,7 @@
         },
         {
           "id": 111,
-          "title": "The whole point of week filter is to not see this (only the week…",
+          "title": "The week filter should leave only the window, not dim what it excludes",
           "labels": [
             "bug",
             "feedback",
@@ -69,7 +69,7 @@
         },
         {
           "id": 112,
-          "title": "Session outlines must be shown when clicked in the title not just all…",
+          "title": "An outline row should open on its own title, not all rows at once",
           "labels": [
             "bug",
             "feedback",
