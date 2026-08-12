@@ -65,6 +65,32 @@ A = "absent"
 # document, and check_provenance() below refuses the pair coming apart.
 R = "real"
 
+# ---- and the flag vocabulary, issue 104 --------------------------------------
+# THE SENTENCE ABOVE WAS FALSE WHEN IT WAS WRITTEN. check_provenance() read `f` at exactly one
+# place, inside the four agenda rows, and never once in the node walk. There was no set of the
+# four values anywhere in the tree to check a fifth against, so `f = "banana"` was accepted and
+# went straight into a class name in the panel; `f` deleted outright from all 3109 node rows was
+# accepted; and 121 invented values were shipped flagged `real`, past every gate, on a page whose
+# footer says every number on it is made up.
+#
+# So the four values are a vocabulary now, and it ships with the document exactly as the rank,
+# status and stance vocabularies do, for issue 72's reason: a token whose meaning is only in the
+# program that wrote it is not machine readable, and a private document laid out through
+# --instance declares its own flags rather than being judged against this toy's.
+#
+# The order is the order a reader meets them in: three kinds of placeholder, then the one that
+# is not a placeholder at all.
+VALUE_FLAG = {
+    D: "a value stands here in place of one some system would hold. It was made up so that the "
+       "panel has something to show, and the thing it stands in for is real",
+    E: "a value nobody read, put at the size the thing is believed to be. It is a placeholder "
+       "with an opinion about magnitude, and it is not a measurement",
+    A: "no value, because no system holds one. It records an absence rather than standing in "
+       "for a presence, which is why it is not a weaker kind of dummy",
+    R: "the value was read off a source outside this repository and is reproduced here. It is "
+       "not a placeholder, and it is the only flag on this page that is not",
+}
+
 
 # ---- provenance, issue 73, seam 5 --------------------------------------------
 # A management tool needs three things about a value that this model has never carried: where it
@@ -3464,7 +3490,9 @@ def emit_contrast():
 # EMITTED DOCUMENT and not on the code that writes it, for seam 1's reason: the code that writes
 # it is the code that would be wrong. And it runs inside build/build_layout.py, on whatever
 # document is being laid out, so a private deployment's own document is refused by the same
-# eleven rules as this one rather than by nobody.
+# named rules as this one rather than by nobody. Each rule is proved armed against a
+# failing input by provenance_self_test(), whose probe total is asserted so that a rule
+# quietly deleted takes the self-test red rather than shrinking it.
 #
 # WHAT IT REFUSES, AND THE FIRST QUESTION TO ANSWER IS WHY IT DOES NOT REFUSE EVERYTHING. Not one
 # value in this document is apto. Every row is either invented or read and undated, and a gate
@@ -3486,7 +3514,7 @@ def emit_contrast():
 #   rendered identically to a read one, is the failure this entire seam exists to prevent and it
 #   is worse than the tool showing nothing.
 #
-# The other nine rules are the ways one row could be wrong while still looking right in a panel.
+# The remaining rules are the ways one row could be wrong while still looking right in a panel.
 # The sharpest is `official-needs-a-read`, which is not a provenance rule at all on its own: it
 # asks issue 72's registry, in the same document, whether the system holding this class has ever
 # been reached, and refuses a value claiming to be read from a record when the registry says
@@ -3508,11 +3536,16 @@ def check_provenance(doc):
     stance, as_of, clock = pr.get("stance"), pr.get("as_of"), pr.get("clock")
     vocab = pr.get("vocab") if isinstance(pr.get("vocab"), dict) else {}
     ranks = vocab.get("rank") if isinstance(vocab.get("rank"), dict) else None
-    if not ranks or not isinstance(vocab.get("status"), dict) \
+    # Issue 104. `flag` joins the three that were already required, and it is required on the
+    # same terms: the flag is the half of the pair THE READER SEES, so a document that ships the
+    # rank vocabulary and not the flag vocabulary is machine readable about the half nobody looks
+    # at and mute about the half on the screen.
+    flags = vocab.get("flag") if isinstance(vocab.get("flag"), dict) else None
+    if not ranks or not flags or not isinstance(vocab.get("status"), dict) \
             or not isinstance(vocab.get("stance"), dict):
         bad("document-block", "the provenance block ships no vocabulary for its ranks, its "
-                              "statuses and its stances. A token whose meaning is only in the "
-                              "program that wrote it is not machine readable.")
+                              "flags, its statuses and its stances. A token whose meaning is "
+                              "only in the program that wrote it is not machine readable.")
     if stance not in vocab["stance"]:
         bad("document-block", f"stance {stance!r} is not one of {sorted(vocab['stance'])}")
     try:
@@ -3544,6 +3577,11 @@ def check_provenance(doc):
         for j, row in enumerate(agenda["rows"]):
             seen += 1
             what = f"agenda row {j}"
+            if row.get("f") not in flags:
+                bad("flag-vocabulary",
+                    f"{what} is flagged {row.get('f')!r}, which is not one of "
+                    f"{sorted(flags)}. The flag is what the panel prints and what it puts in "
+                    f"the row's class name, so a token in no vocabulary reaches the screen.")
             if row.get("r") != INVENTED or row.get("at") is not None:
                 bad("agenda-row-not-invented",
                     f"{what} is ranked {row.get('r')!r} with read date {row.get('at')!r}. Nothing "
@@ -3570,6 +3608,18 @@ def check_provenance(doc):
                             f"{what} carries a {typed!r} field. It is computed from the rank, "
                             f"the read date and the clock, by every reader, and a written one "
                             f"can disagree with the two facts it was supposed to follow from.")
+                # Issue 104, and the first of the three things nothing here had an opinion
+                # about. The flag is not decoration: the panel prints it and puts it straight
+                # into the row's class name, so an unknown token is a token on the screen and a
+                # missing one is the string "undefined" beside a value. A closed vocabulary, read
+                # off the document rather than off this file, so an --instance document is judged
+                # against the flags IT declares.
+                flag = row.get("f")
+                if flag not in flags:
+                    bad("flag-vocabulary",
+                        f"{what} is flagged {flag!r}, which is not one of {sorted(flags)}. The "
+                        f"flag is what the panel prints and what it puts in the row's class "
+                        f"name, so a token in no vocabulary reaches the screen.")
                 if rank not in ranks:
                     bad("rank-vocabulary",
                         f"{what} is ranked {rank!r}, which is not one of {sorted(ranks)}")
@@ -3615,6 +3665,57 @@ def check_provenance(doc):
                         f"not on the machine that builds this document, and a date here computes "
                         f"fresh, which would make a value on an invented page read as fit to act "
                         f"on.")
+                # ---- what `real` is allowed to mean, issue 104 ----------------------------
+                # AND THE LIMIT IS STATED FIRST, because a check whose reach is oversold is the
+                # failure this repository is named for. NOTHING HERE CAN PROVE A VALUE IS REAL.
+                # The vault the syllabus rows are read from is not on the machine that builds
+                # this, in CI or anywhere else, so no gate can open the source and compare. A
+                # `real` row carrying a module name that is not that module's name still ships.
+                #
+                # What IS checkable is the pair, and the pair is where the lie has to live. The
+                # flag is the half the reader sees and the rank is the half the machine sees, and
+                # the two are supposed to say the same thing. So:
+                #
+                #   a value flagged `real` may not be ranked `0_invented`, in any document. The
+                #   rank's own definition in VALUE_RANK reads "nothing was read. The value was
+                #   made up", which is the exact contradiction of the chip beside it. This is the
+                #   rule that refuses the audit's flagship mutation: `owner`, `attendance` and
+                #   `fee_per_session` forced to `real` with their ranks left invented, which put
+                #   121 made up numbers on the page wearing the real chip past seven green gates.
+                #
+                #   and on an invented document, `real` may appear only on the one population
+                #   that has a source. Ranking alone does not close it: the four registry rows
+                #   are ranked `3_observed` too, so a route row flagged `real` clears the rule
+                #   above and would still be a made up chip, since what those rows cite is an
+                #   analysis of the systems and not the value itself. The population is the
+                #   syllabus keys at the syllabus rank, declared above, and adding one is adding
+                #   a key there rather than typing a flag onto a row.
+                #
+                # SCOPED TO THE INVENTED STANCE, like `toy-value-not-invented`, and for the same
+                # reason: a live document laid out through --instance is full of values read out
+                # of real systems and every one of them is entitled to the flag. This repository's
+                # answer for its own public toy is not a claim about that document.
+                #
+                # AND IT IS CLOSED IN ONE DIRECTION ONLY, which is worth writing down because the
+                # symmetric rule is false. A syllabus row is not obliged to be `real`: eight
+                # `module_name` rows are flagged `absent`, because the syllabus records that
+                # those sessions sit in no module, and an absence read off a real source is an
+                # absence rather than a real value.
+                if flag == R and rank == INVENTED:
+                    bad("real-flag-not-invented",
+                        f"{what} is flagged {R!r} to the reader and ranked {INVENTED!r} to the "
+                        f"machine. The rank's own definition is that nothing was read and the "
+                        f"value was made up, so the two halves of this row contradict each "
+                        f"other and the half on the screen is the one that is wrong.")
+                if flag == R and stance == "invented" and not (
+                        i >= registry_rows and row["k"] in SYLLABUS_KEYS
+                        and rank == SYLLABUS_RANK):
+                    bad("real-flag-needs-a-source",
+                        f"{what} is flagged {R!r} on a document whose stance is invented. The "
+                        f"only values in such a document that were not made up are the syllabus "
+                        f"rows, {', '.join(sorted(SYLLABUS_KEYS))} at rank {SYLLABUS_RANK!r}, "
+                        f"and this row is not one of them. A `real` chip on a row with no stated "
+                        f"source is the one claim on this page a reader cannot check.")
                 st = value_status(rank, at, as_of, clock["fresh_days"], clock["aging_days"])
                 if st not in vocab["status"]:
                     bad("document-block", f"{what} computes to {st!r}, which the document's own "
@@ -3658,6 +3759,160 @@ def check_provenance(doc):
         bad("empty-input", "no value in this document carries a provenance, so this gate "
                            "examined nothing and would report clean on any document at all.")
     return seen
+
+
+# ---- the structure gate, issue 102 ------------------------------------------
+# NOTHING ANYWHERE ASSERTED THAT THE MODEL IS WELL FORMED. The audit proved it the hard way: a
+# duplicate node id was injected into this file, immediately before the identity loop, the real
+# build was run, and the whole static set said clean. The written drawing carried twenty eight
+# node entries with twenty seven distinct ids, two tiles at identical coordinates, and ninety
+# units of reserved height for a tile nobody can see. `check_build.sh` printed "VERDICT: clean.
+# The committed drawing is the build's own output", and it was telling the truth: the drawing WAS
+# the build's own output. The build had simply agreed to draw nonsense.
+#
+# So this is the gate that has an opinion about the graph, and it runs where check_provenance()
+# runs, on the EMITTED DOCUMENT and inside build/build_layout.py, for the same two reasons: the
+# code that writes the document is the code that would be wrong, and a private deployment laid
+# out through --instance is refused by these rules rather than by nobody.
+#
+# IT RUNS BEFORE ONE COORDINATE IS COMPUTED, which is not tidiness. build_layout.py builds its
+# adjacency with `adj[e["s"]].append(...)`, so an edge naming a node that does not exist dies
+# there with a bare KeyError and no view, no edge and no id in the message, while every
+# neighbouring refusal in that file names the rule, the view and the fix. Refusing here means the
+# diagnosis arrives instead of the traceback.
+#
+# WHAT IT REFUSES, AND THE ONE THING IT DELIBERATELY DOES NOT.
+#
+#   node-id-unique. The proved one. Two nodes under one id in one view is not a drawing defect
+#   with a visible symptom; the layout dict keyed by id keeps the last of them, the declaration
+#   order list keeps both, the packer places both, and the page then has two DOM elements under
+#   one `data-node` value, after which every querySelector in the smoke suite reads the first of
+#   two and reports on both.
+#
+#   edge-endpoint-exists. Both ends of every edge, named with the edge and the missing id.
+#
+#   edge-is-not-a-loop. `s == t` was never tested and the emitted path for one runs backwards
+#   through the tile it starts and ends on, with the arrowhead at angle zero pointing the wrong
+#   way and the verb chip sitting on the tile. This is refused rather than drawn better, and the
+#   reason is worth stating because a self relation is not absurd in general: a session template
+#   that supersedes another template is a real shape. It is refused because this layout draws an
+#   edge BETWEEN TWO COLUMNS and has no shape at all for an edge inside one, which is the same
+#   reason Student sits in column 4 rather than under its own group. If a self relation is ever
+#   wanted, the drawing gains a shape for it first and this rule is what makes that a decision
+#   rather than an accident.
+#
+#   edge-declared-once. Two edges with the same ends and the same verb draw two identical paths
+#   and stack two identical verb chips, and the chip separation gate cannot see it: two chips at
+#   the same point are not two chips as far as it is concerned.
+#
+#   node-class-declared. Every node carries `class`, the join to issue 72's registry, and the
+#   first rows of its panel are that registry entry rendered. A class naming no entry loses those
+#   rows silently, and it also switches `official-needs-a-read` off for that node, since that
+#   rule asks the registry a question and a missing entry answers nothing.
+#
+#   AN ORPHAN IS NOT REFUSED, and this is the judgement rather than an omission. A node with no
+#   edge in a view is a legal modelling state: a view says which objects it is about, and an
+#   object can belong in one without any relation of it being drawn there. Refusing it would
+#   refuse a document this repository has no right to call wrong, and the destination is a
+#   management tool over a whole funnel where a class with nothing attached yet is exactly the
+#   state worth showing. What the check does instead is COUNT them and say the number, on every
+#   build, so that an edge deleted and its node left behind stops being invisible. The shipped
+#   document has none, in any of the seven views.
+#
+# THE COUNT GOES WHERE THE CHECK CAN SEE IT, which is the pattern that keeps working here:
+# EXPECTED_ASSERTIONS in the smoke suite and the `#rows` terminator on the contrast table. A
+# check that examined less than it meant to has to fail rather than report clean on the part it
+# reached. Three ways, and they cover different failures. A document with no views, or a view
+# with no nodes, is refused by name instead of walking nothing and returning clean. The counts
+# this gate walked are returned and the build prints them, so a run that examined 300 nodes where
+# yesterday's examined 330 is on the screen. And structure_self_test() asserts its own probe
+# total against a written constant, so a rule deleted along with its probe takes the self-test
+# red rather than quietly shrinking it to a smaller clean number.
+def check_structure(doc):
+    """Refuse an instance document whose graph is not one a drawing can be made of."""
+    def bad(rule, why):
+        raise SystemExit(f"[structure] {rule}: {why}")
+
+    views = doc.get("views")
+    if not isinstance(views, list) or not views:
+        bad("empty-input", "the document declares no views, so this gate would walk nothing and "
+                           "report clean on any document at all.")
+    classes = doc.get("routes", {}).get("classes", {})
+    if not isinstance(classes, dict) or not classes:
+        bad("empty-input", "the document ships no populate registry, so every node's class "
+                           "would join to nothing and the join rule below would examine "
+                           "nothing while reporting clean.")
+
+    n_nodes = n_edges = n_orphans = 0
+    per_view = []
+    for v in views:
+        key = v.get("key", "?")
+        nodes, edges = v.get("nodes"), v.get("edges")
+        if not isinstance(nodes, list) or not nodes:
+            bad("empty-input", f"view {key} holds no nodes. A view is a statement about a set of "
+                               f"objects and an empty one is a page with nothing on it, which "
+                               f"every rule below would call clean.")
+        if not isinstance(edges, list):
+            bad("empty-input", f"view {key} carries no edge list at all. An empty list is a "
+                               f"legal view of unrelated objects; a missing one is a document "
+                               f"this gate cannot judge.")
+
+        ids = []
+        for n in nodes:
+            nid = n.get("id")
+            ids.append(nid)
+            if n.get("class") not in classes:
+                bad("node-class-declared",
+                    f"{key} node {nid} is class {n.get('class')!r}, which names no entry in this "
+                    f"document's populate registry. The first {n.get('route')} rows of its panel "
+                    f"are that entry rendered, and the rule that refuses a value claiming to come "
+                    f"from a system's own record asks the registry a question a missing entry "
+                    f"cannot answer.")
+        dupes = sorted({i for i in ids if ids.count(i) > 1})
+        if dupes:
+            bad("node-id-unique",
+                f"{key} declares {len(nodes)} nodes carrying {len(set(ids))} distinct ids. "
+                f"Repeated: {', '.join(map(str, dupes))}. The layout keys its nodes by id and "
+                f"keeps the last of a pair, the declaration order keeps both, and the packer "
+                f"then reserves height for a tile drawn underneath another one at the same "
+                f"coordinates.")
+        idset = set(ids)
+
+        seen_edges = set()
+        for e in edges:
+            s, t, verb = e.get("s"), e.get("t"), e.get("v")
+            for end, who in ((s, "source"), (t, "target")):
+                if end not in idset:
+                    bad("edge-endpoint-exists",
+                        f"{key} edge {s!r} -{verb!r}-> {t!r} names {end!r} as its {who} and no "
+                        f"node in {key} carries that id. The layout builds its adjacency by "
+                        f"indexing the node table with both ends, so this reaches the drawing "
+                        f"as a bare KeyError naming nothing.")
+            if s == t:
+                bad("edge-is-not-a-loop",
+                    f"{key} edge {s!r} -{verb!r}-> {t!r} starts and ends on the same node. This "
+                    f"layout draws an edge between two columns and has no shape for one inside "
+                    f"a column: the path runs backwards through the tile, the arrowhead comes "
+                    f"out at angle zero pointing the wrong way, and the verb chip lands on top "
+                    f"of the tile. If a self relation is wanted, the drawing gains a shape for "
+                    f"it and this rule is what makes that a decision.")
+            if (s, t, verb) in seen_edges:
+                bad("edge-declared-once",
+                    f"{key} declares {s!r} -{verb!r}-> {t!r} more than once. It draws two "
+                    f"identical paths and stacks two identical verb chips, which the chip "
+                    f"separation gate cannot see: two chips on the same point do not overlap "
+                    f"each other by any measure it takes.")
+            seen_edges.add((s, t, verb))
+
+        touched = {e["s"] for e in edges} | {e["t"] for e in edges}
+        orphans = sorted(idset - touched)
+        n_nodes += len(nodes)
+        n_edges += len(edges)
+        n_orphans += len(orphans)
+        per_view.append((key, len(nodes), len(edges), orphans))
+
+    return {"views": len(views), "nodes": n_nodes, "edges": n_edges, "orphans": n_orphans,
+            "per_view": per_view}
 
 
 # ---- the instance document --------------------------------------------------
@@ -3719,7 +3974,8 @@ def instance_document():
             "as_of": PROVENANCE_AS_OF,
             "clock": {"fresh_days": FRESH_DAYS, "aging_days": AGING_DAYS},
             "apto": list(APTO),
-            "vocab": {"rank": VALUE_RANK, "status": VALUE_STATUS, "stance": STANCE},
+            "vocab": {"rank": VALUE_RANK, "status": VALUE_STATUS, "stance": STANCE,
+                      "flag": VALUE_FLAG},
         },
         # ---- the invented session agenda, issue 85 --------------------------------------------
         "agenda": SESSION_AGENDA,
@@ -3765,6 +4021,13 @@ def instance_document():
 # probe that trips a gate proves nothing unless its control is known to clear the same gate, and
 # a control nobody checks is how a dead one survives. The control is asserted first and every
 # probe is built from it.
+# How many probes each suite intends to run. Written by hand and asserted at the end of the run,
+# which is the whole point: a count taken from the run itself cannot notice a probe that is no
+# longer there. Edited together with the probes or not at all.
+PROVENANCE_PROBES = 34
+STRUCTURE_PROBES = 15
+
+
 def _probe_doc(stance="invented"):
     """The smallest document this gate accepts. Two rows, one registry and one of the node's
     own, which is the shape of every node in the real one."""
@@ -3774,7 +4037,8 @@ def _probe_doc(stance="invented"):
             "as_of": PROVENANCE_AS_OF,
             "clock": {"fresh_days": FRESH_DAYS, "aging_days": AGING_DAYS},
             "apto": list(APTO),
-            "vocab": {"rank": VALUE_RANK, "status": VALUE_STATUS, "stance": STANCE},
+            "vocab": {"rank": VALUE_RANK, "status": VALUE_STATUS, "stance": STANCE,
+                      "flag": VALUE_FLAG},
         },
         "routes": {"classes": {"probe": {"read": "not-attempted"}}},
         "views": [{"key": "PROBE", "nodes": [{
@@ -3785,7 +4049,7 @@ def _probe_doc(stance="invented"):
     }
 
 
-def _probe(doc, row=None, node=None, prov=None, drop_prov=False, agenda=None):
+def _probe(doc, row=None, node=None, prov=None, drop_prov=False, agenda=None, row_drop=None):
     """The control with one thing changed, so a probe and its control differ by that alone."""
     d = _probe_doc(doc)
     if agenda is not None:
@@ -3798,6 +4062,11 @@ def _probe(doc, row=None, node=None, prov=None, drop_prov=False, agenda=None):
         d["views"][0]["nodes"][0].update(node)
     if row is not None:
         d["views"][0]["nodes"][0]["props"][row[0]].update(row[1])
+    # A field REMOVED rather than changed, which is its own mutation and the one the audit ran:
+    # `f` deleted outright from every node row was accepted, and a probe that can only overwrite
+    # a field can never build that document.
+    if row_drop is not None:
+        d["views"][0]["nodes"][0]["props"][row_drop[0]].pop(row_drop[1], None)
     return d
 
 
@@ -3848,8 +4117,27 @@ def provenance_self_test():
            "a clock whose fresh window is wider than its aging window")
     expect("document-block", _probe("invented", prov={"vocab": {"rank": VALUE_RANK}}),
            "a provenance block shipping no vocabulary for its statuses and stances")
+    expect("document-block",
+           _probe("invented", prov={"vocab": {"rank": VALUE_RANK, "status": VALUE_STATUS,
+                                              "stance": STANCE}}),
+           "a provenance block shipping no vocabulary for the flag the reader is shown")
     expect("rank-vocabulary", _probe("invented", row=(1, {"r": "9_hoped"})),
            "a rank in no vocabulary")
+    # Issue 104. The flag was validated nowhere at all, so all four of these documents were
+    # accepted before this card and the last two of them put a made up number on the page wearing
+    # the chip that says it is not made up.
+    expect("flag-vocabulary", _probe("invented", row=(1, {"f": "banana"})),
+           "a flag in no vocabulary, which the panel puts straight into a class name")
+    expect("flag-vocabulary", _probe("invented", row_drop=(1, "f")),
+           "a row with no flag at all, which renders beside the value as nothing")
+    expect("flag-vocabulary",
+           _probe("invented", agenda={"note": "n", "rows": [p("1", "x", "banana")]}),
+           "a flag in no vocabulary on an agenda line")
+    expect("real-flag-not-invented", _probe("invented", row=(1, {"f": R})),
+           "a made up value wearing the real chip, which is the audit's own mutation")
+    expect("real-flag-needs-a-source", _probe("invented", row=(0, {"f": R})),
+           "a registry row flagged real on an invented document: ranked observed, so the rule "
+           "above lets it through, and what it cites is an analysis and not the value")
     expect("computed-not-typed", _probe("invented", row=(1, {"status": "fresh"})),
            "a status typed onto a row instead of computed from it")
     expect("computed-not-typed", _probe("invented", row=(1, {"apto": True})),
@@ -3884,6 +4172,12 @@ def provenance_self_test():
     expect_clean(_probe("invented", row=(1, {"k": "module_name", "v": "Inside consulting",
                                              "f": R, "r": SYLLABUS_RANK})),
                  "a syllabus value ranked observed and undated passes on an invented document")
+    # The other side of the two flag rules, and without it they are a ban rather than a rule.
+    # `real` is scoped to the invented stance for a reason, so a live document carrying it on an
+    # ordinary read value has to go through.
+    expect_clean(_probe("live", row=(1, {"r": OBSERVED, "at": "2026-08-01", "f": R})),
+                 "a live document's read value flagged real passes, which is what the scoping "
+                 "of the rule above claims")
     expect("syllabus-row-not-observed",
            _probe("invented", row=(1, {"k": "module_name", "v": "Inside consulting", "f": R})),
            "a syllabus value ranked invented, which says the vault string was made up")
@@ -3905,6 +4199,174 @@ def provenance_self_test():
     print(f"\nprovenance self-test: {ok}/{total}")
     if ok != total:
         raise SystemExit(1)
+    # THE TOTAL IS ASSERTED AGAINST A WRITTEN NUMBER, and until issue 104 it was not. `ok/total`
+    # is a ratio, and a ratio cannot tell a suite that ran everything from a suite that ran half
+    # of itself: delete a probe and its rule together and this printed "26/26" and exited 0. That
+    # exact failure has happened twice in this repository, once when the smoke suite passed
+    # 14 of 14 while silently running a fifth of itself, and once when the contrast gate reported
+    # clean on a partial palette. Both were fixed the same way, with a count the check can see,
+    # and this is the third copy of it.
+    if total != PROVENANCE_PROBES:
+        print(f"::error::the provenance self-test ran {total} probes and PROVENANCE_PROBES says "
+              f"{PROVENANCE_PROBES}. A rule and its probe deleted together would otherwise have "
+              f"left a smaller suite reporting clean.")
+        raise SystemExit(1)
+
+
+# ---- proving the structure gate is armed -------------------------------------
+# Same shape as the provenance self-test above and for the same reason: a gate never seen to
+# refuse is not a gate, and a probe that trips one proves nothing unless its control is known to
+# clear the same gate. The control is asserted first and every probe is one mutation away from it.
+def _structure_doc():
+    """The smallest graph this gate accepts. Three nodes in a chain, which is enough shape for
+    every rule below to have something to be wrong about."""
+    return {
+        "routes": {"classes": {"probe": {"read": "not-attempted"}}},
+        "views": [{
+            "key": "PROBE",
+            "nodes": [{"id": "a", "class": "probe", "route": 1},
+                      {"id": "b", "class": "probe", "route": 1},
+                      {"id": "c", "class": "probe", "route": 1}],
+            "edges": [{"s": "a", "t": "b", "v": "leads to"},
+                      {"s": "b", "t": "c", "v": "leads to"}],
+        }],
+    }
+
+
+def _structure_probe(mutate):
+    """The control with one thing changed. The mutation is a function of the document rather
+    than a table of keys, because these mutations are about a list's contents and not a field's
+    value: an id repeated, an end repointed, an edge added twice."""
+    d = _structure_doc()
+    mutate(d)
+    return d
+
+
+def structure_self_test():
+    ok = 0
+    total = 0
+
+    def expect(rule, doc, what, says=None):
+        nonlocal ok, total
+        total += 1
+        try:
+            check_structure(doc)
+        except SystemExit as e:
+            msg = str(e)
+            got = msg.split(":", 1)[0].replace("[structure] ", "")
+            if got != rule:
+                print(f"  [FAIL] {rule}: {what}. It refused, and for {got!r} instead.")
+            elif says is not None and says not in msg:
+                # A refusal that fires and says nothing useful is the defect the audit filed as
+                # A4: the build already refused an edge to a node that does not exist, with a
+                # bare KeyError naming neither the edge nor the id. Naming it is the fix, so the
+                # naming is what is asserted rather than the exit code.
+                print(f"  [FAIL] {rule}: {what}. It refused and never said {says!r}.")
+            else:
+                ok += 1
+                print(f"  [OK]   {rule}: {what}")
+            return
+        print(f"  [FAIL] {rule}: {what}. It did NOT refuse.")
+
+    def expect_clean(doc, what, orphans=None):
+        nonlocal ok, total
+        total += 1
+        try:
+            got = check_structure(doc)
+        except SystemExit as e:
+            print(f"  [FAIL] control: {what}. It refused: {e}")
+            return
+        if orphans is not None and got["orphans"] != orphans:
+            print(f"  [FAIL] control: {what}. It counted {got['orphans']} orphan(s), not "
+                  f"{orphans}.")
+            return
+        ok += 1
+        print(f"  [OK]   control: {what} ({got['views']} view(s), {got['nodes']} node(s), "
+              f"{got['edges']} edge(s), {got['orphans']} orphan(s))")
+
+    def drop_view(d):
+        d["views"] = []
+
+    def empty_nodes(d):
+        d["views"][0]["nodes"] = []
+
+    def drop_edges(d):
+        del d["views"][0]["edges"]
+
+    def drop_registry(d):
+        d["routes"] = {"classes": {}}
+
+    def duplicate_id(d):
+        d["views"][0]["nodes"].append({"id": "b", "class": "probe", "route": 1})
+
+    def edge_to_nowhere(d):
+        d["views"][0]["edges"].append({"s": "c", "t": "zz", "v": "leads to"})
+
+    def edge_from_nowhere(d):
+        d["views"][0]["edges"].append({"s": "zz", "t": "a", "v": "leads to"})
+
+    def self_loop(d):
+        d["views"][0]["edges"].append({"s": "b", "t": "b", "v": "leads to"})
+
+    def edge_twice(d):
+        d["views"][0]["edges"].append({"s": "a", "t": "b", "v": "leads to"})
+
+    def unknown_class(d):
+        d["views"][0]["nodes"][1]["class"] = "not-in-the-registry"
+
+    def orphan(d):
+        d["views"][0]["nodes"].append({"id": "d", "class": "probe", "route": 1})
+
+    # The controls first. Every probe below is this document with one thing changed, so if either
+    # of these ever fails the probes stop meaning anything at all.
+    expect_clean(_structure_doc(), "the synthetic graph every probe is built from passes",
+                 orphans=0)
+    expect_clean(_structure_probe(orphan),
+                 "a node with no edge is legal and is COUNTED rather than refused", orphans=1)
+
+    expect("empty-input", _structure_probe(drop_view),
+           "a document with no views, which would walk nothing and report clean")
+    expect("empty-input", _structure_probe(empty_nodes),
+           "a view with no nodes in it, which every rule would call clean")
+    expect("empty-input", _structure_probe(drop_edges),
+           "a view carrying no edge list at all, as against an empty one")
+    expect("empty-input", _structure_probe(drop_registry),
+           "a document with an empty registry, against which every class would fail to join "
+           "and the join rule would examine nothing")
+    # THE PROVED ONE. This is the mutation the audit injected into this file, built for real,
+    # and shipped past every static gate including check_build.sh saying VERDICT: clean.
+    expect("node-id-unique", _structure_probe(duplicate_id),
+           "two nodes under one id, drawn as two tiles at identical coordinates", says="b")
+    expect("node-id-unique", _structure_probe(duplicate_id),
+           "and the refusal says how many nodes carry how many distinct ids", says="4 nodes "
+           "carrying 3 distinct ids")
+    expect("edge-endpoint-exists", _structure_probe(edge_to_nowhere),
+           "an edge whose target is a node the view does not declare", says="'zz'")
+    expect("edge-endpoint-exists", _structure_probe(edge_from_nowhere),
+           "an edge whose source is a node the view does not declare", says="'zz'")
+    expect("edge-endpoint-exists", _structure_probe(edge_to_nowhere),
+           "and the refusal names the edge, not only the id", says="'c' -'leads to'-> 'zz'")
+    expect("edge-is-not-a-loop", _structure_probe(self_loop),
+           "an edge from a node to itself, which emits a path running backwards through its own "
+           "tile", says="'b' -'leads to'-> 'b'")
+    expect("edge-declared-once", _structure_probe(edge_twice),
+           "the same relationship declared twice, which stacks two verb chips on one point",
+           says="'a' -'leads to'-> 'b'")
+    expect("node-class-declared", _structure_probe(unknown_class),
+           "a node whose class names no entry in the populate registry",
+           says="'not-in-the-registry'")
+
+    # And the document this repository actually ships, which is the only one that matters.
+    expect_clean(instance_document(), "the model's own instance document passes")
+
+    print(f"\nstructure self-test: {ok}/{total}")
+    if ok != total:
+        raise SystemExit(1)
+    if total != STRUCTURE_PROBES:
+        print(f"::error::the structure self-test ran {total} probes and STRUCTURE_PROBES says "
+              f"{STRUCTURE_PROBES}. A rule and its probe deleted together would otherwise have "
+              f"left a smaller suite reporting clean.")
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
@@ -3913,8 +4375,20 @@ if __name__ == "__main__":
         emit_contrast()
     elif _sys.argv[1:] == ["--provenance-self-test"]:
         provenance_self_test()
+    elif _sys.argv[1:] == ["--structure-self-test"]:
+        structure_self_test()
+    elif _sys.argv[1:] == ["--structure"]:
+        # The live check on the model's own document, for a runner that wants the verdict
+        # without a build. The build runs the same function on whatever document it lays out.
+        _s = check_structure(instance_document())
+        print("structure: {} views, {} nodes, {} edges, ids unique, no self-loop, every "
+              "endpoint present, {} orphan(s)".format(_s["views"], _s["nodes"], _s["edges"],
+                                                      _s["orphans"]))
+        for _k, _n, _e, _orph in _s["per_view"]:
+            print(f"  {_k:<5} {_n:>4} nodes  {_e:>4} edges  "
+                  + (f"{len(_orph)} orphan(s): {', '.join(_orph)}" if _orph else "no orphan"))
     elif _sys.argv[1:] == ["--palette-self-test"]:
         palette_self_test()
     else:
         raise SystemExit("usage: model.py --contrast | --provenance-self-test "
-                         "| --palette-self-test")
+                         "| --structure-self-test | --structure | --palette-self-test")

@@ -40,7 +40,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from bands import BAND_KEYS, BANDS, CAP_NO_EMPLOYERS, CAP_NO_HOST, CAP_NO_INSTRUCTORS, MAX_CAP_LINES, fill  # noqa: E402,E501
-from model import check_provenance, contrast_rows, floor4, instance_document, value_status  # noqa: E402,E501
+from model import check_provenance, check_structure, contrast_rows, floor4, instance_document, value_status  # noqa: E402,E501
 
 COL_W = [166, 232, 122, 124, 80, 102, 92, 92]
 GAP_X, MARGIN_X = 18, 22
@@ -810,6 +810,27 @@ def build(inst, out_dir):
     # be a gate on the one document nobody worries about. It is the first thing done, because a
     # document whose values do not say where they came from is not a document to lay out.
     values = check_provenance(inst)
+    # Issue 102, and it runs SECOND for one reason: a document whose values do not say where they
+    # came from is not a document to lay out, and a document whose graph is not one a drawing can
+    # be made of is not a document to lay out either, but only one of the two is checked at all
+    # today. Before this card nothing anywhere asserted that the model is well formed: a
+    # duplicate node id was injected into build/model.py, built for real, and passed every static
+    # gate including this file's own byte-for-byte reproducibility check, because the drawing WAS
+    # the build's own output and the build had simply agreed to draw two tiles on one point.
+    #
+    # BEFORE columns_for() AND layout(), which is where the edge rules earn their place. layout()
+    # builds its adjacency with adj[e["s"]], so an edge naming a node that does not exist has
+    # always died there with a bare KeyError, after the earlier views have already printed, while
+    # every other structural refusal in this file names the rule, the view and the fix.
+    struct = check_structure(inst)
+    print("  structure: {} views, {} nodes, {} edges, ids unique within a view, "
+          "every edge endpoint declared, no self-loop, no relationship declared twice, "
+          "{}".format(
+              struct["views"], struct["nodes"], struct["edges"],
+              "no orphan node" if not struct["orphans"] else
+              "{} orphan node(s), which is legal and is counted: {}".format(
+                  struct["orphans"],
+                  "; ".join(f"{k} {', '.join(o)}" for k, _n, _e, o in struct["per_view"] if o))))
     _pr = inst["provenance"]
     _st = {}
     for _v in inst["views"]:
