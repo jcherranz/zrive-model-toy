@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T21:48:09Z",
+  "generated": "2026-08-12T21:49:07Z",
   "columns": [
     {
       "key": "raw",
@@ -24,15 +24,6 @@
             "limitation"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
-        },
-        {
-          "id": 120,
-          "title": "The header is a nav bar carrying dashboard values, and the two are styled identically",
-          "labels": [
-            "bug",
-            "feedback"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/120"
         }
       ]
     },
@@ -44,7 +35,18 @@
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": []
+      "cards": [
+        {
+          "id": 120,
+          "title": "The header is a nav bar carrying dashboard values, and the two are styled identically",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/120"
+        }
+      ]
     },
     {
       "key": "done",
