@@ -489,6 +489,82 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- **Seven gates reported on less than they claimed, #103.** The repository's signature failure,
+  swept. Each fix is proved against the input that should fail it and then against the real tree,
+  at `0f41655`.
+- **A self-test that counts what it intends, in both shell suites.** `pass -eq total` is invariant
+  under a probe that never executes, because `total` is incremented by each probe as it runs, so a
+  suite emptied one probe at a time prints a clean ratio all the way down to 0/0. `EXPECTED_PROBES`
+  is now declared by hand in `check_repo.sh` and `check_forbidden.sh`, which is the contrast
+  table's `#rows|N` terminator and `smoke.mjs`'s `EXPECTED_ASSERTIONS` in a third language. A short
+  run exits 2, a run that also recorded a MISS reports the MISS and exits 1. Proved by deleting one
+  probe from each: 85 of 86 and 15 of 16, both named, both red. Counts at `0f41655`: repository 95,
+  deployed-bytes 16.
+- **The stylesheet reader's cases were counted with a floor of one.** `check_repo.sh` asserted that
+  the palette suite emitted more than nothing and ran its producer under `|| true`, so a truncated
+  stream was indistinguishable from a complete one and a non-zero exit was swallowed. Measured
+  before: an edit in `build/model.py` cutting the emitter to a single case took the suite from
+  73/73 to 52/52 at exit 0 while the line meant to notice printed `[OK] the stylesheet reader's own
+  probes ran at all`. Twenty one assertions retired by an edit in a file that is not gate code. The
+  count is declared, the exit status is read, and the same edit now reads
+  `[MISS] the stylesheet reader intends 31 cases and emitted 1`, 64 of 65 against 95 intended.
+- **`collect()` capped the shared rules at 20 matches per file, on the deciding path.** Its
+  docstring said "all matches of a pattern in a file" and it ended in an undocumented `head -20`,
+  and the value it truncated is the list `scan_file`'s rule loops iterate, not a printed report. A
+  file holding 21 distinct corpus links, uuids or email addresses was judged on 20 of them, the
+  21st never reaching the exemption table or `fail()`. The cap is gone rather than raised: a higher
+  number is the same defect further away. A probe builds that file, declares the first 20 and
+  leaves the 21st as the only finding; it MISSes against the capped `collect()`.
+- **`surface_token` took the first `.band` rule it found and never checked there was only one.**
+  Its sibling `surface_values` has treated a second declaration as a refusal since #64 and carries
+  a probe for it; the asymmetry was recorded nowhere and it is the worse way round, because
+  `surface_token` runs first and everything downstream then resolves the wrong token perfectly,
+  under both schemes, with every multiplicity check passing. A scheme-scoped `.band` override
+  appended to `app.css`, in an idiom that file already uses, left every contrast row byte identical
+  with the repository gate clean, while two measured dark ratios printed as 4.9025 and 4.8431 were
+  really 5.8744 and 5.8033, and the header of the last colour card names one of those numbers as
+  the bound it worked to. The old pattern also required `var()` inside the match, so a hex painted
+  straight onto the plate matched nothing and left the search to find the rule above it. Now every
+  block whose prelude is the selector is read, every declaration of the property inside them is
+  collected, and the reader answers only if they agree. The same override now ends the build with
+  `app.css paints .band with 2 different values for fill`. Nine probes where the reader had none;
+  four MISS against the pre-fix body.
+- **`verify.sh` mapped every gate's exit 2 to `[SKIP]`, and exit 2 is also how every gate here
+  reports a poka-yoke abort.** Nothing to scan, an empty name hash list, a palette table that does
+  not match its own terminator, a malformed exemption table, a self-test shorter than it intends, a
+  browser that never started. A skip that can mean an abort is a green that can mean red, and it
+  was proved: a self-test that aborted at exit 2 gave `10 steps, 0 failed, 3 skipped`,
+  `VERDICT: clean, with 3 step(s) that did not run`, exit 0. Exit 2 is now a failure, named as an
+  abort so a reader knows the difference between a gate that refused the tree and one that never
+  read it. Two steps may still decline and both preconditions are established by `verify.sh` itself
+  rather than read off an exit code: the untracked check, whose 2 is this file's own convention and
+  fires on the everyday condition of writing a new file, and the token grep, where the register is
+  looked for before the gate is run instead of after. That second one closes the composition nobody
+  had joined, a vault disappearing once taking this file's whole verdict with it. Same tree, same
+  aborting gate, now `12 steps, 1 failed, 1 skipped`, exit 1.
+- **`verify.sh` did not run `check_build.sh`, and its own copy of that check omitted things.** The
+  copy never deleted the generated files first, which is exactly the poka-yoke `check_build.sh`
+  exists for, and it ran neither the width table coverage check nor the structure gate. With the
+  builder replaced by a script printing one line and exiting 0, the copy printed
+  `the drawing is a pure function of the model` and `[OK]`; the real gate on the same tree prints
+  `::error::build/build_layout.py exited 0 and wrote no site/instance.js`. The copy is deleted.
+  Steps 3 and 4 run the real gate and prove it fires, which `check_build.sh`'s own header asks for
+  by name, and the gate that was called by `build.yml` and by nothing else is now the gate
+  `verify.sh` recommends and runs. Two copies of one rule is the drift class #106 is about and the
+  second copy here was the weaker one.
+- **`scripts/routes.py` was a 135 line gate with three failure branches that nothing ran.** Not
+  `verify.sh`, not any of seven workflows; its name occurred four times in the tree, three of them
+  inside its own docstring. It was green when it was found, which is the worse of the two states to
+  be dark in. Wired in rather than deleted: its two live conditions, a declared class no object is
+  drawn from and an object naming a class the registry does not declare, are the
+  generated-but-never-verified class and nothing else in the tree tests them. It is step 10 of
+  `verify.sh` and a step of `build.yml`, placed after the rebuild so it reads the bytes the builder
+  just produced. It grows an exit 2 for a document carrying no registry and one drawing no object
+  at all. Five mutated documents, five refusals, green on the real tree.
+- **`board.yml` gating the first rendering while the retry pushed the second was closed by #105 at
+  `2643989` and is confirmed here.** One `render_and_gate` function, called at both renders, and
+  both `git commit` calls in the file stand behind it.
+
 - **A title typed into the tracker reached the public origin with no repository-side gate having
   seen it, #105.** `sync_board.mjs` emitted the title verbatim, with no length cap, no character
   filter and no vocabulary, and `board.yml` gated the FIRST rendering while the rebase-retry loop
