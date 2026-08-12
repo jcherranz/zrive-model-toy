@@ -422,6 +422,28 @@
         });
         addCapButton(gLane, b, capTexts);
       });
+
+      // ---- what an empty window says, issue 119 --------------------------------
+      // ONE LINE, ON THE LANES, IN THE WORDS THE LIST ALREADY USES. term.js writes the sentence
+      // and hands it over on the window spec; this file decides only where it goes. It is not a
+      // new idiom: it is the answer #/calendar's list has given a window it filtered to nothing
+      // since issue 90, printed on the other surface that the same window acts on.
+      //
+      // IT IS NOT THE COUNT COMING BACK. Issue 111 took the per lane counts off the canvas and put
+      // them in the header, where they still are, and this says no number at all: it names the
+      // window and the two controls that move it. A reader who wants the arithmetic of what was
+      // taken off reads the header, exactly as they do on every other window.
+      //
+      // PLACED FROM THE PLATE'S OWN TWO NUMBERS, `bandTop` and the same `- 4` the plate is drawn
+      // with, so it is centred in the lanes at every zoom and cannot drift away from them. It sits
+      // in the band group and outside every `.lane`, because it belongs to the drawing and not to
+      // one of six columns.
+      if (G.emptyText) {
+        var empty = el('text', { class: 'win-empty', x: G.w / 2,
+                                 y: (G.bandTop + G.h - 4) / 2 }, gBand);
+        empty.textContent = G.emptyText;
+      }
+
       setCapScale(capK);
 
       var gEdge = el('g', {}, svg);
@@ -1060,6 +1082,32 @@
       });
       edges.forEach(function (e) { delete e.pts; delete e.span; });
 
+      // ---- and the extent of a window that left nothing, issue 119 --------------------
+      // THIS LOOP STARTS AT ZERO AND MAXES OVER TWO EMPTY SETS, so an empty window handed back a
+      // drawing 0 units tall. The lane plate is drawn at `G.h - G.bandTop - 4`, which is then 0
+      // minus 43 minus 4, and six rects went out at `height: -47`. A negative rect is not painted,
+      // so nothing a reader could see was ever wrong, which is exactly why it survived a hundred
+      // and ninety two assertions: the ONLY witness was six rendering errors on a console channel
+      // nothing had ever aimed at this state. It is reachable in the real data on thirteen
+      // (programme, one week) pairs whose anchor falls inside that programme's own term, and on
+      // ninety one over the whole anchor range the control offers.
+      //
+      // THE FLOOR IS THE DRAWING'S OWN ARITHMETIC AND NOT A NUMBER TYPED HERE. An empty drawing is
+      // exactly as tall as the same drawing holding one single line tile in its top row: the top
+      // margin the build left, one tile, the gap under it, one line of label, and the foot every
+      // other drawing keeps under its lowest tile. Every term in that comes off the canonical
+      // artefact, so a build that retunes any of them moves this with it.
+      //
+      // AND A CLAMP ALONE WOULD HAVE BEEN THE WRONG FIX. Six lanes correctly drawn over nothing is
+      // still a drawing with no opinion about the question the reader asked. What it says is
+      // below, and #111 decided the idiom: the window leaves only the window, and this is that
+      // rule at its limit.
+      var emptyText = null;
+      if (!nodes.length) {
+        h = Math.max(h, topOf(g) + g.tile + g.gapLabel + g.lineH + FOOT);
+        emptyText = (spec && spec.empty) || null;
+      }
+
       // KEEPING THE COUNT, WHICH IS THE HALF OF #100 THAT #111 DID NOT OVERRULE. Every lane still
       // reports what it is showing of what it had; what changed is where it is reported. It used
       // to be a fourth line on the lane's own caption, in the idiom #83 set for the three above
@@ -1102,6 +1150,10 @@
       d.edges = edges;
       d.bands = bands;
       d.h = Math.round(h);
+      // Issue 119. Set on an emptied drawing and on nothing else, which is what keeps paint()
+      // from needing to know anything about windows: the canonical drawing never carries it, so
+      // the sentence cannot appear on a page nobody filtered.
+      d.emptyText = emptyText;
       d.filteredFrom = g;
       return d;
     }

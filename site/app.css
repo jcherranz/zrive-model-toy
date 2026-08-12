@@ -1058,6 +1058,28 @@ body.fb-mode #canvas { cursor: crosshair; }
   font-family: var(--font-ui);
 }
 
+/* What a window that left nothing says, issue 119. One line, centred on the lanes, and the only
+   text this drawing carries that is not a lane caption or a tile label. It is sentence case and
+   not the captions' spaced small caps, because it is a sentence and they are labels: setting it in
+   their idiom would read as a seventh lane heading.
+
+   IT SITS ON THE PLATE and the captions do not, so it is measured on --bg-band rather than on the
+   --bg-app they were measured on: 5.2231 in light and 7.2900 in dark against the 4.5 SC 1.4.3 asks
+   of text, both on --fg-muted, which is the fill the captions already use. Painting it --fg-body
+   would put the loudest colour on the page on the emptiest state it has.
+
+   `dominant-baseline` and not a baseline computed in render.js, so the one number that file writes
+   is the centre of the plate and the browser does the rest. Baseline Chrome 80, Safari 10.1,
+   Firefox 71, all earlier than the `light-dark()` and the `:has()` this stylesheet already
+   requires. */
+.win-empty {
+  font-size: 11px;
+  fill: var(--fg-muted);
+  text-anchor: middle;
+  dominant-baseline: middle;
+  font-family: var(--font-ui);
+}
+
 /* ---- the lane heading as a control, issue 84 -----------------------------------
    Two of the six lane headings open the sheet the lane is a picture of, and the target is not the
    text. site/render.js puts a rect inside a group carrying `scale(1/k)`, so one unit in there is

@@ -495,6 +495,30 @@
              longDate(r.from) + ' to ' + longDate(r.to);
     }
 
+    // ---- and what a window that leaves nothing says, issue 119 ------------------
+    // THE LIST HAS ANSWERED THIS SINCE #90 AND THE DRAWING NEVER HAD AN OPINION. A term with gaps
+    // in April and May holds weeks with no session in them, so a one week window over a programme
+    // can legitimately cover none of it. The list already says so where the rows would be, in a
+    // sentence about the window and never about the data: what the window is, and the two ways
+    // out of it. The drawing met the same state by drawing nothing at all, which is not an answer
+    // and, until this card, was six band plates at a negative height and six rendering errors on
+    // the console.
+    //
+    // SO THE SENTENCE MOVES HERE AND BOTH SURFACES READ IT, which is the rule the three callers of
+    // windowText() above already run on: one place writes it, so the list and the canvas cannot
+    // come to say different things about the same empty window. It travels to render.js on the
+    // spec, beside `text`, because a sentence about the window belongs to the module that owns the
+    // window and render.js has never held a date.
+    //
+    // IT IS TRUE OF WHAT THE READER IS LOOKING AT, which is the same reading the list has always
+    // had: scoped to one programme the list says it of that programme, and the drawing is always
+    // one programme. Nothing here says anything about the standing of the model, which is #110's
+    // rule and is where a reassuring sentence would otherwise creep back in.
+    function windowEmptyText() {
+      return 'No session in ' + windowText() +
+             '. Move the anchor or take the window off, in the header.';
+    }
+
     // ---- what the drawing is told, issues 90 and 100 ----------------------------
     // A PREDICATE AND NOT A LIST OF IDS, and never any geometry. It answers about a NODE and
     // render.js does the rest, which is the same division the lane headings run on: that file
@@ -518,6 +542,10 @@
       if (!r) return null;
       return {
         from: r.from, to: r.to, weeks: win.weeks, text: windowText(),
+        // Issue 119. What the drawing prints when this predicate leaves it with nothing, written
+        // by the module that owns the window and identical to the sentence the list prints in the
+        // same state. render.js decides WHERE it goes and never what it says.
+        empty: windowEmptyText(),
         // TWO QUESTIONS AND NOT ONE, because "outside the window" and "the window has an opinion
         // about this at all" are different claims and the drawing needs both. A cohort session
         // carries a date, so the window answers for it either way; a session template, an
@@ -1362,9 +1390,10 @@
       // everything, because what they are for is the shape of the whole term.
       var rows = sessionsFor(scope).filter(function (s) { return inWindow(s.date); });
       if (!rows.length) {
+        // Issue 119. The sentence is windowEmptyText()'s and not this line's any more, because the
+        // canvas prints it too and two copies of it are two sentences waiting to disagree.
         groupRow(tb, cols.length, function (th) {
-          th.textContent = 'No session in ' + windowText() +
-            '. Move the anchor or take the window off, in the header.';
+          th.textContent = windowEmptyText();
         });
       }
       rows.forEach(function (s) {

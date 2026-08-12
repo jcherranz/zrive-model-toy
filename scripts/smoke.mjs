@@ -259,6 +259,7 @@ const PHASES = {
   'cold load':            { count: 4, when: 'behavioural' },
   'students':             { count: 11, when: 'behavioural' },
   'term':                 { count: 54, when: 'behavioural' },
+  'the empty window':     { count: 6, when: 'behavioural' },
   'header':               { count: 8, when: 'behavioural' },
   'canvas':               { count: 7, when: 'behavioural' },
   'capture':              { count: 15, when: 'behavioural' },
@@ -427,7 +428,16 @@ const PHASES = {
 // page wrote on location.hash, and reloads that. F8 added nothing to the total and changed two
 // assertions in `keeping place`, which read `sel.type` alone and so could not tell the module the
 // reader came from from any other module.
-const EXPECTED_ASSERTIONS = 192;
+// 198 with issue 119, and the six are one state rather than six claims scattered about. Nothing
+// here had ever driven a window that covers no session, which the term's April and May gaps make
+// reachable on thirteen (programme, one week) pairs inside a programme's own term; the page met it
+// by painting six lane plates at height -47 and putting six rendering errors on a console channel
+// no assertion had ever aimed at this state. The phase drives it through the page's own controls
+// and asserts the absence as set equality, the rects in both directions, the console as a delta
+// over that one repaint, the sentence the drawing now prints against the one the list prints in
+// the same state, that #111's arithmetic is still the header's, and #114's reading guard on a
+// height the fit had never been given before.
+const EXPECTED_ASSERTIONS = 198;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -3135,6 +3145,271 @@ async function gapsMenu(page, want) {
     `the gap list to ${want ? 'open' : 'close'}`);
 }
 
+// ---- the empty window, issue 119 --------------------------------------------------------------
+// NOTHING IN THIS SUITE EVER DROVE ONE, AND THAT IS THE FINDING RATHER THAN THE RECTS. The term
+// runs 2026-01-12 to 2026-06-28 with real gaps in April and May, so a one week window over one
+// programme can legitimately cover no session at all. In that state site/render.js handed back a
+// drawing 0 units tall and painted six lane plates at `height: -47`. A negative rect is not
+// painted, so no reader ever saw a broken page: the ONLY witness was six `Log.entryAdded`
+// rendering errors, and `checkConsole` would have been red the first time anything came here. The
+// harness that watches the error channel had never been aimed at the state most likely to fill it,
+// which is the shape of guard this repository has spent a day removing. This phase is the aim.
+//
+// IT NEEDS NO PLANTED DEFECT, WHICH IS WHAT SEPARATES IT FROM THE ELEVEN #115 PROVED BY PLANTING
+// ONE. Counted off site/instance.js at 28a67cd, thirteen (programme, one week) pairs whose anchor
+// falls inside that programme's own term hold no session, and ninety one over the whole anchor
+// range the control offers. The state is in the data.
+//
+// AND IT IS CHOSEN BY MEASUREMENT, NOT BY NAME. The pair below is the first one the page's own
+// documents yield, under the harder of the two readings: the anchor has to sit BETWEEN that
+// programme's first and last session, so this drives a gap in a running term and not a window
+// parked past the end of it. A programme named here would be a programme that stops being empty
+// the first time the model moves, and the route is the one the instance document carries rather
+// than one built out of a key, after `#/p/Z-ZIB` cost this repository half an hour once already.
+const EMPTY_PAIR = `(function () {
+  function addDays(d, n) {
+    var t = new Date(d + 'T00:00:00Z');
+    t.setUTCDate(t.getUTCDate() + n);
+    return t.toISOString().slice(0, 10);
+  }
+  var w = window.ZT.term().window, best = null;
+  window.GI.views.forEach(function (v, i) {
+    if (best) return;
+    var days = [];
+    v.nodes.forEach(function (n) {
+      if (n.type !== 'CohortSession') return;
+      var at = '';
+      (n.props || []).forEach(function (p) { if (p.k === 'scheduled_at') at = p.v; });
+      var d = String(at).split(' ')[0];
+      if (d) days.push(d);
+    });
+    if (!days.length) return;
+    days.sort();
+    var a = w.firstMonday;
+    while (a <= w.lastMonday) {
+      var to = addDays(a, 6);
+      // Inside this programme's own term, so the window is a gap and not the far side of the end.
+      if (a >= days[0] && a <= days[days.length - 1] &&
+          !days.some(function (d) { return d >= a && d <= to; })) {
+        best = { key: v.key, route: v.route, anchor: a, to: to, sessions: days.length,
+                 ids: v.nodes.map(function (n) { return n.id; }).sort() };
+        return;
+      }
+      a = addDays(a, 7);
+    }
+  });
+  return best;
+})()`;
+
+async function checkEmptyWindow(page) {
+  const pair = await page.evaluate(EMPTY_PAIR);
+  if (!pair) {
+    throw new Error('no (programme, one week) pair in site/instance.js has an anchor inside its ' +
+                    'own term and no session in the week from it. The state this phase exists to ' +
+                    'drive is not in the data any more, and a phase that silently drove something ' +
+                    'else would be worse than one that says so.');
+  }
+  await page.evaluate(`location.hash = ${JSON.stringify(pair.route)}`);
+  await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(pair.key)}`,
+    `the ${pair.key} drawing, which has a week with nothing in it`);
+  await viewSettled(page);
+
+  // THROUGH THE CONTROLS AND NOT THROUGH A SETTER, which is the rule the cold load phase runs on:
+  // a driver that reached inside term.js would prove the transform and not the page. The anchor is
+  // stepped with the same two buttons a reader presses, until it is the one measured above.
+  await wnMenu(page, true);
+  for (let turn = 0; turn < 64; turn++) {
+    const at = await page.evaluate('window.ZT.term().window.anchor');
+    if (at === pair.anchor) break;
+    await pressByText(page, '#wnmenu .wn-step', at > pair.anchor ? '‹' : '›');
+    await page.waitFor(`window.ZT.term().window.anchor !== ${JSON.stringify(at)}`,
+      `the anchor to move off ${at}`);
+  }
+  const landed = await page.evaluate('window.ZT.term().window.anchor');
+  if (landed !== pair.anchor) {
+    throw new Error(`the anchor control never reached ${pair.anchor}; it stopped at ${landed}`);
+  }
+  // The console is read as a DELTA over the repaint that empties the drawing, so what this phase
+  // reports is what THIS state produced rather than what the run has accumulated. checkConsole
+  // still judges the total at the end of the viewport; this names the state.
+  const before = page.console.length;
+  await pressByText(page, '#wnmenu .wn-weeks', '1 week');
+  await page.waitFor('window.ZT.filtered().shown.length === 0',
+    'the window to leave the drawing with nothing on it');
+  await wnMenu(page, false);
+  await viewSettled(page);
+  const afterConsole = page.console.slice(before);
+
+  const empty = await page.evaluate(`(function () {
+    var f = window.ZT.filtered(), w = window.ZT.term().window;
+    var svg = document.getElementById('graph');
+    var canvas = document.getElementById('canvas');
+    var v = window.ZT.view();
+    var box = canvas.getBoundingClientRect();
+    var m = svg.getScreenCTM();
+    var t = svg.querySelector('.win-empty');
+    var bb = t ? t.getBBox() : null;
+    var neg = [], plates = [];
+    Array.prototype.forEach.call(document.querySelectorAll('rect'), function (r) {
+      var rw = parseFloat(r.getAttribute('width')), rh = parseFloat(r.getAttribute('height'));
+      if (rw < 0 || rh < 0) neg.push((r.getAttribute('class') || '(no class)') + ' ' + rw + 'x' + rh);
+    });
+    Array.prototype.forEach.call(svg.querySelectorAll('rect.band'), function (r) {
+      plates.push(parseFloat(r.getAttribute('height')));
+    });
+    // What the model says about this window, computed off the instance document rather than off
+    // the page, so the emptiness is the data's and not the page's opinion of it.
+    var inWindow = 0;
+    window.GI.views.forEach(function (view) {
+      if (view.key !== window.ZT.programme().key) return;
+      view.nodes.forEach(function (n) {
+        if (n.type !== 'CohortSession') return;
+        var at = '';
+        (n.props || []).forEach(function (p) { if (p.k === 'scheduled_at') at = p.v; });
+        var d = String(at).split(' ')[0];
+        if (d && d >= w.from && d <= w.to) inWindow++;
+      });
+    });
+    return JSON.stringify({
+      weeks: w.weeks, from: w.from, to: w.to, inWindow: inWindow,
+      shown: f.shown, hidden: f.hidden.slice().sort(), off: f.off,
+      canonNodes: f.canonNodes, canonEdges: f.canonEdges, drawnEdges: f.drawnEdges,
+      nodes: svg.querySelectorAll('[data-node]').length,
+      edges: svg.querySelectorAll('[data-edge]').length,
+      outside: svg.querySelectorAll('[data-outside]').length,
+      capWindow: svg.querySelectorAll('.cap-window').length,
+      neg: neg, plates: plates,
+      text: t ? t.textContent : null,
+      textBox: bb ? { x: bb.x, w: bb.width } : null,
+      title: document.getElementById('wnbtn').title,
+      wnText: document.getElementById('wnbtn').textContent,
+      h: window.ZT.programme().h, w: window.ZT.programme().w,
+      k: v.k, vw: v.w, vh: v.h, boxW: box.width, boxH: box.height, ctm: m ? m.a : null
+    });
+  })()`).then(JSON.parse);
+
+  // ---- 1. the absence, as set equality both ways --------------------------------
+  // #115 SET THIS STANDARD AND AN EMPTY WINDOW IS ITS PUREST CASE. What should be gone is proved
+  // gone, as a set and not as a count: `shown` is exactly the empty list, `hidden` is exactly the
+  // canonical node set of this drawing, and the canvas carries neither a node nor an edge. A
+  // count alone would be satisfied by a page that dropped the right NUMBER of the wrong tiles.
+  assertEqual('an empty window shows exactly nothing, and hides exactly the whole drawing',
+    { shown: empty.shown, hidden: empty.hidden, nodes: empty.nodes, edges: empty.edges,
+      drawnEdges: empty.drawnEdges, inWindow: empty.inWindow },
+    { shown: [], hidden: pair.ids, nodes: 0, edges: 0, drawnEdges: 0, inWindow: 0 },
+    `${pair.key}, the week from ${pair.anchor}, against the model's own dates`);
+
+  // ---- 2. the defect itself ------------------------------------------------------
+  // SIX RECTS AT height: -47, AND BOTH DIRECTIONS OF IT. That no rect on the page is negative
+  // would be satisfied by a page that drew no rect at all, so the lane plates have to be there and
+  // have to be positive. The lanes survive an empty window: the window empties the tiles, and a
+  // drawing with no lanes would be a different claim than a drawing with nothing in them.
+  assert('and no rect on the page is drawn at a negative size, with the six lanes still plated',
+    empty.neg.length === 0 && empty.plates.length === 6 &&
+      empty.plates.every(h => h > 0) && empty.h > 0,
+    'six lane plates at a positive height and not one negative rect anywhere in the document',
+    `${empty.neg.length} negative (${empty.neg.slice(0, 6).join(', ')}), plates ` +
+      `${JSON.stringify(empty.plates)}, the drawing ${empty.h} units tall`);
+
+  // ---- 3. the console, aimed at this state ---------------------------------------
+  // THE HALF OF THE CARD THAT IS NOT ABOUT THE RECTS. The rendering errors went out on
+  // Log.entryAdded, which is a channel with no exception and no stack, so nothing short of
+  // watching it would have found them. Read as a delta over the repaint above, with the same one
+  // allowance checkConsole makes, so this says what the empty window itself produced.
+  const noise = afterConsole.filter(e => !(KNOWN_404.test(e.url) && /404/.test(e.text)));
+  assert('and the repaint that emptied it puts nothing on the console',
+    noise.length === 0,
+    'nothing on the error channel from the repaint that left the drawing with nothing on it',
+    `${noise.length} entries: ${JSON.stringify(noise.slice(0, 4))}`);
+
+  // ---- 4. what it says, and that one place says it -------------------------------
+  // NOT A NEW IDIOM. #/calendar's list has answered a window it filtered to nothing since #90, in
+  // a sentence naming the window and the two controls that move it. term.js now owns that sentence
+  // and both surfaces read it, so this asserts the CANVAS text against the LIST text in the same
+  // state: two copies of it are two sentences waiting to disagree, and a driver comparing them to
+  // a string written here would be comparing them to a third.
+  // The scoped calendar for THIS programme, read off the page's own list of addresses rather than
+  // built from a key. The list filters by scope, so the unscoped one would show the sessions the
+  // other six programmes hold in this same week and would print no such sentence at all.
+  const routes = JSON.parse(await page.evaluate('JSON.stringify(window.ZT.termRoutes())'));
+  const cal = routes.filter(r => /^#\/calendar\//.test(r) &&
+                                 r.slice(-(pair.key.length + 1)) === '/' + pair.key)[0];
+  if (!cal) throw new Error(`the page publishes no calendar address scoped to ${pair.key}`);
+  await page.evaluate(`location.hash = ${JSON.stringify(cal)}`);
+  await page.waitFor(`window.ZT.term().reading === 'calendar'`, 'the calendar reading');
+  await pressByText(page, '#termnotice .shape-btn', 'list');
+  await page.waitFor(`window.ZT.term().shape === 'list'`, 'the list shape');
+  const listSaid = await page.evaluate(`(function () {
+    var ths = document.querySelectorAll('#termrows tbody tr th');
+    return ths.length ? ths[ths.length - 1].textContent : null;
+  })()`);
+  assert('the drawing says what the window is, in the sentence the list prints in the same state',
+    !!empty.text && empty.text === listSaid && !STANDING_WORDS.test(empty.text) &&
+      !!empty.textBox && empty.textBox.x > 0 &&
+      empty.textBox.x + empty.textBox.w < empty.w,
+    'one line on the canvas, the same words the list uses for a window it filtered to nothing, ' +
+      'inside the drawing\'s own width and saying nothing about the standing of the content',
+    `canvas ${JSON.stringify(empty.text)}, list ${JSON.stringify(listSaid)}, box ` +
+      `${JSON.stringify(empty.textBox)} in ${empty.w} units`);
+
+  await page.evaluate(`location.hash = ${JSON.stringify(pair.route)}`);
+  await page.waitFor(`window.ZT.term().open === false`, 'the drawing back');
+  await viewSettled(page);
+  const back = await page.evaluate(`(function () {
+    var svg = document.getElementById('graph'), v = window.ZT.view();
+    var canvas = document.getElementById('canvas').getBoundingClientRect();
+    var m = svg.getScreenCTM();
+    return JSON.stringify({
+      outside: svg.querySelectorAll('[data-outside]').length,
+      capWindow: svg.querySelectorAll('.cap-window').length,
+      title: document.getElementById('wnbtn').title,
+      off: window.ZT.filtered().off, canonNodes: window.ZT.filtered().canonNodes,
+      h: window.ZT.programme().h,
+      k: v.k, vw: v.w, vh: v.h, boxW: canvas.width, boxH: canvas.height, ctm: m ? m.a : null
+    });
+  })()`).then(JSON.parse);
+
+  // ---- 5. and the count did not come back onto the canvas ------------------------
+  // #111 MOVED IT INTO THE HEADER DELIBERATELY and an empty window is where a stub tile, a fourth
+  // caption line or a reassuring paragraph would creep back in. The canvas carries the sentence
+  // and no arithmetic; the header carries the arithmetic, at its limit, every tile off.
+  const said = /(\d+) of (\d+) tiles? and (\d+) relationships? are off the drawing/.exec(back.title);
+  assert('and the arithmetic is still the header\'s, at its limit of every tile off',
+    back.outside === 0 && back.capWindow === 0 && !!said &&
+      Number(said[1]) === back.canonNodes && Number(said[2]) === back.canonNodes &&
+      back.off.tiles === back.canonNodes && Number(said[3]) === back.off.relationships,
+    `nothing on the canvas standing for what is off it, and the control saying all ` +
+      `${back.canonNodes} of ${back.canonNodes} tiles are off the drawing`,
+    `${back.outside} stub tiles, ${back.capWindow} window captions, title ` +
+      JSON.stringify(back.title));
+
+  // ---- 6. and the page still holds the transform it is rendering at ---------------
+  // ISSUE 114'S READING GUARD, IN THE ONE STATE THAT COULD BREAK IT. A floored height is a new
+  // number for the fit to frame, and a fit computed from a height of 0 divided by it. The window
+  // is the canvas box with no tolerance at all, as #114 measured it; the scale keeps that card's
+  // own 1e-3 relative, which is three hundred times the residual it measured and is not loosened
+  // here. The whole of the floored drawing has to be inside the canvas as well, or the fit framed
+  // something else.
+  assert('and the page holds the transform the browser is rendering the empty drawing at',
+    back.vw === back.boxW && back.vh === back.boxH &&
+      back.ctm !== null && Math.abs(back.ctm - back.k) <= back.k * 1e-3 &&
+      back.h * back.k <= back.boxH + 2,
+    `a window of exactly ${back.boxW} by ${back.boxH}, the browser's scale on the page's own ` +
+      `${back.k.toFixed(6)}, and all ${back.h} units of the drawing inside the canvas`,
+    `view ${back.vw} by ${back.vh} against ${back.boxW} by ${back.boxH}, ctm ${back.ctm}, ` +
+      `${(back.h * back.k).toFixed(0)}px of drawing in a ${back.boxH.toFixed(0)}px canvas`);
+
+  // Left as it was found: the window off, and the address back on the diagram. Every phase after
+  // this one starts on a page nobody filtered.
+  await wnMenu(page, true);
+  await pressByText(page, '#wnmenu .wn-weeks', 'whole term');
+  await page.waitFor('window.ZT.filtered().on === false', 'the window off again');
+  await wnMenu(page, false);
+  await page.evaluate(`location.hash = '#/'`);
+  await page.waitFor('window.ZT.term().open === false', 'the diagram back');
+  await viewSettled(page);
+}
+
 async function checkHeader(page) {
   await page.evaluate(`location.hash = '#/'`);
   await page.waitFor('window.ZT.term().open === false', 'the diagram to be on screen');
@@ -5074,6 +5349,10 @@ async function runViewport(chrome, viewport, base, full, narrow) {
       await group('cold load', () => checkColdLoad(page, base));
       await group('students', () => checkStudents(page));
       await group('term', () => checkTerm(page));
+      // After `term`, which leaves the window off and the address on the diagram, and before
+      // `header`, which walks all seven programmes: this one moves to a programme of its own
+      // choosing and puts both back the way it found them. Issue 119.
+      await group('the empty window', () => checkEmptyWindow(page));
       await group('header', () => checkHeader(page));
       await group('canvas', () => checkCanvas(page));
       await group('capture', () => checkCapture(page, base));
