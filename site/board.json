@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T15:22:17Z",
+  "generated": "2026-08-12T15:23:11Z",
   "columns": [
     {
       "key": "raw",
@@ -24,15 +24,6 @@
             "limitation"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
-        },
-        {
-          "id": 113,
-          "title": "Check alignment: a bit more space to the left",
-          "labels": [
-            "bug",
-            "feedback"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/113"
         }
       ]
     },
@@ -85,6 +76,16 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/112"
+        },
+        {
+          "id": 113,
+          "title": "The sheet has no left gutter: every heading and cell sits hard on the container edge",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/113"
         }
       ]
     },
