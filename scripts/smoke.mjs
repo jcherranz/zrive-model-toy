@@ -344,6 +344,19 @@ const PHASES = {
 // newest control in the row. The fourth `every width` assertion is #77's own claim rather than this
 // control's: every control in that nav on one height and none under 24 by 24, at all three widths
 // including the one where the row wraps, which is where a size regression would hide.
+// 139 AND STILL 139 AFTER ISSUES 108 AND 110, which is the second time this file has met a card
+// that deletes what it asserts and the reason for writing it down is the same. The owner withdrew
+// every reader-facing statement about the standing of the content, so the badge beside every
+// property value, the line summing each property list, the note on the face of the outline block
+// and the footer's sentence are all gone. Three assertions changed and none was dropped. The count
+// of statements on the page is the same measurement with a different expected number, zero rather
+// than one, and it stays because an instruction that says absolutely none is an instruction one
+// surviving copy defeats. The panel's published-values assertion reads the flag off window.GI now
+// instead of off a badge, and gained the demand that no badge is printed. The outline's was
+// compound and was split: the clause about the note went with the note, the clause about the flags
+// stayed and reads the tokens term.js publishes for the purpose, and a third clause was added
+// requiring nothing on the page to print them. What went is three claims about copy. What stayed
+// is every claim about the fields, which are the architecture and are untouched in the document.
 const EXPECTED_ASSERTIONS = 139;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
@@ -1328,11 +1341,12 @@ const TERM_READ = `(function () {
     }).filter(Boolean),
     agendaRows: ag.length,
     agendaLines: document.querySelectorAll('#termrows .agenda-line').length,
-    agendaUnflagged: Array.prototype.slice.call(
-      document.querySelectorAll('#termrows .agenda-line')).filter(function (li) {
-        var f = li.querySelector('.flag');
-        return !f || f.textContent !== 'dummy';
-      }).length,
+    // Badges PRINTED in the block, which is a different question from the flag each line carries
+    // in the document and is counted here because issue 110 wants the answer to be none. It was
+    // agendaUnflagged, a count of lines whose printed badge did not read dummy, and that field
+    // could only ask its question while there was a badge to read. No backtick anywhere in this
+    // comment: the driver around it is a template literal and one would end the string.
+    agendaBadges: document.querySelectorAll('#termrows .agenda-line .flag').length,
     agendaNote: (function () {
       var p = document.querySelector('#termrows .agenda-note');
       return p ? p.textContent : null;
@@ -1373,14 +1387,13 @@ const TERM_READ = `(function () {
     })(),
     heading: (document.querySelector('h1') || {}).innerText || '',
 
-    // ---- issues 91 and 93, the subtraction ---------------------------------------
-    // WHAT IS COUNTED IS COPIES AND NOT WORDING, which is the whole shape of those two cards. He
-    // asked twice for the marks to go and the reason is arithmetic: six statements that the data
-    // is invented stood on one screen and the sixth made the first weaker. So the driver counts
-    // every element on the page whose own text claims invention, split into the sheet and the
-    // footer, and asserts the sheet's count is zero and the page's is one. It does not read what
-    // the surviving sentence says: issue 101 is open on whether the claim is even true, that is
-    // his to settle, and a driver that pinned the wording would be this card taking his decision.
+    // ---- issues 91, 93 and 110, the subtraction ------------------------------------
+    // WHAT IS COUNTED IS COPIES AND NOT WORDING, which is the shape of all three cards. 91 and 93
+    // took the count from six to one on the arithmetic that six statements on one screen made the
+    // first weaker. 110 is the owner's instruction and takes it to zero: he asked for no text on
+    // the page about the standing of the content, so the two counts this driver already had are
+    // both asserted at zero and the reading is unchanged. Wording is still never read, which is
+    // what lets this measurement survive a card that rewrites the copy around it.
     inventedInSheet: Array.prototype.slice.call(
       document.querySelectorAll('#term *')).filter(function (e) {
         return e.children.length === 0 && /invent/i.test(e.textContent || '');
@@ -1582,25 +1595,38 @@ async function checkTerm(page) {
       `syllabus-wide ${state.templates}`,
     `${JSON.stringify(fromTemplate.href)}, ${JSON.stringify(fromTemplate.text)}`);
 
-  // ISSUE 85. The two real published values that had never reached a property list, and the flag
-  // is the assertion: a module name rendered `dummy` beside an invented attendance figure would
-  // tell the reader the exact opposite of what is true of it.
+  // ISSUE 85, READ THE WAY ISSUE 110 LEFT IT. The two published values that had never reached a
+  // property list are still the subject; what changed is where the flag is read. The panel printed
+  // a badge beside every value and the owner's instruction took every badge off the page, so the
+  // badge is gone and the FIELD is not: `f` still ships on all 3113 rows, check_provenance still
+  // holds each one to the closed vocabulary and to its rank, and #104's rule still refuses a value
+  // whose flag and rank disagree. A field a driver cannot see is a field that rots, so this reads
+  // the value off the panel, which is what a reader sees, and the flag off window.GI, which is the
+  // document the panel was built from. It fails in the same two directions it always did: a
+  // missing row, and a row whose flag is not the one the model was built to give it.
   const tprops = await page.evaluate(`(function () {
-    var out = {}, dl = document.getElementById('pprops');
+    var out = { shown: {}, flagged: {}, badges: 0 };
+    var dl = document.getElementById('pprops');
     var dts = dl.querySelectorAll('dt'), dds = dl.querySelectorAll('dd'), i;
     for (i = 0; i < dts.length; i++) {
-      var f = dds[i].querySelector('.flag');
-      out[dts[i].textContent] = { v: dds[i].querySelector('b').textContent,
-                                  f: f ? f.textContent : null };
+      out.shown[dts[i].textContent] = dds[i].querySelector('b').textContent;
     }
+    out.badges = dl.querySelectorAll('.flag').length;
+    var sel = window.ZT.selected();
+    var n = null;
+    window.GI.views.forEach(function (v) {
+      (v.nodes || []).forEach(function (x) { if (sel && x.id === sel.id) n = x; });
+    });
+    (n && n.props ? n.props : []).forEach(function (p) { out.flagged[p.k] = p.f; });
     return out;
   })()`);
   assert('a session template carries the module and the place in its syllabus, flagged real',
-    !!tprops.module_name && !!tprops.sequence &&
-      tprops.module_name.f === 'real' && tprops.sequence.f === 'real' &&
-      /^\d+ of \d+$/.test(tprops.sequence.v),
-    'module_name and sequence on the panel, both flagged real and not dummy',
-    JSON.stringify({ module_name: tprops.module_name, sequence: tprops.sequence }));
+    tprops.flagged.module_name === 'real' && tprops.flagged.sequence === 'real' &&
+      !!tprops.shown.module_name && /^\d+ of \d+$/.test(tprops.shown.sequence || '') &&
+      tprops.badges === 0,
+    'module_name and sequence on the panel, both carrying the flag `real` in the document and ' +
+      'neither printing it',
+    JSON.stringify(tprops));
   await clearSelection(page);
 
   // ---- the calendar reading ---------------------------------------------------
@@ -1745,14 +1771,20 @@ async function checkTerm(page) {
       `${cal.noticeProse.length} paragraphs ${JSON.stringify(cal.noticeProse)}, ` +
       `${cal.subWarn} subtitle chips`);
 
-  // THE COUNT, WHICH IS THE WHOLE OF WHAT THOSE TWO CARDS DECIDED. Six statements that the data
-  // is invented stood on this one screen and the sixth made the first weaker. One is left and it
-  // is the page's, in the footer, where it was. Nothing here reads what it says: issue 101 is
-  // open on whether that claim is true at all, since nearly half of the shipped values are
-  // flagged as read off a real system while the stance says invented, and that is his call.
-  assert('exactly one statement on the page that the data is invented, and it is the footer\'s',
-    cal.inventedInSheet.length === 0 && cal.inventedInFooter === 1,
-    'none in the sheet, one in the footer',
+  // THE COUNT, AND IT IS ZERO NOW. Issues 91 and 93 took six statements about the standing of the
+  // content down to one, the footer's, and left this assertion reading the count rather than the
+  // sentence. Issue 110 is the owner withdrawing the last one: "I don't want absolutely any text
+  // or comment about the content not being real or truthful or whatever." So the same measurement
+  // is made and the expected number moved by one, which is the only change a subtraction of a
+  // sentence should make to a driver that never read it. The assertion is NOT dropped: the
+  // instruction was absolute, one copy left anywhere is the failure it names, and an unasserted
+  // absence is one card away from coming back as a repair. This also settles issue 101, which was
+  // open on the footer claiming everything is invented while nearly half the shipped values are
+  // flagged as read off a real system. A page that says nothing about its own truthfulness cannot
+  // say something wrong about it.
+  assert('no statement anywhere on the page about the standing of the content',
+    cal.inventedInSheet.length === 0 && cal.inventedInFooter === 0,
+    'none in the sheet and none in the footer',
     `${cal.inventedInSheet.length} in the sheet ${JSON.stringify(cal.inventedInSheet)}, ` +
       `${cal.inventedInFooter} in the footer`);
 
@@ -1965,13 +1997,13 @@ async function checkTerm(page) {
     `fewer than ${state.sessions} rows under a heading that does not claim the whole term`,
     `${oneCal.rows} rows, heading ${JSON.stringify(oneCal.title)}`);
 
-  // ---- the invented session agenda, issue 85 -----------------------------------
-  // OFF UNTIL IT IS ASKED FOR is the first of the four things marking it, and it is the one a
-  // later change could undo without anything looking wrong. The other three are on the block.
+  // ---- the per session outline, issues 85 and 108 --------------------------------
+  // OFF UNTIL IT IS ASKED FOR is the first of the things marking it, and it is the one a later
+  // change could undo without anything looking wrong. The rest are on the block.
   await page.evaluate(`location.hash = '#/outline/' + ${JSON.stringify(other)}`);
   await page.waitFor(`window.ZT.term().reading === 'outline'`, 'the outline back');
   const agOff = await page.evaluate(TERM_READ);
-  assert('the invented session agenda is off until a reader asks for it',
+  assert('the per session outline is off until a reader asks for it',
     agOff.agendaRows === 0 && !!agOff.agendaToggle &&
       agOff.agendaToggle.pressed === 'false' &&
       agOff.agendaToggle.w >= 24 && agOff.agendaToggle.h >= 24,
@@ -1981,17 +2013,38 @@ async function checkTerm(page) {
   await page.evaluate(`document.querySelector('.agenda-toggle').click()`);
   await page.waitFor('window.ZT.term().agenda === true', 'the agenda to be switched on');
   const agOn = await page.evaluate(TERM_READ);
-  assert('every line of it carries the dummy flag, and the block says what it is on its own face',
+  const agState = await page.evaluate('window.ZT.term()');
+  // A COMPOUND ASSERTION SPLIT, AND ONLY THE HALF WHOSE SUBJECT IS GONE WAS DROPPED. It read: one
+  // block under each row, every line carrying the printed flag `dummy`, and a note on the face of
+  // the block saying what the lines are. The note is deleted under the owner's instruction of
+  // 12 August, issue 110, and so is the badge that printed the flag, so both of those clauses now
+  // have nothing to read. The FLAG ITSELF is not gone and neither is this check on it: `f` and `r`
+  // are still on every one of these rows, term.js publishes the set of tokens present for exactly
+  // this reason, and the assertion holds them to the closed vocabulary the model gates. So the
+  // clause about the data survives, the clause about the printing is turned around to demand the
+  // absence, and the note's clause is the only thing removed. One assertion in, one assertion out,
+  // and no drop in what is measured about the fields.
+  //
+  // THE LINE COUNT IS THE MODEL'S TOTAL AND NOT rows TIMES A CONSTANT, which is issue 108: there
+  // are 83 lists of three or four now rather than one list drawn 83 times, so the old product
+  // would be an assertion that the page draws the same block everywhere. `agendaBlocks` is the
+  // claim that replaces it, being how many DIFFERENT blocks the templates in scope carry.
+  assert('every line of the outline carries its provenance fields, and nothing on the page prints them',
     agOn.agendaRows === agOn.rows &&
-      agOn.agendaLines === agOn.rows * oneState.agendaLines &&
-      agOn.agendaUnflagged === 0 &&
-      /INVENTED/.test(agOn.agendaNote || '') &&
-      /same four lines/i.test(agOn.agendaNote || '') &&
-      /not a proposal/i.test(agOn.agendaNote || ''),
-    `one block under each of the ${agOn.rows} rows, every line flagged dummy, and a note ` +
-      'saying the lines are invented, the same everywhere, and not a proposal',
-    `${agOn.agendaRows} blocks, ${agOn.agendaLines} lines, ${agOn.agendaUnflagged} unflagged, ` +
-      `note ${JSON.stringify((agOn.agendaNote || '').slice(0, 90))}`);
+      agOn.agendaLines === agState.agendaLines &&
+      agState.agendaBlocks === agOn.rows &&
+      agState.agendaFlags.length > 0 &&
+      agState.agendaFlags.every(f => ['dummy', 'estimated', 'absent', 'real'].indexOf(f) !== -1) &&
+      agState.agendaRanks.length > 0 &&
+      agState.agendaRanks.every(r => /^\d_/.test(r)) &&
+      agOn.agendaBadges === 0 &&
+      !(agOn.agendaNote || '').trim(),
+    `one block under each of the ${agOn.rows} rows, ${agState.agendaBlocks} of them different, ` +
+      `every line carrying a flag from the closed vocabulary and a rank, no badge printed and ` +
+      'no note',
+    `${agOn.agendaRows} blocks, ${agOn.agendaLines} lines, flags ` +
+      `${JSON.stringify(agState.agendaFlags)}, ranks ${JSON.stringify(agState.agendaRanks)}, ` +
+      `${agOn.agendaBadges} badges, note ${JSON.stringify((agOn.agendaNote || '').slice(0, 90))}`);
   await page.evaluate(`document.querySelector('.agenda-toggle').click()`);
   await page.waitFor('window.ZT.term().agenda === false', 'the agenda to be switched off again');
 

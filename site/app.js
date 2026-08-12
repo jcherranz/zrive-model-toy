@@ -477,12 +477,11 @@
     // is what crosses the boundary now: the caption is text and takes a text token, and the
     // type's colour is carried by a box beside it, which is the thing the palette was chosen for.
     typeSwatch: render.typeSwatch,
-    // Issue 73, seam 5. The document's own stance, clock and vocabularies, handed over rather
-    // than read off the global: a panel that reached for window.GI would be a second reader of
-    // the instance document and would keep working after this file stopped handing it one,
-    // which is how a module stops being a module. It is a top-level block and not a per view
-    // one, because a provenance is a fact about the document and not about the drawing.
-    provenance: GI && GI.provenance,
+    // Issue 73 seam 5 handed the panel the document's own clock and vocabularies here, and the
+    // panel summed every property list by them in one line under the list. Issue 110 took that
+    // line off the page and the option went with it rather than being left handed to a module
+    // that no longer reads it. The block itself still ships in the instance document and the
+    // build gate still holds every row to it.
     // Issues 80 and 82. A cohort session is one of a term and a session template is one of a
     // syllabus, and the panel is where the reader is when they want the rest of it. The route and
     // the counts belong to the view that holds them, so term.js answers and selection.js only
@@ -803,11 +802,13 @@
     });
     var foot = document.createElement('p');
     foot.className = 'gaps-foot';
-    // model.py's own words for the flag, and the panel's. A fourth wording of a definition this
-    // page already carries twice would be a fourth thing to keep in step.
-    foot.textContent = 'A dummy value stands in for something a system holds; an absent one says ' +
-      'no system holds it. These are the absent ones, counted off the model on every change of ' +
-      'view rather than written down.';
+    // WHAT THIS SENTENCE USED TO SAY AND WHY IT DOES NOT. It opened with the definition that
+    // separates the two flags, because the count is over one of them and not the other. That half
+    // is gone under the owner's instruction of 12 August, issue 110, and what is left is the half
+    // that is about the machinery: the number over the list is recomputed on every change of view
+    // rather than written down anywhere, which is the claim a reader can hold this control to and
+    // the one the header's own count is checked against.
+    foot.textContent = 'Counted off the model on every change of view rather than written down.';
     gapsMenu.appendChild(foot);
   }
 

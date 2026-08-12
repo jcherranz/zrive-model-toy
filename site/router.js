@@ -135,10 +135,10 @@
     // this list are two halves of the same honesty, one saying how many the picture left out and
     // the other showing them.
     //
-    // Every row is invented. The rows come from the drawing's own generated file, so they are
-    // covered by both values a feedback note carries: the commit, which pins every byte of the
-    // deployed site, and the drawing digest, which pins the geometry and the rows inside it.
-    // Nothing in this file knows a student's name.
+    // The rows come from the drawing's own generated file, so they are covered by both values a
+    // feedback note carries: the commit, which pins every byte of the deployed site, and the
+    // drawing digest, which pins the geometry and the rows inside it. Nothing in this file knows
+    // a student's name.
     //
     // It is an overlay and not a third main. The board replaces the diagram, which takes the
     // canvas off the screen and hands its ResizeObserver a box of nothing; that is a path this
@@ -402,13 +402,14 @@
       var hsp = document.getElementById('hstudprog');
       if (hsp) hsp.textContent = v.code || label;
 
-      // The footer's two counts. The cohorts are 34, 27, 21, 18, 24, 16 and 30, so a footer holding
-      // one of them in words is a footer that is wrong six times out of seven.
-      var r = G.roster || {};
-      var fd = document.getElementById('footdrawn');
-      var fn = document.getElementById('footn');
-      if (fd && typeof r.drawn === 'number') fd.textContent = r.drawn;
-      if (fn && typeof r.n === 'number') fn.textContent = r.n;
+      // THE FOOTER'S TWO COUNTS WERE WRITTEN HERE and they are gone with the sentence that held
+      // them, issue 110. They were `#footn` and `#footdrawn`, the cohort's size and how many of it
+      // the picture drew, written from the drawing because the cohorts are 34, 27, 21, 18, 24, 16
+      // and 30 and a number typed into the footer would have been right on one of seven. Nothing
+      // else read either element, so the writers went rather than being left addressing ids that
+      // no longer exist. The same two numbers are still on the page where they answer a question a
+      // reader asked: the students card carries the count it left out, and the panel's way into
+      // #/students says how many of the list are drawn here.
 
       // The drawing has no text in it saying what it is of, so this is the only name a screen
       // reader gets for the whole svg, and the tab title is what a second window is told apart by.

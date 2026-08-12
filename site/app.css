@@ -1253,14 +1253,16 @@ body.panel-open #canvas { margin-right: 320px; }
 
 #close:hover { background: var(--tint-hover); }
 
-/* One statement and one control. This strip carried 101 words in a single paragraph and 144 to
-   158 CSS px on a 390 by 844 phone, 17 to 19 per cent of the viewport, for three instructions a
-   reader takes once and a provenance sentence they should be able to find at any time. What is
-   left is the provenance, which this project requires the page to say plainly, and a disclosure
-   holding the rest. Issue 79. */
+/* ONE CONTROL, AND NOTHING ELSE ON THE STRIP. It carried 101 words in a single paragraph and 144
+   to 158 CSS px on a 390 by 844 phone, 17 to 19 per cent of the viewport; issue 79 put three
+   instructions behind the disclosure and left one sentence, and issue 110 took that sentence off
+   the page. What is left is the disclosure, one line high at every width, and the canvas above it
+   is taller by what went. */
 footer {
   flex: none;
   position: relative;
+  display: flex;
+  justify-content: flex-end;
   padding: 6px 20px;
   font-size: 11px;
   line-height: 1.45;
@@ -1269,16 +1271,13 @@ footer {
   background: var(--bg-panel);
 }
 
-/* The two counts and the one exception, in the body colour, because they are the parts of this
-   sentence a reader is meant to be able to pick out of it without reading it again. */
-footer b { color: var(--fg-body); font-weight: 600; }
-
-/* Floated, so the control takes the right hand end of the first line and the rest of the sentence
-   wraps under it at full width. On a phone that is the difference between a three line strip and a
-   four line one, and it is why the disclosure is affordable here at all: the control costs the
-   footer no height of its own at any width. */
+/* THE FLOAT WENT WITH THE SENTENCE. It existed so the control could take the right hand end of
+   the first line and let the rest of the words wrap under it at full width, which on a phone was
+   the difference between a three line strip and a four line one. With no words to wrap there is
+   nothing for a float to buy, and a float in an otherwise empty box takes the box's height with
+   it: the strip would have collapsed to its padding and the control would have hung out of it.
+   A one item flex row puts it at the same right hand end and keeps the strip its own height. */
 .helppick {
-  float: right;
   margin-left: 12px;
 }
 
@@ -1953,22 +1952,6 @@ body.hide-ghosts .ghost { display: none; }
    and regular while one of the members is, which is a weight that changes for no reason a
    reader could name. */
 .node.sel .lbl-tail { font-weight: 400; }
-
-/* ---- where the values above came from, issue 73 -------------------------------
-   Deliberately the quietest thing in the panel. It is the same 11px muted register as the hint
-   under the student list link, it takes no rule of its own above it, and it carries no colour:
-   a provenance that shouted would compete with the values it is about, and every value on this
-   page has the same one. It reads as a footnote because on this document it IS one. On a
-   private deployment reading real systems the counts would differ from node to node and it
-   would start earning attention on its own, which is the state the sentence is written for. */
-.pprov {
-  margin: 12px 0 0;
-  font-size: 11px;
-  line-height: 1.45;
-  color: var(--fg-muted);
-}
-
-.pprov:empty { display: none; }
 
 /* ---- the way from a card that stands for many to the list of them ------------ */
 .pmore {

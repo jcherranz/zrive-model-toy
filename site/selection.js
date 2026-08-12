@@ -43,51 +43,28 @@
     { verb: 'member of',   hide: 's', by: 't', together: true }
   ];
 
-  // ---- where a value came from, and whether it is still good enough to act on ---------------
-  // Issue 73, seam 5, and the scheme is the Z-Map's rather than one invented here: every value
-  // carries the rank of its source and the date that source was read, `status` and `apto` are
-  // computed and never written down, and a value nobody has verified is refused rather than
-  // quietly used. The vocabulary and the clock ship in the instance document, so nothing below
-  // holds a copy of a threshold or of a token's meaning.
+  // ---- what the panel no longer says about the values it shows ------------------------------
+  // Issue 73 seam 5 put two things on the panel: a flag chip beside every property value, whose
+  // text was the row's own `f`, and one line under the list summing the rows by the age of the
+  // source each came from. Both are gone on the owner's instruction of 12 August, which withdrew
+  // every reader-facing statement about the standing of the content. Issue 110.
   //
-  // THE CLOCK IS READ AGAINST TODAY AND NOT AGAINST THE DOCUMENT'S OWN as_of, which is the one
-  // place this file and the build deliberately disagree. The build has to be deterministic, so
-  // it ages every value against the date stamped on the document; a reader wants to know how old
-  // a value is now. The disagreement is safe in one direction only and that is the direction it
-  // runs: today is never earlier than the stamp, so a value can only read staler here than the
-  // build judged it, and the page can never show as current something the build let through as
-  // stale.
-  var STATUS_ORDER = ['fresh', 'aging', 'stale', 'unread', 'invented'];
-  var DAY = 86400000;
-
-  function statusOf(P, row) {
-    if (row.r === '0_invented') return 'invented';
-    if (!row.at) return 'unread';
-    var days = Math.floor((Date.now() - Date.parse(row.at + 'T00:00:00Z')) / DAY);
-    if (days <= P.clock.fresh_days) return 'fresh';
-    if (days <= P.clock.aging_days) return 'aging';
-    return 'stale';
-  }
-
-  // One sentence about the node's whole property list. A chip on every row was the alternative
-  // and it is the wrong shape here: the rows already carry a flag each, saying what kind of
-  // value it is, and a second chip beside every one of them would be twice the ink for an answer
-  // that is the same on nine rows out of nine. What a reader needs to be told is that this list
-  // is not something to act on, which is a fact about the set.
-  function provenanceLine(P, props) {
-    if (!P || !props.length) return '';
-    var count = {}, apto = 0;
-    props.forEach(function (row) {
-      var st = statusOf(P, row);
-      count[st] = (count[st] || 0) + 1;
-      if (P.apto.indexOf(st) >= 0) apto++;
-    });
-    var parts = STATUS_ORDER.filter(function (st) { return count[st]; })
-                            .map(function (st) { return count[st] + ' ' + st; });
-    return 'provenance: ' + parts.join(', ') + '. '
-           + (apto ? apto + ' of ' + props.length + ' fit to act on.'
-                   : 'Nothing here is fit to act on.');
-  }
+  // WHAT WENT IS THE RENDERING AND ONLY THE RENDERING. `f` and `r` still ship on every row of
+  // site/instance.js, the flag vocabulary is still closed, and check_provenance still refuses a
+  // rank and a flag that have come apart, refuses a token the vocabulary does not define and
+  // refuses a value nobody has verified. The knowing is in the document and in the build gate;
+  // what stopped is the page turning it into a sentence.
+  //
+  // THE SUMMING LINE COULD NOT BE NARROWED INSTEAD OF DROPPED, and that is worth writing down.
+  // Its buckets were the age of a source read, which says nothing about standing, plus one bucket
+  // for the rows that name no source at all. Drop that bucket and keep the line and the counts no
+  // longer add up to the list they are under, which is a page under-reporting itself rather than
+  // saying nothing. Saying nothing is the instruction.
+  //
+  // WHAT A READER STILL MEETS IS THE ROUTE ROWS, which open every property list and are ordinary
+  // values: which system records this class, what event writes a row in it, and where the answer
+  // is that no system holds it. That is issue 80's finding and it is a fact about the business's
+  // systems rather than about this page.
 
   var ZM = window.ZM = window.ZM || {};
 
@@ -96,7 +73,6 @@
   // opts.rosterRoute  the address of the student list, for the one node that stands for a list
   // opts.typeLabel    a type key to the name the reader is told
   // opts.typeSwatch   a type key to the fill and the stroke a swatch of it is drawn with
-  // opts.provenance   the document's stance, clock, apto rule and vocabularies
   // opts.moreLink     a node to a further view of what it is one of, or null. Issues 80 and 82.
   //                   This file asks and does not answer: a node that is one of a set is a fact
   //                   about the model, and which address holds that set is a fact about the page,
@@ -106,7 +82,6 @@
     var svg = opts.svg, panel = opts.panel;
     var ROSTER_ROUTE = opts.rosterRoute;
     var typeLabel = opts.typeLabel, typeSwatch = opts.typeSwatch;
-    var PROV = opts.provenance || null;
     var moreLink = opts.moreLink;
     var onReveal = opts.onReveal;
 
@@ -257,7 +232,7 @@
     // three pass the 3:1 the gate asks, so no check had an opinion about them.
     //
     // WHAT IT TAKES INSTEAD is --fg-muted, which is what every other caption in this panel is
-    // painted with: the note, the property keys and the provenance line. It measures 5,4113 on
+    // painted with: the note and the property keys. It measures 5,4113 on
     // the panel in light and 6,8297 in dark, so all thirteen clear 4.5 in both themes at once and
     // by construction rather than by thirteen numbers that have to be rechecked whenever one
     // moves. Not --fg-body, which at 16,2 would make an 11px caption the loudest thing in the
@@ -387,17 +362,10 @@
         var dd = document.createElement('dd');
         var b = document.createElement('b');
         b.textContent = p.v;
-        var f = document.createElement('span');
-        f.className = 'flag ' + p.f;
-        f.textContent = p.f;
         dd.appendChild(b);
-        dd.appendChild(f);
         dl.appendChild(dt);
         dl.appendChild(dd);
       });
-      // Under the list and not beside any one row of it, because it is a fact about the set.
-      // Issue 73.
-      document.getElementById('pprov').textContent = provenanceLine(PROV, n.props);
       // A node that stands for a list says where the list is. Only one node does, and which one is
       // named by the build rather than by an id written here, so a second aggregate would arrive
       // with its own link and this code would not have to learn about it.

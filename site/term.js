@@ -657,7 +657,7 @@
       var lead = el('p', 'wn-now');
       lead.appendChild(el('span', 'warn', 'this page has no today'));
       lead.appendChild(document.createTextNode(
-        ' Your clock says ' + TODAY + '. The invented term runs ' + TERM.first + ' to ' +
+        ' Your clock says ' + TODAY + '. The term runs ' + TERM.first + ' to ' +
         TERM.last + ', so ' + AFTER_TODAY + ' of the ' + sessions.length +
         ' sessions are on or after today. The window below is positioned on an anchor inside ' +
         'the term, which is not today and is not pretending to be: it is the Monday of the week ' +
@@ -997,10 +997,11 @@
       c.appendChild(el('span', 'cal-time', s.time));
       c.appendChild(el('span', 'cal-code', s.code));
       c.appendChild(el('span', 'cal-title', s.title));
+      // A TITLE IS TEXT AND OFF SCREEN IS NOT ABSENT, which is why the last clause of this string
+      // is gone rather than left where only a hover finds it. Issue 110.
       c.title = s.date + ' ' + s.time + ' · ' + s.code + ' · ' + s.title + ' · ' + s.state +
         ' · ' + (s.teacher === 'yes' ? 'instructor named' : 'no instructor named') +
-        ' · attendance ' + s.attendance + ' · drawn as ' + s.id +
-        ' · every value in this line is invented';
+        ' · attendance ' + s.attendance + ' · drawn as ' + s.id;
       return c;
     }
 
