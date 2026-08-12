@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T18:36:44Z",
+  "generated": "2026-08-12T18:47:51Z",
   "columns": [
     {
       "key": "raw",
@@ -54,15 +54,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/115"
-        },
-        {
-          "id": 116,
-          "title": "One glyph changed repaints 91 tiles across nine of the fourteen drawings, with all fourteen digests unchanged and verify.sh clean",
-          "labels": [
-            "audit",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/116"
         }
       ]
     },
@@ -78,6 +69,15 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/117"
+        },
+        {
+          "id": 116,
+          "title": "One glyph changed repaints 91 tiles across nine of the fourteen drawings, with all fourteen digests unchanged and verify.sh clean",
+          "labels": [
+            "audit",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/116"
         },
         {
           "id": 114,
@@ -133,18 +133,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/109"
-        },
-        {
-          "id": 108,
-          "title": "Two owner reversals: the visit ghost goes, and the session agenda becomes per-session",
-          "labels": [
-            "model",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/108"
         }
       ],
-      "hidden": 93,
+      "hidden": 94,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
