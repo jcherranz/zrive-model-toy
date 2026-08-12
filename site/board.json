@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T19:30:40Z",
+  "generated": "2026-08-12T19:37:23Z",
   "columns": [
     {
       "key": "raw",
@@ -30,7 +30,17 @@
     {
       "key": "backlog",
       "title": "Backlog",
-      "cards": []
+      "cards": [
+        {
+          "id": 119,
+          "title": "Nothing drives an empty window, the state that paints six rects at a negative height",
+          "labels": [
+            "bug",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/119"
+        }
+      ]
     },
     {
       "key": "in_progress",
