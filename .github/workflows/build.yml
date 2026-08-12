@@ -117,3 +117,17 @@ jobs:
 
       - name: The committed drawing is what the builder produces
         run: bash scripts/check_build.sh
+
+      # The populate registry, read back out of the bytes the page loads rather than out of the
+      # model that wrote them. Issue 72 wrote both the registry and the reader; issue 103 found
+      # that NOTHING ran the reader, here or anywhere, for as long as it had existed. It answers
+      # two questions no other check in this repository asks: whether a class the document
+      # declares is drawn by no object, which is an entry that has rotted, and whether an object
+      # names a class the document does not declare, which is a tile whose source nothing can be
+      # asked about. Both are the generated-but-never-verified class.
+      #
+      # It runs AFTER the rebuild above and not before, deliberately: the bytes it reads are then
+      # the bytes the builder just produced and compared, so a registry that is complete in the
+      # committed file and incomplete in the rebuilt one cannot pass here.
+      - name: The populate registry is complete and every drawn object binds to it
+        run: python3 scripts/routes.py

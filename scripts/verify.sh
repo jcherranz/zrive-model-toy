@@ -17,6 +17,25 @@
 # deployed-bytes gate needs an origin to fetch. A skipped step is named in the summary with its
 # reason, so a clean run that skipped two things cannot be read as a clean run that did nine.
 #
+# AND A SKIP THAT CAN MEAN AN ABORT IS A GREEN THAT CAN MEAN RED. Issue 103, and it is this
+# file's own headline doctrine turned on itself. Every step here used to map exit 2 to [SKIP],
+# on the reading that 2 means "I could not answer". It does, but it is ALSO how every gate in
+# this repository reports a hard poka-yoke defect: no tracked files to scan, a name hash list
+# holding no hashes, a palette table that does not match its own terminator, a malformed
+# exemption table, a self-test that ran fewer probes than it intends, a smoke run whose browser
+# never started. Proved with an empty register held outside the tree: the gate printed
+# `ASSERTION FAILED: name hash list is empty`, this file printed
+# `VERDICT: clean, with 2 step(s) that did not run`, and exited 0. A gate shouting that it
+# scanned nothing was filed as a step that politely declined.
+#
+# So exit 2 is now a FAILURE by default, named as an abort rather than as an ordinary failure so
+# the reader knows the difference. A step may decline only where THIS file has established the
+# precondition cannot be met, and there are exactly two such places: the untracked check below,
+# whose 2 is this file's own convention and not a gate's, and the token grep, where the register
+# is looked for before the gate is run rather than after. The second one closes the composition
+# nobody had joined: a vault that disappears once retired two model gates AND took this file's
+# verdict with it, because both of them answered 2 and both of them read as a skip.
+#
 # Usage:
 #   scripts/verify.sh                 everything that can run against this working tree
 #   scripts/verify.sh <origin-url>    and also the deployed-bytes gate and the smoke suite
@@ -35,9 +54,13 @@ STEP_NAMES=()
 STEP_STATE=()
 STEP_NOTE=()
 
-# Run a step, print its output under a banner, record its verdict. A step that exits 2 is
-# recorded as [SKIP] and not as a failure, which is how a gate says "I could not answer" rather
-# than "the answer is clean"; every gate here uses 2 for exactly that.
+# Run a step, print its output under a banner, record its verdict.
+#
+# Exit 2 is a FAILURE and is named as one. A gate answering 2 has told you it did not scan what
+# it was asked to scan, and the only reading of that which is safe to push on is "this run
+# proved nothing here". It is recorded with its own note rather than as a plain failure, because
+# "the gate refused the tree" and "the gate never read the tree" send a reader to different
+# places.
 step() {
   local name="$1"; shift
   echo
@@ -51,8 +74,35 @@ step() {
     STEP_STATE+=("OK"); STEP_NOTE+=("")
     echo "-- [OK] $name"
   elif [ "$rc" -eq 2 ]; then
-    STEP_STATE+=("SKIP"); STEP_NOTE+=("the step declined to run, see its output above")
-    echo "-- [SKIP] $name (exit 2: it declined to answer rather than answering clean)"
+    STEP_STATE+=("FAIL")
+    STEP_NOTE+=("exit 2: it ABORTED. It did not scan what it was asked to, so nothing here is evidence")
+    echo "-- [FAIL] $name (exit 2: the gate aborted rather than answering. It scanned nothing.)"
+  else
+    STEP_STATE+=("FAIL"); STEP_NOTE+=("exit $rc")
+    echo "-- [FAIL] $name (exit $rc)"
+  fi
+  return 0
+}
+
+# The one shape of step whose exit 2 is not a gate abort: this file's own convention, used where
+# 2 means "the answer is incomplete and here is what it excludes". It takes the reason as an
+# argument, so a reader of the summary is never left to guess which of the two meanings applied.
+# Nothing outside this file may be run through it.
+step_may_decline() {
+  local name="$1" reason="$2"; shift 2
+  echo
+  echo "=============================================================================="
+  echo "== $name"
+  echo "=============================================================================="
+  "$@"
+  local rc=$?
+  STEP_NAMES+=("$name")
+  if [ "$rc" -eq 0 ]; then
+    STEP_STATE+=("OK"); STEP_NOTE+=("")
+    echo "-- [OK] $name"
+  elif [ "$rc" -eq 2 ]; then
+    STEP_STATE+=("SKIP"); STEP_NOTE+=("$reason")
+    echo "-- [SKIP] $name ($reason)"
   else
     STEP_STATE+=("FAIL"); STEP_NOTE+=("exit $rc")
     echo "-- [FAIL] $name (exit $rc)"
@@ -117,63 +167,62 @@ check_untracked() {
   echo "  the repository gate reads \`git ls-files\`, so it will not scan these:"
   printf '%s\n' "$untracked" | sed 's/^/    /'
   echo
-  echo "  \`git add\` them before trusting a clean verdict from steps 4 and 5, or accept that the"
+  echo "  \`git add\` them before trusting a clean verdict from steps 6 and 7, or accept that the"
   echo "  verdict is about the rest of the tree."
   return 2
 }
 
 # ---------------------------------------------------------------------------------------------
-# 3. The layout is a pure function of the model.
+# 3 and 4. The build gate, which is scripts/check_build.sh and is no longer a copy of it.
 # ---------------------------------------------------------------------------------------------
-# README.md's Layout section claims the drawing is reproducible and says the claim is "checkable by
-# running the build twice rather than believed". This is that check. Both generated documents are
-# put back whatever happens, so a verify run never leaves the tree dirty: a check that edits the
-# thing it checks is a check nobody runs twice.
+# ONE RULE, ONE IMPLEMENTATION. Issue 103. This file used to carry its own copy-and-compare of
+# the build, a `check_layout_reproducible` that saved both generated documents, ran the builder
+# and diffed. It has been deleted, and the steps below run scripts/check_build.sh itself.
 #
-# TWO FILES SINCE ISSUE 60 SEAM 1, and both have to reproduce. site/instance.js is what the
-# objects are, site/layout.js is where they go, and a tree in which one is stale would draw the
-# right shapes from the wrong data or the wrong shapes from the right data. Neither shows.
-check_layout_reproducible() {
-  local before g bad=0
-  before="$(mktemp -d)"
-  for g in site/instance.js site/layout.js; do cp "$g" "$before/$(basename "$g")"; done
-  if ! python3 build/build_layout.py >/tmp/zmt-layout.$$ 2>&1; then
-    sed 's/^/  /' /tmp/zmt-layout.$$
-    for g in site/instance.js site/layout.js; do cp "$before/$(basename "$g")" "$g"; done
-    rm -rf "$before"; rm -f /tmp/zmt-layout.$$
-    echo "  the build itself failed"
-    return 1
-  fi
-  tail -3 /tmp/zmt-layout.$$ | sed 's/^/  /'
-  for g in site/instance.js site/layout.js; do
-    if cmp -s "$g" "$before/$(basename "$g")"; then
-      echo "  $g is byte identical after a rebuild"
-    else
-      bad=1
-      echo "  $g CHANGED when the build was run again."
-      printf '    committed %s bytes, rebuilt %s bytes\n' \
-        "$(wc -c <"$before/$(basename "$g")")" "$(wc -c <"$g")"
-    fi
-  done
-  rm -f /tmp/zmt-layout.$$
-  if [ "$bad" -eq 0 ]; then
-    echo "  the drawing is a pure function of the model"
-    rm -rf "$before"
-    return 0
-  fi
-  echo "  Either a committed file is stale, or the build is not deterministic."
-  echo "  The rebuilt files have been kept; the previous ones are in $before"
-  return 1
-}
+# The copy was not equivalent and the difference was in the direction that matters. It never
+# deleted the generated files first, which is exactly the poka-yoke check_build.sh's header
+# argues for: a builder that silently wrote nothing was indistinguishable from one that wrote
+# the same bytes. Proved with the builder replaced by a script that printed one line and exited
+# 0, on which this file printed "the drawing is a pure function of the model" and [OK] while
+# check_build.sh on the same tree printed
+# "::error::build/build_layout.py exited 0 and wrote no site/instance.js". It also ran neither
+# the width table coverage check nor the structure gate, so nothing a contributor ran locally
+# said the model was one a drawing can be made of.
+#
+# check_build.sh was called by .github/workflows/build.yml and by nothing else in the tree, which
+# means the gate this file recommends running before pushing was the one gate this file did not
+# run. Two copies of one rule is the drift class issue 106 is about, and the second copy here was
+# the weaker one.
+#
+# Step 4 is the half check_build.sh's own header asks for by name: verify.sh exercises the LIVE
+# structure gate at step 3 because step 3 runs the builder and the builder calls it, and what it
+# did not do was prove the gate fires. One line, and it is below.
 
 # ---------------------------------------------------------------------------------------------
-# 8. The local token grep.
+# The local token grep.
 # ---------------------------------------------------------------------------------------------
 # build/safety_grep.py reads the faculty register straight out of the vault, which is what lets it
-# look for real names in plaintext where the two CI gates hold salted hashes. It needs the vault,
-# so on a machine without one it exits 2 and this reports [SKIP]. The path is asked of the module
-# rather than written here: a value that lives in one file must not be typed into a second
-# (KAIZEN.md `kaizen-a-computed-value-is-never-typed-twice`).
+# look for real names in plaintext where the two CI gates hold salted hashes. The path is asked of
+# the module rather than written here: a value that lives in one file must not be typed into a
+# second (KAIZEN.md `kaizen-a-computed-value-is-never-typed-twice`).
+#
+# IT NEEDS THE VAULT, AND THAT IS ESTABLISHED BEFORE THE GATE IS RUN AND NOT AFTER. Issue 103.
+# safety_grep.py answers 2 in two situations that are not the same situation: the register is not
+# on this machine, which is a legitimate decline, and it was handed nothing to scan, which is the
+# gate calling its own input a lie. One exit code cannot separate them, so this file separates
+# them from outside: register_present() below asks whether the register exists at all, and only
+# if it does is the gate run, under the strict step where an exit 2 is a failure. If it does not,
+# the gate is not run and the step is recorded as skipped by THIS file, with the reason.
+register_present() {
+  python3 - <<'PY' 2>/dev/null
+import pathlib, sys
+sys.path.insert(0, "build")
+import safety_grep
+p = pathlib.Path(safety_grep.FACULTY)
+sys.exit(0 if p.is_dir() and any(p.glob("*.md")) else 1)
+PY
+}
+
 check_token_grep() {
   local faculty
   faculty="$(python3 -c 'import sys; sys.path.insert(0, "build"); import safety_grep; print(safety_grep.FACULTY)' 2>/dev/null)"
@@ -191,29 +240,48 @@ echo "python: $(python3 --version 2>/dev/null || echo 'not found')"
 [ -n "$ORIGIN" ] && echo "origin: $ORIGIN"
 
 step "1. every shipped script parses"                     check_syntax
-step "2. nothing is untracked, so the gates see everything" check_untracked
-step "3. the layout rebuilds byte for byte"               check_layout_reproducible
+
+step_may_decline "2. nothing is untracked, so the gates see everything" \
+     "some files are untracked and the repository gate cannot see them; steps 6 and 7 are about the rest of the tree" \
+     check_untracked
+
+step "3. the build gate: both documents rebuild, the widths cover, the model is well formed" \
+     bash scripts/check_build.sh
+step "4. prove the build gate fires"                      bash scripts/check_build.sh --self-test
 # The provenance gate runs inside build/build_layout.py on every build, so step 3 already
 # exercises it against the real document. This is the other half of the TPS rule: a gate that
 # has never been seen to refuse is not a gate, so one synthetic document per rule, each one a
 # document that PASSES with a single field changed. Issue 73.
-step "4. prove the provenance gate fires"                 python3 build/model.py --provenance-self-test
-step "5. prove the repository gate fires"                 bash scripts/check_repo.sh --self-test
-step "6. repository gate, over every tracked file"        bash scripts/check_repo.sh
-step "7. prove the deployed-bytes gate fires"             bash scripts/check_forbidden.sh --self-test
+step "5. prove the provenance gate fires"                 python3 build/model.py --provenance-self-test
+step "6. prove the repository gate fires"                 bash scripts/check_repo.sh --self-test
+step "7. repository gate, over every tracked file"        bash scripts/check_repo.sh
+step "8. prove the deployed-bytes gate fires"             bash scripts/check_forbidden.sh --self-test
 
 if [ -n "$ORIGIN" ]; then
-  step "8. deployed-bytes gate, against $ORIGIN"          bash scripts/check_forbidden.sh "$ORIGIN"
+  step "9. deployed-bytes gate, against $ORIGIN"          bash scripts/check_forbidden.sh "$ORIGIN"
 else
-  skip "8. deployed-bytes gate, against the origin" \
+  skip "9. deployed-bytes gate, against the origin" \
        "no origin given. It fetches the published files over HTTP and has nothing to read without one; pass a url to run it. It runs in CI after every deploy, in pages.yml."
 fi
 
-step "9. the local token grep, against site/"             check_token_grep
-step "10. the smoke suite, against this working tree"     node scripts/smoke.mjs
+# The populate registry, read back out of the bytes the page loads. Issue 72 wrote the registry
+# and scripts/routes.py to read it, and issue 103 found that nothing ran the reader: not this
+# file, not any of seven workflows. Its three failure conditions are the generated-but-never-
+# verified class and nothing else in the tree tests them. It is wired in here and in build.yml.
+step "10. the populate registry is complete and every drawn object binds to it" \
+     python3 scripts/routes.py
+
+if register_present; then
+  step "11. the local token grep, against site/"          check_token_grep
+else
+  skip "11. the local token grep, against site/" \
+       "the faculty register build/safety_grep.py reads is not on this machine, so the gate was not run. It is the local half of the safety machinery; the two CI gates hold salted hashes instead and are the half that does not need it."
+fi
+
+step "12. the smoke suite, against this working tree"     node scripts/smoke.mjs
 
 if [ -n "$ORIGIN" ]; then
-  step "11. the smoke suite, against $ORIGIN"             node scripts/smoke.mjs "$ORIGIN"
+  step "13. the smoke suite, against $ORIGIN"             node scripts/smoke.mjs "$ORIGIN"
 fi
 
 # ---------------------------------------------------------------------------------------------

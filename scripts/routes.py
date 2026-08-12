@@ -12,12 +12,24 @@ from build/, on purpose: importing the model would prove that the model can read
 was never in doubt. What is in doubt is whether the DOCUMENT carries enough to work from, and
 the only way to test that is to work from the document.
 
+WHO RUNS IT, WHICH FOR TWO MONTHS WAS NOBODY. Issue 103. This file was tracked, executable, and
+declared an exit contract with three [FAIL] branches, and nothing anywhere ran it: not
+scripts/verify.sh, not any of the seven workflows. Its name occurred four times in the tree, three
+of them inside this docstring. A gate nobody runs is worse than no gate, because the file's
+presence implies a check that is not happening, and this one was green when it was found, which is
+the worse of the two states to be dark in. It is now step 10 of scripts/verify.sh and a step of
+.github/workflows/build.yml, which is the workflow that already rebuilds the document this reads.
+
 Usage:
   scripts/routes.py                     read site/instance.js
   scripts/routes.py path/to/instance.js read another document of the same shape
   scripts/routes.py --vocab             also print the vocabularies the document ships
 
-Exit: 0 the registry is complete and every object binds to it, 1 it is not.
+Exit: 0 the registry is complete and every object binds to it, 1 it is not, 2 there was no
+registry to read at all. Two is this repository's code for a gate that did not answer rather than
+one that answered clean, and scripts/verify.sh records it as a failure for exactly that reason: a
+document carrying no registry cannot be judged complete, and saying nothing about it is how the
+whole class of defect this file was wired in for gets started.
 """
 import json
 import pathlib
@@ -31,7 +43,9 @@ def load(path):
     """The instance document, out of the one-line assignment the page loads."""
     txt = path.read_text(encoding="utf-8")
     if not txt.startswith(PREFIX) or not txt.endswith(SUFFIX):
-        sys.exit(f"{path}: not an instance document; it does not read {PREFIX}...{SUFFIX!r}")
+        print(f"ASSERTION FAILED: {path} is not an instance document; it does not read "
+              f"{PREFIX}...{SUFFIX!r}", file=sys.stderr)
+        raise SystemExit(2)
     return json.loads(txt[len(PREFIX):-len(SUFFIX)])
 
 
@@ -43,8 +57,11 @@ def main(argv):
     doc = load(path)
     reg = doc.get("routes")
     if not reg or not reg.get("classes"):
-        sys.exit(f"{path}: carries no populate registry. Nothing here can say whether a class "
-                 f"has a source, which is the state issue 72 exists to make impossible.")
+        print(f"ASSERTION FAILED: {path} carries no populate registry. Nothing here can say "
+              f"whether a class has a source, which is the state issue 72 exists to make "
+              f"impossible, and a reader that shrugged at it would report clean about a "
+              f"document it never read.", file=sys.stderr)
+        raise SystemExit(2)
     classes = reg["classes"]
     vocab = reg.get("vocab", {})
 
@@ -58,6 +75,15 @@ def main(argv):
             if cid not in classes:
                 unbound.append((view["key"], node["id"], cid))
             drawn[cid] = drawn.get(cid, 0) + 1
+
+    # A document with no views draws nothing, so every class below would be reported as an
+    # orphan and the verdict would be about the file rather than about the registry. That is the
+    # empty-input lie every gate here refuses: it did not scan what it was asked to.
+    if not doc.get("views") or not sum(len(v.get("nodes", ())) for v in doc["views"]):
+        print(f"ASSERTION FAILED: {path} draws no object at all, so there is nothing to bind to "
+              f"the registry and a verdict either way would be about the document and not about "
+              f"the classes.", file=sys.stderr)
+        raise SystemExit(2)
 
     print(f"{path}, {len(classes)} classes, {len(doc['views'])} views\n")
     head = f"{'class':<22} {'objects':>7}  {'system':<18} {'unit':<26} {'read':<14} adapter"
