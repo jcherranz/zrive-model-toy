@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T15:23:11Z",
+  "generated": "2026-08-12T15:36:24Z",
   "columns": [
     {
       "key": "raw",
@@ -39,15 +39,6 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/106"
-        },
-        {
-          "id": 108,
-          "title": "Two owner reversals: the visit ghost goes, and the session agenda becomes per-session",
-          "labels": [
-            "model",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/108"
         },
         {
           "id": 109,
@@ -107,6 +98,15 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/110"
         },
         {
+          "id": 108,
+          "title": "Two owner reversals: the visit ghost goes, and the session agenda becomes per-session",
+          "labels": [
+            "model",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/108"
+        },
+        {
           "id": 107,
           "title": "There is no origin: the gates that reach for one have lost their subject, not their nerve",
           "labels": [
@@ -158,19 +158,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/101"
-        },
-        {
-          "id": 100,
-          "title": "The whole poitn of this filter is to just render the diagram…",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/100"
         }
       ],
-      "hidden": 85,
+      "hidden": 86,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
