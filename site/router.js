@@ -47,7 +47,9 @@
   // opts.views        the seven joined views, in build order
   // opts.defaultKey   which of them an address with no opinion draws
   // opts.svg          the drawing, which is given its accessible name from the view
-  // opts.drawing      function -> the drawing on screen, for the cohort and the two counts
+  // opts.drawing      function -> the CANONICAL drawing, for the cohort and the two counts. Not
+  //                   the one on screen: issue 100 made the time window filter the picture, and
+  //                   both of those are facts about the programme rather than about the window
   // opts.onView       called with a view when the address starts naming a different one
   // opts.onDescribed  called after the chrome has been rewritten, because the sentence changed
   //                   length and the header may have changed height with it

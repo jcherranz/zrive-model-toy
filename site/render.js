@@ -124,10 +124,14 @@
   // opts.capLink  called with a lane's NAME, returns {href, label} for a lane whose heading is a
   //               control and null for the rest. Issue 84. This file knows where a lane is and
   //               nothing about what a lane means, so what a heading opens is answered outside it.
+  // opts.columns  the x of every column, across ALL seven drawings. Issue 100. A column's index
+  //               is what decides whether an edge is a short hop or a long arc slung under the
+  //               row, and a per-drawing index would shift on a view that holds no instructor.
   ZM.render = function createRender(opts) {
     var svg = opts.svg, canvas = opts.canvas;
     var onSelect = opts.onSelect, onFocus = opts.onFocus;
     var capLinkFor = opts.capLink;
+    var COLUMNS = (opts.columns || []).slice().sort(function (a, b) { return a - b; });
 
     var COLOR = {}, TLABEL = {}, GLYPH = {};
     opts.drawing.types.forEach(function (t) { TLABEL[t.k] = t.label; GLYPH[t.k] = t.glyph; });
@@ -196,10 +200,12 @@
 
     var G = null;
     var nodeById = {}, edgesOf = {}, gfxNode = {}, gfxEdge = [];
-    // Issue 90. The question the time window asks of a node, or null when there is no window.
-    // Held here and re-applied at the end of every draw(), because a change of programme repaints
-    // from scratch and a window the reader set on one drawing is still set on the next.
-    var dimFn = null;
+    // Issue 100. CANON is the drawing the build wrote, which is the artefact check_build.sh
+    // reproduces and drawingDigest is a digest of. WIN is the question the reader's time window
+    // asks of a node, or null when there is no window. What is on screen is CANON when there is
+    // no window and the transform of CANON below when there is one; either way it is G, so the
+    // viewport frames what is painted and not what was generated.
+    var CANON = null, WIN = null, WINFO = null;
     // Issue 84. The counter-scaled caption controls, and the last scale they were told about, so
     // that a repaint puts them back at the size the reader was already looking at rather than at
     // the size they were built with.
@@ -298,7 +304,7 @@
     // added a caller and not a mechanism. The drawings are the same shape as each other and the
     // same shape as the one this function was written against, so nothing in here knows how many
     // there are, which one is on screen, or that the reader can change it.
-    function draw(g) {
+    function paint(g) {
       G = g;
       svg.textContent = '';
       // The viewBox is not set here. It is the view, and the view moves: viewport.js owns it and
@@ -333,7 +339,11 @@
         var lines = b.lines || [b.label];
         lines.forEach(function (line, i) {
           var t = el('text', {
-            class: 'band-cap', x: b.x + b.w / 2,
+            // Issue 100. The last line of a filtered lane's caption is the count for the window
+            // and not part of the lane's name, so it is marked and the stylesheet sets it apart
+            // by case alone. Nothing about the first three lines changed.
+            class: 'band-cap' + (b.winLine && i === lines.length - 1 ? ' cap-window' : ''),
+            x: b.x + b.w / 2,
             y: G.bandTop - (G.capGap || 7) - (lines.length - 1 - i) * (G.capLineH || 11)
           }, gLane);
           t.textContent = line;
@@ -354,14 +364,26 @@
         // data-edge is the relationship key, the counterpart of data-node below: it is what a
         // feedback capture on a line or on its verb chip reports back.
         var key = e.s + '->' + e.t;
-        var g2 = el('g', { 'data-edge': key, class: e.ghost ? 'ghost' : null }, gEdge);
-        el('path', { d: e.d, class: e.ghost ? 'edge edge-ghost' : 'edge' }, g2);
+        // Issue 100. `outside` is the third state a line can be in. A ghost is a relationship the
+        // business does not record; an outside line is a relationship that IS recorded and whose
+        // far end the reader's window took off the picture, and the two are painted alike on
+        // purpose, quiet and dashed, because both mean "there is something here you are not
+        // looking at". They are separate classes because they answer to different controls: the
+        // ghosts toggle withdraws a ghost and must never withdraw the line that says how much of
+        // the term is off screen.
+        var eq = e.ghost ? 'ghost' : (e.outside ? 'outside' : null);
+        var g2 = el('g', { 'data-edge': key, class: eq }, gEdge);
+        if (e.note) el('title', {}, g2).textContent = e.note;
+        el('path', { d: e.d,
+                     class: e.ghost ? 'edge edge-ghost' : (e.outside ? 'edge edge-outside'
+                                                                     : 'edge') }, g2);
         el('path', {
-          d: 'M0 0 L-6.5 2.6 L-6.5 -2.6 Z', class: e.ghost ? 'arrow arrow-ghost' : 'arrow',
+          d: 'M0 0 L-6.5 2.6 L-6.5 -2.6 Z',
+          class: e.ghost ? 'arrow arrow-ghost' : (e.outside ? 'arrow arrow-outside' : 'arrow'),
           transform: 'translate(' + e.ax + ',' + e.ay + ') rotate(' + e.aa + ')'
         }, g2);
 
-        var c = el('g', { 'data-edge': key, class: e.ghost ? 'ghost' : null }, gChip);
+        var c = el('g', { 'data-edge': key, class: eq }, gChip);
         el('rect', {
           class: 'chip-bg', x: (e.cx - e.cw / 2).toFixed(1), y: (e.cy - 6.5).toFixed(1),
           width: e.cw.toFixed(1), height: 13
@@ -391,12 +413,22 @@
 
       reading.forEach(function (n) {
         var col = COLOR[n.type];
+        // Issue 100. An OUTSIDE tile is a sentence about this picture and not an object in the
+        // model: it stands for the nodes the reader's window took out of this lane. So it is not
+        // a target. It carries no `data-node`, takes no tab stop, opens no panel, and its own key
+        // goes on `data-outside`, because a capture that named it as a node would be reporting an
+        // id the instance document has never heard of. That is the same line `lbl-tail` is on:
+        // drawn by this file, said about the drawing, absent from the model.
+        var out = !!n.outside;
         // data-node is the instance key. It is what feedback.js reads to say which node a click
         // landed on, the way monetary-lab's capture reads its own linked-highlight key.
-        var g2 = el('g', { class: n.ghost ? 'node ghost' : 'node', 'data-node': n.id,
-                           tabindex: 0, role: 'button' }, gNode);
+        var g2 = el('g', { class: n.ghost ? 'node ghost' : (out ? 'node outside' : 'node'),
+                           'data-node': out ? null : n.id,
+                           'data-outside': out ? n.id : null,
+                           tabindex: out ? null : 0,
+                           role: out ? null : 'button' }, gNode);
         var titleEl = el('title', {}, g2);
-        titleEl.textContent = n.label + ' (' + TLABEL[n.type] + ')';
+        titleEl.textContent = n.title || (n.label + ' (' + TLABEL[n.type] + ')');
 
         // A count is drawn as a stack of cards behind the tile, one card standing for the many
         // individuals the tile represents. A stack reads as a stack only if every card is the
@@ -443,11 +475,11 @@
           // grey the ghost type carries rather than a second copy of that grey written here:
           // this line held `rgba(143,153,168,0.07)` as a literal, which was the palette's own
           // hex typed into a second file. The strength is unchanged.
-          fill: tint(col, n.ghost ? 7 : 14), stroke: col
+          fill: tint(col, (n.ghost || out) ? 7 : 14), stroke: col
         }, g2);
 
         var mark;
-        if (n.ghost) {
+        if (n.ghost || out) {
           // Deliberately empty. A ghost tile holds no glyph because there is nothing in it.
           mark = el('g', {}, g2);
         } else if (n.count) {
@@ -467,8 +499,9 @@
 
         var ty = n.y + R + G.gapLabel + 4;
         n.lines.forEach(function (line, i) {
-          var t = el('text', { class: n.ghost ? 'lbl lbl-ghost' : 'lbl', x: n.x,
-                               y: ty + i * G.lineH }, g2);
+          var t = el('text', { class: n.ghost ? 'lbl lbl-ghost'
+                                              : (out ? 'lbl lbl-outside' : 'lbl'),
+                               x: n.x, y: ty + i * G.lineH }, g2);
           t.textContent = line;
         });
         if (n.mark) {
@@ -494,6 +527,7 @@
         var frame = el('rect', { class: 'focus-frame', rx: 7 });
         g2.insertBefore(frame, titleEl.nextSibling);
 
+        if (!out) {
         g2.addEventListener('click', function (ev) { ev.stopPropagation(); onSelect(n.id); });
         g2.addEventListener('keydown', function (ev) {
           if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onSelect(n.id); }
@@ -513,63 +547,576 @@
           try { vis = g2.matches(':focus-visible'); } catch (err) { /* older engine: always */ }
           if (vis && onFocus) onFocus(n);
         });
+        }
         gfxNode[n.id] = { g: g2, tile: tile, mark: mark, col: col, count: !!n.count, frame: frame,
-                          ghost: !!n.ghost, rest: tile.getAttribute('fill'), tail: tail };
+                          ghost: !!n.ghost, outside: out,
+                          rest: tile.getAttribute('fill'), tail: tail };
       });
-
-      applyDim();
     }
 
-    // ---- the time window, issue 90 --------------------------------------------
-    // DIMMING AND NOT REMOVING, AND THE GATE IS THE REASON. The layout is generated at build time,
-    // site/layout.js carries a drawingDigest and scripts/check_build.sh refuses anything a rebuild
-    // does not reproduce. A window is a continuous parameter over the term's twenty four weeks, so
-    // it cannot be precomputed; laying it out at run time would buy a truly filtered drawing and
-    // cost the reproducibility guarantee. A class costs nothing: no coordinate moves, the digest
-    // is the digest of a drawing this file did not change, and the shape of the whole term stays
-    // on screen behind the window, which is what a picture is for.
+    // =============================================================================================
+    // THE FILTERED DRAWING, ISSUE 100
+    // =============================================================================================
+    // HE OVERRULED THE DESIGN AND HE WAS RIGHT. Issue 90 shipped the window as a DIM: every tile
+    // stayed where the build put it and the ones outside the window went to 16 per cent. The
+    // argument for it is three paragraphs up in the history of this file and it was an argument
+    // about a gate, not about a drawing: the layout is generated at build time, layout.js carries
+    // a drawingDigest, scripts/check_build.sh refuses anything a rebuild does not reproduce, and a
+    // continuous window over twenty four weeks cannot be precomputed. So the window was answered
+    // with a class, which cost the gate nothing and left a reader of Z-BL looking at three lit
+    // tiles inside a 2578px column of quiet ones. He filed #100 from `#graph`: "The whole poitn of
+    // this filter is to just render the diagram of those weeks". Protecting a gate is not a reason
+    // to draw a worse picture.
     //
-    // THIS FILE KNOWS NO DATES. It is handed a question about a node and paints the answer, which
-    // is the same division the lane headings run on: term.js knows what a date means and this
-    // knows where a node is. Two things are marked, the node and every edge that touches it,
-    // because a dimmed tile at the bright end of a bright line reads as a rendering fault rather
-    // than as a session outside the window.
-    function applyDim() {
-      var out = {};
-      Object.keys(gfxNode).forEach(function (id) {
-        var on = !!dimFn && !!dimFn(nodeById[id]);
-        if (on) out[id] = true;
-        gfxNode[id].g.classList.toggle('out-window', on);
+    // WHAT THE GATE PROTECTED IS UNTOUCHED, AND THAT IS THE WHOLE OF THE ARCHITECTURE HERE. The
+    // canonical drawing is still generated by build/build_layout.py, still shipped in layout.js,
+    // still digested, and check_build.sh still refuses a rebuild that does not reproduce it byte
+    // for byte. Nothing below writes a file, and nothing below is in the digest's scope. The
+    // filtered drawing is a RUN TIME TRANSFORM of that canonical artefact, computed from it in the
+    // browser and thrown away when the window moves.
+    //
+    // WHICH MEANS THE FILTERED DRAWING HAS NO BUILD GATE AND MUST EARN ITS OWN. It does, in
+    // scripts/smoke.mjs, and the load bearing assertion is `reflowCheck()` at the foot of this
+    // file: reflowing the FULL node set with no filter reproduces the canonical coordinates, every
+    // node and every edge, to within the tenth of a unit layout.js rounds to. If that holds then
+    // the four constants below are the build's own and this transform is the build's own pack()
+    // and the build's own arcs, so the filtered drawing differs from the canonical one only by
+    // what the reader asked to take out of it. If somebody retunes pack() in the build and not
+    // here, that assertion goes red and names the drift. It is the only thing standing where the
+    // build gate does not reach, and the CHANGELOG says so in as many words.
+    //
+    // THE RESTACK IS ONE DIMENSIONAL AND DELIBERATELY NOT GRAPH LAYOUT. Bands are vertical columns
+    // at a fixed x, tiles stacked down them. Filtering removes tiles from columns; the honest
+    // repair is to close the gaps in each column and leave x alone. No barycentre sweep, no
+    // reordering: the canonical drawing already decided which tile belongs above which, and a
+    // second opinion about that at run time would make the picture jump for a reason the reader
+    // did not ask for.
+    //
+    // TWO OF THE FOUR NUMBERS pack() NEEDS ARE READ OFF THE CANONICAL DRAWING RATHER THAN COPIED
+    // FROM THE BUILD, because they are visible in it: the closest two tiles in any column ever sit
+    // is MIN_GAP, and the top of the highest tile is the top margin. The two that cannot be read
+    // off it are here, and the faithfulness check is what keeps them honest.
+    var SPREAD = 0.42, SPREAD_FROM = 4;
+    // The arcs, which are the build's, for the same reason and under the same check.
+    var DIP = 132, CTRL_MIN = 28, CTRL_FRAC = 0.45;
+    // The verb chips. A chip is anchored to the arc-length midpoint of its own line and slides
+    // along the line before it ever steps off it, which is build_layout.py's rule and its reason:
+    // a chip that has moved along its line still says which line it names.
+    var CH = 13, PADX = 5, CHIP_SLIDE = 0.34, CHIP_STEP = 4, CHIP_PERP = 6;
+    var W_OVER = 20, W_PERP = 3, ARC_N = 96;
+    // What the drawing keeps under its lowest tile and under its lowest chip.
+    var FOOT = 14, CHIP_FOOT = 26;
+
+    function r1(v) { return Math.round(v * 10) / 10; }
+    function f1(v) { return r1(v).toFixed(1); }
+
+    // Which column an x is. Nearest rather than exact, because a drawing rounds its coordinates
+    // and a strict lookup would fail on the tenth of a unit.
+    function colOf(x) {
+      var best = 0, bd = Infinity, i, d;
+      for (i = 0; i < COLUMNS.length; i++) {
+        d = Math.abs(COLUMNS[i] - x);
+        if (d < bd) { bd = d; best = i; }
+      }
+      return best;
+    }
+
+    // The height of a node's whole box, tile plus the label under it, which is what the build
+    // packs with. A node's y is the centre of its TILE, so the box runs from y - tile/2 down.
+    function boxH(g, n) {
+      var nl = n.lines.length + (n.mark ? 1 : 0) + (n.tail ? 1 : 0);
+      return g.tile + g.gapLabel + g.lineH * nl;
+    }
+
+    function byColumn(g, nodes) {
+      var cols = [];
+      nodes.forEach(function (n) {
+        var c = colOf(n.x);
+        (cols[c] || (cols[c] = [])).push(n);
       });
-      gfxEdge.forEach(function (f) {
-        var on = !!out[f.e.s] || !!out[f.e.t];
-        f.g.classList.toggle('out-window', on);
-        f.c.classList.toggle('out-window', on);
+      return cols;
+    }
+
+    // MIN_GAP, read off the artefact: the closest two boxes in any column of this drawing sit.
+    // Rounded, because layout.js rounds its coordinates to a tenth and the gap inherits it.
+    function pitchOf(g) {
+      var gap = Infinity;
+      byColumn(g, g.nodes).forEach(function (list) {
+        var s = list.slice().sort(function (a, b) { return a.y - b.y; }), i;
+        for (i = 1; i < s.length; i++) gap = Math.min(gap, s[i].y - s[i - 1].y - boxH(g, s[i - 1]));
       });
+      return isFinite(gap) ? Math.round(gap) : 26;
+    }
+
+    function topOf(g) {
+      var t = Infinity;
+      g.nodes.forEach(function (n) { t = Math.min(t, n.y - g.tile / 2); });
+      return t;
+    }
+
+    // build_layout.py's pack(), one column at a time, vertically centred, honouring the gap. The
+    // spread on the short right hand columns is here for the reason it is there: without it the
+    // enrolment chain reads as a small clump adrift in a tall empty lane.
+    function place(g, nodes, gap0, top) {
+      var cols = byColumn(g, nodes), H = 0, at = {};
+      // Down each column in the order the canonical drawing stacked them. That order is the whole
+      // of what this transform inherits from the build's thirty barycentre sweeps, and re-deriving
+      // it here would be the general graph layout this deliberately is not. An outside tile comes
+      // in with no y and sorts to the foot of its own lane, which is where a count of what is not
+      // shown belongs.
+      cols.forEach(function (list) { list.sort(function (a, b) { return a.y - b.y; }); });
+      cols.forEach(function (list) {
+        var hs = 0;
+        list.forEach(function (n) { hs += boxH(g, n); });
+        H = Math.max(H, hs + gap0 * (list.length - 1));
+      });
+      cols.forEach(function (list, c) {
+        var k = list.length, hs = 0, gap = gap0, y;
+        list.forEach(function (n) { hs += boxH(g, n); });
+        if (k > 1 && k < 4 && c >= SPREAD_FROM) gap = Math.max(gap0, (SPREAD * H - hs) / (k - 1));
+        y = (H - (hs + gap * (k - 1))) / 2;
+        list.forEach(function (n) {
+          var h = boxH(g, n);
+          at[n.id] = y + h / 2 - (h - g.tile) / 2;
+          y += h + gap;
+        });
+      });
+      var lift = Infinity;
+      nodes.forEach(function (n) { lift = Math.min(lift, at[n.id] - g.tile / 2); });
+      nodes.forEach(function (n) { at[n.id] = r1(at[n.id] + top - lift); });
+      return at;
+    }
+
+    // build_layout.py's two edge shapes. Three columns or more apart is a local arc slung under
+    // the row it connects; anything closer is a hop from one tile's edge to the next.
+    function edgeGeom(g, a, b) {
+      var span = Math.abs(b.col - a.col);
+      var L = a.col <= b.col ? a : b, R = a.col <= b.col ? b : a;
+      var p0, p1, p2, p3, dx;
+      if (span >= 3) {
+        p0 = [L.x, L.y + g.tile / 2]; p3 = [R.x, R.y + g.tile / 2];
+        p1 = [p0[0], p0[1] + DIP]; p2 = [p3[0], p3[1] + DIP];
+      } else {
+        p0 = [L.x + g.tile / 2, L.y]; p3 = [R.x - g.tile / 2, R.y];
+        dx = Math.max(CTRL_MIN, (p3[0] - p0[0]) * CTRL_FRAC);
+        p1 = [p0[0] + dx, p0[1]]; p2 = [p3[0] - dx, p3[1]];
+      }
+      var rev = b.col < a.col;
+      var tip = rev ? p0 : p3, ctl = rev ? p1 : p2;
+      return {
+        pts: [p0, p1, p2, p3], span: span, rev: rev,
+        d: 'M ' + f1(p0[0]) + ' ' + f1(p0[1]) + ' C ' + f1(p1[0]) + ' ' + f1(p1[1]) + ' ' +
+           f1(p2[0]) + ' ' + f1(p2[1]) + ' ' + f1(p3[0]) + ' ' + f1(p3[1]),
+        ax: r1(tip[0]), ay: r1(tip[1]),
+        aa: r1(Math.atan2(tip[1] - ctl[1], tip[0] - ctl[0]) * 180 / Math.PI)
+      };
+    }
+
+    function bezAt(p, t) {
+      var u = 1 - t;
+      return [u * u * u * p[0][0] + 3 * u * u * t * p[1][0] + 3 * u * t * t * p[2][0] +
+              t * t * t * p[3][0],
+              u * u * u * p[0][1] + 3 * u * u * t * p[1][1] + 3 * u * t * t * p[2][1] +
+              t * t * t * p[3][1]];
+    }
+
+    function arcTable(pts) {
+      var xs = [], cum = [0], i;
+      for (i = 0; i <= ARC_N; i++) xs.push(bezAt(pts, i / ARC_N));
+      for (i = 1; i <= ARC_N; i++) {
+        cum.push(cum[i - 1] + Math.hypot(xs[i][0] - xs[i - 1][0], xs[i][1] - xs[i - 1][1]));
+      }
+      return { xs: xs, cum: cum };
+    }
+
+    function atS(tab, s) {
+      var cum = tab.cum, xs = tab.xs, lo = 1, hi = cum.length - 1, mid;
+      s = Math.min(Math.max(s, 0), cum[cum.length - 1]);
+      while (lo < hi) {
+        mid = (lo + hi) >> 1;
+        if (cum[mid] < s) lo = mid + 1; else hi = mid;
+      }
+      var seg = (cum[lo] - cum[lo - 1]) || 1e-9;
+      var f = (s - cum[lo - 1]) / seg;
+      var a = xs[lo - 1], b = xs[lo];
+      var tx = b[0] - a[0], ty = b[1] - a[1], m = Math.hypot(tx, ty) || 1e-9;
+      return { p: [a[0] + f * tx, a[1] + f * ty], t: [tx / m, ty / m] };
+    }
+
+    function overlapDepth(x, y, w, boxes) {
+      var tot = 0, i, b, ox, oy;
+      for (i = 0; i < boxes.length; i++) {
+        b = boxes[i];
+        ox = (w + b[2]) / 2 - Math.abs(x - b[0]);
+        oy = (CH + b[3]) / 2 - Math.abs(y - b[1]);
+        if (ox > 0 && oy > 0) tot += Math.min(ox, oy);
+      }
+      return tot;
+    }
+
+    // ---- measuring, because a width nobody measured is a width that leaves its lane -----------
+    // The build measures its text against a table of glyph advances generated from the real font.
+    // The browser has the real font, so this asks it. Cached by string, class and weight, so the
+    // second window costs nothing, and batched inside one hidden group so a wrap costs one layout
+    // rather than one per candidate line.
+    var TW = {};
+
+    function measure(items) {
+      var want = items.filter(function (it) { return TW[it.k] === undefined; });
+      if (!want.length) return;
+      var host = el('g', { visibility: 'hidden', 'aria-hidden': 'true' }, svg);
+      var made = want.map(function (it) {
+        var t = el('text', { class: it.cls, 'font-weight': it.w || null,
+                             'font-style': it.i ? 'italic' : null }, host);
+        t.textContent = it.s;
+        return t;
+      });
+      made.forEach(function (t, i) { TW[want[i].k] = t.getComputedTextLength(); });
+      svg.removeChild(host);
+    }
+
+    function widthOf(s, cls, w, i) {
+      var k = cls + '|' + (w || '') + '|' + (i ? 'i' : '') + '|' + s;
+      if (TW[k] === undefined) measure([{ k: k, s: s, cls: cls, w: w, i: i }]);
+      return TW[k];
+    }
+
+    // Greedy wrap to a width, which is the build's rule too. One word at a time so the candidate
+    // lines are measured and not estimated.
+    function wrapTo(s, maxw, cls) {
+      var words = String(s).split(/\s+/), lines = [], cur = '';
+      words.forEach(function (word) {
+        var t = cur ? cur + ' ' + word : word;
+        if (cur && widthOf(t, cls, null, false) > maxw) { lines.push(cur); cur = word; }
+        else cur = t;
+      });
+      if (cur) lines.push(cur);
+      return lines;
+    }
+
+    // How wide a label in this column may be before it crosses its lane, which is the build's own
+    // lane_slack read backwards off the bands the drawing ships.
+    function laneRoom(g, x) {
+      var room = null;
+      (g.bands || []).forEach(function (b) {
+        if (x < b.x || x > b.x + b.w) return;
+        room = 2 * Math.min(x - b.x, b.x + b.w - x) - 8;
+      });
+      return room === null ? 120 : room;
+    }
+
+    // ---- the transform itself -----------------------------------------------------------------
+    // WHAT AN EDGE WITH A FILTERED ENDPOINT DOES, WHICH IS THE HARD PART OF THIS CARD. It does not
+    // vanish. A drawing that quietly drops a line is a management tool that has started lying: the
+    // reader cannot tell filtered from absent, and absent is the more interesting of the two on a
+    // page whose whole subject is what the business does and does not record.
+    //
+    // So every lane that loses tiles gains ONE tile reading "N outside this window", and every
+    // edge whose far end was taken out terminates on it. Edges that would then run in parallel are
+    // folded into one line per surviving node per verb, because twenty four separate lines into
+    // one tile is not a picture, and the fold carries the count it stands for in its own <title>.
+    // An edge with BOTH ends outside the window is folded into a single line between the two
+    // outside tiles, so no relationship in the model goes unrepresented; the only ones that cannot
+    // be drawn are the ones whose two ends are in the same lane, and those are counted and
+    // reported rather than dropped in silence.
+    //
+    // THE VERB ON A FOLDED EDGE IS THE ORIGINAL VERB, UNCHANGED, and that is load bearing rather
+    // than tidy. selection.js's reveal table is keyed by verb: 'employed by' is what tells it to
+    // keep an employer off the page until its instructor is clicked. A folded edge reading
+    // 'employed by, 3' would match no rule, and the drawing would grow a line pointing into an
+    // empty lane. The count lives in the tile, in the lane caption and in the line's own title.
+    //
+    // AND THE CASCADE IS WHAT MAKES IT A BETTER PICTURE RATHER THAN A HOLED ONE. A session template
+    // whose only session the window took out has nothing left to be a template of, so it goes too,
+    // and so does the instructor who teaches none of what is left, and the employer of that
+    // instructor. It is what he meant by "just show the selected sessions, etc."
+    //
+    // THE RULE IS NOT "DROP WHAT IS LEFT WITH NO EDGES", WHICH WAS THE FIRST TRY AND WAS WRONG.
+    // Every session template on Z-BL is also joined to the programme, and the programme stays, so
+    // no template was ever left with nothing attached and twenty five of the twenty eight sat
+    // there with their sessions gone. The rule that works names what the window has an OPINION
+    // about and spreads outward from it: a node is dropped when every neighbour the window has an
+    // opinion about is dropped, and it is joined to at least one such. A node with a live one is
+    // kept AND becomes a node the window now has an opinion about, so being kept spreads exactly
+    // as being dropped does. That last half is what saves the employer of an instructor who is
+    // still teaching this week: without it the employer would see only its dropped instructors and
+    // die of them.
+    //
+    // ON AN EMPTY WEEK IT DEGENERATES, AND THAT IS THE RIGHT ANSWER RATHER THAN A HOLE IN IT. The
+    // term has gaps in April and May, so a one week window can cover no session at all; the
+    // cascade then reaches everything and the drawing is six lanes each saying how much of itself
+    // is outside the window, which is a true picture of that week. The programme's own name and
+    // its cohort are chrome and are described from the canonical drawing, so the header does not
+    // empty with the lanes.
+    function filtered(g, spec) {
+      var i, gone = {}, gov = {}, adj = {};
+      g.nodes.forEach(function (n) { adj[n.id] = []; });
+      g.edges.forEach(function (e) { adj[e.s].push(e.t); adj[e.t].push(e.s); });
+      g.nodes.forEach(function (n) {
+        if (!spec.governs(n)) return;
+        gov[n.id] = true;
+        if (spec.out(n)) gone[n.id] = true;
+      });
+      for (i = 0; i < g.nodes.length + 2; i++) {
+        var again = false;
+        g.nodes.forEach(function (n) {
+          if (gov[n.id]) return;
+          var seen = 0, live = 0;
+          adj[n.id].forEach(function (m) {
+            if (!gov[m]) return;
+            seen++;
+            if (!gone[m]) live++;
+          });
+          if (!seen) return;
+          gov[n.id] = true;
+          again = true;
+          if (!live) gone[n.id] = true;
+        });
+        if (!again) break;
+      }
+
+      var keep = g.nodes.filter(function (n) { return !gone[n.id]; });
+      var hidden = g.nodes.filter(function (n) { return gone[n.id]; });
+
+      // One outside tile per column that lost something, in that column's own x.
+      var lost = {}, tiles = {}, marks = [];
+      hidden.forEach(function (n) {
+        var c = colOf(n.x);
+        lost[c] = (lost[c] || 0) + 1;
+      });
+      Object.keys(lost).forEach(function (c) {
+        var x = COLUMNS[Number(c)];
+        var n = lost[c];
+        var label = n + (n === 1 ? ' tile outside' : ' tiles outside') + ' this window';
+        var node = {
+          id: '__outside_' + c, type: 'Ghost', outside: true, count: null, props: [],
+          label: label, lines: wrapTo(label, laneRoom(g, x), 'lbl'), x: x, y: Infinity,
+          title: label + '. Move or widen the window to bring them back',
+          'class': 'outside-window'
+        };
+        tiles[c] = node;
+        marks.push(node);
+      });
+      // The outside tiles sit at the foot of their own lane, after everything that stayed.
+      var nodes = keep.concat(marks);
+
+      var gap = pitchOf(g);
+      // One more caption line on every lane, so the top margin and the plate both move down by
+      // exactly one line. The build reserves headroom for three; this is the fourth.
+      var extra = g.capLineH || 11;
+      var bandTop = g.bandTop + extra;
+      var at = place(g, nodes, gap, topOf(g) + extra);
+      var pos = {};
+      nodes.forEach(function (n) { pos[n.id] = { x: n.x, y: at[n.id], col: colOf(n.x) }; });
+
+      // ---- the edges, three kinds ---------------------------------------------------
+      var out = [], folds = {}, sameLane = 0;
+      function fold(sId, tId, e) {
+        var k = sId + ' ' + tId + ' ' + e.v + ' ' + (e.ghost ? 'g' : '');
+        var f = folds[k];
+        if (f) { f.n++; return; }
+        folds[k] = { s: sId, t: tId, e: e, n: 1 };
+        out.push(folds[k]);
+      }
+      g.edges.forEach(function (e) {
+        var ds = !!gone[e.s], dt = !!gone[e.t];
+        if (!ds && !dt) { out.push({ s: e.s, t: e.t, e: e, n: 1, keep: true }); return; }
+        var sId = ds ? '__outside_' + colOf(nodeAt(g, e.s).x) : e.s;
+        var tId = dt ? '__outside_' + colOf(nodeAt(g, e.t).x) : e.t;
+        if (sId === tId) { sameLane++; return; }
+        fold(sId, tId, e);
+      });
+
+      var edges = out.map(function (r) {
+        var geo = edgeGeom(g, pos[r.s], pos[r.t]);
+        var e = { s: r.s, t: r.t, v: r.e.v, ghost: r.e.ghost || null,
+                  d: geo.d, rev: geo.rev, ax: geo.ax, ay: geo.ay, aa: geo.aa };
+        if (!r.keep) {
+          e.outside = true;
+          e.ghost = null;
+          e.note = r.e.v + ', ' + r.n +
+                   (r.n === 1 ? ' relationship' : ' relationships') + ' outside this window';
+        }
+        e.pts = geo.pts;
+        e.span = geo.span;
+        return e;
+      });
+
+      // ---- the verb chips -----------------------------------------------------------
+      var blocked = [];
+      nodes.forEach(function (n) {
+        var h = boxH(g, n), lw = 0, y = pos[n.id].y;
+        n.lines.forEach(function (ln) {
+          lw = Math.max(lw, widthOf(ln, 'lbl', 600, !!n.ghost));
+        });
+        if (n.mark) lw = Math.max(lw, widthOf(n.mark, 'lbl', null, false));
+        if (n.tail) lw = Math.max(lw, widthOf(n.tail, 'lbl', null, false));
+        blocked.push([n.x, y, g.tile + 6, g.tile + 6]);
+        var labH = h - g.tile - g.gapLabel;
+        blocked.push([n.x, y + g.tile / 2 + g.gapLabel + labH / 2, lw + 6, labH + 2]);
+      });
+      var chips = [];
+      edges.slice().sort(function (a, b) {
+        return (b.span - a.span) || (a.s < b.s ? -1 : a.s > b.s ? 1 : 0);
+      }).forEach(function (e) {
+        e.cw = r1(widthOf(e.v, 'chip-tx', null, !!e.ghost) + 2 * PADX);
+        var tab = arcTable(e.pts), L = tab.cum[tab.cum.length - 1];
+        var reach = CHIP_SLIDE * L, best = null, bestCost = null, k = 1;
+        var slides = [0];
+        while (k * CHIP_STEP <= reach) { slides.push(k * CHIP_STEP, -k * CHIP_STEP); k++; }
+        slides.some(function (ds) {
+          var s = atS(tab, L / 2 + ds);
+          [0, CHIP_PERP / 2, -CHIP_PERP / 2, CHIP_PERP, -CHIP_PERP].forEach(function (perp) {
+            var x = s.p[0] - s.t[1] * perp, y = s.p[1] + s.t[0] * perp;
+            var cost = W_OVER * overlapDepth(x, y, e.cw + 4, blocked.concat(chips)) +
+                       Math.abs(ds) + W_PERP * Math.abs(perp);
+            if (bestCost === null || cost < bestCost) { best = [x, y]; bestCost = cost; }
+          });
+          return bestCost === 0 && ds === 0;
+        });
+        e.cx = r1(best[0]); e.cy = r1(best[1]);
+        chips.push([e.cx, e.cy, e.cw + 4, CH]);
+      });
+
+      // ---- the extent, and the lane captions -----------------------------------------
+      var h = 0;
+      nodes.forEach(function (n) { h = Math.max(h, pos[n.id].y - g.tile / 2 + boxH(g, n) + FOOT); });
+      edges.forEach(function (e) {
+        h = Math.max(h, e.cy + CHIP_FOOT);
+        if (e.span >= 3) h = Math.max(h, bezAt(e.pts, 0.5)[1] + CHIP_FOOT);
+      });
+      edges.forEach(function (e) { delete e.pts; delete e.span; });
+
+      // KEEPING THE COUNT VISIBLE, which is the other half of what this card asked for. A filter
+      // that loses the number is the same failure as an aggregate that loses it, so every lane
+      // says what it is showing of what it had, in the idiom #83 set for the captions above it.
+      // The line is added to EVERY lane and not only the ones that lost something, because "6 of 6
+      // in this window" is a claim and a lane with no fourth line would read as a lane nobody
+      // counted.
+      var lanes = [], bands = (g.bands || []).map(function (b) {
+        var was = 0, now = 0;
+        g.nodes.forEach(function (n) { if (n.x >= b.x && n.x <= b.x + b.w) was++; });
+        keep.forEach(function (n) { if (n.x >= b.x && n.x <= b.x + b.w) now++; });
+        var line = now + ' of ' + was + ' in this window';
+        if (widthOf(line, 'band-cap', null, false) > b.w - 4) line = now + ' of ' + was + ' shown';
+        lanes.push({ key: b.key, shown: now, of: was });
+        var copy = { key: b.key, x: b.x, w: b.w, winLine: true,
+                     lines: (b.lines || [b.label]).concat([line]) };
+        copy.label = copy.lines.join(' ');
+        return copy;
+      });
+
+      WINFO = {
+        on: true, hidden: hidden.map(function (n) { return n.id; }),
+        shown: keep.map(function (n) { return n.id; }),
+        outside: marks.map(function (n) { return { id: n.id, label: n.label }; }),
+        lanes: lanes, foldedEdges: edges.filter(function (e) { return e.outside; }).length,
+        sameLane: sameLane, canonNodes: g.nodes.length, canonEdges: g.edges.length,
+        digest: g.drawingDigest || 'unknown'
+      };
+
+      var d = {};
+      Object.keys(g).forEach(function (k) { d[k] = g[k]; });
+      d.nodes = nodes.map(function (n) {
+        var c = {}, k;
+        for (k in n) if (Object.prototype.hasOwnProperty.call(n, k)) c[k] = n[k];
+        c.y = pos[n.id].y;
+        return c;
+      });
+      d.edges = edges;
+      d.bands = bands;
+      d.bandTop = bandTop;
+      d.h = Math.round(h);
+      d.filteredFrom = g;
+      return d;
+    }
+
+    function nodeAt(g, id) {
+      var found = null;
+      g.nodes.forEach(function (n) { if (n.id === id) found = n; });
+      return found;
+    }
+
+    function repaint() {
+      if (!CANON) return;
+      if (!WIN) {
+        WINFO = { on: false, hidden: [], shown: CANON.nodes.map(function (n) { return n.id; }),
+                  outside: [], foldedEdges: 0, sameLane: 0,
+                  canonNodes: CANON.nodes.length, canonEdges: CANON.edges.length,
+                  digest: CANON.drawingDigest || 'unknown',
+                  lanes: (CANON.bands || []).map(function (b) {
+                    var n = 0;
+                    CANON.nodes.forEach(function (x) {
+                      if (x.x >= b.x && x.x <= b.x + b.w) n++;
+                    });
+                    return { key: b.key, shown: n, of: n };
+                  }) };
+        paint(CANON);
+        return;
+      }
+      paint(filtered(CANON, WIN));
+    }
+
+    // THE ONE THING THE BUILD GATE CANNOT SAY ABOUT THIS FEATURE, said here so a driver can read
+    // it off the running page. Reflow the FULL node set with no filter and compare against the
+    // canonical coordinates the build wrote: `dy` is the worst node, `dp` the worst control point
+    // on any arc, `arrows` the worst arrowhead, `rev` a count of edges whose direction came out
+    // the other way. All four are zero to within layout.js's own rounding, and staying zero is
+    // what makes the filtered drawing above the build's own geometry with tiles taken out.
+    function faithful(g) {
+      if (!g) return null;
+      var gap = pitchOf(g);
+      var at = place(g, g.nodes, gap, topOf(g));
+      var pos = {}, dy = 0, dp = 0, arrows = 0, rev = 0;
+      g.nodes.forEach(function (n) {
+        dy = Math.max(dy, Math.abs(at[n.id] - n.y));
+        pos[n.id] = { x: n.x, y: at[n.id], col: colOf(n.x) };
+      });
+      g.edges.forEach(function (e) {
+        var geo = edgeGeom(g, pos[e.s], pos[e.t]);
+        var a = geo.d.match(/-?\d+(\.\d+)?/g).map(Number);
+        var b = String(e.d).match(/-?\d+(\.\d+)?/g).map(Number);
+        var i;
+        if (a.length !== b.length) { dp = Infinity; return; }
+        for (i = 0; i < a.length; i++) dp = Math.max(dp, Math.abs(a[i] - b[i]));
+        arrows = Math.max(arrows, Math.abs(geo.ax - e.ax), Math.abs(geo.ay - e.ay),
+                          Math.abs(geo.aa - e.aa));
+        if (geo.rev !== !!e.rev) rev++;
+      });
+      return { nodes: g.nodes.length, edges: g.edges.length, gap: gap,
+               dy: r1(dy * 1000) / 1000, dp: r1(dp * 1000) / 1000,
+               arrows: r1(arrows * 1000) / 1000, rev: rev };
     }
 
     return {
-      draw: draw,
+      // The canonical drawing goes in and whatever the window leaves of it comes out on screen.
+      draw: function (g) { CANON = g; repaint(); },
       // Issue 84. The one thing the viewport tells this file. Everything else about the view is
       // the viewport's and stays there; a control that has to be the same size on screen at every
       // zoom is the one thing painted here that cannot be painted without knowing the scale.
       setCapScale: setCapScale,
-      // Issue 90. The other thing this file is told from outside, and it is a question rather
-      // than a list of ids: ids are per drawing and the window is not, so a list would have to be
-      // rebuilt on every route change by whoever holds it. `null` takes the window off.
-      setDim: function (fn) {
-        dimFn = typeof fn === 'function' ? fn : null;
-        applyDim();
+      // Issues 90 and 100. The other thing this file is told from outside, and it is a question
+      // rather than a list of ids: ids are per drawing and the window is not, so a list would have
+      // to be rebuilt on every route change by whoever holds it. `null` takes the window off.
+      // Returns true when the drawing on screen was rebuilt, which is the wiring's cue to rebind
+      // the selection to handles that no longer exist and to refit a drawing that changed height.
+      setWindow: function (spec) {
+        var was = WIN;
+        WIN = (spec && typeof spec.out === 'function') ? spec : null;
+        if (!was && !WIN) return false;
+        repaint();
+        return true;
       },
-      // What is dimmed right now, for a driver, because "the window dims the drawing" is a claim
-      // about the running page and not about a screenshot of 39 near identical tiles.
-      dimState: function () {
-        var lit = [], dim = [];
-        Object.keys(gfxNode).forEach(function (id) {
-          (gfxNode[id].g.classList.contains('out-window') ? dim : lit).push(id);
-        });
-        return { on: !!dimFn, dimmed: dim, lit: lit };
-      },
+      // What the window did to the drawing, for a driver, because "the window filters the picture"
+      // is a claim about the running page and not about a screenshot of 39 near identical tiles.
+      // Read off the transform rather than off the painted classes, since after this card there is
+      // nothing painted to read: what is not in the window is not in the document.
+      windowState: function () { return WINFO; },
+      reflowCheck: function () { return faithful(CANON); },
+      // The canonical drawing, as the build wrote it, whatever the window is doing. The digest
+      // belongs to THIS and not to what is on screen, which is why a capture filed off a filtered
+      // drawing has to say so rather than quoting a digest of a picture nobody is looking at.
+      canonical: function () { return CANON; },
       capButtons: function () { return capBtns.map(function (c) { return c.g; }); },
       // The drawing on screen, which is what the viewport frames and the router describes. Taken
       // through a call rather than handed out once, because draw() replaces it.

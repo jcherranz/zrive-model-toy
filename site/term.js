@@ -456,24 +456,45 @@
              longDate(r.from) + ' to ' + longDate(r.to);
     }
 
-    // ---- what the drawing is told, issue 90 -------------------------------------
-    // A PREDICATE AND NOT A LIST OF IDS, and never any geometry. The layout is generated at build
-    // time, `layout.js` carries a drawingDigest and scripts/check_build.sh refuses anything a
-    // rebuild does not reproduce; a window is a continuous parameter over 24 weeks, so it cannot
-    // be precomputed and laying it out at run time would cost that guarantee. Dimming costs
-    // nothing: the geometry never changes, the digest never changes, the build gate never sees
-    // this feature at all, and the shape of the whole term stays on screen behind the window,
-    // which is better for the discussion the card describes than a drawing with holes in it.
+    // ---- what the drawing is told, issues 90 and 100 ----------------------------
+    // A PREDICATE AND NOT A LIST OF IDS, and never any geometry. It answers about a NODE and
+    // render.js does the rest, which is the same division the lane headings run on: that file
+    // knows where a thing is drawn and this one knows what a date means. This module has never
+    // held a coordinate and does not start now.
     //
-    // It answers about a NODE and render.js applies a class, which is the same division the lane
-    // headings run on: that file knows where a thing is drawn and this one knows what it means.
-    function dimmer() {
+    // #90 SHIPPED THIS AS A DIM AND #100 OVERRULED IT. The argument for dimming was that the
+    // layout is generated at build time behind a digest a rebuild has to reproduce, so a
+    // continuous window over 24 weeks could not be precomputed and a class was the only answer
+    // that cost the build gate nothing. He filed #100 from `#graph` saying the point of the
+    // filter is to draw those weeks. It is: the gate is a fact about the build and not a reason
+    // to leave a reader of Z-BL looking at three lit tiles in a column of seventy seven quiet
+    // ones. The canonical drawing and its gate are exactly as they were and render.js transforms
+    // it at run time under a check of its own. Nothing on this side of the boundary changed
+    // except the name: what leaves here is a window and not a dimmer.
+    //
+    // `from` and `to` travel with the predicate because the drawing says out loud what it is
+    // showing, and a sentence about the window belongs to the module that owns the window.
+    function windowSpec() {
       var r = winRange();
       if (!r) return null;
-      return function (n) {
-        if (!n || n.type !== 'CohortSession') return false;
-        var d = String(prop(n, 'scheduled_at') || '').split(' ')[0];
-        return !!d && (d < r.from || d > r.to);
+      return {
+        from: r.from, to: r.to, weeks: win.weeks, text: windowText(),
+        // TWO QUESTIONS AND NOT ONE, because "outside the window" and "the window has an opinion
+        // about this at all" are different claims and the drawing needs both. A cohort session
+        // carries a date, so the window answers for it either way; a session template, an
+        // instructor or an employer carries none, and what happens to those is decided by the
+        // sessions they are attached to, which is render.js's cascade and not this module's
+        // business. Answering only `out` would make every undated node read as inside the window,
+        // and the drawing could never tell "in this window" from "not a thing with a date".
+        governs: function (n) {
+          if (!n || n.type !== 'CohortSession') return false;
+          return !!String(prop(n, 'scheduled_at') || '').split(' ')[0];
+        },
+        out: function (n) {
+          if (!n || n.type !== 'CohortSession') return false;
+          var d = String(prop(n, 'scheduled_at') || '').split(' ')[0];
+          return !!d && (d < r.from || d > r.to);
+        }
       };
     }
 
@@ -524,7 +545,7 @@
       if (reading) { buildRows(); describe(); }
       describeWindow();
       if (wnMenuOpen()) buildWnMenu();
-      if (onWindow) onWindow(dimmer());
+      if (onWindow) onWindow(windowSpec());
     }
 
     function setWindowWeeks(n) {
@@ -1486,7 +1507,7 @@
       },
       // Read by app.js on the first paint, so a drawing is dimmed from the start if a window is
       // ever on before the sheet has been opened.
-      dimmer: dimmer,
+      windowSpec: windowSpec,
       windowState: windowState,
       windowMenuOpen: wnMenuOpen
     };

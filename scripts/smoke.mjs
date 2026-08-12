@@ -218,7 +218,7 @@ const PHASES = {
   'every width':          { count: 3, when: 'every' },
   'model and reveal':     { count: 14, when: 'behavioural' },
   'students':             { count: 11, when: 'behavioural' },
-  'term':                 { count: 41, when: 'behavioural' },
+  'term':                 { count: 47, when: 'behavioural' },
   'canvas':               { count: 7, when: 'behavioural' },
   'capture':              { count: 14, when: 'behavioural' },
   'board':                { count: 13, when: 'behavioural' },
@@ -284,7 +284,25 @@ const PHASES = {
 // DIMS it and moves no geometry, digest and extent identical, which is what lets this ship without
 // touching the build gate; that the dimming is right in both directions rather than merely
 // present; and that the window survives a change of programme, because it belongs to the page.
-const EXPECTED_ASSERTIONS = 121;
+// 121 until issue 100, which took `term` from 41 to 47 and rewrote the first of those three. He
+// overruled #90's design: the window filters the drawing now rather than dimming it, so the
+// picture on screen is a run time transform of a generated artefact and check_build.sh cannot see
+// it at all. The six are the cover the build gate does not give, and they are the terms of that
+// trade rather than a count of what the code does. That the reflow of the FULL node set reproduces
+// build_layout.py's own coordinates, every tile and every arc control point, which is what makes
+// the filtered drawing the build's geometry with tiles taken out rather than a second opinion
+// about where things go, and which goes red the day somebody retunes pack() in the build and not
+// in render.js. That no two tiles overlap after the restack, measured on every pair. That no line
+// dangles: both ends of every one of them are a tile on the page and every arrowhead lands on one,
+// because an arc computed for the full stack and left pointing into the space a filtered tile used
+// to occupy is the failure a reader would read as missing data. That what the window took out is
+// on the page as a count and the lines to it say how many relationships each stands for, because
+// removing a line in silence is how a management tool starts lying. That every lane says how much
+// of itself is in the window in #83's idiom, since a filter that loses the number is the same
+// failure as an aggregate that loses it. And that the fit frames the filtered drawing rather than
+// the one it was cut from, which is the obvious regression of the whole card: Z-BL is 2578px
+// unfiltered and a fit that never ran would leave the reader on the same postage stamp.
+const EXPECTED_ASSERTIONS = 127;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -1658,14 +1676,14 @@ async function checkTerm(page) {
   // where `now` comes from on a page whose every date is invented and whose term ended before the
   // real clock reached it.
   const w0 = await page.evaluate('window.ZT.term().window');
-  const dim0 = await page.evaluate('window.ZT.dim()');
+  const off0 = await page.evaluate('window.ZT.filtered()');
   assert('the window is off on arrival and the header says so in whole weeks',
     w0.on === false && w0.weeks === 0 && cal.wn &&
       cal.wn.text === 'weeks: all ' + w0.termWeeks && w0.termWeeks > 1 &&
-      dim0.on === false && dim0.dimmed.length === 0,
-    `a control reading "weeks: all ${w0.termWeeks}" and nothing dimmed on the drawing`,
+      off0.on === false && off0.hidden.length === 0,
+    `a control reading "weeks: all ${w0.termWeeks}" and nothing taken off the drawing`,
     `${JSON.stringify(cal.wn && cal.wn.text)}, window on ${w0.on}, ` +
-      `${dim0.dimmed.length} tiles dimmed`);
+      `${off0.hidden.length} tiles filtered out`);
 
   await wnMenu(page, true);
   const wnOpen = await page.evaluate(TERM_READ);
@@ -1902,28 +1920,57 @@ async function checkTerm(page) {
     `${JSON.stringify(back.heading.trim())}, display ${back.diagram}, body class ` +
     `${JSON.stringify(back.cls)}`);
 
-  // ---- the window on the drawing, issue 90 --------------------------------------
-  // HE FILED IT FROM `#graph`, so the window is about the picture as well as the list, and the
-  // three claims here are the three the architecture decision rests on: that it DIMS rather than
-  // removes, that the geometry is untouched so the build gate never sees this feature, and that
-  // the window belongs to the page rather than to a drawing.
+  // ---- the window on the drawing, issues 90 and 100 -----------------------------
+  // HE FILED #90 FROM `#graph` AND #100 AGAINST WHAT #90 DID THERE. The first shipped a DIM: the
+  // geometry never moved, the digest never changed and the build gate never saw the feature. He
+  // rejected it. "The whole poitn of this filter is to just render the diagram of those weeks."
+  //
+  // SO THE DRAWING ON SCREEN IS NOW A RUN TIME TRANSFORM OF A GENERATED ARTEFACT, AND THAT IS
+  // EXACTLY WHAT scripts/check_build.sh CANNOT SEE. The canonical layout is still generated, still
+  // digested and still reproduced byte for byte on a rebuild; the filtered drawing is computed in
+  // the browser and no build ever wrote it. Everything below is the cover the build gate does not
+  // give, and the load bearing one is the second: reflowing the FULL node set reproduces the
+  // canonical coordinates, which is what makes the filtered drawing the build's own geometry with
+  // tiles taken out rather than a second opinion about where things go.
+  //
+  // A TENTH OF A UNIT ON A CONTROL POINT AND NOT A TWENTIETH, which is one rounding rule and not
+  // slack. layout.js writes its coordinates to one decimal; Python rounds a half to even and
+  // JavaScript rounds it away from zero, so a control point landing exactly on x.x5 is written
+  // 876.2 by the build and computed 876.3 here. Thirty five of the four hundred and fifty five
+  // edges across the seven drawings do that and no other difference exists: the tiles, the
+  // arrowheads and the directions are exact.
+  // ON THE DENSEST OF THE SEVEN, chosen by measurement and not by name. The card was filed from a
+  // drawing 2578px tall with three lit tiles in it, and a filter asserted on the six-session view
+  // the suite happens to start on would prove almost nothing: the reflow has to have work to do.
+  // The address is the one the instance document carries for that view, read and not constructed,
+  // after `#/p/Z-ZIB` cost this repository half an hour of false alarm once already.
+  const dense = await page.evaluate(`(function () {
+    var best = null, i;
+    for (i = 0; i < window.GL.views.length; i++) {
+      if (best && window.GL.views[i].drawing.h <= best.h) continue;
+      best = { key: window.GL.views[i].key, h: window.GL.views[i].drawing.h,
+               route: window.GI.views[i].route };
+    }
+    return best;
+  })()`);
+  await page.evaluate(`location.hash = ${JSON.stringify(dense.route)}`);
+  await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(dense.key)}`,
+    'the tallest of the seven drawings');
+  await viewSettled(page);
   const beforeWin = await page.evaluate(`(function () {
     var p = window.ZT.programme();
-    return { digest: p.digest, w: p.w, h: p.h,
+    return { digest: p.digest, w: p.w, h: p.h, k: window.ZT.view().k,
              nodes: document.querySelectorAll('#graph [data-node]').length };
   })()`);
   await wnMenu(page, true);
   await pressByText(page, '#wnmenu .wn-weeks', '3 weeks');
-  await page.waitFor('window.ZT.dim().on === true', 'the drawing to take the window');
+  await page.waitFor('window.ZT.filtered().on === true', 'the drawing to take the window');
+  await viewSettled(page);
   const drawn = await page.evaluate(`(function () {
-    var w = window.ZT.term().window, d = window.ZT.dim(), out = [], bad = 0, lit = 0;
-    d.dimmed.forEach(function (id) {
-      var g = document.querySelector('#graph [data-node="' + id + '"]');
-      var t = g ? g.querySelector('title') : null;
-      out.push(t ? t.textContent : id);
-    });
-    // Every dimmed tile is a cohort session, and every cohort session that is NOT dimmed is one
-    // the window covers. Both directions, because dimming everything would satisfy the first.
+    var w = window.ZT.term().window, f = window.ZT.filtered(), bad = 0, lit = 0, ghosts = 0;
+    // Every session the window covers is on the page and every session it does not is off it.
+    // Both directions, because drawing nothing would satisfy the first and drawing everything the
+    // second. Read against the instance document's own dates rather than against the page's.
     window.GI.views.forEach(function (v) {
       if (v.key !== window.ZT.programme().key) return;
       v.nodes.forEach(function (n) {
@@ -1933,51 +1980,232 @@ async function checkTerm(page) {
         var day = String(at).split(' ')[0];
         var inside = day >= w.from && day <= w.to;
         if (inside) lit++;
-        if (inside !== (d.dimmed.indexOf(n.id) === -1)) bad++;
+        if (inside !== !!document.querySelector('#graph [data-node="' + n.id + '"]')) bad++;
       });
     });
-    return { on: d.on, dimmed: d.dimmed.length, lit: d.lit.length, labels: out.slice(0, 2),
-             wrong: bad, inside: lit,
+    f.hidden.forEach(function (id) {
+      if (document.querySelector('#graph [data-node="' + id + '"]')) ghosts++;
+    });
+    return { on: f.on, hidden: f.hidden.length, shown: f.shown.length, wrong: bad, inside: lit,
+             stillDrawn: ghosts, canonNodes: f.canonNodes,
              digest: window.ZT.programme().digest, w: window.ZT.programme().w,
-             h: window.ZT.programme().h,
+             h: window.ZT.programme().h, k: window.ZT.view().k,
              nodes: document.querySelectorAll('#graph [data-node]').length,
-             edges: document.querySelectorAll('#graph .out-window[data-edge]').length };
+             outside: document.querySelectorAll('#graph [data-outside]').length };
   })()`);
-  assert('the window dims the drawing and moves no geometry, which is what keeps the build gate',
-    drawn.on === true && drawn.dimmed > 0 && drawn.wrong === 0 &&
-      drawn.dimmed + drawn.lit === beforeWin.nodes &&
-      drawn.nodes === beforeWin.nodes && drawn.digest === beforeWin.digest &&
-      drawn.w === beforeWin.w && drawn.h === beforeWin.h && drawn.edges > 0 &&
-      drawn.labels.every(t => /Cohort session/.test(t)),
-    `${drawn.dimmed} tiles quiet and ${drawn.inside} left lit, every node still drawn, the ` +
-      `digest still ${beforeWin.digest} and the extent still ${beforeWin.w} by ${beforeWin.h}`,
-    `${drawn.dimmed} dimmed, ${drawn.wrong} against their own date, ${drawn.nodes} of ` +
-      `${beforeWin.nodes} nodes, digest ${drawn.digest}, ${drawn.w} by ${drawn.h}`);
+  assert('the window renders the weeks in it and reflows what is left, which is what #100 asked for',
+    drawn.on === true && drawn.hidden > 0 && drawn.wrong === 0 && drawn.stillDrawn === 0 &&
+      drawn.nodes === drawn.shown && drawn.shown + drawn.hidden === drawn.canonNodes &&
+      drawn.nodes < beforeWin.nodes && drawn.h < beforeWin.h && drawn.w === beforeWin.w &&
+      drawn.digest === beforeWin.digest && drawn.outside > 0,
+    `${drawn.inside} sessions drawn and ${drawn.hidden} tiles taken out, the drawing down from ` +
+      `${beforeWin.h} to under it at the same ${beforeWin.w} wide, the canonical digest still ` +
+      `${beforeWin.digest}`,
+    `${drawn.nodes} of ${beforeWin.nodes} nodes drawn, ${drawn.wrong} against their own date, ` +
+      `${drawn.stillDrawn} still painted after being filtered, ${drawn.w} by ${drawn.h}`);
+
+  // THE CLAIM THE BUILD GATE CANNOT MAKE, which is the trade this card accepted out loud. Reflow
+  // the whole node set with no filter and it has to come out where build/build_layout.py put it:
+  // every tile, every arc control point, every arrowhead, every direction. A tenth of a unit is
+  // what site/layout.js rounds its coordinates to, so that is the tolerance and nothing looser.
+  const reflow = await page.evaluate('window.ZT.reflow()');
+  assert('and the reflow reproduces the generated layout, which is the cover check_build.sh cannot give',
+    !!reflow && reflow.dy <= 0.05 && reflow.dp <= 0.1 && reflow.arrows <= 0.05 &&
+      reflow.rev === 0 && reflow.nodes === beforeWin.nodes && reflow.edges > 0,
+    `the full node set reflowing onto the build's own coordinates, worst node and worst control ` +
+      `point inside the tenth of a unit layout.js rounds to`,
+    JSON.stringify(reflow));
+
+  // A REFLOW THAT OVERLAPPED WOULD LOOK LIKE A RENDERING FAULT AND READ LIKE A DATA ONE. Measured
+  // on the tiles the browser drew, in the drawing's own units, every pair.
+  const overlap = await page.evaluate(`(function () {
+    var boxes = Array.prototype.slice.call(
+      document.querySelectorAll('#graph .node .tile-bg')).map(function (r) {
+      return { x: +r.getAttribute('x'), y: +r.getAttribute('y'),
+               w: +r.getAttribute('width'), h: +r.getAttribute('height'),
+               id: r.parentNode.getAttribute('data-node') ||
+                   r.parentNode.getAttribute('data-outside') };
+    });
+    var worst = null, i, j, a, b, ox, oy;
+    for (i = 0; i < boxes.length; i++) {
+      for (j = i + 1; j < boxes.length; j++) {
+        a = boxes[i]; b = boxes[j];
+        ox = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+        oy = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+        if (ox > 0 && oy > 0 && (!worst || Math.min(ox, oy) > worst.by)) {
+          worst = { a: a.id, b: b.id, by: Math.min(ox, oy) };
+        }
+      }
+    }
+    return { tiles: boxes.length, worst: worst };
+  })()`);
+  assert('no two tiles overlap after it, measured on every pair the browser drew',
+    overlap.tiles > 1 && overlap.worst === null,
+    `${overlap.tiles} tiles and no pair of them touching`,
+    overlap.worst ? `${overlap.worst.a} and ${overlap.worst.b} overlap by ` +
+      `${overlap.worst.by.toFixed(1)}px` : 'nothing measured');
+
+  // AND NO LINE DANGLES, which is the half of this card that decides whether the picture can be
+  // trusted. Every line's two ends have to be a tile that is on the page, and its arrowhead has to
+  // land on one: an arc computed for the full stack and left pointing into the space a filtered
+  // tile used to occupy is exactly the failure this checks for.
+  const dangle = await page.evaluate(`(function () {
+    var tiles = Array.prototype.slice.call(
+      document.querySelectorAll('#graph .node .tile-bg')).map(function (r) {
+      return { x: +r.getAttribute('x'), y: +r.getAttribute('y'),
+               w: +r.getAttribute('width'), h: +r.getAttribute('height') };
+    });
+    function near(px, py) {
+      for (var i = 0; i < tiles.length; i++) {
+        var t = tiles[i];
+        if (px >= t.x - 0.6 && px <= t.x + t.w + 0.6 && py >= t.y - 0.6 && py <= t.y + t.h + 0.6) {
+          return true;
+        }
+      }
+      return false;
+    }
+    var loose = [], adrift = [];
+    Array.prototype.slice.call(document.querySelectorAll('#graph g[data-edge] path.edge, ' +
+      '#graph g[data-edge] path.edge-ghost, #graph g[data-edge] path.edge-outside'))
+      .forEach(function (p) {
+        var key = p.parentNode.getAttribute('data-edge');
+        var cut = key.indexOf('->');
+        [key.slice(0, cut), key.slice(cut + 2)].forEach(function (id) {
+          var sel = '[data-node="' + id + '"], [data-outside="' + id + '"]';
+          if (!document.querySelector('#graph ' + sel)) loose.push(key);
+        });
+        var arrow = p.parentNode.querySelector('path.arrow, path.arrow-ghost, path.arrow-outside');
+        var m = arrow && /translate\\(([-\\d.]+),([-\\d.]+)\\)/.exec(arrow.getAttribute('transform'));
+        if (m && !near(+m[1], +m[2])) adrift.push(key);
+      });
+    return { edges: document.querySelectorAll('#graph g[data-edge] path.edge, ' +
+             '#graph g[data-edge] path.edge-ghost, ' +
+             '#graph g[data-edge] path.edge-outside').length,
+             loose: loose, adrift: adrift };
+  })()`);
+  assert('and no line dangles: both ends of every one of them are a tile on the page',
+    dangle.edges > 0 && dangle.loose.length === 0 && dangle.adrift.length === 0,
+    `${dangle.edges} lines, every end on a drawn tile and every arrowhead on one`,
+    `${dangle.loose.length} ends on nothing (${dangle.loose.slice(0, 3).join(', ')}), ` +
+      `${dangle.adrift.length} arrowheads adrift (${dangle.adrift.slice(0, 3).join(', ')})`);
+
+  // FILTERED HAS TO BE TELLABLE FROM ABSENT. A drawing that silently drops a relationship is a
+  // management tool that has started lying, so what the window took out is on the page as a count
+  // and the lines that used to reach it now reach that count. Both halves are asserted: the tiles
+  // add up to what was removed, and the folded lines say how many relationships each stands for.
+  const kept = await page.evaluate(`(function () {
+    var marks = Array.prototype.slice.call(document.querySelectorAll('#graph [data-outside]'))
+      .map(function (g) {
+        var t = g.querySelector('title');
+        var n = /^(\\d+)/.exec(t ? t.textContent : '');
+        return { id: g.getAttribute('data-outside'), n: n ? Number(n[1]) : 0,
+                 text: t ? t.textContent : '' };
+      });
+    var folded = Array.prototype.slice.call(document.querySelectorAll('#graph g[data-edge].outside'))
+      .filter(function (g) { return !!g.querySelector('path'); })
+      .map(function (g) {
+        var t = g.querySelector('title');
+        return t ? t.textContent : '';
+      });
+    var sum = 0;
+    marks.forEach(function (m) { sum += m.n; });
+    return { marks: marks, sum: sum, folded: folded,
+             hidden: window.ZT.filtered().hidden.length,
+             sameLane: window.ZT.filtered().sameLane };
+  })()`);
+  assert('what the window took out is on the page as a count, and the lines to it say how many',
+    kept.marks.length > 0 && kept.sum === kept.hidden && kept.sameLane === 0 &&
+      kept.folded.length > 0 &&
+      kept.marks.every(m => /outside this window/.test(m.text)) &&
+      kept.folded.every(t => /^\S.*, \d+ relationships? outside this window$/.test(t)),
+    `${kept.marks.length} lanes saying so, ${kept.sum} tiles accounted for against the ` +
+      `${kept.hidden} the window removed, and ${kept.folded.length} folded lines naming their count`,
+    `${kept.sum} counted of ${kept.hidden} removed, ${kept.sameLane} relationships nowhere, ` +
+      `titles ${JSON.stringify(kept.folded.slice(0, 2))}`);
+
+  // KEEPING THE NUMBER, which is the other half of what the card asked for and the same failure as
+  // an aggregate that loses it. Every lane says what it is showing of what it had, in the idiom
+  // #83 set for the captions above it, and the numbers are checked against the tiles rather than
+  // against each other.
+  const caps = await page.evaluate(`(function () {
+    return Array.prototype.slice.call(document.querySelectorAll('#graph .lane')).map(function (l) {
+      var lines = Array.prototype.slice.call(l.querySelectorAll('.band-cap'));
+      var last = lines[lines.length - 1];
+      var plate = l.querySelector('rect.band');
+      var x0 = +plate.getAttribute('x'), x1 = x0 + +plate.getAttribute('width');
+      var drawn = 0;
+      Array.prototype.slice.call(document.querySelectorAll('#graph .node:not(.outside) .tile-bg'))
+        .forEach(function (r) {
+          var cx = +r.getAttribute('x') + +r.getAttribute('width') / 2;
+          if (cx >= x0 && cx <= x1) drawn++;
+        });
+      return { text: last ? last.textContent : '', win: last ?
+               last.classList.contains('cap-window') : false, drawn: drawn };
+    });
+  })()`);
+  assert('and every lane says how much of itself is in the window, in the idiom #83 set',
+    caps.length > 0 && caps.every(c => c.win) &&
+      caps.every(c => {
+        const m = /^(\d+) of (\d+) (in this window|shown)$/.exec(c.text);
+        return !!m && Number(m[1]) === c.drawn && Number(m[2]) >= Number(m[1]);
+      }),
+    `${caps.length} lane captions each carrying "k of n in this window" with k the tiles in it`,
+    JSON.stringify(caps.map(c => c.text + ' against ' + c.drawn + ' drawn')));
+
+  // AND THE FIT FRAMES WHAT IS ON SCREEN RATHER THAN WHAT IT CAME FROM. This is the obvious
+  // regression of the whole card: the drawing is a fraction of its old height and a fit that never
+  // ran would leave the reader looking at the same postage stamp. Z-BL is 2578px unfiltered.
+  const fitted = await page.evaluate(`(function () {
+    var v = window.ZT.view(), g = document.getElementById('graph').getBoundingClientRect();
+    var p = window.ZT.programme();
+    return { k: v.k, was: ${beforeWin.k}, h: p.h, box: g.height, wide: g.width };
+  })()`);
+  assert('and the fit frames the filtered drawing rather than the one it was cut from',
+    fitted.k > fitted.was * 1.2 && fitted.h * fitted.k <= fitted.box + 2,
+    `the scale up from ${beforeWin.k.toFixed(3)} because the drawing is ${fitted.h} tall and no ` +
+      `longer ${beforeWin.h}, and the whole of it inside the canvas`,
+    `scale ${fitted.k.toFixed(3)}, ${fitted.h} units at that scale is ` +
+      `${(fitted.h * fitted.k).toFixed(0)}px in a ${fitted.box.toFixed(0)}px canvas`);
 
   // THE WINDOW BELONGS TO THE PAGE AND NOT TO A DRAWING, which is why its control is in the
   // header rather than in the sheet. A change of programme repaints from scratch, so a window
   // that was applied once and never re-applied would come back off on the next route.
-  await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(other)}`);
-  await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(other)}`,
+  const away = await page.evaluate(`(function () {
+    var vs = window.GI.views, i;
+    for (i = 0; i < vs.length; i++) if (vs[i].key !== window.ZT.programme().key) return vs[i];
+    return null;
+  })()`);
+  await page.evaluate(`location.hash = ${JSON.stringify(away.route)}`);
+  await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(away.key)}`,
     'the other programme to be drawn');
   const across = await page.evaluate(`(function () {
-    var d = window.ZT.dim();
-    return { on: d.on, dimmed: d.dimmed.length, lit: d.lit.length,
-             weeks: window.ZT.term().window.weeks };
+    var f = window.ZT.filtered();
+    return { on: f.on, hidden: f.hidden.length, shown: f.shown.length,
+             weeks: window.ZT.term().window.weeks,
+             drawn: document.querySelectorAll('#graph [data-node]').length };
   })()`);
   assert('and it survives a change of programme, because it belongs to the page',
-    across.on === true && across.weeks === 3 && across.dimmed > 0 && across.lit > 0,
-    `the three week window still on, dimming part of ${other}`,
-    `on ${across.on}, ${across.weeks} weeks, ${across.dimmed} dimmed on ${other}`);
+    across.on === true && across.weeks === 3 && across.hidden > 0 && across.shown > 0 &&
+      across.drawn === across.shown,
+    `the three week window still on, filtering ${away.key} down from its own full set`,
+    `on ${across.on}, ${across.weeks} weeks, ${across.hidden} taken out of ${away.key}`);
 
   await wnMenu(page, true);
   await pressByText(page, '#wnmenu .wn-weeks', 'whole term');
-  await page.waitFor('window.ZT.dim().on === false', 'the window to come off');
-  const litAgain = await page.evaluate('window.ZT.dim()');
-  assert('taking it off lights every tile again rather than leaving the drawing half quiet',
-    litAgain.on === false && litAgain.dimmed.length === 0 && litAgain.lit.length > 0,
-    'nothing dimmed and every node lit',
-    `${litAgain.dimmed.length} still dimmed of ${litAgain.lit.length + litAgain.dimmed.length}`);
+  await page.waitFor('window.ZT.filtered().on === false', 'the window to come off');
+  const litAgain = await page.evaluate(`(function () {
+    var f = window.ZT.filtered();
+    return { on: f.on, hidden: f.hidden.length, shown: f.shown.length,
+             drawn: document.querySelectorAll('#graph [data-node]').length,
+             marks: document.querySelectorAll('#graph [data-outside]').length,
+             caps: document.querySelectorAll('#graph .cap-window').length };
+  })()`);
+  assert('taking it off draws the whole term again rather than leaving the drawing half cut',
+    litAgain.on === false && litAgain.hidden === 0 && litAgain.shown > 0 && litAgain.drawn === litAgain.shown && litAgain.marks === 0 &&
+      litAgain.caps === 0,
+    'every node back on the page, no outside tile left and no window line on a caption',
+    `${litAgain.drawn} drawn of ${litAgain.shown}, ${litAgain.marks} outside tiles, ` +
+      `${litAgain.caps} window captions`);
   await wnMenu(page, false);
   await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(here)}`);
   await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(here)}`,

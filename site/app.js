@@ -150,12 +150,45 @@
     // The elements the reveal rules act on were all replaced, so the rules are read off the new
     // drawing and applied to the new handles.
     selection.bind(render.gfx());
-    if (window.ZT) window.ZT.drawingDigest = v.drawing.drawingDigest || 'unknown';
+    stampDigest();
     router.describe();
     // A different programme is a different cohort, so the list built for the last one goes.
     router.resetRoster();
     // Last, because describing the programme can change the height of the header and the fit is
     // measured against what is left.
+    viewport.refit();
+  }
+
+  // Issue 100. WHAT A CAPTURE QUOTES WHEN THE DRAWING IS FILTERED. `drawingDigest` is a digest of
+  // the drawing the BUILD wrote, and check_build.sh is what makes it worth quoting. A window is a
+  // run-time transform of that artefact, so on a filtered page the digest is true of something the
+  // reporter is not looking at, and a report that quoted it bare would send a reader to a picture
+  // with seventy more tiles in it than the one the card is about. So the line says both: the
+  // digest, and what the reader had done to it.
+  function stampDigest() {
+    if (!window.ZT) return;
+    var g = render.canonical() || {};
+    var w = term ? term.state().window : null;
+    var base = g.drawingDigest || 'unknown';
+    window.ZT.drawingDigest = (w && w.on)
+      ? base + ' of the whole term, drawn filtered to ' + w.weeks +
+        (w.weeks === 1 ? ' week' : ' weeks') + ' from ' + w.from
+      : base;
+  }
+
+  // Everything a change of window costs, in one place. The drawing is rebuilt from the canonical
+  // one, so every handle the selection was holding is gone, the ids it was holding may not exist
+  // in the filtered drawing at all, and the extent the fit was framing has changed: on Z-BL a
+  // three week window takes the drawing from 2578px tall to a few hundred, and a fit that did not
+  // run would leave the reader looking at the same postage stamp for a picture eight times
+  // larger. Issue 100.
+  function windowChanged(spec) {
+    if (!render || !selection || !viewport) return;   // a call before the wiring is finished
+    selection.clear();
+    if (!render.setWindow(spec)) return;
+    selection.bind(render.gfx());
+    stampDigest();
+    router.describe();
     viewport.refit();
   }
 
@@ -179,14 +212,18 @@
     // file is what carries the answer from the module that knows what a date means to the module
     // that knows where a node is drawn. render is built after this, so the first call is guarded
     // and the initial state is applied below beside the first draw.
-    onWindow: function (fn) { if (render) render.setDim(fn); }
+    onWindow: function (spec) { windowChanged(spec); }
   });
 
   router = ZM.router({
     views: VIEWS,
     defaultKey: GI && GI.default,
     svg: svg,
-    drawing: function () { return render.drawing(); },
+    // Issue 100. THE CANONICAL DRAWING AND NOT THE ONE ON SCREEN. The two things the router reads
+    // out of it are the cohort's name and the roster counts, and both are facts about the
+    // programme rather than about the reader's window: an empty week filters the cohort's own tile
+    // off the picture, and a header that emptied with it would say the programme has no cohort.
+    drawing: function () { return render.canonical() || render.drawing(); },
     onView: showView,
     onDescribed: measureHeader
   });
@@ -195,6 +232,24 @@
     svg: svg,
     canvas: canvas,
     drawing: router.view().drawing,
+    // Issue 100. Every column x there is, across all seven drawings, because a column's INDEX is
+    // what decides whether an edge is a hop to the next lane or a long arc slung under the row,
+    // and the drawings do not all hold every column: Z-CFA has no instructor and no employer, so
+    // an index taken from that drawing alone would number its sessions column 2 where the other
+    // six number it 3, and the same relationship would be drawn two different ways depending on
+    // which programme the reader was on. Collected here because this is the file that holds all
+    // seven, and sorted by the file that uses it.
+    columns: (function () {
+      var seen = {}, out = [];
+      VIEWS.forEach(function (v) {
+        v.drawing.nodes.forEach(function (n) {
+          if (seen[n.x]) return;
+          seen[n.x] = true;
+          out.push(n.x);
+        });
+      });
+      return out;
+    })(),
     onSelect: function (id) { selection.select(id); },
     onFocus: function (n) { viewport.ensureVisible(n); },
     // Issue 84. What a lane heading opens. render.js knows where a lane is and term.js knows what
@@ -231,10 +286,12 @@
 
   // The address has already chosen which of the seven this is, so this draws the reader's
   // programme and not the default followed by the reader's.
+  // Issues 90 and 100. Whatever the window is at load, read rather than assumed so that a stored
+  // or deep-linked window would reach the FIRST paint rather than the second. It is set before
+  // draw() and not after, because after this card a window rebuilds the drawing rather than adding
+  // a class to it, and a reader would otherwise watch the whole term appear and then collapse.
+  render.setWindow(term.windowSpec());
   render.draw(router.view().drawing);
-  // Issue 90. Whatever the window is at load, which is off today and is read rather than assumed
-  // so that a stored or deep-linked window would reach the first paint rather than the second.
-  render.setDim(term.dimmer());
   selection.bind(render.gfx());
 
   viewport = ZM.viewport({
@@ -475,9 +532,14 @@
     // guess: that mistake, `#/p/Z-ZIB` against `#/p/ZIB`, produced a false alarm on this page
     // once already, and the rule it left behind is to construct nothing you can read.
     termRoutes: function () { return term.routes.slice(); },
-    // Issue 90. What the drawing is doing about the window, read off the painted classes rather
-    // than recomputed here, so a driver asserting that a window dims the picture is reading the
-    // picture. The window itself is in term() and is not copied here: one place answers it.
-    dim: function () { return render.dimState(); }
+    // Issue 100. What the window did to the drawing, read off the transform that built what is on
+    // screen rather than recomputed here, so a driver asserting that a window filters the picture
+    // is reading the picture. The window itself is in term() and is not copied here: one place
+    // answers it. `reflow` is the claim the build gate cannot make, because the filtered drawing
+    // is not an artefact any build wrote: that reflowing the FULL node set reproduces the
+    // canonical coordinates, which is what makes the filtered drawing the build's own geometry
+    // with tiles taken out rather than a second opinion about where things go.
+    filtered: function () { return render.windowState(); },
+    reflow: function () { return render.reflowCheck(); }
   };
 })();

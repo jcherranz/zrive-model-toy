@@ -1659,23 +1659,47 @@ body.hide-ghosts .ghost { display: none; }
 
    Two classes rather than one, so the rule beats `.dim` on specificity wherever a hidden node is
    also dimmed, which is every selection that is not one end of its own link. */
-/* ---- outside the time window, issue 90 ------------------------------------------
-   A session the reader's window does not cover. DIMMED AND NOT REMOVED, because the geometry is
-   generated at build time and gated on a digest a rebuild has to reproduce: a class costs the
-   gate nothing, and the shape of the whole term stays on screen behind the window, which is what
-   the picture is for. The reader is told the drawing is filtered by the header control, whose
-   text is the state, `weeks: 3 of 24`.
+/* ---- outside the time window, issues 90 and 100 ---------------------------------
+   #90 answered the window with `.out-window { opacity: .16 }`: every tile stayed where the build
+   put it and the ones the window did not cover went quiet. #100 overruled it. What is outside the
+   window is now not drawn at all, so there is nothing left here to fade, and the rule is gone
+   rather than kept against a class nothing sets. What replaced it is one tile per lane standing
+   for what the window took out, and the lines that used to land on those tiles now land on it.
 
-   .16 IS THE VALUE THE SELECTION DIM ALREADY USES, deliberately, because this is the same claim
-   said about a different question: quiet, still there, still readable if you look. Two dims at
-   two strengths would read as two kinds of absence.
+   IT IS PAINTED LIKE A GHOST AND IS NOT ONE, and the two classes are apart for a reason a diff
+   would not show: `body.hide-ghosts .ghost { display: none }` is the ghosts toggle, and a control
+   about what the business does not record must not be able to switch off the only thing on screen
+   saying how much of the term is off screen. Same dashes, same grey, different switch.
 
-   IT IS DECLARED HERE AND NOT LOWER DOWN, and the position is the rule. `.veil.veil-hidden` is
-   two classes and beats one on specificity, so a node hidden by the reveal rules stays hidden
-   whatever the window says; `.dim` is one class like this one, so the later of the two wins on
-   any node that is both, and both mean quiet. The file's own note on the veil block below
-   records the same reasoning for `.dim`. */
-.out-window { opacity: .16; }
+   UPRIGHT AND NOT ITALIC, for the reason `.lbl-tail` is upright: italic in this drawing means a
+   ghost, something that does not exist anywhere, and twenty four sessions the reader has scrolled
+   past are not absent. It is the same register as the marker under a card that stands for many,
+   because it is the same kind of sentence, one about this picture rather than about the model. */
+.node.outside .tile-bg {
+  stroke-dasharray: 3 2.4;
+  stroke-width: 1.1;
+}
+
+.lbl-outside { fill: var(--fg-muted); }
+
+.edge-outside {
+  stroke: var(--c-gray-3);
+  stroke-dasharray: 3 3;
+}
+
+.arrow-outside { fill: var(--c-gray-3); opacity: .8; }
+.outside .chip-bg { stroke-dasharray: 3 2.4; }
+
+/* The lane caption's fourth line, the one that says how much of the lane is in the window. Same
+   paint and same size as the three above it, because it is the same kind of claim as "6 of 79
+   session templates" and a second colour would make a reader look for a second meaning. Only the
+   case is different: the three above it are the lane's name and this one is a count about the
+   moment, so it is not shouted. */
+.cap-window {
+  text-transform: none;
+  letter-spacing: .02em;
+  font-weight: 500;
+}
 
 .veil {
   transition: opacity 120ms linear, visibility 0s linear 0s;
