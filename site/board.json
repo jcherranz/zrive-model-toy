@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T12:06:37Z",
+  "generated": "2026-08-12T12:17:12Z",
   "columns": [
     {
       "key": "raw",
@@ -90,15 +90,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/104"
-        },
-        {
-          "id": 105,
-          "title": "Every open issue title reaches the public origin verbatim, past a gate proved bypassable",
-          "labels": [
-            "audit",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/105"
         }
       ]
     },
@@ -106,6 +97,15 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 105,
+          "title": "Every open issue title reaches the public origin verbatim, past a gate proved bypassable",
+          "labels": [
+            "audit",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/105"
+        },
         {
           "id": 100,
           "title": "The whole poitn of this filter is to just render the diagram…",
@@ -174,19 +174,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/93"
-        },
-        {
-          "id": 92,
-          "title": "The sticky invented-value banner is transparent and rows show through it",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/92"
         }
       ],
-      "hidden": 77,
+      "hidden": 78,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
