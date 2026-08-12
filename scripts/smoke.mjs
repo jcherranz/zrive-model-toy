@@ -254,13 +254,14 @@ const ZOOM_TOLERANCE_PX = 0.5;
 // the total below, and a change that forgets is a red run rather than a quiet one.
 const PHASES = {
   'the viewport opened':  { count: 2, when: 'every' },
-  'every width':          { count: 5, when: 'every' },
+  'every width':          { count: 6, when: 'every' },
   'model and reveal':     { count: 14, when: 'behavioural' },
   'cold load':            { count: 4, when: 'behavioural' },
   'students':             { count: 11, when: 'behavioural' },
   'term':                 { count: 54, when: 'behavioural' },
   'the empty window':     { count: 6, when: 'behavioural' },
   'header':               { count: 8, when: 'behavioural' },
+  'the readout':          { count: 6, when: 'behavioural' },
   'canvas':               { count: 7, when: 'behavioural' },
   'capture':              { count: 15, when: 'behavioural' },
   'board':                { count: 13, when: 'behavioural' },
@@ -437,7 +438,29 @@ const PHASES = {
 // over that one repaint, the sentence the drawing now prints against the one the list prints in
 // the same state, that #111's arithmetic is still the header's, and #114's reading guard on a
 // height the fit had never been given before.
-const EXPECTED_ASSERTIONS = 198;
+// 207 with issue 120, and the nine are one card's decisions rather than nine claims about a
+// layout. He asked for a header read as a control dashboard instead of as a web page, after three
+// cards that had each answered by adding a control to one row; the answer was to split the row
+// into the values the page is reporting and the verbs a reader performs, and to take one control
+// off it. Six are the `the readout` phase. Two are the split itself, asserted as placement and as
+// paint and kept apart on purpose, because the row already had the two kinds in two places before
+// this card and had no way at all of telling them apart by looking: a plate drawn around readings
+// still painted in the link colour is the defect the card was filed about with a box around it.
+// Three are the one reading it adds, `tiles`, which is not a control and is the number every other
+// control in the header moves: that it is the drawing's own count and names a denominator only
+// while something is filtering the drawing, that it follows the ghost toggle by exactly the ghost
+// tiles window.GI records, which is the half a reading taken off the built artefact would get
+// wrong while looking perfectly correct, and that it follows the altitude. One is the theme, which
+// left the row's first position for a menu behind a press: three states in the box, the one that
+// is on marked, and the mark and the page moving together, which is #57's finding kept rather than
+// dropped. The other three are the `every width` phase's, one per viewport: the static reading is
+// a span, so the assertion that holds every control in this header on one line at 24 by 24 cannot
+// see it at all, and it is asserted against that row's own measured height rather than against 26.
+// That older assertion changed its scope in the same edit, from `.hnav` to the header, which is a
+// strengthening and not a repair: after the split it was measuring five of the nine controls in
+// this header, and it had never covered the programme picker in the heading, one of the eleven
+// issue 77 measured.
+const EXPECTED_ASSERTIONS = 207;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -2246,9 +2269,14 @@ async function checkTerm(page) {
   const off0 = await page.evaluate('window.ZT.filtered()');
   assert('the window is off on arrival and the header says so in whole weeks',
     w0.on === false && w0.weeks === 0 && cal.wn &&
-      cal.wn.text === 'weeks: all ' + w0.termWeeks && w0.termWeeks > 1 &&
+      // `weeks all 24` and not `weeks: all 24` since issue 120. The colon went when the control
+      // stopped being a nav item and became a reading in the header's readout: the label is
+      // markup and the value is written by term.js, and the two are told apart by weight and
+      // colour rather than by punctuation. The claim is the same claim, which is that the window
+      // is off on arrival and that the control says so in whole weeks.
+      cal.wn.text === 'weeks all ' + w0.termWeeks && w0.termWeeks > 1 &&
       off0.on === false && off0.hidden.length === 0,
-    `a control reading "weeks: all ${w0.termWeeks}" and nothing taken off the drawing`,
+    `a control reading "weeks all ${w0.termWeeks}" and nothing taken off the drawing`,
     `${JSON.stringify(cal.wn && cal.wn.text)}, window on ${w0.on}, ` +
       `${off0.hidden.length} tiles filtered out`);
 
@@ -2293,7 +2321,7 @@ async function checkTerm(page) {
   assert('a three week window cuts the list down to an agenda',
     listWin.rows === w3.shown && listWin.rows === inWindow && listWin.rows > 0 &&
       listWin.rows < state.sessions &&
-      listWin.wn.text === 'weeks: 3 of ' + w3.termWeeks &&
+      listWin.wn.text === 'weeks 3 of ' + w3.termWeeks &&
       listWin.sub.indexOf(w3.shown + ' of them inside the window') !== -1,
     `${inWindow} rows for ${w3.from} to ${w3.to}, out of ${state.sessions}`,
     `${listWin.rows} rows, the page says ${w3.shown}, control ` +
@@ -3456,8 +3484,11 @@ async function checkHeader(page) {
     const txt = await page.evaluate(`document.getElementById('gapsbtn').textContent`);
     perView.push({ key, said: g.total, wanted: model.byView[key], txt });
   }
+  // `gaps 8 of 95` and not `gaps: 8 of 95` since issue 120, for the reason the window control's
+  // text lost its colon: the control is a reading on the header's readout now and the label is
+  // markup. The arithmetic this assertion is about is untouched.
   const wrong = perView.filter(v => v.said !== v.wanted ||
-    v.txt !== `gaps: ${v.wanted} of ${model.value}`);
+    v.txt !== `gaps ${v.wanted} of ${model.value}`);
   assert('and each of the seven drawings says its own number, in the control and in the object',
     wrong.length === 0 && perView.length === 7 &&
       new Set(perView.map(v => v.said)).size > 1,
@@ -3596,6 +3627,249 @@ async function checkHeader(page) {
   await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(startedOn)}`);
   await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(startedOn)}`,
     'the drawing this phase started on');
+  await page.evaluate(`location.hash = '#/'`);
+  await page.waitFor('window.ZT.term().open === false', 'the diagram to come back');
+}
+
+// ---- the readout, issue 120 ---------------------------------------------------------------------
+// SIX ASSERTIONS AND EVERY ONE OF THEM IS A DECISION THAT CARD TOOK, which is the standard the
+// header phase above was written to and the reason it is worth writing twice. He asked for a
+// header thought of as a control dashboard rather than as a web page, after three cards, #89, #90
+// and #98, that had each answered a card like it by adding a control to one row. By the fourth the
+// row held nine, four of them carrying a value and five carrying a verb, every one of them the
+// same blue .linkbtn at the same size, and nothing anywhere saying which kind any of them was.
+//
+// SO THE THING TO ASSERT IS THE SPLIT AND NOT THE STYLING. A rearrangement that looked like a
+// dashboard and left a reading in the nav, or drew the plate and painted the readings in the link
+// colour, would satisfy a driver that measured boxes. The first two below are the split itself,
+// read as placement and as paint; the middle three are the reading this card added, which is the
+// number the rest of the header moves and is therefore the one thing here that can be shipped
+// looking right and being wrong; the last is the control this card took OFF the row.
+//
+// NOTHING HERE READS THE TILE COUNT AND ASSERTS THE TILE COUNT. Every figure is recomputed, off
+// window.GI in this file for the ghosts and off render.js's own record of the window for the rest,
+// and the control's answer is checked against it.
+// The three actions read here are the three that carry no state of their own. `ghosts` and
+// `feedback` are deliberately left out and it is not a convenience: both were painting their own
+// state before this card, the ghost toggle in the body colour with a weight while it is pressed
+// and the capture toggle in the muted one, so a claim that every action shares one colour would be
+// false about the page as it already was and would have to be made true by changing two controls
+// this card has no business changing.
+const PAINT_READ = `(function () {
+  function col(sel) { var e = document.querySelector(sel); return e ? getComputedStyle(e).color : null; }
+  var st = document.getElementById('hstate'), hd = document.querySelector('header');
+  return JSON.stringify({
+    readings: ['#wnval', '#grval', '#tilesval', '#gapsval'].map(col),
+    labels: ['.wnpick .rd-k', '.grpick .rd-k', '#tilesrd .rd-k', '.gapspick .rd-k'].map(col),
+    links: ['#navstudents', '#navview', '#thtoggle'].map(col),
+    plate: st ? getComputedStyle(st).backgroundColor : null,
+    header: hd ? getComputedStyle(hd).backgroundColor : null
+  });
+})()`;
+
+const PLACE_READ = `(function () {
+  var st = document.getElementById('hstate'), nav = document.querySelector('.hnav');
+  function where(id) {
+    var e = document.getElementById(id);
+    return { there: !!e, plate: !!(e && st && st.contains(e)), nav: !!(e && nav && nav.contains(e)) };
+  }
+  var kids = st ? Array.prototype.slice.call(st.children) : [];
+  var r = st ? st.getBoundingClientRect() : null;
+  var tops = kids.map(function (k) { return +k.getBoundingClientRect().top.toFixed(2); });
+  var hs = kids.map(function (k) { return +k.getBoundingClientRect().height.toFixed(2); });
+  return JSON.stringify({
+    readings: ['wnbtn', 'grbtn', 'tilesrd', 'gapsbtn'].map(where),
+    actions: ['ghtoggle', 'fbtoggle', 'navstudents', 'navview', 'thtoggle'].map(where),
+    plateH: r ? +r.height.toFixed(2) : null,
+    tallest: hs.length ? Math.max.apply(null, hs) : null,
+    oneLine: tops.length > 1 && tops.every(function (t) { return t === tops[0]; })
+  });
+})()`;
+
+const TILES_STATE = `(function () {
+  var f = window.ZT.filtered();
+  return JSON.stringify({ text: document.getElementById('tilesval').textContent,
+                          shown: f.shown.length, canon: f.canonNodes, on: f.on });
+})()`;
+
+const THEME_READ = `(function () {
+  var menu = document.getElementById('thmenu');
+  var items = Array.prototype.slice.call(document.querySelectorAll('#thmenu .thitem'));
+  return JSON.stringify({
+    face: document.getElementById('thtoggle').textContent.trim(),
+    expanded: document.getElementById('thtoggle').getAttribute('aria-expanded'),
+    open: !!menu && !menu.hidden,
+    items: items.map(function (b) { return b.textContent.trim(); }),
+    marked: items.filter(function (b) { return b.getAttribute('aria-current') === 'true'; })
+                 .map(function (b) { return b.textContent.trim(); }),
+    theme: window.ZT.theme()
+  });
+})()`;
+
+async function thMenu(page, want) {
+  const open = await page.evaluate(`!document.getElementById('thmenu').hidden`);
+  if (open !== want) await page.evaluate(`document.getElementById('thtoggle').click()`);
+  await page.waitFor(`(!document.getElementById('thmenu').hidden) === ${want ? 'true' : 'false'}`,
+    `the theme box to ${want ? 'open' : 'close'}`);
+}
+
+async function checkReadout(page) {
+  // Which drawing this phase started on, for the reason the header phase records it: this one
+  // walks off the default drawing on purpose and `#/` is not a way back, so the address it leaves
+  // behind would be the address every phase after it runs on.
+  const startedOn = await page.evaluate('window.ZT.programme().key');
+  // The drawing with the most tiles on it, chosen off the model rather than named here, for the
+  // reason no route in this file is typed: a key written into a driver is a key that is right
+  // until the build draws a different set.
+  const big = JSON.parse(await page.evaluate(`(function () {
+    var best = null;
+    window.GI.views.forEach(function (v) {
+      var g = 0;
+      v.nodes.forEach(function (x) { if (x.ghost) g++; });
+      if (!best || v.nodes.length > best.nodes) best = { key: v.key, nodes: v.nodes.length, ghosts: g };
+    });
+    return JSON.stringify(best);
+  })()`));
+  await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(big.key)}`);
+  await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(big.key)}`,
+    `the ${big.key} drawing`);
+
+  // ONE. THE SPLIT, AS PLACEMENT. Every reading is on the plate and no reading is in the nav;
+  // every action is in the nav and no action is on the plate; and the plate is one line high with
+  // its readings on one top edge, because a group whose whole argument is that the four readings
+  // are one statement cannot be two lines of chips at the width this phase runs at. Asserted in
+  // both directions on both sets, so a rearrangement that moved one reading back into the nav, or
+  // one action onto the plate, fails rather than passing on a count.
+  const place = JSON.parse(await page.evaluate(PLACE_READ));
+  const strayReading = place.readings.filter(r => !r.there || !r.plate || r.nav);
+  const strayAction = place.actions.filter(a => !a.there || !a.nav || a.plate);
+  assert('every reading is on the plate and every action is in the nav',
+    strayReading.length === 0 && strayAction.length === 0 &&
+      place.plateH !== null && place.plateH === place.tallest && place.oneLine,
+    'four readings inside the readout, five actions inside the nav, and the plate one line high',
+    `${strayReading.length} readings out of place, ${strayAction.length} actions out of place, ` +
+      `plate ${place.plateH} against its tallest reading ${place.tallest}, ` +
+      `one line ${place.oneLine}`);
+
+  // TWO. THE SPLIT, AS PAINT, AND IT IS A SEPARATE CLAIM FROM THE ONE ABOVE. The row already had
+  // the two kinds in two places before this card, at #98 and at #89: what it did not have was any
+  // way to tell them apart by looking, every one of the nine being a .linkbtn in the link colour
+  // unless it had a state of its own. So the four values take the body colour, their four labels
+  // the muted one, and the plate under them a ground the header does not paint, while the three
+  // actions that carry no state of their own keep the link colour they always had. A readout
+  // painted in the link colour is the defect this card was filed about with a box drawn around it,
+  // and it is exactly what this would catch.
+  const paint = JSON.parse(await page.evaluate(PAINT_READ));
+  const one = xs => xs.length > 0 && xs.every(x => x && x === xs[0]);
+  assert('a reading is painted as a reading and an action as an action',
+    one(paint.readings) && one(paint.labels) && one(paint.links) &&
+      paint.readings[0] !== paint.links[0] && paint.labels[0] !== paint.links[0] &&
+      paint.labels[0] !== paint.readings[0] &&
+      !!paint.plate && !!paint.header && paint.plate !== paint.header,
+    'one colour for the values, another for their labels, neither of them the link colour the ' +
+      'plain actions keep, and a plate the header does not paint',
+    `values ${JSON.stringify(paint.readings)}, labels ${JSON.stringify(paint.labels)}, ` +
+      `links ${JSON.stringify(paint.links)}, plate ${JSON.stringify(paint.plate)} on a ` +
+      `header of ${JSON.stringify(paint.header)}`);
+
+  // THREE. THE TILE READING IS THE DRAWING AND THE DENOMINATOR APPEARS ONLY WHEN SOMETHING IS
+  // TAKING TILES OFF IT. Both directions on one control: with the whole term drawn it is the tile
+  // count and nothing else, and with a window on it is the two numbers, the first of them equal to
+  // render.js's own record of what the window left. A reading that always printed `N of N` would
+  // pass half of this and a reading that never printed the denominator would pass the other half.
+  const whole = JSON.parse(await page.evaluate(TILES_STATE));
+  await wnMenu(page, true);
+  await pressByText(page, '#wnmenu .wn-weeks', '3 weeks');
+  await page.waitFor('window.ZT.term().window.weeks === 3', 'a three week window');
+  await wnMenu(page, false);
+  const windowed = JSON.parse(await page.evaluate(TILES_STATE));
+  assert('the tile reading is the drawing, and names a denominator only when one is being filtered',
+    whole.on === false && whole.text === String(whole.canon) && whole.shown === whole.canon &&
+      windowed.on === true && windowed.shown < windowed.canon &&
+      windowed.text === windowed.shown + ' of ' + windowed.canon &&
+      windowed.canon === whole.canon,
+    `"${whole.canon}" over the whole term and "${windowed.shown} of ${windowed.canon}" under a ` +
+      'three week window',
+    `whole term ${JSON.stringify(whole)}, windowed ${JSON.stringify(windowed)}`);
+  await wnMenu(page, true);
+  await pressByText(page, '#wnmenu .wn-weeks', 'whole term');
+  await page.waitFor('window.ZT.term().window.on === false', 'the window to come off');
+  await wnMenu(page, false);
+
+  // FOUR. AND IT FOLLOWS THE GHOST TOGGLE, BY THE NUMBER OF GHOSTS THE MODEL RECORDS. This is the
+  // claim that makes the reading a count of what is painted rather than a count of what was built:
+  // `ghosts` takes tiles off the canvas with a class and no drawing is rebuilt, so a reading taken
+  // off the artefact alone stays where it was and looks entirely correct. The delta is recomputed
+  // from window.GI in this file. Driven back on afterwards and asserted there too, because a
+  // reading that fell and never came back would pass the first half.
+  const ghostsOn = JSON.parse(await page.evaluate(TILES_STATE));
+  await page.evaluate(`document.getElementById('ghtoggle').click()`);
+  await page.waitFor(`document.body.classList.contains('hide-ghosts')`, 'the ghosts to go');
+  const ghostsOff = JSON.parse(await page.evaluate(TILES_STATE));
+  await page.evaluate(`document.getElementById('ghtoggle').click()`);
+  await page.waitFor(`!document.body.classList.contains('hide-ghosts')`, 'the ghosts to come back');
+  const ghostsBack = JSON.parse(await page.evaluate(TILES_STATE));
+  assert('the tile reading counts what is painted, so the ghost toggle moves it',
+    big.ghosts > 0 && Number(ghostsOn.text) === ghostsOn.canon &&
+      Number(ghostsOn.text) - Number(ghostsOff.text) === big.ghosts &&
+      ghostsBack.text === ghostsOn.text,
+    `a fall of exactly the ${big.ghosts} ghost tiles window.GI records on ${big.key}, and back`,
+    `${ghostsOn.text} with them, ${ghostsOff.text} without, ${ghostsBack.text} back`);
+
+  // FIVE. AND IT FOLLOWS THE ALTITUDE, driven through the page's own menu rather than through an
+  // address, because the claim is that the reading is restated wherever the drawing changes and a
+  // reload would restate it whatever the code did.
+  await page.evaluate(`document.getElementById('grbtn').click()`);
+  await page.waitFor(`!document.getElementById('grmenu').hidden`, 'the altitude box');
+  await pressByText(page, '#grmenu .gritem', 'modules');
+  await page.waitFor(`window.ZT.grain().grain === 'modules'`, 'the collapsed drawing');
+  const collapsed = JSON.parse(await page.evaluate(TILES_STATE));
+  assert('and the altitude moves it, to the tile count of the drawing the altitude names',
+    collapsed.text === String(collapsed.canon) && collapsed.canon < whole.canon &&
+      collapsed.canon > 0,
+    `fewer than ${whole.canon} tiles at the modules grain, and the reading saying so`,
+    `${JSON.stringify(collapsed)} against ${whole.canon} at the sessions grain`);
+  await page.evaluate(`document.getElementById('grbtn').click()`);
+  await page.waitFor(`!document.getElementById('grmenu').hidden`, 'the altitude box again');
+  await pressByText(page, '#grmenu .gritem', 'sessions');
+  await page.waitFor(`window.ZT.grain().grain === 'sessions'`, 'the expanded drawing');
+
+  // SIX. THE CONTROL THIS CARD TOOK OFF THE ROW. `theme: system` spent the row's first position on
+  // a value the page is already showing the reader, and it is behind a press now: nothing on its
+  // face but the word, three choices in the box, exactly one of them marked, and the mark and the
+  // page moving together when one is pressed. #57's finding is the reason the box has three items
+  // and not two, and the reason this asserts the mark rather than the label: what a reader could
+  // not tell was which of the three was on.
+  await thMenu(page, true);
+  const opened = JSON.parse(await page.evaluate(THEME_READ));
+  await pressByText(page, '#thmenu .thitem', 'dark');
+  await page.waitFor(`window.ZT.theme().attr === 'dark'`, 'the page to go dark');
+  await thMenu(page, true);
+  const dark = JSON.parse(await page.evaluate(THEME_READ));
+  await pressByText(page, '#thmenu .thitem', 'system');
+  await page.waitFor(`window.ZT.theme().attr === null`, 'the page to follow the machine again');
+  const back = JSON.parse(await page.evaluate(THEME_READ));
+  assert('the theme is behind a press, with its three states in the box and the one that is on marked',
+    opened.face === 'theme' && opened.open && opened.expanded === 'true' &&
+      opened.items.length === 3 && opened.marked.length === 1 &&
+      opened.marked[0] === opened.theme.choice && opened.theme.choice === 'system' &&
+      dark.marked.length === 1 && dark.marked[0] === 'dark' && dark.theme.attr === 'dark' &&
+      back.theme.choice === 'system' && back.open === false && back.face === 'theme',
+    'a control reading "theme", three choices, the current one marked, and the mark following ' +
+      'the page',
+    `opened ${JSON.stringify(opened.items)} marked ${JSON.stringify(opened.marked)}, ` +
+      `after dark ${JSON.stringify(dark.marked)} attr ${JSON.stringify(dark.theme.attr)}, ` +
+      `back ${JSON.stringify(back.theme.choice)}`);
+
+  // The drawing this phase started on, and nothing selected on it. Collapsing and expanding leaves
+  // the reader looking at the counterpart of what they were reading, which is issue 89's anchor
+  // and is the right behaviour: it also means this phase can hand the next one a page with the
+  // detail panel open over a third of the canvas, which is how the canvas phase came to report a
+  // box of 1216 by 757 for a window of 1536.
+  await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(startedOn)}`);
+  await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(startedOn)}`,
+    'the drawing this phase started on');
+  await clearSelectionIfAny(page);
   await page.evaluate(`location.hash = '#/'`);
   await page.waitFor('window.ZT.term().open === false', 'the diagram to come back');
 }
@@ -4297,6 +4571,18 @@ const FRAME_READ = `(function () {
                           canvas: [c.width, c.height] });
 })()`;
 
+// The static reading in the header's readout, issue 120. `visible` is read off the box rather
+// than off a class, because app.css withdraws it with `display: none` and a rule that stopped
+// matching would leave a class in place and a reading on the page.
+const TILES_READ = `(function () {
+  var el = document.getElementById('tilesrd');
+  if (!el) return JSON.stringify({ there: false });
+  var r = el.getBoundingClientRect();
+  return JSON.stringify({ there: true, visible: !!(r.width || r.height),
+                          h: +r.height.toFixed(2), w: +r.width.toFixed(2),
+                          text: el.textContent.trim() });
+})()`;
+
 async function checkWidth(page, base) {
   // Read before the sweep below takes the canvas off screen, and again while it is off. Issue
   // 114: #/board is the one route that sets display:none on the drawing, viewport.js clamps a rect
@@ -4314,6 +4600,8 @@ async function checkWidth(page, base) {
   // the box that is or is not framed is a different box at each of them.
   const framedAt = JSON.parse(await page.evaluate(FRAME_READ));
   let framedOff = null;
+  // Issue 120, read where this phase already is rather than in a route walk of its own.
+  let tilesOff = null;
 
   const routes = [['#/', 'the diagram'], ['#/board', 'the board'], ['#/students', 'the student list']];
   for (const [hash, what] of routes) {
@@ -4321,6 +4609,7 @@ async function checkWidth(page, base) {
     if (hash === '#/board') {
       await page.waitFor(`document.querySelectorAll('#bbody .bcol').length === 4`, 'the board to draw');
       framedOff = JSON.parse(await page.evaluate(FRAME_READ));
+      tilesOff = JSON.parse(await page.evaluate(TILES_READ));
     } else if (hash === '#/students') {
       await page.waitFor('window.ZT.roster() === true', 'the student list to open');
     } else {
@@ -4352,12 +4641,19 @@ async function checkWidth(page, base) {
   // and fixed both in the stylesheet so that a control added later is right without anybody
   // remembering to make it right. Issue 98 added the sixth control to this row, which is the first
   // test of that claim, so the claim itself is asserted here rather than the new control alone:
-  // every control in the nav, whatever it is and however many there are, the same height and at
+  // every control in the header, whatever it is and however many there are, the same height and at
   // least 24 by 24. It is a width assertion and runs at all three, because the row wraps at the
   // narrow one and a wrapped row is where a size regression would hide.
+  //
+  // THE SCOPE IS THE HEADER AND NOT THE NAV, SINCE ISSUE 120, AND THAT IS A STRENGTHENING RATHER
+  // THAN A REPAIR. That card split the row into a readout and an action bar, so a selector naming
+  // `.hnav` measures five of the nine controls in this header and would have gone green with the
+  // other four at any size at all. It also never covered the programme picker, which lives in the
+  // heading, was one of the eleven #77 measured and has had nothing pointed at it since. The
+  // claim was always "every control in this header", and it is written that way now.
   const row = await page.evaluate(`(function () {
     var out = [];
-    document.querySelectorAll('.hnav button, .hnav a').forEach(function (el) {
+    document.querySelectorAll('header button, header a').forEach(function (el) {
       var r = el.getBoundingClientRect();
       if (!r.width && !r.height) return;
       out.push({ id: el.id || el.className, w: +r.width.toFixed(2), h: +r.height.toFixed(2) });
@@ -4367,10 +4663,26 @@ async function checkWidth(page, base) {
   const heights = Array.from(new Set(row.map(c => c.h)));
   const small = row.filter(c => Math.min(c.w, c.h) < 24);
   assert('every control in the header row is one height and at least 24 by 24',
-    row.length >= 6 && heights.length === 1 && small.length === 0,
+    row.length >= 9 && heights.length === 1 && small.length === 0,
     `${row.length} controls on one height, none under 24 by 24`,
     small.length ? small.map(c => `${c.id} ${c.w}x${c.h}`).join(', ')
                  : `${row.length} controls, heights ${JSON.stringify(heights)}`);
+
+  // AND THE ONE READING THAT IS NOT A CONTROL SITS ON THAT SAME LINE. Issue 120 put a static
+  // reading inside the readout, and a span is exactly the thing the assertion above cannot see:
+  // it is not a button and not a link, so it could render at any height it liked, inside a plate
+  // whose whole argument is that the four readings on it are one statement. Asserted against the
+  // controls' own height rather than against 26, so it stays true if the row is ever resized, and
+  // in both directions: present and on the line on the diagram, and gone where app.css withdraws
+  // it. The withdrawal is read on #/board, which this phase has already visited.
+  const rd = JSON.parse(await page.evaluate(TILES_READ));
+  assert('the reading that is not a control sits on the row\'s own line',
+    rd.there && rd.visible && heights.length === 1 && rd.h === heights[0] && rd.w > 24 &&
+      /^tiles \d+( of \d+)?$/.test(rd.text) &&
+      tilesOff !== null && tilesOff.there && !tilesOff.visible,
+    `a static reading of the form "tiles N" or "tiles N of M", ${heights[0]}px tall like the ` +
+      'controls beside it, and withdrawn on the board',
+    `on the diagram ${JSON.stringify(rd)}, on the board ${JSON.stringify(tilesOff)}`);
 }
 
 // ---- the gutter, at the width where it is declared a second time --------------------------------
@@ -5225,9 +5537,12 @@ async function runGrain(chrome, base) {
     // ---- the header -------------------------------------------------------
     await group('the header', async () => {
       await goto(base + '#/p/ZBL/modules');
+      // The header and not the nav, since issue 120 split the row into a readout and an action
+      // bar: a selector naming `.hnav` would measure five of the nine and would not reach the
+      // grain control this phase is about at all.
       const row = await ev(`
         var out = [];
-        document.querySelectorAll('.hnav button, .hnav a').forEach(function (el) {
+        document.querySelectorAll('header button, header a').forEach(function (el) {
           var r = el.getBoundingClientRect();
           if (!r.width && !r.height) return;
           out.push({ id: el.id || el.className, w: +r.width.toFixed(2), h: +r.height.toFixed(2) });
@@ -5235,15 +5550,17 @@ async function runGrain(chrome, base) {
         return { row: out, header: document.querySelector('header').offsetHeight };`);
       const hs = Array.from(new Set(row.row.map(c => c.h)));
       assert('every control in the header row is one height and at least 24 by 24',
-        row.row.length >= 7 && hs.length === 1 && !row.row.some(c => Math.min(c.w, c.h) < 24),
-        '7 or more controls on one height, none under 24 by 24',
+        row.row.length >= 9 && hs.length === 1 && !row.row.some(c => Math.min(c.w, c.h) < 24),
+        '9 or more controls on one height, none under 24 by 24',
         JSON.stringify({ n: row.row.length, heights: hs,
                          small: row.row.filter(c => Math.min(c.w, c.h) < 24) }));
+      // `grain modules` and not `grain: modules` since issue 120. The claim is unchanged: the
+      // control is in the header and its own text says which altitude is drawn.
       assert('the grain control is in the row and reads its own state',
         row.row.some(c => c.id === 'grbtn') &&
         (await ev(`return document.getElementById('grbtn').textContent;`)) ===
-          'grain: modules',
-        'a control reading "grain: modules"',
+          'grain modules',
+        'a control reading "grain modules"',
         await ev(`return document.getElementById('grbtn').textContent;`));
     });
 
@@ -5367,6 +5684,7 @@ async function runViewport(chrome, viewport, base, full, narrow) {
       // choosing and puts both back the way it found them. Issue 119.
       await group('the empty window', () => checkEmptyWindow(page));
       await group('header', () => checkHeader(page));
+      await group('the readout', () => checkReadout(page));
       await group('canvas', () => checkCanvas(page));
       await group('capture', () => checkCapture(page, base));
       await group('board', () => checkBoard(page, base));
