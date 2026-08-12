@@ -147,6 +147,34 @@ of what changed and when, and it is meant to be scannable.
   every shipped template label for all three and refuses. 83 templates scanned, none carries any
   of them.
 
+### Removed
+
+- **Five of the six statements that the data is invented, #91 and #93, and he asked twice.**
+  "Remove all this taggs, I know that. Remove all of them." and "Remove all this text. A good UI
+  must be self explanatory. Too verbose". Measured on the deployed page before the cut: on
+  `#/outline/ZBL`, 34 data rows under 255 words of explanatory chrome, 7.5 per row, of which
+  `#termnotice` alone was 213 words and 225 CSS px; on `#/calendar`, six distinct statements of the
+  same thing on one screen. Over-marking fails the way under-marking does, and the sixth copy makes
+  the first weaker. Deleted: the subtitle chip on both readings, the invented-value paragraph, the
+  fragmentation and no-template findings, the module-structure and one-to-one paragraphs, the
+  per-shape paragraph, the sticky banner row inside the table, the sticky banner over the grids,
+  the warning on the face of every grid panel, the hint beside the agenda toggle, and the same chip
+  on the student list one route along. What is left in `#termnotice` is controls.
+- **The wording of the survivor is untouched, and that is deliberate.** One page-level provenance
+  statement remains, in the footer, character for character as it was. #101 is open on whether its
+  claim is even true, since nearly half of the shipped values are flagged as read off a real system
+  while `provenance.stance` says invented; whether the page stops claiming total invention or stops
+  shipping the observed material is the owner's decision. These two cards are the COUNT and not the
+  claim, and the smoke assertion that guards the count reads a count and never the sentence.
+- **What was kept, and why it is not the same thing.** The per-node route provenance stays: "no
+  system holds it" is the answer to which system records a value, it is the finding #80 was filed
+  for, and it is modelling content rather than a disclaimer. So does the window's paragraph, which
+  is state feedback for a control a reader can see set to three weeks over an unfiltered outline
+  and is absent unless one is set. The reasoning the deleted paragraphs carried is in `site/term.js`
+  and here, which is where reasoning belongs: a finding a reader has to meet as a paragraph over a
+  table is a finding the table failed to make. What each calendar shape is for is on the shape
+  button's own title, which is the move #79 made for the other three instructions.
+
 ### Changed
 
 - **The time window filters the drawing now, #100, and #90's dim is gone.** He filed it from
@@ -373,6 +401,22 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- **A module heading was painted to the right of the rows it heads, #94.** "Alignment is wrong, too
+  much space to the left". The heading `th` carried `padding-left: 26px` and its data rows carry
+  10, so at 1536 the heading text started at x=245 over row text at x=229: a group heading indented
+  16px past its own children, which reads as a stray gap rather than as a level, since an indent
+  says the things under it belong to it and the things under this one were not indented with it.
+  Both are at 229 now, and 12px on the phone layout where the rows are at 12 and the heading was at
+  14. The level is still carried by the three distinctions #85 gave it, no top rule, the muted
+  colour and the lighter weight. Asserted as the left edge of the painted text and not as a padding
+  declaration, so moving the indent onto a margin or a border fails the same assertion.
+- **The transparent sticky banner, #92, needed no repair because #91 deleted it.** "The EVERY VALUE
+  IN THIS TABLE IS INVENTED row is transparent and I can see the table moving behind it". It was a
+  real defect and a one line fix, an opaque fill on a sticky `th`. #91 was worked first, on the
+  reasoning that a repair to an element about to be deleted is work thrown away, and the element
+  went. Recorded rather than closed silently: the next sticky `th` this page grows needs its own
+  opaque background, and the fill has to be measured on the ground it actually sits on, which #81
+  showed is `--bg-app` and not the plate the stylesheet implies.
 - **The visit edge terminated on the wrong end, #75, and the method is the finding.** The firm
   hosted the visit for the PROGRAMME on evidence that was about where the relation is RECORDED and
   not about what the relation IS: thirteen company notes file a visit under a programme note and
