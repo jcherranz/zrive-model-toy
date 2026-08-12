@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T12:39:11Z",
+  "generated": "2026-08-12T13:24:16Z",
   "columns": [
     {
       "key": "raw",
@@ -64,15 +64,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/89"
-        },
-        {
-          "id": 103,
-          "title": "The gate set measures less than it claims in ten places, one of them a gate nothing runs",
-          "labels": [
-            "audit",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/103"
         }
       ]
     },
@@ -97,6 +88,15 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/104"
+        },
+        {
+          "id": 103,
+          "title": "The gate set measures less than it claims in ten places, one of them a gate nothing runs",
+          "labels": [
+            "audit",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/103"
         },
         {
           "id": 102,
@@ -145,19 +145,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/97"
-        },
-        {
-          "id": 96,
-          "title": "Tile frame is too tight on the drawing",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/96"
         }
       ],
-      "hidden": 80,
+      "hidden": 81,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
