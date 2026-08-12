@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T00:19:27Z",
+  "generated": "2026-08-12T00:26:37Z",
   "columns": [
     {
       "key": "raw",
@@ -24,15 +24,6 @@
             "limitation"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
-        },
-        {
-          "id": 88,
-          "title": "Calendar view needs month and week grids, and the data says which one earns its place",
-          "labels": [
-            "bug",
-            "feedback"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/88"
         },
         {
           "id": 89,
@@ -155,6 +146,16 @@
       "title": "Done",
       "cards": [
         {
+          "id": 88,
+          "title": "Calendar view needs month and week grids, and the data says which one earns its place",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/88"
+        },
+        {
           "id": 86,
           "title": "The sheet overlay covers the whole header, so every page-level control is unreachable",
           "labels": [
@@ -227,19 +228,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/80"
-        },
-        {
-          "id": 79,
-          "title": "Rebuild the footer: 101 words doing four different jobs in one paragraph",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/79"
         }
       ],
-      "hidden": 65,
+      "hidden": 66,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
