@@ -319,3 +319,73 @@ scan_file() {  # file label hashfile
     fi
   done
 }
+
+# ---------------------------------------------------------------------------------------
+# The name rule, for a caller that cannot source this file.
+# ---------------------------------------------------------------------------------------
+# scripts/sync_board.mjs writes the one public artefact in this repository whose content is
+# authored outside it: a GitHub issue title, typed into a text box by a person. It has to apply
+# the name rule to a title BEFORE the title is written, rather than passing it through and
+# hoping a later gate reads the bytes. It is node, so it cannot source this file, and a second
+# implementation of fold_tokens in JavaScript would be the third copy of a rule whose two
+# existing copies this file's own header already warns about drifting.
+#
+# So the rule stays here and is exposed as a subprocess:
+#
+#   bash scripts/forbidden_lib.sh --name-lines <hashfile>
+#
+# stdin is one candidate string per line. stdout is the one based line number of every candidate
+# that carries a token the register holds, one number per line, and nothing else.
+#
+# THE TOKEN IS NEVER PRINTED, AND NEITHER IS THE CANDIDATE. This runs inside CI, a CI log is a
+# place a real name must not become public, and the caller needs only the position in order to
+# redact it. Same reason check_repo.sh sets FORBIDDEN_NAME_ECHO to 0 for its own findings.
+#
+# A candidate spanning more than one line cannot be asked about: the position answer would be
+# meaningless. The caller flattens whitespace before it asks, which is the only contract this
+# interface has beyond one candidate per line.
+name_lines() {  # hashfile
+  local hashfile="$1" line n=0 h
+  local -a toks=() hs=()
+  hash_tokens_select
+  load_hashset "$hashfile"
+  # Poka-yoke, the same one both gates apply to their own inputs: a matcher holding no register
+  # matches nothing and would answer "every candidate is clean", which is the loudest lie this
+  # rule can tell. Refuse to answer instead.
+  if [ "${#FORBIDDEN_HASHSET[@]}" -eq 0 ]; then
+    echo "ASSERTION FAILED: name hash list $hashfile holds no hashes" >&2
+    exit 2
+  fi
+  while IFS= read -r line || [ -n "$line" ]; do
+    n=$((n + 1))
+    toks=(); hs=()
+    mapfile -t toks < <(printf '%s\n' "$line" | fold_tokens)
+    [ "${#toks[@]}" -gt 0 ] || continue
+    mapfile -t hs < <(printf '%s\n' "${toks[@]}" | hash_tokens)
+    if [ "${#hs[@]}" -ne "${#toks[@]}" ]; then
+      echo "ASSERTION FAILED: hashed ${#hs[@]} of ${#toks[@]} tokens on line $n" >&2
+      exit 2
+    fi
+    for h in "${hs[@]}"; do
+      if [ -n "${FORBIDDEN_HASHSET[$h]:-}" ]; then printf '%s\n' "$n"; break; fi
+    done
+  done
+}
+
+# Sourced, this file defines rules and runs nothing. Run directly, it exposes exactly one of
+# them, and refuses anything else rather than doing nothing quietly.
+if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
+  set -euo pipefail
+  case "${1:-}" in
+    --name-lines)
+      [ -n "${2:-}" ] || { echo "usage: forbidden_lib.sh --name-lines <hashfile>" >&2; exit 2; }
+      [ -s "${2}" ] || { echo "ASSERTION FAILED: no name hash list at ${2}" >&2; exit 2; }
+      name_lines "$2"
+      ;;
+    *)
+      echo "scripts/forbidden_lib.sh is a library. Run directly it does one thing:" >&2
+      echo "  bash scripts/forbidden_lib.sh --name-lines <hashfile>" >&2
+      exit 2
+      ;;
+  esac
+fi

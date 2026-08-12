@@ -20,7 +20,13 @@ import { dirname, join } from "node:path";
 
 const REPO = process.env.REPO || "jcherranz/zrive-model-toy";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const BOARD_PATH = join(ROOT, "site", "board.json");
+// Both overridable so the repository gate's self-test can drive this script against a throwaway
+// board and a synthetic register. A probe that had to write the real site/board.json, or had to
+// consult the real register, is a probe nobody would dare run.
+const BOARD_PATH = process.env.BOARD_PATH || join(ROOT, "site", "board.json");
+const FORBIDDEN_LIB = join(ROOT, "scripts", "forbidden_lib.sh");
+const FORBIDDEN_HASHES =
+  process.env.FORBIDDEN_HASHES || join(ROOT, "scripts", "forbidden_names.sha256");
 
 // MIRRORED IN site/board.js, WHICH MUST CHANGE WITH THIS FILE. When a reader has connected
 // their own token in the browser, the page builds the board straight from the GitHub API rather
@@ -96,6 +102,73 @@ function columnFor(labels, state, stateReason) {
   return DEFAULT_COLUMN;
 }
 
+// ---------------------------------------------------------------------------------------------
+// THE NAME RULE, APPLIED BEFORE A TITLE IS WRITTEN. Issue 105.
+//
+// Every other public byte in this repository is authored inside it and passes a gate on the way
+// in. A title does not: it is typed into the issue tracker, by a person, and until now it reached
+// site/board.json verbatim with no length cap, no character filter and no vocabulary, on the
+// argument that a later gate would read the bytes. That argument was measured and it does not
+// hold: board.yml's own commit carries the marker that stops the push-triggered workflows, and
+// the deployed-bytes gate in pages.yml fires after publication, which is an andon and not a
+// guarantee.
+//
+// So the rule is applied here, to the title, before it is written, and it is applied by the
+// library that owns it. There is no copy of the folding in this file and there must never be
+// one: scripts/forbidden_lib.sh already carries the only implementation the two shell gates use,
+// its header warns about the copies that exist, and a third one in JavaScript would drift from
+// the register the moment either side moved. The subprocess answers with positions and never
+// with the token, so no name reaches this process, this log, or the page.
+//
+// REDACT RATHER THAN REFUSE, and it is a close call stated rather than hidden. Refusing would
+// turn one bad title into a red board workflow and a board that stops tracking the work until a
+// person edits the tracker. Redacting keeps the board honest about everything else and leaves a
+// visible hole where the title was, which is the same argument the hidden count below is made
+// on: a board that drops something silently reads as "this is everything". The run says so on
+// stdout and raises a CI annotation, naming the issue number and never the string.
+const REDACTED_TITLE = "[title withheld by the content gate]";
+
+// stdin one candidate per line, stdout the one-based line number of each candidate carrying a
+// token the register holds. Any failure of the subprocess is a failure of the run: a gate that
+// could not be asked has not answered clean.
+function nameGateHits(titles) {
+  if (titles.length === 0) return new Set();
+  const out = execFileSync(
+    "bash",
+    [FORBIDDEN_LIB, "--name-lines", FORBIDDEN_HASHES],
+    { encoding: "utf8", input: titles.join("\n") + "\n", stdio: ["pipe", "pipe", "inherit"] }
+  );
+  const hits = new Set();
+  for (const line of out.split("\n")) {
+    if (!line.trim()) continue;
+    const n = Number(line.trim());
+    if (!Number.isInteger(n) || n < 1 || n > titles.length) {
+      throw new Error(`the name rule answered with ${JSON.stringify(line)}, which is not a position`);
+    }
+    hits.add(n - 1);
+  }
+  return hits;
+}
+
+// Applied to the whole set in one call rather than one call per card, and asserted afterwards
+// rather than trusted: the second pass is over what will actually be written, so a redaction
+// that did not take, or a placeholder that itself carried something, fails the run here instead
+// of reaching the origin.
+function gateTitles(cards) {
+  const hits = nameGateHits(cards.map((c) => c.title));
+  for (const i of hits) {
+    const card = cards[i];
+    console.log(`board sync: the title of issue ${card.id} carries a name the register holds; withheld.`);
+    console.log(`::warning::board: the title of issue ${card.id} was withheld by the content gate.`);
+    card.title = REDACTED_TITLE;
+  }
+  const left = nameGateHits(cards.map((c) => c.title));
+  if (left.size > 0) {
+    throw new Error(`${left.size} title(s) still carry a name after redaction; refusing to write the board`);
+  }
+  return cards;
+}
+
 function toCard(iss) {
   const labels = (iss.labels || [])
     .map((l) => (typeof l === "string" ? l : l.name))
@@ -103,7 +176,10 @@ function toCard(iss) {
     .sort();
   return {
     id: iss.number,
-    title: String(iss.title || "").trim(),
+    // Flattened before it is trimmed. A title is a single-line field in the tracker, so this
+    // changes no title that exists; it is here because the rule above is asked one candidate per
+    // line, and a candidate carrying a newline would shift every position after it.
+    title: String(iss.title || "").replace(/[\r\n\t\f\v]+/g, " ").trim(),
     labels,
     url: iss.url || "",
     // Carried for the arithmetic in build() and stripped before anything is written, because a
@@ -114,7 +190,9 @@ function toCard(iss) {
 }
 
 function build(issues) {
-  const cards = issues.map(toCard).sort((a, b) => a.id - b.id);
+  // Gated before the columns are formed, so a card the cap would have dropped is gated too:
+  // Done rotates, and a title that is not drawn today is drawn tomorrow.
+  const cards = gateTitles(issues.map(toCard).sort((a, b) => a.id - b.id));
   // The whole closed set, and the part of it that is in no column at all. The arithmetic the
   // Done column has to satisfy is closed = drawn + hidden, where drawn is the eight newest
   // completed issues and hidden is everything else that is closed, whichever way it closed.

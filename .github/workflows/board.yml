@@ -52,9 +52,11 @@ name: board
 # back. It runs in pages.yml after every deploy, and every board change reaches the origin through
 # pages.yml, so the deployed bytes are still gated after every deploy that happens; what moves is
 # where the andon lights, from the board run to the pages run. The repository gate below still
-# runs here and still runs before the commit, which is the check this workflow uniquely needs,
-# because its commit carries `[skip ci]` and is the one path that reaches main with no other
-# repository-side gate in front of it.
+# runs here, and now runs over every rendering this job commits rather than over the first one
+# only, which is the check this workflow uniquely needs, because its commit carries the marker
+# that keeps the push-triggered workflows off it and is the one path that reaches main with no
+# other repository-side gate in front of it. The title itself is gated a second time, and
+# earlier, inside sync_board.mjs; see the header there for why one gate was not enough.
 
 on:
   issues:
@@ -108,41 +110,55 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Render issues into site/board.json
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: node scripts/sync_board.mjs
+      # Prove the gate fires before anything is rendered. It is the same self-test verify.sh
+      # runs, and it is separated from the scan below because the two answer different
+      # questions: this one is "does the gate still refuse what it claims to refuse", and it is
+      # about the gate rather than about this run's bytes.
+      - name: Prove the repository gate fires
+        run: bash scripts/check_repo.sh --self-test
 
-      # The repository gate runs on the rendered tree BEFORE the commit, not after it. This
-      # workflow's own commit carries [skip ci], so a board.json written from an issue title
-      # would otherwise reach main and the origin without any repository-side gate having seen
-      # it. Here it is checked while it is still only a working-tree change.
-      - name: Repository gate, before the board is committed
-        run: |
-          bash scripts/check_repo.sh --self-test
-          bash scripts/check_repo.sh
-
-      # GH_TOKEN is needed HERE as well as on the render step above, not only there: the
-      # rebase-retry path below re-runs sync_board.mjs, which calls `gh`. Two same-group runs
-      # fired by one relabel raced on the very first board edit, the loser rebased, and the
-      # re-sync died with "set the GH_TOKEN environment variable". It failed loudly rather
-      # than committing an empty board, which is the assertion in fetchIssues working, but the
-      # run was red for a reason that had nothing to do with the board.
+      # GH_TOKEN is needed for the render inside this step, and for the re-render on the retry
+      # path: both call sync_board.mjs, which calls `gh`. Two same-group runs fired by one
+      # relabel raced on the very first board edit, the loser rebased, and the re-sync died with
+      # "set the GH_TOKEN environment variable". It failed loudly rather than committing an empty
+      # board, which is the assertion in fetchIssues working, but the run was red for a reason
+      # that had nothing to do with the board.
+      #
+      # THE GATE SEES THE BYTES THAT ARE PUSHED. Issue 105. Rendering and gating used to be two
+      # steps and the retry loop re-rendered inside a third, so the gate read the FIRST rendering
+      # and the loop pushed the SECOND. That is a real bypass and it was proved with a fixture
+      # rather than argued: the gate exited 0 on bytes carrying no forbidden token, the retry
+      # re-rendered from the tracker as it stood at that moment, the second rendering carried one,
+      # it was pushed, and the same gate shown the pushed bytes exits 1. This commit carries the
+      # marker that keeps the push-triggered workflows off it, so nothing downstream would have
+      # caught it either; the deployed-bytes gate in pages.yml fires after publication and is an
+      # andon, not the guarantee this workflow claims for itself.
+      #
+      # The fix is one function called at both renders. Rendering without gating is now not a
+      # thing this file can express: every path that reaches `git commit` has run render_and_gate
+      # on the bytes it is about to commit, and nothing re-renders between the gate and the push.
       #
       # `committed` is the whole of the change this job makes to the deploy story. It is written
       # once, at the end, from a variable rather than from several branches, because a step output
       # written twice is a claim that depends on which write GitHub keeps.
-      - name: Commit site/board.json if it changed
+      - name: Render, gate and commit site/board.json if it changed
         id: commit
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
+          render_and_gate() {
+            node scripts/sync_board.mjs
+            bash scripts/check_repo.sh
+          }
+
           # nothing: there was no diff, or a rebase found the origin already carried it.
           # pushed:  a commit of ours reached main and the origin now needs republishing.
           # gaveup:  three pushes were rejected. That is a failure and the run goes red.
           outcome=nothing
+
+          render_and_gate
 
           if [ -z "$(git status --porcelain site/board.json)" ]; then
             echo "board.json unchanged, nothing to commit."
@@ -158,7 +174,7 @@ jobs:
               git reset --hard HEAD~1
               git fetch origin main
               git rebase origin/main
-              node scripts/sync_board.mjs
+              render_and_gate
               if [ -z "$(git status --porcelain site/board.json)" ]; then
                 echo "board.json already current after rebase, nothing to commit."
                 outcome=nothing
