@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T18:26:13Z",
+  "generated": "2026-08-12T18:35:54Z",
   "columns": [
     {
       "key": "raw",
@@ -32,15 +32,6 @@
       "title": "Backlog",
       "cards": [
         {
-          "id": 115,
-          "title": "Thirteen assertions in the new code are narrower than their names, and the behaviour each one is named for can be deleted at 177 of 177",
-          "labels": [
-            "audit",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/115"
-        },
-        {
           "id": 118,
           "title": "The suite never loads a document cold at any address but the default, so every deep link can be broken and stay at 177 of 177",
           "labels": [
@@ -55,6 +46,15 @@
       "key": "in_progress",
       "title": "In progress",
       "cards": [
+        {
+          "id": 115,
+          "title": "Thirteen assertions in the new code are narrower than their names, and the behaviour each one is named for can be deleted at 177 of 177",
+          "labels": [
+            "audit",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/115"
+        },
         {
           "id": 116,
           "title": "One glyph changed repaints 91 tiles across nine of the fourteen drawings, with all fourteen digests unchanged and verify.sh clean",
