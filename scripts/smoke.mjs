@@ -218,7 +218,7 @@ const PHASES = {
   'every width':          { count: 3, when: 'every' },
   'model and reveal':     { count: 14, when: 'behavioural' },
   'students':             { count: 11, when: 'behavioural' },
-  'term':                 { count: 47, when: 'behavioural' },
+  'term':                 { count: 48, when: 'behavioural' },
   'canvas':               { count: 7, when: 'behavioural' },
   'capture':              { count: 14, when: 'behavioural' },
   'board':                { count: 13, when: 'behavioural' },
@@ -319,7 +319,11 @@ const PHASES = {
 // was reused for issue 94, the paragraph about one to one giving way to the measurement that a
 // module heading is never painted right of the rows it heads. Issue 92 added nothing: its banner
 // was deleted by 91 before it could be repaired, and the assertion that it is gone is 91's.
-const EXPECTED_ASSERTIONS = 127;
+// 128 with issues 96 and 97, and the one it adds is the one the existing lane-heading assertion
+// could not make: that the caption is INSIDE the frame drawn around it and evenly placed in it.
+// The old assertion measured the target and passed for as long as the defect shipped, which is
+// the same shape as every other gate here that measured less than it claimed.
+const EXPECTED_ASSERTIONS = 128;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -2303,8 +2307,21 @@ async function checkTerm(page) {
       var e = document.querySelector('.capbtn[data-cap="' + key + '"] .capbtn-hit');
       if (!e) { out[key] = null; return; }
       var r = e.getBoundingClientRect();
-      out[key] = { w: Math.round(r.width * 10) / 10, h: Math.round(r.height * 10) / 10,
-                   cx: Math.round(r.left + r.width / 2), cy: Math.round(r.top + r.height / 2) };
+      // Issues 96 and 97. The frame the reader sees is the sibling of the hit area, and the
+      // caption it is drawn around is the text of the lane the pair sit in.
+      var f = e.parentNode.querySelector('.capbtn-frame').getBoundingClientRect();
+      var t = null;
+      Array.prototype.forEach.call(e.parentNode.parentNode.querySelectorAll('text.band-cap'),
+        function (n) {
+          var q = n.getBoundingClientRect();
+          if (!t) t = { top: q.top, bot: q.bottom };
+          else { t.top = Math.min(t.top, q.top); t.bot = Math.max(t.bot, q.bottom); }
+        });
+      var r1 = function (v) { return Math.round(v * 10) / 10; };
+      out[key] = { w: r1(r.width), h: r1(r.height),
+                   cx: Math.round(r.left + r.width / 2), cy: Math.round(r.top + r.height / 2),
+                   air: t ? { top: r1(t.top - f.top), bot: r1(f.bottom - t.bot),
+                              off: r1((t.top + t.bot) / 2 - (f.top + f.bottom) / 2) } : null };
     });
     out.k = k;
     return out;
@@ -2334,6 +2351,30 @@ async function checkTerm(page) {
       `${b.templates.h} sessions ${b.sessions.w}x${b.sessions.h}`).join(' | '),
     three.map(([n, b]) => `${n} k=${b.k.toFixed(3)}: ${b.templates.w}x${b.templates.h} and ` +
       `${b.sessions.w}x${b.sessions.h}`).join(', '));
+
+  // AND THE CAPTION HAS TO BE INSIDE IT, EVENLY. Issues 96 and 97, filed on this rect within
+  // seconds of each other as "frame is too tight" and "not centered in the frame". Both were
+  // true and the assertion above passed the whole time: a target can be 24 by 24 and still be
+  // drawn through the words it is a target for, which is this repository's own failure shape,
+  // a check that measures less than it claims. The frame's height mixed caption units scaled by
+  // the zoom with raw CSS px, so the room above the caption came out as 3.6k - 4 and went
+  // NEGATIVE below k = 1.11, which is fit and everything short of it; and the 26px clamp grew
+  // the rect upward only, so a one line heading sat 5px below its own centre at fit and 8px
+  // below it at the far zoom out. Three units of air and half a line of centring are well
+  // inside what a reader would call either name, so the thresholds are loose on purpose: this
+  // catches the defect coming back, not a repaint that lands a pixel elsewhere.
+  const cramped = three.filter(([, b]) => ['templates', 'sessions'].some((key) => {
+    const a = b[key] && b[key].air;
+    return !a || a.top < 3 || a.bot < 3 || Math.abs(a.off) > 2;
+  }));
+  assert('the lane heading sits inside its frame, with air on both sides, at every zoom',
+    cramped.length === 0,
+    'at least 3px of air over and under both captions and neither more than 2px off centre',
+    three.map(([n, b]) => `${n} k=${b.k.toFixed(3)} ` + ['templates', 'sessions'].map((key) =>
+      `${key} ${b[key].air ? `${b[key].air.top}/${b[key].air.bot} off ${b[key].air.off}`
+        : 'no caption'}`).join(' ')).join(' | '),
+    cramped.map(([n, b]) => `${n} k=${b.k.toFixed(3)}: ` + ['templates', 'sessions'].map((key) =>
+      `${key} ${JSON.stringify(b[key] && b[key].air)}`).join(', ')).join(' | '));
 
   // AND IT OPENS THE LANE'S OWN READING, SCOPED. One lane heading being a control while its
   // neighbour is decoration is worse than neither, which is why both are asserted here.

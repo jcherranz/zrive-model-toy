@@ -241,10 +241,60 @@
     // leaves behind; this listens for the click, which a drag never produces. That is issue 46's
     // threshold doing its job for a second kind of target rather than a second mechanism.
     var CAP_MIN = 26;               // what issue 77 took every control on this page to
-    var CAP_BELOW = 4;              // CSS px below the last baseline, so a descender is inside
-    var CAP_ABOVE = 8;              // and enough over the top line to clear its ascender
+    // CSS px of air between the caption's own painted box and the frame, on all four sides. Five
+    // because that is FRAME_PAD, the pad the node focus frame already uses: two frames on one
+    // drawing that hold their contents at different distances read as two different controls.
+    var CAP_PAD = 5;
 
-    function addCapButton(parent, b) {
+    // ISSUES 96 AND 97, AND THEY ARE ONE DEFECT. He filed "frame is too tight" and "not centered
+    // in the frame" on the same element, `svg>g>g>g>rect` under `#graph`, which is this rect: a
+    // rect inside a node group is described as `ancestor [data-node=...]` and never as
+    // `ancestor #graph`, and no other rect on the drawing sits three groups deep.
+    //
+    // The frame used to be positioned as `y = CAP_BELOW - hpx` with `hpx = (lines + 8 + 4) * k`,
+    // which mixes two spaces in one rect: the height was in caption units multiplied by the zoom
+    // and the offset was in raw CSS px. So the four units meant to sit under the last baseline
+    // were also being counted, scaled, at the top, and the room actually left above the caption
+    // came out as `3.6k - 4` CSS px. That is NEGATIVE below k = 1.11, which is the fit scale and
+    // everything short of it: measured on the deployed page at 1536 by 839, the three line
+    // caption cleared the frame by 0.28px at fit and overflowed it by 1.02px one zoom step out.
+    // Too tight is the right word and it was not a matter of taste. The same mixing put a fixed
+    // 4px under the baseline against a descender that grows with the zoom, so the bottom edge
+    // crossed the text from k = 2.1 upward.
+    //
+    // AND THE CLAMP PUT ALL OF ITS SURPLUS ON ONE SIDE. Where the caption is smaller than the
+    // 26px the target has to keep, the old rect grew upward only, because the bottom edge was
+    // pinned at the baseline. A one line heading therefore sat 5px below the centre of its own
+    // frame at fit and 8px below it at the far zoom out, which is issue 97 exactly.
+    //
+    // Both are gone by measuring instead of estimating. capExtent() reads the caption's painted
+    // box off the text the browser drew, the way frameNode() below reads a node's, so the two
+    // pads are the only numbers here and both are in CSS px; the clamp's surplus is then split
+    // between the two sides. There is no second opinion about text metrics anywhere in it, which
+    // is the mistake this repository has already bought twice.
+
+    // How far the caption reaches above and below the last baseline, in USER units, measured
+    // once when the lane is painted. It cannot change with the zoom, so it is not re-read on one.
+    //
+    // The fallback is the estimate this function exists to avoid and it is deliberately never
+    // reached on a painted drawing: getBBox on a text element that is not in a rendered tree
+    // answers zero, and a zero would put the frame through the middle of the words. The numbers
+    // in it are the line stack plus one line of ascent and a fifth of one of descent.
+    function capExtent(caps) {
+      var base = G.bandTop - (G.capGap || 7);
+      var up = 0, down = 0;
+      caps.forEach(function (t) {
+        var bb = t.getBBox();
+        if (!bb || !bb.height) return;
+        up = Math.max(up, base - bb.y);
+        down = Math.max(down, (bb.y + bb.height) - base);
+      });
+      if (!(up > 0)) up = (caps.length - 1) * (G.capLineH || 11) + 9;
+      if (!(down > 0)) down = 2;
+      return { up: up, down: down };
+    }
+
+    function addCapButton(parent, b, caps) {
       var link = capLinkFor ? capLinkFor(b.key) : null;
       if (!link) return;
       var g = el('g', { class: 'capbtn', 'data-cap': b.key, tabindex: 0, role: 'link' }, parent);
@@ -262,12 +312,13 @@
         ev.preventDefault();
         go(ev);
       });
-      capBtns.push({ g: g, hit: hit, frame: frame, band: b });
+      capBtns.push({ g: g, hit: hit, frame: frame, band: b, box: capExtent(caps) });
       return g;
     }
 
     // Called by the viewport on every fit, zoom step, pinch and resize. At most two controls and
-    // five attribute writes each, which is why it can be called on every frame of a pinch.
+    // five attribute writes each, which is why it can be called on every frame of a pinch. The
+    // caption is measured when the lane is painted and not here, so that stays true.
     //
     // THE TWO AXES ARE THE SAME RULE WITH A DIFFERENT NATURAL SIZE. Width follows the lane and
     // height follows the caption, because those are the honest extents of the thing the heading
@@ -278,10 +329,14 @@
     function setCapScale(k) {
       capK = (k > 0 && isFinite(k)) ? k : 1;
       capBtns.forEach(function (c) {
-        var lines = (c.band.lines || [c.band.label]).length;
-        var capUnits = (lines - 1) * (G.capLineH || 11) + CAP_ABOVE + CAP_BELOW;
+        // Everything from here down is CSS px: the caption's own box scaled to the screen, plus
+        // one pad on each side. Nothing is left in user units to be scaled a second time.
+        var up = c.box.up * capK + CAP_PAD;
+        var down = c.box.down * capK + CAP_PAD;
+        var hnat = up + down;
         var wpx = Math.max(CAP_MIN, c.band.w * capK);
-        var hpx = Math.max(CAP_MIN, capUnits * capK);
+        var hpx = Math.max(CAP_MIN, hnat);
+        var grow = (hpx - hnat) / 2;   // what the clamp added, half of it to each side
         // Anchored on the LAST baseline, which is the line that sits the same distance above the
         // lane whatever the caption above it does, so a one line heading and a three line one are
         // the same control in the same place.
@@ -290,7 +345,7 @@
           'scale(' + (1 / capK).toFixed(4) + ')');
         [c.hit, c.frame].forEach(function (r) {
           r.setAttribute('x', (-wpx / 2).toFixed(2));
-          r.setAttribute('y', (CAP_BELOW - hpx).toFixed(2));
+          r.setAttribute('y', (-(up + grow)).toFixed(2));
           r.setAttribute('width', wpx.toFixed(2));
           r.setAttribute('height', hpx.toFixed(2));
         });
@@ -337,7 +392,9 @@
         // distance above the lane whatever the caption above it does. The build reserves the
         // headroom and refuses to write a drawing in which any one line is wider than its lane.
         var lines = b.lines || [b.label];
-        lines.forEach(function (line, i) {
+        // Kept, because the control over this caption is sized from the box the browser draws
+        // these into rather than from a second guess at how tall they are. Issues 96 and 97.
+        var capTexts = lines.map(function (line, i) {
           var t = el('text', {
             // Issue 100. The last line of a filtered lane's caption is the count for the window
             // and not part of the lane's name, so it is marked and the stylesheet sets it apart
@@ -347,8 +404,9 @@
             y: G.bandTop - (G.capGap || 7) - (lines.length - 1 - i) * (G.capLineH || 11)
           }, gLane);
           t.textContent = line;
+          return t;
         });
-        addCapButton(gLane, b);
+        addCapButton(gLane, b, capTexts);
       });
       setCapScale(capK);
 
