@@ -2360,16 +2360,24 @@ async function checkTerm(page) {
   // the zoom with raw CSS px, so the room above the caption came out as 3.6k - 4 and went
   // NEGATIVE below k = 1.11, which is fit and everything short of it; and the 26px clamp grew
   // the rect upward only, so a one line heading sat 5px below its own centre at fit and 8px
-  // below it at the far zoom out. Three units of air and half a line of centring are well
-  // inside what a reader would call either name, so the thresholds are loose on purpose: this
-  // catches the defect coming back, not a repaint that lands a pixel elsewhere.
+  // below it at the far zoom out.
+  //
+  // THE THRESHOLDS ARE LOOSE AND THE EVIDENCE FOR EACH IS A MEASUREMENT. The air is read off
+  // getBoundingClientRect, which is the layout box and carries the line box's leading, while the
+  // repair measures the font box; the two differ by up to about a pixel and the difference moves
+  // with the scale, so the floor cannot sit where the tightest observed reading is. Driven over
+  // eleven zoom levels on the unfiltered drawing and over the filtered one, the air came out
+  // between 3.0 and 12.3px and the offset never past 1.2px. Two and three leave that room and
+  // still fail every one of the old readings: the defect showed -2, -1.0 and +0.3px of air and
+  // put the caption 5.4 to 8px off centre, and the negative control confirms this assertion
+  // fails on the geometry it replaced while the 24 by 24 one above passes in both directions.
   const cramped = three.filter(([, b]) => ['templates', 'sessions'].some((key) => {
     const a = b[key] && b[key].air;
-    return !a || a.top < 3 || a.bot < 3 || Math.abs(a.off) > 2;
+    return !a || a.top < 2 || a.bot < 2 || Math.abs(a.off) > 3;
   }));
   assert('the lane heading sits inside its frame, with air on both sides, at every zoom',
     cramped.length === 0,
-    'at least 3px of air over and under both captions and neither more than 2px off centre',
+    'at least 2px of air over and under both captions and neither more than 3px off centre',
     three.map(([n, b]) => `${n} k=${b.k.toFixed(3)} ` + ['templates', 'sessions'].map((key) =>
       `${key} ${b[key].air ? `${b[key].air.top}/${b[key].air.bot} off ${b[key].air.off}`
         : 'no caption'}`).join(' ')).join(' | '),
