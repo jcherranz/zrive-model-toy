@@ -3048,17 +3048,71 @@ def _css_text(raw=None):
     return _re.sub(r"/\*.*?\*/", "", raw, flags=_re.S)
 
 
-def surface_token(selector, prop):
-    """The custom property a rule paints with, read from the stylesheet and never retyped."""
+def surface_token(selector, prop, css=None):
+    """The custom property a rule paints with, read from the stylesheet and never retyped.
+
+    ONE ANSWER OR A REFUSAL, AND IT USED TO BE THE FIRST ANSWER IT TRIPPED OVER. Issue 103. This
+    was a single `re.search` with no multiplicity check, so a stylesheet declaring `.band` twice
+    handed back whichever rule stood higher in the file and said nothing about the other. Its
+    sibling surface_values() has treated a second declaration as a refusal since issue 64, with
+    a probe for it, and the asymmetry was written down nowhere: the reader that resolves a
+    token's VALUE refuses to choose, and the reader that decides WHICH TOKEN is being resolved
+    chose silently.
+
+    It matters more than the sibling, not less, because it runs first. A theme-scoped `.band`
+    override painting a different token sent the whole contrast measurement at the wrong
+    surface, and nothing downstream could notice: surface_values() would then resolve that wrong
+    token perfectly, under both schemes, with every multiplicity check passing. Proved by adding
+    a scheme-scoped override to app.css, an ordinary edit in a file that already uses that
+    idiom: every contrast row came back byte identical and check_repo.sh stayed clean, while two
+    of the measured dark ratios, printed as 4.9025 and 4.8431, were really 5.8744 and 5.8033.
+    The direction of the error is uncontrolled, and the header of the last colour card names one
+    of these numbers as the value that bounded it.
+
+    So: every block whose prelude is this selector is read, every declaration of this property
+    inside those blocks is collected, and the reader answers only if they agree. Agreement is
+    not the same as there being one of them, and disagreement is a stylesheet to look at rather
+    than a coin to toss, which is the sibling's rule in the sibling's words.
+
+    A DECLARATION THAT IS NOT A CUSTOM PROPERTY IS ALSO A REFUSAL, and the old regex could not
+    even see one: it required `var(--token)` in the pattern itself, so `.band { fill: #123456 }`
+    written below the live rule matched nothing, was skipped, and left the search to find the
+    rule above it. A hex painted straight onto the plate is exactly what this whole check exists
+    to make impossible.
+
+    `css` is the stylesheet text and defaults to the shipped file. It is a parameter for the same
+    reason surface_values() has one: the probes put a synthetic stylesheet through this reader
+    rather than through a copy of it that could agree with a broken original.
+    """
     import re as _re
-    css = _css_text()
-    # [^}] cannot cross a closing brace, so this cannot read a declaration out of the next rule.
-    m = _re.search(_re.escape(selector) + r"\s*\{[^}]*?\b" + _re.escape(prop)
-                   + r"\s*:\s*var\((--[a-z0-9-]+)\)", css)
+    text = _css_text(css)
+    # [^}] cannot cross a closing brace, so a body read here cannot run into the next rule.
+    opens = _re.escape(selector) + r"\s*\{"
+    blocks = list(_re.finditer(opens + r"([^}]*)\}", text))
+    if len(blocks) != len(_re.findall(opens, text)):
+        raise SystemExit(f"model: app.css opens a `{selector}` block this reader cannot find the "
+                         f"end of, or nests another block inside one. It reads a rule body as "
+                         f"the text up to the first closing brace and will not guess past that.")
+    found = []
+    for b in blocks:
+        for d in _re.finditer(r"\b" + _re.escape(prop) + r"\s*:\s*([^;}]+)", b.group(1)):
+            found.append(" ".join(d.group(1).split()))
+    if not found:
+        raise SystemExit(f"model: app.css no longer paints {selector} with anything at all for "
+                         f"{prop}. The surface the type colours are measured against is read "
+                         f"from there and this check is now measuring nothing.")
+    distinct = sorted(set(found))
+    if len(distinct) != 1:
+        raise SystemExit(f"model: app.css paints {selector} with {len(distinct)} different "
+                         f"values for {prop} ({', '.join(distinct)}) and this check will not "
+                         f"choose between them. One of them is the surface the page draws and "
+                         f"the other is the surface this measurement would be about.")
+    m = _re.fullmatch(r"var\((--[a-z0-9-]+)\)", distinct[0])
     if not m:
-        raise SystemExit(f"model: app.css no longer paints {selector} with a custom property "
-                         f"for {prop}. The surface the type colours are measured against is "
-                         f"read from there and this check is now measuring nothing.")
+        raise SystemExit(f"model: app.css paints {selector} with `{distinct[0]}` for {prop} "
+                         f"rather than with a custom property. Every colour on this page is "
+                         f"measured through the token that names it, and a value written "
+                         f"straight into the rule is a colour nothing measures.")
     return m.group(1)
 
 
@@ -3419,6 +3473,60 @@ def palette_self_test():
                    "both theme attributes")
     expect_refusal("a stylesheet that does not close every block it opens",
                    f":root {{ {t}: light-dark({lit}, {drk});", "does not close every block")
+
+    # ---- and the reader that runs BEFORE that one, deciding which token is being resolved ----
+    # Issue 103. surface_token() had no probe of any kind and no multiplicity check, and it is
+    # the reader whose answer everything above is then applied to: get the token wrong and every
+    # refusal above passes, perfectly, about the wrong surface. Same synthetic-stylesheet rule as
+    # the rest of this suite, and `.probe-plate` is a selector nothing ships.
+    def expect_token(name, css, token=_PALETTE_PROBE_TOKEN, sel=".probe-plate", prop="fill"):
+        try:
+            got = surface_token(sel, prop, css)
+        except SystemExit as exc:
+            results.append((False, f"{name} (refused: {exc})"))
+            return
+        results.append((got == token, name))
+
+    def expect_token_refusal(name, css, names_it, sel=".probe-plate", prop="fill"):
+        try:
+            got = surface_token(sel, prop, css)
+        except SystemExit as exc:
+            results.append((names_it in str(exc), name))
+            return
+        results.append((False, f"{name} (answered {got} instead of refusing)"))
+
+    expect_token("the one rule that paints the plate names the token it paints with",
+                 f".probe-plate {{ fill: var({t}); }}")
+    expect_token("a second rule painting the plate with the SAME token is agreement, not a clash",
+                 f".probe-plate {{ fill: var({t}); }}\n"
+                 f":root[data-theme=\"dark\"] .probe-plate {{ fill: var({t}); }}")
+    # THE DEFECT ITSELF. The old reader returned the first token it found and the override below
+    # changed nothing anywhere in the output.
+    expect_token_refusal("a theme-scoped rule painting the plate with a DIFFERENT token",
+                         f".probe-plate {{ fill: var({t}); }}\n"
+                         f":root[data-theme=\"dark\"] .probe-plate {{ fill: var({t}-alt); }}",
+                         "2 different values")
+    # And the same defect written the other way up, which the old pattern could not see at all
+    # because it required var() inside the match and skipped anything else.
+    expect_token_refusal("a rule painting the plate with a hex instead of a custom property",
+                         f".probe-plate {{ fill: {drk}; }}",
+                         "rather than with a custom property")
+    expect_token_refusal("a hex override under a rule that does name a token",
+                         f".probe-plate {{ fill: var({t}); }}\n"
+                         f":root[data-theme=\"dark\"] .probe-plate {{ fill: {drk}; }}",
+                         "2 different values")
+    expect_token_refusal("no rule paints the plate at all",
+                         f".something-else {{ fill: var({t}); }}",
+                         "no longer paints")
+    expect_token("a commented out override paints nothing",
+                 f".probe-plate {{ fill: var({t}); }}\n"
+                 f"/* .probe-plate {{ fill: var({t}-alt); }} */")
+    expect_token("a longer selector ending in this one is a different rule",
+                 f".probe-plate {{ fill: var({t}); }}\n"
+                 f".probe-plate-cap {{ fill: var({t}-alt); }}")
+    expect_token_refusal("a second declaration of the property inside the same block",
+                         f".probe-plate {{ fill: var({t}); fill: var({t}-alt); }}",
+                         "2 different values")
 
     for ok, name in results:
         print(f"{'ok' if ok else 'miss'}|{name}")

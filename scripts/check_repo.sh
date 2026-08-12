@@ -721,13 +721,13 @@ raise SystemExit(1)' "$1" "$2" 2>/dev/null || true
 # distinction smoke.mjs draws between "the page has regressed" and "the suite could not answer".
 # A run that ALSO recorded a real MISS reports the MISS and exits 1, because evidence about the
 # gate beats a complaint about the harness.
-EXPECTED_PROBES=86
+EXPECTED_PROBES=95
 
 # How many cases build/model.py's stylesheet reader emits into the block below. Same argument,
 # and it lives here rather than in the emitter because here is where the cases are judged and
 # where a reader looking at the ratio would be misled by a short one. See that block for what
 # the old floor of one could not see.
-EXPECTED_PALETTE_CASES=22
+EXPECTED_PALETTE_CASES=31
 
 self_test() {
   local tmp fake_hashes fake_defs pass=0 total=0
