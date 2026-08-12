@@ -306,6 +306,69 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- **Nine assertions were narrower than their names and the behaviour each one is named for could be
+  deleted at 184 of 184, #115.** Every row below was closed the way the card asked and not by
+  reading: the defect its name describes was planted, the whole suite run, the named assertion
+  shown red, then restored and shown green. Eleven plants, eleven reds.
+- **The filtered drawing is recomputed in the driver now, which closes F9, F18, F11 and F21 with one
+  instrument.** `window.ZT.reflow()` is `faithful(CANON)` and `CANON` is what the build wrote, so
+  its answer is filter-independent by construction: displacing the filtered drawing by 37px moved
+  the picture and left the printed line byte identical. `filtered()`'s own calls to `place()` and
+  `edgeGeom()` were covered by nothing, and the edges were ungated in both directions, halving the
+  drawn lines and re-pointing a vanished end at a surviving tile both shipping green. The new
+  reading in `scripts/smoke.mjs` joins `site/layout.js` and `site/instance.js` itself, re-derives
+  the column list, the pitch and the top margin, packs the surviving columns with the builder's
+  own rule, and computes each arc from the two tiles it joins. Given the tiles on screen as its
+  input it decides where every one belongs, which lines there should be and the shape of each.
+  Under the 37px plant it names the tile and the offset on all four drawings; under draw-fewer it
+  reports 14 lines missing of 28 wanted; under draw-more, 82 drawn where 28 are right.
+- **Presence and absence, which is what F18 was about.** The suite checked the surviving edges and
+  never that the rest had gone, and the two numbers its comment said were "asserted against each
+  other" were one number routed through the window control's `title`. The expected edge set is now
+  computed from the canonical relationships and the tiles on the canvas, and the two sets are
+  required to be equal.
+- **`a window is on and has taken tiles off the picture` reads the tiles, F11.** It asserted only
+  that the window said it was on; the suite computed `shown` and discarded it. Disabling the line
+  in `site/render.js` that marks a node outside the window left the window on, taking nothing off,
+  and it stayed green; it now goes red naming 80 of 80 on Z-BL.
+- **The modules-grain window predicate has a both-directions reading, F21.** `site/term.js` reads a
+  module's span and its own comment names the wrong arithmetic; swapping to it took Z-BL from 24
+  tiles to 0 of 34 with every gate green, because the only check was `hidden.length > 0`, which a
+  filter that deletes everything satisfies. The driver judges every dated tile from its own date or
+  span, written as the interval overlap rather than as a copy of the expression it checks.
+- **The guard on the standing of the content sweeps the whole document, F26.** It read leaf text
+  under two containers, one word stem, one route, in whatever shape the sheet happened to be in, so
+  the exact sentence #110 deleted put back into a chip's `title` shipped green and a synonym in the
+  footer shipped green through `verify.sh`. It now sweeps every element's text AND its attributes,
+  over a vocabulary, on every address the page publishes, in every shape each offers, with the
+  outline rows disclosed. The board is deliberately not swept: a card there quotes a repository
+  issue written by somebody else, and a guard that cries wolf is a guard somebody turns off.
+- **The downgrade direction is enumerated over all six syllabus keys and both grains, F28.** It was
+  one assertion reading two keys off one selected template, so `module_code` and `module` flagged
+  `dummy` shipped green through everything: `check_provenance` has no rule for a real value flagged
+  dummy and, after #110, nothing renders the flag either. `absent` stays legitimate, for the reason
+  `build/model.py` argues; any other token is refused, and each of the six keys must appear.
+- **The module tile's count is recomputed from the other altitude, F12.** `tails.every(...)` over a
+  list filtered by the words it then matches is vacuously true on an empty list, and the number
+  inside the idiom was read by nothing: a tile could say "all 14 session templates" of a module
+  holding fifteen and every gate was green. Each count is now joined against the session templates
+  the sessions grain files under that module, and which form of the idiom is used is itself checked.
+- **The programme picker is enumerated rather than sampled, F10.** The probe was
+  `#pgmenu .pgitem[href$="/modules"]`, a selector that can only return an item which kept the
+  altitude, beside a count that is the picker's size. Six of seven losing the grain was green.
+- **The capture suite proves the page can file, #118 row F2.** Every assertion it made about the
+  recorder was an absence, and the file control was never pressed, so `window.__smoke.opens` was
+  never observed non-empty and the stub's own `window.open` override was never proved live. With
+  `fileIssue()` made a no-op the whole phase was green while the one channel by which a reader
+  reports a defect was dead. The control is now pressed with no token stored and exactly one window
+  has to open, at the prefilled issue form of the repository the published board draws its cards
+  from, carrying a title, the feedback label and a body quoting the element the capture named.
+- **A fourth kind of phase, `narrow`, so the phone half of #113 has somewhere to run, F22.**
+  `behavioural` runs at the viewport that can drive a pointer and that viewport is the widest, so
+  the gutter pair `site/app.css` declares at 390 was a second declaration with nothing pointed at
+  it: zeroing both was green while the outline group heading, the outline data cell and the calendar
+  month heading all went from 16 to 0 on a phone. The two assertions are the relationships the pair
+  at 1536 makes and not the pixels, so a breakpoint that changes the two numbers keeps them.
 - **The fourteen drawing digests were correct and covered less than the drawing, #116.** Every one
   recomputed and matched; the finding was scope. The type registry paints every tile's glyph,
   colour pair and accessible label out of `drawing.types` and was outside all fourteen, so one
