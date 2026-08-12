@@ -2265,6 +2265,322 @@ def check_module_structure():
 # one object and not eighty three. check_provenance() walks it, for the reason three separate
 # comments in this file already give about the registry, the provenance block and the counts
 # block: a block the node walk cannot see is where the next unranked value lands.
+#
+# ---- AND THE OWNER REVERSED IT. TEMPLATE_AGENDA BELOW IS WHAT HE ASKED FOR INSTEAD ----------
+# HE ASKED FOR SOMETHING AD HOC, MINIMAL AND IMAGINED FROM THE SESSION TITLE, so the four
+# constant lines are replaced by three or four short beats written for each of the 83 templates
+# out of its own title and nothing else.
+#
+# THIS REVERSES THE SAFETY MEASURE THE PARAGRAPHS ABOVE ARGUE FOR, AND WHAT MAKES IT ACCEPTABLE
+# IS CONDITIONAL, WHICH IS THE WHOLE REASON IT IS WRITTEN DOWN RATHER THAN ASSUMED. The identical
+# lines were chosen over eighty three plausible ones because plausible is the dangerous property:
+# an agenda inferred from a title reads exactly like curriculum design, and a stranger landing on
+# a world readable page had no way to tell it from a proposal. A reader who opened a second row
+# and met the identical four could not make that mistake. That protection was bought for a public
+# page, and there is no longer one: the deployment was taken down under issue 101, and the
+# account cannot host a private one. IF THE PAGE IS EVER REPUBLISHED THE TRADE CHANGES BACK AND
+# THIS BLOCK IS THE FIRST THING TO RE-EXAMINE.
+#
+# WHAT THE LINES ARE AND ARE NOT. Three or four beats, lower case, each of them a thing that
+# would happen in the room rather than a thing a student would come away holding. No learning
+# objectives, no durations, no module numbering, nothing shaped so that a line could be lifted
+# into a syllabus and believed. They are made up from the title, which is the only session level
+# string the vault holds, and from nothing else.
+#
+# THE SIX Z-CFA TITLES ARE THE HONEST EXCEPTION AND IT IS NAMED HERE RATHER THAN HIDDEN. Their
+# titles are reading numbers and nothing else, '19, 20 & 21' and its five siblings, so there is
+# no subject in them to be ad hoc about. Their beats are about working through numbered readings,
+# which is the closest this table comes to a family. Inventing subject matter for them would be
+# inventing a curriculum out of nothing at all, which is a worse thing to ship than a shape that
+# repeats.
+#
+# EVERY LINE STILL CARRIES `dummy` AND `0_invented`, the flag vocabulary is untouched, and
+# check_provenance() walks these rows through exactly the rules it walks the four constant ones
+# through. Two things are checked below rather than asserted: that the table covers the drawn
+# templates exactly, so a renamed template loses its agenda loudly, and that no two templates
+# carry the same beat, which is the mechanical half of not collapsing into a formula.
+#
+# NOT YET RENDERED, AND THAT IS A FILE OWNERSHIP FACT RATHER THAN A DESIGN ONE. site/term.js
+# draws `rows` under every template and is held by another agent this hour, so this block ships
+# gated and unread by the page. The flip is entirely on that side: read
+# `per_session.by_template[t.id]` in agendaRow(), read `per_session.note` above it, restate the
+# toggle's own label and title, which both say "the four lines", and drop `note` and `rows` from
+# the dict below in the same commit.
+TEMPLATE_AGENDA = {
+    # ---- Z-IB ------------------------------------------------------------------------------
+    "st1": ("a raw export opened cold, and the keys that keep hands off the mouse",
+            "lookups, pivots and one array formula that earns its place",
+            "a small model rebuilt from an empty sheet",
+            "the file handed to somebody else and opened cold by them"),
+    "st2": ("what a reader takes off one page in six seconds",
+            "a bullet rewritten until it carries a number",
+            "CVs swapped with the person in the next chair and marked hard"),
+    "st3": ("what a market is for, before what it does",
+            "rates, growth and inflation as three dials on one board",
+            "a morning of headlines read as prices moving"),
+    "st4": ("three statements laid side by side and tied to each other",
+            "cash walked from the top line down to the bank balance",
+            "one filing read for what it declines to say"),
+    "st5": ("the question a valuation is an answer to",
+            "multiples against discounted cash, and where each of them breaks",
+            "two numbers for one company, and defending the gap"),
+    "st6": ("when applications actually open, against when people think",
+            "each screen in turn, with what it is testing for",
+            "a technical question answered out loud, badly, then again"),
+
+    # ---- Z-SC ------------------------------------------------------------------------------
+    "sc_st1": ("who is in the room and what each of them wants out of it",
+               "the term's shape, week by week",
+               "questions taken in the open, including the awkward ones"),
+    "sc_st2": ("the firms, the tiers, and who actually competes with whom",
+               "what a client is buying when it buys a deck",
+               "fees, leverage, and why the pyramid has that shape"),
+    "sc_st3": ("a Monday to a Friday reconstructed hour by hour",
+               "the work that is analysis and the work that is formatting",
+               "what gets a first year staffed again"),
+    "sc_st4": ("three stories, chosen once and reused everywhere",
+               "one of them told in ninety seconds, then in thirty",
+               "the follow up that finds out whether it was yours"),
+    "sc_st5": ("a case is a conversation, and it is scored as one",
+               "the first ninety seconds, restating and buying structure",
+               "one prompt cracked open in front of everybody"),
+    "sc_st6": ("arithmetic out loud without losing the thread",
+               "the moment to stop analysing and say what you would do",
+               "a case run end to end, on the clock"),
+    "sc_st7": ("revenue and cost split apart until something moves",
+               "the branch worth chasing, and saying why out loud",
+               "a recommendation in one sentence, evidence after it"),
+    "sc_st8": ("a number built out of something everybody in the room knows",
+               "the assumption carrying the whole estimate, named",
+               "two teams' answers put side by side and the gap explained"),
+    "sc_st9": ("what a buyer is really asking when it asks about a market",
+               "a diligence question set, a source named against every line",
+               "a red flag written up so a deal team can act on it"),
+    "sc_st10": ("a target handed over with its own numbers attached",
+                "customer evidence weighed against management's story",
+                "a go or no go, argued against the room"),
+    "sc_st11": ("the case for change, stated before any plan exists",
+                "sequencing: what has to be true first",
+                "who will resist, and what the plan does about them"),
+    "sc_st12": ("why this buyer and this target, in one line",
+                "synergies claimed, then made to survive a challenge",
+                "the price at which the answer flips"),
+    "sc_st13": ("the market picked, and the three that were dropped",
+                "build, buy or partner, weighed on the same axes",
+                "the first year costed, including the cost of being wrong"),
+    "sc_st14": ("what the fund's clock does to the question",
+                "the thesis in a sentence a partner would repeat",
+                "downside first and upside second"),
+    "sc_st15": ("a real engagement, redacted, handed over as it arrived",
+                "what the team was asked and what it delivered",
+                "the answer that did not survive the client meeting"),
+    "sc_st16": ("the one message, written before a slide exists",
+                "a pyramid built downwards from it",
+                "somebody's deck restructured live",
+               "the version that survived, read back at the end"),
+    "sc_st17": ("a strategy that already exists, and the year it must survive",
+                "initiatives ranked by what they cost to start",
+                "the tracking that tells you it has stalled"),
+    "sc_st18": ("the same message, two audiences, two decks",
+                "action titles rewritten until they say something",
+                "the story read aloud from the titles alone"),
+    "sc_st19": ("footfall, basket and margin on one page",
+                "an estate sorted into keep, fix and close",
+                "what the data said and what the shop visit said"),
+    "sc_st20": ("the price that is charged against the value delivered",
+                "an increase modelled with the volume it will cost",
+                "the customer conversation that increase requires"),
+    "sc_st21": ("the ladder, with the years each rung takes",
+                "who leaves, when, and for what",
+                "the door that closes if you stay",
+               "two people who left, and what they say about it now"),
+    "sc_st22": ("an office seen on an ordinary working day",
+                "consultants asked what the website answers badly",
+                "what to write down on the walk back, before it fades"),
+    "sc_st23": ("the dates, then how early early turns out to be",
+                "CV, test, case and fit, in the order they arrive",
+                "referrals, who to ask, and what to ask them for"),
+    "sc_st24": ("a second firm, and the differences that are real",
+                "the same questions asked again for comparison",
+                "notes set beside the ones from the earlier visit"),
+    "sc_st25": ("a full interview, cold, with somebody you do not know",
+                "feedback given while it is still uncomfortable",
+                "the one thing each person fixes before the next round",
+               "a second one straight away, while the note is still fresh"),
+
+    # ---- Z-BL ------------------------------------------------------------------------------
+    "bl_st1": ("the map, firm, in house, public, and the ones nobody mentions",
+               "what the first three years look like in each of them",
+               "the choice that is hard to reverse, named early"),
+    "bl_st2": ("the calendar an intake actually runs on",
+               "an application read the way a recruiter reads it",
+               "the questions that are really about stamina"),
+    "bl_st3": ("which qualification is required and which is bought",
+               "the funding that exists and nobody applies for",
+               "deadlines walked backwards from September"),
+    "bl_st4": ("the shape of a deal, from first letter to closing",
+               "who the lawyer works for in a room full of advisers",
+               "one clause read closely enough to argue about"),
+    "bl_st5": ("conditions precedent, and what they protect against",
+               "warranties and indemnities, and the price they carry",
+               "signing and closing pulled apart",
+               "a timetable drafted backwards from the money moving"),
+    "bl_st6": ("a company that cannot pay, and the order of the queue",
+               "the tools available before a court is involved",
+               "the moment a director's duty changes direction"),
+    "bl_st7": ("a plan put to creditors who do not agree",
+               "the dissenters, and what they are owed",
+               "the deal done at two in the morning, and why then"),
+    "bl_st8": ("whether the claim is worth bringing at all",
+               "evidence gathered before anything is filed",
+               "what missing the procedural clock costs"),
+    "bl_st9": ("a hearing prepared for, then held",
+               "questioning watched and pulled apart afterwards",
+               "settlement weighed against a judgment you might win"),
+    "bl_st10": ("who lends, who borrows, and on what paper",
+                "the spine of a facility agreement in ten minutes",
+                "security valued on the day it is needed, not the day it is taken"),
+    "bl_st11": ("an issue taken to market, step by step",
+                "liability for what the prospectus says",
+                "covenants tested against a bad quarter"),
+    "bl_st12": ("the tax that follows the structure and not the intention",
+                "residence, source, and the gap between them",
+                "one transaction priced twice, before and after"),
+    "bl_st13": ("planning, avoidance, and the line as it is drawn today",
+                "an inspection, with the file it will ask for",
+                "advice written so that it survives being read later"),
+    "bl_st14": ("the administration as a counterparty and not a backdrop",
+                "a licence, a tender, and the deadlines around both",
+                "the appeal route, timed honestly"),
+    "bl_st15": ("founders, vesting, and the paperwork skipped on day one",
+                "a term sheet read for the clauses that bite later",
+                "the cap table after the round, drawn on the board"),
+    "bl_st16": ("what is owned, what is licensed, and what is neither",
+                "data as an asset with a regulator attached to it",
+                "a product reviewed before it ships"),
+    "bl_st17": ("hiring, down to the terms that cannot be agreed away",
+                "a dismissal done properly, then the same one done badly",
+                "the collective side, and when it arrives"),
+    "bl_st18": ("title, plus what the registry declines to tell you",
+                "a lease read from the tenant's side, then the landlord's",
+                "an asset bought with its tenants still in it"),
+    "bl_st19": ("standing up, and the first thirty seconds",
+                "a point made without notes",
+                "the recording watched back, which is most of the session"),
+    "bl_st20": ("an argument built to be heard rather than read",
+                "an interruption handled without losing the thread",
+                "the same point delivered to a room that disagrees"),
+    "bl_st21": ("one agreement read cover to cover, out loud, in parts",
+                "the three clauses that decide who wins",
+                "the same obligation drafted two ways"),
+    "bl_st22": ("a data room opened, with no obvious place to start",
+                "findings written so that a deal team can price them",
+                "the issue that is a red flag and the issue that is noise",
+                "the report the client will read, and not the notes behind it"),
+    "bl_st23": ("a firm seen on a working day rather than on a stand",
+                "juniors asked what the brochure leaves out",
+                "notes written before the walk to the metro ends"),
+    "bl_st24": ("a second office, and what differs from the first",
+                "practice areas met in person rather than on a page",
+                "one question prepared per person, then asked"),
+    "bl_st25": ("a full day of interviews, back to back",
+                "one story told to four people who compare notes",
+                "the stamina being measured alongside the answers"),
+    "bl_st26": ("a firm presenting itself, with two claims worth testing",
+                "the work a first year is actually handed",
+                "what an offer looks like when it arrives"),
+    "bl_st27": ("a second firm, the same questions, for comparison",
+                "the two places where the answers diverge",
+                "a shortlist written down before it fades"),
+    "bl_st28": ("the recording from the first attempt watched again",
+                "one habit removed on purpose",
+                "a last piece delivered with nothing in your hands"),
+
+    # ---- Z-PE ------------------------------------------------------------------------------
+    "pe_st1": ("who is in the room, and what a fund is for",
+               "the money's route, from investor to fund to deal to exit",
+               "the term ahead, and the case that ends it"),
+    "pe_st2": ("debt as the lever, drawn before it is modelled",
+               "three levers pulled one at a time on the same deal",
+               "a return computed by hand, then checked against a sheet"),
+    "pe_st3": ("the map, buyout, credit, real assets, and the rest",
+               "what each of them is actually being paid for",
+               "liquidity, and its price"),
+    "pe_st4": ("sourcing, most of which comes to nothing",
+               "the screen that kills a deal inside a week",
+               "the diligence workstreams, one owner named per stream"),
+    "pe_st5": ("a memo written for people who will not read all of it",
+               "the recommendation on the first page, defended on the ninth",
+               "the case presented, and the questions that follow it",
+               "the memo rewritten once the questions have been heard"),
+    "pe_st6": ("an asset with a twenty year life and a regulator",
+               "contracted cash set against merchant risk",
+               "the return that is lower on purpose"),
+
+    # ---- Z-HR ------------------------------------------------------------------------------
+    "hr_st1": ("the room introduced to itself",
+               "what the term covers, and what it leaves out on purpose",
+               "one thing each person wants to leave with, written down"),
+    "hr_st2": ("the old function described honestly before it is criticised",
+               "what changed, and what only changed its name",
+               "the seat at the table, priced"),
+    "hr_st3": ("the promise a company makes to somebody it wants to hire",
+               "the same promise checked against what its staff say",
+               "a proposition written out in one paragraph"),
+    "hr_st4": ("training that is a budget line and training that is a plan",
+               "a development path drawn for one real role",
+               "how anybody would know afterwards that it worked"),
+    "hr_st5": ("the questions this data can actually answer",
+               "one metric taken apart until it stops being reassuring",
+               "a dashboard nobody opens, and why nobody opens it",
+               "one question this data cannot answer, said out loud"),
+    "hr_st6": ("the word, taken outside software",
+               "a hiring process rebuilt in shorter cycles",
+               "what breaks when the cycle gets shorter"),
+
+    # ---- Z-DS ------------------------------------------------------------------------------
+    "ds_st1": ("the room, the tooling, and the first environment that runs",
+               "what the term builds towards",
+               "a dataset opened for the first time"),
+    "ds_st2": ("the first look, before any model exists",
+               "distributions, missingness, and the column that lies",
+               "one plot that changes the question"),
+    "ds_st3": ("signal, noise, and the line between them",
+               "bias and variance, drawn rather than defined",
+               "why a perfect fit is bad news"),
+    "ds_st4": ("a baseline nobody is allowed to skip",
+               "a fit, and the split that keeps it honest",
+               "settings moved one at a time",
+               "the run written down so that somebody else can repeat it"),
+    "ds_st5": ("the errors looked at one by one instead of in aggregate",
+               "where it fails, weighed against where failure matters",
+               "one improvement, measured against the baseline"),
+    "ds_st6": ("the metric it optimises against the one the business pays for",
+               "a result explained to somebody who will never see the code",
+               "the decision it is supposed to change"),
+
+    # ---- Z-CFA. Titles are reading numbers, see the note above ------------------------------
+    "cfa_st1": ("three readings, and the one that will take the whole evening",
+                "the formulas that have to be recalled rather than derived",
+                "questions attempted before the answers are opened"),
+    "cfa_st2": ("last week's three revisited for ten minutes",
+                "three more, taken in the order the exam asks about them",
+                "a problem set, on the clock"),
+    "cfa_st3": ("where these three connect to the ones already done",
+                "the definitions that get examined literally",
+                "worked answers compared line by line"),
+    "cfa_st4": ("three readings, and a running list of what keeps slipping",
+                "the calculations done on the machine that goes into the exam",
+                "a mock section attempted under time",
+                "the errors sorted into careless and not yet known"),
+    "cfa_st5": ("two readings rather than three, which buys an hour",
+                "the material nobody followed the first time, taken again",
+                "questions written by the room for the room"),
+    "cfa_st6": ("the last three, and the gaps that are visible by now",
+                "a review of everything the six sessions covered",
+                "what is left to do alone before the exam"),
+}
+
 SESSION_AGENDA = {
     "note": ("INVENTED, AND THE SAME FOUR LINES UNDER EVERY ONE OF THE 83 TEMPLATES ON THIS "
              "PAGE. No system in the business records what happens inside a session: every "
@@ -2279,6 +2595,18 @@ SESSION_AGENDA = {
         p("3", "something worked through, on material no system holds", D),
         p("4", "questions, and what to do before the next row of the syllabus", D),
     ],
+    # The owner's reversal, staged. ONE sentence saying what these are, because issue 91 cut six
+    # such statements on this sheet down to one and a second note would be the first of the five
+    # coming back. It replaces the note above when term.js draws this half rather than that one.
+    "per_session": {
+        "note": ("INVENTED, AND WRITTEN ON THIS PAGE FOR THIS SESSION AND NO OTHER. No system in "
+                 "the business records what happens inside a session: every syllabus note is "
+                 "frontmatter with no body at all, so there is no agenda anywhere to read, and "
+                 "these lines were made up from the session's own title and from nothing else. "
+                 "They are not Zrive's and they are not a proposal."),
+        "by_template": {_tid: [p(str(_i + 1), _line, D) for _i, _line in enumerate(_lines)]
+                        for _tid, _lines in TEMPLATE_AGENDA.items()},
+    },
 }
 
 
@@ -3170,6 +3498,44 @@ _n_templates = sum(1 for _v in ALL_VIEWS for _n in _v["nodes"]
 print(f"[model] session templates: {_n_templates} scanned, none carries a clock, an @ venue or "
       f"a date", file=sys.stderr)
 
+# ---- the per session agendas cover the templates, and none of them is a copy -----------------
+# TEMPLATE_AGENDA is written by hand against the titles, and two things about a hand written
+# table of that size go wrong silently. A template renamed or renumbered leaves its entry
+# stranded and the row it belongs to blank, which the page would draw as an absence nobody
+# declared. And eighty three short pieces of writing under one brief drift towards one shape,
+# which is the exact failure the owner's instruction named; two templates carrying the same beat
+# is the mechanical half of that failure and it is checkable, so it is checked rather than
+# promised. The other half, whether a beat is about its own session, is a judgement and is not
+# claimed here.
+_drawn_templates = [_n["id"] for _v in VIEWS for _n in _v["nodes"]
+                    if _n["type"] == "SessionTemplate"]
+_agenda_missing = [_i for _i in _drawn_templates if _i not in TEMPLATE_AGENDA]
+_agenda_stray = [_k for _k in TEMPLATE_AGENDA if _k not in set(_drawn_templates)]
+_agenda_short = [_k for _k, _ls in TEMPLATE_AGENDA.items() if not 3 <= len(_ls) <= 4]
+_agenda_seen = {}
+_agenda_repeat = []
+for _k, _ls in TEMPLATE_AGENDA.items():
+    for _line in _ls:
+        if _line in _agenda_seen:
+            _agenda_repeat.append((_line, _agenda_seen[_line], _k))
+        _agenda_seen[_line] = _k
+if _agenda_missing or _agenda_stray or _agenda_short or _agenda_repeat:
+    for _i in _agenda_missing:
+        print(f"[model] session template {_i} is drawn and has no agenda written for it")
+    for _k in _agenda_stray:
+        print(f"[model] an agenda is written for {_k}, which no view draws")
+    for _k in _agenda_short:
+        print(f"[model] the agenda for {_k} has {len(TEMPLATE_AGENDA[_k])} beats, and the brief "
+              f"is three or four")
+    for _line, _a, _b in _agenda_repeat:
+        print(f"[model] {_a} and {_b} carry the same beat: {_line!r}")
+    raise SystemExit("[model] refusing to build the per session agendas. They cover the drawn "
+                     "templates exactly, they are three or four beats each, and no beat appears "
+                     "twice, or the block is not the thing the card asked for.")
+print(f"[model] session agendas: {len(TEMPLATE_AGENDA)} written, one per drawn template, "
+      f"{sum(len(_ls) for _ls in TEMPLATE_AGENDA.values())} beats, none repeated",
+      file=sys.stderr)
+
 # ---- the palette is a claim about a surface ---------------------------------
 # Each of the thirteen colours above is painted as a tile's stroke, at full opacity, and again
 # as a wash inside it: 14 per cent of the same colour for twelve of them, and 7 per cent for the
@@ -4025,9 +4391,26 @@ def check_provenance(doc):
             bad("agenda-block", "the agenda block is present and is not a note with rows under "
                                 "it. It is the only invented prose on this page and it says what "
                                 "it is on its own face or it does not ship.")
-        for j, row in enumerate(agenda["rows"]):
+        # THE SAME RULES OVER THE PER SESSION HALF, and it is one loop rather than two so that a
+        # rule can never be applied to one half and forgotten on the other. `rows` is the four
+        # constant lines the sheet draws today; `per_session.by_template` is the owner's
+        # reversal, eighty three sets of three or four, staged in the document and not yet drawn
+        # because site/term.js is the file that would draw it. Staged is exactly the state in
+        # which invented prose goes unranked, so it is walked from the day it ships and not from
+        # the day it renders.
+        walk = [(f"agenda row {j}", row) for j, row in enumerate(agenda["rows"])]
+        per = agenda.get("per_session") or {}
+        if per:
+            if not per.get("note") or not isinstance(per.get("by_template"), dict) \
+                    or not per["by_template"]:
+                bad("agenda-block", "the per session agenda is present and is not a note with a "
+                                    "set of lines per template under it. It is the same invented "
+                                    "prose the block above is and it answers for itself the same "
+                                    "way.")
+            for tid, rows in sorted((per.get("by_template") or {}).items()):
+                walk += [(f"agenda row {j} for {tid}", row) for j, row in enumerate(rows)]
+        for what, row in walk:
             seen += 1
-            what = f"agenda row {j}"
             if row.get("f") not in flags:
                 bad("flag-vocabulary",
                     f"{what} is flagged {row.get('f')!r}, which is not one of "
