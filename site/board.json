@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T12:20:59Z",
+  "generated": "2026-08-12T12:22:49Z",
   "columns": [
     {
       "key": "raw",
@@ -65,15 +65,6 @@
       "title": "In progress",
       "cards": [
         {
-          "id": 102,
-          "title": "The build accepts a duplicate node id and every static gate says clean",
-          "labels": [
-            "audit",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/102"
-        },
-        {
           "id": 103,
           "title": "The gate set measures less than it claims in ten places, one of them a gate nothing runs",
           "labels": [
@@ -105,6 +96,15 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/105"
+        },
+        {
+          "id": 102,
+          "title": "The build accepts a duplicate node id and every static gate says clean",
+          "labels": [
+            "audit",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/102"
         },
         {
           "id": 100,
@@ -164,19 +164,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/94"
-        },
-        {
-          "id": 93,
-          "title": "Remove all this text. A good UI must be self explanatory. Too verbose",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/93"
         }
       ],
-      "hidden": 78,
+      "hidden": 79,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
