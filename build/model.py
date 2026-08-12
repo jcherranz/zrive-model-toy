@@ -1937,15 +1937,23 @@ PROGRAMMES = [
 # Programme was the error, and the error was one of method: the evidence was about WHERE the
 # relation is recorded, thirteen company notes filing a visit under a programme note, and it was
 # used to decide WHAT the relation IS. A firm hosting a visit hosts it for the people who turn up,
-# and the people who turn up are a cohort. So the solid edge now terminates on the Cohort.
+# and the people who turn up are a cohort. So the solid edge terminates on the Cohort.
 #
-# The Programme keeps the same verb as a GHOST edge, which is the honest shape of the second half:
-# the visit is FOR a programme, that is a real relation, and no system writes it down. A ghost is
-# already this drawing's word for exactly that, so nothing new had to be invented; what did have
-# to change is that a ghost relationship used to be derivable only from a ghost node at one of its
-# ends, and this one runs between two classes that both exist. See the edges block in
-# instance_document(), where a ghost on a relationship is now declared as well as derived. The
-# ghost vocabulary is not blurred by it: the ghost NODES are still classes and only classes.
+# AND THE OWNER THEN SETTLED THE REST OF #75 THE OTHER WAY: THE COHORT EDGE ONLY. #75 had also
+# given the Programme the same verb as a declared GHOST edge, on the argument that the visit is
+# FOR a programme, that this is a real relation, and that no system writes it down. Every word of
+# that argument still holds. What the owner rejected is the drawing, not the claim: two lines
+# under one verb from one tile is a reader's question before it is an insight, and the absence it
+# marked is already stated in prose on the host's own note and in its `cohort_that_attended` row.
+# So there is one line from the firm, and this file no longer draws a fifth ghost of any kind.
+#
+# WHAT THAT LEAVES BEHIND IS A MECHANISM WITH NOTHING USING IT, said plainly here rather than
+# quietly removed. #75 made a ghost DECLARABLE as a fourth element on an edge tuple, unpacked in
+# edge_parts() alone so that no reader of an edge can drop it in silence. Derivation from a ghost
+# node at an end still runs and still covers the four ghost nodes; declaration now covers nothing,
+# because the one edge that declared it is gone. It is a real capability and distinct from
+# derivation, so whether the model keeps a mechanism no edge exercises is the owner's call and not
+# a tidy-up. See the edges block in instance_document(), which still reads both.
 GHOST_TYPE = ("Ghost", "does not exist in any system", "#8f99a8", "ghost")
 
 
@@ -2286,13 +2294,13 @@ def programme_block(spec):
             # own set from 'member of'.
             "id": host_id, "type": "Company",
             "label": host_label,
-            "note": ("An invented firm. It hosts the visit for the COHORT, which is the solid "
-                     "edge, and the visit is FOR the programme, which is the dashed one. Both "
-                     "relations are real and neither is written down the way the drawing draws "
-                     "it: no system anywhere relates a cohort to a visit, and what the company "
-                     "register holds is a visit filed under a programme note, thirteen of them "
-                     "across a hundred and fifty six, which is a record of where somebody put "
-                     "the paperwork and not a statement of who attended."),
+            "note": ("An invented firm. It hosts the visit for the COHORT, and that one edge is "
+                     "the whole of what the drawing says about it. The relation is real and it "
+                     "is not written down the way the drawing draws it: no system anywhere "
+                     "relates a cohort to a visit, and what the company register holds is a "
+                     "visit filed under a programme note, thirteen of them across a hundred and "
+                     "fifty six, which is a record of where somebody put the paperwork and not a "
+                     "statement of who attended."),
             "props": [
                 p("role", "empresa colaboradora", D),
                 p("note", "invented company, not a real firm", D),
@@ -2393,18 +2401,22 @@ def programme_block(spec):
         edges.append((cid, pfx + "cohort", "scheduled for"))
 
     if spec["host"]:
-        # ISSUE 75. TWO EDGES, ONE VERB, AND ONLY ONE OF THEM IS DRAWN AS A THING THAT IS WRITTEN
-        # DOWN. The firm hosts the visit for the cohort, so that is the solid edge; the visit is
-        # for the programme, which is equally true and which nothing records, so that is the
-        # ghost. Reversing the card is one word: take `True` off the second line and put `prog`
-        # back on the first.
+        # ISSUE 75, AS THE OWNER SETTLED IT: ONE EDGE. The firm hosts the visit for the cohort,
+        # and that is the whole relationship this page draws.
         #
-        # ISSUE 63's arc survives on the ghost, and its counted evidence is in that commit. A span
-        # of 3 makes the edge to the programme the one edge on any of the seven routes that is
-        # drawn as an arc slung under the row it connects rather than as a neighbour bezier. The
-        # new edge to the cohort spans 1 and is an ordinary bezier.
+        # WHAT WAS HERE AND IS NOT, because the deletion is the decision. #75 shipped this edge
+        # plus a second one under the same verb, from the host to the Programme, declared a ghost:
+        # the visit is FOR a programme, that is equally true, and nothing records it. The owner
+        # reversed that. It is not a correction of a fact; both readings of the visit were true.
+        # It is a judgement about how much a single relationship should be made to say, and the
+        # answer is the plainer drawing. A reader now meets one line from the firm and no question
+        # about why there are two.
+        #
+        # THE ARC IS GONE WITH IT, and that is worth one line so nobody hunts for it. Issue 63's
+        # span of 3 belonged to the edge that reached the Programme: it was the one edge on any of
+        # the seven routes drawn as an arc slung under the row rather than as a neighbour bezier.
+        # This edge spans 1 and is an ordinary bezier, so no route draws that shape any more.
         edges.append((spec["host"][0], pfx + "cohort", "hosts visit"))
-        edges.append((spec["host"][0], prog, "hosts visit", True))
     return nodes, edges
 
 
@@ -4109,9 +4121,15 @@ def instance_document():
             # an end of the relationship is a class nothing holds, and it answers it correctly for
             # the four ghost nodes. It cannot see the other case: two classes that both exist, a
             # relation between them that is real, and no system that writes the relation down.
-            # That is the programme's side of the visit, and inferring it from the ends would be
-            # the same inversion issue 75 was filed about, reading a fact about the recording off
-            # a fact about the objects.
+            # Inferring that from the ends would be the same inversion issue 75 was filed about,
+            # reading a fact about the recording off a fact about the objects.
+            #
+            # NO EDGE IN THIS MODEL DECLARES IT TODAY. The one that did, the host's edge to the
+            # Programme, was deleted when the owner settled #75 as the cohort edge alone, so the
+            # left-hand term below is false on all 455 relationships and every ghost chip on the
+            # page comes from the right-hand one. The term is kept rather than dropped for the
+            # reason the ghosts block gives at length: the capability is distinct from derivation
+            # and removing it is a decision about the model, not a consequence of one edge.
             "edges": [{"s": _e[0], "t": _e[1], "v": edge_parts(_e)[2],
                        "ghost": 1 if (edge_parts(_e)[3]
                                       or _ghost_ids(v).intersection(_e[:2])) else None}
