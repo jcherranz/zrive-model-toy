@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T21:49:07Z",
+  "generated": "2026-08-12T22:53:15Z",
   "columns": [
     {
       "key": "raw",
@@ -35,6 +35,11 @@
     {
       "key": "in_progress",
       "title": "In progress",
+      "cards": []
+    },
+    {
+      "key": "done",
+      "title": "Done",
       "cards": [
         {
           "id": 120,
@@ -42,16 +47,10 @@
           "labels": [
             "bug",
             "feedback",
-            "status:in-progress"
+            "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/120"
-        }
-      ]
-    },
-    {
-      "key": "done",
-      "title": "Done",
-      "cards": [
+        },
         {
           "id": 119,
           "title": "Nothing drives an empty window, the state that paints six rects at a negative height",
@@ -115,19 +114,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/113"
-        },
-        {
-          "id": 112,
-          "title": "An outline row should open on its own title, not all rows at once",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/112"
         }
       ],
-      "hidden": 97,
+      "hidden": 98,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
