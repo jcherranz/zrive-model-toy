@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T14:24:16Z",
+  "generated": "2026-08-12T14:38:38Z",
   "columns": [
     {
       "key": "raw",
@@ -7,7 +7,7 @@
       "cards": [
         {
           "id": 5,
-          "title": "The toy carries no measured values, by design",
+          "title": "The safety gate is what keeps unpublished figures off the public page",
           "labels": [
             "constraint",
             "documentation",
@@ -33,7 +33,7 @@
       "cards": [
         {
           "id": 101,
-          "title": "The public page says everything is invented. 48 per cent of its values say they were read off real systems.",
+          "title": "The footer statement and the per-row provenance flags disagree",
           "labels": [
             "bug",
             "status:backlog"
@@ -65,12 +65,20 @@
       "cards": [
         {
           "id": 108,
-          "title": "Two owner reversals: the visit ghost goes, and the invented agenda becomes per-session",
+          "title": "Two owner reversals: the visit ghost goes, and the session agenda becomes per-session",
           "labels": [
             "model",
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/108"
+        },
+        {
+          "id": 110,
+          "title": "The page stops narrating its own provenance: the footer statement, the panel chips and the gaps definition come out",
+          "labels": [
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/110"
         }
       ]
     },
@@ -97,7 +105,7 @@
         },
         {
           "id": 104,
-          "title": "121 invented values shipped flagged real, with all seven gates green",
+          "title": "121 values shipped carrying a flag the rules now refuse, with all seven gates green",
           "labels": [
             "audit",
             "status:done"
