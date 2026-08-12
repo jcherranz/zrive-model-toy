@@ -537,7 +537,13 @@
                        width: TILE + 7, height: TILE + 7, rx: 8 }, g2);
         }
         var tile = el('rect', {
-          class: n.ghost ? 'tile-bg tile-ghost' : 'tile-bg',
+          // `tile-bg` AND NOTHING ELSE, INCLUDING ON A GHOST. Issue 106. This emitted a second
+          // class, `tile-ghost`, on every ghost tile; `git log -S` shows no rule for it was ever
+          // written in site/app.css, and its only occurrence in the tree was this line. A ghost
+          // tile is styled through `.node.ghost .tile-bg`, off the class the group already
+          // carries, so the second name selected nothing and told a reader of the stylesheet to
+          // look for a rule that does not exist.
+          class: 'tile-bg',
           x: n.x - R, y: n.y - R, width: TILE, height: TILE, rx: 6,
           // A ghost's wash is 7 per cent where every other tile is at 14, and it is the same
           // grey the ghost type carries rather than a second copy of that grey written here:
@@ -642,13 +648,25 @@
     //
     // WHICH MEANS THE FILTERED DRAWING HAS NO BUILD GATE AND MUST EARN ITS OWN. It does, in
     // scripts/smoke.mjs, and the load bearing assertion is `reflowCheck()` at the foot of this
-    // file: reflowing the FULL node set with no filter reproduces the canonical coordinates, every
-    // node and every edge, to within the tenth of a unit layout.js rounds to. If that holds then
-    // the four constants below are the build's own and this transform is the build's own pack()
-    // and the build's own arcs, so the filtered drawing differs from the canonical one only by
-    // what the reader asked to take out of it. If somebody retunes pack() in the build and not
-    // here, that assertion goes red and names the drift. It is the only thing standing where the
-    // build gate does not reach, and the CHANGELOG says so in as many words.
+    // file: reflowing the FULL node set with no filter reproduces the canonical coordinates, to
+    // within the tenth of a unit layout.js rounds to. If that holds then this transform is the
+    // build's own pack() and the build's own arcs, so on everything it covers the filtered
+    // drawing differs from the canonical one only by what the reader asked to take out of it. If
+    // somebody retunes pack() in the build and not here, that assertion goes red and names the
+    // drift. It is the only thing standing where the build gate does not reach, and the CHANGELOG
+    // says so in as many words.
+    //
+    // WHAT IT COVERS, AND IT IS LESS THAN THE WHOLE DRAWING. Issue 106; this paragraph replaces a
+    // sentence that read "every node and every edge" and then leaned on "the four constants
+    // below". `faithful()` returns four numbers, `dy` over every node's y, and `dp`, `arrows` and
+    // `rev` over every edge's path, arrowhead and direction. It never compares `cx`, `cy` or
+    // `cw`, so no chip is checked, and the chip is where the two copies most recently disagreed:
+    // see the tiebreak beside the chip sort. Counted at 5f32209, fifteen constants sit below this
+    // line and the check exercises five of them, SPREAD and SPREAD_FROM through pack() and DIP,
+    // CTRL_MIN and CTRL_FRAC through the arcs; the ten it does not reach are the chip geometry
+    // and the two feet. A green reflowCheck says the tiles and the lines are the build's. It says
+    // nothing about the verb chips, and a claim of full coverage would have retired the only
+    // question this file still has open.
     //
     // THE RESTACK IS ONE DIMENSIONAL AND DELIBERATELY NOT GRAPH LAYOUT. Bands are vertical columns
     // at a fixed x, tiles stacked down them. Filtering removes tiles from columns; the honest
@@ -821,53 +839,32 @@
 
     // ---- measuring, because a width nobody measured is a width that leaves its lane -----------
     // The build measures its text against a table of glyph advances generated from the real font.
-    // The browser has the real font, so this asks it. Cached by string, class and weight, so the
-    // second window costs nothing, and batched inside one hidden group so a wrap costs one layout
-    // rather than one per candidate line.
+    // The browser has the real font, so this asks it. THE CACHE IS THE WHOLE OF THE SAVING and it
+    // is keyed on everything that changes a width: the string, the class, the weight and the
+    // slant. A string measured once is never measured again, so the second window and every
+    // repaint after it cost nothing.
+    //
+    // AND IT MEASURES ONE STRING AT A TIME, WHICH IS SAID HERE BECAUSE IT USED TO SAY OTHERWISE.
+    // Issue 106. What stood here was a `measure(items)` taking an array and putting the whole
+    // batch inside one hidden group, under a comment claiming that a wrap therefore cost one
+    // layout rather than one per candidate line. It had exactly one caller and that caller always
+    // handed it a one-element array, so the batch was never a batch and the saving the comment
+    // described was never taken. The array went rather than the comment being corrected, because
+    // an unused generality reads as a used one and the next reader would have budgeted for a
+    // batching that is not there. It is one function away if a caller ever wants it.
     var TW = {};
-
-    function measure(items) {
-      var want = items.filter(function (it) { return TW[it.k] === undefined; });
-      if (!want.length) return;
-      var host = el('g', { visibility: 'hidden', 'aria-hidden': 'true' }, svg);
-      var made = want.map(function (it) {
-        var t = el('text', { class: it.cls, 'font-weight': it.w || null,
-                             'font-style': it.i ? 'italic' : null }, host);
-        t.textContent = it.s;
-        return t;
-      });
-      made.forEach(function (t, i) { TW[want[i].k] = t.getComputedTextLength(); });
-      svg.removeChild(host);
-    }
 
     function widthOf(s, cls, w, i) {
       var k = cls + '|' + (w || '') + '|' + (i ? 'i' : '') + '|' + s;
-      if (TW[k] === undefined) measure([{ k: k, s: s, cls: cls, w: w, i: i }]);
+      if (TW[k] === undefined) {
+        var host = el('g', { visibility: 'hidden', 'aria-hidden': 'true' }, svg);
+        var t = el('text', { class: cls, 'font-weight': w || null,
+                             'font-style': i ? 'italic' : null }, host);
+        t.textContent = s;
+        TW[k] = t.getComputedTextLength();
+        svg.removeChild(host);
+      }
       return TW[k];
-    }
-
-    // Greedy wrap to a width, which is the build's rule too. One word at a time so the candidate
-    // lines are measured and not estimated.
-    function wrapTo(s, maxw, cls) {
-      var words = String(s).split(/\s+/), lines = [], cur = '';
-      words.forEach(function (word) {
-        var t = cur ? cur + ' ' + word : word;
-        if (cur && widthOf(t, cls, null, false) > maxw) { lines.push(cur); cur = word; }
-        else cur = t;
-      });
-      if (cur) lines.push(cur);
-      return lines;
-    }
-
-    // How wide a label in this column may be before it crosses its lane, which is the build's own
-    // lane_slack read backwards off the bands the drawing ships.
-    function laneRoom(g, x) {
-      var room = null;
-      (g.bands || []).forEach(function (b) {
-        if (x < b.x || x > b.x + b.w) return;
-        room = 2 * Math.min(x - b.x, b.x + b.w - x) - 8;
-      });
-      return room === null ? 120 : room;
     }
 
     // ---- the transform itself -----------------------------------------------------------------
@@ -897,6 +894,11 @@
     // says what the window excludes. A change that stops printing it is a change that starts
     // lying, and the smoke suite asserts the two numbers against each other rather than trusting
     // either.
+    //
+    // AND THE THREE HELPERS THE STUB NEEDED WENT WITH IT, ONE CARD LATE. Issue 106. `wrapTo`,
+    // `laneRoom` and `nodeAt` existed to label a stub tile, keep that label inside its lane, and
+    // find the node an edge's vanished end pointed at. #111 removed every caller and left all
+    // three standing, and a helper with no caller is read as machinery this file still needs.
     //
     // AND THE CASCADE IS WHAT MAKES IT A BETTER PICTURE RATHER THAN A HOLED ONE. A session template
     // whose only session the window took out has nothing left to be a template of, so it goes too,
@@ -1013,8 +1015,22 @@
         blocked.push([n.x, y + g.tile / 2 + g.gapLabel + labH / 2, lw + 6, labH + 2]);
       });
       var chips = [];
+      // THE ORDER IS THE BUILD'S, DOWN TO THE LAST TIEBREAK, AND THAT LAST ONE WAS MISSING.
+      // Issue 106. build_layout.py sorts these `(-span, s, t)`; this sorted `(-span, s)` and
+      // stopped, which is a difference only where two lines leave the same node with the same
+      // span. That is not a corner: at 5f32209 the seven sessions drawings hold 34 such groups
+      // over 175 of their 455 edges, and both grains together 62 groups over 264 of 740. Chip
+      // placement is greedy along the arc, so the first chip in a group takes the best slot and
+      // the rest take what is left; a different order inside the group is a different picture.
+      // Python's sort and this one are both stable, so the two agreed only for as long as the
+      // model happened to emit each group already in `t` order, which nothing promises and no
+      // gate checks: check_build.sh reproduces the CANONICAL drawing, and this code runs only
+      // when a window is on, where there is no second copy to compare against. The tiebreak
+      // costs nothing and removes the divergence rather than watching it.
       edges.slice().sort(function (a, b) {
-        return (b.span - a.span) || (a.s < b.s ? -1 : a.s > b.s ? 1 : 0);
+        return (b.span - a.span) ||
+               (a.s < b.s ? -1 : a.s > b.s ? 1 : 0) ||
+               (a.t < b.t ? -1 : a.t > b.t ? 1 : 0);
       }).forEach(function (e) {
         e.cw = r1(widthOf(e.v, 'chip-tx', null, !!e.ghost) + 2 * PADX);
         var tab = arcTable(e.pts), L = tab.cum[tab.cum.length - 1];
@@ -1088,12 +1104,6 @@
       d.h = Math.round(h);
       d.filteredFrom = g;
       return d;
-    }
-
-    function nodeAt(g, id) {
-      var found = null;
-      g.nodes.forEach(function (n) { if (n.id === id) found = n; });
-      return found;
     }
 
     function repaint() {
@@ -1178,7 +1188,13 @@
       // belongs to THIS and not to what is on screen, which is why a capture filed off a filtered
       // drawing has to say so rather than quoting a digest of a picture nobody is looking at.
       canonical: function () { return CANON; },
-      capButtons: function () { return capBtns.map(function (c) { return c.g; }); },
+      // AND NO `capButtons` BESIDE IT. Issue 106. One stood here handing the lane heading groups
+      // out to whoever asked, and `git log -S` finds one commit for the name, the one that added
+      // it: nothing in site/, in scripts/smoke.mjs or in build/check_grain.mjs has ever called
+      // it. Both suites reach those controls through DOM selectors, which is the right way round,
+      // since a driver that took them from here would be testing the list this file keeps rather
+      // than the buttons the reader presses. An export with no caller is a claim that something
+      // outside depends on it, and the next edit inside pays that claim for nothing.
       // The drawing on screen, which is what the viewport frames and the router describes. Taken
       // through a call rather than handed out once, because draw() replaces it.
       drawing: function () { return G; },

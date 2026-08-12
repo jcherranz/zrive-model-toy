@@ -182,9 +182,9 @@
     return (grain === 'modules' && v.alt) ? v.alt.drawing : v.drawing;
   }
 
-  function viewAt(v, grain) {
-    return (grain === 'modules' && v.alt) ? v.alt : v;
-  }
+  // A `viewAt` twin of this stood here, returning the view rather than its drawing, and #89 added
+  // it in the same commit as this one without ever calling it. Removed by issue 106. Two
+  // near-identical selectors where one is dead is how a later edit fixes the wrong one.
 
   // ---- the elements the modules are handed ----------------------------------
   // Looked up once, here, and passed in. A module that reached for its own elements would be a

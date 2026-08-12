@@ -53,6 +53,21 @@
   // can import the other without a build step this repository does not have. If a rule here and
   // a rule there ever drift, the published board and the live board show different things about
   // the same issues, which is worse than either being wrong on its own.
+  //
+  // AND THE LABELS THEMSELVES ARE WRITTEN IN FOUR PLACES, NOT TWO, WHICH IS WHAT THIS PARAGRAPH
+  // IS FOR. Issue 106. The sentence above named the pair that READS the vocabulary and was silent
+  // about the two that do not, so a reader adding a fifth column, or renaming one, could sweep
+  // everything this banner points at and still ship a label nothing sets and a document that
+  // describes the old set:
+  //
+  //   site/board.js            here, the live board, reading the labels off the API
+  //   scripts/sync_board.mjs   the generator, reading them off `gh issue list`
+  //   scripts/set_status.sh    the only thing that WRITES them, and it rejects any other value
+  //   KAIZEN.md                the prose that tells a contributor what the four are
+  //
+  // Nothing checks the four against each other, which is exactly why the list is written out
+  // rather than described. A `status:` label that set_status.sh will not set is a column no card
+  // can reach, and it fails silently: the issue simply stays in Raw.
   var COLUMNS = [
     { key: 'raw', title: 'Raw', label: 'status:raw' },
     { key: 'backlog', title: 'Backlog', label: 'status:backlog' },

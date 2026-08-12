@@ -40,13 +40,26 @@
    the scale.
 
    The --c-* entries are the raw ramp the semantic tokens are drawn from and it does not flip: a
-   scale entry named light-5 is #f6f7f9 in both schemes, and four of the six are read by nothing
-   in site/ at all, so they paint nothing either way. --c-gray-3 is the exception and only
-   because nine rules read it directly as "the grey of a line": the edges, the arrowheads, the
-   three dashed marks of the ghosts, two greyed controls and the separator in the narrow student
-   list. A ramp entry being read as a semantic token has to follow the theme, so it is the one
-   ramp entry carrying a pair; the honest repair is a --line token for those nine rules, and
-   that is a card and not a thing to do inside a palette. */
+   scale entry named light-5 is #f6f7f9 in both schemes, and --c-gray-3 is the only one of them
+   read anywhere in site/ at all, so every other entry paints nothing either way. It is read
+   directly as "the grey of a line", by each rule that draws one: the edges, the arrowheads, the
+   dashed marks of the ghosts, the greyed controls, the absent flag, the separator in the narrow
+   student list and the no-module row of the term table. A ramp entry being read as a semantic
+   token has to follow the theme, so it is the one ramp entry carrying a pair; the honest repair
+   is a --line token across those rules, and that is a card and not a thing to do inside a
+   palette.
+
+   NO COUNT OF THOSE RULES IS WRITTEN HERE, AND THE MISSING NUMBER IS THE REPAIR. Issue 106. This
+   block used to say "four of the six" are read by nothing, and it was five on the day the
+   sentence was written and has been five ever since; it used to say "nine rules" read
+   --c-gray-3, and counting `var(--c-gray-3)` outside comments gives 9 at 0d23157 where the
+   sentence entered, 10 at a39bf13, 12 at 3c7be9e and 10 here. Nothing in this repository asserts
+   either figure, so neither could go red when it moved, and it moved in both directions. The
+   sentence naming the repair was the expensive half: it sized a --line token at nine rules, so a
+   reader following it converts nine and leaves the rest behind, in the one token whose whole
+   purpose is that every line on the page agrees. A count that no gate holds belongs in the grep
+   that answers it, which is always current, and not in a comment, which is only ever current
+   once. */
 :root {
   /* Not decoration, and not only the switch above. Without a dark used value the scrollbars of
      the panel, the board and the student list stay light, and so does the menu the browser
@@ -107,8 +120,8 @@
      issue 59's 3:1, Session template at 2.9330, Cohort at 2.9690 and the ghost grey at 2.6874.
      Two of those three cannot be repaired in the palette without moving a hex this card has no
      business moving, and the third must not move at all: issues 65 and 70 both established that
-     #8f99a8 is the light value of --c-gray-3, the grey nine rules in this file paint every edge
-     and arrowhead with, and that the value which would pass renders as a Company. So the light
+     #8f99a8 is the light value of --c-gray-3, the grey this file paints every edge and arrowhead
+     with, and that the value which would pass renders as a Company. So the light
      plate goes as far as the gate allows and stops, at #fafbfc, where the lowest of the thirteen
      is Session template at 3.0346. The dark plate then takes the same fraction rather than the
      freedom it has, because a lane that is half a step from the ground on one page and flush

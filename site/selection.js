@@ -246,13 +246,13 @@
     // palette was chosen against in the first place.
     //
     // THE GHOST STAYS QUIET, WHICH IS THE ONE THING THIS COULD HAVE BROKEN. Its grey is the light
-    // value of --c-gray-3, the stylesheet's "grey of a line", read by nine rules for every edge
-    // and arrowhead, and #65 kept it declared because the drawing is saying "this does not exist"
-    // and a louder grey contradicts the drawing. Nothing here touches that hex. The ghost's
-    // swatch is its tile: the seven per cent wash every other tile carries at fourteen, bounded
-    // by a dashed hairline rather than a solid one, which is the quietest of the thirteen exactly
-    // as its tile is the quietest tile. What does change for the ghost is its caption, which was
-    // the least legible text in the panel at 2,8807 and is now the same grey as every other
+    // value of --c-gray-3, the stylesheet's "grey of a line", which every rule that draws one
+    // reads for its edges and arrowheads. #65 kept it declared because the drawing is saying
+    // "this does not exist" and a louder grey contradicts it. Nothing here touches that hex. The
+    // ghost's swatch is its tile: the seven per cent wash every other tile carries at fourteen,
+    // bounded by a dashed hairline rather than a solid one, which is the quietest of the thirteen
+    // exactly as its tile is the quietest tile. What changes for the ghost is its caption, which
+    // was the least legible text in the panel at 2,8807 and is now the same grey as every other
     // caption. Decoupling makes the words readable and leaves the drawing's statement alone,
     // which is the whole reason the two should never have shared a token.
     //

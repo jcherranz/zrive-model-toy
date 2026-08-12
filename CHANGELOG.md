@@ -283,6 +283,53 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- **The chip queue sorted one tiebreak short of the build's, #106.** `build_layout.py` orders the
+  verb chips `(-span, s, t)` and `render.js` ordered them `(-span, s)`, which differs only where
+  two lines leave one node with one span. Counted at `5f32209`: 34 such groups over 175 of the 455
+  edges on the seven sessions drawings, and 62 groups over 264 of 740 across both grains. Chip
+  placement is greedy along the arc, so the first chip of a group takes the best slot and the rest
+  take what is left; both sorts are stable, so the two copies agreed only for as long as the model
+  happened to emit each group already in `t` order, which nothing promises. No gate could have
+  seen it: `check_build.sh` reproduces the canonical drawing, and this code runs only under a
+  window, where there is no second copy to compare against. The tiebreak is added rather than the
+  divergence watched.
+- **Five false or dead records in `site/`, #106, and the counts were recounted rather than
+  carried.** The palette block said four of the six `--c-*` ramp entries are read by nothing and it
+  is five, and was five at `0d23157` where the sentence entered; it said nine rules read
+  `--c-gray-3`, which was 9 at `0d23157`, 10 at `a39bf13`, 12 at `3c7be9e` and 10 at `5f32209`.
+  **The expensive half was the repair it named**, "a `--line` token for those nine rules", which
+  converts nine and leaves the rest behind in the one token whose purpose is that every line
+  agrees. No count is written back: nothing asserts either figure, so neither could go red when it
+  moved, and it moved in both directions. Same removal at the plate argument lower in that file
+  and at `selection.js`'s ghost paragraph. The reflow check's own comment claimed "every node and
+  every edge" and leaned on "the four constants below": `faithful()` never compares `cx`, `cy` or
+  `cw`, so no chip is checked, and of the fifteen constants below that line it exercises five. It
+  now says which five and what a green run does not cover.
+- **Five dead things went with them, #106**, each proved by `git log -S` finding one commit for the
+  name, the one that added it. `shortDate` in `term.js` and `viewAt` in `app.js`, both twins of a
+  called function beside them; `wrapTo`, `laneRoom` and `nodeAt` in `render.js`, which existed for
+  the out-of-window stub tile #111 removed, leaving the helpers standing. Also `capButtons()`,
+  exported and never called from `site/`, `scripts/smoke.mjs` or `build/check_grain.mjs`, all of
+  which reach those controls through DOM selectors; and the class `tile-ghost`, emitted on every
+  ghost tile, occurring once in the whole tree at its own emission site, and never once carrying a
+  rule, since ghosts are styled through `.node.ghost .tile-bg`. `measure(items)` took an array and
+  batched it into one hidden group under a comment saying a wrap therefore cost one layout rather
+  than one per candidate line; its only caller always passed one element, so the saving was never
+  taken. Folded into `widthOf()`, because an unused generality reads as a used one.
+- **The board's mirror banner named two of the four copies of the status vocabulary, #106.** It
+  pointed at `scripts/sync_board.mjs`, the other side that READS the labels, and said nothing about
+  `scripts/set_status.sh`, the only thing that writes them and rejects anything else, or about
+  `KAIZEN.md`, which tells a contributor what the four are. All four are now written out in the
+  banner. Nothing checks them against each other, which is why they are listed rather than
+  described: a `status:` label `set_status.sh` will not set is a column no card can reach, and it
+  fails silently, with the issue sitting in Raw.
+- **A changelog entry above went false in the present tense and is corrected in place, #106.** The
+  Z-BL withheld-firm row says the tile's note "says why", which was true when written and stopped
+  being true at `7d2d121`, where #101 took the reason out. The entry is not rewritten, because an
+  entry edited to match today reports a state that never existed on the day it claims; a bracketed
+  correction sits under it naming the commit and pointing at #101's own row and at
+  `build/model.py`, which is the live copy and already correct. `CHANGELOG.md` is not served, so
+  this was a record defect and never an exposure one.
 - **The sheet had no left gutter at all, #113.** Filed on a month heading as "a bit more space to
   the left". Measured at 1536x839 first, and it was not a misalignment between two things: the
   container `#termrows`, the outline's group heading, the outline's data cell and the calendar's
@@ -853,6 +900,14 @@ of what changed and when, and it is meant to be scannable.
   another real firm, which is what the t17 employer row does, would have put a visit this
   programme did not make on a named third party. The next row keeps its firm, because the gate
   does not refuse that one.
+  <br>**[Correction, issue 106. The clause "and its note says why" was true when this entry was
+  written and stopped being true at `7d2d121`, where #101 took the reason out of the note because
+  it narrowed the candidates for the withheld string. The entry is left standing because this file
+  is the record of what changed and when, and an entry edited to match today reports a state that
+  never existed on the day it claims. What is true now: the `title` row reads "real, with the firm
+  name withheld", and the note says the name is withheld and that it was not swapped for another
+  firm's, and nothing else. The #101 entry below is the authority, and `build/model.py` beside
+  `WITHHELD_FIRM` is the live copy.]**
 - **Duration is read off the source and its absence is written as one.** Not one of Z-BL's twenty
   eight rows records a duration, and the six-row version invented four. Twenty eight invented
   numbers standing where the source is uniformly silent is the value made up to fill a tile that

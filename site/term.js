@@ -150,13 +150,14 @@
   // '2026-03-02' -> '2 March 2026'. Written out for the reason MONTHS is: the page is in English
   // and a driver reading the anchor off the control should read the same string the reader does,
   // on every machine and in every locale.
+  //
+  // AND IT IS THE ONLY ONE. Issue 106. A `shortDate` sat under this one, arrived with #90 in the
+  // same commit, and was never called from anywhere; `git log -S` finds that one commit for the
+  // name. It is gone rather than kept for a caller who might want '2 Mar': an uncalled formatter
+  // beside a called one reads as a choice the page makes somewhere, and it makes no such choice.
   function longDate(s) {
     return String(Number(s.slice(8, 10))) + ' ' + MONTHS[Number(s.slice(5, 7)) - 1] + ' ' +
            s.slice(0, 4);
-  }
-
-  function shortDate(s) {
-    return String(Number(s.slice(8, 10))) + ' ' + MONTHS[Number(s.slice(5, 7)) - 1].slice(0, 3);
   }
 
   // The reader's day, from the reader's own clock, and the one thing on this page that is not
