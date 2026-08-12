@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T17:49:11Z",
+  "generated": "2026-08-12T17:55:56Z",
   "columns": [
     {
       "key": "raw",
@@ -30,7 +30,44 @@
     {
       "key": "backlog",
       "title": "Backlog",
-      "cards": []
+      "cards": [
+        {
+          "id": 115,
+          "title": "Thirteen assertions in the new code are narrower than their names, and the behaviour each one is named for can be deleted at 177 of 177",
+          "labels": [
+            "audit",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/115"
+        },
+        {
+          "id": 116,
+          "title": "One glyph changed repaints 91 tiles across nine of the fourteen drawings, with all fourteen digests unchanged and verify.sh clean",
+          "labels": [
+            "audit",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/116"
+        },
+        {
+          "id": 117,
+          "title": "The two copies of the token-folding rule have drifted and the local safety gate is blind at every underscore, the fifth time one rule in two places has bitten this repository",
+          "labels": [
+            "audit",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/117"
+        },
+        {
+          "id": 118,
+          "title": "The suite never loads a document cold at any address but the default, so every deep link can be broken and stay at 177 of 177",
+          "labels": [
+            "audit",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/118"
+        }
+      ]
     },
     {
       "key": "in_progress",
