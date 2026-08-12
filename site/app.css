@@ -380,6 +380,24 @@ body.students .gapspick { display: none; }
    then opened a reading should not have to close it to change their mind. */
 body.board .grpick,
 body.students .grpick { display: none; }
+/* THE TILE COUNT LEAVES WHEREVER `ghosts` LEAVES, on all five, and it is the fourth reading of the
+   same sentence rather than a new rule. Issue 120. It is a count of the tiles on the canvas, so it
+   is worth exactly what the canvas is worth on the route: nothing on the board, which draws no
+   model; nothing on the student list; and nothing over a sheet, where the drawing it counts is
+   behind an opaque box, which is the argument that withdrew `ghosts` from those three addresses
+   and is not weaker here for being about a number rather than about a mark. */
+body.board #tilesrd,
+body.students #tilesrd,
+body.calendar #tilesrd,
+body.outline #tilesrd { display: none; }
+/* AND THE PLATE GOES WITH ITS LAST READING. The readout is a box with a rule around it, so on the
+   two routes where every reading inside it has been withdrawn by the four rules above, the box
+   itself would paint as an empty frame in the middle of the row. It is one rule and it names the
+   same two routes rather than reasoning about its own children, because a container that hides
+   itself when it happens to be empty is a container that vanishes the first time a reading is
+   added and forgotten. Issue 120. */
+body.board .hstate,
+body.students .hstate { display: none; }
 /* The detail panel describes a node in the drawing, so on the board it goes the same way. It is
    hidden rather than closed: the selection is still the selection, and switching back brings the
    panel and the node it is about back together. */
@@ -425,6 +443,85 @@ header {
   align-items: center;
   gap: 8px;
 }
+
+/* ---- the readout, which is the half of this row that is telling the reader something ----------
+   ISSUE 120, AND THE WHOLE OF IT IS IN THE TWO DECLARATIONS THAT ARE NOT SIZES. The plate steps
+   back from the header's own ground and takes a rule around it, so the group reads as an
+   instrument the page writes into; every action beside it keeps the header's ground and the link
+   colour, so it reads as something a reader does. That is the distinction he filed the card
+   about, and until it was drawn nine controls carried one treatment between them.
+
+   --bg-band AND NOT --bg-elevated, because this box is recessed and not raised: it is the surface
+   the page reports on, under the chrome rather than on top of it, and --bg-band is already the
+   token for a plate that steps back toward the ground it sits on rather than away from it. It is
+   the same colour the lanes of the drawing take, which is the right relation: the lanes are where
+   the model is drawn and this is where the model is counted.
+
+   NOTHING HERE SETS A HEIGHT AND THAT IS ISSUE 77 STILL HOLDING. Every pressable reading is a
+   .linkbtn, so it is 26 by 26 by construction; the one reading that is not pressable takes the
+   same box from .rd-static below, so the plate is the height of the row it sits in and the
+   controls inside it are still targets a finger can land on. The gap is zero and the separation
+   is a rule between the items, because a gap inside a bordered box reads as a gap between boxes
+   and the point of the box is that the readings inside it are one statement. */
+.hstate {
+  flex: 0 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-width: 0;
+  background: var(--bg-band);
+  border-radius: var(--radius);
+  /* THE RULE AROUND THE PLATE COSTS NO HEIGHT, and that is a measurement rather than a
+     preference. Written as a border it is 26px of readings inside a 28px box, the row takes the
+     taller of the two, and the header goes from 43 to 45 at 1536 and from 107 to 109 at 390,
+     which takes the phone's chrome share from 17.3 per cent to 17.5 and breaks the one budget
+     this card was told not to spend. An inset hairline paints the same line and takes part in no
+     layout, so the plate is exactly as tall as the readings on it and the header is the height it
+     was before this card. --elev-1 already draws its own hairline this way. */
+  box-shadow: inset 0 0 0 1px var(--rule);
+}
+
+/* The rule between two readings, drawn once, on the item that follows another. `> *` and not a
+   class, because the pressable readings are wrapped in a positioning span and the static one is
+   not, so any selector naming the reading itself would miss three of the four. */
+.hstate > * + * { border-left: 1px solid var(--rule-muted); }
+
+/* The corners belong to the plate and not to the readings on it. Without this the first and last
+   .linkbtn round their own outer corners inside a box that has already rounded them, and the
+   focus ring of a control in the middle of the group draws a rounded rectangle over a straight
+   rule. */
+.hstate .linkbtn { border-radius: 0; }
+.hstate > :first-child .linkbtn { border-top-left-radius: var(--radius); border-bottom-left-radius: var(--radius); }
+.hstate > :last-child .linkbtn { border-top-right-radius: var(--radius); border-bottom-right-radius: var(--radius); }
+
+/* A READING IS A LABEL AND A VALUE AND IT IS NOT BLUE. .linkbtn paints its text --i-primary,
+   which is the page's colour for "this is a link or a control"; inside the readout the words are
+   what the page is saying, so the value takes the body colour and the label the muted one. The
+   control is still a control: it keeps the box, the target size, the focus ring and the hover
+   underline, so nothing about pressing it is any less discoverable than it was in the nav. */
+.hstate .rd { color: var(--fg-body); }
+.rd-k { color: var(--fg-muted); font-weight: 400; }
+.rd-v { color: var(--fg-body); font-weight: 600; }
+
+/* The one reading that is not a control. It takes the .linkbtn box exactly, so it sits on the
+   row's single baseline and the plate is one height, and it takes none of the affordances: no
+   pointer, no underline on hover, no focus ring, nothing to press. Issue 120. */
+.rd-static {
+  display: inline-block;
+  font-size: var(--fs-sm);
+  line-height: 18px;
+  min-height: 26px;
+  padding: 3px 8px;
+  border: 1px solid transparent;
+  cursor: default;
+}
+
+/* The open state, and it is the one place .linkbtn's own answer to aria-expanded does not serve.
+   That rule sets font-weight 600 on the control, which inside a reading would take the muted
+   label to the value's weight and lose the distinction the box exists to draw. The label and the
+   value carry their own weights, so the rule lands on nothing here and the open state is said
+   with the tint the hover already uses. */
+.hstate .linkbtn[aria-expanded="true"] { background: var(--tint-hover); }
 
 /* THE ONE DECLARATION THAT MADE FIVE CONTROLS FAIL WCAG 2.2 SC 2.5.8. This was
    `padding: 2px 2px` with no height, and at 12px over a 1.28581 line height that is a 19 CSS px
@@ -872,7 +969,13 @@ h1 {
    rather than by .linkbtn because they are inside a popover and not in the nav row, and #77's
    floor is met explicitly: 26px of height and padding that keeps the shorter of the two over
    24px wide. */
-.gritem {
+   THE THEME'S THREE CHOICES TAKE THE SAME BOX, which is issue 120 reusing this rather than
+   writing a fourth version of it. They are buttons and not links, because a theme is not an
+   address and there is nothing to copy out of the page, and that is the one difference between
+   the two sets; everything a reader can see about them is this idiom, including the mark on the
+   current one. */
+.gritem,
+.thitem {
   display: inline-flex;
   align-items: center;
   min-height: 26px;
@@ -884,20 +987,27 @@ h1 {
   font-size: 11px;
 }
 
-.gritem:hover {
+.gritem:hover,
+.thitem:hover {
   background: var(--tint-hover);
   text-decoration: none;
 }
 
-.gritem:focus-visible {
+.gritem:focus-visible,
+.thitem:focus-visible {
   outline: 2px solid var(--i-primary);
   outline-offset: 1px;
 }
 
-.gritem[aria-current="true"] {
+.gritem[aria-current="true"],
+.thitem[aria-current="true"] {
   border-color: var(--fg-body);
   font-weight: 600;
 }
+
+/* The theme buttons carry the page's own font at the nav's size otherwise, because a button does
+   not inherit the family the way an anchor does. */
+.thitem { font-family: inherit; background: transparent; cursor: pointer; }
 
 /* What the fold cost, at the foot, in the same place the gap list puts its definition. A
    collapse that did not say how many relationships it drew as one line would be an aggregate
@@ -908,6 +1018,53 @@ h1 {
   padding-top: 6px;
   border-top: 1px solid var(--rule-muted);
   color: var(--fg-muted);
+}
+
+/* ---- the theme, behind a press, issue 120 -------------------------------- */
+/* THE FIFTH BOX TO HANG OFF A CONTROL IN THIS HEADER AND THE FOURTH COPY OF ONE IDIOM. The
+   anchoring, the plate and the three listeners are .grmenu's, which were .gapsmenu's, which were
+   .wnmenu's, which were .pgmenu's. Nothing here sets a size on the control: it is a .linkbtn, so
+   #77's floor is met by construction.
+
+   ANCHORED RIGHT, and at this end of the row that is not a preference. The control is the last
+   item in the nav, so a box anchored to its left edge and 200px wide hangs off the right of the
+   viewport at every width; anchored right it opens back into the page. .grmenu and .gapsmenu were
+   given the same treatment for the same measurement. */
+.thpick {
+  position: relative;
+  display: inline-block;
+}
+
+.thmenu {
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 0;
+  z-index: var(--z-pop);
+  width: 210px;
+  max-width: calc(100vw - 40px);
+  padding: 8px 10px;
+  background: var(--bg-panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--elev-1);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.thmenu[hidden] { display: none; }
+
+/* What the three mean, above them, in the place .grmenu puts the sentence that makes its two
+   choices mean anything. `system` is the one a reader cannot infer from the page in front of
+   them, which is #57's whole finding, so the sentence is about that one. */
+.th-scope {
+  margin: 0 0 6px;
+  color: var(--fg-body);
+}
+
+.th-row {
+  display: flex;
+  gap: 6px;
+  margin: 0;
 }
 
 /* ---- canvas ------------------------------------------------------------- */
@@ -1784,12 +1941,26 @@ body.fb-mode .fb-popover select { cursor: pointer; }
      max-content width and its children never meet an edge to wrap at. It is given the row
      here, and then wraps inside it. */
   .hnav { flex: 1 1 100%; flex-wrap: wrap; gap: 6px; }
+  /* THREE LINES HERE, AND THEY ARE THE THREE A PHONE ALREADY HAD. Issue 120. Before this card the
+     header at 390 was the heading on one line and the nav wrapped onto two, and it measured 107px.
+     The readout takes the line the second nav line used to take: the heading, then what is on
+     screen, then what a reader can do about it, which is a better use of the same three lines than
+     nine controls wrapping wherever they happened to fall. It is given the row for .hnav's reason,
+     that a flex item sized to its own content never meets an edge to wrap at, and it is allowed to
+     wrap inside itself so that a reading added later, or a longer number in one that is already
+     there, folds inside the plate instead of pushing the page sideways. */
+  .hstate { flex: 1 1 100%; flex-wrap: wrap; }
   /* The five controls in the nav are within a few pixels of the width of a 390px screen once
      they are 24 by 24, so the padding that separates them in the row comes down here and the box
      stays the size a finger needs. The picker inside the heading keeps its own, tighter, padding
      through a more specific rule, and the footer's disclosure keeps the wider one because it sits
      alone at the end of a sentence. */
   .hnav .linkbtn { padding-left: 6px; padding-right: 6px; }
+  /* The readings take the same cut for the same reason, and the static one with them, because the
+     plate has to hold all four of them on one line at 390 and a reading that kept the wider
+     padding would be the one that folded the box in two. Issue 120. */
+  .hstate .linkbtn,
+  .hstate .rd-static { padding-left: 6px; padding-right: 6px; }
   /* THE WINDOW MENU STOPS HANGING OFF ITS OWN CONTROL BELOW THE BREAKPOINT, and this is a
      measured repair rather than a precaution. The nav wraps here, so the control it hangs from
      sits near the LEFT of the second row; a box anchored to that control's right edge and 350px
@@ -1823,6 +1994,17 @@ body.fb-mode .fb-popover select { cursor: pointer; }
   /* And the altitude's box is the same box in the same place for the same measured reason.
      Issue 89. */
   .grmenu {
+    position: fixed;
+    top: var(--hh);
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
+  }
+  /* And the theme's, which is the fourth. Issue 120. It hangs off the last control in a nav that
+     wraps here, so where its own edges are depends on where the row happened to break, which is
+     the condition all three above it are anchored to the viewport for. */
+  .thmenu {
     position: fixed;
     top: var(--hh);
     left: 12px;

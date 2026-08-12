@@ -219,7 +219,7 @@
     router.describe();
     // Issue 98. A different programme is a different set of gaps, and no class on the body changed
     // to say so, which is why this is a call and not the observer's business.
-    describeGaps();
+    describeReadout();
     // Issue 111. And beside it for exactly the same reason: the window did not move and the
     // drawing under it did, so how many tiles the window is taking off has changed.
     term.restateWindow();
@@ -325,7 +325,7 @@
     selection.bind(render.gfx());
     stampDigest();
     router.describe();
-    describeGaps();
+    describeReadout();
     term.restateWindow();
     describeGrain();
     // The fit first and the anchor after it, which is the order #100 settled for the same
@@ -388,7 +388,7 @@
     // Issue 98, and it is the composition that card is for: the window moved, so what is on
     // screen moved, so the count of what is missing in it moved. Here rather than in the observer
     // because a window changes no class on the body.
-    describeGaps();
+    describeReadout();
     viewport.refit();
   }
 
@@ -520,7 +520,12 @@
     // reader cannot see.
     busy: function () {
       return router.rosterOpen() || router.pgMenuOpen() || term.isOpen() ||
-             term.windowMenuOpen() || gapsMenuOpen() || grainMenuOpen();
+             term.windowMenuOpen() || gapsMenuOpen() || grainMenuOpen() ||
+             // Issue 120. The theme grew a box of its own when it went behind a press, and a box
+             // over the canvas is a box a digit typed into it must not reach past. It is in this
+             // list for the reason the other four are and not because anything about the theme
+             // changed.
+             themeMenuOpen();
     },
     // Issue 84's counter-scale. The lane headings are controls and a control keeps its size on
     // screen, so the drawing is told the scale on every change of it.
@@ -558,14 +563,77 @@
   // What the control says about the state it is in, and what pressing it will do next. The
   // hint matters more here than on a two-state toggle: the reader cannot see the third state
   // from the second one.
-  var THEME_TITLE = {
-    system: 'the theme follows the operating system. Press for light',
-    light: 'the theme is light, whatever the operating system says. Press for dark',
-    dark: 'the theme is dark, whatever the operating system says. Press to follow the ' +
-          'operating system again'
+  //
+  // IT IS BEHIND A PRESS SINCE ISSUE 120, AND #57's FINDING IS WHY IT IS A MENU RATHER THAN A
+  // HIDDEN CYCLE. That card put the choice on the face of the control because three states cannot
+  // be read off a two state switch. The finding is right and the conclusion has moved: what a
+  // reader could not tell was which of the three was on, and a list of three with the current one
+  // marked answers that better than a label does, because it also says what the other two are
+  // without anybody having to press twice to find out. What went with the label is a permanent
+  // 97 CSS px of the row's anchor position, spent on a choice made about once and on a value the
+  // page is already showing the reader: a light page is the theme saying light.
+  var THEME_STATE = {
+    system: 'the theme follows the operating system',
+    light: 'the theme is light, whatever the operating system says',
+    dark: 'the theme is dark, whatever the operating system says'
+  };
+  // What each choice does, said in the box rather than in a tooltip. `system` is the one a reader
+  // cannot infer from the page in front of them, which is #57's whole finding, so it is the one
+  // the sentence is about.
+  var THEME_WORDS = {
+    system: 'This page is following the operating system. Light and dark below override it, and ' +
+            'system hands it back.',
+    light: 'This page is on light, whatever the operating system says. system hands it back to ' +
+           'the machine.',
+    dark: 'This page is on dark, whatever the operating system says. system hands it back to ' +
+          'the machine.'
   };
   var thBtn = document.getElementById('thtoggle');
+  var thMenu = document.getElementById('thmenu');
   var theme = 'system';
+
+  function themeMenuOpen() { return !!thMenu && !thMenu.hidden; }
+
+  function showThemeMenu(on) {
+    if (!thMenu || themeMenuOpen() === on) return;
+    if (on) buildThemeMenu();
+    thMenu.hidden = !on;
+    if (thBtn) thBtn.setAttribute('aria-expanded', on ? 'true' : 'false');
+  }
+
+  function themeItem(choice) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'thitem';
+    b.textContent = choice;
+    // The mark is an attribute and not a weight alone, for .pgitem's reason: which one is on has
+    // to survive a forced-colours mode and a reader who cannot see the difference.
+    if (choice === theme) b.setAttribute('aria-current', 'true');
+    b.addEventListener('click', function (e) {
+      e.stopPropagation();
+      applyTheme(choice);
+      // `system` is written out rather than removed, because "I chose to follow the machine" and
+      // "I have never chosen" are different facts even though they draw the same page. An
+      // unreadable or absent key still means system, so clearing storage falls back correctly.
+      try { localStorage.setItem(THEME_KEY, theme); } catch (e2) { /* nothing persists, page turns */ }
+      showThemeMenu(false);
+      if (thBtn && thBtn.focus) thBtn.focus();
+    });
+    return b;
+  }
+
+  function buildThemeMenu() {
+    if (!thMenu) return;
+    thMenu.textContent = '';
+    var head = document.createElement('p');
+    head.className = 'th-scope';
+    head.textContent = THEME_WORDS[theme];
+    thMenu.appendChild(head);
+    var row = document.createElement('p');
+    row.className = 'th-row';
+    THEMES.forEach(function (c) { row.appendChild(themeItem(c)); });
+    thMenu.appendChild(row);
+  }
 
   function applyTheme(choice) {
     theme = THEMES.indexOf(choice) === -1 ? 'system' : choice;
@@ -573,26 +641,44 @@
     // page exactly as it behaved before this control existed.
     if (theme === 'system') document.documentElement.removeAttribute('data-theme');
     else document.documentElement.setAttribute('data-theme', theme);
-    if (thBtn) {
-      // The state, in the row's own idiom: `feedback` says `feedback: on (Esc to exit)` in the
-      // same place for the same reason. The button's text is its accessible name, so a screen
-      // reader is told the state by the same string a reader sees, and the title is the hint.
-      thBtn.textContent = 'theme: ' + theme;
-      thBtn.title = THEME_TITLE[theme];
-    }
+    // The state is in the title now instead of on the face, and the box under it is where a
+    // reader is shown it. The text of the control is the word `theme` and never changes, so it
+    // is in index.html with the other labels that do not.
+    if (thBtn) thBtn.title = 'colour theme: ' + THEME_STATE[theme] + '. Press to choose';
+    if (themeMenuOpen()) buildThemeMenu();
   }
 
   if (thBtn) {
     var stored = null;
     try { stored = localStorage.getItem(THEME_KEY); } catch (e) { stored = null; }
     applyTheme(stored);
-    thBtn.addEventListener('click', function () {
-      applyTheme(THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length]);
-      // `system` is written out rather than removed, because "I chose to follow the machine" and
-      // "I have never chosen" are different facts even though they draw the same page. An
-      // unreadable or absent key still means system, so clearing storage falls back correctly.
-      try { localStorage.setItem(THEME_KEY, theme); } catch (e) { /* nothing persists, page turns */ }
+  }
+
+  // The same three listeners the altitude and the gap count have, in the same shapes and for the
+  // same reasons. Issue 120.
+  if (thBtn && thMenu) {
+    thBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      showThemeMenu(!themeMenuOpen());
     });
+    document.addEventListener('click', function (e) {
+      var t = e.target;
+      if (t && t.closest && t.closest('#thpick')) return;
+      showThemeMenu(false);
+    });
+    document.addEventListener('focusin', function (e) {
+      var t = e.target;
+      if (t && t.closest && t.closest('#thpick')) return;
+      showThemeMenu(false);
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape' || !themeMenuOpen()) return;
+      if (document.body.classList.contains('fb-mode')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      showThemeMenu(false);
+      if (thBtn.focus) thBtn.focus();
+    }, true);
   }
 
   // ---- ghosts on or off ----------------------------------------------------
@@ -609,6 +695,12 @@
       document.body.classList.toggle('hide-ghosts', !next);
       var n = selection.node();
       if (!next && n && n.ghost) selection.clear();
+      // Issue 120. The tile reading counts what is on the canvas and this control takes tiles off
+      // it, so the reading moves with it. Told directly rather than left to the class observer,
+      // for the reason the window and the programme are told directly: the observer is the answer
+      // where there is one, and the fallback below it is a hashchange listener, which a toggle
+      // that changes no address never reaches.
+      describeTiles();
     });
   }
 
@@ -661,6 +753,11 @@
   // would have to be handed three of the four.
   var gapsBtn = document.getElementById('gapsbtn');
   var gapsMenu = document.getElementById('gapsmenu');
+  // Issue 120. The control is a reading now, so it is a label the page never rewrites and a value
+  // the page rewrites constantly, and only the second of the two is here. The label is in
+  // index.html beside the other three, where a reader of the markup can see the four together and
+  // see that they are one instrument.
+  var gapsVal = document.getElementById('gapsval');
 
   // The type's own name, from the drawing's type table, pluralised. A noun typed here would be a
   // second name for a class that already has one, which is the mistake the footer's counts exist
@@ -776,7 +873,7 @@
     }
     var g = gapsOf(sc.nodes);
     gapsNow = { total: g.total, of: GAPS_ALL, rows: g.rows, scope: sc.subject + ': ' + sc.where };
-    gapsBtn.textContent = 'gaps: ' + g.total + ' of ' + GAPS_ALL;
+    if (gapsVal) gapsVal.textContent = g.total + ' of ' + GAPS_ALL;
     var sentence = (g.total
       ? g.total + ' of the ' + GAPS_ALL + ' values the model records as missing are in '
       : 'None of the ' + GAPS_ALL + ' values the model records as missing is in ') +
@@ -869,6 +966,8 @@
   // to disagree about what is on screen.
   var grBtn = document.getElementById('grbtn');
   var grMenu = document.getElementById('grmenu');
+  // Issue 120, and the same split as the gap count's: the label is markup and the value is code.
+  var grVal = document.getElementById('grval');
 
   function grainMenuOpen() { return !!grMenu && !grMenu.hidden; }
 
@@ -934,7 +1033,7 @@
   function describeGrain() {
     if (!grBtn) return;
     var f = grainFacts();
-    grBtn.textContent = 'grain: ' + f.grain;
+    if (grVal) grVal.textContent = f.grain;
     grBtn.title = 'the altitude this drawing is drawn at: ' + grainWords(f) + '. Press to change';
     if (!grMenu) return;
     grMenu.textContent = '';
@@ -957,6 +1056,61 @@
         'drawn between two lanes. Every line says in its own tooltip how many it stands for.'
       : 'Every relationship on this view is drawn as its own line at both altitudes.';
     grMenu.appendChild(foot);
+  }
+
+  // ---- how much is on the drawing, issue 120 -------------------------------
+  // THE READING EVERY OTHER CONTROL IN THIS HEADER MOVES, and the only thing that card adds to
+  // the page. It is not a control: it holds no state, opens nothing and answers no press. What
+  // earns it a place in the row is that it is the number the three readings beside it compose
+  // into. The window takes tiles off the drawing, the altitude folds tiles into one another, the
+  // programme replaces the whole set and `ghosts` withdraws the tiles no system holds. Each of
+  // those is a sentence somewhere in this file and not one of them was ever a number on the page.
+  //
+  // THE PAGE ALREADY HELD IT AND SAID IT IN A TOOLTIP. #111 took #100's stub tiles off the canvas
+  // and moved their count into the window control's title, which is where a number goes when the
+  // row it belongs in has no shape to hold it. This row has one now.
+  //
+  // THE DENOMINATOR APPEARS WHEN THERE IS A DIFFERENCE TO REPORT AND NOT BEFORE. `62` is the
+  // drawing. `27 of 62` is the drawing with something taking tiles off it. A reading that wrote
+  // `62 of 62` on arrival would spend its width saying nothing on the route a reader is on most
+  // of the time, and would make the one state worth noticing look like the ordinary one.
+  //
+  // GHOSTS COUNT WHEN THEY ARE DRAWN AND NOT WHEN THEY ARE NOT, on both sides of the `of`. That
+  // is the whole rule and it is the only rule: this counts what is painted. A tile count that
+  // included tiles the reader has just switched off would be a dashboard reading about a picture
+  // nobody is looking at.
+  var tilesVal = document.getElementById('tilesval');
+  var tilesRd = document.getElementById('tilesrd');
+
+  function paintedTiles(g) {
+    var hide = document.body.classList.contains('hide-ghosts'), n = 0;
+    ((g && g.nodes) || []).forEach(function (x) { if (!(hide && x.ghost)) n++; });
+    return n;
+  }
+
+  function describeTiles() {
+    if (!tilesVal || !render) return;
+    // render.drawing() is what is painted, which a window has already filtered; render.canonical()
+    // is the artefact the build wrote for this programme at this altitude. The two are the same
+    // object whenever no window is on, which is what makes the equality below the honest test of
+    // "is anything taking tiles off this" rather than a second copy of the window's own state.
+    var shown = paintedTiles(render.drawing());
+    var of = paintedTiles(render.canonical() || render.drawing());
+    tilesVal.textContent = shown === of ? String(of) : shown + ' of ' + of;
+    if (tilesRd) {
+      tilesRd.title = (shown === of
+        ? of + ' tiles are drawn'
+        : shown + ' of the ' + of + ' tiles of this drawing are on screen') +
+        ', at the ' + router.grain() + ' grain';
+    }
+  }
+
+  // Issue 120. The two readings that are arithmetic over what the view is showing, restated
+  // together, because every reason to restate one is a reason to restate the other and a pair
+  // that has to be remembered separately is a pair that comes apart.
+  function describeReadout() {
+    describeGaps();
+    describeTiles();
   }
 
   // The same three listeners the gaps control has, in the same shapes and for the same reasons.
@@ -994,10 +1148,10 @@
   // invents. The window and the programme are told directly, in windowChanged() and showView(),
   // because those two change the count without changing a class.
   if (window.MutationObserver) {
-    new MutationObserver(describeGaps)
+    new MutationObserver(describeReadout)
       .observe(document.body, { attributes: true, attributeFilter: ['class'] });
   } else {
-    window.addEventListener('hashchange', function () { setTimeout(describeGaps, 0); });
+    window.addEventListener('hashchange', function () { setTimeout(describeReadout, 0); });
   }
 
   // ---- how to read this ----------------------------------------------------
@@ -1060,7 +1214,7 @@
   term.start();
   // Issue 98. After term.start(), because the address may already be a reading and the count is a
   // count of what the view on screen is showing. The observer takes it from here.
-  describeGaps();
+  describeReadout();
   // Issue 111. term.start() described the window before render had drawn anything, so the count
   // of what the window takes off the drawing was the one thing it could not state. Restated here,
   // once, for the same reason describeGaps is called here.

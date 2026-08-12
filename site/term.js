@@ -716,10 +716,16 @@
 
     function describeWindow() {
       if (!wnBtn || !TERM) return;
-      // The state, in the row's own idiom, and short enough not to push the nav around: `theme`
-      // says `theme: system` in the same place for the same reason.
-      wnBtn.textContent = 'weeks: ' + (win.weeks ? win.weeks + ' of ' + TERM.weeks
-                                                 : 'all ' + TERM.weeks);
+      // THE VALUE AND NOT THE WHOLE CONTROL, since issue 120. This used to write
+      // `weeks: 3 of 24` over the button's own text, which is the idiom of a nav bar: a colon,
+      // and one string doing the work of a label and a value at once. The control is a reading in
+      // the header's readout now, so the label `weeks` is markup that never changes and this
+      // writes the value alone. Nothing about what it says has moved; what moved is which half of
+      // it this file owns.
+      var wnVal = document.getElementById('wnval');
+      if (wnVal) {
+        wnVal.textContent = win.weeks ? win.weeks + ' of ' + TERM.weeks : 'all ' + TERM.weeks;
+      }
       var f = windowOff();
       wnBtn.title = 'the part of the term in focus: ' + windowText() +
         '. ' + windowShown(null) + ' of ' + sessions.length + ' sessions' +
