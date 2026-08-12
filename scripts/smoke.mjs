@@ -3534,7 +3534,14 @@ async function main() {
   let base = args.find(a => !a.startsWith('-'));
   if (base) {
     if (!base.endsWith('/')) base += '/';
-    console.log(`target:  ${base}  (a deployed origin)`);
+    // A url whose host is this machine is not a deployed origin, however it was arrived at. Issue
+    // 107 made verify.sh able to serve site/ locally when nothing is published, and a suite that
+    // printed "a deployed origin" over a loopback address would put a false sentence at the top of
+    // a log somebody later quotes. Named by what it is, from the url and not from the caller.
+    const localhost = /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])([:/]|$)/.test(base);
+    console.log(`target:  ${base}  (${localhost
+      ? 'a server on this machine, so this tests bytes and not a publication'
+      : 'a deployed origin, served by somebody else'})`);
   } else {
     const s = await serveSite(SITE);
     server = s.server;

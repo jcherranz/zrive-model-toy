@@ -11,6 +11,22 @@ name: Deploy site to Pages
 # correctly (issue 39, and board.yml's header carries the argument). board.yml now commits
 # site/board.json and dispatches this workflow when, and only when, it committed something, so a
 # board change still reaches the origin promptly and an unchanged board publishes nothing at all.
+#
+# AND IT ONLY RUNS WHEN THE SWITCH IS ON. Issue 107. Issue 101 ended with the site taken down: the
+# account is on Pro, private Pages needs Enterprise Cloud, so the only states available are
+# world-readable and gone, and the owner chose gone. Every job below is gated on the repository
+# variable PUBLISH being the string "on", which scripts/publish.sh sets.
+#
+# GATED, NOT DELETED, and the difference is the point. Deleting this file would have made the next
+# publication a job of writing a deploy workflow again, and the owner's requirement is that turning
+# the site back on is one command. Deleting it was also the more dangerous half of the choice in
+# the other direction: `actions/configure-pages` below CREATES the Pages site, so a file left
+# armed would have republished the site the owner had just removed, on the next push.
+#
+# WHAT A SKIPPED JOB REPORTS, because a workflow that cannot do its job and still goes green is the
+# defect issue 103 removed. `if` on the job means the run is recorded as skipped, which GitHub
+# renders as neither success nor failure and which no reader can mistake for a deploy. Nothing here
+# passes vacuously; it declines, visibly, and scripts/publish.sh status says why in one line.
 
 on:
   push:
@@ -75,10 +91,11 @@ jobs:
     # legitimate deploy that had not started yet, and then skip its own deploy, publishing nothing.
     # THE TWO COPIES MOVE TOGETHER. Changing one and not the other is the defect.
     if: >-
-      github.event_name != 'push' ||
-      (github.event.head_commit != null &&
-       github.event.head_commit.author.email != '41898282+github-actions[bot]@users.noreply.github.com' &&
-       !contains(github.event.head_commit.message, 'chore(board): sync from issues'))
+      vars.PUBLISH == 'on' &&
+      (github.event_name != 'push' ||
+       (github.event.head_commit != null &&
+        github.event.head_commit.author.email != '41898282+github-actions[bot]@users.noreply.github.com' &&
+        !contains(github.event.head_commit.message, 'chore(board): sync from issues')))
     permissions:
       # actions: write is the whole of it. No pages: write and no id-token: write, so this job
       # cannot deploy even by accident, and contents is not needed because it checks nothing out.
@@ -217,10 +234,11 @@ jobs:
     # The supersede job above carries a byte-identical copy, for a different reason of its own that
     # its comment states. THE TWO MOVE TOGETHER.
     if: >-
-      github.event_name != 'push' ||
-      (github.event.head_commit != null &&
-       github.event.head_commit.author.email != '41898282+github-actions[bot]@users.noreply.github.com' &&
-       !contains(github.event.head_commit.message, 'chore(board): sync from issues'))
+      vars.PUBLISH == 'on' &&
+      (github.event_name != 'push' ||
+       (github.event.head_commit != null &&
+        github.event.head_commit.author.email != '41898282+github-actions[bot]@users.noreply.github.com' &&
+        !contains(github.event.head_commit.message, 'chore(board): sync from issues')))
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

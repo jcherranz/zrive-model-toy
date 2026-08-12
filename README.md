@@ -1,7 +1,10 @@
 # Zrive operating model, toy instance diagram
 
 One screen. One programme, one cohort, twenty six named objects and the verbs that join them.
-Live at https://jcherranz.github.io/zrive-model-toy/
+
+**The site is off.** There is no public URL. `bash scripts/publish.sh on` puts it back and
+`status` says which it is. This account is on GitHub Pro, private Pages needs Enterprise Cloud, so
+on means world-readable with no authentication available. That is why it is off.
 
 ## This is a toy and it carries invented values only
 
@@ -162,22 +165,30 @@ issue carries no real name, no real figure and no link into the private corpus.
 **One command, and it is the whole list.**
 
 ```bash
-bash scripts/verify.sh                   # everything that can run against the working tree
-bash scripts/verify.sh https://jcherranz.github.io/zrive-model-toy/   # and against the origin
+bash scripts/verify.sh                   # everything
+bash scripts/verify.sh <origin-url>      # read that url, without looking for one
+bash scripts/verify.sh --local           # serve site/ locally, without looking for one
 ```
 
 It runs, in order: `node --check` on every shipped script, the layout reproducibility check, both
 safety gates with their self-tests, the local token grep, and the smoke suite. Every step reports
 `[OK]`, `[FAIL]` or `[SKIP]`, every step runs whatever the ones before it did, and the exit code is
 non-zero if anything failed. A step that cannot run here, the token grep without the vault and the
-deployed-bytes gate without an origin, says `[SKIP]` and why: a clean run that skipped two things
-must not read as a clean run that did nine.
+smoke run against the origin when there is no origin, says `[SKIP]` and why: a clean run that
+skipped two things must not read as a clean run that did nine.
+
+**Two of the steps read bytes back over HTTP, and it says which server answered.** With the site
+on, it checks the origin and the verdict reads `The origin serves this.` With the site off, it
+serves `site/` on a local port, checks that, and the verdict reads
+`These bytes serve. No origin was checked, because there is none.` The second is the weaker claim
+and is never printed as the first. Nothing needs editing when the site comes back: the origin is
+looked for, not configured.
 
 `scripts/smoke.mjs` is the behaviour half, and can be run on its own:
 
 ```bash
-node scripts/smoke.mjs                                          # serve site/ and test it
-node scripts/smoke.mjs https://jcherranz.github.io/zrive-model-toy/
+node scripts/smoke.mjs                   # serve site/ and test it
+node scripts/smoke.mjs <origin-url>
 ```
 
 Ninety seven assertions across three viewports, 1536x839, 1440x900 and 390x844: the six Company

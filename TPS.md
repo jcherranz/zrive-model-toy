@@ -43,6 +43,14 @@ written in; a real name from the teaching register; a euro-formatted figure that
 the two invented ones; a corpus link; a UUID; an email address. A failure marks the run red and
 the run is the andon.
 
+**While the site is off, the line runs anyway and the gate says so.** Issue 101 took the
+publication down and issue 107 gated `pages.yml` and `origin-freshness.yml` on the `PUBLISH`
+repository variable rather than deleting them, so both are skipped and neither reports green.
+`scripts/verify.sh` serves `site/` on a local port and runs the gate against that, which proves the
+bytes serve clean and not that anybody is serving them. The gate prints which of the two it read,
+and the verdict is a different sentence in each case. `scripts/publish.sh on` restores every one of
+them at once.
+
 **The gate does not unpublish.** It reports; a person takes the page down. An automated unpublish
 on a rule that can false-fire would take the site down on a CSS decimal, and the fifteen minutes
 a human takes to look is cheaper than the class of failure where a workflow deletes things on its

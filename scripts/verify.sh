@@ -13,9 +13,10 @@
 # reports [OK], [FAIL] or [SKIP] and the exit code is non-zero if anything failed.
 #
 # [SKIP] IS NOT [OK], AND IS PRINTED DIFFERENTLY FOR THAT REASON. Two of these steps cannot run
-# everywhere: build/safety_grep.py reads the faculty register out of the vault, and the
-# deployed-bytes gate needs an origin to fetch. A skipped step is named in the summary with its
-# reason, so a clean run that skipped two things cannot be read as a clean run that did nine.
+# everywhere: build/safety_grep.py reads the faculty register out of the vault, and the smoke
+# suite against the origin has no second copy of the bytes to read when nothing is published. A
+# skipped step is named in the summary with its reason, so a clean run that skipped two things
+# cannot be read as a clean run that did nine.
 #
 # AND A SKIP THAT CAN MEAN AN ABORT IS A GREEN THAT CAN MEAN RED. Issue 103, and it is this
 # file's own headline doctrine turned on itself. Every step here used to map exit 2 to [SKIP],
@@ -36,19 +37,50 @@
 # nobody had joined: a vault that disappears once retired two model gates AND took this file's
 # verdict with it, because both of them answered 2 and both of them read as a skip.
 #
+# "THE ORIGIN SERVES THIS" AND "THESE BYTES SERVE" ARE TWO DIFFERENT SENTENCES, AND THIS FILE SAYS
+# WHICH ONE IT EARNED. Issue 107. The publication was taken down (issue 101: the account is on Pro,
+# private Pages needs Enterprise Cloud, so there was no authentication to put in front of the URL
+# and the site was deleted). Two steps here read bytes back over HTTP, and with nothing published
+# they had nothing to read.
+#
+# The wrong repair, and it is the obvious one, is to point them at the working tree and let the
+# summary keep printing what it printed before. That is the defect issue 103 spent a night
+# removing: a gate that goes green when its subject is gone. So the target is not hidden, it is
+# reported. This file looks for a public origin; if one answers it checks THAT and says so, and if
+# none does it serves site/ on a local port, checks that, and says THAT instead. A run against a
+# local server has established that these bytes serve and behave. It has not established that
+# anybody else is serving them, or that anything is published at all, and the verdict says so in
+# those words. Same discipline as check_build.sh naming the snapshot it read.
+#
+# The origin is looked for rather than configured, so putting the site back online (scripts/
+# publish.sh on) needs no edit here: the next run finds it, checks it, and upgrades its own
+# sentence.
+#
 # Usage:
-#   scripts/verify.sh                 everything that can run against this working tree
-#   scripts/verify.sh <origin-url>    and also the deployed-bytes gate and the smoke suite
-#                                     against that origin
+#   scripts/verify.sh                 everything. Looks for a public origin: if one answers, the
+#                                     two origin-shaped steps read it; if none does, site/ is
+#                                     served locally and they read that. The verdict says which.
+#   scripts/verify.sh <origin-url>    read that url, without looking for one
+#   scripts/verify.sh --local         serve site/ locally, without looking for an origin
 #
 # Env: SMOKE_CHROME / CHROME_PATH / CHROME_BIN   which browser the smoke suite drives
+#      ZMT_ORIGIN                                the url to look for, instead of the derived one
+#      ZMT_PROBE_TIMEOUT                         seconds to wait for it, default 8
 
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-ORIGIN="${1:-}"
+ARG="${1:-}"
+PROBE_TIMEOUT="${ZMT_PROBE_TIMEOUT:-8}"
+
+# Filled in by choose_target below: the url the two origin-shaped steps read, and whether that url
+# is somebody else's server or this machine's. Every sentence this file prints about what it
+# proved is derived from TARGET_KIND and from nothing else.
+TARGET_URL=""
+TARGET_KIND=""      # remote | local
+TARGET_HOW=""       # one line saying how the target was decided, printed in the header
 
 STEP_NAMES=()
 STEP_STATE=()
@@ -261,12 +293,183 @@ check_token_grep() {
 }
 
 # ---------------------------------------------------------------------------------------------
+# What the two origin-shaped steps read.
+# ---------------------------------------------------------------------------------------------
+# A url whose host is this machine is not an origin however it was arrived at, and a target handed
+# in by hand gets classified by the same rule as one that was found. Without this, `verify.sh
+# http://127.0.0.1:8000/` would print "the origin serves this" about a server the reader started
+# thirty seconds earlier, which is the exact false sentence this whole section exists to prevent.
+classify_target() {  # url -> echoes remote|local
+  case "$1" in
+    http://127.0.0.1[:/]*|http://127.0.0.1|http://localhost[:/]*|http://localhost|http://\[::1\]*)
+      echo local ;;
+    *) echo remote ;;
+  esac
+}
+
+# The url this repository would be published at, worked out from the git remote rather than
+# written down, so a fork or a rename does not leave a hardcoded address behind
+# (KAIZEN.md `kaizen-a-computed-value-is-never-typed-twice`). Nothing is asserted about whether it
+# answers; that is the probe's job.
+derive_origin_url() {
+  local remote owner repo
+  remote="$(git config --get remote.origin.url 2>/dev/null)" || return 1
+  case "$remote" in *github.com[:/]*) ;; *) return 1 ;; esac
+  remote="${remote%.git}"
+  repo="${remote##*/}"
+  owner="${remote%/*}"; owner="${owner##*[:/]}"
+  [ -n "$owner" ] && [ -n "$repo" ] || return 1
+  printf 'https://%s.github.io/%s/\n' "$owner" "$repo"
+}
+
+# Does anybody serve it. This asks the only question the verdict is allowed to turn on, which is
+# whether a third party hands these files back over the public internet, and NOT whether the Pages
+# API has a record: a site can be configured and not yet serving, or deleted and still draining out
+# of the CDN, and in both cases what a reader can actually fetch is the fact. A non-200, a
+# timeout, no network and no curl all mean the same thing here, which is that there is no origin to
+# check right now.
+probe_origin() {  # url -> echoes the http code, 000 for anything that did not answer
+  command -v curl >/dev/null 2>&1 || { echo 000; return 0; }
+  curl -sS -o /dev/null -w '%{http_code}' --max-time "$PROBE_TIMEOUT" "$1" 2>/dev/null || echo 000
+}
+
+# ---------------------------------------------------------------------------------------------
+# The local server, for when there is no origin.
+# ---------------------------------------------------------------------------------------------
+# python3 -m http.server over site/, on a port nobody else holds, and no new dependency: python3 is
+# already required by four of the steps above.
+#
+# THE PORT IS TAKEN FROM THE KERNEL AND NOT GUESSED, and readiness is a fetch and not a sleep. A
+# hardcoded port collides with whatever the contributor already has running and a fixed sleep is a
+# race that fails on a loaded machine, and both of those fail in the direction where the gate below
+# reports on an empty fetch.
+#
+# AND IT IS PROVED TO BE SERVING THESE BYTES. The claim this whole path exists to support is "these
+# bytes serve", so the one thing that must not be assumed is that the server is serving this tree.
+# A server left over on a recycled port, or a --directory that silently resolved somewhere else,
+# would let every step below report about the wrong files. index.html is fetched and its length
+# compared with the file on disk before anything is scanned.
+LOCAL_SERVER_PID=""
+stop_local_server() {
+  if [ -n "$LOCAL_SERVER_PID" ]; then
+    kill "$LOCAL_SERVER_PID" 2>/dev/null
+    wait "$LOCAL_SERVER_PID" 2>/dev/null
+    LOCAL_SERVER_PID=""
+  fi
+  return 0
+}
+trap stop_local_server EXIT
+
+start_local_server() {  # echoes the base url on stdout; diagnostics to stderr; non-zero on failure
+  local port log i code want got
+  [ -d site ] || { echo "  there is no site/ directory to serve" >&2; return 1; }
+  port="$(python3 -c 'import socket
+s = socket.socket()
+s.bind(("127.0.0.1", 0))
+print(s.getsockname()[1])
+s.close()' 2>/dev/null)"
+  [ -n "$port" ] || { echo "  could not get a free port from python3" >&2; return 1; }
+
+  log="$(mktemp)"
+  python3 -m http.server "$port" --bind 127.0.0.1 --directory site >"$log" 2>&1 &
+  LOCAL_SERVER_PID=$!
+
+  code=000
+  for i in $(seq 1 40); do
+    code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 3 \
+            "http://127.0.0.1:$port/index.html" 2>/dev/null || echo 000)"
+    [ "$code" = "200" ] && break
+    kill -0 "$LOCAL_SERVER_PID" 2>/dev/null || break
+    sleep 0.25
+  done
+  if [ "$code" != "200" ]; then
+    echo "  the local server never answered 200 on port $port (last code $code). It said:" >&2
+    sed 's/^/    /' "$log" >&2
+    rm -f "$log"
+    return 1
+  fi
+
+  want="$(wc -c < site/index.html)"
+  got="$(curl -sS --max-time 10 "http://127.0.0.1:$port/index.html" 2>/dev/null | wc -c)"
+  rm -f "$log"
+  if [ "$want" != "$got" ]; then
+    echo "  the server on port $port returned $got bytes for index.html and site/index.html is" >&2
+    echo "  $want bytes. It is not serving this tree, so nothing read from it is evidence." >&2
+    return 1
+  fi
+  printf 'http://127.0.0.1:%s/\n' "$port"
+}
+
+# Decide the target once, before any step runs, so the header, the step names and the verdict are
+# three readings of one decision rather than three decisions.
+choose_target() {
+  local wanted code
+  if [ "$ARG" = "--local" ]; then
+    TARGET_KIND=local
+    TARGET_HOW="--local was given, so no origin was looked for"
+    return 0
+  fi
+  if [ -n "$ARG" ]; then
+    TARGET_URL="$ARG"
+    TARGET_KIND="$(classify_target "$ARG")"
+    if [ "$TARGET_KIND" = local ]; then
+      TARGET_HOW="a url was given and its host is this machine, so it is not an origin"
+      TARGET_URL=""   # start our own, rather than trust a server we did not check
+      return 0
+    fi
+    TARGET_HOW="a url was given on the command line; it was not probed first"
+    return 0
+  fi
+  wanted="${ZMT_ORIGIN:-$(derive_origin_url || true)}"
+  if [ -z "$wanted" ]; then
+    TARGET_KIND=local
+    TARGET_HOW="no url given and none could be derived from the git remote"
+    return 0
+  fi
+  code="$(probe_origin "$wanted")"
+  if [ "$code" = "200" ]; then
+    TARGET_URL="$wanted"
+    TARGET_KIND="$(classify_target "$wanted")"
+    TARGET_HOW="probed $wanted and it answered HTTP 200"
+    return 0
+  fi
+  TARGET_KIND=local
+  TARGET_HOW="probed $wanted and it answered HTTP $code, so there is no origin to read"
+  return 0
+}
+
+# The two origin-shaped steps, wrapped so the local case starts its server inside the step. A
+# server that will not start is a step that could not answer, which is exit 2, which this file
+# treats as a failure. It is not a skip: the precondition it needs is python3 and a free port on
+# the machine already running the script, and neither of those is a thing this file has
+# established cannot be met.
+served_bytes_gate() {
+  local base
+  if [ "$TARGET_KIND" = remote ]; then
+    base="$TARGET_URL"
+    echo "  reading a remote origin: $base"
+  else
+    base="$(start_local_server)" || return 2
+    TARGET_URL="$base"
+    echo "  reading a local server on this machine: $base  (python3 -m http.server over site/)"
+    echo "  this proves the bytes serve clean. It says nothing about what anybody publishes."
+  fi
+  bash scripts/check_forbidden.sh "$base"
+}
+
+# ---------------------------------------------------------------------------------------------
 # The run
 # ---------------------------------------------------------------------------------------------
+choose_target
 echo "verify: $ROOT"
 echo "node:   $(node --version 2>/dev/null || echo 'not found')"
 echo "python: $(python3 --version 2>/dev/null || echo 'not found')"
-[ -n "$ORIGIN" ] && echo "origin: $ORIGIN"
+if [ "$TARGET_KIND" = remote ]; then
+  echo "target: $TARGET_URL  (an origin, served by somebody else)"
+else
+  echo "target: a local server over site/, started below  (there is no origin)"
+fi
+echo "        $TARGET_HOW"
 
 step "1. every shipped script parses"                     check_syntax
 
@@ -284,13 +487,22 @@ step "4. prove the build gate fires"                      bash scripts/check_bui
 step "5. prove the provenance gate fires"                 python3 build/model.py --provenance-self-test
 step "6. prove the repository gate fires"                 bash scripts/check_repo.sh --self-test
 step "7. repository gate, over every tracked file"        bash scripts/check_repo.sh
-step "8. prove the deployed-bytes gate fires"             bash scripts/check_forbidden.sh --self-test
+# The gate is named by what it reads and not by where the bytes came from, because where they came
+# from is now a variable and the next line says which. It was called the deployed-bytes gate while
+# the only thing it could read was a deployment; "forbidden-content gate" is the name pages.yml has
+# always used for it and it is true in both modes.
+step "8. prove the forbidden-content gate fires"          bash scripts/check_forbidden.sh --self-test
 
-if [ -n "$ORIGIN" ]; then
-  step "9. deployed-bytes gate, against $ORIGIN"          bash scripts/check_forbidden.sh "$ORIGIN"
+# THIS STEP ALWAYS RUNS, and what changes is what it read. Against an origin it answers "is what
+# the public is served clean". Against a local server it answers the weaker question "are the bytes
+# this tree would publish clean when served over HTTP", and it is still worth running for a reason
+# that is not sentiment: its file list is `find site/`, not `git ls-files`, so it is the only gate
+# in this file that can see a file sitting in site/ that has never been added, and the repository
+# gate two steps up is structurally blind to exactly that file.
+if [ "$TARGET_KIND" = remote ]; then
+  step "9. the forbidden-content gate, against the origin at $TARGET_URL" served_bytes_gate
 else
-  skip "9. deployed-bytes gate, against the origin" \
-       "no origin given. It fetches the published files over HTTP and has nothing to read without one; pass a url to run it. It runs in CI after every deploy, in pages.yml."
+  step "9. the forbidden-content gate, against a local server over site/" served_bytes_gate
 fi
 
 # The populate registry, read back out of the bytes the page loads. Issue 72 wrote the registry
@@ -307,10 +519,23 @@ else
        "the faculty register build/safety_grep.py reads is not on this machine, so the gate was not run. It is the local half of the safety machinery; the two CI gates hold salted hashes instead and are the half that does not need it."
 fi
 
-step "12. the smoke suite, against this working tree"     node scripts/smoke.mjs
+# smoke.mjs serves site/ on a local port of its own and drives a browser at it, so this step is
+# already "the suite against a local server over these bytes".
+step "12. the smoke suite, against a local server over site/"  node scripts/smoke.mjs
 
-if [ -n "$ORIGIN" ]; then
-  step "13. the smoke suite, against $ORIGIN"             node scripts/smoke.mjs "$ORIGIN"
+# WHICH IS WHY THIS ONE IS NOT RUN LOCALLY WHEN THERE IS NO ORIGIN, AND IS NOT QUIETLY DELETED
+# EITHER. The step above and this one are two runs only while there are two copies of the bytes:
+# the tree, and whatever a third party is serving. Pointed at a second local server over the same
+# site/ directory, this step would say the same sentence twice and a reader counting green steps
+# would count a second check that checked nothing new. So with no origin it is recorded as skipped,
+# with the reason, which is loud in the summary and makes the verdict say a step did not run. That
+# is the difference between a step whose subject is absent and a step that was removed for being
+# red, and it has to be visible.
+if [ "$TARGET_KIND" = remote ]; then
+  step "13. the smoke suite, against the origin at $TARGET_URL" node scripts/smoke.mjs "$TARGET_URL"
+else
+  skip "13. the smoke suite, against the origin" \
+       "there is no origin, so there is no second copy of these bytes to drive a browser at. The suite itself ran in full one step above, against a local server over site/; what did not happen is the run that would have proved a published copy behaves. scripts/publish.sh on brings it back."
 fi
 
 # ---------------------------------------------------------------------------------------------
@@ -329,13 +554,33 @@ for i in "${!STEP_NAMES[@]}"; do
 done
 echo
 printf '%d steps, %d failed, %d skipped\n' "${#STEP_NAMES[@]}" "$fails" "$skips"
+
+# WHAT THIS RUN READ, IN ONE SENTENCE, AND IT IS NOT THE SAME SENTENCE IN BOTH MODES. Issue 107.
+# The steps are identical either way and the claim they support is not, so the claim is printed
+# rather than left for the reader to reconstruct from the step names. A run that read a local
+# server proves the bytes serve and behave; it does not prove that anybody is serving them.
+echo
+if [ "$TARGET_KIND" = remote ]; then
+  echo "read: the origin at $TARGET_URL. A third party was asked for these files over the public"
+  echo "      internet and what it returned is what was checked."
+else
+  where="${TARGET_URL:-it never started, and the step that needed it failed}"
+  echo "read: a local server on this machine over site/ ($where). Nothing published was asked"
+  echo "      for, because nothing is published. $TARGET_HOW."
+fi
+
 if [ "$fails" -gt 0 ]; then
   echo "VERDICT: something is wrong. Nothing is ready to push."
   exit 1
 fi
-if [ "$skips" -gt 0 ]; then
-  echo "VERDICT: clean, with $skips step(s) that did not run. Read the summary before trusting it."
+if [ "$TARGET_KIND" = remote ]; then
+  claim="The origin serves this."
 else
-  echo "VERDICT: clean"
+  claim="These bytes serve. No origin was checked, because there is none."
+fi
+if [ "$skips" -gt 0 ]; then
+  echo "VERDICT: clean, with $skips step(s) that did not run. $claim Read the summary before trusting it."
+else
+  echo "VERDICT: clean. $claim"
 fi
 exit 0

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# The andon cord. Fetch every file this repository believes it deployed, from the public
-# origin, and fail the job if any of it carries content that must never be published.
+# The andon cord. Fetch every file this repository believes it deployed, over HTTP from whatever is
+# serving them, and fail the job if any of it carries content that must never be published.
 #
 # WHY THE LIVE URL AND NOT THE WORKING TREE. A gate that reads local files answers "is the
 # source clean", which is not the question. The question is "is the thing the public can read
@@ -20,9 +20,23 @@
 # (HANSEI.md `2026-08-09-gate-scoped-to-the-public-surface`). The repository side is
 # scripts/check_repo.sh; the two are complements and neither replaces the other.
 #
+# AND WHAT IT IS NOW ALLOWED TO SAY. Issue 107. The publication was taken down, so this gate can be
+# pointed at a local server over site/ instead of at an origin, and scripts/verify.sh does exactly
+# that when nothing is published. The rules and the file list are identical either way and the
+# CLAIM is not: bytes fetched from somebody else's server are what the public reads, and bytes
+# fetched from a server this machine started thirty seconds ago are what this tree would publish if
+# anyone published it. This file prints which one it read, in the banner and in both verdicts, so
+# nothing downstream has to infer it from the url. "FORBIDDEN CONTENT IS PUBLIC" is a sentence that
+# has to be earned.
+#
 # Usage:
-#   scripts/check_forbidden.sh [base-url]      fetch and scan the deployed site
+#   scripts/check_forbidden.sh <base-url>      fetch and scan what that url serves
 #   scripts/check_forbidden.sh --self-test     prove the gate fires, one synthetic case per rule
+#
+# There is no default url. There used to be, and it was the published address, which stopped
+# existing; a default that names a dead site turns "nothing is published" into a fetch failure
+# three screens down. Run scripts/verify.sh, which finds the origin if there is one and serves
+# site/ locally if there is not, or scripts/publish.sh status to see whether there is one.
 #
 # Env: SITE_DIR (default "site"), FETCH_ATTEMPTS (default 3), FETCH_WAIT (default 10 seconds)
 
@@ -32,7 +46,6 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/forbidden_lib.sh
 . "$ROOT/scripts/forbidden_lib.sh"
 
-BASE_URL_DEFAULT="https://jcherranz.github.io/zrive-model-toy/"
 SITE_DIR="${SITE_DIR:-site}"
 FETCH_ATTEMPTS="${FETCH_ATTEMPTS:-3}"
 FETCH_WAIT="${FETCH_WAIT:-10}"
@@ -267,11 +280,33 @@ main() {
     exit $?
   fi
 
-  local base="${1:-$BASE_URL_DEFAULT}"
+  local base="${1:-}"
+  if [ -z "$base" ]; then
+    echo "ASSERTION FAILED: no url given, and this gate has no default." >&2
+    echo "  It reads bytes back over HTTP and there is nothing to read without a target." >&2
+    echo "  scripts/verify.sh finds the origin if there is one and serves site/ locally if" >&2
+    echo "  there is not; scripts/publish.sh status says which of those is the case." >&2
+    exit 2
+  fi
   local tmp; WORKDIR="$(mktemp -d)"; tmp="$WORKDIR"
 
-  echo "gate: forbidden content, against deployed bytes"
-  echo "  origin: $base"
+  # Somebody else's server, or this machine's. Every sentence below turns on this and on nothing
+  # else, and it is decided from the url rather than from how the caller described it.
+  local kind
+  case "$base" in
+    http://127.0.0.1[:/]*|http://127.0.0.1|http://localhost[:/]*|http://localhost|http://\[::1\]*)
+      kind=local ;;
+    *) kind=remote ;;
+  esac
+
+  echo "gate: forbidden content, against served bytes"
+  echo "  target: $base"
+  if [ "$kind" = remote ]; then
+    echo "  which is: a remote server. What it returns is what the public reads."
+  else
+    echo "  which is: a server on this machine. What it returns is what this tree WOULD publish."
+    echo "            Nothing here is evidence about anything that is actually published."
+  fi
   echo "  file list from: $SITE_DIR"
   echo
   fetch_deployed "$base" "$tmp"
@@ -280,11 +315,21 @@ main() {
 
   echo
   if [ "$FAILURES" -eq 0 ]; then
-    echo "VERDICT: clean"
+    if [ "$kind" = remote ]; then
+      echo "VERDICT: clean. Nothing forbidden is being served by $base."
+    else
+      echo "VERDICT: clean. Nothing forbidden is in the bytes $base served, which are this tree's."
+      echo "         This says nothing about what is published, and nothing was published to ask."
+    fi
     exit 0
   fi
-  echo "VERDICT: FORBIDDEN CONTENT IS PUBLIC ($FAILURES findings)"
-  echo "Pull the cord: unpublish first, diagnose second."
+  if [ "$kind" = remote ]; then
+    echo "VERDICT: FORBIDDEN CONTENT IS PUBLIC ($FAILURES findings)"
+    echo "Pull the cord: unpublish first, diagnose second."
+  else
+    echo "VERDICT: FORBIDDEN CONTENT IS IN THE BYTES THIS TREE WOULD PUBLISH ($FAILURES findings)"
+    echo "Nothing is published, so nothing is exposed yet. Fix it before anything is."
+  fi
   exit 1
 }
 

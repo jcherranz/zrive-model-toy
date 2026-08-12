@@ -199,8 +199,14 @@ jobs:
       # [skip ci] and pages.yml refuses the board bot's commits, which is deliberate and is what
       # stops one change deploying twice. A run that committed nothing wakes nothing: the bytes on
       # the origin are already the bytes this run would have published.
+      #
+      # AND NOTHING IS WOKEN WHILE PUBLISHING IS OFF. Issue 107. pages.yml is gated on the same
+      # repository variable, so a dispatch sent while the switch is off produces a run whose every
+      # job skips: harmless, and a line in the run list that reads like a deploy took place. The
+      # condition is repeated here rather than left to pages.yml so the record does not carry runs
+      # that never intended to do anything. Both move together with scripts/publish.sh.
       - name: Wake the deploy, and only when the board actually changed
-        if: steps.commit.outputs.committed == 'yes'
+        if: steps.commit.outputs.committed == 'yes' && vars.PUBLISH == 'on'
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}

@@ -105,6 +105,22 @@ concurrency:
 jobs:
   freshness:
     runs-on: ubuntu-latest
+    # THE SAME SWITCH THE DEPLOY IS ON. Issue 107. This check's whole subject is the relationship
+    # between main's head and what a published origin serves, and issue 101 removed the origin: the
+    # site was deleted because the account is on Pro and private Pages needs Enterprise Cloud.
+    #
+    # With no origin the Pages API answers 404, this job falls through to a derived url, fetches
+    # nothing, and goes red every fifteen minutes forever about a state nobody intends to change.
+    # A red that is permanent and correct is a red people learn to squint at, which is the exact
+    # thing this file's own Andon argument says not to build.
+    #
+    # So it is gated on the same repository variable as the deploy, and NOT deleted and NOT rewired
+    # to pass. Deleting it would have to be undone by hand the day the site returns; rewiring it to
+    # read a local server would leave a workflow named "origin freshness" that has no opinion about
+    # any origin, which is a dark gate wearing the old label. Gated, it is skipped rather than
+    # green, and it resumes on the same command that puts the site back, checking the same thing it
+    # always checked. scripts/publish.sh.
+    if: vars.PUBLISH == 'on'
     steps:
       - name: The origin serves what main says
         env:
