@@ -11,6 +11,62 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- **The build refuses a model that is not well formed, #102.** Nothing anywhere asserted it. The
+  audit injected a duplicate node id into `build/model.py`, ran the real build, and the whole
+  static set said clean: build exit 0, provenance self-test clean, `check_build.sh` printing
+  "VERDICT: clean. The committed drawing is the build's own output", repo gate clean. That verdict
+  was true. The drawing was the build's own output; the build had agreed to draw 28 nodes carrying
+  27 ids, two tiles on one point, and 90 units of reserved height for a tile nobody can see.
+  `check_structure()` now runs on the emitted document inside `build()`, before one coordinate is
+  computed, with six named rules: `node-id-unique`, `edge-endpoint-exists`, `edge-is-not-a-loop`,
+  `edge-declared-once`, `node-class-declared`, `empty-input`. The shipped document is 7 views, 330
+  nodes, 461 edges, at `e437139`.
+- **The edge rules run before the geometry, which is where the diagnosis comes from.** `layout()`
+  builds its adjacency with `adj[e["s"]]`, so an edge naming a node that does not exist died there
+  with a bare `KeyError` naming neither the edge nor the id, after the earlier views had already
+  printed. It now reads `ZIB edge 'prog' -'leads to'-> 'no_such_node' names 'no_such_node' as its
+  target and no node in ZIB carries that id`, and the self-test asserts the naming rather than the
+  exit code.
+- **An orphan node is legal and is counted, which is a judgement and not an omission.** A view
+  says which objects it is about, and an object can belong in one with no relation of it drawn
+  there; the destination is a management tool over a whole funnel, where a class with nothing
+  attached yet is exactly the state worth showing. So the count is printed on every build, per
+  view, rather than refused. The shipped document has none, in any of the seven.
+- **A self-loop is refused rather than drawn better, and the reason is stated.** A self relation
+  is not absurd in general. It is refused because this layout draws an edge BETWEEN TWO COLUMNS
+  and has no shape for one inside a column, which is the same reason Student sits in column 4. The
+  emitted path runs backwards through its own tile with the arrowhead at angle 0. If one is ever
+  wanted, the drawing gains a shape for it first and the rule is what makes that a decision.
+- **The flag vocabulary is closed, and it ships, #104.** `f` is the provenance flag the reader
+  sees, and `check_provenance` read it at exactly one place, inside the four agenda rows, never in
+  the node walk. There was no set of the four values anywhere in the tree. `f = "banana"` was
+  accepted and went into a class name; `f` deleted outright from all 3109 node rows was accepted.
+  `VALUE_FLAG` now ships in `provenance.vocab` beside the ranks, the statuses and the stances, and
+  `flag-vocabulary` refuses a token in no vocabulary, on node rows and agenda rows alike.
+- **`real` means something checkable, and the limit is stated first.** 121 invented values shipped
+  flagged `real`, past seven green gates, on a page whose footer says every number on it is made
+  up. Nothing here can prove a value IS real: the vault the syllabus rows come from is not on the
+  machine that builds this, so a `real` row carrying the wrong module name still ships. What is
+  checkable is the pair. `real-flag-not-invented` refuses a row flagged `real` and ranked
+  `0_invented`, whose own definition is that nothing was read, in any document; that is the rule
+  the audit's flagship mutation trips. `real-flag-needs-a-source` refuses, on an invented
+  document, a `real` outside the one population with a stated source, the syllabus keys at
+  `3_observed`, which is what catches a registry row flagged `real` on a rank that clears the
+  first rule. Closed in one direction only: eight `module_name` rows are `absent` because the
+  syllabus records those sessions in no module, so a syllabus row is not obliged to be `real`.
+- **Both self-tests now assert their own probe total, which is the third copy of that pattern.**
+  `ok/total` is a ratio and cannot tell a suite that ran everything from one that ran half of
+  itself: delete a rule with its probe and it printed a smaller clean number and exited 0. That
+  failure has happened twice here, in the smoke suite at 14 of 14 on a fifth of itself and in the
+  contrast gate on a partial palette. `PROVENANCE_PROBES` 34, `STRUCTURE_PROBES` 15, both edited
+  with the probes or not at all. `check_build.sh` names `node-id-unique` and
+  `edge-endpoint-exists` again from the shell, so emptying the suite of either takes two files.
+- **Every rule was proved in both directions on the real build path**, by injecting each mutation
+  into `build/model.py` and running `build/build_layout.py`, which is the route the audit used
+  rather than the private `--instance` seam. Nine mutations refused by name, the orphan accepted
+  and counted at 1, the untouched model clean. `site/layout.js` is byte identical and the seven
+  heights are unmoved at 596, 2470, 2578, 622, 622, 596, 587; `site/instance.js` differs by the
+  flag vocabulary alone.
 - **The header says what needs attention, #98.** A management tool answers three questions: where
   am I, what needs attention, what can I do. The heading answered the first and the nav the third;
   the second was answered nowhere, on a page whose model already knows it. `gaps: N of 95` is that
