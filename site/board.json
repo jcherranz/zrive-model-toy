@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T15:37:56Z",
+  "generated": "2026-08-12T16:17:43Z",
   "columns": [
     {
       "key": "raw",
@@ -73,16 +73,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/112"
-        },
-        {
-          "id": 113,
-          "title": "The sheet has no left gutter: every heading and cell sits hard on the container edge",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/113"
         }
       ]
     },
@@ -90,6 +80,16 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 113,
+          "title": "The sheet has no left gutter: every heading and cell sits hard on the container edge",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/113"
+        },
         {
           "id": 110,
           "title": "The page stops narrating its own provenance: the footer statement, the panel chips and the gaps definition come out",
@@ -150,18 +150,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/102"
-        },
-        {
-          "id": 101,
-          "title": "The footer statement and the per-row provenance flags disagree",
-          "labels": [
-            "bug",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/101"
         }
       ],
-      "hidden": 86,
+      "hidden": 87,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
