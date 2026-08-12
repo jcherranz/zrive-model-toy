@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T14:51:28Z",
+  "generated": "2026-08-12T14:53:10Z",
   "columns": [
     {
       "key": "raw",
@@ -31,15 +31,6 @@
       "key": "backlog",
       "title": "Backlog",
       "cards": [
-        {
-          "id": 101,
-          "title": "The footer statement and the per-row provenance flags disagree",
-          "labels": [
-            "bug",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/101"
-        },
         {
           "id": 106,
           "title": "Seven false or dead records in the repository, and no gate can see any of them",
@@ -131,6 +122,15 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/102"
         },
         {
+          "id": 101,
+          "title": "The footer statement and the per-row provenance flags disagree",
+          "labels": [
+            "bug",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/101"
+        },
+        {
           "id": 100,
           "title": "The whole poitn of this filter is to just render the diagram…",
           "labels": [
@@ -148,19 +148,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/99"
-        },
-        {
-          "id": 98,
-          "title": "Redesign the header as a management tool: it names the view and says nothing about the state",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/98"
         }
       ],
-      "hidden": 83,
+      "hidden": 84,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
