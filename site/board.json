@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T12:17:12Z",
+  "generated": "2026-08-12T12:20:59Z",
   "columns": [
     {
       "key": "raw",
@@ -50,15 +50,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/101"
         },
         {
-          "id": 103,
-          "title": "The gate set measures less than it claims in ten places, one of them a gate nothing runs",
-          "labels": [
-            "audit",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/103"
-        },
-        {
           "id": 106,
           "title": "Seven false or dead records in the repository, and no gate can see any of them",
           "labels": [
@@ -81,6 +72,15 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/102"
+        },
+        {
+          "id": 103,
+          "title": "The gate set measures less than it claims in ten places, one of them a gate nothing runs",
+          "labels": [
+            "audit",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/103"
         },
         {
           "id": 104,
