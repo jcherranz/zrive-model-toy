@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T14:16:44Z",
+  "generated": "2026-08-12T14:24:16Z",
   "columns": [
     {
       "key": "raw",
@@ -50,15 +50,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/106"
         },
         {
-          "id": 108,
-          "title": "Two owner reversals: the visit ghost goes, and the invented agenda becomes per-session",
-          "labels": [
-            "model",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/108"
-        },
-        {
           "id": 109,
           "title": "Two browser suites, two harnesses: fold check_grain.mjs into smoke.mjs",
           "labels": [
@@ -71,7 +62,17 @@
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": []
+      "cards": [
+        {
+          "id": 108,
+          "title": "Two owner reversals: the visit ghost goes, and the invented agenda becomes per-session",
+          "labels": [
+            "model",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/108"
+        }
+      ]
     },
     {
       "key": "done",
