@@ -401,6 +401,73 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- **The lane heading's frame was drawn through its own caption and was not centred on it, #96 and
+  #97.** "Frame is too tight, improve design" and "Not centered in the frame", filed seconds apart
+  on the same rect. THE FIRST WORK WAS FINDING WHICH RECT. Both cards carry `ancestor #graph ·
+  svg>g>g>g>rect`, and that descriptor rules the tiles out rather than merely failing to name one:
+  `feedback.js` describes a rect inside a node group as `ancestor [data-node=...]`, never as
+  `#graph`, and the caption button is the only rect on the drawing sitting three groups deep. So
+  these are about `.capbtn-frame`, the box #84 drew around the two lane headings that are controls,
+  and not about a tile. A first reading that took them for tiles measured node labels sitting 0.7
+  to 1.5 units right of their tile centre; that was an artefact, see below.
+- **One defect, and it was two coordinate spaces in one rect.** The height was caption units times
+  the zoom and the vertical offset was raw CSS px, so the four px meant for the descender were
+  counted a second time, scaled, at the top, and the room left above the caption came out as
+  `3.6k - 4`. Negative below k = 1.11, which is the fit scale and everything short of it. Measured
+  on the deployed page at 1536 by 839: the three line caption cleared its frame by 0.28px at fit
+  and overflowed it by 1.02px one zoom step out, and the bottom edge crossed the text from k = 2.1
+  upward. The 26px target minimum then grew the rect upward only, because the bottom edge was
+  pinned to the baseline, so a one line heading sat 5px below the centre of its own frame at fit
+  and 8px below it at the far zoom out. Too tight and not centred are the same arithmetic seen
+  from two sides.
+- **Measured, not estimated, which is the house rule this file already keeps for a node's frame.**
+  The caption's box is read off the text the browser drew, once per lane when the lane is painted,
+  so it costs nothing on a pinch and it follows a caption that gains a line, which #100's filtered
+  lanes do. Both pads are CSS px, five, matching `FRAME_PAD` on the node frame so that two frames
+  on one drawing hold their contents at the same distance. The clamp's surplus is split between
+  the two sides. Over eleven zoom levels either side of fit the air is never under 3.9px where it
+  used to reach -2, and the offset from centre is at most 1.2px where it used to reach 8. For the
+  uppercase caption the air over the caps and under the baseline works out at `2k + 5` on both
+  sides, equal at every zoom.
+- **#97 IS NOT ABOUT THE NODE LABELS, and the numbers that said it was came from the measuring
+  API.** Every label line on `#/p/ZSC`, 130 of them over 77 tiles, is centred on its tile to within
+  a ten-thousandth of a unit when the text's own start and end pen positions are read. The same 130
+  read through `getBBox()` come out 0.15 to 1.59 units right, mean 1.03, never left: Chrome's text
+  bbox starts at the pen origin and is wider than the advance, and all of the difference lands on
+  the right. The true ink, taken from `measureText`'s bounding box in the same font, is -0.82 to
+  +0.25 and more often left than right. Nothing was changed for it. The one thing it does touch is
+  the node's own focus frame, which is `g.getBBox()` plus a pad and therefore inherits up to 1.6
+  units of that margin; left alone, because the alternative is this file holding a second opinion
+  about text metrics, which is the mistake it says twice it will not make.
+- **The suite gained the assertion the old one could not make, 127 to 128.** `PHASES` and
+  `EXPECTED_ASSERTIONS` together. The lane heading was already asserted at 24 by 24 at three zooms
+  and passed for as long as the defect shipped: a target can be the right size and still be drawn
+  through the words it is a target for. The new one reads the air over and under the caption and
+  its offset from the frame's centre, from `getBoundingClientRect` rather than from the box the
+  repair measures, so it is an independent reading. Proved in both directions: it fails on the
+  geometry it replaced, at all three scales, while the 24 by 24 assertion passes on both.
+- **The width measurer named a home directory four times, so it ran on one account, #96's pass.**
+  `build/measure_labels.py` held four absolute paths carrying an owner's home and two Playwright
+  build numbers, and no gate can see that: a literal path is valid Python and the file it names
+  exists on the machine the check runs on. The cache root now comes from
+  `$PLAYWRIGHT_BROWSERS_PATH` or the running user's own home, the build number is globbed newest
+  first so an upgrade cannot silently change which binary measured the table, `$ZRIVE_CHROME`
+  overrides everything and `PATH` is the last resort. Same binary resolved here, same candidate
+  order, and `--check` reports the 4086 strings unchanged.
+- **Three raw NUL bytes made `site/render.js` binary to every text tool.** They were the separator
+  in the edge fold key. Measured: `grep -c function site/render.js` prints nothing and exits 1
+  where `grep -a` finds 121, so a sweep over `site/*.js` skipped the 1159 lines that paint the
+  drawing, in silence. The gates were checked rather than assumed and none was blind: every file
+  scan in `forbidden_lib.sh` and `check_repo.sh` passes `-a`, `safety_grep.py` reads the file in
+  Python, and a banned word planted after the NULs was caught with the file and the word named.
+  The cost was to readers and audits. A unit separator written as an escape keeps the property the
+  NUL was chosen for and leaves the file plain text.
+- **Nothing in the drawing moved.** The repair is screen geometry on a control and touches no
+  coordinate the build writes. `check_build.sh` reproduces `site/instance.js` and `site/layout.js`
+  byte for byte, the seven heights are the seven it shipped with, 596, 2470, 2578, 622, 622, 596
+  and 587 at a common 1230 wide, and #100's reflow still lands on the build's own coordinates with
+  the worst node at 0.0 and the worst control point at 0.1, filtered and unfiltered alike.
+
 - **A module heading was painted to the right of the rows it heads, #94.** "Alignment is wrong, too
   much space to the left". The heading `th` carried `padding-left: 26px` and its data rows carry
   10, so at 1536 the heading text started at x=245 over row text at x=229: a group heading indented
