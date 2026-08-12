@@ -1,6 +1,6 @@
 name: build
 
-# Run the real builder and refuse any difference from the committed drawing.
+# Run the real builder and refuse any difference from the drawing git holds.
 # scripts/check_build.sh carries the checks and the argument for each; this file is the wiring,
 # and the wiring has four decisions in it worth stating.
 #
@@ -115,7 +115,13 @@ jobs:
       - name: Prove the provenance gate fires
         run: python3 build/model.py --provenance-self-test
 
-      - name: The committed drawing is what the builder produces
+      # NAMED FOR WHAT THE GATE COMPARES, WHICH IS NOT WHAT THIS STEP USED TO CLAIM. Issue 103
+      # row B10. The gate takes its baseline from the index and prints which snapshot it read;
+      # here the workspace is a fresh checkout, so the index, HEAD and the disk are the same
+      # bytes and the run says "the index copy". That agreement is exactly why the defect was
+      # invisible in CI and expensive locally: this step's old title was true here and the same
+      # sentence printed on a contributor's machine was about the file on their disk.
+      - name: The drawing git holds is what the builder produces
         run: bash scripts/check_build.sh
 
       # The populate registry, read back out of the bytes the page loads rather than out of the
