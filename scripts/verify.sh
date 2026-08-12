@@ -54,6 +54,30 @@ STEP_NAMES=()
 STEP_STATE=()
 STEP_NOTE=()
 
+# THE STEP NUMBERS ARE CHECKED, NOT TRUSTED. Issue 106 E4. The number a step prints is part of a
+# string written by hand, and twice now a step inserted in the middle has left the numbers behind
+# it wrong: at one point a section header numbered 8 introduced the function invoked as step 9,
+# and the untracked-files message told the contributor to `git add` before trusting "steps 4 and
+# 5" when the repository gate had moved to 5 and 6. Both were repaired only when somebody read
+# them. This file's whole value is being the authoritative ordered list, so the ordering is now
+# an assertion: the nth step registered here must begin with "n. ", and a renumbering that misses
+# one aborts the run instead of printing a list whose numbers do not count.
+#
+# EVERY OTHER CROSS-REFERENCE IN THIS FILE NAMES A STEP BY WHAT IT DOES, and none of them by
+# number, for the same reason. A description survives an insertion; a number does not, and there
+# is nothing that can check prose.
+assert_step_number() {  # name
+  local n=$(( ${#STEP_NAMES[@]} + 1 ))
+  case "$1" in
+    "$n. "*) return 0 ;;
+  esac
+  echo
+  echo "ASSERTION FAILED: this is step $n and it is registered as \"$1\"."
+  echo "  The printed list is numbered by hand and this file will not print a list whose numbers"
+  echo "  do not count. Renumber the step names, and sweep the prose that refers to them."
+  exit 2
+}
+
 # Run a step, print its output under a banner, record its verdict.
 #
 # Exit 2 is a FAILURE and is named as one. A gate answering 2 has told you it did not scan what
@@ -63,6 +87,7 @@ STEP_NOTE=()
 # places.
 step() {
   local name="$1"; shift
+  assert_step_number "$name"
   echo
   echo "=============================================================================="
   echo "== $name"
@@ -90,6 +115,7 @@ step() {
 # Nothing outside this file may be run through it.
 step_may_decline() {
   local name="$1" reason="$2"; shift 2
+  assert_step_number "$name"
   echo
   echo "=============================================================================="
   echo "== $name"
@@ -111,6 +137,7 @@ step_may_decline() {
 }
 
 skip() {
+  assert_step_number "$1"
   STEP_NAMES+=("$1"); STEP_STATE+=("SKIP"); STEP_NOTE+=("$2")
   echo
   echo "=============================================================================="
@@ -120,7 +147,7 @@ skip() {
 }
 
 # ---------------------------------------------------------------------------------------------
-# 1. Syntax. Every shipped script parses.
+# Syntax. Every shipped script parses.
 # ---------------------------------------------------------------------------------------------
 # The cheapest check there is, and the one that catches the class of defect that costs the most:
 # site/ has no build step, so a syntax error in a shipped file is not caught by anything until the
@@ -141,7 +168,7 @@ check_syntax() {
 }
 
 # ---------------------------------------------------------------------------------------------
-# 2. What the repository gate cannot see.
+# What the repository gate cannot see.
 # ---------------------------------------------------------------------------------------------
 # scripts/check_repo.sh takes its file list from `git ls-files`, so a file that has never been
 # added is not scanned, and the gate reports clean on a tree that contains it. That is correct and
@@ -167,13 +194,14 @@ check_untracked() {
   echo "  the repository gate reads \`git ls-files\`, so it will not scan these:"
   printf '%s\n' "$untracked" | sed 's/^/    /'
   echo
-  echo "  \`git add\` them before trusting a clean verdict from steps 6 and 7, or accept that the"
+  echo "  \`git add\` them before trusting a clean verdict from the two repository gate steps"
+  echo "  below, or accept that the verdict is about the rest of the tree."
   echo "  verdict is about the rest of the tree."
   return 2
 }
 
 # ---------------------------------------------------------------------------------------------
-# 3 and 4. The build gate, which is scripts/check_build.sh and is no longer a copy of it.
+# The build gate, which is scripts/check_build.sh and is no longer a copy of it.
 # ---------------------------------------------------------------------------------------------
 # ONE RULE, ONE IMPLEMENTATION. Issue 103. This file used to carry its own copy-and-compare of
 # the build, a `check_layout_reproducible` that saved both generated documents, ran the builder
@@ -194,9 +222,10 @@ check_untracked() {
 # run. Two copies of one rule is the drift class issue 106 is about, and the second copy here was
 # the weaker one.
 #
-# Step 4 is the half check_build.sh's own header asks for by name: verify.sh exercises the LIVE
-# structure gate at step 3 because step 3 runs the builder and the builder calls it, and what it
-# did not do was prove the gate fires. One line, and it is below.
+# The second of the two steps is the half check_build.sh's own header asks for by name. Running
+# the gate exercises the LIVE structure gate, because running the gate runs the builder and the
+# builder calls it; what this file did not do was prove the gate fires. One line, and it is
+# below.
 
 # ---------------------------------------------------------------------------------------------
 # The local token grep.
@@ -242,14 +271,14 @@ echo "python: $(python3 --version 2>/dev/null || echo 'not found')"
 step "1. every shipped script parses"                     check_syntax
 
 step_may_decline "2. nothing is untracked, so the gates see everything" \
-     "some files are untracked and the repository gate cannot see them; steps 6 and 7 are about the rest of the tree" \
+     "some files are untracked and the repository gate cannot see them; its two steps are about the rest of the tree" \
      check_untracked
 
 step "3. the build gate: both documents rebuild, the widths cover, the model is well formed" \
      bash scripts/check_build.sh
 step "4. prove the build gate fires"                      bash scripts/check_build.sh --self-test
-# The provenance gate runs inside build/build_layout.py on every build, so step 3 already
-# exercises it against the real document. This is the other half of the TPS rule: a gate that
+# The provenance gate runs inside build/build_layout.py on every build, so the build gate step
+# above already exercises it against the real document. This is the other half of the TPS rule: a gate that
 # has never been seen to refuse is not a gate, so one synthetic document per rule, each one a
 # document that PASSES with a single field changed. Issue 73.
 step "5. prove the provenance gate fires"                 python3 build/model.py --provenance-self-test

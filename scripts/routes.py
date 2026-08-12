@@ -17,8 +17,10 @@ declared an exit contract with three [FAIL] branches, and nothing anywhere ran i
 scripts/verify.sh, not any of the seven workflows. Its name occurred four times in the tree, three
 of them inside this docstring. A gate nobody runs is worse than no gate, because the file's
 presence implies a check that is not happening, and this one was green when it was found, which is
-the worse of the two states to be dark in. It is now step 10 of scripts/verify.sh and a step of
+the worse of the two states to be dark in. It is now a step of scripts/verify.sh and a step of
 .github/workflows/build.yml, which is the workflow that already rebuilds the document this reads.
+Named by what it is and not by its number: two of this repository's references to a verify.sh
+step number went stale the first time a step was inserted in the middle (issue 106 E4).
 
 Usage:
   scripts/routes.py                     read site/instance.js
