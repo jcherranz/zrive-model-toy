@@ -43,13 +43,15 @@ written in; a real name from the teaching register; a euro-formatted figure that
 the two invented ones; a corpus link; a UUID; an email address. A failure marks the run red and
 the run is the andon.
 
-**While the site is off, the line runs anyway and the gate says so.** Issue 101 took the
-publication down and issue 107 gated `pages.yml` and `origin-freshness.yml` on the `PUBLISH`
-repository variable rather than deleting them, so both are skipped and neither reports green.
-`scripts/verify.sh` serves `site/` on a local port and runs the gate against that, which proves the
-bytes serve clean and not that anybody is serving them. The gate prints which of the two it read,
-and the verdict is a different sentence in each case. `scripts/publish.sh on` restores every one of
-them at once.
+**Publishing is a switch, and with it off the line runs anyway and the gate says so.** Issue 101
+took the publication down and issue 107 gated `pages.yml` and `origin-freshness.yml` on the
+`PUBLISH` repository variable rather than deleting them: with it off both are skipped, which is
+neither green nor red, and `scripts/publish.sh on` restores every one of them at once with no
+workflow edited. `scripts/verify.sh` looks for the origin rather than being told about it. If one
+answers it reads that; if none does it serves `site/` on a local port and reads that, which proves
+the bytes serve clean and not that anybody is serving them. The gate prints which of the two it
+read and the verdict is a different sentence in each case, `The origin serves this.` against
+`These bytes serve. No origin was checked, because there is none.`
 
 **The gate does not unpublish.** It reports; a person takes the page down. An automated unpublish
 on a rule that can false-fire would take the site down on a CSS decimal, and the fifteen minutes

@@ -2,9 +2,10 @@
 
 One screen. One programme, one cohort, twenty six named objects and the verbs that join them.
 
-**The site is off.** There is no public URL. `bash scripts/publish.sh on` puts it back and
-`status` says which it is. This account is on GitHub Pro, private Pages needs Enterprise Cloud, so
-on means world-readable with no authentication available. That is why it is off.
+**Publishing is a switch, and this line does not say which way it is set.** `bash
+scripts/publish.sh status` answers that, along with what the url actually serves; `on` and `off`
+move it. This account is on GitHub Pro, private Pages needs Enterprise Cloud, so on means
+world-readable with no authentication available, which is the whole of the decision.
 
 ## This is a toy and it carries invented values only
 
