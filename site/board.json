@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T00:51:35Z",
+  "generated": "2026-08-12T10:13:49Z",
   "columns": [
     {
       "key": "raw",
@@ -104,6 +104,15 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/94"
+        },
+        {
+          "id": 101,
+          "title": "The public page says everything is invented. 48 per cent of its values say they were read off real systems.",
+          "labels": [
+            "bug",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/101"
         }
       ]
     },
