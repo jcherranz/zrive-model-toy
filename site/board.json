@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T16:17:43Z",
+  "generated": "2026-08-12T16:18:22Z",
   "columns": [
     {
       "key": "raw",
@@ -53,28 +53,7 @@
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": [
-        {
-          "id": 111,
-          "title": "The week filter should leave only the window, not dim what it excludes",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/111"
-        },
-        {
-          "id": 112,
-          "title": "An outline row should open on its own title, not all rows at once",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/112"
-        }
-      ]
+      "cards": []
     },
     {
       "key": "done",
@@ -89,6 +68,26 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/113"
+        },
+        {
+          "id": 112,
+          "title": "An outline row should open on its own title, not all rows at once",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/112"
+        },
+        {
+          "id": 111,
+          "title": "The week filter should leave only the window, not dim what it excludes",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/111"
         },
         {
           "id": 110,
@@ -132,27 +131,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/104"
-        },
-        {
-          "id": 103,
-          "title": "The gate set measures less than it claims in ten places, one of them a gate nothing runs",
-          "labels": [
-            "audit",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/103"
-        },
-        {
-          "id": 102,
-          "title": "The build accepts a duplicate node id and every static gate says clean",
-          "labels": [
-            "audit",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/102"
         }
       ],
-      "hidden": 87,
+      "hidden": 89,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
