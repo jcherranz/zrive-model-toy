@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T15:14:32Z",
+  "generated": "2026-08-12T15:19:08Z",
   "columns": [
     {
       "key": "raw",
@@ -24,24 +24,6 @@
             "limitation"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
-        },
-        {
-          "id": 111,
-          "title": "The whole point of week filter is to not see this (only the week…",
-          "labels": [
-            "bug",
-            "feedback"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/111"
-        },
-        {
-          "id": 112,
-          "title": "Session outlines must be shown when clicked in the title not just all…",
-          "labels": [
-            "bug",
-            "feedback"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/112"
         }
       ]
     },
@@ -74,6 +56,26 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/109"
+        },
+        {
+          "id": 111,
+          "title": "The whole point of week filter is to not see this (only the week…",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/111"
+        },
+        {
+          "id": 112,
+          "title": "Session outlines must be shown when clicked in the title not just all…",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/112"
         }
       ]
     },
