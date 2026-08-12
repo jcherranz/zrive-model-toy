@@ -102,6 +102,13 @@
   // matched against a list of built strings, so a code this page does not know falls through to
   // the unscoped reading rather than to nothing.
   var ADDRESS = /^#\/(calendar|outline)(?:\/([^/?#]*))?/;
+  // Issue 112. WHICH ROWS ARE OPEN, ON THE ADDRESS, because every other view here puts its state
+  // there and a row a reader has opened is a thing they should be able to send someone. A QUERY
+  // and not a fourth path segment, deliberately: `routes` below is the list of addresses this
+  // module answers and a driver enumerates it, so 83 open states must not multiply 16 routes into
+  // thousands. `open=all` is its own value rather than a list of every id, so the page-level
+  // control has an address too and it stays true of a scope with a different set of rows in it.
+  var OPEN_Q = /[?&]open=([^&]*)/;
 
   // Written out rather than taken from the browser's locale. The page is in English, the sheet has
   // to read the same on every machine, and a driver asserting date order should be reading the
@@ -224,7 +231,10 @@
     var scope = null;           // one view, or null for all seven
     var built = null;           // which reading AND which scope the rows on screen are
     var returnTo = null;        // what had focus when the sheet was opened
-    var agendaOn = false;       // issue 85's invented block, off until it is asked for
+    // Issue 112. WHICH ROWS HAVE THEIR OUTLINE OPEN, by template id, and it replaces the single
+    // boolean issue 85 shipped. `agendaOn` is derived from it and still means what it meant, that
+    // every row in scope is open, so nothing that asked that question has to ask a new one.
+    var openRows = {};          // template id -> true, issue 85's block, per row since issue 112
 
     // ---- the rows, read out of the seven views once ---------------------------
     // Read once and kept, because nothing on this page can change them: the drawings are generated
@@ -844,7 +854,87 @@
     function readAddress(h) {
       var m = ADDRESS.exec(String(h || ''));
       if (!m) return null;
-      return { reading: m[1], scope: viewByCode(m[2] || '') };
+      var q = OPEN_Q.exec(String(h || ''));
+      return { reading: m[1], scope: viewByCode(m[2] || ''),
+               open: q ? decodeURIComponent(q[1]) : null };
+    }
+
+    // ---- the open rows, issue 112 -----------------------------------------------
+    // ONE TOGGLE FOR 83 ROWS IS NOT A DISCLOSURE, it is a second sheet. On the unscoped outline
+    // pressing it put 83 blocks and 272 lines on the screen at once, which is not a reading of
+    // anything, and there was no way at all to ask about one row. So the row's own title is the
+    // control and the page-level one survives as an explicit open-all, which is genuinely useful
+    // on a scoped route of six rows and useless on 83.
+    function templatesInScope() { return stats(scope).templates; }
+
+    function isOpen_(t) { return !!openRows[t.id]; }
+
+    function openCount() {
+      return templatesInScope().filter(isOpen_).length;
+    }
+
+    // Every row in scope, which is what the page-level control offers and what `agenda` has always
+    // reported. It is false on an empty scope, because "all of nothing is open" is a claim nobody
+    // asked for and a control reading `close every session outline` over no rows is a control
+    // that does nothing.
+    function allOpen() {
+      var ts = templatesInScope().filter(agendaFor);
+      return ts.length > 0 && ts.every(isOpen_);
+    }
+
+    function setOpen(t, on) {
+      if (on) openRows[t.id] = true;
+      else delete openRows[t.id];
+    }
+
+    function setAllOpen(on) {
+      templatesInScope().forEach(function (t) {
+        if (agendaFor(t)) setOpen(t, on);
+      });
+    }
+
+    // What goes on the address. `all` when every row in scope is open, the ids otherwise, and
+    // nothing at all when none is: an address with an empty parameter on it would be a second
+    // spelling of the address without one.
+    function openParam() {
+      if (allOpen()) return 'all';
+      var ids = templatesInScope().filter(isOpen_).map(function (t) { return t.id; });
+      return ids.length ? ids.join(',') : null;
+    }
+
+    function applyOpenParam(v) {
+      openRows = {};
+      if (!v) return;
+      if (v === 'all') { setAllOpen(true); return; }
+      var want = {};
+      String(v).split(',').forEach(function (id) { if (id) want[id] = true; });
+      // Read against the rows in scope rather than trusted, so an id from another programme or
+      // from a document this page is not drawing opens nothing instead of sitting in the state.
+      templatesInScope().forEach(function (t) { if (want[t.id]) setOpen(t, true); });
+    }
+
+    // REPLACE AND NOT PUSH, which is the reasoning `close()` already runs on. Opening rows is
+    // reading rather than navigating, and a reader who opened six of them should get back to
+    // where they came from in one press rather than in seven. The address stays linkable, which
+    // is the whole of what the card asked for.
+    function writeOpenAddress() {
+      if (!reading) return;
+      var v = openParam();
+      var url = location.pathname + location.search + addressFor(reading, scope) +
+                (v ? '?open=' + encodeURIComponent(v) : '');
+      try {
+        history.replaceState(null, '', url);
+      } catch (err) {
+        /* a file:// URL, where replaceState throws. The rows are open either way; only the
+           address does not follow, which is the half of this that is a convenience. */
+      }
+    }
+
+    function openChanged() {
+      built = null;
+      buildRows();
+      describe();
+      writeOpenAddress();
     }
 
     // The programme, in the words the drawing already uses for it, so a reader arriving from a
@@ -894,6 +984,7 @@
       if (!rows) return null;
       var tr = document.createElement('tr');
       tr.className = 'term-agenda';
+      tr.id = agendaBlockId(t);
       var td = document.createElement('td');
       td.colSpan = cols;
       var box = el('div', 'agenda-box');
@@ -910,17 +1001,25 @@
       return tr;
     }
 
-    // The control. One of it and not one per row, at the size #77 took every control on this page
-    // to, and its label states what pressing it puts on the screen rather than naming a feature.
+    // The page-level control, and issue 112 decided what it becomes rather than deleting it.
+    // Expand-all is genuinely useful on a scoped route of six rows and useless on 83, so it
+    // survives as an EXPLICIT open-all instead of being the only gesture there is: the label says
+    // how many rows it is about, which is the number that makes the difference between the two
+    // cases visible before the press rather than after it. Still one of it and not one per row,
+    // still at the size #77 took every control on this page to.
     function agendaToggle() {
+      var all = allOpen();
+      var n = templatesInScope().filter(agendaFor).length;
+      var opened = openCount();
       var wrap = el('p', 'term-agendactl');
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'zbtn agenda-toggle';
-      b.setAttribute('aria-pressed', agendaOn ? 'true' : 'false');
-      b.textContent = agendaOn
-        ? 'hide the session outlines'
-        : 'show a session outline under every row';
+      b.setAttribute('aria-pressed', all ? 'true' : 'false');
+      b.textContent = all
+        ? 'close all ' + n + ' session outlines'
+        : (opened ? 'open the other ' + (n - opened) + ' session outlines'
+                  : 'open all ' + n + ' session outlines');
       // The hint that used to stand beside this control is on the control instead, issues 91 and
       // 93: a sentence standing permanently on the screen was one of the six those cards counted.
       //
@@ -932,13 +1031,40 @@
       b.title = 'Three or four lines under each row, one per part of a session: scope, ' +
         'method, practicum where there is one, and outcome. Each row has its own.';
       b.addEventListener('click', function () {
-        agendaOn = !agendaOn;
-        built = null;
-        buildRows();
-        describe();
+        setAllOpen(!all);
+        openChanged();
       });
       wrap.appendChild(b);
       return wrap;
+    }
+
+    // ---- the row's own control, issue 112 ---------------------------------------
+    // "Session outlines must be shown when clicked in the title not just all at once or none at
+    // all." So the title IS the control, and the hit area is stated rather than inherited from the
+    // text box: #84 measured a text-shaped target at 39,4 by 3,0px at fit scale, which is what a
+    // reader gets when text is allowed to be the control. The floor #77 set is 26 by 26 and
+    // app.css holds this to it with a min-height and a padding, not with a size written here.
+    //
+    // A BUTTON AND NOT A CELL WITH A LISTENER, because the row has to answer to a keyboard and to
+    // a screen reader as what it is: `aria-expanded` says whether the outline under it is open,
+    // and `aria-controls` names the row that carries it, which is why the block below is given an
+    // id built from the template's own.
+    function agendaBlockId(t) { return 'ag-' + t.id; }
+
+    function titleControl(t) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'rowdisc';
+      b.setAttribute('aria-expanded', isOpen_(t) ? 'true' : 'false');
+      b.setAttribute('aria-controls', agendaBlockId(t));
+      b.title = isOpen_(t) ? 'close this session outline' : 'open this session outline';
+      b.appendChild(el('span', 'rowdisc-mark', isOpen_(t) ? '\u25be' : '\u25b8'));
+      b.appendChild(el('span', 'rowdisc-tx', t.title));
+      b.addEventListener('click', function () {
+        setOpen(t, !isOpen_(t));
+        openChanged();
+      });
+      return b;
     }
 
     function describe() {
@@ -1309,7 +1435,13 @@
             if (!t.deliveries.length) tr.className = 'term-gap';
             cell(tr, t.seqText, 'r-num s-seq');
             cell(tr, t.tcode, 'r-id');
-            cell(tr, t.title, 'r-name');
+            if (agendaFor(t)) {
+              var tdt = el('td', 'r-name r-title');
+              tdt.appendChild(titleControl(t));
+              tr.appendChild(tdt);
+            } else {
+              cell(tr, t.title, 'r-name');
+            }
             cell(tr, t.mode, 'r-state');
             cell(tr, t.place, 'r-state');
             cell(tr, t.duration, 'r-num');
@@ -1319,7 +1451,7 @@
             }).join('; ') || 'none', 'r-state s-delivered');
             cell(tr, t.id, 'r-drawn');
             tb.appendChild(tr);
-            if (agendaOn) {
+            if (isOpen_(t)) {
               var ag = agendaRow(cols.length, t);
               if (ag) tb.appendChild(ag);
             }
@@ -1337,7 +1469,7 @@
       // Issues 88 and 90 added two more terms to it, for the same reason the agenda is in it: the
       // shape decides which markup the rows are, and the window decides which of them are there
       // at all on the list and which are marked on the grids.
-      var key = reading + '/' + (scope ? scope.key : '') + '/' + (agendaOn ? 'a' : '') + '/' +
+      var key = reading + '/' + (scope ? scope.key : '') + '/' + (openParam() || '') + '/' +
                 shape + '/' + (win.weeks ? win.weeks + '@' + win.anchor : '-');
       if (built === key) return;
       built = key;
@@ -1350,13 +1482,16 @@
     // ---- open, close, and the address ------------------------------------------
     function isOpen() { return !!sheet && !sheet.hidden; }
 
-    function show(next, nextScope) {
+    function show(next, nextScope, openTo) {
       var wasOpen = isOpen();
       if (!sheet) return;
       if (!next) {
         if (!wasOpen) return;
         reading = null;
         scope = null;
+        // Issue 112. The sheet is shut, so no row is open. Left standing, the set would reopen
+        // rows on the next visit to an address that says nothing about any.
+        openRows = {};
         sheet.hidden = true;
         document.body.classList.remove('calendar', 'outline');
         if (returnTo && returnTo.focus && document.contains(returnTo) &&
@@ -1367,9 +1502,14 @@
         if (onRoute) onRoute();
         return;
       }
-      if (reading === next && scope === (nextScope || null)) return;
+      // Issue 112 added the third term. The open set is on the address now, so an address that
+      // names the same reading and the same programme and a different set of open rows is a
+      // different address and the early return may not swallow it.
+      if (reading === next && scope === (nextScope || null) &&
+          openParam() === (openTo || null)) return;
       reading = next;
       scope = nextScope || null;
+      applyOpenParam(openTo);
       buildRows();
       describe();
       document.body.classList.toggle('calendar', reading === 'calendar');
@@ -1399,7 +1539,7 @@
 
     function route() {
       var a = readAddress(location.hash);
-      show(a ? a.reading : null, a ? a.scope : null);
+      show(a ? a.reading : null, a ? a.scope : null, a ? a.open : null);
     }
 
     if (sheet) {
@@ -1522,7 +1662,13 @@
           open: isOpen(),
           reading: reading,
           scope: scope ? scope.key : null,
-          agenda: agendaOn,
+          // Issue 112. Still the same question, that every row in scope has its outline open, and
+          // now derived from the per row state instead of being a boolean somebody set. Beside it
+          // the two the card adds: how many rows are open, and the address's own parameter, so a
+          // driver can read the state and the address that carries it off the running page.
+          agenda: allOpen(),
+          agendaOpen: openCount(),
+          agendaParam: openParam(),
           // Issue 108. This used to be the length of one constant list, because there was one
           // list and every row drew it. There are 83 lists now, of three or four, so the number
           // a driver needs is the total the MODEL holds for the templates in scope: a page that

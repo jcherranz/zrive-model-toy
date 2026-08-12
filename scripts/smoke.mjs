@@ -218,7 +218,7 @@ const PHASES = {
   'every width':          { count: 4, when: 'every' },
   'model and reveal':     { count: 14, when: 'behavioural' },
   'students':             { count: 11, when: 'behavioural' },
-  'term':                 { count: 50, when: 'behavioural' },
+  'term':                 { count: 53, when: 'behavioural' },
   'header':               { count: 8, when: 'behavioural' },
   'canvas':               { count: 7, when: 'behavioural' },
   'capture':              { count: 14, when: 'behavioural' },
@@ -357,7 +357,7 @@ const PHASES = {
 // stayed and reads the tokens term.js publishes for the purpose, and a third clause was added
 // requiring nothing on the page to print them. What went is three claims about copy. What stayed
 // is every claim about the fields, which are the architecture and are untouched in the document.
-const EXPECTED_ASSERTIONS = 141;
+const EXPECTED_ASSERTIONS = 144;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -1355,7 +1355,46 @@ const TERM_READ = `(function () {
       var b = document.querySelector('.agenda-toggle');
       if (!b) return null;
       var r = b.getBoundingClientRect();
-      return { pressed: b.getAttribute('aria-pressed'), w: r.width, h: r.height };
+      return { pressed: b.getAttribute('aria-pressed'), w: r.width, h: r.height,
+               text: b.textContent };
+    })(),
+
+    // Issue 112. THE ROW'S OWN CONTROL, and every field here is about the two things the card
+    // asked to be decided rather than assumed: that there is one per row on the row's own title,
+    // and that its target is a STATED size rather than the box the title's text happens to make.
+    // The smallest of the 83 is what is reported, because a floor that holds for the longest
+    // title and not the shortest is not a floor. The textH field is the line box of the title
+    // inside the control, which is what the target would have been worth if the text had been
+    // left to be the control. No backtick in this comment: the driver around it is a template
+    // literal and one would end the string.
+    rowdisc: (function () {
+      var cs = Array.prototype.slice.call(document.querySelectorAll('#termrows .rowdisc'));
+      if (!cs.length) return { n: 0 };
+      var r1 = function (v) { return Math.round(v * 10) / 10; };
+      var minW = Infinity, minH = Infinity, txH = 0;
+      cs.forEach(function (c) {
+        var r = c.getBoundingClientRect();
+        if (r.width < minW) minW = r.width;
+        if (r.height < minH) minH = r.height;
+        var t = c.querySelector('.rowdisc-tx');
+        if (t) txH = Math.max(txH, t.getBoundingClientRect().height);
+      });
+      return {
+        n: cs.length, w: r1(minW), h: r1(minH), textH: r1(txH),
+        buttons: cs.filter(function (c) { return c.tagName === 'BUTTON'; }).length,
+        wired: cs.filter(function (c) {
+          return !!c.getAttribute('aria-controls') && !!c.getAttribute('aria-expanded');
+        }).length,
+        expanded: cs.filter(function (c) {
+          return c.getAttribute('aria-expanded') === 'true';
+        }).length,
+        // The title the control carries, against the title of the cell it replaced: a control
+        // that opened the right row under the wrong words would satisfy everything above.
+        titles: cs.slice(0, 3).map(function (c) {
+          var t = c.querySelector('.rowdisc-tx');
+          return t ? t.textContent : '';
+        })
+      };
     })(),
     scopeLinks: Array.prototype.slice.call(
       document.querySelectorAll('#termnotice .term-scope a')).map(function (a) {
@@ -2111,6 +2150,77 @@ async function checkTerm(page) {
       `${agOn.agendaBadges} badges, note ${JSON.stringify((agOn.agendaNote || '').slice(0, 90))}`);
   await page.evaluate(`document.querySelector('.agenda-toggle').click()`);
   await page.waitFor('window.ZT.term().agenda === false', 'the agenda to be switched off again');
+
+  // ---- per row disclosure, issue 112 ---------------------------------------------
+  // "Session outlines must be shown when clicked in the title not just all at once or none at
+  // all." The agenda was ONE page-level toggle: every row opened or none did, and on the unscoped
+  // outline that is 83 blocks and 272 lines at once, which is not a reading of anything. Three
+  // assertions, one per thing the card said should be decided rather than assumed.
+  const discOff = await page.evaluate(TERM_READ);
+  const discState = await page.evaluate('window.ZT.term()');
+  assert('every outline row carries a control of its own, on its own title',
+    discOff.rowdisc.n === discOff.rows && discOff.rowdisc.buttons === discOff.rowdisc.n &&
+      discOff.rowdisc.wired === discOff.rowdisc.n && discOff.rowdisc.expanded === 0 &&
+      discOff.agendaRows === 0 && discState.agendaOpen === 0 &&
+      discOff.rowdisc.titles.every(t => discOff.firstCells.length > 0 && t.length > 0),
+    `${discOff.rows} rows, each with a button on its title carrying aria-expanded and ` +
+      'aria-controls, and none of them open',
+    JSON.stringify(discOff.rowdisc));
+
+  // THE TARGET IS A STATED SIZE AND NOT THE BOX THE TITLE MAKES, which is the second thing the
+  // card asked to be decided. #84 measured a text-shaped target at 39,4 by 3,0px on the lane
+  // caption, and #77 put the floor at 26 by 26. The floor is asserted on the SMALLEST of the 83,
+  // and beside it the claim that makes the floor mean something: the control is taller than the
+  // line box of the title inside it, so the size is coming from the rule and not from the text.
+  assert('the row control is a target of at least 26 by 26, and its size is not the title text',
+    discOff.rowdisc.h >= 26 && discOff.rowdisc.w >= 26 &&
+      discOff.rowdisc.textH > 0 && discOff.rowdisc.h > discOff.rowdisc.textH,
+    'the smallest of them at least 26 by 26 and taller than the title line inside it',
+    `smallest ${discOff.rowdisc.w} by ${discOff.rowdisc.h}, title line ` +
+      `${discOff.rowdisc.textH} tall`);
+
+  const pressed = await page.evaluate(`(function () {
+    var cs = document.querySelectorAll('#termrows .rowdisc');
+    var i = cs.length > 2 ? 2 : 0;
+    cs[i].click();
+    return i;
+  })()`);
+  await page.waitFor('window.ZT.term().agendaOpen === 1', 'one row to open on its own title');
+  const disc1 = await page.evaluate(TERM_READ);
+  const st1 = await page.evaluate('window.ZT.term()');
+  const linked = await page.evaluate('location.hash');
+
+  // AND WHICH ROWS ARE OPEN IS ON THE ADDRESS, which is the third. Every other view here puts its
+  // state there, and a row a reader has opened is a thing they should be able to send somebody.
+  // Asserted through the whole loop and not at one point of it: the press writes the parameter,
+  // the address reopens the same one row after the sheet has been shut, the page-level control
+  // writes `all` rather than 83 ids, and closing them all takes the parameter off rather than
+  // leaving an empty one, which would be a second spelling of the same address.
+  await page.evaluate(`location.hash = '#/'`);
+  await page.waitFor('window.ZT.term().open === false', 'the sheet to shut');
+  await page.evaluate(`location.hash = ${JSON.stringify(linked)}`);
+  await page.waitFor(`window.ZT.term().reading === 'outline'`, 'the linked outline back');
+  const relinked = await page.evaluate(TERM_READ);
+  const stRelink = await page.evaluate('window.ZT.term()');
+  await page.evaluate(`document.querySelector('.agenda-toggle').click()`);
+  await page.waitFor('window.ZT.term().agenda === true', 'every row open from the one control');
+  const hashAll = await page.evaluate('location.hash');
+  await page.evaluate(`document.querySelector('.agenda-toggle').click()`);
+  await page.waitFor('window.ZT.term().agendaOpen === 0', 'every row shut again');
+  const hashNone = await page.evaluate('location.hash');
+  assert('and which rows are open is on the address, so an opened row can be linked',
+    disc1.agendaRows === 1 && disc1.rowdisc.expanded === 1 && st1.agenda === false &&
+      st1.agendaOpen === 1 && disc1.agendaLines > 0 &&
+      disc1.agendaLines < st1.agendaLines &&
+      /\?open=/.test(linked) && st1.agendaParam === decodeURIComponent(linked.split('open=')[1]) &&
+      stRelink.agendaOpen === 1 && relinked.agendaRows === 1 &&
+      relinked.rowdisc.expanded === 1 &&
+      /\?open=all$/.test(hashAll) && !/open=/.test(hashNone),
+    `one press opening one row of ${discOff.rows} and naming it on the address, the address ` +
+      'reopening exactly that row, open-all writing all and closing them writing nothing',
+    `pressed ${pressed}: ${disc1.agendaRows} block(s), ${disc1.agendaLines} line(s), address ` +
+      `${JSON.stringify(linked)}; relinked ${relinked.agendaRows} block(s); all ` +
+      `${JSON.stringify(hashAll)}; none ${JSON.stringify(hashNone)}`);
 
   await page.evaluate(`location.hash = '#/outline'`);
   await page.waitFor('window.ZT.term().scope === null', 'the unscoped outline back');

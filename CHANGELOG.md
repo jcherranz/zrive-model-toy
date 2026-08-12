@@ -230,6 +230,27 @@ of what changed and when, and it is meant to be scannable.
 
 ### Changed
 
+- **An outline row opens on its own title, #112.** "Session outlines must be shown when clicked in
+  the title not just all at once or none at all." The agenda was one page-level toggle: every row
+  opened or none did, and on the unscoped `#/outline` that is 83 blocks and 272 lines at once,
+  which is not a reading of anything, with no way at all to ask about one row. The title of each
+  row is now a button carrying `aria-expanded` and `aria-controls`, and the block it opens carries
+  the id it names. Three things the card asked to be decided rather than assumed. **The page-level
+  toggle survives as an explicit open-all**, which is useful on a scoped route of six rows and
+  useless on 83, and its label says how many rows it is about before the press rather than after
+  it: `open all 83 session outlines`, `open the other 82`, `close all 83`. **The target is stated
+  and not inherited from the text box**: #84 measured a text-shaped target at 39,4 by 3,0px, so
+  `min-height` holds this to #77's 26 and the padding keeps a one-line title off it. Measured, the
+  smallest of the 83 is 49,9 by 26 at CSS widths 3072, 1536, 768 and 1440, which is browser zoom
+  50, 100 and 200 per cent at a 1536 device viewport, and 343 by 26 at 390; the title's own line
+  box inside it is 15,4, which is what the target would have been worth had the text been left to
+  be the control. **Which rows are open is on the address**, as a query rather than a fourth path
+  segment so that 83 open states do not multiply the 16 published routes: `#/outline?open=st4`,
+  `#/outline/ZSC?open=all`, and no parameter at all when none is open. Written with
+  `replaceState`, on the reasoning `close()` already runs on, so opening six rows costs one press
+  to get back and not seven. `ZT.term()` gains `agendaOpen` and `agendaParam`; `agenda` still means
+  what it meant, that every row in scope is open, and is derived from the per row set rather than
+  being a boolean somebody set.
 - **The week filter leaves the window and nothing else, #111.** Filed on a `rect` in `#graph`:
   "The whole point of week filter is to not see this (only the week, clean)". What he was looking
   at is #100's own answer to the half of the problem #100 was right about. A filtered drawing

@@ -2372,6 +2372,67 @@ body.hide-ghosts .ghost { display: none; }
 .term-agendactl { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
 .term-agendactl .term-agendahint { color: var(--fg-muted); }
 
+/* ---- the row's own disclosure, issue 112 ---------------------------------------
+   "Session outlines must be shown when clicked in the title not just all at once or none at all."
+   The title of the row IS the control, so this is a button that has to read as the cell it
+   replaced and behave as the target it now is, and those two pull in opposite directions.
+
+   THE SIZE IS STATED AND NOT INHERITED, WHICH IS THE WHOLE OF WHY THIS RULE EXISTS. A title is
+   text of arbitrary length, and text as a target is what #84 measured at 39,4 by 3,0px on the
+   lane caption before that card gave it a rect of its own. `min-height` is the floor #77 took
+   every control on this page to and the padding is what keeps a one-line title off it; the width
+   comes from the text, which for a title is never the short side. Nothing about the size is left
+   to the font.
+
+   IT LOOKS LIKE THE CELL AND NOT LIKE A BUTTON, and that is a decision rather than an oversight:
+   83 buttons drawn as buttons in one column is a toolbar, and the reader is reading a table. The
+   ground, the border and the radius are off, the weight is the cell's own 600, and the caret is
+   the one thing added, because a control that looks exactly like text is a control nobody presses.
+   Hover and focus are where it declares itself, and focus-visible takes the outline every other
+   control here takes. */
+.rowdisc {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  min-width: 26px;
+  margin: -3px 0;
+  padding: 3px 6px 3px 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rowdisc:hover { background: var(--tint-hover); }
+
+.rowdisc:focus-visible {
+  outline: 2px solid var(--i-primary);
+  outline-offset: -2px;
+}
+
+/* The caret is the state, and it is a glyph rather than a rotated box so that it says which way
+   it points at any text size and in any theme. Its own column is fixed, so a row that opens does
+   not move its title sideways by the difference between two glyph widths. */
+.rowdisc-mark {
+  flex: none;
+  width: 12px;
+  text-align: center;
+  font-weight: 400;
+  color: var(--fg-muted);
+}
+
+.rowdisc[aria-expanded="true"] .rowdisc-mark { color: var(--i-primary); }
+
+/* A title is a sentence and the sheet's cells are nowrap so that a record reads as one run, which
+   is the rule this cell keeps at the wider widths and the phone block below relaxes with the
+   others. */
+.term-table td.r-title { padding-top: 2px; padding-bottom: 2px; }
+
 /* ISSUES 91, 92 AND 93, AND THE ORDER THEY WERE WORKED IN IS THE POINT. A sticky banner row sat
    above the column headers here reading that every value in the table was invented, and issue 92
    was filed because it is transparent and the rows scroll visibly through it. 92 is a real defect
@@ -2424,6 +2485,13 @@ body.hide-ghosts .ghost { display: none; }
   .term-table tbody tr.term-group th,
   .term-table tbody tr.term-module th,
   .term-table tbody tr.term-agenda td { white-space: normal; }
+
+  /* Issue 112. The phone turns each row into a block and the title takes the whole first line of
+     it, so the control takes the whole line too rather than being a button the width of a
+     sentence that has wrapped to three. The floor is the same 26. */
+  .term-table td.r-title { flex: 1 0 100%; }
+  .rowdisc { width: 100%; align-items: flex-start; }
+  .rowdisc-mark { padding-top: 1px; }
 }
 
 /* ---- the calendar as a calendar, issue 88 ---------------------------------------
