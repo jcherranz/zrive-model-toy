@@ -1473,6 +1473,27 @@
             });
             return Object.keys(seen).length;
           })(),
+          // AND THE TWO PROVENANCE FIELDS OFF THOSE ROWS, AS THE SET OF TOKENS PRESENT rather
+          // than as a count of what is wrong with them. They stopped being drawn under issue
+          // 108 and a field a driver cannot see is a field that rots: the model still refuses a
+          // rank or a flag these rows have not earned, and this is how a driver reads that off
+          // the running page now that the badge is gone. The SET and not a count, so that the
+          // vocabulary lives in the model and in the assertion and not a third time here: this
+          // file reports which tokens are present and takes no view on which are allowed.
+          agendaFlags: (function () {
+            var seen = {};
+            st.templates.forEach(function (t) {
+              (agendaFor(t) || []).forEach(function (r) { seen[r.f] = 1; });
+            });
+            return Object.keys(seen).sort();
+          })(),
+          agendaRanks: (function () {
+            var seen = {};
+            st.templates.forEach(function (t) {
+              (agendaFor(t) || []).forEach(function (r) { seen[r.r] = 1; });
+            });
+            return Object.keys(seen).sort();
+          })(),
           // What is on screen right now, which is what a driver asserting the table is asking
           // about. The totals across all seven are beside them and keep their old names, so an
           // assertion written before this card still reads the number it was written against.
