@@ -177,6 +177,28 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- **`build/check_grain.mjs` was run by nothing, #107 #89.** Tracked, executable, green, 33
+  assertions on the largest thing built in a day, and no step of `scripts/verify.sh` and no
+  workflow invoked it: `scripts/routes.py`'s own row in #103, in a new place, dark within an hour
+  of that card closing. Step 13 of `verify.sh` and a step of `smoke.yml`, which is the pairing
+  `routes.py` already has. Wired in rather than folded into `scripts/smoke.mjs`: none of the 33
+  restates a smoke assertion, so no rule is duplicated and this is not #106's shape; what the two
+  files share is harness, which is a maintenance cost and not a gate that can go dark. Both carry
+  the same hand-written terminator, so neither can be emptied one probe at a time while the merge
+  waits for a card that can measure it.
+- **`scripts/routes.py` was blind to the modules grain, #107 #89.** It walked `doc["views"]` and
+  nothing else, so its per-class counts were of the sessions grain alone and a class drawn only at
+  the modules grain read to it as a class declared and drawn nowhere. #89 worked around it by
+  giving its two aggregates their members' populate route. `doc_views()` now answers "every view in
+  this document", matching **by shape** and not by name, so a third altitude is walked the day it
+  ships rather than the day somebody remembers this file. Proved both ways on a document with one
+  collapsed-grain node given an undeclared class: the version before the fix printed
+  `VERDICT: every class is declared` and exited 0, this one named `modules ZIB mod_m01` and exited
+  1. Clean it reads 14 views at 2 grains, 330 objects at sessions and 240 at modules.
+- **Both of the above were found by the agent that built #89, on its own work, and not by the
+  audit.** The audit's round 6 exists to test for exactly this class of structural weakness, and a
+  builder reporting the two blind spots its own card left is the better of the two ways for them to
+  surface.
 - **`build/measure_labels.py` produced no measurements at all once the table passed the engine's
   argument limit.** It base64'd its payload through one `String.fromCharCode.apply(null, bytes)`,
   which spreads every byte into the argument list; the page threw "Maximum call stack size
