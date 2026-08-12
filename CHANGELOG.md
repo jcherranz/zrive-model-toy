@@ -433,6 +433,36 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- **A title typed into the tracker reached the public origin with no repository-side gate having
+  seen it, #105.** `sync_board.mjs` emitted the title verbatim, with no length cap, no character
+  filter and no vocabulary, and `board.yml` gated the FIRST rendering while the rebase-retry loop
+  re-rendered from the tracker as it stood at that moment and pushed the SECOND. That commit
+  carries the marker that keeps the push-triggered workflows off it, so nothing downstream ran on
+  it either, and the deployed-bytes gate in `pages.yml` fires after publication, which is an andon
+  and explicitly not the guarantee `board.yml` claims for itself.
+- **Proved with a fixture in four arms rather than argued.** A bare repo as the origin, a racer
+  clone that lands first so the push is rejected, and a fake tracker answering clean on the first
+  call and poisoned on the second. On the tree at `8809631` the gate exits 0 on the first
+  rendering, the retry pushes the second, and the same gate shown the bytes that are on the origin
+  exits 1, for a name and for a banned word alike. On the fix the name never reaches the bytes,
+  and the banned word ends the step at exit 1 with the origin still at the racer's commit.
+- **The rule is applied to the title before it is written, by the library that already owns it.**
+  `scripts/forbidden_lib.sh --name-lines <hashfile>` reads one candidate per line and answers with
+  positions only, never with the token, for the same reason the repository gate withholds a token
+  from its own log. There is no copy of the folding in JavaScript and there must never be one: two
+  copies of that rule already exist and the library's header warns about them. A title carrying a
+  token is withheld rather than refused, so one bad title cannot stop the board tracking the work;
+  the run says so on stdout and raises an annotation naming the issue number and never the string.
+  All 94 titles in the tracker today pass, so nothing currently published changes, and the columns
+  the new renderer produces are identical to the old one's.
+- **The gate now sees the bytes that are pushed.** Rendering and gating are one function called at
+  both renders, so no path reaches `git commit` carrying bytes the gate has not read.
+- **Repository gate self-test 77 to 84.** Three probes on the entry point (it answers with the one
+  position, it answers with positions and nothing else, a register holding no hashes aborts rather
+  than calling every candidate clean) and four on the caller (a poisoned title does not reach the
+  board, a clean one arrives unchanged, what is written in the poisoned one's place is clean
+  against the register in use, and a rule that could not be run writes no board at all). All seven
+  MISS against `8809631`, so none of them is a dead control.
 - **The lane heading's frame was drawn through its own caption and was not centred on it, #96 and
   #97.** "Frame is too tight, improve design" and "Not centered in the frame", filed seconds apart
   on the same rect. THE FIRST WORK WAS FINDING WHICH RECT. Both cards carry `ancestor #graph ·
