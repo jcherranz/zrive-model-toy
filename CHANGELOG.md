@@ -149,6 +149,65 @@ of what changed and when, and it is meant to be scannable.
 
 ### Changed
 
+- **The time window filters the drawing now, #100, and #90's dim is gone.** He filed it from
+  `#graph`: "The whole poitn of this filter is to just render the diagram of those weeks. Just show
+  the selected sessions, etc. so that visualization is better". #90 had answered the window with a
+  class, every tile left where the build put it and the ones outside the window at 16 per cent, and
+  the argument for that was an argument about a gate rather than about a drawing. It produced a bad
+  picture: a reader of Z-BL had three lit tiles inside a 2578px column of quiet ones. Under a three
+  week window that drawing is now 24 nodes and 508px, and the fit stops framing it at rather more
+  than a quarter of full size and frames it at full size.
+- **The restack is one dimensional and is the build's own `pack()`.** Bands are vertical columns at
+  a fixed x with tiles stacked down them, so filtering removes tiles from columns and the honest
+  repair is to close the gaps and leave x alone. No reordering: the canonical drawing already
+  decided which tile sits above which, and a second opinion about that at run time would make the
+  picture jump for a reason nobody asked for. Two of the four numbers `pack()` needs are read off
+  the canonical drawing rather than copied from the build, because they are visible in it.
+- **The cascade, which is what "etc." meant.** A session template whose only session the window
+  took out has nothing left to be a template of, so it goes, and so does the instructor teaching
+  none of what is left and the employer of that instructor. The rule that works is not "drop what
+  is left with no edges", which was tried and was wrong because every template is also joined to
+  the programme: it is that a node is dropped when every neighbour the window has an opinion about
+  is dropped, and being KEPT spreads the same way, which is what saves the employer of an
+  instructor who is still teaching this week. On an empty week, and the term has gaps in April and
+  May, it reaches everything and the drawing becomes six lanes each stating how much of itself is
+  outside the window, which is a true picture of that week.
+- **An edge whose far end the window removed does not vanish.** Removing a line in silence is how a
+  management tool starts lying: the reader cannot tell filtered from absent, and absent is the more
+  interesting of the two on a page whose subject is what the business does and does not record. So
+  every lane that loses tiles gains one reading "N tiles outside this window", every such line
+  lands on it, parallel lines fold into one per node per verb carrying their count in a title, and
+  an edge with both ends outside is folded into a single line between the two count tiles. The verb
+  on a folded line is the original verb unchanged, which is load bearing: `selection.js`'s reveal
+  table is keyed by verb, and a line reading "employed by, 3" would match no rule and leave an
+  arrow pointing into an empty lane.
+- **Every lane caption gains a fourth line, "k of n in this window", in #83's idiom.** A filter
+  that loses the number is the same failure as an aggregate that loses it. It is added to every
+  lane and not only the ones that lost something, because "6 of 6 in this window" is a claim and a
+  lane with no fourth line would read as a lane nobody counted. The drawing's `bandTop` moves down
+  by exactly one caption line to hold it.
+- **A capture filed off a filtered drawing says so.** `drawingDigest` is a digest of what the BUILD
+  wrote and `check_build.sh` is what makes it worth quoting, so on a filtered page it is true of
+  something the reporter is not looking at. The line now reads the digest "of the whole term, drawn
+  filtered to 3 weeks from 2026-03-30".
+- **THE BUILD GATE DOES NOT COVER THE FILTERED DRAWING, AND THAT IS THE TRADE THIS CARD ACCEPTED.**
+  The canonical drawing is untouched: `build/build_layout.py` still generates it, `site/layout.js`
+  still ships it, `drawingDigest` still means what it meant and `scripts/check_build.sh` still
+  refuses a rebuild that does not reproduce it byte for byte, unchanged in scope. The filtered
+  drawing is a RUN TIME TRANSFORM of that artefact, computed in the browser, and no build ever
+  wrote it, so no digest covers it and no reader should assume one does. It earns its own cover in
+  `scripts/smoke.mjs` instead, `term` 41 to 47 and the total 121 to 127, and the load bearing
+  assertion is that reflowing the FULL node set reproduces the canonical coordinates to within the
+  tenth of a unit `layout.js` rounds to. That is what makes the filtered drawing the build's
+  geometry with tiles taken out rather than a second opinion about where things go, and it goes red
+  the day somebody retunes `pack()` in the build and not in `render.js`. The other five are that no
+  two tiles overlap after the restack, that no line dangles and no arrowhead lands off a tile, that
+  what was removed is on the page as a count that adds up, that every lane states its number, and
+  that the fit frames the filtered drawing rather than the one it was cut from. Driven besides the
+  suite over 48 combinations, three viewports by two themes by the tallest and the shortest of the
+  seven drawings by four window widths from one week to the whole term: no overlap, no loose end,
+  no arrowhead adrift, no sideways scroll, and every count reconciling in all 48.
+
 - **Where `now` comes from, which #90 had to decide before anything could be built.** The term ends
   2026-06-28 and the real clock is past it, so 0 of 83 sessions are on or after today and a window
   built against the system clock renders empty today and every day after. The control leads with
