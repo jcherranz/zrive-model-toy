@@ -102,6 +102,29 @@ of what changed and when, and it is meant to be scannable.
 
 ### Changed
 
+- **One browser suite where there were two, #109 #107 #89.** `build/check_grain.mjs` held 33
+  assertions about the two altitudes of the drawing and a second copy of the plumbing under them,
+  a static server, a Chrome resolver, a CDP client, a launcher, a phase table and a hand-written
+  total. It is deleted and the 33 are in `scripts/smoke.mjs`. **144 + 33 = 177**, and the merged
+  run records the same 177 assertion names the two suites recorded between them, checked as a
+  multiset rather than as a count. #107 declined the merge on the correct ground that no CLAIM was
+  duplicated, only harness, and that argument is why it was not urgent; it is not an argument for
+  two files. **An intended-total terminator protects only the file it terminates**, which is how
+  the 33 could be tracked, green and run by nothing at all for their whole life until #107 looked,
+  and **the duplicated harness was not two equal copies**: the grain one scraped the debug port out
+  of the browser's stderr with no freshness check, had no launch retry, and watched no console
+  error, so the three faults #67 hardened this suite against were live in it. The nine grain phases
+  join `PHASES` at the counts that file declared, each now a `group()` so a phase that throws does
+  not cost the eight after it, and they get a browser of their own because the page keeps state
+  across a hash change. The plan refuses a table with no grain phase in it, since that block is the
+  one thing here with no viewport of its own to miss it. `verify.sh` goes from 14 steps to 13 and
+  `smoke.yml` from two suite steps to one; the origin-facing verify step now drives both altitudes
+  against the published bytes, which the grain suite never did. **Proved by planting defects**: all
+  33 conditions negated in one run gives exactly 33 failures, exactly those 33 names, 144 still
+  passing and `VERDICT: the page has regressed`; a real defect in the page gives 176 of 177 and the
+  same verdict, red in CI; skipping a grain phase gives 173 of 177 and `the suite could not
+  answer`; a browser that never starts gives 0 assertions, every phase named short, and the same
+  harness verdict rather than a claim about the page.
 - **The per session outline is a four rung schema, and the sheet draws each row its own, #108.**
   The owner read the first draft and rejected the register: "The per session outlines need to be
   more serious / academic and structured". **The structure is the row key and it cost no new
