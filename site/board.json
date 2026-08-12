@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T11:01:38Z",
+  "generated": "2026-08-12T11:02:14Z",
   "columns": [
     {
       "key": "raw",
@@ -35,15 +35,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/89"
         },
         {
-          "id": 93,
-          "title": "Remove all this text. A good UI must be self explanatory. Too verbose",
-          "labels": [
-            "bug",
-            "feedback"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/93"
-        },
-        {
           "id": 96,
           "title": "Tile frame is too tight on the drawing",
           "labels": [
@@ -76,16 +67,6 @@
       "key": "backlog",
       "title": "Backlog",
       "cards": [
-        {
-          "id": 94,
-          "title": "Module headings are indented further left-padded than the rows they head",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/94"
-        },
         {
           "id": 101,
           "title": "The public page says everything is invented. 48 per cent of its values say they were read off real systems.",
@@ -131,6 +112,26 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/92"
+        },
+        {
+          "id": 93,
+          "title": "Remove all this text. A good UI must be self explanatory. Too verbose",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/93"
+        },
+        {
+          "id": 94,
+          "title": "Module headings are indented further left-padded than the rows they head",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/94"
         },
         {
           "id": 99,
