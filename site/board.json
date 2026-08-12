@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T16:58:28Z",
+  "generated": "2026-08-12T17:49:11Z",
   "columns": [
     {
       "key": "raw",
@@ -30,22 +30,22 @@
     {
       "key": "backlog",
       "title": "Backlog",
+      "cards": []
+    },
+    {
+      "key": "in_progress",
+      "title": "In progress",
       "cards": [
         {
           "id": 114,
           "title": "The reveal hit test computes a click point from a rect that has not settled, and it is not random",
           "labels": [
             "bug",
-            "status:backlog"
+            "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/114"
         }
       ]
-    },
-    {
-      "key": "in_progress",
-      "title": "In progress",
-      "cards": []
     },
     {
       "key": "done",
