@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T12:23:27Z",
+  "generated": "2026-08-12T12:39:11Z",
   "columns": [
     {
       "key": "raw",
@@ -24,15 +24,6 @@
             "limitation"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
-        },
-        {
-          "id": 89,
-          "title": "Collapse sessions into modules and back: the drawing's first management gesture",
-          "labels": [
-            "bug",
-            "feedback"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/89"
         }
       ]
     },
@@ -64,6 +55,16 @@
       "key": "in_progress",
       "title": "In progress",
       "cards": [
+        {
+          "id": 89,
+          "title": "Collapse sessions into modules and back: the drawing's first management gesture",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/89"
+        },
         {
           "id": 103,
           "title": "The gate set measures less than it claims in ten places, one of them a gate nothing runs",
