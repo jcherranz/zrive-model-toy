@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T10:52:59Z",
+  "generated": "2026-08-12T11:01:38Z",
   "columns": [
     {
       "key": "raw",
@@ -33,15 +33,6 @@
             "feedback"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/89"
-        },
-        {
-          "id": 91,
-          "title": "Cut the invented-value warnings back to one: six distinct copies on one screen",
-          "labels": [
-            "bug",
-            "feedback"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/91"
         },
         {
           "id": 93,
@@ -86,16 +77,6 @@
       "title": "Backlog",
       "cards": [
         {
-          "id": 92,
-          "title": "The sticky invented-value banner is transparent and rows show through it",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/92"
-        },
-        {
           "id": 94,
           "title": "Module headings are indented further left-padded than the rows they head",
           "labels": [
@@ -130,6 +111,26 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/75"
+        },
+        {
+          "id": 91,
+          "title": "Cut the invented-value warnings back to one: six distinct copies on one screen",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/91"
+        },
+        {
+          "id": 92,
+          "title": "The sticky invented-value banner is transparent and rows show through it",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/92"
         },
         {
           "id": 99,
