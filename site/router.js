@@ -58,6 +58,7 @@
     var svg = opts.svg;
     var drawing = opts.drawing;
     var onView = opts.onView;
+    var onGrain = opts.onGrain;
     var onDescribed = opts.onDescribed;
 
     var DEFAULT_VIEW = (function () {
@@ -83,11 +84,46 @@
       return viewByCode(h.slice(PGPREFIX.length).split('/')[0].split('?')[0]) || DEFAULT_VIEW;
     }
 
+    // ---- the altitude, issue 89 ------------------------------------------------
+    // WHY IT IS IN THE ADDRESS AT ALL. Every other state on this page that changes what is on the
+    // canvas is: which programme, which sheet, which scope. A collapsed drawing that could not be
+    // linked would be the one view somebody could not send to somebody else, on an artefact whose
+    // whole point is that a reader can hand the picture over.
+    //
+    // A SECOND SEGMENT AND NOT A QUERY. `#/p/ZBL/modules` reads as the same programme seen
+    // differently, which is what it is, and it costs the existing parser nothing: the code was
+    // already taken as the FIRST segment, so every address that worked yesterday still resolves
+    // to the same view today.
+    //
+    // AN UNKNOWN SEGMENT IS THE SESSIONS GRAIN, which is the same answer the code half gives an
+    // unknown programme: the reader asked for a drawing and the honest response to a suffix
+    // nobody recognises is the drawing they would have got without it.
+    var GRAINS = ['sessions', 'modules'];
+
+    function grainFromHash(h) {
+      h = String(h || '');
+      if (h.slice(0, PGPREFIX.length).toLowerCase() !== PGPREFIX) return null;
+      var seg = (h.slice(PGPREFIX.length).split('?')[0].split('/')[1] || '').toLowerCase();
+      return GRAINS.indexOf(seg) > 0 ? seg : 'sessions';
+    }
+
+    // The address for one view at one grain, built HERE and nowhere else, which is the rule
+    // watchdog B's `#/p/Z-ZIB` false alarm left behind: a route constructed in a second place is
+    // a route that can be constructed wrong. The instance document ships each view's own `route`
+    // and this is the one function allowed to put a grain on the end of it.
+    function addressFor(v, g) {
+      return (v.route || (PGPREFIX + v.key)) + (g === 'modules' ? '/modules' : '');
+    }
+
     // A VIEW IS CHOSEN BEFORE THE FIRST DRAW AND NEVER AFTER IT. Resolving the address here, at
     // construction, is what makes a deep link draw its own programme once rather than draw the
     // default and then replace it. A reader who follows a link to #/p/ZCFA and a reader who
     // clicks their way there see the same page produced by the same path.
     var pgView = viewFromHash(location.hash) || DEFAULT_VIEW;
+    // Issue 89, and it is resolved here at construction for the reason the view above it is: a
+    // reader following a link to a collapsed drawing should get the collapsed drawing on the
+    // FIRST paint, not the expanded one replaced a frame later.
+    var pgGrain = grainFromHash(location.hash) || 'sessions';
 
     var PAGE_TITLE = document.title;
 
@@ -318,7 +354,10 @@
       VIEWS.forEach(function (v) {
         var a = document.createElement('a');
         a.className = 'pgitem';
-        a.href = v.route || (PGPREFIX + v.key);
+        // Issue 89. The href carries the grain the reader is on, so moving between programmes
+        // keeps the altitude. It is rewritten in describeProgramme() on every change rather than
+        // frozen here, because the menu is built once and the grain is not.
+        a.href = addressFor(v, pgGrain);
         a.textContent = v.label || v.name || v.code;
         // The list closes on the way out. The navigation itself is the anchor's, so nothing here
         // decides which view is drawn: the hash changes, and the one listener below answers it.
@@ -340,6 +379,7 @@
         pgBtn.title = 'programme drawn: ' + label + '. Press for the other ' + (VIEWS.length - 1);
       }
       pgItems.forEach(function (it) {
+        it.a.href = addressFor(it.v, pgGrain);
         if (it.v === v) it.a.setAttribute('aria-current', 'true');
         else it.a.removeAttribute('aria-current');
       });
@@ -444,9 +484,18 @@
     // was while a reader looks at the list or the board.
     window.addEventListener('hashchange', function () {
       var v = viewFromHash(location.hash);
-      if (!v || v === pgView) return;
+      if (!v) return;
+      // Issue 89. TWO THINGS THE ADDRESS CAN CHANGE AND THEY COST DIFFERENT WORK. A change of
+      // programme replaces the drawing, the selection, the roster and the gaps; a change of grain
+      // replaces the drawing and the selection and leaves the programme's own chrome exactly
+      // where it is. Reported separately so that the wiring can do the smaller of the two when
+      // that is what happened, and so that collapsing does not reset the reader's roster.
+      var g = grainFromHash(location.hash) || 'sessions';
+      var moved = v !== pgView, altitude = g !== pgGrain;
       pgView = v;
-      if (onView) onView(v);
+      pgGrain = g;
+      if (moved && onView) onView(v, g);
+      else if (altitude && onGrain) onGrain(g, v);
     });
 
     return {
@@ -460,6 +509,18 @@
       describe: describeProgramme,
       resetRoster: resetRoster,
       view: function () { return pgView; },
+      // Issue 89. The altitude, read and set through the address and never held anywhere else:
+      // two copies of a state that is also in the URL is how a control and a link come to
+      // disagree about what is on screen. `setGrain` navigates and answers nothing; the
+      // hashchange listener above is what tells the page.
+      grain: function () { return pgGrain; },
+      grains: GRAINS.slice(),
+      grainRoute: function (g) { return addressFor(pgView, g); },
+      setGrain: function (g) {
+        if (GRAINS.indexOf(g) < 0 || g === pgGrain) return false;
+        location.hash = addressFor(pgView, g);
+        return true;
+      },
       rosterRoute: ROSTER_ROUTE,
       rosterOpen: rosterOpen,
       pgMenuOpen: pgMenuOpen

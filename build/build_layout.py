@@ -39,8 +39,11 @@ import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
-from bands import BAND_KEYS, BANDS, CAP_NO_EMPLOYERS, CAP_NO_HOST, CAP_NO_INSTRUCTORS, MAX_CAP_LINES, fill  # noqa: E402,E501
-from model import check_provenance, check_structure, contrast_rows, floor4, instance_document, value_status  # noqa: E402,E501
+from bands import (BAND_KEYS, BANDS, CAP_DELIVERIES, CAP_DELIVERIES_NO_HOST, CAP_MODULES,  # noqa: E402,E501
+                   CAP_MODULES_LOOSE, CAP_NO_EMPLOYERS, CAP_NO_HOST, CAP_NO_INSTRUCTORS,
+                   CAP_NO_MODULES, MAX_CAP_LINES, fill)
+from model import (check_provenance, check_structure, contrast_rows, doc_views, floor4,  # noqa: E402,E501
+                   instance_document, value_status)
 
 COL_W = [166, 232, 122, 124, 80, 102, 92, 92]
 GAP_X, MARGIN_X = 18, 22
@@ -92,8 +95,17 @@ W = round(_acc - GAP_X + MARGIN_X)
 # THE ENROLMENT TO CLAIM CHAIN FOLDS OVER TWO COLUMNS rather than running out over four. Every
 # one of its edges still joins neighbouring columns, so the chain stays legible while the drawing
 # keeps a two to one aspect instead of a long empty right half.
+#
+# ISSUE 89'S TWO AGGREGATES TAKE THE COLUMN OF WHAT THEY AGGREGATE, and that is the whole of the
+# geometry this card needed. A Module is a set of session templates, so it is drawn in the
+# session templates' column; a Module delivery is a set of cohort sessions, so it is drawn in
+# theirs. The modules grain is therefore the same six lanes with two of them one altitude up,
+# rather than a second picture with a layout of its own, and every rule below, the ghost
+# placement, the visit host, the lane overflow gate and the chip placement, applies to it
+# unchanged because it never learns that a grain exists.
 COL_BY_TYPE = {
-    "Programme": 0, "Company": 0, "SessionTemplate": 1, "Instructor": 2, "CohortSession": 3,
+    "Programme": 0, "Company": 0, "SessionTemplate": 1, "Module": 1, "Instructor": 2,
+    "CohortSession": 3, "ModuleDelivery": 3,
     "Cohort": 4, "StudentGroup": 5, "Student": 4, "Enrolment": 6, "Agreement": 7,
     "Charge": 6, "Claim": 7,
 }
@@ -247,12 +259,24 @@ def bands_for(view, col_of):
     has_employer = 0 in company_cols
     has_host = 3 in company_cols
     has_instructor = any(n["type"] == "Instructor" for n in model_nodes)
+    # Issue 89. The grain is DECLARED by the view and the rest is read off what the view draws.
+    # It has to be declared, because "draws no Module tile" is true of Z-CFA's modules grain and
+    # of all seven sessions grains, and the two want different sentences: one says the syllabus
+    # records no module structure at all, the other says nothing because nobody asked.
+    modules = view.get("grain") == "modules"
+    has_module = any(n["type"] == "Module" for n in model_nodes)
+    has_loose = any(n["type"] == "SessionTemplate" for n in model_nodes)
     out = []
     for cs, lines in BANDS:
         if cs == [0] and not has_employer:
             lines = CAP_NO_EMPLOYERS
+        elif cs == [1] and modules:
+            lines = (CAP_MODULES_LOOSE if has_module and has_loose
+                     else CAP_MODULES if has_module else CAP_NO_MODULES)
         elif cs == [2] and not has_instructor:
             lines = CAP_NO_INSTRUCTORS
+        elif cs == [3] and modules and any(n["type"] == "ModuleDelivery" for n in model_nodes):
+            lines = CAP_DELIVERIES if has_host else CAP_DELIVERIES_NO_HOST
         elif cs == [3] and not has_host:
             lines = CAP_NO_HOST
         out.append((cs, fill(lines, counts)))
@@ -764,7 +788,12 @@ def refuse_mixed(inst, lay):
         if bad:
             sys.exit(f"[layout] the {label} block carries geometry: {', '.join(bad)}. "
                      f"Where a thing is drawn belongs in site/layout.js.")
-    for v in inst["views"]:
+    # doc_views(), issue 89, and it is the FIFTH time the reasoning below has been needed. The
+    # four blocks named above are ones the node walk could not see; this is a second node walk.
+    # A document's collapsed half carries its own counts, its own nodes and its own edges, and a
+    # gate that stopped at `views` would let a coordinate into exactly the half of the document
+    # that was written last.
+    for v in doc_views(inst):
         # The counts block, issue 83. Third time the same reasoning has been needed, after the
         # registry and the provenance block: a block the node walk cannot see is where the next
         # geometry key lands, and this one holds nothing but integers, which is exactly what a
@@ -781,7 +810,12 @@ def refuse_mixed(inst, lay):
                     sys.exit(f"[layout] the instance document carries geometry: {v['key']} "
                              f"{kind[:-1]} {o.get('id', o.get('s'))} has {', '.join(bad)}. "
                              f"Where a thing is drawn belongs in site/layout.js.")
-    for iv, lv in zip(inst["views"], lay["views"]):
+    ivs, lvs = doc_views(inst), doc_views(lay)
+    if len(ivs) != len(lvs):
+        sys.exit(f"[layout] the instance document holds {len(ivs)} view(s) and the layout "
+                 f"{len(lvs)}. They are joined by position and a pair that does not line up "
+                 f"draws one view's tiles at another view's coordinates.")
+    for iv, lv in zip(ivs, lvs):
         ids = {n["id"] for n in iv["nodes"]}
         for kind in ("nodes", "edges"):
             for o in lv["drawing"][kind]:
@@ -823,17 +857,18 @@ def build(inst, out_dir):
     # always died there with a bare KeyError, after the earlier views have already printed, while
     # every other structural refusal in this file names the rule, the view and the fix.
     struct = check_structure(inst)
-    print("  structure: {} views, {} nodes, {} edges, ids unique within a view, "
-          "every edge endpoint declared, no self-loop, no relationship declared twice, "
-          "{}".format(
-              struct["views"], struct["nodes"], struct["edges"],
+    print("  structure: {} views ({} at the sessions grain, {} at the modules grain), {} "
+          "nodes, {} edges, ids unique within a view, every edge endpoint declared, no "
+          "self-loop, no relationship declared twice, {}".format(
+              struct["views"], struct["grains"]["sessions"], struct["grains"]["modules"],
+              struct["nodes"], struct["edges"],
               "no orphan node" if not struct["orphans"] else
               "{} orphan node(s), which is legal and is counted: {}".format(
                   struct["orphans"],
                   "; ".join(f"{k} {', '.join(o)}" for k, _n, _e, o in struct["per_view"] if o))))
     _pr = inst["provenance"]
     _st = {}
-    for _v in inst["views"]:
+    for _v in doc_views(inst):
         for _n in _v["nodes"]:
             for _row in _n["props"]:
                 _k = value_status(_row["r"], _row["at"], _pr["as_of"],
@@ -854,12 +889,29 @@ def build(inst, out_dir):
                  f"A column for types the document does not have: "
                  f"{', '.join(sorted(stale)) or 'none'}.")
 
-    views = []
-    for view in inst["views"]:
-        col_of = columns_for(view, view["key"])
-        views.append({"key": view["key"],
-                      "drawing": layout(view, view["key"], bands_for(view, col_of), col_of)})
+    # ---- both altitudes, issue 89 -----------------------------------------------------------
+    # The collapsed half is laid out by THIS function with THIS geometry, under every gate in it:
+    # the column table, the ghost placement, the lane overflow refusal, the chip placement and
+    # the chip-adrift refusal. It is not a second layout with a second set of rules, and the two
+    # lists come out in the same order and the same length as the two they were built from, which
+    # is what makes joining them by position honest.
+    def lay_out(block):
+        out = []
+        for view in block:
+            # The tag names the grain as well as the programme, because there are two drawings
+            # per route now and a refusal reading "[layout:ZBL] LANE OVERFLOW" would not say
+            # which of the two to look at.
+            grain = view.get("grain", "sessions")
+            tag = view["key"] + ("" if grain == "sessions" else "/" + grain)
+            col_of = columns_for(view, tag)
+            out.append({"key": view["key"], "grain": grain,
+                        "drawing": layout(view, tag, bands_for(view, col_of), col_of)})
+        return out
+
+    views = lay_out(inst["views"])
     lay = {"views": views}
+    if inst.get("collapsed"):
+        lay["collapsed"] = lay_out(inst["collapsed"])
     refuse_mixed(inst, lay)
 
     # The width of the drawing is computed here and read by the stylesheet through the
@@ -878,9 +930,12 @@ def build(inst, out_dir):
     dest = out_dir / "layout.js"
     dest.write_text("window.GL=" + json.dumps(lay, ensure_ascii=False, separators=(",", ":"))
                     + ";\n", encoding="utf-8")
-    print(f"wrote {dest.name}  {dest.stat().st_size / 1024:.1f} KB, {len(views)} views")
-    print("  " + "  ".join(f"{v['key']} {v['drawing']['w']}x{v['drawing']['h']}"
-                           for v in views))
+    print(f"wrote {dest.name}  {dest.stat().st_size / 1024:.1f} KB, "
+          f"{len(doc_views(lay))} drawings over {len(views)} views")
+    for _label, _block in (("sessions", views), ("modules", lay.get("collapsed") or [])):
+        if _block:
+            print(f"  {_label:<9}" + "  ".join(f"{v['key']} {v['drawing']['w']}x"
+                                               f"{v['drawing']['h']}" for v in _block))
     return lay
 
 

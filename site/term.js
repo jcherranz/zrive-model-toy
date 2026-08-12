@@ -507,14 +507,36 @@
         // sessions they are attached to, which is render.js's cascade and not this module's
         // business. Answering only `out` would make every undated node read as inside the window,
         // and the drawing could never tell "in this window" from "not a thing with a date".
+        // ISSUE 89 ADDED THE SECOND DATED CLASS AND IT CARRIES A SPAN RATHER THAN A DATE. At the
+        // modules grain the term lane holds one tile per module, and a module runs from its first
+        // session to its last: Z-BL's second module covers 14 ene to 25 mar. So the predicate
+        // answers about a RANGE, and "outside the window" is the range and the window not meeting
+        // at all rather than the range's start falling outside it. Reading only the first date
+        // would have taken a module off the picture in every week of it but the first, which is
+        // the arithmetic that reads right and is wrong.
+        //
+        // The two controls have to compose on BOTH altitudes or the collapse is a way of escaping
+        // the window, and a management tool whose two filters do not agree about the same term is
+        // worse than either of them alone.
         governs: function (n) {
-          if (!n || n.type !== 'CohortSession') return false;
-          return !!String(prop(n, 'scheduled_at') || '').split(' ')[0];
+          if (!n) return false;
+          if (n.type === 'CohortSession') {
+            return !!String(prop(n, 'scheduled_at') || '').split(' ')[0];
+          }
+          if (n.type !== 'ModuleDelivery') return false;
+          return !!(String(prop(n, 'first_session') || '').split(' ')[0] &&
+                    String(prop(n, 'last_session') || '').split(' ')[0]);
         },
         out: function (n) {
-          if (!n || n.type !== 'CohortSession') return false;
-          var d = String(prop(n, 'scheduled_at') || '').split(' ')[0];
-          return !!d && (d < r.from || d > r.to);
+          if (!n) return false;
+          if (n.type === 'CohortSession') {
+            var d = String(prop(n, 'scheduled_at') || '').split(' ')[0];
+            return !!d && (d < r.from || d > r.to);
+          }
+          if (n.type !== 'ModuleDelivery') return false;
+          var a = String(prop(n, 'first_session') || '').split(' ')[0];
+          var b = String(prop(n, 'last_session') || '').split(' ')[0];
+          return !!(a && b) && (b < r.from || a > r.to);
         }
       };
     }

@@ -359,6 +359,14 @@ body.students .wnpick { display: none; }
    `students` and `board` are. */
 body.board .gapspick,
 body.students .gapspick { display: none; }
+/* THE ALTITUDE LEAVES ON THE SAME TWO ROUTES, and it is the same sentence a third time. Issue 89.
+   It changes which drawing is on the canvas, so it belongs wherever the canvas is the thing the
+   reader is looking at, and nowhere else: the board draws no model at all, and the student list
+   is a roster of people who are in no module. It is kept over the calendar and the outline for
+   #86's reason, that a sheet is a reading of the term and a reader who collapsed the drawing and
+   then opened a reading should not have to close it to change their mind. */
+body.board .grpick,
+body.students .grpick { display: none; }
 /* The detail panel describes a node in the drawing, so on the board it goes the same way. It is
    hidden rather than closed: the selection is still the selection, and switching back brings the
    panel and the node it is about back together. */
@@ -760,6 +768,96 @@ h1 {
    It is the line that keeps this control from being read as a to-do list: an absence here is
    something the analysis established, not something nobody has got round to typing. */
 .gaps-foot {
+  margin: 6px 0 0;
+  padding-top: 6px;
+  border-top: 1px solid var(--rule-muted);
+  color: var(--fg-muted);
+}
+
+/* ---- the altitude, issue 89 --------------------------------------------- */
+/* The fifth control in this row and the fourth to hang a box off itself, so it is the third
+   copy of one idiom and not a fourth idiom: the anchoring, the box and the three listeners are
+   .gapsmenu's, which were .wnmenu's, which were .pgmenu's. NOTHING HERE SETS A SIZE, which is
+   issue 77 still holding: the control is a .linkbtn, so it is 26 by 26 by construction and sits
+   on the row's one baseline, and this file adds a position and a box and no dimension at all. */
+.grpick {
+  position: relative;
+  display: inline-block;
+}
+
+/* Narrower than the gap list because it holds one sentence, two choices and a note, rather than
+   a sentence and a table. Anchored right for .gapsmenu's measured reason: this control sits past
+   the middle of the row at every width, and a box anchored left leaves the viewport. */
+.grmenu {
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 0;
+  z-index: var(--z-pop);
+  width: 300px;
+  max-width: calc(100vw - 40px);
+  padding: 8px 10px;
+  background: var(--bg-panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--elev-1);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.grmenu[hidden] { display: none; }
+
+/* What this view actually costs at each altitude, first, because the two choices under it mean
+   nothing without it: on Z-BL the sentence is the reason to press and on Z-CFA it is the reason
+   not to. */
+.gr-scope {
+  margin: 0 0 6px;
+  color: var(--fg-body);
+}
+
+.gr-row {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+}
+
+/* The two altitudes as links and not as buttons, because each of them IS an address: the whole
+   point of putting the grain in the hash is that a reader can copy the collapsed view out of the
+   page, and a link is the one control a browser already knows how to copy. They are sized here
+   rather than by .linkbtn because they are inside a popover and not in the nav row, and #77's
+   floor is met explicitly: 26px of height and padding that keeps the shorter of the two over
+   24px wide. */
+.gritem {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  color: var(--fg-body);
+  text-decoration: none;
+  font-size: 11px;
+}
+
+.gritem:hover {
+  background: var(--tint-hover);
+  text-decoration: none;
+}
+
+.gritem:focus-visible {
+  outline: 2px solid var(--i-primary);
+  outline-offset: 1px;
+}
+
+.gritem[aria-current="true"] {
+  border-color: var(--fg-body);
+  font-weight: 600;
+}
+
+/* What the fold cost, at the foot, in the same place the gap list puts its definition. A
+   collapse that did not say how many relationships it drew as one line would be an aggregate
+   hiding its own arithmetic, which is the failure this whole control is supposed to be the
+   opposite of. */
+.gr-foot {
   margin: 6px 0 0;
   padding-top: 6px;
   border-top: 1px solid var(--rule-muted);
@@ -1648,6 +1746,16 @@ body.fb-mode .fb-popover select { cursor: pointer; }
      wherever the nav happens to have broken. It is one rule and not a second copy of .wnmenu's
      because the two boxes are different widths on the desktop and identical here. */
   .gapsmenu {
+    position: fixed;
+    top: var(--hh);
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
+  }
+  /* And the altitude's box is the same box in the same place for the same measured reason.
+     Issue 89. */
+  .grmenu {
     position: fixed;
     top: var(--hh);
     left: 12px;

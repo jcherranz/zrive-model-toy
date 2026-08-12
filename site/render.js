@@ -50,7 +50,18 @@
     // belongs to the instructors and the two types sit two lanes apart, so at 16 by 16 the only
     // thing telling them apart would be the tile colour.
     cap:       ['M1.9 6.5 8 3.9l6.1 2.6L8 9.1z',
-                'M4.7 7.8v3c0 .9 1.5 1.6 3.3 1.6s3.3-.7 3.3-1.6v-3']
+                'M4.7 7.8v3c0 .9 1.5 1.6 3.3 1.6s3.3-.7 3.3-1.6v-3'],
+    // Issue 89's two aggregates, each drawn as its member's glyph with one more of the same
+    // behind it. A Module is session templates, so it is the document glyph over a second sheet;
+    // a Module delivery is cohort sessions, so it is the calendar glyph over a second frame. The
+    // relation is the drawing's own, said in line work: neither is a new symbol to learn.
+    //
+    // A TILE STANDING FOR MORE THAN ONE DRAWS ITS COUNT INSTEAD, which is the students card's
+    // idiom since #41 and is what these tiles mostly show. The glyph is what a module holding
+    // exactly one session template gets, and it is the case the five sampled routes are full of.
+    modules:   ['M6 4h4.5l2.5 2.5V14H6z', 'M10.5 4v2.5H13', 'M3.2 11.8V2.2h4.6'],
+    moduleruns: ['M5.4 5.6h8.6v8.4H5.4z', 'M5.4 8.4h8.6', 'M7.8 3.6v2.6', 'M11.6 3.6v2.6',
+                 'M2.6 11.6V3.4h2']
   };
 
   function el(name, attrs, parent) {
@@ -431,7 +442,14 @@
         // the term is off screen.
         var eq = e.ghost ? 'ghost' : (e.outside ? 'outside' : null);
         var g2 = el('g', { 'data-edge': key, class: eq }, gEdge);
-        if (e.note) el('title', {}, g2).textContent = e.note;
+        // Issue 89. A line that stands for more than one relationship says how many, in its own
+        // <title>, which is #100's rule for the same case and is why the verb on the chip is
+        // left exactly as the model wrote it. `note` is the window's sentence and wins where
+        // both apply, because a line whose far end is off the picture is the stronger claim
+        // about what the reader is not seeing.
+        var etitle = e.note || (e.n > 1 ? e.v + ', ' + e.n + ' relationships drawn as one line'
+                                        : null);
+        if (etitle) el('title', {}, g2).textContent = etitle;
         el('path', { d: e.d,
                      class: e.ghost ? 'edge edge-ghost' : (e.outside ? 'edge edge-outside'
                                                                      : 'edge') }, g2);
@@ -982,13 +1000,21 @@
       function fold(sId, tId, e) {
         var k = sId + '\u001f' + tId + '\u001f' + e.v + '\u001f' + (e.ghost ? 'g' : '');
         var f = folds[k];
-        if (f) { f.n++; return; }
-        folds[k] = { s: sId, t: tId, e: e, n: 1 };
+        // Issue 89. A fold counts RELATIONSHIPS and not lines, so a line that was already a fold
+        // brings its own count with it. On the modules grain one `instance of` line can stand
+        // for fifteen, and a window folding that line onto an outside tile has taken fifteen off
+        // the picture and not one. Adding one per line would be the arithmetic that reads right
+        // and is wrong, which is exactly the undercount an aggregate invites.
+        if (f) { f.n += (e.n || 1); return; }
+        folds[k] = { s: sId, t: tId, e: e, n: (e.n || 1) };
         out.push(folds[k]);
       }
       g.edges.forEach(function (e) {
         var ds = !!gone[e.s], dt = !!gone[e.t];
-        if (!ds && !dt) { out.push({ s: e.s, t: e.t, e: e, n: 1, keep: true }); return; }
+        if (!ds && !dt) {
+          out.push({ s: e.s, t: e.t, e: e, n: (e.n || 1), keep: true });
+          return;
+        }
         var sId = ds ? '__outside_' + colOf(nodeAt(g, e.s).x) : e.s;
         var tId = dt ? '__outside_' + colOf(nodeAt(g, e.t).x) : e.t;
         if (sId === tId) { sameLane++; return; }
@@ -998,6 +1024,11 @@
       var edges = out.map(function (r) {
         var geo = edgeGeom(g, pos[r.s], pos[r.t]);
         var e = { s: r.s, t: r.t, v: r.e.v, ghost: r.e.ghost || null,
+                  // Issue 89. A kept line keeps the fold it arrived with, so a collapsed drawing
+                  // inside a window still says in its own <title> how many relationships each
+                  // line stands for. Dropping it here would have made the count true of the
+                  // whole term and false of every filtered reading of it.
+                  n: r.n > 1 ? r.n : null,
                   d: geo.d, rev: geo.rev, ax: geo.ax, ay: geo.ay, aa: geo.aa };
         if (!r.keep) {
           e.outside = true;

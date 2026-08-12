@@ -4,6 +4,7 @@
 # the session titles (published on the company's own public website) and the names of firms
 # that are companies rather than people. All teacher names are invented. All identifiers,
 # dates, counts and money figures are invented. No value in this file is measured.
+import copy
 import datetime
 import hashlib
 import math
@@ -26,8 +27,32 @@ TYPES = [
     ("Programme",      "Programme",         "#9d3f9d", "programme"),
     ("Company",        "Company",           "#5f6b7c", "company"),
     ("SessionTemplate","Session template",  "#00a396", "document"),
+    # ---- the two aggregates, issue 89 -------------------------------------------------------
+    # A Module is a set of session templates and a Module delivery is the set of cohort sessions
+    # that run them, so each is drawn in the lane of the thing it aggregates and each is a near
+    # NEIGHBOUR of that thing's colour rather than a new hue. That rule was in the palette before
+    # this card and nobody had written it down: measured across all thirteen colours in both
+    # themes, CIE76, the closest pair in light was Students / Student at 10.94 and every other
+    # pair stood 18 or more apart. Students and Student are the one aggregate and its members the
+    # drawing already had.
+    #
+    # THE NUMBERS, on the band plate (#fafbfc light, #20252c dark), which is the gated surface:
+    #
+    #   Module           #039076   3.8573 light   3.8569 dark   10.68 from Session template
+    #   Module delivery  #b27f00   3.4185 light   4.3520 dark   11.54 / 11.98 from Cohort session
+    #
+    # Both clear the 3.0000 of WCAG 2.2 SC 1.4.11 in both themes with room, and both stand 25 or
+    # more from every colour that is not their own member. ONE HEX EACH AND NO DARK OVERRIDE,
+    # which is Session template's own arrangement rather than a new one.
+    #
+    # THE DIRECTION IS NOT PART OF THE RULE AND IS NOT CLAIMED. Students is lighter than Student
+    # and Module is darker than Session template, because issue 81 left Session template binding
+    # at 3.0346 on the light plate and a lighter neighbour of it has nowhere to go. What is
+    # claimed is the distance.
+    ("Module",         "Module",            "#039076", "modules"),
     ("Instructor",     "Instructor",        "#147eb3", "person"),
     ("CohortSession",  "Cohort session",    "#976e08", "calendar"),
+    ("ModuleDelivery", "Module delivery",   "#b27f00", "moduleruns"),
     ("Cohort",         "Cohort",            "#29a634", "cohort"),
     ("StudentGroup",   "Students",          "#657e1a", "stack"),
     # A Student is a member of that group, so it is drawn in the group's own lane and in the
@@ -214,7 +239,18 @@ APTO = ("fresh", "aging")
 # `fresh`, `fresh` is apto, and a value fit to act on inside a document whose stance is invented
 # is refused by the rule above and should be. The syllabus is not on the machine that builds this
 # in CI, so the honest state is `unread`: real, and not fit to act on.
-SYLLABUS_KEYS = ("module_name", "sequence", "modules")
+# The property keys whose values may carry the `real` flag on a document whose stance is
+# invented, because they are the only ones read off anything: the vault's own syllabus
+# frontmatter, re-read and refused on drift by check_module_structure() on any machine that holds
+# it. Everything else on this page was made up.
+#
+# ISSUE 89 ADDED THREE, and every one of them is the same corpus at module altitude rather than a
+# new kind of claim: `module_code` is the vault's `module` field, `module` on a delivery is that
+# field and its `module_name` together, and `in_the_syllabus` is how many rows of the syllabus
+# carry that code, which is what SYLLABUS_MODULES counts and what the vault is re-counted
+# against. The rule is unchanged and still refuses a `real` chip on any key not in this tuple;
+# what moved is the list of values there is a source for.
+SYLLABUS_KEYS = ("module_name", "sequence", "modules", "module_code", "module", "in_the_syllabus")
 SYLLABUS_RANK = OBSERVED
 
 FRESH_DAYS = 120
@@ -807,6 +843,29 @@ CLASS_OF_TYPE = {
     "SessionTemplate": "session-template",
     "Instructor": "instructor",
     "CohortSession": "cohort-session",
+    # ---- the two aggregates take their members' route, issue 89 -----------------------------
+    # AND THAT IS A DECISION AGAINST THE OBVIOUS ONE, which was two entries of their own. The
+    # registry answers ONE question: how does a row of this class get into a system and out of it
+    # again. A module has no row anywhere. It is a field repeated on the syllabus rows it groups,
+    # so the only way to get hold of one is to read those rows and group them by that field, and
+    # the route to a Module is therefore exactly the route to a Session template. A module
+    # delivery is the same sentence over the calendar: read the session calendar rows, group by
+    # the module their template names. An entry of its own would have restated its member's route
+    # in different words and given the registry two more places to drift.
+    #
+    # WHAT AN ENTRY OF ITS OWN WOULD HAVE CARRIED IS ON THE TILE INSTEAD, in its `note`, which is
+    # where a statement about one object belongs: that a module is a value and not a row, and
+    # that nothing anywhere groups a term's calendar rows into modules. That is a fact about the
+    # aggregate rather than about how its rows are populated, and the two were being conflated.
+    #
+    # IT ALSO KEEPS scripts/routes.py HONEST, which is the practical half. That reader walks
+    # `views`, counts the objects bound to each class, and refuses a class drawn nowhere. Its
+    # walk does not reach `collapsed`, so two entries drawn only at the modules grain would have
+    # read to it as two classes that had rotted. That reader is not this card's file to change
+    # and the finding is reported rather than worked around: a class drawn ONLY at the modules
+    # grain would be invisible to it today.
+    "Module": "session-template",
+    "ModuleDelivery": "cohort-session",
     "Cohort": "cohort",
     "StudentGroup": "student-group",
     "Student": "student",
@@ -2602,6 +2661,240 @@ def tail_block(spec):
 # ---- assemble the seven -----------------------------------------------------
 check_syllabus_counts()
 check_module_structure()
+# ---- the second grain, issue 89 ----------------------------------------------
+# THE OWNER ASKED FOR A WAY TO WORK WITH THE DRAWING RATHER THAN TO READ IT: "aggregating /
+# disaggregating sessions / instances into modules and back", with "this will be a management
+# tool" named as the north star. So a view is drawn at two ALTITUDES and the reader picks one.
+#
+# BOTH ARE BUILT HERE AND LAID OUT AT BUILD TIME, which is the decision the card made and the one
+# thing about it that is not open. The drawing is a pure function of the model behind a digest
+# check_build.sh reproduces byte for byte; laying out a second node set in the browser would put
+# the collapsed picture outside every guarantee the first one has. A grain is TWO states, so both
+# can be precomputed; a time window is a continuous parameter over 24 weeks and cannot be, which
+# is why issue 100's filter is a run-time transform and this is not.
+#
+# WHAT COLLAPSES AND WHAT DOES NOT. Both syllabus lanes collapse or neither is worth doing: Z-BL
+# draws 28 session templates beside 28 cohort sessions, and folding one of the two leaves the
+# drawing exactly as tall as it was. So a module becomes TWO tiles, one per lane, joined by the
+# same `instance of` the templates and the sessions under them are joined by. That is the drawing
+# one altitude up rather than a new picture.
+#
+# A TEMPLATE IN NO MODULE STAYS ITSELF, and that is the honest answer rather than a special case.
+# Collapsing cannot put a session in a module the syllabus does not put it in. Z-CFA names no
+# module on any of its 45 rows, so its modules grain draws the same six template tiles it always
+# drew and says so in the lane caption; Z-HR names one on four rows of twenty five, so two of its
+# six drawn templates stay loose beside four modules. The control is never dead and never lies.
+MONTHS_ES = ("ene", "feb", "mar", "abr", "may", "jun",
+             "jul", "ago", "sep", "oct", "nov", "dic")
+
+
+def short_date(when):
+    """`2026-01-14 18:30` -> `14 ene`, the form the cohort session labels are already written in.
+
+    Derived and then CHECKED against those labels rather than trusted, in collapse_view below:
+    the two would otherwise be two spellings of one date with nothing holding them together.
+    """
+    y, m, d = when.split(" ")[0].split("-")
+    return f"{int(d)} {MONTHS_ES[int(m) - 1]}"
+
+
+def edge_count(e):
+    """How many relationships one drawn edge stands for. One, unless a collapse folded it.
+
+    A FIFTH ELEMENT AND NOT A FOURTH, because the fourth is issue 75's declared ghost and every
+    reader of an edge tuple already goes through edge_parts() for it. This is read through its own
+    accessor for the same reason: a count that some readers see and others do not is a count that
+    goes missing on the one page that needed it.
+    """
+    return e[4] if len(e) > 4 else 1
+
+
+def collapse_view(spec, view):
+    """One programme's view at module grain: the same objects, two lanes one altitude up.
+
+    Every session template that names a module becomes part of a Module tile, every cohort
+    session whose template names one becomes part of a Module delivery tile, and every
+    relationship crossing either lane is retargeted onto the tile that swallowed its end and
+    FOLDED, one line per surviving pair per verb, with the count it stands for travelling on the
+    edge. The verb is unchanged, which is load bearing rather than tidy: selection.js's reveal
+    table is keyed by verb, and site/render.js paints a folded line's count into its own <title>.
+    """
+    key, pfx = spec["key"], spec["pfx"]
+    mods = {c: (n, k) for c, n, k in SYLLABUS_MODULES[key]}
+    rows = SYLLABUS_ROWS[key]
+    total = SYLLABUS_SESSIONS[key]
+    nodes_by_id = {n["id"]: n for n in view["nodes"]}
+
+    def prop(n, k):
+        for r in n["props"]:
+            if r["k"] == k:
+                return r["v"]
+        raise SystemExit(f"model: {key} node {n['id']} has no {k} row to collapse on.")
+
+    # Which module each drawn template names, and which template each drawn session runs. The
+    # second is read off the `instance of` edges rather than off a table, so a session whose
+    # template changed cannot keep the module it used to be in.
+    mod_of_tpl, tpl_of_cs = {}, {}
+    for n in view["nodes"]:
+        if n["type"] == "SessionTemplate":
+            mod_of_tpl[n["id"]] = rows[n["id"]][0]
+    for e in view["edges"]:
+        s, t, verb, _g = edge_parts(e)
+        if verb == "instance of":
+            tpl_of_cs[s] = t
+
+    tpl_in, cs_in = {}, {}
+    for tid, code in mod_of_tpl.items():
+        if code:
+            tpl_in.setdefault(code, []).append(tid)
+    for n in view["nodes"]:
+        if n["type"] != "CohortSession":
+            continue
+        tid = tpl_of_cs.get(n["id"])
+        if tid is None:
+            raise SystemExit(f"model: {key} cohort session {n['id']} is an instance of nothing, "
+                             f"so the module grain has no lane to put it in.")
+        code = mod_of_tpl.get(tid)
+        if code:
+            cs_in.setdefault(code, []).append(n["id"])
+        # The label and the timestamp are two spellings of one date and nothing held them
+        # together until this grain needed the second one. Checked on all 83 rather than assumed.
+        short = short_date(prop(n, "scheduled_at"))
+        if not n["label"].endswith(short):
+            raise SystemExit(f"model: {key} {n['id']} is labelled {n['label']!r} and is scheduled "
+                             f"at {prop(n, 'scheduled_at')!r}, which reads {short!r}. The module "
+                             f"grain labels a delivery from the timestamp and the two have to be "
+                             f"the same date.")
+
+    swallow, nodes, edges = {}, [], []
+    order = [c for c, _n, _k in SYLLABUS_MODULES[key] if c in tpl_in or c in cs_in]
+
+    for code in order:
+        name, in_syllabus = mods[code]
+        drawn = sorted(tpl_in.get(code, []), key=lambda i: rows[i][1])
+        if drawn:
+            mid = f"{pfx}mod_{code.lower()}"
+            seqs = [rows[i][1] for i in drawn]
+            span = (f"{seqs[0]} of {total}" if len(seqs) == 1
+                    else f"{seqs[0]} to {seqs[-1]} of {total}")
+            nodes.append({
+                "id": mid, "type": "Module", "label": f"{code} {name}",
+                # What a registry entry of its own would have said, on the tile, because it is a
+                # statement about this object and not about how its rows are populated. The
+                # module is real and published; the module OBJECT is not, anywhere.
+                "note": ("A module is real and is published on every syllabus note, and no "
+                         "system holds a module as a row: it is a value repeated on the rows it "
+                         "groups. This tile is those rows gathered, and the count under it says "
+                         "how many of them the drawing carries against how many the syllabus "
+                         "puts in this module."),
+                # THE COUNT IS THE WHOLE POINT AND IT IS ON THE TILE'S FACE. #83 set the idiom
+                # and #100 shipped a follow-up commit to stop a lane veiling its own outside
+                # count; an aggregate that loses the number is how a management tool starts
+                # lying. The numeral inside the tile and the card stack behind it are the
+                # drawing's own aggregate idiom, the one the students card has carried since #41.
+                "count": str(len(drawn)) if len(drawn) > 1 else None,
+                "tail": sample_phrase(len(drawn), in_syllabus, "session templates"),
+                "props": [
+                    p("module_code", code, R, SYLLABUS_RANK),
+                    p("module_name", name, R, SYLLABUS_RANK),
+                    p("session_templates", sample_phrase(len(drawn), in_syllabus,
+                                                         "in this module"), E),
+                    p("in_the_syllabus", f"{in_syllabus} of the {total} sessions", R,
+                      SYLLABUS_RANK),
+                    p("sequence", span, R, SYLLABUS_RANK),
+                ],
+            })
+            for tid in drawn:
+                swallow[tid] = mid
+        ran = sorted(cs_in.get(code, []), key=lambda i: prop(nodes_by_id[i], "scheduled_at"))
+        if ran:
+            did = f"{pfx}mdel_{code.lower()}"
+            first = prop(nodes_by_id[ran[0]], "scheduled_at")
+            last = prop(nodes_by_id[ran[-1]], "scheduled_at")
+            when = (short_date(first) if len(ran) == 1
+                    else f"{short_date(first)} a {short_date(last)}")
+            taught = sum(1 for i in ran if prop(nodes_by_id[i], "teacher_assigned") == "yes")
+            states = sorted({prop(nodes_by_id[i], "state") for i in ran})
+            nodes.append({
+                "id": did, "type": "ModuleDelivery", "label": f"{code}, {when}",
+                # The weaker of the two findings, and the one this grain adds. A module in a term
+                # is not a value on anything: it is the calendar rows whose template names that
+                # module, and nothing groups them, names an owner for them or creates a row when
+                # one begins or ends.
+                "note": ("The sessions of one module in this cohort's term. Nothing groups them: "
+                         "a module in a term can only be picked out as the calendar rows whose "
+                         "template names it, no row is created when one begins or ends, and no "
+                         "role is named as its owner."),
+                "count": str(len(ran)) if len(ran) > 1 else None,
+                "tail": sample_phrase(len(ran), in_syllabus, "sessions"),
+                "props": [
+                    p("module", f"{code} {name}", R, SYLLABUS_RANK),
+                    p("cohort_sessions", sample_phrase(len(ran), in_syllabus,
+                                                       "in this module"), E),
+                    p("first_session", first, D),
+                    p("last_session", last, D),
+                    (p("teacher_assigned", f"{taught} of {len(ran)}", D) if taught
+                     else p("teacher_assigned", "no", A)),
+                    p("state", ", ".join(states), D),
+                    p("recording_ref", "none", D),
+                ],
+            })
+            for cid in ran:
+                swallow[cid] = did
+
+    for n in view["nodes"]:
+        if n["id"] in swallow:
+            continue
+        nodes.append(copy.deepcopy(n))
+
+    # ---- the edges, and what a fold may not do -------------------------------------------
+    # Retarget, then fold by the pair and the verb. A relationship whose two ends land on the
+    # SAME tile is inside that module and cannot be drawn between two lanes at all; it is counted
+    # and reported rather than dropped in silence, which is issue 100's rule for the same case.
+    folded, out, inside = {}, [], 0
+    for e in view["edges"]:
+        s, t, verb, ghost = edge_parts(e)
+        s, t = swallow.get(s, s), swallow.get(t, t)
+        if s == t:
+            inside += 1
+            continue
+        k = (s, t, verb, ghost)
+        if k in folded:
+            folded[k][4] += 1
+            continue
+        folded[k] = [s, t, verb, ghost, 1]
+        out.append(folded[k])
+    edges = [(r[0], r[1], r[2], r[3], r[4]) for r in out]
+    return {
+        "key": key, "code": spec["code"], "name": spec["name"],
+        "label": f"{spec['code']} {spec['name']}",
+        "grain": "modules", "nodes": nodes, "edges": edges, "roster": view["roster"],
+        "counts": {
+            # What the fold cost, in the counts block so that it is walked by the same gate every
+            # other block here is walked by. `folded` is how many relationships the drawn lines
+            # stand for beyond themselves and `inside` is how many have both ends in one module
+            # and cannot be drawn between two lanes at all. Neither may be silent: a collapse
+            # that quietly loses a relationship is the aggregate version of a lane hiding its own
+            # outside count, which is the defect issue 100 shipped a second commit to remove.
+            "Relationship": {"drawn": len(edges),
+                             "folded": sum(r[4] - 1 for r in out),
+                             "inside": inside},
+            "SessionTemplate": {
+                "drawn": sum(1 for n in nodes if n["type"] == "SessionTemplate"),
+                "total": total},
+            "CohortSession": {
+                "drawn": sum(1 for n in nodes if n["type"] == "CohortSession"),
+                "total": total},
+            "Module": {
+                "drawn": sum(1 for n in nodes if n["type"] == "Module"),
+                "total": len(SYLLABUS_MODULES[key])},
+            "ModuleDelivery": {
+                "drawn": sum(1 for n in nodes if n["type"] == "ModuleDelivery"),
+                "total": len(SYLLABUS_MODULES[key])},
+        },
+    }
+
+
 VIEWS = []
 for _spec in PROGRAMMES:
     if "roster" not in _spec:
@@ -2614,6 +2907,11 @@ for _spec in PROGRAMMES:
     VIEWS.append({
         "key": _spec["key"], "code": _spec["code"], "name": _spec["name"],
         "label": f"{_spec['code']} {_spec['name']}",
+        # Issue 89. Which altitude this view is drawn at. Declared on both grains rather than
+        # inferred from what a view holds, because "draws no Module tile" is true of Z-CFA's
+        # modules grain as well as of every sessions grain, and the lane caption over the two has
+        # to say different things.
+        "grain": "sessions",
         "nodes": _pn + _tn, "edges": _pe + _te, "roster": _roster,
         # ---- how much of the syllabus this view draws, issue 83 -----------------------------
         # `drawn` is counted off the nodes that were just built and never declared, so a view
@@ -2629,8 +2927,40 @@ for _spec in PROGRAMMES:
             "CohortSession": {
                 "drawn": sum(1 for _n in _pn if _n["type"] == "CohortSession"),
                 "total": SYLLABUS_SESSIONS[_spec["key"]]},
+            # Issue 89, and it is here on the sessions grain too, reading zero, because
+            # build/bands.py measures every caption line any view could be given and a block that
+            # existed on half the views would make that union unbuildable.
+            "Module": {
+                "drawn": sum(1 for _n in _pn if _n["type"] == "Module"),
+                "total": len(SYLLABUS_MODULES[_spec["key"]])},
+            "ModuleDelivery": {
+                "drawn": sum(1 for _n in _pn if _n["type"] == "ModuleDelivery"),
+                "total": len(SYLLABUS_MODULES[_spec["key"]])},
+            "Relationship": {"drawn": len(_pe + _te), "folded": 0, "inside": 0},
         },
     })
+
+# ---- and the second grain, in a list of its own -------------------------------
+# NOT APPENDED TO VIEWS, AND THE REASON IS A MEASURED ONE RATHER THAN A PREFERENCE. `views` means
+# "the seven programmes" to every reader of these bytes, and it is walked by readers this build
+# does not own: scripts/smoke.mjs recomputes the gap total off window.GI as an INDEPENDENT check
+# of the number the header prints, and it walks them by position against the seven drawings. A
+# fourteen entry list made that driver count 146 where the page says 95 and compare Z-SC's
+# drawing against Z-IB's document, which is a false regression report about a page that is right.
+# A collapsed view is the same objects re-expressed, not more of them, so any reader summing over
+# `views` should go on getting the business once.
+#
+# THE COST IS THAT A SECOND NODE LIST IS EXACTLY WHERE THIS REPOSITORY'S GATES HAVE GONE BLIND
+# BEFORE, four times, each recorded in build/build_layout.py's own refuse_mixed(). So it is not
+# left to habit: doc_views() below is the one function that answers "every view in this document",
+# check_provenance(), check_structure() and refuse_mixed() all ask it, the loops in this file that
+# derive a route, a mark, an identity and a name walk ALL_VIEWS, and the structure self-test has a
+# probe that plants a defect in `collapsed` and nowhere else.
+COLLAPSED = [collapse_view(_spec, _base) for _spec, _base in zip(PROGRAMMES, VIEWS)]
+
+# Every view this model draws, at either altitude. What the loops below have to cover, and what
+# build/measure_labels.py measures the strings of.
+ALL_VIEWS = VIEWS + COLLAPSED
 
 # One id may name a tile on more than one route, and it must be the same tile when it does: the
 # three shared instructors and the four shared employers are the whole point of the exercise, and
@@ -2638,7 +2968,7 @@ for _spec in PROGRAMMES:
 # faculty sheet. Only the values that are genuinely per route are allowed to differ, which is why
 # this compares the label and the type and not the properties.
 _seen = {}
-for _v in VIEWS:
+for _v in ALL_VIEWS:
     for _n in _v["nodes"]:
         _was = _seen.setdefault(_n["id"], (_n["type"], _n["label"], _v["key"]))
         if (_n["type"], _n["label"]) != _was[:2]:
@@ -2651,8 +2981,8 @@ NODES = VIEWS[0]["nodes"]
 EDGES = VIEWS[0]["edges"]
 ROSTER_ROWS = VIEWS[0]["roster"]["rows"]
 
-ALL_NODES = [_n for _v in VIEWS for _n in _v["nodes"]]
-ALL_EDGES = [_e for _v in VIEWS for _e in _v["edges"]]
+ALL_NODES = [_n for _v in ALL_VIEWS for _n in _v["nodes"]]
+ALL_EDGES = [_e for _v in ALL_VIEWS for _e in _v["edges"]]
 
 # ---- the route goes on every node, and the tiles with none say so -------------
 # In front of the object's own properties and not after them. Under the management tool objective
@@ -2734,7 +3064,7 @@ for _n in ALL_NODES:
 # The drawn student and the roster row are one person under two drawing ids, and the source key
 # is the only thing in this model that says so. If that ever stops holding, the column has
 # nothing to demonstrate and the failure would be invisible: both halves would look right alone.
-for _v in VIEWS:
+for _v in ALL_VIEWS:
     _nodes_by_id = {_n["id"]: _n for _n in _v["nodes"]}
     for _row in _v["roster"]["rows"]:
         if not _row["node"]:
@@ -2781,7 +3111,7 @@ _strings += [(f"provenance vocabulary {_name}", _s)
              for _name, _tbl in (("rank", VALUE_RANK), ("status", VALUE_STATUS),
                                  ("stance", STANCE))
              for _tok, _why in _tbl.items() for _s in (_tok, _why)]
-for _v in VIEWS:
+for _v in ALL_VIEWS:
     for _n in _v["nodes"]:
         _w = f"{_v['key']} node {_n['id']}"
         _strings.append((_w, _n["label"]))
@@ -2821,7 +3151,7 @@ _TEMPLATE_INSTANCE_MARKS = (
      "a date"),
 )
 _instance_like = []
-for _v in VIEWS:
+for _v in ALL_VIEWS:
     for _n in _v["nodes"]:
         if _n["type"] != "SessionTemplate":
             continue
@@ -2835,7 +3165,8 @@ if _instance_like:
                      "a venue and a date are properties of a delivery; the vault separates "
                      "`title_raw` from `name_norm` for exactly this, and `name_norm` is the "
                      "label to take.")
-_n_templates = sum(1 for _v in VIEWS for _n in _v["nodes"] if _n["type"] == "SessionTemplate")
+_n_templates = sum(1 for _v in ALL_VIEWS for _n in _v["nodes"]
+                   if _n["type"] == "SessionTemplate")
 print(f"[model] session templates: {_n_templates} scanned, none carries a clock, an @ venue or "
       f"a date", file=sys.stderr)
 
@@ -3711,9 +4042,13 @@ def check_provenance(doc):
                 bad("agenda-row-not-dummy",
                     f"{what} is flagged {row.get('f')!r}. It stands in for something no system "
                     f"holds, which is what dummy means, and it is the flag the reader sees.")
-    for v in doc["views"]:
+    # doc_views() and not doc["views"], issue 89. There are two lists of nodes in this document
+    # now and a gate that walked the first would clear a document whose second half was unranked.
+    for v in doc_views(doc):
+        grain = v.get("grain", "sessions")
         for n in v["nodes"]:
-            where = f"{v['key']} node {n['id']}"
+            where = (f"{v['key']} node {n['id']}" if grain == "sessions"
+                     else f"{v['key']} ({grain}) node {n['id']}")
             registry_rows = n.get("route") or 0
             for i, row in enumerate(n["props"]):
                 seen += 1
@@ -3957,6 +4292,20 @@ def check_structure(doc):
     if not isinstance(views, list) or not views:
         bad("empty-input", "the document declares no views, so this gate would walk nothing and "
                            "report clean on any document at all.")
+    # Issue 89. `collapsed` is optional, because a document laid out through --instance may be
+    # drawn at one altitude only, and it is NOT optional for it to be the wrong shape: a list of
+    # views is walked, a missing one is counted as none, and anything else is refused rather than
+    # ignored. The count is returned and printed by the build, so a document that quietly lost
+    # its second half says so on the build's own face instead of clearing a gate that walked
+    # half of it.
+    alt = doc.get("collapsed")
+    if alt is not None and (not isinstance(alt, list) or not alt):
+        bad("empty-input", "the document carries a `collapsed` block that is not a non-empty "
+                           "list of views. A document drawn at one altitude leaves it out "
+                           "altogether; one that declares it and puts nothing in it would have "
+                           "every rule below walk nothing and report clean about the half of "
+                           "the document a reader is most likely to be looking at.")
+    views = doc_views(doc)
     classes = doc.get("routes", {}).get("classes", {})
     if not isinstance(classes, dict) or not classes:
         bad("empty-input", "the document ships no populate registry, so every node's class "
@@ -3967,6 +4316,8 @@ def check_structure(doc):
     per_view = []
     for v in views:
         key = v.get("key", "?")
+        if v.get("grain", "sessions") != "sessions":
+            key = key + " (" + str(v.get("grain")) + ")"
         nodes, edges = v.get("nodes"), v.get("edges")
         if not isinstance(nodes, list) or not nodes:
             bad("empty-input", f"view {key} holds no nodes. A view is a statement about a set of "
@@ -4032,6 +4383,8 @@ def check_structure(doc):
         per_view.append((key, len(nodes), len(edges), orphans))
 
     return {"views": len(views), "nodes": n_nodes, "edges": n_edges, "orphans": n_orphans,
+            "grains": {"sessions": len(doc.get("views") or []),
+                       "modules": len(doc.get("collapsed") or [])},
             "per_view": per_view}
 
 
@@ -4054,6 +4407,78 @@ def check_structure(doc):
 # measurement cannot come to hold different palettes.
 def _ghost_ids(view):
     return {n["id"] for n in view["nodes"] if n.get("ghost")}
+
+
+def emit_view(v):
+    """One view as the document ships it, at whichever altitude it was built at.
+
+    ONE FUNCTION FOR BOTH LISTS, which is the point of it. `views` and `collapsed` hold the same
+    kind of object and a second copy of this shape would be the place the two came apart: a key
+    added to one and not the other is a page that draws a tile at one altitude and not at the
+    other, and nothing would say so.
+    """
+    return {
+        "key": v["key"], "code": v["code"], "name": v["name"], "label": v["label"],
+        # Issue 89. The altitude, and the address that reaches it. A grain is state in the
+        # address exactly as the programme is, so a collapsed view can be linked and reloaded;
+        # the suffix is written HERE, once, and read by the page, because a route constructed in
+        # a second place is a route that can be constructed wrong.
+        "grain": v["grain"],
+        "route": "#/p/" + v["key"] + ("" if v["grain"] == "sessions" else "/modules"),
+        # `class` is the join to the populate registry above and `route` is the number of rows at
+        # the front of `props` that the registry produced. Two different questions under two
+        # names that read alike, and the shorter one is the count because it is the one app.js
+        # has always read.
+        "nodes": [{"id": n["id"], "type": n["type"], "label": n["label"], "class": n["class"],
+                   "count": n.get("count"), "props": n["props"], "route": n["route"],
+                   "source_system": n["source_system"], "source_key": n["source_key"],
+                   "ghost": 1 if n.get("ghost") else None,
+                   "mark": n.get("mark"), "tail": n.get("tail"), "note": n.get("note")}
+                  for n in v["nodes"]],
+        # `ghost` on a relationship is DERIVED from its ends and, since issue 75, may also be
+        # DECLARED. It is here rather than in the layout because whether a relationship is one
+        # the model cannot record is a fact about the model. The layout only reads it, to pick
+        # the face its verb chip is measured in.
+        #
+        # WHY DECLARING IT HAD TO BE POSSIBLE. Derivation answers one question only, whether an
+        # end of the relationship is a class nothing holds, and it answers it correctly for the
+        # four ghost nodes. It cannot see the other case: two classes that both exist, a relation
+        # between them that is real, and no system that writes the relation down. Inferring that
+        # from the ends would be the same inversion issue 75 was filed about, reading a fact about
+        # the recording off a fact about the objects.
+        #
+        # NO EDGE IN THIS MODEL DECLARES IT TODAY. The one that did, the host's edge to the
+        # Programme, was deleted when the owner settled #75 as the cohort edge alone, so the
+        # left-hand term below is false on every relationship and every ghost chip on the page
+        # comes from the right-hand one. The term is kept rather than dropped for the reason the
+        # ghosts block gives at length: the capability is distinct from derivation and removing it
+        # is a decision about the model, not a consequence of one edge.
+        #
+        # `n` is issue 89's, and it is null on every unfolded line rather than 1: a count on a
+        # line that stands for itself is noise, and a reader of these bytes should be able to find
+        # every folded relationship by asking for the key rather than by comparing numbers. The
+        # verb is NOT touched by the fold, for the reason issue 100 gives about its own:
+        # selection.js's reveal table is keyed by verb.
+        "edges": [{"s": _e[0], "t": _e[1], "v": edge_parts(_e)[2],
+                   "ghost": 1 if (edge_parts(_e)[3]
+                                  or _ghost_ids(v).intersection(_e[:2])) else None,
+                   "n": edge_count(_e) if edge_count(_e) > 1 else None}
+                  for _e in v["edges"]],
+        "roster": v["roster"],
+        "counts": v["counts"],
+    }
+
+
+def doc_views(doc):
+    """Every view in an instance document, at either altitude.
+
+    THE ONE ANSWER TO "WHAT IS IN THIS DOCUMENT", and it exists because the answer stopped being
+    one list. Four separate comments in build/build_layout.py record the same failure from four
+    cards: a block a gate's walk cannot see is where the next unchecked thing lands. Issue 89
+    added a second list of NODES, which is the largest such block this document has ever grown,
+    so every gate asks this rather than reaching for `views` and being right about half of it.
+    """
+    return list(doc.get("views") or []) + list(doc.get("collapsed") or [])
 
 
 def instance_document():
@@ -4099,44 +4524,20 @@ def instance_document():
         },
         # ---- the invented session agenda, issue 85 --------------------------------------------
         "agenda": SESSION_AGENDA,
-        "views": [{
-            "key": v["key"], "code": v["code"], "name": v["name"], "label": v["label"],
-            "route": "#/p/" + v["key"],
-            # `class` is the join to the populate registry above and `route` is the number of
-            # rows at the front of `props` that the registry produced. Two different questions
-            # under two names that read alike, and the shorter one is the count because it is the
-            # one app.js has always read.
-            "nodes": [{"id": n["id"], "type": n["type"], "label": n["label"], "class": n["class"],
-                       "count": n.get("count"), "props": n["props"], "route": n["route"],
-                       "source_system": n["source_system"], "source_key": n["source_key"],
-                       "ghost": 1 if n.get("ghost") else None,
-                       "mark": n.get("mark"), "tail": n.get("tail"), "note": n.get("note")}
-                      for n in v["nodes"]],
-            # `ghost` on a relationship is DERIVED from its ends and, since issue 75, may also be
-            # DECLARED. It is here rather than in the layout because whether a relationship is one
-            # the model cannot record is a fact about the model. The layout only reads it, to pick
-            # the face its verb chip is measured in.
-            #
-            # WHY DECLARING IT HAD TO BE POSSIBLE. Derivation answers one question only, whether
-            # an end of the relationship is a class nothing holds, and it answers it correctly for
-            # the four ghost nodes. It cannot see the other case: two classes that both exist, a
-            # relation between them that is real, and no system that writes the relation down.
-            # Inferring that from the ends would be the same inversion issue 75 was filed about,
-            # reading a fact about the recording off a fact about the objects.
-            #
-            # NO EDGE IN THIS MODEL DECLARES IT TODAY. The one that did, the host's edge to the
-            # Programme, was deleted when the owner settled #75 as the cohort edge alone, so the
-            # left-hand term below is false on all 455 relationships and every ghost chip on the
-            # page comes from the right-hand one. The term is kept rather than dropped for the
-            # reason the ghosts block gives at length: the capability is distinct from derivation
-            # and removing it is a decision about the model, not a consequence of one edge.
-            "edges": [{"s": _e[0], "t": _e[1], "v": edge_parts(_e)[2],
-                       "ghost": 1 if (edge_parts(_e)[3]
-                                      or _ghost_ids(v).intersection(_e[:2])) else None}
-                      for _e in v["edges"]],
-            "roster": v["roster"],
-            "counts": v["counts"],
-        } for v in VIEWS],
+        # ---- the seven programmes, and the same seven one altitude up, issue 89 ---------------
+        # TWO LISTS AND NOT ONE FOURTEEN LONG. `views` means "the seven programmes" to every
+        # reader of these bytes, including readers this build does not own: scripts/smoke.mjs
+        # recomputes the header's gap total off window.GI as an independent check of the number
+        # the page prints, and walks the list by position against the seven drawings. Built as one
+        # list of fourteen it counted 146 where the page says 95 and compared Z-SC's drawing with
+        # Z-IB's document, which is a false regression report about a page that is right. A
+        # collapsed view is the same objects re-expressed, not more of them, and anything summing
+        # over `views` should go on getting the business exactly once.
+        #
+        # EVERY GATE ASKS doc_views() AND NONE OF THEM ASKS FOR `views`, which is the whole of
+        # what keeps the second list from being the blind spot the first four such blocks were.
+        "views": [emit_view(v) for v in VIEWS],
+        "collapsed": [emit_view(v) for v in COLLAPSED],
     }
 
 
@@ -4150,8 +4551,8 @@ def instance_document():
 # How many probes each suite intends to run. Written by hand and asserted at the end of the run,
 # which is the whole point: a count taken from the run itself cannot notice a probe that is no
 # longer there. Edited together with the probes or not at all.
-PROVENANCE_PROBES = 34
-STRUCTURE_PROBES = 15
+PROVENANCE_PROBES = 37
+STRUCTURE_PROBES = 20
 
 
 def _probe_doc(stance="invented"):
@@ -4319,6 +4720,29 @@ def provenance_self_test():
     expect("empty-input", _probe("invented", node={"props": []}),
            "a document with no values in it, which would otherwise report clean")
 
+    # ---- and the second list of nodes, issue 89 ---------------------------------------------
+    # The rules above are already proved armed. What these two prove is that the walk REACHES the
+    # collapsed half of the document, which is a separate claim and is the one a walk of `views`
+    # would fail silently: a hundred and forty nine values would go unexamined and the gate would
+    # report clean about the drawing a reader gets by pressing the control.
+    def _collapse(d, mutate=None):
+        d["collapsed"] = [copy.deepcopy(d["views"][0])]
+        d["collapsed"][0]["grain"] = "modules"
+        if mutate:
+            mutate(d["collapsed"][0]["nodes"][0]["props"][1])
+        return d
+
+    expect_clean(_collapse(_probe_doc()),
+                 "a document carrying a second list of views at another grain passes, and its "
+                 "values are examined too")
+    expect("flag-vocabulary",
+           _collapse(_probe_doc(), lambda row: row.update({"f": "banana"})),
+           "a flag in no vocabulary in the COLLAPSED list, which a walk of `views` alone would "
+           "never reach")
+    expect("real-flag-not-invented",
+           _collapse(_probe_doc(), lambda row: row.update({"f": R})),
+           "a made up value flagged real in the collapsed list")
+
     # And the document this repository actually ships, which is the only one that matters.
     expect_clean(instance_document(), "the model's own instance document passes")
 
@@ -4443,6 +4867,31 @@ def structure_self_test():
     def orphan(d):
         d["views"][0]["nodes"].append({"id": "d", "class": "probe", "route": 1})
 
+    # ---- and the same defects in the OTHER list, issue 89 -----------------------------------
+    # THE POINT OF THESE FIVE IS THE LIST AND NOT THE RULE. Every rule above is already proved
+    # armed; what these prove is that the walk REACHES the half of the document that card added.
+    # A gate stopping at `views` would clear all five, and the drawing a reader is most likely to
+    # be looking at, having pressed the control, is the one it never examined.
+    def _second(d):
+        d["collapsed"] = [copy.deepcopy(d["views"][0])]
+        d["collapsed"][0]["grain"] = "modules"
+        return d["collapsed"][0]
+
+    def collapsed_clean(d):
+        _second(d)
+
+    def collapsed_duplicate_id(d):
+        _second(d)["nodes"].append({"id": "b", "class": "probe", "route": 1})
+
+    def collapsed_edge_to_nowhere(d):
+        _second(d)["edges"].append({"s": "c", "t": "zz", "v": "leads to"})
+
+    def collapsed_self_loop(d):
+        _second(d)["edges"].append({"s": "b", "t": "b", "v": "leads to"})
+
+    def collapsed_empty(d):
+        d["collapsed"] = []
+
     # The controls first. Every probe below is this document with one thing changed, so if either
     # of these ever fails the probes stop meaning anything at all.
     expect_clean(_structure_doc(), "the synthetic graph every probe is built from passes",
@@ -4481,6 +4930,23 @@ def structure_self_test():
     expect("node-class-declared", _structure_probe(unknown_class),
            "a node whose class names no entry in the populate registry",
            says="'not-in-the-registry'")
+
+    # The second list, issue 89. The control first, for the reason every control here exists: a
+    # probe that trips a gate proves nothing unless the document it differs from is known to
+    # clear the same gate.
+    expect_clean(_structure_probe(collapsed_clean),
+                 "a document carrying a second list of views at another grain passes, and both "
+                 "lists are counted")
+    expect("empty-input", _structure_probe(collapsed_empty),
+           "a document declaring a collapsed grain and putting no view in it, which every rule "
+           "would walk past in silence")
+    expect("node-id-unique", _structure_probe(collapsed_duplicate_id),
+           "two nodes under one id in the COLLAPSED list, which a walk of `views` alone would "
+           "never see", says="b")
+    expect("edge-endpoint-exists", _structure_probe(collapsed_edge_to_nowhere),
+           "an edge to a node the collapsed view does not declare", says="'zz'")
+    expect("edge-is-not-a-loop", _structure_probe(collapsed_self_loop),
+           "a self-loop in the collapsed view", says="'b' -'leads to'-> 'b'")
 
     # And the document this repository actually ships, which is the only one that matters.
     expect_clean(instance_document(), "the model's own instance document passes")

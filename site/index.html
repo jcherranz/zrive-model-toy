@@ -139,6 +139,32 @@
            routes the window control leaves. The count and every word in the list under it are
            written by app.js off the model, never typed here, for the reason the cohort and the
            footer's two counts are: a number typed into this file is right on one of seven. -->
+      <!-- AT WHAT ALTITUDE. Issue 89, and it is the first control on this page that is about
+           working with the model rather than reading it. The syllabus groups its sessions into
+           modules, the vault has carried that grouping since before this repository existed, and
+           two of the seven drawings are 2578 and 2470 units tall because they draw every row of
+           it; `grain: modules` draws the same programme with those rows gathered into the modules
+           the syllabus declares, which takes Z-BL from 28 tiles in each syllabus lane to 5 and
+           Z-SC from 25 to 6.
+
+           IT IS NEXT TO `weeks` AND `gaps` BECAUSE THE THREE COMPOSE, which is #98's argument for
+           putting the second beside the first. Which weeks, at what altitude, and what is missing
+           in that, is one question a reader brings to a Monday meeting and three controls they
+           can see at once.
+
+           BOTH DRAWINGS ARE BUILT AT BUILD TIME, one per grain per view, each with its own
+           drawing digest that check_build.sh reproduces byte for byte. The control switches
+           between two artefacts; it lays nothing out. That is what separates it from the time
+           window beside it, which is a run-time transform because a window over 24 weeks is a
+           continuous parameter and a grain is two states.
+
+           It is view level, like `ghosts`, `weeks` and `gaps`, and app.css withdraws it on the
+           same two routes. Every word and every number under it is written by app.js off the
+           model, never typed here. -->
+      <span class="grpick" id="grpick"><button id="grbtn" class="linkbtn" type="button"
+              aria-expanded="false" aria-controls="grmenu"
+              title="the altitude this drawing is drawn at"
+              >grain: sessions</button><span class="grmenu" id="grmenu" hidden></span></span>
       <span class="gapspick" id="gapspick"><button id="gapsbtn" class="linkbtn" type="button"
               aria-expanded="false" aria-controls="gapsmenu"
               title="what this view is showing that the model records as missing"

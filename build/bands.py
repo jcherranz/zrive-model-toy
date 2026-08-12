@@ -81,6 +81,11 @@ what issue 46 built it for and what issue 81 asked for again.
 # 28 session templates" and not "28 of 28".
 SAMPLE_TEMPLATES = "\x00session-templates"
 SAMPLE_SESSIONS = "\x00cohort-sessions"
+# Issue 89's, and it counts MODULES against the modules the syllabus declares, not sessions
+# against sessions. The two syllabus lanes are captioned by what is under them at the altitude
+# the reader chose, so a lane of Module tiles may not go on saying "all 28 session templates".
+SAMPLE_MODULES = "\x00modules"
+SAMPLE_DELIVERIES = "\x00module-deliveries"
 
 # What each sentinel counts, and the words it ends in. The key into a view's `counts` block in
 # the instance document is the node type, so the caption cannot come to be about a different set
@@ -88,6 +93,8 @@ SAMPLE_SESSIONS = "\x00cohort-sessions"
 SENTINEL = {
     SAMPLE_TEMPLATES: ("SessionTemplate", "session templates"),
     SAMPLE_SESSIONS: ("CohortSession", "scheduled"),
+    SAMPLE_MODULES: ("Module", "modules"),
+    SAMPLE_DELIVERIES: ("ModuleDelivery", "delivered"),
 }
 
 # ---- the lanes ---------------------------------------------------------------
@@ -158,10 +165,34 @@ CAP_NO_EMPLOYERS = ("programme",)
 CAP_NO_INSTRUCTORS = ("instructors", "none recorded")
 CAP_NO_HOST = ("cohort sessions", SAMPLE_SESSIONS)
 
+# ---- and the same lanes one altitude up, issue 89 ------------------------------
+# A caption is a claim about everything under its lane, so a lane whose tiles are aggregates
+# needs its own. Which of these a view gets is decided by what it DRAWS and by the grain it
+# declares, never by its code, for the reason the three above give: special casing Z-CFA would be
+# a line of code and a lie about the mechanism.
+#
+# THE LOOSE ROWS ARE ON THE CAPTION AND NOT SWEPT UNDER IT. Z-HR names a module on four of its
+# twenty five syllabus rows, so its modules grain is four Module tiles standing beside two
+# session templates that are in no module, and a caption reading "4 modules" over that lane would
+# let a reader take Z-HR for a programme in four parts. Z-DS is the mirror: twelve modules over
+# twenty two sessions, seven of them named `Modulo 1` to `Modulo 7`, which is a slot and not a
+# subject. The caption says the counts and implies no structure they do not share.
+CAP_MODULES = ("modules", SAMPLE_MODULES)
+CAP_MODULES_LOOSE = ("modules", SAMPLE_MODULES, SAMPLE_TEMPLATES)
+# Z-CFA. Nought of forty five rows names a module, so there is nothing to collapse and the lane
+# says so rather than drawing an empty one. The tiles under it are the six session templates the
+# sessions grain draws, unchanged, which is the whole truthful answer to "collapse this".
+CAP_NO_MODULES = ("session templates", SAMPLE_TEMPLATES, "no module recorded")
+CAP_DELIVERIES = ("module deliveries", SAMPLE_DELIVERIES, "and the visit host")
+CAP_DELIVERIES_NO_HOST = ("module deliveries", SAMPLE_DELIVERIES)
+
 # Every caption tuple any view can be given. BAND_TOP is measured over this and not over the
 # ones a particular view carries: the seven routes are read one after another and a header that
 # changed height between them would make the whole drawing jump.
-CAP_ALL = [lines for _cs, lines in BANDS] + [CAP_NO_EMPLOYERS, CAP_NO_INSTRUCTORS, CAP_NO_HOST]
+CAP_ALL = ([lines for _cs, lines in BANDS]
+           + [CAP_NO_EMPLOYERS, CAP_NO_INSTRUCTORS, CAP_NO_HOST,
+              CAP_MODULES, CAP_MODULES_LOOSE, CAP_NO_MODULES,
+              CAP_DELIVERIES, CAP_DELIVERIES_NO_HOST])
 MAX_CAP_LINES = max(len(lines) for lines in CAP_ALL)
 
 if len(BAND_KEYS) != len(BANDS):

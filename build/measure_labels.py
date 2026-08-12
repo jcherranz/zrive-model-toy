@@ -33,7 +33,11 @@ HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
 sys.path.insert(0, str(HERE))
 from bands import every_line  # noqa: E402
-from model import VIEWS, edge_parts  # noqa: E402
+# ALL_VIEWS and not VIEWS, issue 89: the table is the union over every drawing the
+# build lays out, and there are two per programme since that card. A module label or
+# a lane caption this file did not measure would be laid out from the hand written
+# estimate, which undershoots by up to a fifth at the weight a selected label is drawn.
+from model import ALL_VIEWS, edge_parts  # noqa: E402
 
 # The model as the build lays it out, and there are seven drawings to lay out since issue 43,
 # one per programme. The table is their UNION and nothing more: a string no view asks for is
@@ -95,7 +99,7 @@ def chrome_candidates():
 # claims that are false on a view holding no employer, no instructor or no visit host, and a line
 # only reachable on one of the seven still has to be measured, because the overflow gate reads it
 # there.
-BAND_LINES = every_line(v["counts"] for v in VIEWS)
+BAND_LINES = every_line(v["counts"] for v in ALL_VIEWS)
 
 # Not named by the stylesheet, but a plausible resolution of its final `sans-serif` on a
 # machine that is not this one. Included so the envelope covers them where they are installed.
@@ -145,8 +149,8 @@ def collect():
     """context key -> {css spec, strings}. The key is what build_layout.py looks up."""
     lbl, chip, band = css_rule(".node .lbl"), css_rule(".chip-tx"), css_rule(".band-cap")
 
-    nodes = [n for v in VIEWS for n in v["nodes"]]
-    edges = [e for v in VIEWS for e in v["edges"]]
+    nodes = [n for v in ALL_VIEWS for n in v["nodes"]]
+    edges = [e for v in ALL_VIEWS for e in v["edges"]]
 
     node_strings = set()
     for n in nodes:
@@ -291,9 +295,20 @@ FAMILIES.concat(['sans-serif']).forEach(function (f) {
 var payload = JSON.stringify({
   widths: res, probes: probes, per_family_max: per, ua: navigator.userAgent
 });
-// base64 so that --dump-dom's HTML escaping cannot touch it
-document.getElementById('out').textContent =
-  btoa(String.fromCharCode.apply(null, new TextEncoder().encode(payload)));
+// base64 so that --dump-dom's HTML escaping cannot touch it.
+//
+// CHUNKED, AND THAT IS A REPAIR AND NOT A STYLE. This was one
+// `String.fromCharCode.apply(null, bytes)` call, which spreads every byte of the payload into
+// the argument list; the engine's argument limit is a few tens of thousands and issue 89 took
+// the table past it. The page threw "Maximum call stack size exceeded" INSIDE the browser, the
+// element stayed empty, and the only thing the caller saw was "the page produced no
+// measurements", with no hint that the failure was a size. A chunk of 8192 cannot reach the
+// limit whatever the table grows to.
+var bytes = new TextEncoder().encode(payload), bin = '', CH = 8192;
+for (var bi = 0; bi < bytes.length; bi += CH) {
+  bin += String.fromCharCode.apply(null, bytes.subarray(bi, bi + CH));
+}
+document.getElementById('out').textContent = btoa(bin);
 </script>
 """
 

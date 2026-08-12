@@ -11,6 +11,111 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- **Collapse sessions into modules and back, #89.** The first thing asked of this artefact that is
+  about working with the model rather than reading it, and the north star named on the card was
+  "this will be a management tool". `grain: sessions` / `grain: modules` in the view level group of
+  the header, beside `weeks` and `gaps`, which is where #98 reserved and measured the space. The
+  syllabus has carried `module`, `module_name` and `sequence` on every note since before this
+  repository existed and #85 put them on all 83 templates; this draws by them.
+- **Both altitudes are built at build time, one per grain per view, each with its own
+  `drawingDigest`.** The card decided this and it is the whole architecture: the drawing stays a
+  pure function of the model behind a digest `check_build.sh` reproduces byte for byte, and the
+  control switches between two artefacts rather than laying anything out. That is what separates it
+  from #100's window beside it, which has to be a run-time transform because a window over 24 weeks
+  is a continuous parameter; a grain is two states. Heights, sessions then modules: Z-IB 596 to
+  666, Z-SC 2470 to 666, Z-BL 2578 to 576, Z-PE 622 to 497, Z-HR 622 to 668, Z-DS 596 to 666,
+  Z-CFA 587 to 587. Z-BL loses 78 per cent of its height and Z-SC 73; the four that draw a six
+  session sample from a syllabus of six different modules gain up to 70 units, because a module
+  tile spends a line saying how many rows it holds and the tile count does not fall.
+- **Both syllabus lanes collapse or neither is worth doing.** Z-BL draws 28 session templates beside
+  28 cohort sessions, so folding one lane leaves the drawing exactly as tall. A module is therefore
+  two tiles, a `Module` in the templates lane and a `Module delivery` in the term lane, joined by
+  the same `instance of` the rows under them are joined by. Each takes the column of the thing it
+  aggregates, so the modules grain is the same six lanes one altitude up rather than a second
+  picture with a layout of its own: the ghost placement, the visit host rule, the lane overflow
+  refusal and the chip placement all apply to it unchanged.
+- **The count is on the tile's face, in #83's idiom.** A module says "15 of 15 session templates",
+  a delivery "15 of 15 sessions", against the module's own count in the syllabus and not against
+  the drawing. A tile standing for more than one draws its count as a numeral over a stack of
+  cards, which is the aggregate idiom the students card has carried since #41. Aggregation that
+  loses the number is how a management tool starts lying.
+- **A template in no module stays itself, which is what makes the control explain itself on all
+  seven.** Collapsing cannot put a session in a module the syllabus does not. Z-CFA names no module
+  on any of its 45 rows, so its modules grain draws the same six template tiles and the lane says
+  "no module recorded"; Z-HR names one on four rows of 25, so four modules stand beside two loose
+  templates and the caption carries both numbers; Z-DS has twelve modules over 22 sessions, seven of
+  them `Modulo 1` to `Modulo 7`, and the drawing says the counts rather than implying a structure
+  the seven do not share. The control's own menu states, per view, what each altitude costs in
+  tiles, so a press that changes nothing says why before it is pressed.
+- **The edges fold and say how many they stand for.** Every relationship crossing a collapsed lane
+  is retargeted onto the tile that swallowed its end and folded, one line per pair per verb, with
+  the count in the line's own `<title>`. The verb is untouched, which is load bearing and is #100's
+  reason: `selection.js`'s reveal table is keyed by verb. Z-BL goes from 133 lines to 44 with 89
+  further relationships drawn as lines that already exist, Z-SC 122 to 51 with 71, Z-PE 43 to 33
+  with 10; nothing lands with both ends in one module on any of the seven, and that count is
+  carried in the document and reported by the control either way.
+- **An aggregate takes its members' populate route, which is a decision against the obvious one.**
+  Two registry entries of their own were built first and withdrawn. The registry answers one
+  question, how a row of a class gets into a system and out again, and a module has no row
+  anywhere: it is a value repeated on the syllabus rows it groups, so the only way to get hold of
+  one is to read those rows and group them by that field, which IS the session template's route. A
+  module delivery is the same sentence over the calendar. What an entry of its own would have
+  carried is on the tile now, in its `note`, which is where a statement about one object belongs.
+  It also keeps `scripts/routes.py` honest: that reader walks `views`, counts the objects bound to
+  each class and refuses a class drawn nowhere, and its walk does not reach `collapsed`, so two
+  entries drawn only at the modules grain would have read to it as two rotted classes. Reported
+  rather than worked around: a class drawn ONLY at the modules grain is invisible to that reader
+  today, and its per class object counts are of the sessions grain alone.
+- **A near neighbour and not a new hue, which was already the palette's rule and was not written
+  down.** Measured over all 13 colours in both themes, CIE76: the closest pair in light was
+  Students / Student at 10.94 and every other pair stood 18 or more apart, and those two are the
+  one aggregate and its members the drawing already had. So `Module` is `#039076`, 10.68 from
+  Session template, and `Module delivery` is `#b27f00`, 11.54 light and 11.98 dark from Cohort
+  session. On the band plate they measure 3.8573 / 3.8569 and 3.4188 / 4.3516, against the 3.0000
+  of WCAG 2.2 SC 1.4.11, and both stand 25 or more from every colour that is not their own member.
+  One hex each and no dark override. The direction is not part of the rule and is not claimed:
+  Students is lighter than Student and Module is darker than Session template, because #81 left
+  Session template binding at 3.0346 and a lighter neighbour of it has nowhere to go.
+- **State in the address.** `#/p/ZBL/modules`, a second segment and not a query, so every address
+  that worked before resolves to the same view; an unknown suffix is the sessions grain, which is
+  the answer the code half already gives an unknown programme. The programme picker rewrites its
+  seven hrefs to keep the altitude, so moving between programmes keeps it.
+- **The reader keeps their place, which is what "smooth nice looking" asked for.** The anchor is
+  the selected tile, or the tile nearest the middle of the canvas read off the viewport's own
+  numbers. Its counterpart at the other altitude is selected after the refit, so collapsing the
+  session you were reading opens the module that swallowed it and expanding the module opens a
+  session in it. The join is the module's own name, which the document already carries on both
+  sides, rather than a shipped map of ids; a tile in no module joins by id and keeps its place
+  exactly. The refit is #100's precedent, taken for its reason: the extent moves by up to a factor
+  of four and a view that was not refitted would frame the old picture's size around the new one.
+
+### Changed
+
+- **`views` still means the seven programmes, and the second grain ships as `collapsed`.** Built as
+  one list of fourteen it made `scripts/smoke.mjs` count 146 gaps where the page says 95 and compare
+  Z-SC's drawing against Z-IB's document, which is a false regression report about a page that is
+  right. A collapsed view is the same objects re-expressed, not more of them. A second list of nodes
+  is exactly where this repository's gates have gone blind four times, so `doc_views()` is the one
+  answer to "every view in this document", `check_provenance()`, `check_structure()` and
+  `refuse_mixed()` all ask it, the loops that derive a route, a mark, an identity and a name walk
+  both, and five structure probes and three provenance probes plant their defect in `collapsed` and
+  nowhere else. Structure self-test 15 to 20, provenance 34 to 37.
+- **The window governs a span as well as a date.** A module delivery runs from its first session to
+  its last, so "outside the window" is the span and the window not meeting at all. Reading only the
+  first date would have taken a module off the picture in every week of it but the first. The two
+  controls have to compose on both altitudes or the collapse is a way of escaping the window.
+- **`SYLLABUS_KEYS` gains `module_code`, `module` and `in_the_syllabus`.** The same vault
+  frontmatter at module altitude, re-read and refused on drift by `check_module_structure()`. The
+  rule is unchanged and still refuses a `real` chip on any key not in the tuple.
+
+### Fixed
+
+- **`build/measure_labels.py` produced no measurements at all once the table passed the engine's
+  argument limit.** It base64'd its payload through one `String.fromCharCode.apply(null, bytes)`,
+  which spreads every byte into the argument list; the page threw "Maximum call stack size
+  exceeded" inside the browser, the element stayed empty, and the caller saw only "the page
+  produced no measurements" with no hint that the failure was a size. Chunked at 8192.
+
 - **The build refuses a model that is not well formed, #102.** Nothing anywhere asserted it. The
   audit injected a duplicate node id into `build/model.py`, ran the real build, and the whole
   static set said clean: build exit 0, provenance self-test clean, `check_build.sh` printing

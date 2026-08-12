@@ -58,14 +58,19 @@
   // not the lines themselves, so the label text is in the instance document and nowhere else.
   // The lines are rebuilt here, which is four lines of code and one fewer copy of every name on
   // the page.
-  function joinDocs(gi, gl) {
-    if (!gi || !gi.views || !gl || !gl.views) return null;
-    if (gi.views.length !== gl.views.length) {
-      throw new Error('instance.js has ' + gi.views.length + ' views and layout.js has ' +
-                      gl.views.length);
+  //
+  // AND SINCE ISSUE 89 EACH DOCUMENT SHIPS TWO LISTS. `views` is the seven programmes and
+  // `collapsed` is the same seven one altitude up, with their session templates and cohort
+  // sessions gathered into the modules the syllabus declares. They are separate lists rather than
+  // one of fourteen because `views` means "the seven programmes" to every reader of these bytes,
+  // and the same join runs over both: same order, same length, checked by id on every node.
+  function joinList(gi, iviews, lviews, what) {
+    if (iviews.length !== lviews.length) {
+      throw new Error('instance.js has ' + iviews.length + ' ' + what +
+                      ' and layout.js has ' + lviews.length);
     }
-    return gi.views.map(function (iv, vi) {
-      var lv = gl.views[vi], d = lv.drawing;
+    return iviews.map(function (iv, vi) {
+      var lv = lviews[vi], d = lv.drawing;
       if (iv.key !== lv.key) throw new Error('view ' + vi + ': ' + iv.key + ' against ' + lv.key);
       if (iv.nodes.length !== d.nodes.length || iv.edges.length !== d.edges.length) {
         throw new Error(iv.key + ': the two documents disagree about how much is in it');
@@ -104,8 +109,53 @@
       // carried its rows and not the total it is a sample of would let a sheet of 83 rows read as
       // a complete term. It is not geometry, so it comes off the instance document.
       return { key: iv.key, code: iv.code, name: iv.name, label: iv.label, route: iv.route,
-               counts: iv.counts, drawing: drawing };
+               grain: iv.grain || 'sessions', counts: iv.counts, drawing: drawing };
     });
+  }
+
+  function joinDocs(gi, gl) {
+    if (!gi || !gi.views || !gl || !gl.views) return null;
+    var out = joinList(gi, gi.views, gl.views, 'views');
+    // The collapsed half is optional in the document and is refused rather than ignored when it
+    // is half there: a page that quietly drew one altitude because the other list went missing
+    // would look exactly like a page whose control had stopped working.
+    if (gi.collapsed || gl.collapsed) {
+      if (!gi.collapsed || !gl.collapsed) {
+        throw new Error('one document carries a collapsed grain and the other does not');
+      }
+      out = out.concat(joinList(gi, gi.collapsed, gl.collapsed, 'collapsed views'));
+    }
+    return out;
+  }
+
+  // ---- the two altitudes, issue 89 ------------------------------------------
+  // THE BUILD SHIPS FOURTEEN DRAWINGS AND THE PAGE HAS SEVEN PROGRAMMES. Each programme is drawn
+  // twice, once with its session templates and cohort sessions as themselves and once with them
+  // gathered into the modules the syllabus declares, and each of the two carries its own
+  // `drawingDigest` because each is an artefact check_build.sh reproduces byte for byte.
+  //
+  // THE PAIRING IS DONE HERE AND NOWHERE ELSE, in the one file that knows the documents were
+  // joined at all. Everything downstream is handed the SESSIONS grain and cannot tell there is a
+  // second: router.js picks a programme out of seven, term.js reads the term across seven, and
+  // the gap denominator counts the model once. A module tile is the same objects re-expressed,
+  // not more of them, so a reader of any of those three counting fourteen views would be double
+  // counting the business.
+  function pairGrains(all) {
+    var byKey = {}, base = [];
+    all.forEach(function (v) {
+      if (v.grain !== 'sessions') return;
+      byKey[v.key] = v;
+      v.alt = null;
+      base.push(v);
+    });
+    all.forEach(function (v) {
+      if (v.grain === 'sessions') return;
+      if (!byKey[v.key]) {
+        throw new Error(v.key + ' is drawn at grain ' + v.grain + ' and at no other');
+      }
+      byKey[v.key].alt = v;
+    });
+    return base;
   }
 
   // The label, broken where the layout broke it. The build proved the counts rebuild its own
@@ -118,8 +168,23 @@
   }
 
   var GI = window.GI || null;
-  var VIEWS = joinDocs(GI, window.GL);
-  if (!VIEWS || !VIEWS.length) throw new Error('site/instance.js and site/layout.js: no view');
+  var ALL_VIEWS = joinDocs(GI, window.GL);
+  if (!ALL_VIEWS || !ALL_VIEWS.length) {
+    throw new Error('site/instance.js and site/layout.js: no view');
+  }
+  var VIEWS = pairGrains(ALL_VIEWS);
+  if (!VIEWS.length) throw new Error('site/instance.js: no view at the sessions grain');
+
+  // The drawing one view is at one altitude. A view with no second grain answers with its own,
+  // which is not a case the build produces and is the honest answer if it ever does: the reader
+  // asked for an altitude this programme is not drawn at and gets the one it is.
+  function drawingAt(v, grain) {
+    return (grain === 'modules' && v.alt) ? v.alt.drawing : v.drawing;
+  }
+
+  function viewAt(v, grain) {
+    return (grain === 'modules' && v.alt) ? v.alt : v;
+  }
 
   // ---- the elements the modules are handed ----------------------------------
   // Looked up once, here, and passed in. A module that reached for its own elements would be a
@@ -141,12 +206,12 @@
   // ---- the wiring itself -----------------------------------------------------
   // What happens when the address starts naming a different programme. The order is the whole of
   // it and each step is here because of what the step before it leaves behind.
-  function showView(v) {
+  function showView(v, grain) {
     // The selection belongs to the drawing that is leaving. Cleared before the repaint, because
     // clearing repaints the selected tile and after a repaint that tile is gone: on six of the
     // seven routes the id would not even exist.
     selection.clear();
-    render.draw(v.drawing);
+    render.draw(drawingAt(v, grain || router.grain()));
     // The elements the reveal rules act on were all replaced, so the rules are read off the new
     // drawing and applied to the new handles.
     selection.bind(render.gfx());
@@ -157,9 +222,129 @@
     describeGaps();
     // A different programme is a different cohort, so the list built for the last one goes.
     router.resetRoster();
+    describeGrain();
     // Last, because describing the programme can change the height of the header and the fit is
     // measured against what is left.
     viewport.refit();
+  }
+
+  // ---- collapsing and expanding, issue 89 ----------------------------------
+  // "SMOOTH NICE LOOKING" WAS THE ASK AND IT IS AN INSTRUCTION ABOUT WHERE THE READER ENDS UP.
+  // Two of the seven drawings are 2578 and 2470 units tall; a collapse that framed the new
+  // picture and said nothing else would leave somebody who had been reading one tile looking at
+  // a different picture with no idea which part of it their tile went into.
+  //
+  // SO THE ANCHOR IS CARRIED ACROSS, AND IT IS DERIVED RATHER THAN REMEMBERED. What the reader
+  // was looking at is the selected tile if there is one, and otherwise the tile nearest the
+  // middle of the canvas, which is read off the viewport's own numbers. Its counterpart at the
+  // other altitude is then selected, which opens the panel on it, dims everything unrelated and
+  // brings it on screen through the same path a click takes. Collapsing the tile you were
+  // reading opens the module that swallowed it; expanding the module opens the first session in
+  // it.
+  //
+  // THE JOIN IS THE MODULE'S OWN NAME AND NOT A TABLE OF IDS. A session template carries
+  // `module_name`, a Module tile is LABELLED with exactly that string and a Module delivery
+  // carries it on its `module` row, so the correspondence is already in the document and a
+  // second copy of it shipped as a map would be a second thing to keep true. A tile that is in
+  // no module has itself at both altitudes and joins by id, which is why Z-CFA keeps its place
+  // perfectly across a control that changes nothing else on it.
+  function propOf(n, k) {
+    var props = (n && n.props) || [], i;
+    for (i = 0; i < props.length; i++) if (props[i].k === k) return props[i].v;
+    return null;
+  }
+
+  function moduleNameOf(g, n) {
+    if (!n) return null;
+    if (n.type === 'SessionTemplate') return propOf(n, 'module_name');
+    if (n.type === 'Module') return n.label;
+    if (n.type === 'ModuleDelivery') return propOf(n, 'module');
+    if (n.type === 'CohortSession') {
+      // Through the `instance of` edge rather than through a date or a name: the session's own
+      // rows say nothing about a module, and the template it runs is the thing that does.
+      var tpl = null, i;
+      for (i = 0; i < g.edges.length; i++) {
+        if (g.edges[i].v === 'instance of' && g.edges[i].s === n.id) tpl = g.edges[i].t;
+      }
+      if (!tpl) return null;
+      for (i = 0; i < g.nodes.length; i++) {
+        if (g.nodes[i].id === tpl) return propOf(g.nodes[i], 'module_name');
+      }
+    }
+    return null;
+  }
+
+  // Which lane a node is in, so that a session template lands on a Module and a cohort session
+  // on a Module delivery rather than on whichever of the two the name matched first.
+  var SYLLABUS_SIDE = { SessionTemplate: 'templates', Module: 'templates',
+                        CohortSession: 'term', ModuleDelivery: 'term' };
+
+  function twin(from, to, id) {
+    var i, n = null;
+    for (i = 0; i < from.nodes.length; i++) if (from.nodes[i].id === id) n = from.nodes[i];
+    if (!n) return null;
+    for (i = 0; i < to.nodes.length; i++) if (to.nodes[i].id === id) return to.nodes[i].id;
+    var side = SYLLABUS_SIDE[n.type], name = moduleNameOf(from, n);
+    if (!side || !name) return null;
+    for (i = 0; i < to.nodes.length; i++) {
+      var m = to.nodes[i];
+      if (SYLLABUS_SIDE[m.type] !== side) continue;
+      if (moduleNameOf(to, m) === name) return m.id;
+    }
+    return null;
+  }
+
+  // The tile the reader is looking at. The selection first, because a reader who has opened a
+  // panel has said what they are reading; otherwise the tile nearest the middle of the canvas,
+  // which is the honest guess and is read off the viewport rather than assumed.
+  function anchorId() {
+    var sel = selection.selected();
+    if (sel) return sel.id;
+    if (!viewport) return null;
+    var s = viewport.state(), g = render.drawing();
+    if (!s || !s.k || !g || !g.nodes.length) return null;
+    var cx = s.x + s.w / (2 * s.k), cy = s.y + s.h / (2 * s.k);
+    var best = null, bd = Infinity;
+    g.nodes.forEach(function (n) {
+      if (n.outside) return;
+      var d = (n.x - cx) * (n.x - cx) + (n.y - cy) * (n.y - cy);
+      if (d < bd) { bd = d; best = n.id; }
+    });
+    return best;
+  }
+
+  function grainChanged(grain) {
+    if (!render || !selection || !viewport) return;
+    var v = router.view();
+    var was = render.canonical() || render.drawing();
+    var anchor = anchorId();
+    selection.clear();
+    render.draw(drawingAt(v, grain));
+    selection.bind(render.gfx());
+    stampDigest();
+    router.describe();
+    describeGaps();
+    describeGrain();
+    // The fit first and the anchor after it, which is the order #100 settled for the same
+    // question: the extent has changed by up to a factor of four, so a view that was not refitted
+    // would frame the old picture's size around the new one. Selecting the counterpart then
+    // brings it on screen through selection's own reveal path.
+    viewport.refit();
+    // THE TWIN IS FOUND IN THE CANONICAL DRAWING AND CONFIRMED IN THE ONE ON SCREEN, which are
+    // two different node sets whenever a window is on. The canonical is the right place to look,
+    // because it is the whole programme and a module the window happened to filter should not
+    // change which module the reader's session belongs to. It is the wrong place to select from:
+    // selection.js binds its handles to what is painted, and selecting an id the window took off
+    // the picture throws inside the panel rather than doing nothing.
+    var land = anchor ? twin(was, render.canonical() || render.drawing(), anchor) : null;
+    if (land && onScreen(land)) selection.select(land);
+  }
+
+  function onScreen(id) {
+    var g = render.drawing(), i;
+    if (!g) return false;
+    for (i = 0; i < g.nodes.length; i++) if (g.nodes[i].id === id) return true;
+    return false;
   }
 
   // Issue 100. WHAT A CAPTURE QUOTES WHEN THE DRAWING IS FILTERED. `drawingDigest` is a digest of
@@ -177,6 +362,11 @@
       ? base + ' of the whole term, drawn filtered to ' + w.weeks +
         (w.weeks === 1 ? ' week' : ' weeks') + ' from ' + w.from
       : base;
+    // Issue 89. NO GRAIN CLAUSE IS ADDED HERE AND THAT IS THE POINT. Each grain is its own
+    // artefact with its own digest, written by the build and reproduced by check_build.sh, so
+    // quoting the digest of the drawing on screen already says which altitude the reporter was
+    // at. The window needs a clause because a filtered drawing is a run-time transform of an
+    // artefact and no digest anywhere describes it.
   }
 
   // Everything a change of window costs, in one place. The drawing is rebuilt from the canonical
@@ -230,15 +420,21 @@
     // out of it are the cohort's name and the roster counts, and both are facts about the
     // programme rather than about the reader's window: an empty week filters the cohort's own tile
     // off the picture, and a header that emptied with it would say the programme has no cohort.
-    drawing: function () { return render.canonical() || render.drawing(); },
+    // Issue 89. THE SESSIONS GRAIN, for the reason this is the canonical drawing and not the one
+    // on screen: the cohort's name and the two roster counts are facts about the programme, and
+    // the modules grain neither adds nor removes a student. Reading them off the collapsed
+    // drawing would give the same answers today and would make the header depend on an altitude
+    // it is not about.
+    drawing: function () { return router.view().drawing || render.drawing(); },
     onView: showView,
+    onGrain: grainChanged,
     onDescribed: measureHeader
   });
 
   render = ZM.render({
     svg: svg,
     canvas: canvas,
-    drawing: router.view().drawing,
+    drawing: drawingAt(router.view(), router.grain()),
     // Issue 100. Every column x there is, across all seven drawings, because a column's INDEX is
     // what decides whether an edge is a hop to the next lane or a long arc slung under the row,
     // and the drawings do not all hold every column: Z-CFA has no instructor and no employer, so
@@ -246,9 +442,13 @@
     // six number it 3, and the same relationship would be drawn two different ways depending on
     // which programme the reader was on. Collected here because this is the file that holds all
     // seven, and sorted by the file that uses it.
+    // Issue 89. ALL FOURTEEN and not the seven, because a column's INDEX decides an edge's shape
+    // and the collapsed drawings are laid out in the same eight columns. They introduce no new x,
+    // so this is the same list either way today; taking it off both grains is what keeps that
+    // true when it stops being.
     columns: (function () {
       var seen = {}, out = [];
-      VIEWS.forEach(function (v) {
+      ALL_VIEWS.forEach(function (v) {
         v.drawing.nodes.forEach(function (n) {
           if (seen[n.x]) return;
           seen[n.x] = true;
@@ -298,7 +498,7 @@
   // draw() and not after, because after this card a window rebuilds the drawing rather than adding
   // a class to it, and a reader would otherwise watch the whole term appear and then collapse.
   render.setWindow(term.windowSpec());
-  render.draw(router.view().drawing);
+  render.draw(drawingAt(router.view(), router.grain()));
   selection.bind(render.gfx());
 
   viewport = ZM.viewport({
@@ -313,7 +513,7 @@
     // reader cannot see.
     busy: function () {
       return router.rosterOpen() || router.pgMenuOpen() || term.isOpen() ||
-             term.windowMenuOpen() || gapsMenuOpen();
+             term.windowMenuOpen() || gapsMenuOpen() || grainMenuOpen();
     },
     // Issue 84's counter-scale. The lane headings are controls and a control keeps its size on
     // screen, so the drawing is told the scale on every change of it.
@@ -641,6 +841,140 @@
     }, true);
   }
 
+  // ---- the altitude, issue 89 ----------------------------------------------
+  // WHERE THE CONTROL GOES AND WHY IT IS THIS SHAPE. Issue 98 settled the row before this card
+  // was built: `weeks` says which part of the term is in focus, `gaps` says what is missing in
+  // it, and both are view level. `grain` is the third question of the same kind, at what altitude
+  // the drawing is drawn, and it belongs beside them in the same idiom, its own state as its own
+  // text. Measured on that card: a control of this label leaves the header at 107px and two nav
+  // lines at 390x844, and one line at 1536, with no sideways scroll either way.
+  //
+  // THE THREE COMPOSE, WHICH IS THE WHOLE ARGUMENT FOR THE ROW. "The next three weeks, by module,
+  // and what is missing in that" is three controls the reader can see at once, and it is the
+  // question somebody actually brings to a Monday meeting. Nothing here knows about the other
+  // two; they compose because each acts on the drawing and the drawing is one picture.
+  //
+  // THE STATE IS THE ADDRESS AND NOT A VARIABLE HERE. router.js reads it out of the hash and
+  // writes it back, this file only asks; a second copy would be the way a control and a link come
+  // to disagree about what is on screen.
+  var grBtn = document.getElementById('grbtn');
+  var grMenu = document.getElementById('grmenu');
+
+  function grainMenuOpen() { return !!grMenu && !grMenu.hidden; }
+
+  function showGrainMenu(on) {
+    if (!grMenu || grainMenuOpen() === on) return;
+    grMenu.hidden = !on;
+    if (grBtn) grBtn.setAttribute('aria-expanded', on ? 'true' : 'false');
+  }
+
+  // How many tiles each altitude draws in the two syllabus lanes of the view on screen, counted
+  // off the drawings themselves. It is the number that decides whether the control is worth
+  // pressing, and it is the number that explains what it did on a view where the answer is
+  // "nothing": Z-CFA names no module on any of its forty five syllabus rows, so both altitudes
+  // draw the same six tiles and the sentence says so instead of the picture saying nothing.
+  var LANE_TYPES = { SessionTemplate: 1, Module: 1, CohortSession: 1, ModuleDelivery: 1 };
+
+  function laneCount(v) {
+    var n = 0;
+    ((v && v.drawing && v.drawing.nodes) || []).forEach(function (x) {
+      if (LANE_TYPES[x.type]) n++;
+    });
+    return n;
+  }
+
+  function grainFacts() {
+    var v = router.view();
+    var mods = (v.alt && v.alt.counts && v.alt.counts.Module) || { drawn: 0, total: 0 };
+    var loose = (v.alt && v.alt.counts && v.alt.counts.SessionTemplate) || { drawn: 0, total: 0 };
+    var rel = (v.alt && v.alt.counts && v.alt.counts.Relationship) || { folded: 0, inside: 0 };
+    return { view: v, grain: router.grain(), modules: mods.drawn, ofModules: mods.total,
+             loose: loose.drawn, ofSessions: loose.total,
+             sessionTiles: laneCount(v), moduleTiles: laneCount(v.alt || v),
+             folded: rel.folded || 0, inside: rel.inside || 0 };
+  }
+
+  // One sentence, written from the counts and used by the control, by its title and by the menu,
+  // so the three cannot come to describe the same view differently.
+  function grainWords(f) {
+    if (!f.ofModules) {
+      return 'the syllabus records no module on any of its ' + f.ofSessions +
+             ' rows, so both altitudes draw the same ' + f.sessionTiles + ' tiles';
+    }
+    var s = f.modules + (f.modules === 1 ? ' module' : ' modules') + ' of the ' + f.ofModules +
+            ' the syllabus declares';
+    if (f.loose) {
+      s += ', and ' + f.loose + (f.loose === 1 ? ' session template' : ' session templates') +
+           ' in no module';
+    }
+    return s + '. ' + f.moduleTiles + ' tiles in the two syllabus lanes against ' +
+           f.sessionTiles;
+  }
+
+  function grainRow(f, g) {
+    var a = document.createElement('a');
+    a.className = 'gritem';
+    a.href = router.grainRoute(g);
+    a.textContent = g === 'modules' ? 'modules' : 'sessions';
+    if (g === f.grain) a.setAttribute('aria-current', 'true');
+    a.addEventListener('click', function () { showGrainMenu(false); });
+    return a;
+  }
+
+  function describeGrain() {
+    if (!grBtn) return;
+    var f = grainFacts();
+    grBtn.textContent = 'grain: ' + f.grain;
+    grBtn.title = 'the altitude this drawing is drawn at: ' + grainWords(f) + '. Press to change';
+    if (!grMenu) return;
+    grMenu.textContent = '';
+    var head = document.createElement('p');
+    head.className = 'gr-scope';
+    head.textContent = (f.view.label || f.view.code) + ': ' + grainWords(f) + '.';
+    grMenu.appendChild(head);
+    var row = document.createElement('p');
+    row.className = 'gr-row';
+    router.grains.forEach(function (g) { row.appendChild(grainRow(f, g)); });
+    grMenu.appendChild(row);
+    var foot = document.createElement('p');
+    foot.className = 'gr-foot';
+    // What the fold cost, said out loud. An aggregate that loses a relationship is the same
+    // failure as a lane hiding its own outside count, and this is the one place a reader can be
+    // told the number without opening a tile.
+    foot.textContent = f.folded || f.inside
+      ? 'At the modules grain ' + f.folded + ' further relationships are drawn as lines that ' +
+        'already exist, and ' + f.inside + ' have both ends inside one module and cannot be ' +
+        'drawn between two lanes. Every line says in its own tooltip how many it stands for.'
+      : 'Every relationship on this view is drawn as its own line at both altitudes.';
+    grMenu.appendChild(foot);
+  }
+
+  // The same three listeners the gaps control has, in the same shapes and for the same reasons.
+  if (grBtn && grMenu) {
+    grBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      showGrainMenu(!grainMenuOpen());
+    });
+    document.addEventListener('click', function (e) {
+      var t = e.target;
+      if (t && t.closest && t.closest('#grpick')) return;
+      showGrainMenu(false);
+    });
+    document.addEventListener('focusin', function (e) {
+      var t = e.target;
+      if (t && t.closest && t.closest('#grpick')) return;
+      showGrainMenu(false);
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape' || !grainMenuOpen()) return;
+      if (document.body.classList.contains('fb-mode')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      showGrainMenu(false);
+      if (grBtn.focus) grBtn.focus();
+    }, true);
+  }
+
   // WHY AN OBSERVER AND NOT A HASHCHANGE LISTENER, which is the same answer #77 gave for --hh. The
   // route classes on the body are written by four different modules: router.js sets `students`
   // where the list opens, term.js sets `calendar` and `outline` where the sheet opens, board.js
@@ -717,6 +1051,9 @@
   // Issue 98. After term.start(), because the address may already be a reading and the count is a
   // count of what the view on screen is showing. The observer takes it from here.
   describeGaps();
+  // Issue 89. Beside it and for the same reason: the control's text is its state, and its state
+  // may already have come out of the address a reader followed.
+  describeGrain();
   measureHeader();
   window.addEventListener('resize', measureHeader);
   // The header changes height for more reasons than a resize: capture mode widens its own toggle
@@ -807,6 +1144,22 @@
     // page's own arithmetic and not a second opinion about it. `total` is null on the two routes
     // where the control is withdrawn, which is a different answer from zero and is the one thing
     // a driver could not otherwise tell apart. `of` is the whole model and does not move.
+    // Issue 89. Which altitude the drawing is at, what the other one would cost, and what the
+    // collapse did to the relationships, read off the same counts the control was written from
+    // rather than recomputed here. A driver asserting that the modules grain draws five tiles
+    // where the sessions grain draws twenty eight is then asserting the page's own arithmetic.
+    // `digest` is this altitude's own artefact digest, which is what makes the two grains two
+    // things check_build.sh reproduces rather than one thing and a transform of it.
+    grain: function () {
+      var f = grainFacts();
+      var g = render.canonical() || render.drawing();
+      return { grain: f.grain, route: router.grainRoute(f.grain),
+               digest: g.drawingDigest || 'unknown',
+               modules: f.modules, ofModules: f.ofModules, loose: f.loose,
+               tiles: f.grain === 'modules' ? f.moduleTiles : f.sessionTiles,
+               sessionTiles: f.sessionTiles, moduleTiles: f.moduleTiles,
+               folded: f.folded, inside: f.inside, menu: grainMenuOpen() };
+    },
     gaps: function () {
       return { total: gapsNow.total, of: gapsNow.of, scope: gapsNow.scope,
                rows: gapsNow.rows.map(function (r) {
