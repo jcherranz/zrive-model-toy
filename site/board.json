@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T14:14:43Z",
+  "generated": "2026-08-12T14:16:44Z",
   "columns": [
     {
       "key": "raw",
@@ -71,21 +71,20 @@
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": [
-        {
-          "id": 107,
-          "title": "There is no origin: the gates that reach for one have lost their subject, not their nerve",
-          "labels": [
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/107"
-        }
-      ]
+      "cards": []
     },
     {
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 107,
+          "title": "There is no origin: the gates that reach for one have lost their subject, not their nerve",
+          "labels": [
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/107"
+        },
         {
           "id": 105,
           "title": "Every open issue title reaches the public origin verbatim, past a gate proved bypassable",
@@ -150,19 +149,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/98"
-        },
-        {
-          "id": 97,
-          "title": "Not centered in the frame",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/97"
         }
       ],
-      "hidden": 82,
+      "hidden": 83,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
