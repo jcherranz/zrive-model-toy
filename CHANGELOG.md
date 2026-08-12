@@ -373,6 +373,39 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- **The visit edge terminated on the wrong end, #75, and the method is the finding.** The firm
+  hosted the visit for the PROGRAMME on evidence that was about where the relation is RECORDED and
+  not about what the relation IS: thirteen company notes file a visit under a programme note and
+  none of a hundred and fifty six mentions a cohort, so the edge was pointed at the programme. A
+  firm hosting a visit hosts it for the people who turn up, and the people who turn up are a
+  cohort. The solid edge now terminates on the Cohort, span 1 and an ordinary bezier. THE
+  PROGRAMME KEEPS THE SAME VERB AS A GHOST, which is #63's arc unchanged: a ghost is already this
+  drawing's idiom for a relation that is real and unrecorded, the cohort attends, the programme is
+  what the visit is for, and nothing writes the second one down. Decided in the owner's absence,
+  between the two options he was offered and did not answer, and one line reverses it. A ghost
+  relationship could previously only be DERIVED from a ghost node at an end, which cannot see a
+  relation between two classes that both exist; it can now also be DECLARED, and every reader of
+  an edge tuple goes through one unpacker. Regenerated, not hand edited: `'hosts visit'` measured
+  in a real browser at 9/400i, the only string added to the table, both documents byte identical
+  on rebuild, six of the seven routes carrying a host and all six taking it. The ghosts toggle
+  withdraws the programme edge and leaves the cohort edge, verified on the deployed page in both
+  directions, and the ghost reads in dark: dashed line, dashed chip, italic verb, against solid
+  neighbours a centimetre away.
+- **The capture described elements with `textContent`, #99, so it quoted text nobody saw.** The
+  header carries the closed programme menu, seven names in a zero-sized span, so a capture on it
+  read "Z-IB Investment BankingZ-IB Investment B..." and looked like a duplication bug. There is
+  none, and #98 was filed that way. The descriptor is now built from what is rendered, in three
+  parts, because `innerText` alone is insufficient in both directions: the element itself is
+  tested for being painted BEFORE its text is read, since `innerText` falls back to `textContent`
+  on an element that is not rendered and both the closed menu and the closed disclosure hand back
+  their whole contents through it; SVG has no `innerText` at all and paints its on-demand tiles
+  with `visibility: hidden`, so the same question is asked of that tree by a walk; and zero size
+  counts as not rendered, which catches an svg `<title>` and a subtree collapsed without a
+  `display: none`. The walk stops at 240 characters because only 40 are ever quoted. Driven before
+  and after on the deployed page: the header now reads "Z-IB Investment Banking, cohort 1Q26,
+  as...", the footer holding the collapsed `how to read this` reads the provenance line instead of
+  the hidden list, and with `visibility: hidden` put on the programme button the descriptor drops
+  it where it used to quote it twice. `site/feedback.js` alone; #86's sheet capture re-verified.
 - **The redaction explained itself, #101, first of the two safe pieces.** The withheld firm's tile
   published the reason for the withholding: which register the refused string collides with, and
   which neighbouring template was unaffected. Against the short public list of Spanish law firms
