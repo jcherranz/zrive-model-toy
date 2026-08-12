@@ -484,6 +484,52 @@ of what changed and when, and it is meant to be scannable.
 
 ### Removed
 
+- **Every reader-facing statement about the standing of the content, #110, on the owner's
+  instruction: "I don't want absolutely any text or comment about the content not being real or
+  truthful or whatever. I don't care about that. We are focusing on building the architecture of
+  this thing."** A rule enforced all night is withdrawn, so nothing shorter was kept and no copy
+  was moved somewhere quieter. Out of the page: the footer's sentence and the two live counts
+  inside it, `#footn` and `#footdrawn`, whose only writers went with them; the flag badge beside
+  every property value in the detail panel; the line under each property list summing it by the age
+  of the sources behind it; the definition of the `dummy` and `absent` flags in the gaps
+  disclosure, leaving the half of that sentence that is about the machinery; the last clause of the
+  calendar chip's `title`, which was off screen until hover and off screen is not absent; and the
+  word before "term" in the window menu. Measured on the running page over 26 routes at three
+  viewports in both themes, by a sweep proved live against the previous commit, where it returns
+  the footer sentence on all seven drawings: **zero matches in visible text, in any `title` and in
+  any `aria-label`.** The footer is 93 CSS px on a 390 phone before and 39 after, taking the header
+  and footer together from 23,7 per cent of that viewport to 17,3.
+- **The saying and not the knowing, which is the line the card draws.** `f` and `r` still ship on
+  all 3113 values, the flag vocabulary is still closed, `check_provenance` is still 37 probes and
+  #104's rule still refuses a value whose flag and rank disagree. The route rows still open every
+  property list and still say which system records a class and where the answer is that no system
+  does, because that names a system rather than judging a value. What stopped is the page turning
+  any of it into a sentence. The one place this cost a rendering that was not itself a claim is the
+  panel's summing line, whose buckets were the age of a source read: its remaining buckets could
+  not be shown without either naming the rows that have no source or under-reporting the list they
+  sit under, and a page that under-reports itself is worse than one that says nothing.
+- **The two board titles that said it from the tracker, and two more with them.** `sync_board.mjs`
+  publishes issue titles verbatim, so the public board is a second route onto the page that a sweep
+  of `site/` does not reach. #5, #101, #104 and #108 were retitled to what each constrains or
+  found. #5 keeps its body and its labels and is not closed: it is a standing constraint about the
+  safety gate, and a card that survives a decision should say so, which a comment on it now does.
+- **Three smoke assertions changed and none dropped, so `PHASES` and `EXPECTED_ASSERTIONS` are
+  both unmoved at 139.** The count of statements on the page is the same measurement with zero as
+  its expected number, and it stays because an instruction that says absolutely none is one that a
+  single surviving copy defeats. The panel's published-values assertion reads the flag off
+  `window.GI` instead of off a badge and gained a clause demanding that no badge is printed. The
+  outline's was compound and was split: the clause about the deleted note went with the note, the
+  clause about the flags stayed and reads the token sets `term.js` publishes for the purpose, and a
+  clause was added for the absence of the badge. Both new clauses were proved in the failing
+  direction against planted defects rather than assumed, as was the stronger claim that no two
+  outline blocks are alike, which fails at 1 of 25 when every template is made to draw the same
+  block.
+- **This resolves #101 rather than repairing it.** That card was open because the page claimed
+  everything was invented while 1,493 of its 3,109 values recorded that they had been read off real
+  systems. Deleting the claim takes the false claim with it: a page that asserts nothing about its
+  own truthfulness cannot assert something wrong about it. The contradiction it measured was real
+  and the credit is the instruction's, not a fix's.
+
 - **The visit's ghost edge to the Programme, #75 and #108, on the owner's reversal.** #75 had
   shipped two edges under one verb from the empresa colaboradora, a solid `hosts visit` to the
   Cohort and a declared ghost to the Programme; he wants the cohort edge alone. The solid edge is
