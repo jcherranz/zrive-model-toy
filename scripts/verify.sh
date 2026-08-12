@@ -477,7 +477,7 @@ step_may_decline "2. nothing is untracked, so the gates see everything" \
      "some files are untracked and the repository gate cannot see them; its two steps are about the rest of the tree" \
      check_untracked
 
-step "3. the build gate: both documents rebuild, the widths cover, the model is well formed" \
+step "3. the build gate: both documents rebuild, the widths cover, the model is well formed, the fourteen digests are the ones these bytes produce" \
      bash scripts/check_build.sh
 step "4. prove the build gate fires"                      bash scripts/check_build.sh --self-test
 # The provenance gate runs inside build/build_layout.py on every build, so the build gate step

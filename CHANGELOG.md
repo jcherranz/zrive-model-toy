@@ -306,6 +306,40 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- **The fourteen drawing digests were correct and covered less than the drawing, #116.** Every one
+  recomputed and matched; the finding was scope. The type registry paints every tile's glyph,
+  colour pair and accessible label out of `drawing.types` and was outside all fourteen, so one
+  glyph changed in `build/model.py`, rebuilt for real, repainted 91 tiles across nine of the
+  fourteen drawings with `site/layout.js` byte identical, every digest unchanged and `verify.sh`
+  clean. **What the digest is FOR is now written down**, in `build/model.py` above
+  `drawing_digest()`: are two pages drawing the same picture from the same data. That decides the
+  scope instead of a byte count, and the scope is exactly the object `site/app.js` hands
+  `site/render.js`, which is the view payload, the geometry and the registry. The same glyph
+  change now moves 14 of 14; a comment edited in `site/render.js` moves none.
+- **The code that paints stays OUTSIDE the drawing digest, argued rather than widened by reflex,
+  #116 row F4.** Folding `site/render.js` in would make every presentation edit invalidate all
+  fourteen drawings at once, which destroys the one thing the value is good for, telling a data
+  difference from a code difference; which code a page runs is already answered by the commit in
+  `site/version.js`. What that file held that belongs under a digest is the glyph GEOMETRY, so the
+  symbol table is fingerprinted on its own as `glyphDigest`, carried by the geometry document and
+  therefore covered by the byte-identical rebuild gate that already existed. One stroke moved in
+  `PATHS` with both generated documents untouched used to pass every gate in the repository; it is
+  now refused by name, and it moves that one value and none of the fourteen.
+- **`documentDigest`, over every top-level block of the instance document.** A second question and
+  not a wider answer to the first: `agenda`, `routes`, `provenance` and `default` reach no drawing
+  and do reach the reader, and putting them in a drawing digest would be wrong. Nothing in the
+  data document is outside every digest now. A word of `routes.vocab` prose edited moves this and
+  none of the fourteen.
+- **`scripts/check_build.sh` reads the digests, which nothing did.** `drawingDigest` occurred zero
+  times in every gate this repository runs. The census recomputes all fourteen from the shipped
+  documents, recomputes both document-wide values, and refuses a tile bound to a symbol the
+  renderer has no strokes for, which is a live latent case: `stack` and `ghost` are named in
+  `TYPES` and are in no `PATHS` table, and today no tile reaches either because a group draws its
+  count and a ghost is deliberately empty. **A terminator, #116 row F7**: `EXPECTED_DRAWINGS=14` is
+  written by hand and asserted before any population the documents supply is walked, because every
+  assertion downstream of it is equally true of thirteen drawings. Self-test 36 probes to 53; all
+  seventeen new ones miss against the body this file had before the card and two of them miss
+  against the builder as well.
 - **The two copies of the token-folding rule were never the same rule, #117, and it is the fifth
   time one rule in two places has bitten this repository.** `build/safety_grep.py` said of its own
   folding "this is the same rule `scripts/forbidden_lib.sh` applies in `fold_tokens`". The library
