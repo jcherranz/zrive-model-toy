@@ -523,6 +523,26 @@ fi
 # already "the suite against a local server over these bytes".
 step "12. the smoke suite, against a local server over site/"  node scripts/smoke.mjs
 
+# THE GRAIN SUITE, WHICH NOTHING RAN. Issue 107, reported by the agent on issue 89 about its own
+# work an hour after issue 103 closed. The grain control is the largest thing built in a day and
+# its 33 assertions live in build/check_grain.mjs, which was tracked, executable, green, and run by
+# no step of this file and no workflow. That is scripts/routes.py's row in issue 103 in a new
+# place, and the file's own header says why it landed there: scripts/smoke.mjs was held by another
+# agent for the whole of that card, so the checks were written in the half of the repository the
+# card owned.
+#
+# WIRED IN RATHER THAN ADOPTED INTO scripts/smoke.mjs, and the choice is not the cheap one being
+# dressed up. Nothing is duplicated at the level of CLAIMS: not one of the 33 restates something
+# the smoke suite asserts, so this is not the two-copies-of-one-rule shape issue 106 is about. What
+# the two files duplicate is harness, a static server, a CDP client and a browser resolver, which
+# is a maintenance cost and not a gate that can go dark. The defect reported was that nobody runs
+# it, and one line fixes that today. Folding five hundred lines of browser probes into a suite of
+# three thousand, at the end of a card about something else, is the shape of change that drops a
+# probe without anyone noticing; both files carry the same terminator, a total written by hand and
+# asserted against the phase table before the run, so neither can be emptied one probe at a time
+# while the merge waits for a card that can measure it.
+step "13. the grain suite, both altitudes in a browser"   node build/check_grain.mjs
+
 # WHICH IS WHY THIS ONE IS NOT RUN LOCALLY WHEN THERE IS NO ORIGIN, AND IS NOT QUIETLY DELETED
 # EITHER. The step above and this one are two runs only while there are two copies of the bytes:
 # the tree, and whatever a third party is serving. Pointed at a second local server over the same
@@ -532,9 +552,9 @@ step "12. the smoke suite, against a local server over site/"  node scripts/smok
 # is the difference between a step whose subject is absent and a step that was removed for being
 # red, and it has to be visible.
 if [ "$TARGET_KIND" = remote ]; then
-  step "13. the smoke suite, against the origin at $TARGET_URL" node scripts/smoke.mjs "$TARGET_URL"
+  step "14. the smoke suite, against the origin at $TARGET_URL" node scripts/smoke.mjs "$TARGET_URL"
 else
-  skip "13. the smoke suite, against the origin" \
+  skip "14. the smoke suite, against the origin" \
        "there is no origin, so there is no second copy of these bytes to drive a browser at. The suite itself ran in full one step above, against a local server over site/; what did not happen is the run that would have proved a published copy behaves. scripts/publish.sh on brings it back."
 fi
 

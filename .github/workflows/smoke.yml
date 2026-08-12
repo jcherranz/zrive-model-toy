@@ -171,3 +171,39 @@ jobs:
               ;;
           esac
           exit $rc
+
+      # THE GRAIN SUITE, RUN BY CI FOR THE SAME REASON THE STEP ABOVE IS. Issue 107. Issue 89's 33
+      # assertions were tracked, executable, green and run by nothing, which is issue 103's
+      # scripts/routes.py in a new place. scripts/verify.sh runs them now, and a gate that only a
+      # contributor's own machine runs is half of one: routes.py was wired into verify.sh AND into
+      # the workflow that rebuilds what it reads, and this is the same pairing.
+      #
+      # A SEPARATE STEP AND NOT A SECOND COMMAND IN THE ONE ABOVE, because the exit codes mean the
+      # same three things and a reader has to be able to see which suite said which. It runs even
+      # when the step above failed, so a regression in one is never a reason the other went
+      # unmeasured; the job fails if either did.
+      - name: Both altitudes of the drawing behave
+        if: always()
+        run: |
+          set +e
+          node build/check_grain.mjs
+          rc=$?
+          set -e
+          case "$rc" in
+            0)
+              echo "grain: clean, every assertion the suite intends." >> "$GITHUB_STEP_SUMMARY"
+              ;;
+            1)
+              echo "::error::THE GRAIN CONTROL HAS REGRESSED. An assertion about one of the two altitudes failed."
+              echo "grain: **regressed**. See the failures in the log." >> "$GITHUB_STEP_SUMMARY"
+              ;;
+            2)
+              echo "::error::THE GRAIN SUITE COULD NOT ANSWER. Harness, not the page: a browser that never"
+              echo "::error::started, or a run that recorded fewer assertions than it intends."
+              echo "grain: **could not answer** (harness, not the page)." >> "$GITHUB_STEP_SUMMARY"
+              ;;
+            *)
+              echo "::error::the grain suite exited $rc, which it has no meaning for."
+              ;;
+          esac
+          exit $rc

@@ -171,7 +171,8 @@ bash scripts/verify.sh --local           # serve site/ locally, without looking 
 ```
 
 It runs, in order: `node --check` on every shipped script, the layout reproducibility check, both
-safety gates with their self-tests, the local token grep, and the smoke suite. Every step reports
+safety gates with their self-tests, the populate registry reader, the local token grep, the smoke
+suite and the grain suite. Every step reports
 `[OK]`, `[FAIL]` or `[SKIP]`, every step runs whatever the ones before it did, and the exit code is
 non-zero if anything failed. A step that cannot run here, the token grep without the vault and the
 smoke run against the origin when there is no origin, says `[SKIP]` and why: a clean run that
