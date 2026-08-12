@@ -256,6 +256,7 @@ const PHASES = {
   'the viewport opened':  { count: 2, when: 'every' },
   'every width':          { count: 5, when: 'every' },
   'model and reveal':     { count: 14, when: 'behavioural' },
+  'cold load':            { count: 4, when: 'behavioural' },
   'students':             { count: 11, when: 'behavioural' },
   'term':                 { count: 53, when: 'behavioural' },
   'header':               { count: 8, when: 'behavioural' },
@@ -417,7 +418,15 @@ const PHASES = {
 // The symptom was a hit test six figures from the tile, which is a race and would have wanted a
 // tolerance or a retry; the cause is a transform written from a box the element did not have, and
 // that is either written or it is not.
-const EXPECTED_ASSERTIONS = 180;
+// 184 with round 6's F19 and F8, and the four they add are coverage that was missing rather than
+// behaviour that is new. F19: nothing here ever loaded a document cold at any address but the
+// default, so `route()` deleted out of `term.start()` and the construction-time resolution deleted
+// out of `router.js` both gave 177 of 177 with every deep link dead. The `cold load` phase is those
+// four, and it constructs no address: it drives the page through its own controls, reads what the
+// page wrote on location.hash, and reloads that. F8 added nothing to the total and changed two
+// assertions in `keeping place`, which read `sel.type` alone and so could not tell the module the
+// reader came from from any other module.
+const EXPECTED_ASSERTIONS = 184;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -1320,6 +1329,118 @@ async function checkModelAndReveal(page) {
   assertEqual('clearing the selection hides all five employers again',
     afterClear.hidden.slice().sort(), expectedHidden);
   assertEqual('and leaves nothing revealed', afterClear.shown, []);
+}
+
+// ---- a cold load of an address the page wrote ---------------------------------------------------
+// THE SUITE NEVER LOADED A DOCUMENT AT ANY ADDRESS BUT THE DEFAULT, and that is the whole reason
+// this phase exists. Every other route here is reached by setting location.hash, or by
+// Page.navigate to a url differing only in the fragment, and both of those are SAME-DOCUMENT
+// navigations: they fire hashchange and never once run the page's construction path. The only
+// genuine cold loads were `#/`, three times, and `#/p/ZIB` in the grain browser, and GI.default is
+// ZIB at the sessions grain, so even that one is indistinguishable from ignoring the address.
+//
+// WHAT THAT LEFT UNGATED, MEASURED BY DELETION RATHER THAN ARGUED:
+//   `route()` out of `term.start()`         177 of 177, exit 0, and every deep link to the sheet
+//                                           dead on a cold load and on F5. That is the state #112
+//                                           put on the address so that it could be sent to
+//                                           somebody.
+//   the construction-time resolution in     177 of 177, exit 0, and a cold #/p/ZBL draws ZIB.
+//   `router.js`                             That file's own comment says a reader who follows the
+//                                           link and a reader who clicks their way there see the
+//                                           same page. Nothing checked it.
+// The assertion named "a collapsed view survives a reload of its own address" survives both,
+// because it reaches that address by fragment navigation and not by a reload.
+//
+// NO ADDRESS HERE IS CONSTRUCTED. Each one is driven for through the page's own controls and then
+// read back off location.hash, which is the page's own statement of where the reader is, and it is
+// THAT string the reload is given. A reader who presses a control, copies the bar and opens it
+// somewhere else is the case, and it is the case the page is for.
+async function checkColdLoad(page, base) {
+  // The reload is on the address the page wrote, so this is the reader's F5 and not a second
+  // navigation invented by the driver.
+  const coldReload = async what => {
+    await page.reload();
+    await page.waitFor(DIAGRAM_READY, `the diagram to draw cold at ${what}`);
+  };
+
+  // A programme that is not the default, reached the way a reader reaches it, through the picker.
+  const moved = await page.evaluate(`(function () {
+    var here = window.ZT.programme().key;
+    var items = document.querySelectorAll('#pgmenu .pgitem');
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].getAttribute('href') !== (window.GI.views.filter(function (v) {
+            return v.key === here; })[0] || {}).route) { items[i].click(); return true; }
+    }
+    return false;
+  })()`);
+  await page.waitFor(`window.ZT.programme().key !== ${JSON.stringify(await page.evaluate('window.GI.default'))}`,
+    'the picker to move off the default programme');
+  const warm = await page.evaluate(
+    `JSON.stringify({ hash: location.hash, key: window.ZT.programme().key })`).then(JSON.parse);
+  await coldReload(warm.hash);
+  const coldPg = await page.evaluate(
+    `JSON.stringify({ hash: location.hash, key: window.ZT.programme().key,
+                      dflt: window.GI.default })`).then(JSON.parse);
+  assert('a programme address the page wrote draws its own programme on a cold load',
+    moved === true && coldPg.key === warm.key && coldPg.key !== coldPg.dflt &&
+      coldPg.hash === warm.hash,
+    `${warm.key} at ${warm.hash} after a reload of that address, and not the default ` +
+      `${coldPg.dflt}`,
+    JSON.stringify(coldPg));
+
+  // And the altitude, through its own control, which puts a second segment on the same address.
+  await page.evaluate(`(function () {
+    document.getElementById('grbtn').click();
+    var items = document.querySelectorAll('#grmenu .gritem');
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].textContent === 'modules') { items[i].click(); return true; }
+    }
+    return false;
+  })()`);
+  await page.waitFor(`window.ZT.grain().grain === 'modules'`, 'the drawing to collapse');
+  const warmG = await page.evaluate(
+    `JSON.stringify({ hash: location.hash, key: window.ZT.programme().key })`).then(JSON.parse);
+  await coldReload(warmG.hash);
+  const coldG = await page.evaluate(
+    `JSON.stringify({ hash: location.hash, key: window.ZT.programme().key,
+                      grain: window.ZT.grain().grain })`).then(JSON.parse);
+  assert('and a collapsed address arrives collapsed, on the same programme, on a cold load',
+    coldG.grain === 'modules' && coldG.key === warmG.key && coldG.hash === warmG.hash,
+    `${warmG.key} at the modules grain after a reload of ${warmG.hash}`,
+    JSON.stringify(coldG));
+
+  // The sheet. Its addresses come off the page's own list, and the row is opened through the
+  // control on its own title, which is what writes the open parameter.
+  const sheet = JSON.parse(await page.evaluate('JSON.stringify(window.ZT.termRoutes())'))
+    .filter(r => /^#\/outline\//.test(r))[0];
+  await page.evaluate(`location.hash = ${JSON.stringify(sheet)}`);
+  await page.waitFor(`window.ZT.term().reading === 'outline'`, 'the scoped outline to open');
+  await page.evaluate(`document.querySelectorAll('#termrows .rowdisc')[0].click()`);
+  await page.waitFor('window.ZT.term().agendaOpen === 1', 'one row to open on its own title');
+  const warmT = await page.evaluate(
+    `JSON.stringify({ hash: location.hash, t: window.ZT.term() })`).then(JSON.parse);
+  await coldReload(warmT.hash);
+  const coldT = await page.evaluate(
+    `JSON.stringify({ hash: location.hash, t: window.ZT.term(),
+                      rows: document.querySelectorAll('#termrows .agenda-line').length })`)
+    .then(JSON.parse);
+  assert('a sheet address the page wrote opens the sheet it names on a cold load',
+    coldT.t.open === true && coldT.t.reading === warmT.t.reading &&
+      coldT.t.scope === warmT.t.scope && coldT.hash === warmT.hash,
+    `the ${warmT.t.reading} open and scoped to ${warmT.t.scope} after a reload of ${warmT.hash}`,
+    JSON.stringify({ open: coldT.t.open, reading: coldT.t.reading, scope: coldT.t.scope,
+                     hash: coldT.hash }));
+  assert('and the row it named is the row that opens, off the address and not off a hashchange',
+    coldT.t.agendaOpen === 1 && coldT.t.agendaParam === warmT.t.agendaParam &&
+      warmT.t.agendaParam !== null && coldT.rows > 0,
+    `one row open, named ${warmT.t.agendaParam} on the address, with its lines drawn`,
+    `${coldT.t.agendaOpen} open, parameter ${JSON.stringify(coldT.t.agendaParam)}, ` +
+      `${coldT.rows} line(s) drawn`);
+
+  // Back to the address the rest of the run reasons about, and cold, so nothing after this
+  // inherits a state that arrived through a fragment.
+  await page.navigate(new URL('#/', base).toString());
+  await page.waitFor(DIAGRAM_READY, 'the diagram back at the default address');
 }
 
 // ---- students -----------------------------------------------------------------------------------
@@ -4078,6 +4199,24 @@ async function runGrain(chrome, base) {
         document.getElementById('wnbtn').click();
         return true;`);
       await sleep(200);
+      // WHICH MODULE, AND NOT ONLY WHICH KIND OF TILE. Both assertions below used to read
+      // `sel.type` and nothing else, so a page that landed the reader on a module they had never
+      // opened, and returned them to a template of a different module again, still reported every
+      // assertion passing. The identity both of them promise is the whole content of the feature:
+      // "the module that swallowed it" is a claim about WHICH module.
+      //
+      // READ OFF THE PANEL, which is where the reader reads it. A session template's panel carries
+      // `module_name` and a module tile is labelled with that same name, which is the join
+      // app.js's twin() makes; taking one from each side and requiring them equal is that join
+      // checked from outside rather than a second copy of it.
+      const moduleOfPanel = `(function () {
+        var dl = document.getElementById('pprops'), k = null, out = null;
+        Array.prototype.forEach.call(dl.children, function (el) {
+          if (el.tagName === 'DT') k = el.textContent;
+          else if (k === 'module_name') out = el.textContent;
+        });
+        return out;
+      })()`;
       const picked = await ev(`
         var g = null;
         document.querySelectorAll('#graph g[data-node]').forEach(function (x) {
@@ -4086,20 +4225,22 @@ async function runGrain(chrome, base) {
           if (t && /Session template/.test(t.textContent)) g = x;
         });
         g.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-        return window.ZT.selected();`);
+        return { sel: window.ZT.selected(), module: ${moduleOfPanel} };`);
       await ev(`location.hash = '#/p/ZBL/modules'; return true;`);
       await sleep(250);
       const landed = await ev('return { sel: window.ZT.selected(), g: window.ZT.grain() };');
       assert('collapsing carries the open tile onto the module that swallowed it',
-        !!landed.sel && landed.sel.type === 'Module',
-        'a Module selected after the collapse',
+        !!landed.sel && landed.sel.type === 'Module' && !!picked.module &&
+          landed.sel.label === picked.module,
+        `the Module labelled ${JSON.stringify(picked.module)}, which is the module the template ` +
+          'the reader had open says it is in',
         JSON.stringify({ was: picked, now: landed.sel }));
       await ev(`location.hash = '#/p/ZBL'; return true;`);
       await sleep(250);
-      const back = await ev('return window.ZT.selected();');
+      const back = await ev(`return { sel: window.ZT.selected(), module: ${moduleOfPanel} };`);
       assert('expanding carries it back onto a session template of that module',
-        !!back && back.type === 'Session template',
-        'a Session template selected after the expansion',
+        !!back.sel && back.sel.type === 'Session template' && back.module === picked.module,
+        `a Session template of ${JSON.stringify(picked.module)} selected after the expansion`,
         JSON.stringify(back));
       assert('the drawing on screen is refitted rather than left at the old extent',
         await ev(`
@@ -4277,6 +4418,7 @@ async function runViewport(chrome, viewport, base, full) {
 
     if (full) {
       await group('model and reveal', () => checkModelAndReveal(page));
+      await group('cold load', () => checkColdLoad(page, base));
       await group('students', () => checkStudents(page));
       await group('term', () => checkTerm(page));
       await group('header', () => checkHeader(page));

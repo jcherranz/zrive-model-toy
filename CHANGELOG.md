@@ -306,6 +306,25 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- **Two dead controls in the smoke suite, found by round 6 and closed beside #114.** A dead control
+  is an assertion that would still pass if the behaviour it names were removed, and both of these
+  were proved dead by deletion rather than argued. **The suite never loaded a document cold at any
+  address but the default**: every route was reached by setting `location.hash` or by
+  `Page.navigate` to a url differing only in the fragment, which is a same-document navigation, so
+  `route()` deleted out of `term.start()` gave 177 of 177 with every deep link to the sheet dead on
+  a cold load, and the construction-time resolution deleted out of `router.js` gave 177 of 177 with
+  a cold `#/p/ZBL` drawing Z-IB. The assertion named "a collapsed view survives a reload of its own
+  address" survived both, because it reaches that address by fragment. A `cold load` phase, four
+  assertions, drives the page to a state through its own controls, reads the address the page wrote
+  off `location.hash`, and **reloads that string**: the programme, the altitude, the sheet it names
+  and the row it names all have to come back. No address in it is constructed. **And "keeping
+  place" could not tell the right tile from the wrong one**: both assertions read `sel.type` and
+  nothing else, so with `twin()`'s module-name join replaced by "last same-side tile wins" the
+  reader goes from `bl_st1` in M01 to the M05 module and back to `bl_st28`, and the suite still
+  reported 177 of 177. Both now read the module off the panel, which is where the reader reads it,
+  and require the module the template says it is in and the module tile the collapse landed on to
+  be the same module. Every one of the four defects above was planted and run whole; smoke 180 to
+  184.
 - **A transform framed against a box the canvas did not have, #114, and it is not a runner flake.**
   `model and reveal` failed in CI on three commits and went green on a re-run of each, twice logged
   as a flake; two of the three report the hit test at the same absurd pair, 511294 by 192646, which
