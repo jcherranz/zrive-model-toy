@@ -312,8 +312,8 @@ const PHASES = {
 // putting nothing in its place fails; and the count, which is the whole of 91 and 93, that there
 // is exactly ONE statement on the page that the data is invented and it is the footer's. That last
 // one reads a COUNT and never the sentence, deliberately: issue 101 is open on whether the claim
-// is even true, 1,493 of the 3,109 shipped values being flagged observed while the stance says
-// invented, and a driver pinning the wording would be this card taking a decision that is his.
+// is even true, nearly half of the shipped values being flagged as read off a real system while
+// the stance says invented, and a driver pinning the wording would be this card taking his call.
 // One was narrowed: the module-heading assertion lost the conjunct requiring the deleted paragraph
 // and keeps the finding where the page still makes it, in the headings themselves. And one slot
 // was reused for issue 94, the paragraph about one to one giving way to the measurement that a
@@ -1723,8 +1723,8 @@ async function checkTerm(page) {
   // THE COUNT, WHICH IS THE WHOLE OF WHAT THOSE TWO CARDS DECIDED. Six statements that the data
   // is invented stood on this one screen and the sixth made the first weaker. One is left and it
   // is the page's, in the footer, where it was. Nothing here reads what it says: issue 101 is
-  // open on whether that claim is true at all, since 1,493 of 3,109 shipped values are flagged
-  // observed while the stance says invented, and settling that is his call and not a driver's.
+  // open on whether that claim is true at all, since nearly half of the shipped values are
+  // flagged as read off a real system while the stance says invented, and that is his call.
   assert('exactly one statement on the page that the data is invented, and it is the footer\'s',
     cal.inventedInSheet.length === 0 && cal.inventedInFooter === 1,
     'none in the sheet, one in the footer',
