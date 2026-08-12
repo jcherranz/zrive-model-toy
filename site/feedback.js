@@ -368,6 +368,70 @@
     return '';
   }
 
+  // ---- the text the reader can actually see -----------------------------------------------
+  // ISSUE 99, and the defect had already produced a card before it was found. The descriptor was
+  // built from `textContent`, which is the text in the tree and not the text on the screen: it
+  // walks into a closed menu, a collapsed disclosure and a panel in its off state, every one of
+  // which sits in the document the whole time. A capture on the header therefore quoted
+  // "Z-IB Investment BankingZ-IB Investment Banking", twice in `textContent` and once on screen,
+  // the second copy being the seven entry programme menu inside #pgmenu. Issue 98 was filed that
+  // way and reads as a duplication bug that does not exist. A report quoting text the reader never
+  // saw costs more than a report with no quote in it.
+  //
+  // `innerText` IS THE BROWSER'S OWN ANSWER and it is used wherever it exists, but it is not
+  // sufficient on its own in either direction, which is why there are three parts here.
+  //
+  //   1. THE ELEMENT ITSELF IS TESTED FIRST. On an element that is not being rendered, `innerText`
+  //      returns `textContent` by specification, so a capture on the closed menu itself would
+  //      still quote all seven programmes. Measured on the deployed page: #pgmenu and #helpbox
+  //      both hand back their whole hidden contents through `innerText`.
+  //   2. SVG HAS NO `innerText` AT ALL, and the drawing is an svg. It also paints its on demand
+  //      tiles with `visibility: hidden` rather than by removing them, so four student names and
+  //      an employer sit in the tree unpainted. The walk is not a fallback for a missing property;
+  //      it is the same question asked of a tree the property was never defined on.
+  //   3. ZERO SIZE COUNTS AS NOT RENDERED, which is what catches a subtree the stylesheet has
+  //      collapsed without saying `display: none`, and an svg <title>, which is a tooltip and
+  //      never drawn.
+  //
+  // THE WALK STOPS EARLY. Only the first forty characters are ever quoted, so it gives up once it
+  // holds comfortably more than that; a capture on the whole drawing would otherwise ask the
+  // engine for a computed style on every element of the densest of the seven.
+  var TEXT_BUDGET = 240;
+
+  function isPainted(el) {
+    if (!el || el.nodeType !== 1) return false;
+    var cs = window.getComputedStyle ? window.getComputedStyle(el) : null;
+    if (cs && (cs.display === 'none' || cs.visibility === 'hidden' ||
+               cs.visibility === 'collapse')) return false;
+    if (el.getBoundingClientRect) {
+      var r = el.getBoundingClientRect();
+      if (r.width === 0 && r.height === 0) return false;
+    }
+    return true;
+  }
+
+  function paintedText(el) {
+    if (!isPainted(el)) return '';
+    var out = '';
+    for (var n = el.firstChild; n && out.length < TEXT_BUDGET; n = n.nextSibling) {
+      if (n.nodeType === 3) {
+        out += n.nodeValue;
+      } else if (n.nodeType === 1) {
+        // A separator on both sides, because two <text> elements a lane apart are not one word.
+        // The caller collapses runs of whitespace, so a spurious space costs nothing and a
+        // missing one welds two labels into a string that matches neither.
+        out += ' ' + paintedText(n) + ' ';
+      }
+    }
+    return out;
+  }
+
+  function renderedText(el) {
+    if (!isPainted(el)) return '';
+    if (typeof el.innerText === 'string') return el.innerText;
+    return paintedText(el);
+  }
+
   function describe(el) {
     if (!el || !el.tagName) return 'unknown';
     var idPart = el.id ? '#' + el.id : '';
@@ -384,7 +448,7 @@
     var classes = el.classList && el.classList.length
       ? '.' + Array.prototype.slice.call(el.classList, 0, 2).join('.')
       : '';
-    var text = (el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 40);
+    var text = renderedText(el).trim().replace(/\s+/g, ' ').slice(0, 40);
     var bits = [];
     if (idPart) bits.push(idPart);
     if (nodePart) bits.push(nodePart);
