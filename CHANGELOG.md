@@ -11,6 +11,38 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- **The header says what needs attention, #98.** A management tool answers three questions: where
+  am I, what needs attention, what can I do. The heading answered the first and the nav the third;
+  the second was answered nowhere, on a page whose model already knows it. `gaps: N of 95` is that
+  answer, and it costs the header nothing: measured before and after on every route at three
+  viewports and both themes, the header is 43px wide-screen and 107px at 390, byte for byte the
+  same as without it, and phone chrome stays at 23.7 per cent.
+- **95 and not 482, and the boundary is the model's own.** Of the 482 rows flagged `absent`, 303
+  are the `n.route` rows saying how a class gets filled at all, which is the same fact on every
+  tile of that class, and 84 are on ghost tiles, where the tile is already the finding. What is
+  left is 95 values a real object should have and does not: 38 templates with no `duration_min`,
+  13 with no `location_mode`, 11 sessions with no `teacher_assigned`, and six smaller sets. The
+  split is read off `node.route`, so a class that gains a property lands on the right side of it
+  with no list of field names anywhere in the page.
+- **It counts what the view is SHOWING, one rule, and every route follows.** On the diagram, the
+  tiles on the canvas, which #100's window has already filtered and whose cascade has already
+  taken out the templates and instructors that were only there for a filtered session: Z-BL goes
+  31 over the whole term to 5 over three weeks. On `#/calendar` the sessions that reading lists
+  and on `#/outline` the templates, scoped to one programme when the address is, with the window
+  applying to the calendar and not to the outline, which is #90's split kept by #100. On `#/board`
+  and `#/students` it is withdrawn, where the window control already goes, and the published
+  object says `null` there rather than zero, because "nothing is missing" and "this question is
+  not about this view" are different answers.
+- **The composition is the point.** "What is missing in the next three weeks" is the question a
+  reader brings to a Monday meeting, and it is now two controls side by side rather than a report
+  nobody can run. `#/calendar` at three weeks takes 11 sessions with no instructor down to 1.
+- **The count agrees with the sheet by construction.** The calendar's one row is the same eleven
+  the term sheet has carried as `noInstructor` since #80, asserted against it, so the header and
+  the sheet cannot come to say different things about the same sessions.
+- **Room for #89 is measured rather than assumed.** Its control belongs in this row, in the
+  view-level group as `grain: sessions`, beside the two it composes with. A 91.33px control of
+  that label inserted into the nav at 390 by 844 leaves the header at 107px and the nav at two
+  lines, and at 1536 at 43px and one line, with no sideways scroll either way.
 - **The time dimension, #88 and #90 as one card.** #88 asked for the calendar as a calendar,
   monthly and weekly; #90 asked for a filter down to a range or a week, naming the use, "checking
   the next 1-3 weeks to discuss with the team". They are one problem, which is how a reader works
