@@ -1190,11 +1190,12 @@
       canonical: function () { return CANON; },
       // AND NO `capButtons` BESIDE IT. Issue 106. One stood here handing the lane heading groups
       // out to whoever asked, and `git log -S` finds one commit for the name, the one that added
-      // it: nothing in site/, in scripts/smoke.mjs or in build/check_grain.mjs has ever called
-      // it. Both suites reach those controls through DOM selectors, which is the right way round,
-      // since a driver that took them from here would be testing the list this file keeps rather
-      // than the buttons the reader presses. An export with no caller is a claim that something
-      // outside depends on it, and the next edit inside pays that claim for nothing.
+      // it. Nothing in site/ and nothing in scripts/smoke.mjs, which after issue 109 is the whole
+      // of the driving, has ever called it. The suite reaches those controls through DOM
+      // selectors, which is the right way round, since a driver taking them from here would be
+      // testing the list this file keeps rather than the buttons the reader presses. An export
+      // with no caller is a claim that something outside depends on it, and the next edit inside
+      // pays that claim for nothing.
       // The drawing on screen, which is what the viewport frames and the router describes. Taken
       // through a call rather than handed out once, because draw() replaces it.
       drawing: function () { return G; },

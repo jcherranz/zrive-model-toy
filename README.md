@@ -198,7 +198,14 @@ node scripts/smoke.mjs                   # serve site/ and test it
 node scripts/smoke.mjs <origin-url>
 ```
 
-Ninety seven assertions across three viewports, 1536x839, 1440x900 and 390x844: the six Company
+It asserts across three viewports, 1536x839, 1440x900 and 390x844, and **how many is a number this
+sentence no longer carries.** Issue 106. The line opened "Ninety seven assertions" from `81ccf0f`,
+where 97 was right, until here: `EXPECTED_ASSERTIONS` in the suite read 139 at `02459ac`, 144 at
+`5f32209` and 177 now. The suite has held its own terminator all along, so the total was asserted
+in one place and typed in another, and only the typed one could go stale. It went stale in the
+direction that flatters, since a reader budgeting for 97 thinks the suite thinner than it is. Run
+it and it names every assertion and ends on its own total. What follows is what it covers, and it
+is not exhaustive either: the six Company
 nodes of which five are hidden employers, each instructor revealing its own employer and nothing
 else, the students card and the roster agreeing on how many of the cohort the drawing left out, the
 term's two readings holding one row per session and per template, in date order and in curriculum

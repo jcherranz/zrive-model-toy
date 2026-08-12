@@ -332,8 +332,8 @@ of what changed and when, and it is meant to be scannable.
   name, the one that added it. `shortDate` in `term.js` and `viewAt` in `app.js`, both twins of a
   called function beside them; `wrapTo`, `laneRoom` and `nodeAt` in `render.js`, which existed for
   the out-of-window stub tile #111 removed, leaving the helpers standing. Also `capButtons()`,
-  exported and never called from `site/`, `scripts/smoke.mjs` or `build/check_grain.mjs`, all of
-  which reach those controls through DOM selectors; and the class `tile-ghost`, emitted on every
+  exported and never called from `site/` or from `scripts/smoke.mjs`, which reaches those controls
+  through DOM selectors; and the class `tile-ghost`, emitted on every
   ghost tile, occurring once in the whole tree at its own emission site, and never once carrying a
   rule, since ghosts are styled through `.node.ghost .tile-bg`. `measure(items)` took an array and
   batched it into one hidden group under a comment saying a wrap therefore cost one layout rather
@@ -346,6 +346,17 @@ of what changed and when, and it is meant to be scannable.
   banner. Nothing checks them against each other, which is why they are listed rather than
   described: a `status:` label `set_status.sh` will not set is a column no card can reach, and it
   fails silently, with the issue sitting in Raw.
+- **Two more copies of the same rotting count, and the README's assertion total, #106.** The
+  contrast exemption in `scripts/check_repo.sh` carried the `--c-gray-3` figure twice, once as an
+  enumeration that had fallen two rules short and once, worse, as the size of the same `--line`
+  repair. Both lose the number. And `README.md` opened the smoke suite's description with "Ninety
+  seven assertions", right at `81ccf0f` where it was written and wrong at every commit since:
+  `EXPECTED_ASSERTIONS` read 139 at `02459ac`, 144 at `5f32209` and 177 after #109 folded the grain
+  probes in. The suite has carried a terminator asserting its own total all along, so the figure
+  was asserted in one file and typed in another, and only the typed one could go stale. The
+  sentence now says the suite prints it, and says the list under it is not exhaustive either, which
+  was the second half of that defect and the reason the row was left for this card rather than
+  fixed with a new numeral.
 - **A changelog entry above went false in the present tense and is corrected in place, #106.** The
   Z-BL withheld-firm row says the tile's note "says why", which was true when written and stopped
   being true at `7d2d121`, where #101 took the reason out. The entry is not rewritten, because an

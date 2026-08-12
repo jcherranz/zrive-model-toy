@@ -235,12 +235,13 @@ CONTRAST_EXEMPT=(
   # order they decide it.
   #
   # 1. IT IS NOT ONLY A TYPE COLOUR. #8f99a8 is the light value of --c-gray-3 in site/app.css,
-  #    which that file calls "the grey of a line" and which nine rules read directly: every edge
-  #    on the drawing, every arrowhead, the ghosts' three dashed marks, two greyed controls and
-  #    one separator. So this exact hex is already painted over the whole page at this exact
-  #    ratio, and none of those uses is a type colour, so none of them is measured here. Moving
-  #    the model's copy alone would leave a ghost outlined darker than the dashed edge running
-  #    into it, in a hex the stylesheet no longer agrees with.
+  #    which that file calls "the grey of a line" and which every rule that draws one reads
+  #    directly: the edges, the arrowheads, the ghosts' dashed marks, the greyed controls, the
+  #    absent flag, one separator and the term table's no-module row. So this exact hex is already
+  #    painted over the whole page at this exact ratio, and none of those uses is a type colour,
+  #    so none of them is measured here. Moving the model's copy alone would leave a ghost
+  #    outlined darker than the dashed edge running into it, in a hex the stylesheet no longer
+  #    agrees with.
   # 2. THE VALUE THAT WOULD PASS IS ANOTHER TYPE'S. Held to its own hue and saturation, the first
   #    lightness that clears 4.6 against the white plate is #6a7688. That sits 4.46 from Company
   #    #5f6b7c as a CIE76 colour difference, which is the same colour: the tightest pair the
@@ -270,8 +271,16 @@ CONTRAST_EXEMPT=(
   # exactly the measurement it names, so a plate that moves re-opens every declaration written
   # against the old one, which is the mechanism working: this one was re-read and re-argued
   # rather than carried across. Not one of the four findings depends on the figure. The honest
-  # repair of the drawn grey, if it is ever wanted, is a --line token across those nine app.css
-  # rules, which moves every edge on the page and is its own card with its own look.
+  # repair of the drawn grey, if it is ever wanted, is a --line token across the app.css rules
+  # that read it, which moves every edge on the page and is its own card with its own look.
+  #
+  # AND THAT SENTENCE USED TO SIZE THE REPAIR AT NINE RULES, WHICH IS WHY IT NO LONGER SIZES IT AT
+  # ALL. Issue 106. Nine was right at 0d23157, where it was written; counting `var(--c-gray-3)`
+  # outside comments gives 10 at a39bf13, 12 at 3c7be9e and 10 at 5f32209, so the figure moved
+  # three times and in both directions, and nothing in this repository asserts it. A --line token
+  # sized from a stale count converts some of the rules and leaves the rest, in the one token
+  # whose entire purpose is that every line on the page agrees. The grep answers it in a second
+  # and is always current.
   "Ghost|light|#8f99a8|2.7804|the page's own line grey, --c-gray-3; the value that would pass is Company's"
 )
 
