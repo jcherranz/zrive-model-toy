@@ -182,8 +182,13 @@ jobs:
       # same three things and a reader has to be able to see which suite said which. It runs even
       # when the step above failed, so a regression in one is never a reason the other went
       # unmeasured; the job fails if either did.
+      #
+      # `!cancelled()` and not `always()`. Both survive a failed step, which is the property wanted
+      # here, and `always()` also survives a CANCELLATION, which would make this step hold a run
+      # somebody had asked to stop for another two minutes of browser. A cancelled run is not a run
+      # whose measurements anybody wants.
       - name: Both altitudes of the drawing behave
-        if: always()
+        if: ${{ !cancelled() }}
         run: |
           set +e
           node build/check_grain.mjs
