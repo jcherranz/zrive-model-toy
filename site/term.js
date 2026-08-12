@@ -779,41 +779,56 @@
     // tile reads the same name here that was over the tile.
     function scopeName() { return scope ? (scope.label || scope.code) : ''; }
 
-    // ---- the invented session agenda, issue 85 ----------------------------------
-    // OFF UNTIL IT IS ASKED FOR, which is the first of the four things that mark it. Everything
-    // else in this sheet is a value read off the drawing; this is prose that was made up, so it
-    // is not on the page until a reader has read a control that says what it is and pressed it.
+    // ---- the per session outline, issues 85 and 108 -----------------------------
+    // OFF UNTIL IT IS ASKED FOR. Everything else in this sheet is a value read off the drawing
+    // and this is a block of prose under every row, so it is behind a control rather than on
+    // the page by default: 83 rows each carrying three or four extra lines is a different sheet
+    // from the one a reader opened, and which of the two they get is their choice.
     //
-    // THE OTHER THREE ARE ON THE BLOCK ITSELF. Every line carries the same `dummy` badge the
-    // panel puts on an invented property, and the badge is on the LINE and not on the block, so
-    // there is no line a reader can quote without it. The block is drawn in a register nothing
-    // else here uses, indented behind a heavy rule with its own ground, so a real row and an
-    // invented one never share one. And the first thing inside it is the sentence that says the
-    // same four lines sit under all 83 templates and that they are not Zrive's, which is what
-    // survives a screenshot of the block alone.
+    // THE LINES COME OUT OF THE INSTANCE DOCUMENT AND ARE NOT WRITTEN HERE. They are property
+    // rows in the model, ranked and flagged there beside every other value, and the build
+    // refuses one whose rank or flag is not what the block declares. A copy of them in this file
+    // would be a second place for content nobody has gated.
     //
-    // THE LINES COME OUT OF THE INSTANCE DOCUMENT AND ARE NOT WRITTEN HERE. They are ranked and
-    // flagged in the model beside every other invented value, and the build refuses a line that
-    // is ranked as read or flagged as anything but dummy. A copy of them in this file would be a
-    // second place for prose nobody has gated.
+    // ISSUE 108, AND IT IS TWO CHANGES IN ONE PLACE. The block used to draw ONE set of four
+    // constant lines under all 83 rows; it now draws the set written for the row it hangs under,
+    // read out of `by_template` keyed on the template's own id. And each line leads with the
+    // rung it is, `scope`, `method`, `practicum` or `outcome`, which is the row's own `k` and
+    // not a string invented here: the model refuses a label outside that closed set, so what
+    // the reader sees as a schema is a schema and not a convention this file keeps.
+    //
+    // WHAT IS NO LONGER DRAWN, on the owner's instruction and stated so the next reader of this
+    // function does not put it back as a repair. The block used to open with a sentence about
+    // where the lines came from, and every line used to carry a badge printing its `f`. Neither
+    // is rendered. The FIELDS are untouched in the model, which is where they do their work;
+    // this function simply no longer prints them. A future change that wants a badge back here
+    // is a product decision and not a bug fix.
+    //
+    // A ROW WITH NO OUTLINE WRITTEN FOR IT DRAWS NO BLOCK, rather than an empty box or a
+    // fallback. The build already refuses a drawn template with no outline, so this branch is
+    // unreachable from a document this repository produces and is here for the document it does
+    // not: a private instance laid out through --instance carries its own templates.
     function agendaAvailable() {
-      return !!(AGENDA && AGENDA.rows && AGENDA.rows.length && AGENDA.note);
+      return !!(AGENDA && AGENDA.by_template);
+    }
+
+    function agendaFor(t) {
+      var rows = AGENDA && AGENDA.by_template ? AGENDA.by_template[t.id] : null;
+      return rows && rows.length ? rows : null;
     }
 
     function agendaRow(cols, t) {
+      var rows = agendaFor(t);
+      if (!rows) return null;
       var tr = document.createElement('tr');
       tr.className = 'term-agenda';
       var td = document.createElement('td');
       td.colSpan = cols;
       var box = el('div', 'agenda-box');
-      var lead = el('p', 'agenda-note');
-      lead.appendChild(el('span', 'flag dummy', 'invented'));
-      lead.appendChild(document.createTextNode(' ' + AGENDA.note));
-      box.appendChild(lead);
       var ol = el('ul', 'agenda-lines');
-      AGENDA.rows.forEach(function (r) {
+      rows.forEach(function (r) {
         var li = el('li', 'agenda-line');
-        li.appendChild(el('span', 'flag ' + r.f, r.f));
+        li.appendChild(el('b', 'agenda-rung', r.k));
         li.appendChild(document.createTextNode(' ' + r.v));
         ol.appendChild(li);
       });
@@ -832,15 +847,18 @@
       b.className = 'zbtn agenda-toggle';
       b.setAttribute('aria-pressed', agendaOn ? 'true' : 'false');
       b.textContent = agendaOn
-        ? 'hide the invented session agenda'
-        : 'show an invented session agenda under every row';
+        ? 'hide the session outlines'
+        : 'show a session outline under every row';
       // The hint that used to stand beside this control is on the control instead, issues 91 and
-      // 93. It is the same sentence, moved and not rewritten: the label already says the block is
-      // invented, the block itself repeats it under every row with a dummy badge on every line,
-      // and a third copy standing permanently on the screen was one of the six the cards counted.
-      b.title = 'No system holds one. The four lines it adds were made up on this page, they ' +
-        'are the same four under every template, and each carries the same dummy badge an ' +
-        'invented property carries in the panel.';
+      // 93: a sentence standing permanently on the screen was one of the six those cards counted.
+      //
+      // ISSUE 108 REWRITES IT, twice over. It said "the same four under every template", which
+      // stopped being true the moment this file started drawing the per session table, and a
+      // control that describes the wrong thing is worse than one that describes nothing. And it
+      // now says what the block IS rather than where it came from, which is the owner's
+      // instruction on this sheet: the schema, and the fact that a row's outline is its own.
+      b.title = 'Three or four lines under each row, one per part of a session: scope, ' +
+        'method, practicum where there is one, and outcome. Each row has its own.';
       b.addEventListener('click', function () {
         agendaOn = !agendaOn;
         built = null;
@@ -1228,7 +1246,10 @@
             }).join('; ') || 'none', 'r-state s-delivered');
             cell(tr, t.id, 'r-drawn');
             tb.appendChild(tr);
-            if (agendaOn) tb.appendChild(agendaRow(cols.length, t));
+            if (agendaOn) {
+              var ag = agendaRow(cols.length, t);
+              if (ag) tb.appendChild(ag);
+            }
           });
         });
       });
@@ -1429,7 +1450,29 @@
           reading: reading,
           scope: scope ? scope.key : null,
           agenda: agendaOn,
-          agendaLines: AGENDA && AGENDA.rows ? AGENDA.rows.length : 0,
+          // Issue 108. This used to be the length of one constant list, because there was one
+          // list and every row drew it. There are 83 lists now, of three or four, so the number
+          // a driver needs is the total the MODEL holds for the templates in scope: a page that
+          // drew the same block under every row would report a total the model does not hold,
+          // which is the assertion the old equality can no longer make.
+          agendaLines: st.templates.reduce(function (n, t) {
+            var rows = agendaFor(t);
+            return n + (rows ? rows.length : 0);
+          }, 0),
+          // And how many DIFFERENT blocks those templates carry, which is the claim the smoke
+          // suite needs and cannot compute from a count of lines alone.
+          agendaBlocks: (function () {
+            var seen = {};
+            st.templates.forEach(function (t) {
+              var rows = agendaFor(t);
+              if (rows) {
+                seen[JSON.stringify(rows.map(function (r) {
+                  return [r.k, r.v];
+                }))] = 1;
+              }
+            });
+            return Object.keys(seen).length;
+          })(),
           // What is on screen right now, which is what a driver asserting the table is asking
           // about. The totals across all seven are beside them and keep their old names, so an
           // assertion written before this card still reads the number it was written against.
