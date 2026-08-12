@@ -306,6 +306,57 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- **The two copies of the token-folding rule were never the same rule, #117, and it is the fifth
+  time one rule in two places has bitten this repository.** `build/safety_grep.py` said of its own
+  folding "this is the same rule `scripts/forbidden_lib.sh` applies in `fold_tokens`". The library
+  folds with `tr -cs 'A-Za-z'`, so an underscore separates; the Python copy searched the folded
+  text with `\b`, where an underscore is a word character. One invented name in thirteen
+  placements scored 13 of 13 in the library and 6 of 13 in the Python copy, the seven misses being
+  exactly the seven with an underscore in them, over a page carrying 477 of 2607 distinct strings
+  with one. **CI refused what the gate a person runs before pushing called clean**, which is
+  precisely the gap the local gate exists to close. The same boundary defect was in the
+  banned-word rule, three placements of three, and the local gate had no email rule at all. The
+  folding was wrong in a second way that was not the boundary: iconv's TRANSLIT turns a letter
+  with no canonical decomposition into ASCII letters and Python's NFKD deleted it, which both lost
+  a token the library produces and joined the letters either side into one it never produces.
+- **And the check that would have caught it is the one nobody ran: feed both implementations the
+  same input and compare the answers.** The defect survived three readers who each confirmed the
+  copies agreed by checking that a change was present in both files, which is a different claim.
+  Both sides now expose `--fold-tokens`, one token per line, and `check_repo.sh --self-test` puts
+  four corpora through both and refuses a disagreement: the bytes the page ships, every tracked
+  file, a name in seventeen placements, and every code point below U+0180 inside a letter run.
+  Twenty one further probes run both GATES end to end on one payload against one synthetic
+  register, sixteen where both must refuse, four controls where both must pass, and **one declared
+  disagreement asserted in both directions**, so closing it means editing the file in front of a
+  reader. Repo self-test 95 to 120, forbidden 16 to 19; against the pre-fix body the new probes
+  score 13 MISS of 25 and 3 of 3. Shape chosen and argued on the card: two implementations plus a
+  differential test, not one implementation, because the Python copy also looks for the whole
+  spelling of a person every one of whose name words is below the token minimum, which both CI
+  gates are blind to, and folding the two into one would have dropped it.
+- **Three rules the comparison found on the other side, added to the library.** The unhyphenated
+  page id and the corpus host, which the local gate had and both CI gates did not, so a page id in
+  a tracked file was refused over `site/` and invisible to the two gates that read everything.
+  And the line structure is flattened before the money pattern reads it: the pattern allows
+  whitespace between a figure and its currency mark, a line break is whitespace, and prose wraps,
+  so that was one match to the file reader and two clean lines to grep. Measured over every tracked
+  file: zero page id matches, and the flattened and unflattened money scans return the identical
+  match set on all of them.
+- **`doc_views()` existed twice with two different rules and the weaker copy was the one wired to
+  the gates, #117 F1.** `build/model.py` resolves the views of a document by name and
+  `scripts/routes.py` by shape, and both files assert in prose that this is one question asked
+  twice. `check_structure`, `check_provenance` and `build_layout.py`'s geometry blacklist all ask
+  the by-name copy, so a third top level list of view-shaped entries was read by `routes.py` and
+  walked by nothing in `build/`: proved by construction, a `zoomed` list carrying one violation of
+  each of four separate rules built clean, the build printed 14 views and 570 nodes while the
+  document on disk held 15 and 572, and the byte-identical node placed in the named `collapsed`
+  list was refused. A `view-list-declared` rule now refuses any top level list of view-shaped
+  entries under a name the gates do not walk, reading the same `VIEW_LISTS` the walk reads. **Not
+  by making the other copy shape-based**: this fails on the day the list is added rather than
+  silently widening the walk, and it is what makes the two resolvers give the same answer on every
+  document that can be built. Structure self-test 20 to 22, the probe being the audit's own
+  mutation with a list that is legal in every respect, so the rule is proved to fire on the name,
+  and the control beside it a top level list that is not view-shaped and must be left alone.
+
 - **Two dead controls in the smoke suite, found by round 6 and closed beside #114.** A dead control
   is an assertion that would still pass if the behaviour it names were removed, and both of these
   were proved dead by deletion rather than argued. **The suite never loaded a document cold at any
