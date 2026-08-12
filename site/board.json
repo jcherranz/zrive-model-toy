@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-12T15:19:48Z",
+  "generated": "2026-08-12T15:20:37Z",
   "columns": [
     {
       "key": "raw",
@@ -24,6 +24,15 @@
             "limitation"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
+        },
+        {
+          "id": 113,
+          "title": "Check alignment: a bit more space to the left",
+          "labels": [
+            "bug",
+            "feedback"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/113"
         }
       ]
     },
