@@ -525,7 +525,7 @@ of what changed and when, and it is meant to be scannable.
   outline blocks are alike, which fails at 1 of 25 when every template is made to draw the same
   block.
 - **This resolves #101 rather than repairing it.** That card was open because the page claimed
-  everything was invented while 1,493 of its 3,109 values recorded that they had been read off real
+  everything was invented while 1493 of its 3109 values recorded that they had been read off real
   systems. Deleting the claim takes the false claim with it: a page that asserts nothing about its
   own truthfulness cannot assert something wrong about it. The contradiction it measured was real
   and the credit is the instruction's, not a fix's.

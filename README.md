@@ -7,16 +7,21 @@ scripts/publish.sh status` answers that, along with what the url actually serves
 move it. This account is on GitHub Pro, private Pages needs Enterprise Cloud, so on means
 world-readable with no authentication available, which is the whole of the decision.
 
-## This is a toy and it carries invented values only
+## What may go on the page, and what the gates hold it to
 
-Nothing on this page is measured. Every property in the side panel is flagged `dummy` or
-`estimated`, and the page says so above the diagram.
+The origin is world-readable, so the standing constraint is about what may be published rather
+than about what the page says of itself. **The page itself says nothing about the standing of its
+content**, on the owner's instruction of 12 August 2026, #110: no footer sentence, no flag badge in
+the side panel, no note on the outline, no clause in a tooltip. The provenance fields are untouched
+in the document and the gates below are untouched with them. Nothing was replaced by a shorter
+version and nothing was moved somewhere quieter; a change that puts any of it back is a product
+decision and not a repair.
 
-What is real: the company name Zrive, the programme name and code (Z-IB Investment Banking),
+What is published: the company name Zrive, the programme name and code (Z-IB Investment Banking),
 the six session titles, which are published on the company's own website, and the names of
 firms, which are companies rather than individuals.
 
-What is invented: every instructor name, the empresa colaboradora, every identifier, every
+What is not: every instructor name, the empresa colaboradora, every identifier, every
 date, every count, and all three money figures. No real person is named. No figure comes from
 the corpus.
 
@@ -201,8 +206,8 @@ order, with the sample they drew declared and the sessions with no instructor ma
 each reading taking a programme and the unscoped pair surviving it, the outline grouped by the
 module its syllabus declares and saying so where a syllabus declares none, a lane heading that is a
 target of at least 24 by 24 at the smallest scale the canvas allows, at fit and at the largest,
-still a pan under a press and drag, the invented session agenda off until it is asked for and every
-line of it flagged when it is on,
+still a pan under a press and drag, the per session outline off until it is asked for and, when it
+is on, every line of it carrying the provenance fields the model gates and none of them printed,
 the pointer-anchored zoom holding the point under the cursor, a click and a 2px wobble selecting
 where a 40px drag pans, capture mode filing nothing on a pan and producing an unchanged element
 descriptor, the board's four columns and its arithmetic, no sideways scroll at any width, and no
@@ -281,16 +286,18 @@ programme is a copy of something the business already has and one term across th
 nowhere. A syllabus is not like that: it belongs to a programme, and a reader arriving from a Z-SC
 tile is asking about Z-SC.
 
-**It is not a schedule and says so three times over**: in the subtitle, in a notice above the rows
-that cannot be scrolled away, and on a sticky banner row inside the table, so a screenshot of the
-rows carries the disclaimer with it. The drawings hold 83 of the 260 sessions the model counts and
-the sheet declares that sample rather than reading as a whole term. `state` and `teacher_assigned`
+It carried three marks saying it is not a schedule, in the subtitle, in a notice above the rows and
+on a sticky banner row inside the table; issues 91 and 93 deleted all three and issue 110 settled
+the question they were asking. The drawings hold 83 of the 260 sessions the model counts and the
+sheet declares that sample, which is a statement about what was drawn rather than about the
+standing of what is in it. `state` and `teacher_assigned`
 are what make it more than a list: 11 sessions have no instructor named and each of those rows is
 marked.
 
 Every template has exactly one delivery, **and that is a property of this drawing rather than a
 finding about the business**: it draws one cohort, so a template can have at most one delivery in
-it. The outline says as much in its own notice.
+it. The outline said as much in a paragraph over the rows until issue 94, which replaced the
+sentence with the measurement that a module heading is never painted right of the rows it heads.
 
 ## Board
 
