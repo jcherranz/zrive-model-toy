@@ -496,8 +496,51 @@
     // about the term that no ordered list shows. There are 71 distinct days and only 12 of them
     // hold more than one session, and 71 of the 83 start at 18:30, so a week grid is honestly two
     // rows and is built as that rather than dressed up as a day planner.
-    var CAL_SHAPES = ['month', 'week', 'list'];
-    var shape = 'month';        // the month grid is what #/calendar opens on
+    // ===========================================================================================
+    // ISSUE 124. THE REVIEW IS A FOURTH SHAPE AND IT IS WHAT #/calendar OPENS ON.
+    // ===========================================================================================
+    // THE RITUAL HAS NO ADDRESS. "Reviewing the next one to three weeks before discussing with the
+    // team" is a Monday, seven programmes and a meeting, and until this card it was rebuilt from
+    // four controls every time: open the sheet, press the calendar, press list, press three weeks.
+    // What a manager can do now that he could not is open one link and have the agenda on screen.
+    //
+    // AND IT TAKES THE CALENDAR'S ROUTE RATHER THAN ADDING ONE. The roadmap wrote the rule that a
+    // new address must retire one and then broke it in the same document; its critic caught that.
+    // This screen IS the calendar, ranked and windowed, so it is a shape of the calendar reading
+    // and the page answers exactly the 33 addresses it answered before. The owner filed #120
+    // because the header is a pile of controls, and a pile of routes is that complaint one level
+    // up. #88's own note said a fourth entry in this registry is an entry; this is that entry.
+    //
+    // WHAT IT RANKS BY, AND WHY THAT AND NOT THE DATE. Unstaffed first, because a session with
+    // nobody to teach it is the thing the meeting acts on, and date order inside each band because
+    // that is the order the week happens in. The list shape keeps pure date order and is one press
+    // away, so nothing is taken off the reader who wants it.
+    //
+    // AND THE ABSENCES ARE THE HALF THAT HAD TO BE BUILT CAREFULLY. Five of the seven drawings are
+    // samples, which is #122's finding: Z-IB draws 6 of 79, Z-PE 6 of 36, Z-HR 6 of 25, Z-DS 6 of
+    // 22, Z-CFA 6 of 45, and only Z-SC and Z-BL are complete. Rolled over real three week windows
+    // this screen would otherwise announce that five of seven programmes have nothing scheduled
+    // for the last third of the term, and every one of those sentences would be a property of what
+    // these documents drew rather than a fact about the business. So a programme with nothing in
+    // the window is NAMED, and the sentence it is named with is a different sentence on a complete
+    // programme from the one on a sampled one: `no session in this window` where the drawn rows
+    // are the term, and `no drawn session in this window` where they are a sample of it, with the
+    // fraction beside it in the words #122 already settled. This file may never print an absence
+    // that is an artefact of sampling as though it were an absence in the business.
+    var CAL_SHAPES = ['review', 'month', 'week', 'list'];
+    var shape = 'review';       // the review is what #/calendar opens on, issue 124
+
+    // WHICH SHAPES ARE AN AGENDA. A shape either filters to the window, which is what a list of
+    // rows a team reads in a meeting is for, or it keeps the term and marks the band, which is
+    // what a grid is for. One table rather than a condition repeated at each of the three call
+    // sites, and it is read by listsWindow() below, which is the one question the sentence turns
+    // on. #90 made that split for the list; the review is the same kind of reading and takes it.
+    var SHAPE_FILTERS = { review: true, list: true, month: false, week: false };
+
+    // How many weeks the review opens on. "The next one to three weeks" names the range and three
+    // is the top of it, which is the reading a Monday meeting is over: a window a reader can then
+    // narrow to one or two with the control that is already in the header.
+    var REVIEW_WEEKS = 3;
 
     // The term's own extent and its middle, counted off the rows for the reason every other
     // number in this file is: a span typed here is a span that goes stale the first time a
@@ -529,6 +572,12 @@
 
     var WIN_STEPS = [1, 2, 3];      // "the next 1-3 weeks", which is what the card asked for
     var win = { weeks: 0, anchor: TERM ? TERM.anchor : null };   // 0 weeks is the whole term
+    // WHETHER THE READER HAS SAID ANYTHING ABOUT THE WINDOW, issue 124. The review opens on three
+    // weeks, and the one thing it must never do is overrule somebody who has already answered that
+    // question: a reader who pressed "whole term" and then followed a link to the review would
+    // otherwise be given three weeks back with no press of their own. Set by the two controls in
+    // the window menu and by nothing else, so it means what its name says.
+    var winTouched = false;
 
     function winRange() {
       if (!win.weeks || !TERM) return null;
@@ -712,13 +761,25 @@
     }
 
     function setWindowWeeks(n) {
+      winTouched = true;
       if (win.weeks === n) return;
       win.weeks = n;
       windowChanged();
     }
 
+    // The review's own opening window, issue 124, and it is a DEFAULT rather than a setting: it
+    // applies where the reader has said nothing and steps aside the moment they do. Returns
+    // whether it moved anything, because the caller has to tell the drawing and restate the
+    // control and there is no reason to do either when it did not.
+    function armReview() {
+      if (winTouched || win.weeks || !TERM) return false;
+      win.weeks = REVIEW_WEEKS;
+      return true;
+    }
+
     function stepAnchor(delta) {
       if (!TERM) return;
+      winTouched = true;
       var next = addDays(win.anchor, delta * 7);
       if (next < TERM.firstMonday) next = TERM.firstMonday;
       if (next > TERM.lastMonday) next = TERM.lastMonday;
@@ -848,9 +909,9 @@
       // and nothing else.
       var note = el('p', 'wn-note');
       note.textContent = 'Now: ' + windowText() + ' · ' + windowShown(null) + ' of ' +
-        sessions.length + ' sessions. The list drops what is outside it, because a list is an ' +
-        'agenda. The month and week grids keep it and mark the band, because the shape of the ' +
-        'term is what a grid is for. The drawing shows the window and nothing else.';
+        sessions.length + ' sessions. The review and the list drop what is outside it, because ' +
+        'both are an agenda. The month and week grids keep it and mark the band, because the ' +
+        'shape of the term is what a grid is for. The drawing shows the window and nothing else.';
       wnMenu.appendChild(note);
 
       // ---- and the count the drawing no longer carries, issue 111 --------------
@@ -1180,7 +1241,7 @@
     // describes what the sheet drew, and on a grid what the sheet drew is the term.
     function listsWindow() {
       var rd = reading && READING[reading];
-      return !!(rd && rd.window && shape === 'list' && windowOn());
+      return !!(rd && rd.window && SHAPE_FILTERS[shape] && windowOn());
     }
 
     function describe() {
@@ -1215,8 +1276,13 @@
                     : samp.complete ? 'all ' + listed + many
                     : samp.total ? listed + ' of the ' + samp.total + many
                     : listed + many;
+        // AND WHAT ORDER THE ROWS ARE IN, which stopped being one answer at issue 124. The three
+        // shapes that came before it are date order and say so; the review ranks the window by
+        // what the meeting acts on and says that instead. A heading that still read "in date
+        // order" over a screen whose first band is every session with nobody to teach it would be
+        // the same kind of wrong as the sentence #121 was filed about, one line further up.
         titleEl.textContent = (scope ? scopeName() : 'The term') + ', ' +
-          counted + ' in date order';
+          counted + ' ' + SHAPE_ORDER[shape];
         // BUILT AS PARTS AND JOINED, because a window can leave the list with nothing in it and a
         // date span, a state tally and a separator printed over an empty set are three marks a
         // reader has to decide are not zeros. #119 put that state in the data's reach; this is the
@@ -1301,13 +1367,22 @@
     }
 
     // ---- the three shapes, issue 88 ---------------------------------------------
-    var SHAPE_NAME = { month: 'as a month grid', week: 'as a week grid', list: 'as a list' };
+    var SHAPE_NAME = { review: 'as a review, unstaffed first', month: 'as a month grid',
+                       week: 'as a week grid', list: 'as a list' };
 
     var SHAPE_TITLE = {
-      month: 'one panel per month, seven weekday columns, the default',
+      review: 'the window across every programme, the sessions with nobody to teach them first ' +
+              'and the programmes with nothing in it named underneath. What this address opens on',
+      month: 'one panel per month, seven weekday columns',
       week: 'one panel per week that holds a session',
       list: 'one row per session, the reading this sheet opened with before issue 88'
     };
+
+    // The clause the heading closes with, per shape, for the reason SHAPE_NAME is a table: the
+    // ordering is a property of the shape and a second copy of it under a condition is a second
+    // place for it to disagree with the rows.
+    var SHAPE_ORDER = { review: 'unstaffed first', month: 'in date order', week: 'in date order',
+                        list: 'in date order' };
 
     function monthName(ym) {
       return MONTHS[Number(ym.slice(5, 7)) - 1] + ' ' + ym.slice(0, 4);
@@ -1341,8 +1416,16 @@
       if (shape === k || CAL_SHAPES.indexOf(k) === -1) return;
       shape = k;
       built = null;
+      // The same default the address applies, applied to the press that asks for the same screen,
+      // and it steps aside on the same condition: a reader who has answered the window question
+      // keeps their answer. Issue 124.
+      var armed = k === 'review' && armReview();
       buildRows();
       describe();
+      if (armed) {
+        if (onWindow) onWindow(windowSpec());
+        restateWindow();
+      }
     }
 
     function shapeBar() {
@@ -1525,6 +1608,138 @@
       return tr;
     }
 
+    // ---- the review, issue 124 ---------------------------------------------------
+    // THE ROWS OF THE WINDOW, IN TWO BANDS. `sessions` is already in date order across the seven
+    // and a filter keeps that order, so the two bands are one pass and nothing is sorted twice:
+    // ranking here means choosing which band a row is in, and date order inside a band is the
+    // order it was already in. The set is exactly the list shape's set, which is what makes this
+    // the calendar ranked rather than a second reading of the term.
+    function reviewBands() {
+      var rows = sessionsFor(scope).filter(function (s) { return inWindow(s.date); });
+      return {
+        all: rows,
+        unstaffed: rows.filter(function (s) { return s.teacher !== 'yes'; }),
+        staffed: rows.filter(function (s) { return s.teacher === 'yes'; })
+      };
+    }
+
+    // WHICH PROGRAMMES THE WINDOW HOLDS NOTHING OF, with what each of them is a drawing of. This
+    // is the half of the card that had to be built against #122 rather than beside it: `samp` is
+    // that card's own arithmetic, drawn against declared, and it decides which of two sentences
+    // the row is written in rather than being printed as a badge next to one sentence.
+    //
+    // `before` AND `after` ARE THE DRAWN ROWS AND NOTHING ELSE. The date a programme last ran is
+    // the last of its sessions these documents carry before the window, which on a sampled
+    // programme is the last one DRAWN and is said in those words. A row that reported the model's
+    // declared total as though the sheet had seen it would be inventing a date.
+    function reviewAbsent() {
+      var r = winRange();
+      var out = [];
+      groupsFor(scope).forEach(function (g) {
+        var rs = sessionsFor(g.view);
+        var i, before = null, after = null;
+        for (i = 0; i < rs.length; i++) {
+          if (inWindow(rs[i].date)) return;                 // it is in the window, so not absent
+          if (!r) continue;
+          if (rs[i].date < r.from) before = rs[i].date;     // rs is in date order, so the last wins
+          else if (rs[i].date > r.to && !after) after = rs[i].date;
+        }
+        out.push({ view: g.view, samp: sampleOf(g.view, 'CohortSession'),
+                   before: before, after: after, drawn: rs.length });
+      });
+      return out;
+    }
+
+    // THE SENTENCE, AND THE WHOLE CARD IS THAT THERE ARE TWO OF THEM. On Z-SC and Z-BL the drawn
+    // rows are the term, so "no session in this window" is a fact about the business. On the other
+    // five it is a fact about a document that holds 6 of 79, and it is written as one: the words
+    // say `drawn`, the fraction #122 settled is beside it, and the count of what is not here is
+    // spelled out rather than left for a reader to subtract. Neither sentence says anything about
+    // the standing of the content, which is #110's rule and is why this reads as arithmetic.
+    function absentWords(a) {
+      var noun = a.samp.complete ? 'session' : 'drawn session';
+      var bits = [a.samp.complete ? 'no session in this window'
+                                  : 'no drawn session in this window'];
+      var sw = sampleWords(a.samp, 'session');
+      if (sw) {
+        bits.push(a.samp.complete ? sw
+                : sw + ', so ' + (a.samp.total - a.samp.drawn) + ' are not drawn here');
+      }
+      bits.push(a.before ? 'last ' + noun + ' ' + longDate(a.before)
+              : a.after ? 'next ' + noun + ' ' + longDate(a.after)
+              : 'no ' + noun + ' anywhere in the term');
+      return bits.join(' · ');
+    }
+
+    // The way from a row to the drawing it came from, WITH THE WINDOW STILL ON. The window belongs
+    // to the page rather than to this sheet, which is #90's decision, so following one of these
+    // leaves it exactly where it is and the reader arrives at that programme's picture showing the
+    // same three weeks the row was in. Nothing here has to carry the window on the address for
+    // that to be true, and a link that did would be a second place for the window to live.
+    function progLink(code, label, route) {
+      var a = el('a', 'linkbtn', code);
+      a.href = route;
+      a.title = 'the ' + (label || code) + ' drawing, at this same window';
+      return a;
+    }
+
+    function buildReview() {
+      var cols = ['date', 'time', 'programme', 'session', 'instructor', 'state', 'attendance',
+                  'drawn as'];
+      var table = el('table', 'sheet-table term-table');
+      head(table, cols);
+      var tb = document.createElement('tbody');
+      var bands = reviewBands();
+      var n = bands.all.length;
+
+      if (!n) {
+        groupRow(tb, cols.length, function (th) { th.textContent = windowEmptyText(); });
+      } else {
+        [{ rows: bands.unstaffed, lead: 'Nobody named to teach these' },
+         { rows: bands.staffed, lead: 'Instructor named' }].forEach(function (band) {
+          groupRow(tb, cols.length, function (th) {
+            th.textContent = band.lead + ' · ' +
+              (band.rows.length ? band.rows.length + ' of ' + n : 'none of the ' + n) +
+              ' in this window';
+          }, 'term-group rev-band');
+          band.rows.forEach(function (s) {
+            var tr = document.createElement('tr');
+            if (s.teacher !== 'yes') tr.className = 'term-gap';
+            cell(tr, s.date, 'r-id');
+            cell(tr, s.time, 'r-id');
+            var td = el('td', 'r-id s-prog');
+            td.appendChild(progLink(s.code, s.label, s.route));
+            tr.appendChild(td);
+            cell(tr, s.title, 'r-name');
+            cell(tr, s.teacher === 'yes' ? 'named' : 'none named',
+                 's-teacher' + (s.teacher === 'yes' ? ' r-state' : ' term-gap-cell'));
+            cell(tr, s.state, 'r-state');
+            cell(tr, s.attendance, 'r-num');
+            cell(tr, s.id, 'r-drawn');
+            tb.appendChild(tr);
+          });
+        });
+      }
+
+      var absent = reviewAbsent();
+      if (absent.length) {
+        groupRow(tb, cols.length, function (th) {
+          th.textContent = 'Nothing in this window · ' + absent.length + ' of the ' +
+            groupsFor(scope).length +
+            (groupsFor(scope).length === 1 ? ' programme' : ' programmes');
+        }, 'term-group rev-head');
+        absent.forEach(function (a) {
+          groupRow(tb, cols.length, function (th) {
+            th.appendChild(progLink(a.view.code, a.view.label, a.view.route));
+            th.appendChild(document.createTextNode(' · ' + absentWords(a)));
+          }, 'term-group rev-absent');
+        });
+      }
+
+      table.appendChild(tb);
+      return table;
+    }
+
     function buildCalendar() {
       var cols = ['date', 'time', 'programme', 'session', 'instructor', 'state', 'attendance',
                   'drawn as'];
@@ -1653,6 +1868,7 @@
       built = key;
       rowsEl.textContent = '';
       rowsEl.appendChild(reading !== 'calendar' ? buildOutline()
+                         : shape === 'review' ? buildReview()
                          : shape === 'list' ? buildCalendar() : buildGrid(shape));
       rowsEl.scrollTop = 0;
     }
@@ -1688,6 +1904,12 @@
       reading = next;
       scope = nextScope || null;
       applyOpenParam(openTo);
+      // ISSUE 124. THE REVIEW OPENS ON THREE WEEKS, and this is where "opens" is: an address the
+      // reader followed, not a control they pressed. It runs before the rows are built so the
+      // sheet is drawn once, and the drawing and the header control are told afterwards, in the
+      // order #111 made load bearing: the control quotes what the window did to the picture, so it
+      // may not restate before render.js has been told.
+      var armed = reading === 'calendar' && shape === 'review' && armReview();
       buildRows();
       describe();
       document.body.classList.toggle('calendar', reading === 'calendar');
@@ -1697,6 +1919,10 @@
         sheet.hidden = false;
         var close = document.getElementById('termclose');
         if (close && close.focus) close.focus();
+      }
+      if (armed) {
+        if (onWindow) onWindow(windowSpec());
+        restateWindow();
       }
       if (onRoute) onRoute();
     }

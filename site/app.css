@@ -2517,6 +2517,26 @@ body.hide-ghosts .ghost { display: none; }
   border-bottom: 1px dashed var(--c-gray-3);
 }
 
+/* ---- the review, issue 124 ----------------------------------------------------
+   THREE KINDS OF GROUP ROW AND NO FOURTH SHAPE OF ONE. The review is the calendar ranked and
+   windowed, so its bands and its absences are the group row this table already has, recoloured by
+   the level they sit at: a band heading is a heading and takes the programme heading's weight,
+   and a programme with nothing in the window is a statement rather than a heading and takes the
+   module row's quiet. Nothing here sets a size on a control: the way from a row to its drawing is
+   a .linkbtn, so it is 26 by 26 by construction, which is issue 77 still holding.
+
+   AND THE ABSENCE ROW WRAPS, for the reason issue 85's two row kinds wrap: the sheet's cells are
+   nowrap so that a record reads as one run, and this row is a sentence about a programme rather
+   than a record. Left nowrap it would push the table wider than its box and scroll the whole
+   review sideways to make room for a clause. */
+.term-table tbody tr.rev-absent th {
+  border-top: 0;
+  padding-top: 4px;
+  font-weight: 400;
+  color: var(--fg-muted);
+  white-space: normal;
+}
+
 /* ---- the scope bar ------------------------------------------------------------
    Issue 84 scoped both readings, so a reader who arrived at one programme needs the way to the
    others and to all seven. Ordinary links to addresses, like every other navigation on this

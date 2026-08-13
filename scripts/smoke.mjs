@@ -1762,7 +1762,14 @@ const TERM_READ = `(function () {
         box: lf(box),
         pad: Math.round(parseFloat(getComputedStyle(box).paddingLeft)),
         title: lf(document.getElementById('termtitle')),
-        group: th ? lf(th.querySelector('a') || th) : null,
+        // THE PAINTED TEXT AND NOT THE BOX, which is the same reading the cell below takes and for
+        // the same reason: a group row whose heading is a link is measured on the link, and one
+        // whose heading is its own text is measured on the row's content edge. Issue 124 is where
+        // the difference showed: the review's band headings carry no link, and reading the box
+        // gave 4 against the 16 every other reading on the phone paints at, which is the
+        // container's padding and not a misalignment.
+        group: th ? (th.querySelector('a') ? lf(th.querySelector('a'))
+                     : lf(th) + Math.round(parseFloat(getComputedStyle(th).paddingLeft))) : null,
         module: mth ? lf(mth.querySelector('span') || mth) : null,
         cell: td ? lf(td) + Math.round(parseFloat(getComputedStyle(td).paddingLeft)) : null,
         month: lf(mh)
@@ -2180,21 +2187,43 @@ async function checkTerm(page) {
   await clearSelection(page);
 
   // ---- the calendar reading ---------------------------------------------------
+  // WHAT THE WINDOW IS BEFORE ANYTHING HAS ASKED FOR ONE, read here, on the diagram, and asserted
+  // two hundred lines below where the window section is. Issue 124 moved the place this has to be
+  // read: #/calendar opens on the review now, which is three weeks from the anchor, so the sheet
+  // IS something that asks and the claim that nothing has asked yet is a claim about the page the
+  // reader is looking at before they follow that link. The review's own arrival is asserted in a
+  // phase of its own, on a cold load, in both directions.
+  const atDiagram = await page.evaluate(TERM_READ);
+  const w0 = await page.evaluate('window.ZT.term().window');
+  const off0 = await page.evaluate('window.ZT.filtered()');
+
   await page.evaluate(`location.hash = '#/calendar'`);
   await page.waitFor(`window.ZT.term().open === true &&
                       window.ZT.term().reading === 'calendar'`,
     'the calendar reading to open');
+  // ISSUE 124, AND IT IS A NAVIGATION AND NOT A CONCESSION. The address arrives on the review at
+  // three weeks; everything in this phase is about the three shapes of the whole term and the
+  // sentence over them, which is a different reading of the same rows. So the window is put back
+  // off through the control a reader would use and the month grid is pressed, and every assertion
+  // below reads exactly what it read before. Nothing here is weaker: what the address opens on is
+  // asserted, cold, in `the review`, and this is the same suite driving to the state it is about.
+  await wnMenu(page, true);
+  await pressByText(page, '#wnmenu .wn-weeks', 'whole term');
+  await page.waitFor('window.ZT.term().window.on === false', 'the window off for the shapes');
+  await wnMenu(page, false);
+  await pressByText(page, '#termnotice .shape-btn', 'month');
+  await page.waitFor(`window.ZT.term().shape === 'month'`, 'the month grid');
+
   // ---- the shape of it, issue 88 ------------------------------------------------
-  // THE MONTH GRID IS WHAT #/calendar OPENS ON, and that is the card's decision rather than a
-  // detail of the markup: measured over the 83 sessions the months hold 16, 20, 17, 9, 8 and 13,
-  // so six panels of 8 to 20 fit and the April and May gaps are the reading. Everything below is
+  // THE MONTH GRID, measured over the 83 sessions: the months hold 16, 20, 17, 9, 8 and 13, so
+  // six panels of 8 to 20 fit and the April and May gaps are the reading. Everything below is
   // checked against the chips the reader can see and the dates written on their own faces, not
   // against the model behind them.
   const calMonth = await page.evaluate(TERM_READ);
   const monthState = await page.evaluate('window.ZT.term()');
   const chipDates = calMonth.cells.reduce((a, c) => a.concat(c.dates), []);
   const monthKeys = new Set(chipDates.map(d => d.slice(0, 7)));
-  assert('#/calendar opens on a month grid, one panel per month the term touches',
+  assert('the month grid draws one panel per month the term touches',
     monthState.shape === 'month' && monthState.panels === calMonth.panels &&
       calMonth.panels === monthKeys.size && calMonth.panels > 1 &&
       calMonth.chips === state.sessions &&
@@ -2259,11 +2288,11 @@ async function checkTerm(page) {
   // nothing in its place is the failure mode of a subtraction pass: three distinct non-empty
   // titles, and no prose left in the strip.
   assert('each calendar shape says what it is on its own control and not over the rows',
-    calWeek.shapeBtns.length === 3 &&
+    calWeek.shapeBtns.length === 4 &&
       calWeek.shapeBtns.every(b => b.title.length > 10) &&
-      new Set(calWeek.shapeBtns.map(b => b.title)).size === 3 &&
+      new Set(calWeek.shapeBtns.map(b => b.title)).size === 4 &&
       calWeek.noticeProse.length === 0,
-    'three shape buttons carrying three different titles, over a strip with no prose in it',
+    'four shape buttons carrying four different titles, over a strip with no prose in it',
     `titles ${JSON.stringify(calWeek.shapeBtns.map(b => b.title.slice(0, 24)))}, ` +
       `${calWeek.noticeProse.length} paragraphs left: ${JSON.stringify(calWeek.noticeProse)}`);
 
@@ -2405,19 +2434,22 @@ async function checkTerm(page) {
   // here is about the one thing that had to be decided before any of it could be built, which is
   // where `now` comes from on a page whose every date is invented and whose term ended before the
   // real clock reached it.
-  const w0 = await page.evaluate('window.ZT.term().window');
-  const off0 = await page.evaluate('window.ZT.filtered()');
-  assert('the window is off on arrival and the header says so in whole weeks',
-    w0.on === false && w0.weeks === 0 && cal.wn &&
+  // `atDiagram`, `w0` and `off0` were read at the top of this phase, on the diagram, before the
+  // sheet was opened. Issue 124 is why: the review arms three weeks when it is what you opened, so
+  // the state of a page nobody has asked anything of is read where nobody has asked anything of
+  // it. The claim is #90's and is unchanged, that this page does not quietly invent a today and
+  // does not window itself until something asks.
+  assert('the window is off where nothing has asked for one, and the header says so in whole weeks',
+    w0.on === false && w0.weeks === 0 && atDiagram.wn &&
       // `weeks all 24` and not `weeks: all 24` since issue 120. The colon went when the control
       // stopped being a nav item and became a reading in the header's readout: the label is
       // markup and the value is written by term.js, and the two are told apart by weight and
       // colour rather than by punctuation. The claim is the same claim, which is that the window
       // is off on arrival and that the control says so in whole weeks.
-      cal.wn.text === 'weeks all ' + w0.termWeeks && w0.termWeeks > 1 &&
+      atDiagram.wn.text === 'weeks all ' + w0.termWeeks && w0.termWeeks > 1 &&
       off0.on === false && off0.hidden.length === 0,
     `a control reading "weeks all ${w0.termWeeks}" and nothing taken off the drawing`,
-    `${JSON.stringify(cal.wn && cal.wn.text)}, window on ${w0.on}, ` +
+    `${JSON.stringify(atDiagram.wn && atDiagram.wn.text)}, window on ${w0.on}, ` +
       `${off0.hidden.length} tiles filtered out`);
 
   await wnMenu(page, true);
@@ -2446,7 +2478,7 @@ async function checkTerm(page) {
   const smallest = wnBtns.concat([wnOpen.wn]).concat(cal.shapeBtns)
     .reduce((m, b) => Math.min(m, b.w, b.h), Infinity);
   assert('every control the two cards added clears 24 by 24',
-    wnBtns.length >= 6 && cal.shapeBtns.length === 3 && smallest >= 24,
+    wnBtns.length >= 6 && cal.shapeBtns.length === 4 && smallest >= 24,
     `${wnBtns.length + 1 + cal.shapeBtns.length} controls, the smallest side at least 24`,
     `smallest side ${Number(smallest).toFixed(2)} over ${wnBtns.length} window controls, ` +
       `the header button and ${cal.shapeBtns.length} shape controls`);
@@ -5217,7 +5249,15 @@ async function checkGutter(page) {
   await page.waitFor(`window.ZT.term().open === true &&
                       window.ZT.term().reading === 'calendar'`,
     'the calendar reading to open on the narrow viewport');
+  // The review, which is what this address opens on since issue 124 and therefore what a reader
+  // on a phone meets first. Its band headings are the same group row the month heading and the
+  // programme heading are, so the gutter claim below now covers three readings instead of two:
+  // the card this assertion belongs to was filed on a short bold word against a hard edge, and
+  // the review's first line is exactly that shape.
   const cal = await page.evaluate(TERM_READ);
+  await pressByText(page, '#termnotice .shape-btn', 'month');
+  await page.waitFor(`window.ZT.term().shape === 'month'`, 'the month grid on the narrow viewport');
+  const calM = await page.evaluate(TERM_READ);
 
   assert('the sheet indents its rows from the box they scroll in, to where its own title starts',
     !!out.gutter && out.gutter.cell !== null && out.gutter.title !== null &&
@@ -5227,11 +5267,13 @@ async function checkGutter(page) {
     JSON.stringify(out.gutter));
 
   assert('and both readings of the term start their text on the same left edge',
-    !!out.gutter && !!cal.gutter && cal.gutter.month !== null &&
-      cal.gutter.month === out.gutter.cell && out.gutter.group === out.gutter.cell,
-    'the calendar month heading, the outline group heading and the outline rows on one x',
-    `month ${cal.gutter && cal.gutter.month}, group ${out.gutter.group}, ` +
-      `cell ${out.gutter.cell}`);
+    !!out.gutter && !!calM.gutter && calM.gutter.month !== null && cal.gutter.group !== null &&
+      calM.gutter.month === out.gutter.cell && out.gutter.group === out.gutter.cell &&
+      cal.gutter.group === out.gutter.cell,
+    'the review band heading, the calendar month heading, the outline group heading and the ' +
+      'outline rows on one x',
+    `review ${cal.gutter && cal.gutter.group}, month ${calM.gutter && calM.gutter.month}, ` +
+      `group ${out.gutter.group}, cell ${out.gutter.cell}`);
 
   await page.evaluate(`location.hash = '#/'`);
   await page.waitFor('window.ZT.term().open === false', 'the sheet to close again');
