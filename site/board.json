@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-13T01:07:30Z",
+  "generated": "2026-08-13T11:59:45Z",
   "columns": [
     {
       "key": "raw",
@@ -32,12 +32,12 @@
       "title": "Backlog",
       "cards": [
         {
-          "id": 124,
-          "title": "The review you actually do has no address, and the calendar should become it rather than sit beside it",
+          "id": 126,
+          "title": "The published hash list is a membership oracle",
           "labels": [
             "status:backlog"
           ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/124"
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/126"
         }
       ]
     },
@@ -46,13 +46,12 @@
       "title": "In progress",
       "cards": [
         {
-          "id": 122,
-          "title": "Five of the seven drawings are samples and the number on screen never says so",
+          "id": 125,
+          "title": "A gap is a number you read, when it should be a place you go",
           "labels": [
-            "bug",
             "status:in-progress"
           ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/122"
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/125"
         }
       ]
     },
@@ -61,6 +60,14 @@
       "title": "Done",
       "cards": [
         {
+          "id": 124,
+          "title": "The review you actually do has no address, and the calendar should become it rather than sit beside it",
+          "labels": [
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/124"
+        },
+        {
           "id": 123,
           "title": "The half of the document the whole thesis rests on is the half no gate re-reads",
           "labels": [
@@ -68,6 +75,15 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/123"
+        },
+        {
+          "id": 122,
+          "title": "Five of the seven drawings are samples and the number on screen never says so",
+          "labels": [
+            "bug",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/122"
         },
         {
           "id": 121,
@@ -114,27 +130,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/117"
-        },
-        {
-          "id": 116,
-          "title": "One glyph changed repaints 91 tiles across nine of the fourteen drawings, with all fourteen digests unchanged and verify.sh clean",
-          "labels": [
-            "audit",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/116"
-        },
-        {
-          "id": 115,
-          "title": "Thirteen assertions in the new code are narrower than their names, and the behaviour each one is named for can be deleted at 177 of 177",
-          "labels": [
-            "audit",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/115"
         }
       ],
-      "hidden": 100,
+      "hidden": 102,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
