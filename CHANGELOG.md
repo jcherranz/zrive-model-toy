@@ -9,6 +9,37 @@ of what changed and when, and it is meant to be scannable.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A plain click drag no longer pans; Ctrl or Shift does, #127.** Filed from `#graph` at 1536 by
+  839. It is the shape #76 already gave the wheel reaching the other gesture: the wheel zooms only
+  with a modifier and pans bare, and the drag now pans only with a modifier and does nothing bare.
+  **No new machinery and no new control**: `site/viewport.js` already read the modifier on the wheel
+  and on the keyboard, and this reads `ctrlKey`, `shiftKey` and `metaKey` on the event that already
+  starts the gesture, **at `pointerdown` and never again**, so letting the key go halfway through
+  does not stop a pan and taking it up halfway does not start one.
+- **What a plain drag does instead is nothing, and that is a decision rather than an omission.** The
+  page has two things a press on the canvas can mean, a click and a pan. #46 already decided that a
+  pointer which travelled is not a click and swallows the click it leaves behind, and that is
+  untouched: the travelled flag is still set by distance alone and only the new pan flag is gated.
+  So a plain drag selects nothing, clears nothing, files nothing while capture mode is on, moves
+  nothing and navigates nowhere.
+- **Touch is not gated**, which is the one place the rule is narrower than its sentence: a touch
+  screen has no Ctrl, no Shift and no wheel, so gating the one finger drag there would leave two
+  fingers as the only way to move the drawing at all. The field asked is `pointerType` and not a
+  viewport width, which is a proxy for it and wrong on a tablet with a keyboard. A pinch is ungated
+  for the same reason and was never a click drag. The footer help changed with the behaviour: it is
+  the only place on the page that names the modifier and it said a drag moves the drawing.
+- **smoke 240 to 246**, a phase of its own, and every claim reads the **SVG's own `viewBox`**, which
+  is what the browser renders from, rather than `window.ZT.view()`, which is what the module
+  believes. Both directions on each, and each fired by planting the defect its name describes: the
+  plain drag moves the plane not at all, Ctrl and Shift each move it by exactly the pointer's
+  travel, the modifier decides the gesture at the press, a plain drag on a tile does nothing at all
+  with capture mode on, and one finger of real touch still pans. **Three older assertions re-cut**
+  with the change rather than around it, each now holding the modifier and each keeping its
+  plain-drag half as a claim of its own. 33 addresses, 9 header controls with a minimum side of 26px
+  and phone chrome 125.19 of 844 = 0.1483, all measured again after this card.
+
 ### Removed
 
 - **The sentences that explain the page come off and the figures stay, #128.** The owner: "the page
