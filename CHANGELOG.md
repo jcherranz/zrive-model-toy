@@ -11,6 +11,44 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- **A gap is a place you go, and 22 of the 95 are work, #125.** The header said `gaps 8 of 95` and
+  the menu under it listed one row per field, so a reader read the number and then went and found
+  the things themselves. **The rows a system can answer for are controls now.** Pressing `11 cohort
+  sessions with no teacher_assigned` lands on those eleven, in #124's review, at the window already
+  set; anything the page lists one of selects that one on the drawing it is on; a row this page
+  cannot answer for stays text, because a button landing somewhere approximate is worse than a
+  number. **No new address and no new control**: the worklist is a query on the calendar's route,
+  `?gap=<field>`, and the page answers 33 addresses after and 33 before, with 9 controls in the
+  header row at 26px, both measured at `eaa520e` and at this sha.
+- **And the 95 stopped being one list, which is the card.** Joined against `routes.classes[<class>]
+  .system`, the registry the model already ships, they are two kinds of thing: **22 have a system**,
+  `cohort_session teacher_assigned` 11, `company_colaboradora cohort_that_attended` 6, `instructor
+  employer` 5, and a row exists with a field of it empty, so somebody can open it this week; **73
+  have none**, session template duration 38, location 13, module 8, cohort id 7, delivery 6,
+  programme modules 1, and no system anywhere records the fact, so no effort inside the tooling
+  that exists closes them. Re-derived at this sha rather than quoted. **The second heading is read
+  and not written**: it is the ghost type's own label, `does not exist in any system`, with the
+  registry's own sentence under it, which takes the page from three words for two findings to two.
+  The third word stays because it names something else.
+- **The sample rule is inherited rather than reinvented, #122.** A worklist that comes up empty is
+  the most welcome sentence this page can print wrong: Z-IB reads `All 6 drawn sessions in this
+  window record a teacher_assigned · 6 of the 79 sessions the model counts, so 73 are not drawn
+  here`, and Z-BL, which draws its whole syllabus, reads `All 28 sessions ... · all 28 of the
+  sessions the model counts` and never says `drawn`. On the worklist over the term, 3 of the 7
+  programmes have nothing on it and each says which of the two absences it is.
+- **Nine assertions in a phase of its own, smoke 224 to 232, each proved by planting the defect its
+  name describes.** Nothing in the phase reads the page's own bookkeeping for an answer it is
+  asserting, which is #121's finding applied a fourth time: `GAP_SPLIT` walks `window.GI` and does
+  the registry join in a second implementation, and every count, every side and every id set is
+  compared against it. The plants: the join reading whether the registry has an entry rather than
+  whether it names a system, a noun typed into the heading, every row made pressable, the worklist
+  filter matching everything, the review's default arming on top of a worklist, the way off
+  re-arming it, an unknown field taken as a filter, an empty worklist counting over the term
+  instead of the drawn rows, and an absent programme reporting a flattering absence as an empty
+  window. **One of them needed two lines rather than one and that is recorded on the assertion**:
+  `winTouched` is set before `armed` is worked out, so the `!gapField` conjunct beside it is a
+  second guard over one rule and deleting it alone leaves the suite clean at 232 of 232.
+
 - **The review you actually do has an address, and it is the calendar's, #124.** *"Reviewing the
   next one to three weeks before discussing with the team"* is a Monday, seven programmes and a
   meeting, and it had no address: the page opened on Z-IB with all 24 weeks and nothing selected,
