@@ -4783,8 +4783,16 @@ async function checkCut(page, base) {
   // from the snapshot fetched here, so it is the served bytes and not the page's own copy.
   const snap = await (await fetch(new URL('board.json', base))).json();
   await page.evaluate(`location.hash = '#/board'`);
-  await page.waitFor(`(document.getElementById('bmeta').textContent || '').indexOf('GitHub') !== -1`,
-    'the board provenance line');
+  // WAIT FOR THE LINE board.js WROTE AND NOT FOR THE ONE index.html SHIPS. The markup carries a
+  // fallback copy of this sentence, so a wait on the word GitHub is satisfied before the snapshot
+  // has arrived and this assertion reads the fallback. It passed locally and failed against the
+  // origin for exactly that reason, which is the whole argument for step 13 existing. The
+  // timestamp is in the rendered line and never in the fallback, so waiting on it waits on the
+  // fetch; where a snapshot carries none, the two lines are the same string anyway.
+  await page.waitFor(snap.generated
+    ? `(document.getElementById('bmeta').textContent || '').indexOf(${JSON.stringify(snap.generated)}) !== -1`
+    : `(document.getElementById('bmeta').textContent || '').indexOf('GitHub') !== -1`,
+    'the board provenance line board.js wrote from the snapshot');
   const bmeta = await page.evaluate(
     `document.getElementById('bmeta').textContent.replace(/\\s+/g, ' ').trim()`);
   const wantMeta = (snap.generated ? 'Generated ' + snap.generated + '. ' : '') +

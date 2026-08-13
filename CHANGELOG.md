@@ -9,7 +9,52 @@ of what changed and when, and it is meant to be scannable.
 
 ## [Unreleased]
 
+### Removed
+
+- **The sentences that explain the page come off and the figures stay, #128.** The owner: "the page
+  is still too verbose on the control center etc. remove a lot of text". Measured before cutting, by
+  driving the page and ranking every visible text node by character count, and measured again after.
+  **The text the page can put in front of a reader falls 133704 characters to 97638, 27 per cent.**
+  Of that: what is on screen with nothing pressed, summed over the 33 addresses, 69930 to 67427 at
+  1536 and at 1440 and 68853 to 66350 at 390; the four header menus and the footer help, 2274 to
+  1312; the panel notes over the whole document, 61500 rendered characters to 28899, and 229
+  occurrences to 173. **The measured facts all stayed**: #122's sampling fractions, #124's
+  two-sentence absence form and #125's 22 against 73 are untouched and their assertions untouched
+  with them.
+- **What went, in order of size.** The student card's note, 280 characters on 56 tiles, which said
+  why the card is drawn and that the person is invented, the second being the standing of the page's
+  own content that #110 took off every other surface. Ten more notes keep every absence and every
+  count and lose the framing. The window menu's two paragraphs on what the anchor is not and what
+  each surface does with a window. The theme menu's sentence on what its own three buttons do. The
+  grain menu's paragraph where nothing folded, which reported a fold of zero. The empty window's
+  clause naming the two controls that move it. The outline's finding, cut to the finding. The two
+  captions `employers appear on click` and `individuals appear on click`, painted on 32 of the 33
+  addresses, whose claim is now in the help alone. The footer help, five items to two, the two
+  nothing else on the page states. The board's sentence saying it is not editable. And `all seven
+  programmes` out of the two headings typed into `index.html`, which was also a false claim on the
+  14 scoped sheet addresses.
+- **Nothing else moved.** 33 addresses before and after, 9 header controls at 26px at all three
+  widths before and after, phone header 125.19 of 844 = 0.1483 before and after, header one row, and
+  the page still says nothing about the standing of its own content. Geometry byte-identical: all 14
+  drawings the same size, every band the same x and width, `bandTop` 43.
+
 ### Added
+
+- **Eight assertions that hold the cut, #128.** smoke 232 to 240, a phase of its own, each fired by
+  planting the defect its name describes and each recomputed rather than read off the page: the
+  header's four menu paragraphs measured at both altitudes against 200 characters, where the two
+  that went were 328 and 282; the empty window's sentence rebuilt from the window state and the
+  driver's own date formatter; the typed heading carrying no scope over all 16 sheet addresses while
+  the sheet under it states the one the address earns; the students card's fraction rebuilt from
+  each view's own Student nodes; no note anywhere stating the standing of the content; the help at
+  two items and 280 characters; no caption on any of the 14 drawings naming a gesture, read off the
+  geometry and off what is painted; and the board's line against the `board.json` the origin served.
+- **#115's guard had never seen a note.** It sweeps the whole document on every address, and a
+  node's note is only in the DOM while that node is selected, so nothing in the suite had ever
+  opened a panel while it ran: 56 tiles carried "every value on it is made up" past a guard whose
+  whole subject is that sentence. The notes are read off the document now, which needs no panel.
+  The properties are deliberately not swept, because the provenance rows are the record of where a
+  value came from and are untouched.
 
 - **A gap is a place you go, and 22 of the 95 are work, #125.** The header said `gaps 8 of 95` and
   the menu under it listed one row per field, so a reader read the number and then went and found
