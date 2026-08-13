@@ -115,6 +115,15 @@ jobs:
       - name: Prove the provenance gate fires
         run: python3 build/model.py --provenance-self-test
 
+      # The ontology gate, issue 123, which says where the four registry rows on every panel
+      # came from. It runs at import time inside the rebuild below, and on THIS machine it will
+      # find no corpus and say so rather than passing: the analysis is on one machine and never
+      # in this repository. So the suite below is the whole of what CI can prove about it, and
+      # it is written to be provable here: every probe builds its own synthetic corpus in a
+      # temporary directory, so the refusals are exercised on a runner that holds no real one.
+      - name: Prove the ontology gate fires
+        run: python3 build/model.py --ontology-self-test
+
       # NAMED FOR WHAT THE GATE COMPARES, WHICH IS NOT WHAT THIS STEP USED TO CLAIM. Issue 103
       # row B10. The gate takes its baseline from the index and prints which snapshot it read;
       # here the workspace is a fresh checkout, so the index, HEAD and the disk are the same

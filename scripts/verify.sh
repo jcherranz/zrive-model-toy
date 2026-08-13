@@ -484,7 +484,18 @@ step "4. prove the build gate fires"                      bash scripts/check_bui
 # above already exercises it against the real document. This is the other half of the TPS rule: a gate that
 # has never been seen to refuse is not a gate, so one synthetic document per rule, each one a
 # document that PASSES with a single field changed. Issue 73.
-step "5. prove the provenance gate fires"                 python3 build/model.py --provenance-self-test
+#
+# AND THE ONTOLOGY GATE IS THE SAME CLAIM ABOUT THE OTHER POPULATION, issue 123. It runs at
+# import time on every build, so step 3 above has already run it against the real corpus on a
+# machine that holds one; this proves it REFUSES, and it proves it on machines that hold none,
+# because every probe writes its own synthetic corpus to a temporary directory. One step and
+# not two: both are "prove the gate that says where a value came from fires", and this file's
+# step numbers are read by other files, which is issue 106 E4.
+provenance_gates() {
+  python3 build/model.py --provenance-self-test || return 1
+  python3 build/model.py --ontology-self-test  || return 1
+}
+step "5. prove the two provenance gates fire"             provenance_gates
 step "6. prove the repository gate fires"                 bash scripts/check_repo.sh --self-test
 step "7. repository gate, over every tracked file"        bash scripts/check_repo.sh
 # The gate is named by what it reads and not by where the bytes came from, because where they came

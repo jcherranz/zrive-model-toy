@@ -1063,10 +1063,25 @@ ONTOLOGY_ENTITIES = 55
 # right, an honest date was available, and a gate is not weakened to let a change through.
 ONTOLOGY_READ_ON = "2026-08-10"
 
-# The four keys route_props() writes, read back off route_props() rather than typed a second
-# time. Issue 118 deleted SYLLABUS_KEYS for this reason and wrote down why: a tuple nobody
-# derives is the next thing somebody edits instead of the thing it was copied from.
-ROUTE_ROWS = tuple(row["k"] for row in route_props(ROUTES["programme"]))
+# The four seats this source says it filled. WRITTEN, AND THEN CHECKED AGAINST THE FUNCTION
+# THAT EMITS THEM, which is the difference between a declaration and a derivation and it was
+# measured rather than reasoned about. Derived off route_props() this tuple was CIRCULAR: a row
+# deleted from the emitter vanished from the declaration in the same edit, so the population
+# rule had nothing left to compare it with, and a build emitting three rows on every panel went
+# green. Both directions are closed instead. The tuple is what the source declares it produced,
+# route_props() is what produces it, and a build where the two differ stops on the next line.
+ROUTE_ROWS = ("route_system", "route_entered_by", "route_event", "route_source")
+
+for _cid, _entry in sorted(ROUTES.items()):
+    _emitted = tuple(row["k"] for row in route_props(_entry))
+    if _emitted != ROUTE_ROWS:
+        raise SystemExit(
+            f"model: route_props() emits {_emitted} on route {_cid} and the operations-ontology "
+            f"source declares it filled {ROUTE_ROWS}. The seats a source says it produced and "
+            f"the rows a panel prints are the same four, in the same order, or the declaration "
+            f"is about a panel that no longer exists and the population rule is comparing "
+            f"nothing.")
+del _cid, _entry, _emitted
 
 VALUE_SOURCES["operations-ontology"] = {
     "corpus": "the operations analysis in the owner's private analysis repository, none of "
