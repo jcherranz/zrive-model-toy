@@ -2134,6 +2134,16 @@
       // found by trying it: the way off the filter offers `all 83 sessions` and, without this
       // line, re-armed the default on the way and delivered eleven. A control may not name a
       // number and hand over a different one.
+      //
+      // THE TWO LINES BELOW ARE ONE RULE GUARDED TWICE, AND THAT IS SAID HERE RATHER THAN IMPLIED,
+      // because issue 125's plant proofs measured it: `winTouched` is set before `armed` is worked
+      // out and armReview() refuses on `winTouched`, so deleting the `!gapField` conjunct alone
+      // changes nothing this suite or a reader can see. The pair is kept because they answer
+      // different questions and each reads correctly on its own line, the first that a worklist
+      // address is not a state to arm a default over and the second that leaving one does not
+      // re-open the question; what may not stand is a comment claiming the conjunct is carrying the
+      // arrival by itself. The defect this rule exists against needs both lines gone, and that is
+      // the plant `the worklist` fires its window assertion with.
       if (gapField) winTouched = true;
       var armed = reading === 'calendar' && shape === 'review' && !gapField && armReview();
       buildRows();

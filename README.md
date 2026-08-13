@@ -200,10 +200,14 @@ node scripts/smoke.mjs <origin-url>
 
 It asserts across three viewports, 1536x839, 1440x900 and 390x844, and **how many is a number this
 sentence no longer carries.** Issue 106. The line opened "Ninety seven assertions" from `81ccf0f`,
-where 97 was right, until here: `EXPECTED_ASSERTIONS` in the suite read 139 at `02459ac`, 144 at
-`5f32209` and 177 now. The suite has held its own terminator all along, so the total was asserted
+where 97 was right, until here: `EXPECTED_ASSERTIONS` in the suite read 139 at `02459ac` and 144 at
+`5f32209`. The suite has held its own terminator all along, so the total was asserted
 in one place and typed in another, and only the typed one could go stale. It went stale in the
-direction that flatters, since a reader budgeting for 97 thinks the suite thinner than it is. Run
+direction that flatters, since a reader budgeting for 97 thinks the suite thinner than it is. This
+paragraph named a third figure, `177 now`, until issue 125 found it reading 177 against a suite of
+223: a sentence whose subject is a number going stale had gone stale itself, four cards after it
+was written. What replaces it is nothing, which is what the sentence asked for in the first place;
+the constant in the file is the only copy of that number and it is checked before anything runs. Run
 it and it names every assertion and ends on its own total. What follows is what it covers, and it
 is not exhaustive either: the six Company
 nodes of which five are hidden employers, each instructor revealing its own employer and nothing
