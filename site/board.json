@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-13T16:03:20Z",
+  "generated": "2026-08-13T17:04:14Z",
   "columns": [
     {
       "key": "raw",
@@ -44,21 +44,20 @@
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": [
-        {
-          "id": 130,
-          "title": "THE DESK: the twenty-two fixable gaps are a screen, beside the current page",
-          "labels": [
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/130"
-        }
-      ]
+      "cards": []
     },
     {
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 130,
+          "title": "THE DESK: the twenty-two fixable gaps are a screen, beside the current page",
+          "labels": [
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/130"
+        },
         {
           "id": 128,
           "title": "Every sentence that teaches the page how to be read comes off; the measured facts stay",
@@ -118,18 +117,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/122"
-        },
-        {
-          "id": 121,
-          "title": "The header reports the previous programme, and the calendar sentence ignores the window",
-          "labels": [
-            "bug",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/121"
         }
       ],
-      "hidden": 106,
+      "hidden": 107,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
