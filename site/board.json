@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-13T17:04:14Z",
+  "generated": "2026-08-13T23:22:11Z",
   "columns": [
     {
       "key": "raw",
@@ -44,7 +44,16 @@
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": []
+      "cards": [
+        {
+          "id": 131,
+          "title": "The desk comes off and the header control panel gets the craft pass he asked for",
+          "labels": [
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/131"
+        }
+      ]
     },
     {
       "key": "done",
