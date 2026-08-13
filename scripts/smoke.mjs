@@ -261,6 +261,7 @@ const PHASES = {
   'term':                 { count: 56, when: 'behavioural' },
   'the sample':           { count: 6, when: 'behavioural' },
   'the empty window':     { count: 6, when: 'behavioural' },
+  'the review':           { count: 7, when: 'behavioural' },
   'header':               { count: 8, when: 'behavioural' },
   'the readout':          { count: 7, when: 'behavioural' },
   'canvas':               { count: 7, when: 'behavioural' },
@@ -476,7 +477,7 @@ const PHASES = {
 // eleven over eighty three drawn chips, so the second is not a restatement of the first. Both are
 // against SENTENCE_MODEL, which walks window.GI and rebuilds every figure, and both carry the
 // claim that the other reading of the same term gives different numbers.
-const EXPECTED_ASSERTIONS = 216;
+const EXPECTED_ASSERTIONS = 223;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -1906,6 +1907,24 @@ function mondayOf(d) {
   const t = new Date(d + 'T00:00:00Z');
   t.setUTCDate(t.getUTCDate() - dowMon0(d));
   return t.toISOString().slice(0, 10);
+}
+
+// Two more date functions of the driver's own, for issue 124's review: the end of a window that
+// starts on a Monday and runs whole weeks, and the long form the sheet writes a date in. Written
+// here for the reason mondayOf above is written here, that a driver which asked the page how to
+// read a date would be asserting the page against itself.
+function plusDays(d, n) {
+  const t = new Date(d + 'T00:00:00Z');
+  t.setUTCDate(t.getUTCDate() + n);
+  return t.toISOString().slice(0, 10);
+}
+
+const LONG_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+                     'July', 'August', 'September', 'October', 'November', 'December'];
+
+function longDate(d) {
+  return String(Number(d.slice(8, 10))) + ' ' + LONG_MONTHS[Number(d.slice(5, 7)) - 1] + ' ' +
+         d.slice(0, 4);
 }
 
 // The window menu is a disclosure and closes on a click anywhere else, exactly as the programme
@@ -3570,6 +3589,327 @@ async function checkSample(page) {
     'the drawing this phase started on');
   await page.evaluate(`location.hash = '#/'`);
   await page.waitFor('window.ZT.term().open === false', 'the diagram to come back');
+}
+
+// ---- the review, issue 124 ----------------------------------------------------------------------
+// THE RITUAL HAD NO ADDRESS. "Reviewing the next one to three weeks before discussing with the
+// team" is a Monday, seven programmes and a meeting, and it was rebuilt from four controls every
+// time. It is one link now, and this phase is seven claims about that link.
+//
+// NOTHING HERE READS THE PAGE'S OWN BOOKKEEPING FOR AN ANSWER IT IS ASSERTING. #121 established
+// why: all 207 assertions at the time read what the page printed, which is exactly why none of
+// them could catch a heading that named the wrong programme, and #122 hit the same wall when its
+// closest assertion looked for a total and found it, because the page agreed with itself. So the
+// window arithmetic is recomputed below by a second implementation, in the page but not shared
+// with term.js: it walks window.GI, applies the window itself, ranks the rows by the two keys the
+// card decided, and works out for every programme whether the window holds nothing of it and what
+// the model declares against what these documents drew. What is on screen is the input to the
+// comparison and never its answer.
+const REVIEW_MODEL = `(function (from, to) {
+  var progs = [], rows = [];
+  window.GI.views.forEach(function (v) {
+    var b = (v.counts || {}).CohortSession || { drawn: 0, total: 0 };
+    var mine = [];
+    v.nodes.forEach(function (n) {
+      if (n.type !== 'CohortSession') return;
+      var p = {};
+      (n.props || []).forEach(function (r) { if (p[r.k] === undefined) p[r.k] = r.v; });
+      var at = String(p.scheduled_at || ''), d = at.split(' ')[0] || '';
+      var row = { at: at, date: d, code: v.code, key: v.key, route: v.route, id: n.id,
+                  teacher: p.teacher_assigned };
+      mine.push(row);
+      if (d && d >= from && d <= to) rows.push(row);
+    });
+    mine.sort(function (a, b) { return a.at < b.at ? -1 : a.at > b.at ? 1 : 0; });
+    var before = null, after = null, inWindow = 0;
+    mine.forEach(function (r) {
+      if (!r.date) return;
+      if (r.date >= from && r.date <= to) { inWindow++; return; }
+      if (r.date < from) before = r.date;              // in date order, so the last one wins
+      else if (!after) after = r.date;
+    });
+    progs.push({ key: v.key, code: v.code, label: v.label, route: v.route,
+                 drawn: b.drawn, total: b.total, complete: b.total > 0 && b.drawn >= b.total,
+                 inWindow: inWindow, before: before, after: after, drawnRows: mine.length });
+  });
+  rows.sort(function (a, b) {
+    if (a.at !== b.at) return a.at < b.at ? -1 : 1;
+    if (a.code !== b.code) return a.code < b.code ? -1 : 1;
+    return a.id < b.id ? -1 : 1;
+  });
+  var un = rows.filter(function (r) { return r.teacher !== 'yes'; });
+  var st = rows.filter(function (r) { return r.teacher === 'yes'; });
+  var route = {};
+  rows.forEach(function (r) { route[r.id] = r.route; });
+  return {
+    n: rows.length, unstaffed: un.length, staffed: st.length,
+    // The two orderings, because the claim is that the review is in the first and not the second
+    // and an assertion that only knew the first could not tell them apart on a day they agree.
+    ranked: un.concat(st).map(function (r) { return r.id; }),
+    dated: rows.map(function (r) { return r.id; }),
+    ids: rows.map(function (r) { return r.id; }).sort(),
+    route: route,
+    absent: progs.filter(function (p) { return p.inWindow === 0; }),
+    programmes: progs.length,
+    allDrawn: progs.reduce(function (n, p) { return n + p.drawnRows; }, 0)
+  };
+})`;
+
+// What the review put on the screen, read as a reader sees it: the bands, the rows under each of
+// them, the block of programmes the window holds nothing of, and the smallest control in the
+// table. Nothing in here is a number the page computed about itself.
+const REVIEW_READ = `(function () {
+  function cells(tr) { return Array.prototype.slice.call(tr.querySelectorAll('td')); }
+  var trs = Array.prototype.slice.call(document.querySelectorAll(
+    '#termrows tbody tr:not(.term-group):not(.term-module):not(.term-agenda)'));
+  return {
+    bands: Array.prototype.map.call(document.querySelectorAll('#termrows tbody tr.rev-band th'),
+      function (th) { return th.textContent; }),
+    head: (document.querySelector('#termrows tbody tr.rev-head th') || {}).textContent || null,
+    absent: Array.prototype.map.call(document.querySelectorAll('#termrows tbody tr.rev-absent th'),
+      function (th) {
+        var a = th.querySelector('a');
+        return { code: a ? a.textContent : null, href: a ? a.getAttribute('href') : null,
+                 text: th.textContent };
+      }),
+    rows: trs.map(function (tr) {
+      var td = cells(tr), a = tr.querySelector('a.linkbtn');
+      var p = tr.previousElementSibling;
+      while (p && !p.classList.contains('rev-band')) p = p.previousElementSibling;
+      return { date: td[0] ? td[0].textContent : null, code: a ? a.textContent : null,
+               href: a ? a.getAttribute('href') : null,
+               instructor: td[4] ? td[4].textContent : null,
+               id: td[7] ? td[7].textContent : null,
+               gap: tr.classList.contains('term-gap'),
+               band: p ? p.textContent : null };
+    }),
+    title: (document.getElementById('termtitle') || {}).textContent || '',
+    linkMin: (function () {
+      var m = Infinity;
+      Array.prototype.forEach.call(document.querySelectorAll('#termrows a.linkbtn'), function (a) {
+        var r = a.getBoundingClientRect();
+        if (r.width < m) m = r.width;
+        if (r.height < m) m = r.height;
+      });
+      return m === Infinity ? null : Math.round(m * 10) / 10;
+    })()
+  };
+})()`;
+
+async function checkReview(page, base) {
+  // ONE. THE LINK, COLD, WHICH IS THE WHOLE OF WHAT THE CARD ASKED FOR. A cold load and not a
+  // hash change, because "open one link and the agenda is on the screen" is a claim about what a
+  // reader who has pressed nothing gets, and every other state on this page survives a hash
+  // change. The three weeks are recomputed from the anchor the control reports rather than read
+  // off the window the page set.
+  // A RELOAD OF THAT ADDRESS AND NOT A NAVIGATION TO IT, which is checkColdLoad's own idiom and
+  // is here for a reason it records: two URLs that differ only in their fragment are the same
+  // document, so navigating between them changes the hash and reloads nothing. This is the
+  // reader's F5 on the link they were sent.
+  await page.evaluate(`location.hash = '#/calendar'`);
+  await page.reload();
+  await page.waitFor(`window.ZT.term().open === true &&
+                      window.ZT.term().reading === 'calendar'`,
+    'the review to open cold at #/calendar');
+  const t0 = await page.evaluate('window.ZT.term()');
+  const head0 = await page.evaluate(TERM_READ);
+  const r0 = await page.evaluate(REVIEW_READ);
+  const w = t0.window;
+  assert('one address opens the review, cold, on three weeks from the anchor',
+    t0.shape === 'review' && w.on === true && w.weeks === 3 &&
+      w.from === w.anchor && w.to === plusDays(w.anchor, 20) &&
+      head0.wn && head0.wn.text === 'weeks 3 of ' + w.termWeeks &&
+      r0.rows.length > 0 && / unstaffed first$/.test(r0.title),
+    `the review on screen at ${w.anchor} to ${plusDays(w.anchor, 20)}, the header reading ` +
+      `"weeks 3 of ${w.termWeeks}", and a heading that says what it is ranked by`,
+    `shape ${t0.shape}, window ${w.weeks} weeks ${w.from} to ${w.to}, control ` +
+      `${JSON.stringify(head0.wn && head0.wn.text)}, ${r0.rows.length} rows, heading ` +
+      JSON.stringify(r0.title));
+
+  // TWO. AND IT ADDED NO ADDRESS, which is the difference between this being holistic and being a
+  // tenth feature. The committee wrote "a new address must retire one" and broke the rule in the
+  // same document; the review takes the calendar's route instead. The list is rebuilt here from
+  // window.GI rather than read, and the page's own list is checked against it: 16 the sheet
+  // answers, plus the diagram, the board and the student list, plus a route and an altitude for
+  // each of the seven programmes, which is 33 and is what it was before this card.
+  const views = JSON.parse(await page.evaluate(
+    `JSON.stringify(window.GI.views.map(function (v) {
+       return { key: v.key, code: v.code, label: v.label, route: v.route }; }))`));
+  const termRoutes = JSON.parse(await page.evaluate('JSON.stringify(window.ZT.termRoutes())'));
+  const wantSheet = ['calendar', 'outline'].reduce(
+    (a, rd) => a.concat(['#/' + rd], views.map(v => '#/' + rd + '/' + v.key)), []);
+  const wantAll = ['#/', '#/board', '#/students']
+    .concat(views.map(v => v.route), views.map(v => v.route + '/modules'), wantSheet);
+  assert('and it added no address: the page answers the 33 it answered before, the review among them',
+    termRoutes.slice().sort().join('|') === wantSheet.slice().sort().join('|') &&
+      termRoutes.length === 16 && wantAll.length === 33 &&
+      new Set(wantAll).size === 33 &&
+      wantAll.filter(h => /review/i.test(h)).length === 0 &&
+      wantAll.indexOf('#/calendar') !== -1,
+    `33 addresses, ${wantSheet.length} of them the sheet's, none of them named after the review`,
+    `${termRoutes.length} sheet routes ${JSON.stringify(termRoutes.slice(0, 3))}, ` +
+      `${new Set(wantAll).size} addresses in all`);
+
+  // THREE. THE ROWS ARE THE WINDOW AND NOTHING ELSE, recomputed here. The second claim is that the
+  // window is taking rows off at all: without it this would pass on a review that ignored the
+  // window on any day the two sets happened to coincide.
+  const model = await page.evaluate(
+    `${REVIEW_MODEL}(${JSON.stringify(w.from)}, ${JSON.stringify(w.to)})`);
+  const shownIds = r0.rows.map(r => r.id);
+  assert('the rows it shows are exactly the sessions inside that window, recomputed from window.GI',
+    shownIds.slice().sort().join('|') === model.ids.join('|') &&
+      shownIds.length === model.n && model.n > 0 && model.n < model.allDrawn,
+    `${model.n} of the ${model.allDrawn} drawn sessions, for ${w.from} to ${w.to}`,
+    `${shownIds.length} rows on screen, ${model.n} in the window by this driver's own arithmetic`);
+
+  // FOUR. AND THEY ARE RANKED, unstaffed first, because that is the thing the meeting acts on.
+  // Both bands are required to be non-empty and the ranked order is required to DIFFER from plain
+  // date order, so a review that had simply kept the calendar's ordering cannot pass; and the mark
+  // on each row is checked against the band it is under, so a heading that said one thing over
+  // rows that were another fails too.
+  const misbanded = r0.rows.filter((r, i) => r.gap !== (i < model.unstaffed) ||
+    (i < model.unstaffed ? !/^Nobody named to teach these/.test(r.band || '')
+                         : !/^Instructor named/.test(r.band || ''))).length;
+  assert('and they are ranked unstaffed first, in date order inside each band',
+    shownIds.join('|') === model.ranked.join('|') &&
+      model.ranked.join('|') !== model.dated.join('|') &&
+      model.unstaffed > 0 && model.staffed > 0 && misbanded === 0 &&
+      r0.bands.length === 2 &&
+      r0.bands[0] === `Nobody named to teach these · ${model.unstaffed} of ${model.n} in this window` &&
+      r0.bands[1] === `Instructor named · ${model.staffed} of ${model.n} in this window`,
+    `${model.unstaffed} unstaffed rows first and then ${model.staffed} staffed, an order the ` +
+      'same rows in date order would not produce',
+    `${misbanded} rows under the wrong band, bands ${JSON.stringify(r0.bands)}`);
+
+  // FIVE. EVERY ROW IS A WAY INTO THAT PROGRAMME'S DRAWING, AT THE SAME WINDOW. The window belongs
+  // to the page rather than to the sheet, which is #90's decision, so following a row leaves it
+  // where it is: the assertion is the address the link carries, the programme that comes up when
+  // it is followed, and the window still being the three weeks the row was in. #77's floor is on
+  // it too, because this card put a control on every row of a screen a manager opens weekly.
+  const wrongHref = r0.rows.filter(r => r.href !== model.route[r.id]);
+  const firstRow = r0.rows[0];
+  const wantView = views.find(v => v.route === firstRow.href) || {};
+  await page.evaluate(`location.hash = ${JSON.stringify(firstRow.href)}`);
+  await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(wantView.key)}`,
+    `the ${wantView.key} drawing the first row links to`);
+  const afterFollow = await page.evaluate('window.ZT.term()');
+  const filtered = await page.evaluate('window.ZT.filtered()');
+  assert('every row links into its own programme\'s drawing, and following one keeps the window',
+    wrongHref.length === 0 && r0.rows.length > 1 && !!wantView.key &&
+      afterFollow.open === false && afterFollow.window.weeks === 3 &&
+      afterFollow.window.anchor === w.anchor && afterFollow.window.from === w.from &&
+      filtered.on === true && r0.linkMin >= 26,
+    `${r0.rows.length} rows each carrying its own view's route, and ${wantView.key} on the ` +
+      `canvas at ${w.from} to ${w.to} after following the first of them`,
+    `${wrongHref.length} wrong hrefs ${JSON.stringify(wrongHref.slice(0, 3))}, after following: ` +
+      `programme ${wantView.key}, window ${afterFollow.window.weeks} weeks at ` +
+      `${afterFollow.window.anchor}, drawing filtered ${filtered.on}, smallest link ${r0.linkMin}`);
+
+  // ---- AND THE HALF THE FIRST DRAFT DIED ON, WHICH IS THE SAMPLE ------------------------------
+  // FIVE OF THE SEVEN DRAWINGS ARE SAMPLES: Z-IB draws 6 of 79, Z-PE 6 of 36, Z-HR 6 of 25, Z-DS
+  // 6 of 22, Z-CFA 6 of 45, and only Z-SC and Z-BL are whole. Rolled over real three week windows
+  // this screen meets, from April, five of seven programmes with nothing in the window, and a
+  // screen that reported those as absences in the business would be manufacturing five sentences a
+  // week out of what these documents happen to draw. So the roll is the assertion: the anchor is
+  // walked from the term's first Monday to its last through the control a reader uses, and at
+  // every one of those positions the block is checked against this driver's own arithmetic.
+  await page.evaluate(`location.hash = '#/calendar'`);
+  await page.waitFor(`window.ZT.term().reading === 'calendar'`, 'the review again');
+  await wnMenu(page, true);
+  for (let i = 0; i < 40; i++) {
+    const at = await page.evaluate('window.ZT.term().window.anchor');
+    if (at === w.firstMonday) break;
+    await pressByText(page, '#wnmenu .wn-step', '‹');
+    await page.waitFor(`window.ZT.term().window.anchor !== ${JSON.stringify(at)}`,
+      `the anchor to step back off ${at}`);
+  }
+  const rolled = [];
+  for (let i = 0; i < 40; i++) {
+    const at = await page.evaluate('window.ZT.term().window');
+    const m = await page.evaluate(
+      `${REVIEW_MODEL}(${JSON.stringify(at.from)}, ${JSON.stringify(at.to)})`);
+    rolled.push({ at: at, model: m, read: await page.evaluate(REVIEW_READ) });
+    if (at.anchor === at.lastMonday) break;
+    await pressByText(page, '#wnmenu .wn-step', '›');
+    await page.waitFor(`window.ZT.term().window.anchor !== ${JSON.stringify(at.anchor)}`,
+      `the anchor to step forward off ${at.anchor}`);
+  }
+  await wnMenu(page, false);
+
+  // SIX. THE PROGRAMME IS NAMED, AND WHAT IS SAID OF IT IS SAID IN THE WORDS ITS OWN STANDING
+  // EARNS. Two sentences and not one with a badge: where the drawn rows ARE the term the absence
+  // is the business's, and where they are 6 of 79 it is the document's and says `drawn`. The
+  // partition is the model's, taken from the counts block #122 reads, so a page that printed one
+  // form everywhere fails on whichever form it chose; and both halves are required to occur
+  // somewhere in the roll, so a run in which no sampled programme was ever absent proves nothing
+  // and says so.
+  const wrongSet = [], wrongWords = [];
+  let sawSampled = 0, sawComplete = 0;
+  for (const x of rolled) {
+    const want = x.model.absent.map(p => p.code).sort().join(',');
+    const got = x.read.absent.map(a => a.code).sort().join(',');
+    if (want !== got) wrongSet.push(`${x.at.from}: wanted ${want || '(none)'}, got ${got || '(none)'}`);
+    for (const a of x.read.absent) {
+      const p = x.model.absent.find(q => q.code === a.code);
+      if (!p) continue;
+      const frac = p.complete
+        ? `all ${p.total} of the sessions the model counts`
+        : `${p.drawn} of the ${p.total} sessions the model counts, so ${p.total - p.drawn} are ` +
+          'not drawn here';
+      const ok = p.complete
+        ? / · no session in this window · /.test(a.text) && a.text.indexOf('drawn') === -1
+        : / · no drawn session in this window · /.test(a.text);
+      if (p.complete) sawComplete++; else sawSampled++;
+      if (!ok || a.text.indexOf(frac) === -1) {
+        wrongWords.push(`${x.at.from} ${a.code}: ${JSON.stringify(a.text.slice(0, 120))}`);
+      }
+    }
+  }
+  assert('a programme the window holds nothing of is named, and a sampled one is not reported as a term with nothing in it',
+    rolled.length > 3 && wrongSet.length === 0 && wrongWords.length === 0 &&
+      sawSampled > 0 && sawComplete > 0,
+    `over ${rolled.length} three week windows rolled across the term, every absent programme ` +
+      'named and every sentence in the form its own drawn-against-declared count earns',
+    `${wrongSet.length} windows named the wrong set ${JSON.stringify(wrongSet.slice(0, 3))}, ` +
+      `${wrongWords.length} sentences in the wrong form ${JSON.stringify(wrongWords.slice(0, 3))}, ` +
+      `${sawSampled} sampled and ${sawComplete} complete absences seen`);
+
+  // SEVEN. AND THE DATE IT LAST RAN, which is the other half of what the card asked the block to
+  // carry and is the figure a reader would otherwise take on trust. It is the last session BEFORE
+  // the window that these documents draw, and on a sampled programme it says so; where the window
+  // is before everything the programme has, the next one is named instead. Both branches are
+  // required to occur in the roll, because a clause that only ever prints one of them is a clause
+  // with an untested half.
+  const wrongDate = [];
+  let sawBefore = 0, sawAfter = 0;
+  for (const x of rolled) {
+    for (const a of x.read.absent) {
+      const p = x.model.absent.find(q => q.code === a.code);
+      if (!p) continue;
+      const noun = p.complete ? 'session' : 'drawn session';
+      const clause = p.before ? `last ${noun} ${longDate(p.before)}`
+                   : p.after ? `next ${noun} ${longDate(p.after)}`
+                   : `no ${noun} anywhere in the term`;
+      if (p.before) sawBefore++; else if (p.after) sawAfter++;
+      if (a.text.slice(-clause.length) !== clause) {
+        wrongDate.push(`${x.at.from} ${a.code}: wanted ${JSON.stringify(clause)} at the end of ` +
+          JSON.stringify(a.text.slice(-60)));
+      }
+    }
+  }
+  assert('and it names the date it last ran, off the rows these documents draw and not off the model\'s total',
+    wrongDate.length === 0 && sawBefore > 0 && sawAfter > 0,
+    `every absent row closing on the last drawn session before its window, ${sawBefore} of them ` +
+      `looking back and ${sawAfter} forward, recomputed here`,
+    `${wrongDate.length} wrong ${JSON.stringify(wrongDate.slice(0, 3))}, ${sawBefore} looked ` +
+      `back and ${sawAfter} forward`);
+
+  // Left as it was found, and cold, because this phase moved the anchor and armed a window: a hash
+  // change would carry both into the phases after it. The page that comes back is the one every
+  // one of them was written against.
+  await page.evaluate(`location.hash = '#/'`);
+  await page.reload();
+  await page.waitFor(DIAGRAM_READY, 'the diagram back at the default address, cold');
 }
 
 // ---- what the header says needs attention, issue 98 ---------------------------------------------
@@ -6237,6 +6577,11 @@ async function runViewport(chrome, viewport, base, full, narrow) {
       // `header`, which walks all seven programmes: this one moves to a programme of its own
       // choosing and puts both back the way it found them. Issue 119.
       await group('the empty window', () => checkEmptyWindow(page));
+      // After the two phases that leave the window off and the address on the diagram, and before
+      // the phases that walk the seven programmes. It loads the review's address cold, which is
+      // the only honest way to assert what a link opens on, and it leaves the page cold on the
+      // diagram for the same reason `the empty window` puts the window back. Issue 124.
+      await group('the review', () => checkReview(page, base));
       await group('header', () => checkHeader(page));
       await group('the readout', () => checkReadout(page));
       await group('canvas', () => checkCanvas(page));
