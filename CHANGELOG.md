@@ -388,6 +388,49 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- **The header kept reporting the programme the reader had left, #121.** `term.js` `show()` changes
+  the programme from inside a reading and ends in `classList.toggle('calendar', true)` on a body
+  that already carries the class. **A toggle to the value a class already has writes no attribute**,
+  so the `MutationObserver` over `document.body` never fired, and `show()`'s one callback, `onRoute`,
+  was wired to `measureHeader()` alone. Every other way into that count reaches it through a class
+  or through a direct call `app.js` makes where the window or the programme moves the count without
+  moving a class; this was neither. **Measured at `fc81d03` on a page served from `site/`: the
+  unscoped calendar reads `11 of 95`, and Z-CFA's calendar, pressed from the scope bar of that same
+  unscoped calendar, kept reading `11 of 95` where that reading holds 6.** The address had changed,
+  the rows had changed and the heading had changed. `onRoute` restates the readout and measures the
+  header after it, in that order, for the reason `showView()` refits last: the readings are in the
+  header and their width can change how many lines the row takes.
+- **The sentence under the calendar described the term while the list showed three weeks, #121.**
+  `describe()` built the subtitle from `stats(scope)` with the window bolted on as a trailing clause,
+  so over an agenda of eleven rows it read `83 sessions across 7 programmes ... 2026-01-12 to
+  2026-06-28 · 21 delivered, 14 confirmed, 48 planned · 11 with no instructor named · 83 with no
+  recording`, and closed with the one true clause, `11 of them inside the window`. **A manager who
+  pressed "3 weeks" to find who has no instructor in those three weeks was given a number about six
+  months: the answer is 1, and the page said 11.** `stats()` takes the window as a second argument
+  for the reason it already takes the scope, which #84 wrote down: one arithmetic with the narrowing
+  as an argument, never a second copy of it under an `if`.
+- **The rule is that the sentence describes what the sheet DREW, which is not the same as following
+  the window.** The list filters to the window and the two grids keep every session and mark the
+  band instead, which is #90's split kept by #100. So `listsWindow()` is the conjunction of the
+  reading, the shape and the window, and a fix that made the sentence follow the window everywhere
+  would print `11 sessions across 6 programmes` over eighty three drawn chips, which is the same
+  defect pointing the other way. The subtitle is built as parts and joined, because a window can
+  leave the list with nothing in it and a date span printed over an empty set is a mark a reader has
+  to decide is not a zero.
+- **Both were invisible to the suite because every assertion about them read the page's own
+  bookkeeping.** 207 assertions passed on both defects every day of their lives: the one that came
+  closest looked for `11 of them inside the window` in the subtitle and found it, the window being
+  the one clause of that sentence the window had reached. **The three added here recompute every
+  figure in the driver off `window.GI`** by a second implementation, apply the window themselves,
+  and sort by the same three keys `term.js` sorts by, so what is on the page is the input to the
+  comparison and never its answer. **Each carries a second claim beside the first, that the other
+  reading of the same term gives different numbers**, so a rebuild that made the two coincide turns
+  the row red instead of leaving it quietly vacuous. **Proved by planting each defect and naming the
+  row that went red**: `onRoute` back to `measureHeader()` alone fails `and it follows a change of
+  programme made from inside the reading` at `scoped: 11` against a recomputed 0; `stats(scope)`
+  without the window fails `and the sentence over it is arithmetic over the rows it filtered to, not
+  over the term`; `listsWindow()` without the shape fails `and the sentence over the grid is the
+  term's, because the grid still draws the term`. Smoke 207 to 210.
 - **An empty window painted six lane plates at `height: -47`, and nothing had ever driven one,
   #119 F20.** The term runs 2026-01-12 to 2026-06-28 with real gaps in April and May, so a one week
   window over one programme can cover no session at all. `filtered()` starts its extent at 0 and
