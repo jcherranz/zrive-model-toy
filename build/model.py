@@ -16,6 +16,10 @@ import re
 # palette table `--contrast` emits, scripts/check_repo.sh parses it field by field, and a
 # diagnostic printed beside it aborts that gate with a complaint about the table.
 import sys
+# Only build/model.py --ontology-self-test uses it: that suite writes a whole synthetic corpus
+# to a temporary directory so the gate can be proved to refuse on a machine that holds no real
+# one, which is every CI runner this repository has.
+import tempfile
 
 TYPES = [
     # key,             label,               colour,    glyph
@@ -243,6 +247,32 @@ APTO = ("fresh", "aging")
 # in CI, so the honest state is `unread`: real, and not fit to act on.
 SYLLABUS_RANK = OBSERVED
 
+# ---- what a source PRODUCED, issue 123 ---------------------------------------
+# TWO POPULATIONS ON THIS PAGE WERE READ OFF SOMETHING AND THEY ARE NOT THE SAME KIND OF THING.
+# That difference is a declared token here rather than something a rule guesses from the shape
+# of a declaration, because a rule that guesses is a rule that guesses wrong in silence.
+#
+# `values` is issue 118's population: a row whose VALUE was read off a corpus, wearing the
+# `real` chip a reader can see. The whole of that card is about what may wear it.
+#
+# `registry` is issue 72's four rows at the front of every panel. They are not values of the
+# object at all: they are facts about the CLASS it belongs to, read off an analysis OF the
+# systems rather than off any system, and no reader should ever see `real` on one. `real` there
+# would say the value was read off the thing the route describes, and nothing here has reached
+# one of those systems. So the flag rule in check_provenance() runs the OTHER WAY for a registry
+# source, and it is a refusal rather than a permission.
+#
+# THE ALTERNATIVE WAS A SECOND TABLE BESIDE VALUE_SOURCES, and two copies of a rule is the
+# defect this repository has been bitten by five times, most recently in the token folding where
+# the two copies were never the same rule. One table, one loop, one set of named rules, and one
+# declared word that says which of the two a source is.
+SOURCE_PRODUCES = {
+    "values": "rows whose value was read off the corpus. These are the rows entitled to the "
+              "`real` flag, and the only ones",
+    "registry": "rows stating how a class of object is populated, read off an analysis OF the "
+                "systems rather than off a system, and never `real`",
+}
+
 # ---- what "has a stated source" means, mechanically. Issue 118, audit round 6 F27 -----------
 # THE RULE USED TO BE A LIST OF SIX WORDS AND THE AUDIT WALKED THROUGH IT. `real-flag-needs-a-
 # source` tested one thing: whether the row's key was one of `module_name`, `sequence`,
@@ -301,6 +331,10 @@ VALUE_SOURCES = {
                   "frontmatter. The same corpus every session title on this page comes from",
         "read_on": "2026-08-11",
         "rechecked_by": "check_module_structure",
+        # Issue 123. Spelled out rather than left to the default, because the reader of these
+        # bytes now meets two sources that are not the same kind of thing and the difference is
+        # what decides whether `real` is reachable through this one.
+        "produces": "values",
         "rank": SYLLABUS_RANK,
         # Two flags and not one, because an absence read off a real source is a reading and not
         # a placeholder: eight session templates sit in no module and Z-CFA has no module
@@ -957,6 +991,338 @@ CLASS_OF_ID = {
     "g_beca": "ghost-beca",
     "g_ref": "ghost-refund",
 }
+
+# ---- the ontology becomes a declared source, and a gate re-reads it. Issue 123 --------------
+# THE DEFECT THIS CLOSES, AS IT WAS MEASURED. This document carries four route rows on every
+# drawn object, every one of them ranked `3_observed`; at the SHA this card was cut against that
+# was one thousand three hundred and twenty rows over three hundred and thirty objects, against
+# one thousand seven hundred and eighty nine rows of the objects' own of which one hundred and
+# sixty four were real. The observed half is the half the whole control-centre direction rests
+# on. And `provenance.sources` declared exactly ONE corpus, the programme syllabus, while
+# RECHECK_GATES_RUN had two members and neither was about routes. So the strongest claim this
+# artefact made about itself was the one claim nothing checked, and the register was promoted on
+# precisely the standard it alone failed.
+#
+# ONE MECHANISM, NOT A SECOND ONE BESIDE IT. What follows is issue 118's shape unchanged: a
+# source states the corpus it was read from, when it was read, the gate that re-reads it
+# wherever the corpus exists, and the (type, key) seats it filled. The single thing this card
+# adds to that shape is `produces` above, and it adds it precisely so that a second table was
+# not needed: the four route rows are facts about a class rather than values of an object, and a
+# declaration that could not say which of the two it was would have had to become one.
+#
+# IT IS DECLARED HERE AND NOT UP BESIDE THE SYLLABUS SOURCE for one reason: its seats are
+# DERIVED from the registry and from the type bindings, both of which are declared above this
+# line. A literal list of sixty seats would be a second copy of a table that already exists, and
+# the fourth thing this repository has learned the hard way is that the copy is the one that
+# rots.
+
+# WHERE THE CORPUS IS. None of it lives in this repository and none of it may: the analysis
+# names individuals on nearly every route and reads a private workspace. What is here is the
+# citation, which is an address, and this gate is the thing that follows the address.
+ONTOLOGY_DIR = pathlib.Path.home() / "projects/pr-zrive-toy/analysis"
+ONTOLOGY_VAULT = pathlib.Path.home() / "Obsidian/02_areas/zrive"
+# Relative to ONTOLOGY_DIR. The three shapes a citation on a route can take, and there is no
+# fourth: a citation naming anything else is refused by `citation-corpus` below rather than
+# quietly skipped, which is how a route acquires a source nothing can follow.
+ONTOLOGY_YAML = "ontology/ontology.yaml"
+ONTOLOGY_FINDINGS = "ontology/00_ontology.md"
+ONTOLOGY_NOTION = "notion"
+# The size of the corpus this file has claimed since issue 72, in prose, three times over
+# ("an ontology of 55 entities"). It was a sentence nothing checked. It is a number now, and the
+# gate reads the corpus's own list and the corpus's own declared count and refuses either
+# disagreeing with it.
+ONTOLOGY_ENTITIES = 55
+
+# ---- THE READ DATE, WHICH THIS FILE ARGUED SHOULD NOT EXIST ------------------
+# route_props() says the route rows are "undated, because this repository does not record when
+# the analysis was read and a plausible date would compute to `fresh` and make an undated
+# finding read as a current one". THAT ARGUMENT IS RIGHT AND IT IS ABOUT THE ROW'S DATE. Every
+# one of those rows still carries no `at`, this card changes not one of them, and
+# `syllabus-row-carries-no-read-date` is the rule that holds it there.
+#
+# A SOURCE'S `read_on` IS A DIFFERENT FIELD AND IT COMPUTES NOTHING. value_status() is a
+# function of the ROW's rank and the ROW's `at`. Nothing anywhere ages a value against the read
+# date of the source that produced it, and the programme-syllabus source has carried one since
+# issue 118 while every row it covers has stayed undated. So a date here fabricates no freshness
+# and reverses no argument.
+#
+# AND IT IS NOT A PLAUSIBLE DATE, WHICH IS THE HALF THAT WOULD HAVE BEEN WRONG. It is recorded,
+# and it is bracketed at both ends:
+#
+#   BELOW, by the corpus itself. `meta.written` in ontology.yaml says when the analysis was
+#   written, and check_ontology_registry() refuses a read date earlier than it. Nobody read a
+#   document before it was written, and that is a refusal off the corpus rather than a promise.
+#
+#   ABOVE, by this repository's own history. `git log -S"ontology.yaml, Programme" --
+#   build/model.py` names the commit that wrote these citations into this file, and its date is
+#   the one below. The reading happened on or before the day it was written down here, so this
+#   is the date the reading was RECORDED and the sentence above says so.
+#
+# THE ALTERNATIVE WAS A SOURCE WITH NO DATE AND A SENTENCE EXPLAINING THE HOLE, and it would
+# have had to be bought by relaxing the rule that a source states when it was read. That rule is
+# right, an honest date was available, and a gate is not weakened to let a change through.
+ONTOLOGY_READ_ON = "2026-08-10"
+
+# The four keys route_props() writes, read back off route_props() rather than typed a second
+# time. Issue 118 deleted SYLLABUS_KEYS for this reason and wrote down why: a tuple nobody
+# derives is the next thing somebody edits instead of the thing it was copied from.
+ROUTE_ROWS = tuple(row["k"] for row in route_props(ROUTES["programme"]))
+
+VALUE_SOURCES["operations-ontology"] = {
+    "corpus": "the operations analysis in the owner's private analysis repository, none of "
+              "which lives here: an ontology of 55 entities in `analysis/ontology/"
+              "ontology.yaml`, the findings register in `analysis/ontology/00_ontology.md`, "
+              "the workspace reads in `analysis/notion/`, and one data-model note in the "
+              "private vault. The fourth row of every populate panel is this document's "
+              "citation into it",
+    "read_on": ONTOLOGY_READ_ON,
+    "rechecked_by": "check_ontology_registry",
+    "produces": "registry",
+    "rank": OBSERVED,
+    # NO `real` HERE, and check_provenance() refuses a registry source that declares one. What
+    # was read is an analysis OF the systems and not a system, so a route row wearing the chip
+    # that means "read off the business" would be the same lie issue 104 is about, pointing at a
+    # different population. `estimated` where the analysis records an answer and `absent` where
+    # it records that there is none, which is what FIELD_FLAG already maps every route field to.
+    "flags": [E, A],
+    # THE SEATS, DERIVED. Every type an object is drawn as carries each of the four exactly
+    # once, and check_provenance()'s population rule is what turns that sentence into a refusal:
+    # a route row deleted off one node type, or a second row taking one of these names, stops
+    # the build. The union is over both tables because Ghost binds per id and the two aggregates
+    # bind per type, and a type in neither is already refused at the foot of this file.
+    "covers": {t: list(ROUTE_ROWS)
+               for t in sorted(set(CLASS_OF_TYPE) | {e["type"] for e in ROUTES.values()})},
+}
+
+
+# ---- WHAT THE GATE BELOW ESTABLISHES, AND WHAT IT DOES NOT -------------------
+# In that order, and the second half is the longer one, because a check whose reach is oversold
+# is what this repository is named for. Issue 118 said exactly this about `real` flags and it is
+# the reason that card is worth anything.
+#
+# WHAT IT ESTABLISHES, on a machine that holds the corpus:
+#
+#   EVERY CITATION RESOLVES. For each of the seventeen routes, the file its `source` names is in
+#   the corpus; an entity it names is one the ontology declares in its own `entities:` list; a
+#   finding it names is a row of the findings register; and a phrase it quotes is in the file it
+#   cites. A citation that no longer lands anywhere is a route whose provenance has rotted while
+#   the sentence beside it went on being printed, and that is the drift this gate is for.
+#
+#   THE CORPUS IS STILL THE ONE THAT WAS READ. Its own `meta.entity_count`, its own list of
+#   entities and the count this file has asserted in prose since issue 72 all have to agree. A
+#   corpus rewritten under the citations is refused rather than cited.
+#
+#   THE READ DATE IS NOT BEFORE THE CORPUS EXISTED, read off the corpus's own `meta.written`.
+#
+#   AND THE GRAMMAR, ON EVERY MACHINE INCLUDING THIS ONE'S CI. A `source` string that does not
+#   parse into a corpus and its locators names nothing anywhere, and saying so needs no corpus.
+#
+# WHAT IT DOES NOT ESTABLISH, and this is the half that decides whether the card is worth
+# anything:
+#
+#   NOT THAT ANY SENTENCE ON A ROUTE IS WHAT THE CORPUS SAYS. The three sentences a panel prints
+#   are prose a reader wrote from the analysis. This gate checks the ADDRESS and never the claim
+#   at the address. A route asserting "no registry" about an entity the ontology records as
+#   having one resolves green here, and so does a route whose three sentences were rewritten
+#   yesterday by somebody who never opened the corpus. Comparing a sentence against a corpus is
+#   a reading, not a check, and no build can do it.
+#
+#   NOT THAT THE ROUTES ARE CURRENT. Nothing here reads a SYSTEM. The corpus is an analysis of
+#   the systems, which is why every route row is `3_observed` and not `1_official`, why all
+#   seventeen entries carry a read state of `no-source` or `not-attempted`, and why the rows
+#   carry no date. A system reorganised the day after the analysis was written leaves this gate
+#   green and every sentence on the page wrong.
+#
+#   NOT ANYTHING AT ALL ON A MACHINE WITHOUT THE CORPUS, which is every CI run this repository
+#   has. There it says on stderr which half it could not reach and returns, exactly as
+#   check_module_structure() does, and the build goes on. A SILENT skip would read exactly like
+#   a pass; HANSEI.md `2026-08-empty-input-reported-success` is that failure in another gate.
+#
+# AND THE SEATS ARE THE OTHER HALF OF THE CLAIM, checked by check_provenance() on every machine
+# with no corpus at all: the source declares that each of the four rows sits on every drawn type
+# exactly once, so a route row deleted, duplicated or renamed is refused in CI even where the
+# citation cannot be followed.
+_ONTOLOGY_ENTITY = re.compile(r"^[A-Z][A-Za-z]*$")
+_ONTOLOGY_FINDING = re.compile(r"^finding (F\d+)$")
+
+
+def _ontology_norm(s):
+    """Case folded and whitespace collapsed, which is what a phrase locator is matched under."""
+    return " ".join(s.split()).casefold()
+
+
+def _ontology_read(path):
+    """The declared entity names, the count the corpus declares for itself, and its write date.
+
+    A LINE GRAMMAR AND NOT A YAML PARSER, deliberately. PyYAML is not a dependency of this build
+    and a gate that cannot run for want of a package is a gate that does not run, which is the
+    state this card is about. The three things read are each on one line of their own: an entity
+    is a top level `- name:` item under `entities:`, and the other two are `meta` fields.
+    """
+    lines = path.read_text(encoding="utf-8").split("\n")
+    head = "\n".join(lines)
+    try:
+        start = lines.index("entities:")
+    except ValueError:
+        start = len(lines)
+    names = re.findall(r"^- name:\s*(\S+)\s*$", "\n".join(lines[start:]), re.M)
+    declared = re.findall(r"^  entity_count:\s*(\d+)\s*$", head, re.M)
+    written = re.findall(r"^  written:\s*['\"]?(\d{4}-\d{2}-\d{2})", head, re.M)
+    return (names,
+            int(declared[0]) if declared else None,
+            written[0] if written else None)
+
+
+def check_ontology_registry(routes=None, root=None, vault=None, read_on=None, entities=None):
+    """Re-read the analysis the populate registry was written from, and refuse a drift.
+
+    The arguments exist so that ontology_self_test() can point this at a synthetic corpus it
+    built itself and prove each refusal fires. Defaulted, so the live call below takes the real
+    ones and there is one place each of them is written.
+    """
+    # Issue 118's line, and the same one check_module_structure and check_syllabus_counts carry.
+    # VALUE_SOURCES names this function as the gate that re-reads its corpus and check_provenance
+    # refuses that claim if this line was never reached. Recorded on ENTRY and not on the clean
+    # path, because the claim is that the corpus is re-read wherever it exists and the branch
+    # below that says it does not exist here has honoured it.
+    RECHECK_GATES_RUN.add("check_ontology_registry")
+    routes = ROUTES if routes is None else routes
+    root = ONTOLOGY_DIR if root is None else root
+    vault = ONTOLOGY_VAULT if vault is None else vault
+    read_on = ONTOLOGY_READ_ON if read_on is None else read_on
+    entities = ONTOLOGY_ENTITIES if entities is None else entities
+
+    def bad(rule, why):
+        raise SystemExit(f"[ontology] {rule}: {why}")
+
+    # ---- the grammar, which needs no corpus ------------------------------------------------
+    cited = []
+    for cid in sorted(routes):
+        text = routes[cid]["source"]
+        for seg in text.split(";"):
+            parts = [x.strip() for x in seg.split(",")]
+            if not parts or not all(parts):
+                bad("citation-grammar",
+                    f"route {cid} cites {text!r}, and one of its parts is empty. A citation is "
+                    f"a corpus and the locators inside it, separated by commas, and several of "
+                    f"them separated by semicolons. A part with nothing in it is an address "
+                    f"with a blank line in the middle of it.")
+            ref, locators = parts[0], parts[1:]
+            if ref == "ontology.yaml":
+                kind = "ontology"
+            elif ref.startswith("notion "):
+                kind = "notion"
+            elif ref.startswith("vault "):
+                kind = "vault"
+            else:
+                bad("citation-corpus",
+                    f"route {cid} cites {ref!r}, which is not one of the three corpora this "
+                    f"gate can follow: `ontology.yaml`, `notion <file>` or `vault <note>`. A "
+                    f"route may not acquire a source nobody can go back to, which is the whole "
+                    f"of what the fourth row of a panel is for.")
+            cited.append((cid, kind, ref, locators))
+
+    have_root, have_vault = root.is_dir(), vault.is_dir()
+    if not have_root and not have_vault:
+        print(f"[model] ontology registry: neither the analysis repository nor the vault is on "
+              f"this machine, so all {len(cited)} citations on the {len(routes)} populate "
+              f"routes are unverified here. They were recorded on {read_on}.", file=sys.stderr)
+        return
+
+    # ---- the corpus's own account of itself -------------------------------------------------
+    names, declared, written = [], None, None
+    if have_root:
+        yml = root / ONTOLOGY_YAML
+        if not yml.is_file():
+            bad("citation-file",
+                f"the analysis repository is on this machine at {root} and {ONTOLOGY_YAML} is "
+                f"not in it. Every route but three cites that file by name.")
+        names, declared, written = _ontology_read(yml)
+        if declared != len(names) or len(names) != entities:
+            bad("entity-count",
+                f"{ONTOLOGY_YAML} lists {len(names)} entities and declares {declared!r} of "
+                f"them, and this file has said {entities} since issue 72. A corpus rewritten "
+                f"under the citations is a corpus these routes were not read from.")
+        if written is None:
+            bad("corpus-undated",
+                f"{ONTOLOGY_YAML} carries no `meta.written` date, so nothing can establish "
+                f"that it existed before the day this source says it was read. The lower "
+                f"bracket on that date is the corpus's own, and without it the date is a claim "
+                f"again rather than a reading.")
+        if written > read_on:
+            bad("read-before-written",
+                f"this source says the analysis was read on {read_on} and the analysis says it "
+                f"was written on {written}. Nobody read it before it was written, so one of "
+                f"the two dates is wrong and the citations rest on whichever it is.")
+
+    # ---- and every citation followed ---------------------------------------------------------
+    findings = set()
+    if have_root and (root / ONTOLOGY_FINDINGS).is_file():
+        findings = set(re.findall(r"^\|\s*\*\*(F\d+)\*\*\s*\|",
+                                  (root / ONTOLOGY_FINDINGS).read_text(encoding="utf-8"), re.M))
+    entity_set, resolved, unchecked = set(names), 0, 0
+    for cid, kind, ref, locators in cited:
+        if kind == "vault" and not have_vault:
+            unchecked += 1
+            continue
+        if kind in ("ontology", "notion") and not have_root:
+            unchecked += 1
+            continue
+        if kind == "ontology":
+            path = root / ONTOLOGY_YAML
+        elif kind == "notion":
+            stem = ref.split(" ", 1)[1]
+            found = sorted((root / ONTOLOGY_NOTION).glob(stem + "*.md"))
+            if len(found) != 1:
+                bad("citation-file",
+                    f"route {cid} cites {ref!r} and {len(found)} files in "
+                    f"{ONTOLOGY_NOTION}/ answer to that name. A citation naming none of them "
+                    f"points nowhere and one naming two says nothing about which.")
+            path = found[0]
+        else:
+            note = ref.split(" ", 1)[1]
+            found = sorted(vault.rglob(note + ".md"))
+            if len(found) != 1:
+                bad("citation-file",
+                    f"route {cid} cites {ref!r} and {len(found)} notes in the vault answer to "
+                    f"that name. A citation naming none of them points nowhere and one naming "
+                    f"two says nothing about which.")
+            path = found[0]
+        body = _ontology_norm(path.read_text(encoding="utf-8"))
+        for loc in locators:
+            finding = _ONTOLOGY_FINDING.match(loc)
+            if kind == "ontology" and finding:
+                if finding.group(1) not in findings:
+                    bad("citation-finding",
+                        f"route {cid} cites {loc!r} and the findings register in "
+                        f"{ONTOLOGY_FINDINGS} holds no row keyed that way. The finding it was "
+                        f"read from has been renumbered or removed.")
+            elif kind == "ontology" and _ONTOLOGY_ENTITY.match(loc):
+                if loc not in entity_set:
+                    bad("citation-entity",
+                        f"route {cid} cites the entity {loc!r} and {ONTOLOGY_YAML} declares no "
+                        f"entity of that name. The class this route describes has been renamed "
+                        f"or dropped in the analysis, and the panel is still printing three "
+                        f"sentences about it.")
+            elif _ontology_norm(loc) not in body:
+                bad("citation-phrase",
+                    f"route {cid} quotes {loc!r} and {path.name} does not carry that phrase. "
+                    f"The passage this route was read from is not there any more.")
+            resolved += 1
+    if unchecked:
+        print(f"[model] ontology registry: {resolved} citation locators re-read against the "
+              f"corpus on this machine, {unchecked} of them unverified because "
+              f"{'the vault' if have_root else 'the analysis repository'} is not on it. Every "
+              f"one of them was recorded on {read_on}.", file=sys.stderr)
+        return
+    print(f"[model] ontology registry: all {resolved} citation locators on the {len(routes)} "
+          f"populate routes resolve against the corpus on this machine, and its {len(names)} "
+          f"entities are the ones these routes were read from. What resolves is the address and "
+          f"never the sentence beside it.", file=sys.stderr)
+
+
+check_ontology_registry()
+
 
 
 # ---- identity, and it is not the drawing id ---------------------------------
@@ -4591,11 +4957,17 @@ def check_provenance(doc):
     # rank vocabulary and not the flag vocabulary is machine readable about the half nobody looks
     # at and mute about the half on the screen.
     flags = vocab.get("flag") if isinstance(vocab.get("flag"), dict) else None
-    if not ranks or not flags or not isinstance(vocab.get("status"), dict) \
+    # Issue 123. `produces` joins them on the same terms again: a source now says which of two
+    # populations it filled, that word decides whether `real` is reachable through it at all,
+    # and a document shipping the word without its meaning is machine readable about everything
+    # except the field that governs the chip on the screen.
+    produces = vocab.get("produces") if isinstance(vocab.get("produces"), dict) else None
+    if not ranks or not flags or not produces or not isinstance(vocab.get("status"), dict) \
             or not isinstance(vocab.get("stance"), dict):
         bad("document-block", "the provenance block ships no vocabulary for its ranks, its "
-                              "flags, its statuses and its stances. A token whose meaning is "
-                              "only in the program that wrote it is not machine readable.")
+                              "flags, its statuses, its stances and what a source produced. A "
+                              "token whose meaning is only in the program that wrote it is not "
+                              "machine readable.")
     if stance not in vocab["stance"]:
         bad("document-block", f"stance {stance!r} is not one of {sorted(vocab['stance'])}")
     try:
@@ -4670,13 +5042,29 @@ def check_provenance(doc):
             bad("source-declaration",
                 f"{where} produced values at rank {INVENTED!r}, whose own definition is that "
                 f"nothing was read. A source that read nothing is not a source.")
-        sflags = spec.get("flags")
-        if not isinstance(sflags, list) or not sflags or R not in sflags \
-                or any(f not in flags for f in sflags):
+        # ---- which of the two populations this source filled, issue 123 --------------------
+        # Defaulted rather than required, because a document that declares no `produces` is a
+        # document from before this word existed and it meant `values`: that is the only kind
+        # of source there was. A token in no vocabulary is refused rather than defaulted, which
+        # is the difference between a field that is absent and a field that is wrong.
+        kind = spec.get("produces", "values")
+        if kind not in produces:
             bad("source-declaration",
-                f"{where} declares the flags {sflags!r}. A source's rows are flagged from a "
-                f"closed list, every token of it in the document's own flag vocabulary, and "
-                f"{R!r} is in it or the source covers nothing this rule is about.")
+                f"{where} produced {kind!r}, which is not one of {sorted(produces)}. What a "
+                f"source filled decides whether {R!r} is reachable through it, so a word this "
+                f"document does not define is a permission nobody can read.")
+        sflags = spec.get("flags")
+        if not isinstance(sflags, list) or not sflags \
+                or any(f not in flags for f in sflags) \
+                or (R in sflags) != (kind == "values"):
+            bad("source-declaration",
+                f"{where} produced {kind!r} and declares the flags {sflags!r}. A source's rows "
+                f"are flagged from a closed list, every token of it in the document's own flag "
+                f"vocabulary, and {R!r} is in that list on a source that produced values or "
+                f"the source covers nothing this rule is about. On one that produced registry "
+                f"rows {R!r} is REFUSED: what was read there is an analysis of the systems and "
+                f"not a system, so the chip that says a value came off the business would be "
+                f"the same lie pointing at another population.")
         covers = spec.get("covers")
         if not isinstance(covers, dict) or not covers \
                 or not all(isinstance(t, str) and isinstance(ks, list) and ks
@@ -4837,6 +5225,44 @@ def check_provenance(doc):
                 # document. `module` on a ModuleDelivery is a syllabus row and `module` on a
                 # Programme is not, which is the whole of the audit's A3.
                 src = covered.get((ntype, row["k"])) if ntype is not None else None
+                # ---- the registry seats, issue 123 ---------------------------------------
+                # A source that produced REGISTRY rows covers the four at the front of a panel,
+                # and the three rules below are what join those 1320 rows to the declaration
+                # rather than leaving them resting on a comment. They run on every machine,
+                # corpus or no corpus, which is the half of this card that holds in CI.
+                #
+                # The first is the seam the other two would otherwise leave open. `syllabus_row`
+                # is an EXEMPTION from `toy-value-not-invented`: a covered seat is allowed to be
+                # ranked as read on a page where everything else was made up. Registry seats
+                # already have their own exemption, by sitting inside the registry rows, and if
+                # one could also be claimed OUTSIDE them then any of a node's own invented rows
+                # could be renamed into a registry seat and stop having to say it was made up.
+                # So a registry seat found outside the registry is refused, and `syllabus_row`
+                # below is scoped to the sources that produced values, which is what it has
+                # always meant.
+                src_kind = src[1].get("produces", "values") if src else "values"
+                if src is not None and src_kind == "registry" and i >= registry_rows:
+                    bad("registry-source-outside-the-registry",
+                        f"{what} is a seat source {src[0]!r} says it filled from an analysis of "
+                        f"the systems, and it sits among this node's own values rather than "
+                        f"inside its {registry_rows} registry rows. A row that can be one of "
+                        f"those by being renamed is a row that stops having to say it was made "
+                        f"up.")
+                if src is not None and src_kind == "registry" and rank != src[1]["rank"]:
+                    bad("registry-source-row-rank",
+                        f"{what} is a registry row source {src[0]!r} read off {src[1]['corpus']}"
+                        f", and it is ranked {rank!r}. That source produced its rows at "
+                        f"{src[1]['rank']!r} and every one of them says so, or the rank on the "
+                        f"screen is not the one the source declared.")
+                if src is not None and src_kind == "registry" and row.get("f") not in \
+                        src[1]["flags"]:
+                    bad("registry-source-row-flag",
+                        f"{what} is a registry row source {src[0]!r} produced and it is flagged "
+                        f"{row.get('f')!r}. That source's rows wear "
+                        f"{' or '.join(sorted(src[1]['flags']))}: what the analysis records, or "
+                        f"that it records there is nothing to record.")
+                if src_kind != "values":
+                    src = None
                 syllabus_row = (i >= registry_rows and stance == "invented" and src is not None)
                 if syllabus_row and rank != src[1]["rank"]:
                     bad("syllabus-row-not-observed",
@@ -5483,7 +5909,7 @@ def instance_document():
             "clock": {"fresh_days": FRESH_DAYS, "aging_days": AGING_DAYS},
             "apto": list(APTO),
             "vocab": {"rank": VALUE_RANK, "status": VALUE_STATUS, "stance": STANCE,
-                      "flag": VALUE_FLAG},
+                      "flag": VALUE_FLAG, "produces": SOURCE_PRODUCES},
             # Issue 118. The one population on this page that was read off something says what
             # it was read off, when, which gate re-reads it, and which (type, key) seats it
             # filled. It ships with the document for the reason every vocabulary here does:
@@ -5520,7 +5946,7 @@ def instance_document():
 # How many probes each suite intends to run. Written by hand and asserted at the end of the run,
 # which is the whole point: a count taken from the run itself cannot notice a probe that is no
 # longer there. Edited together with the probes or not at all.
-PROVENANCE_PROBES = 52
+PROVENANCE_PROBES = 61
 STRUCTURE_PROBES = 22
 
 
@@ -5534,7 +5960,7 @@ def _probe_doc(stance="invented"):
             "clock": {"fresh_days": FRESH_DAYS, "aging_days": AGING_DAYS},
             "apto": list(APTO),
             "vocab": {"rank": VALUE_RANK, "status": VALUE_STATUS, "stance": STANCE,
-                      "flag": VALUE_FLAG},
+                      "flag": VALUE_FLAG, "produces": SOURCE_PRODUCES},
         },
         "routes": {"classes": {"probe": {"read": "not-attempted"}}},
         "views": [{"key": "PROBE", "nodes": [{
@@ -5585,11 +6011,41 @@ PROBE_SOURCES = {
         # about a recheck that did not run speaks only about gates THIS program owns, and the
         # control has to sit on the side of that line where nothing is claimed.
         "rechecked_by": "probe_recheck",
+        "produces": "values",
         "rank": SYLLABUS_RANK,
         "flags": [R, A],
         "covers": {"Probe": ["module_name"]},
     },
 }
+
+# ---- and the third control document, issue 123 -------------------------------
+# The registry population needs a document that DECLARES A SOURCE THAT PRODUCED IT, for exactly
+# the reason the second control exists: the three rules about a registry seat cannot be shown to
+# refuse anything from a document where no seat is covered. Its seat is the route row the first
+# control has always carried, at index 0, inside the one registry row that control declares.
+PROBE_REGISTRY_NAME = "probe-analysis"
+PROBE_REGISTRY_SOURCES = {
+    PROBE_REGISTRY_NAME: {
+        "corpus": "an analysis of the systems, on no machine this probe runs on",
+        "read_on": PROVENANCE_AS_OF,
+        "rechecked_by": "probe_recheck",
+        "produces": "registry",
+        "rank": OBSERVED,
+        "flags": [E, A],
+        "covers": {"Probe": ["route_system"]},
+    },
+}
+
+
+def _registry_sourced(row=None, source=None, node=None):
+    """The registry-sourced control with one thing changed, same discipline as _sourced()."""
+    src = copy.deepcopy(PROBE_REGISTRY_SOURCES)
+    if source is not None:
+        src[PROBE_REGISTRY_NAME].update(source)
+    d = _probe("invented", node=dict(node or {}, type="Probe"), prov={"sources": src})
+    if row is not None:
+        d["views"][0]["nodes"][0]["props"][0].update(row)
+    return d
 
 
 def _sourced(row=None, source=None, sources=None, add=None, node=None, drop_seat=False):
@@ -5776,6 +6232,38 @@ def provenance_self_test():
            "them it came from")
     expect("source-declaration", _sourced(sources=["probe-corpus"]),
            "a sources block that is a list of names rather than a table of declarations")
+    # ---- and the OTHER population a source can have filled, issue 123 -----------------------
+    # Every probe from here to the end of the group was ACCEPTED by the body this replaces, and
+    # most of them could not even be built against it: there was no such thing as a source that
+    # produced registry rows, so the 1320 rows at the front of the panels rested on a comment.
+    expect_clean(_registry_sourced(),
+                 "a registry row sitting in the seat a source that produced registry rows says "
+                 "it filled passes")
+    expect("document-block",
+           _probe("invented", prov={"vocab": {"rank": VALUE_RANK, "status": VALUE_STATUS,
+                                              "stance": STANCE, "flag": VALUE_FLAG}}),
+           "a provenance block shipping no vocabulary for what a source produced, which is the "
+           "word deciding whether the real chip is reachable through it")
+    expect("source-declaration", _registry_sourced(source={"produces": "guesswork"}),
+           "a source claiming to have produced something the document's own vocabulary does "
+           "not define")
+    expect("source-declaration", _registry_sourced(source={"flags": [R, A]}),
+           "a source that read an ANALYSIS of the systems and claims its rows may wear the chip "
+           "that says a value came off the business")
+    expect("source-declaration", _sourced(source={"produces": "registry"}),
+           "a source that read a corpus of values and declares it produced registry rows, whose "
+           "flags then carry the real chip it is not entitled to")
+    expect("registry-source-outside-the-registry", _registry_sourced(node={"route": 0}),
+           "a registry seat sitting among a node's own values, which is how one of them stops "
+           "having to say it was made up")
+    expect("registry-source-row-rank", _registry_sourced(row={"r": CONFIRMED}),
+           "a registry row at a rank the source that produced it never declared")
+    expect("registry-source-row-flag", _registry_sourced(row={"f": D}),
+           "a registry row downgraded to a stand-in, which tells the reader a route read off a "
+           "real analysis was made up")
+    expect("source-covers-a-population", _registry_sourced(row={"k": "not_the_seat"}),
+           "a registry seat renamed off the node, which is a route row deleted and the panel "
+           "left with three")
     expect("toy-value-not-invented", _probe("invented", row=(1, {"r": OBSERVED})),
            "one of the model's own made up values ranked as read")
     expect("official-needs-a-read", _probe("invented", row=(0, {"r": OFFICIAL})),
@@ -6049,6 +6537,185 @@ def structure_self_test():
         raise SystemExit(1)
 
 
+
+
+# ---- proving the ontology gate is armed, issue 123 ---------------------------
+# THE SAME SHAPE AS THE TWO SUITES ABOVE AND FOR THE SAME REASON: a gate never seen to refuse is
+# not a gate, and this repository removed thirteen dead ones in one day. What is different here
+# is that the corpus is on ONE machine, so a suite pointed at the real one would be a suite that
+# runs nowhere else, and a check that only ever runs where the answer is already known is the
+# defect this card is about. So each probe WRITES A WHOLE SYNTHETIC CORPUS to a temporary
+# directory, points the gate at that, and mutates one thing. Every probe below therefore runs in
+# CI, on a machine that holds none of the real analysis.
+#
+# AND THE REAL CORPUS IS NOT PROBED HERE, deliberately: the live call at import time already
+# runs the gate against it on every build on the machine that has it, and it printed its count
+# to stderr before this suite started.
+ONTOLOGY_PROBES = 18
+
+# The control's routes. Synthetic throughout, so that this suite says nothing about the real
+# corpus and cannot be quietly repaired by it: the five between them exercise all three corpora,
+# both locator kinds inside the ontology, and a citation of two segments.
+_ONTOLOGY_PROBE_ROUTES = {
+    "probe-entity": {"source": "ontology.yaml, Widget, finding F1"},
+    "probe-phrase": {"source": "ontology.yaml, a line the ontology carries"},
+    "probe-notion": {"source": "notion 01_probe, a line the workspace read carries"},
+    "probe-vault": {"source": "vault Probe note, a line the note carries"},
+    "probe-pair": {"source": "ontology.yaml, Widget; notion 01_probe"},
+}
+_ONTOLOGY_PROBE_ENTITIES = 2
+_ONTOLOGY_PROBE_READ_ON = "2026-08-02"
+_ONTOLOGY_PROBE_YAML = """meta:
+  title: a synthetic corpus, written by this self-test and by nothing else
+  written: 2026-08-01
+  entity_count: 2
+entities:
+- name: Widget
+  note: a line the ontology carries
+- name: Gadget
+  note: a second entity, so that the count is not one
+"""
+_ONTOLOGY_PROBE_FINDINGS = """| id | what it says |
+|---|---|
+| **F1** | a synthetic finding, in the shape the register writes them |
+"""
+
+
+def _ontology_probe_corpus(tmp, yaml=_ONTOLOGY_PROBE_YAML, findings=True,
+                           notion=("01_probe",), note="Probe note"):
+    """A whole corpus on disk, in the shape the gate reads, with one thing optionally missing."""
+    root, vault = pathlib.Path(tmp) / "analysis", pathlib.Path(tmp) / "vault"
+    (root / "ontology").mkdir(parents=True)
+    (root / ONTOLOGY_NOTION).mkdir(parents=True)
+    (vault / "company").mkdir(parents=True)
+    if yaml is not None:
+        (root / ONTOLOGY_YAML).write_text(yaml, encoding="utf-8")
+    if findings:
+        (root / ONTOLOGY_FINDINGS).write_text(_ONTOLOGY_PROBE_FINDINGS, encoding="utf-8")
+    for stem in notion:
+        (root / ONTOLOGY_NOTION / f"{stem}.md").write_text(
+            "a line the workspace read carries\n", encoding="utf-8")
+    if note:
+        (vault / "company" / f"{note}.md").write_text(
+            "A line the note carries, capitalised, because a locator is matched case folded\n",
+            encoding="utf-8")
+    return root, vault
+
+
+def ontology_self_test():
+    ok = 0
+    total = 0
+
+    def run(routes=None, entities=None, read_on=None, **corpus):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, vault = _ontology_probe_corpus(tmp, **corpus)
+            return check_ontology_registry(
+                routes=routes or _ONTOLOGY_PROBE_ROUTES, root=root, vault=vault,
+                read_on=read_on or _ONTOLOGY_PROBE_READ_ON,
+                entities=_ONTOLOGY_PROBE_ENTITIES if entities is None else entities)
+
+    def expect(rule, what, **kw):
+        nonlocal ok, total
+        total += 1
+        try:
+            run(**kw)
+        except SystemExit as e:
+            got = str(e).split(":", 1)[0].replace("[ontology] ", "")
+            if got == rule:
+                ok += 1
+                print(f"  [OK]   {rule}: {what}")
+            else:
+                print(f"  [FAIL] {rule}: {what}. It refused, and for {got!r} instead.")
+            return
+        print(f"  [FAIL] {rule}: {what}. It did NOT refuse.")
+
+    def expect_clean(what, **kw):
+        nonlocal ok, total
+        total += 1
+        try:
+            run(**kw)
+        except SystemExit as e:
+            print(f"  [FAIL] control: {what}. It refused: {e}")
+            return
+        ok += 1
+        print(f"  [OK]   control: {what}")
+
+    def one_route(source):
+        """The control's routes with one citation replaced, so a probe differs by that alone."""
+        return dict(_ONTOLOGY_PROBE_ROUTES, **{"probe-entity": {"source": source}})
+
+    # The control first. Every probe below is this corpus and these citations with one thing
+    # changed, and a probe whose control is not known to pass proves nothing at all.
+    expect_clean("the synthetic corpus every probe is built from resolves")
+
+    # ---- the grammar, which is checked with no corpus at all --------------------------------
+    expect("citation-grammar", "a citation with an empty part, which addresses nothing",
+           routes=one_route("ontology.yaml, "))
+    expect("citation-corpus", "a citation naming a corpus this gate cannot follow, so the route "
+                              "acquires a source nobody can go back to",
+           routes=one_route("somewhere else, Widget"))
+
+    # ---- the corpus's own account of itself -------------------------------------------------
+    expect("citation-file", "the analysis repository on the machine and the ontology not in it",
+           yaml=None)
+    expect("entity-count", "an ontology holding fewer entities than this file says it read",
+           entities=_ONTOLOGY_PROBE_ENTITIES + 1)
+    expect("entity-count", "an ontology whose own declared count disagrees with its own list",
+           yaml=_ONTOLOGY_PROBE_YAML.replace("entity_count: 2", "entity_count: 9"))
+    expect("corpus-undated", "an ontology carrying no written date, so the read date has no "
+                             "lower bracket and is a claim again",
+           yaml=_ONTOLOGY_PROBE_YAML.replace("  written: 2026-08-01\n", ""))
+    expect("read-before-written", "a source read before the corpus it cites was written",
+           read_on="2026-07-01")
+
+    # ---- and every citation followed --------------------------------------------------------
+    expect("citation-entity", "a route citing an entity the ontology no longer declares, which "
+                              "is a class renamed under a panel still printing about it",
+           routes=one_route("ontology.yaml, Sprocket"))
+    expect("citation-finding", "a route citing a finding the register no longer holds",
+           routes=one_route("ontology.yaml, Widget, finding F99"))
+    expect("citation-finding", "the findings register gone from the corpus altogether",
+           findings=False)
+    expect("citation-phrase", "a route quoting a passage the ontology does not carry",
+           routes=one_route("ontology.yaml, a line the ontology does not carry"))
+    expect("citation-phrase", "a route quoting a passage the workspace read does not carry",
+           routes=one_route("notion 01_probe, a line the workspace read does not carry"))
+    expect("citation-phrase", "a route quoting a passage the vault note does not carry",
+           routes=one_route("vault Probe note, a line the note does not carry"))
+    expect("citation-file", "a route citing a workspace read that is not in the corpus",
+           routes=one_route("notion 99_absent, a line"))
+    expect("citation-file", "a route citing a workspace read that two files answer to, so the "
+                            "citation says nothing about which of them was read",
+           notion=("01_probe", "01_probe_and_another"))
+    expect("citation-file", "a route citing a vault note that is not in the vault", note=None)
+
+    # ---- and the branch that is not a refusal, which is the one a silent skip would imitate --
+    total += 1
+    with tempfile.TemporaryDirectory() as tmp:
+        gone = pathlib.Path(tmp) / "not-on-this-machine"
+        try:
+            check_ontology_registry(routes=_ONTOLOGY_PROBE_ROUTES, root=gone, vault=gone,
+                                    read_on=_ONTOLOGY_PROBE_READ_ON,
+                                    entities=_ONTOLOGY_PROBE_ENTITIES)
+            ok += 1
+            print("  [OK]   control: a machine holding no corpus at all builds, and the gate "
+                  "says on stderr that nothing was verified rather than reporting clean")
+        except SystemExit as e:
+            print(f"  [FAIL] control: a machine holding no corpus should build. It refused: {e}")
+
+    print(f"\nontology self-test: {ok}/{total}")
+    if ok != total:
+        raise SystemExit(1)
+    # The written total, for the third time in this file and for the reason given at
+    # PROVENANCE_PROBES: a ratio cannot tell a suite that ran everything from a suite that ran
+    # half of itself.
+    if total != ONTOLOGY_PROBES:
+        print(f"::error::the ontology self-test ran {total} probes and ONTOLOGY_PROBES says "
+              f"{ONTOLOGY_PROBES}. A rule and its probe deleted together would otherwise have "
+              f"left a smaller suite reporting clean.")
+        raise SystemExit(1)
+
+
 if __name__ == "__main__":
     import sys as _sys
     if _sys.argv[1:] == ["--contrast"]:
@@ -6057,6 +6724,8 @@ if __name__ == "__main__":
         provenance_self_test()
     elif _sys.argv[1:] == ["--structure-self-test"]:
         structure_self_test()
+    elif _sys.argv[1:] == ["--ontology-self-test"]:
+        ontology_self_test()
     elif _sys.argv[1:] == ["--structure"]:
         # The live check on the model's own document, for a runner that wants the verdict
         # without a build. The build runs the same function on whatever document it lays out.
@@ -6071,4 +6740,5 @@ if __name__ == "__main__":
         palette_self_test()
     else:
         raise SystemExit("usage: model.py --contrast | --provenance-self-test "
-                         "| --structure-self-test | --structure | --palette-self-test")
+                         "| --structure-self-test | --ontology-self-test | --structure "
+                         "| --palette-self-test")
