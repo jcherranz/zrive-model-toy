@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-13T12:13:19Z",
+  "generated": "2026-08-13T12:14:02Z",
   "columns": [
     {
       "key": "raw",
@@ -53,7 +53,16 @@
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": []
+      "cards": [
+        {
+          "id": 128,
+          "title": "Every sentence that teaches the page how to be read comes off; the measured facts stay",
+          "labels": [
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/128"
+        }
+      ]
     },
     {
       "key": "done",
