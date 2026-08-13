@@ -2423,7 +2423,11 @@ async function checkTerm(page) {
           function (b) { return b.textContent; }));
       })()`;
       const pressed = new Set();
-      for (let turn = 0; turn < 5; turn++) {
+      // ONE TURN PER SHAPE PLUS THE READ THAT FINDS NOTHING LEFT, and it was exactly 5 while there
+      // were three shapes, which is a budget that stops sweeping the moment a card adds one. Issue
+      // 124 added the fourth and this is the same bound written so it cannot bind: the loop already
+      // leaves as soon as every shape has been pressed.
+      for (let turn = 0; turn < 12; turn++) {
         const hits = await page.evaluate(STANDING_READ);
         hits.forEach(h => standing.push(stop + '  ' + h));
         const next = JSON.parse(await page.evaluate(offered)).filter(s => !pressed.has(s));
