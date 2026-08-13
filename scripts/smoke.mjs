@@ -3787,23 +3787,33 @@ async function checkReview(page, base) {
   // it is followed, and the window still being the three weeks the row was in. #77's floor is on
   // it too, because this card put a control on every row of a screen a manager opens weekly.
   const wrongHref = r0.rows.filter(r => r.href !== model.route[r.id]);
-  const firstRow = r0.rows[0];
-  const wantView = views.find(v => v.route === firstRow.href) || {};
-  await page.evaluate(`location.hash = ${JSON.stringify(firstRow.href)}`);
-  await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(wantView.key)}`,
-    `the ${wantView.key} drawing the first row links to`);
-  const afterFollow = await page.evaluate('window.ZT.term()');
-  const filtered = await page.evaluate('window.ZT.filtered()');
+  // THE LINK IS FOLLOWED ONLY IF IT NAMES A DRAWING, and the assertion carries that as a conjunct
+  // rather than the driver walking into a wait it cannot satisfy. A row pointing at the page
+  // instead of at its programme is exactly the defect this row is named after, and an assertion
+  // that turns it into a timeout reports the group as thrown instead of reporting the claim as
+  // false: a plant proves nothing about an instrument that never reached its own comparison.
+  const firstRow = r0.rows[0] || null;
+  const wantView = firstRow ? (views.find(v => v.route === firstRow.href) || null) : null;
+  let afterFollow = null, filtered = null;
+  if (wantView) {
+    await page.evaluate(`location.hash = ${JSON.stringify(firstRow.href)}`);
+    await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(wantView.key)}`,
+      `the ${wantView.key} drawing the first row links to`);
+    afterFollow = await page.evaluate('window.ZT.term()');
+    filtered = await page.evaluate('window.ZT.filtered()');
+  }
   assert('every row links into its own programme\'s drawing, and following one keeps the window',
-    wrongHref.length === 0 && r0.rows.length > 1 && !!wantView.key &&
+    wrongHref.length === 0 && r0.rows.length > 1 && !!wantView && !!afterFollow &&
       afterFollow.open === false && afterFollow.window.weeks === 3 &&
       afterFollow.window.anchor === w.anchor && afterFollow.window.from === w.from &&
-      filtered.on === true && r0.linkMin >= 26,
-    `${r0.rows.length} rows each carrying its own view's route, and ${wantView.key} on the ` +
+      filtered && filtered.on === true && r0.linkMin >= 26,
+    `${r0.rows.length} rows each carrying its own view's route, and its programme on the ` +
       `canvas at ${w.from} to ${w.to} after following the first of them`,
-    `${wrongHref.length} wrong hrefs ${JSON.stringify(wrongHref.slice(0, 3))}, after following: ` +
-      `programme ${wantView.key}, window ${afterFollow.window.weeks} weeks at ` +
-      `${afterFollow.window.anchor}, drawing filtered ${filtered.on}, smallest link ${r0.linkMin}`);
+    `${wrongHref.length} wrong hrefs ${JSON.stringify(wrongHref.slice(0, 3))}, first row to ` +
+      `${JSON.stringify(firstRow && firstRow.href)} which is ` +
+      `${wantView ? wantView.key : 'no drawing this page has'}, after following: window ` +
+      `${afterFollow ? afterFollow.window.weeks + ' weeks at ' + afterFollow.window.anchor : 'not followed'}` +
+      `, drawing filtered ${filtered && filtered.on}, smallest link ${r0.linkMin}`);
 
   // ---- AND THE HALF THE FIRST DRAFT DIED ON, WHICH IS THE SAMPLE ------------------------------
   // FIVE OF THE SEVEN DRAWINGS ARE SAMPLES: Z-IB draws 6 of 79, Z-PE 6 of 36, Z-HR 6 of 25, Z-DS
