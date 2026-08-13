@@ -1282,7 +1282,7 @@
         // order" over a screen whose first band is every session with nobody to teach it would be
         // the same kind of wrong as the sentence #121 was filed about, one line further up.
         titleEl.textContent = (scope ? scopeName() : 'The term') + ', ' +
-          counted + ' ' + SHAPE_ORDER[shape];
+          counted + SHAPE_ORDER[shape];
         // BUILT AS PARTS AND JOINED, because a window can leave the list with nothing in it and a
         // date span, a state tally and a separator printed over an empty set are three marks a
         // reader has to decide are not zeros. #119 put that state in the data's reach; this is the
@@ -1381,8 +1381,11 @@
     // The clause the heading closes with, per shape, for the reason SHAPE_NAME is a table: the
     // ordering is a property of the shape and a second copy of it under a condition is a second
     // place for it to disagree with the rows.
-    var SHAPE_ORDER = { review: 'unstaffed first', month: 'in date order', week: 'in date order',
-                        list: 'in date order' };
+    // The separator is part of the value, because the two tails want different ones: `83 of the
+    // 260 sessions in date order` is one phrase and `11 of 83 sessions, unstaffed first` is a
+    // count and then what it is ranked by.
+    var SHAPE_ORDER = { review: ', unstaffed first', month: ' in date order',
+                        week: ' in date order', list: ' in date order' };
 
     function monthName(ym) {
       return MONTHS[Number(ym.slice(5, 7)) - 1] + ' ' + ym.slice(0, 4);
