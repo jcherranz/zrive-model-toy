@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-13T00:09:01Z",
+  "generated": "2026-08-13T00:09:48Z",
   "columns": [
     {
       "key": "raw",
@@ -37,7 +37,17 @@
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": []
+      "cards": [
+        {
+          "id": 121,
+          "title": "The header reports the previous programme, and the calendar sentence ignores the window",
+          "labels": [
+            "bug",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/121"
+        }
+      ]
     },
     {
       "key": "done",
