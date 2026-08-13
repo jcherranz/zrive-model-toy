@@ -757,9 +757,19 @@
   // drawing behind an opaque box is `ghosts`'s defect with a number on it.
   //
   // THE DENOMINATOR IS THE WHOLE MODEL AND IS CONSTANT. `weeks: 3 of 24` is the idiom and this is
-  // the same one: the numerator moves with the view and the denominator says how much of the
-  // business the view is. It is counted here, once, off all seven, so a drawing that gains a
-  // programme moves it without anybody editing a number.
+  // the same one: the numerator moves with the view and the denominator is every such value in the
+  // documents. It is counted here, once, off all seven, so a drawing that gains a programme moves
+  // it without anybody editing a number.
+  //
+  // AND IT IS NOT HOW MUCH OF THE BUSINESS THE VIEW IS, WHICH IS WHAT THIS COMMENT USED TO CLAIM.
+  // Issue 122. Five of the seven documents hold a sample of their programme, so 95 is the count
+  // over eighty three of the two hundred and sixty sessions the model declares and is a property
+  // of what was drawn. Nothing here can say otherwise, because an undrawn row carries no property
+  // and therefore no flag: a denominator over the term is not a number this page holds. What the
+  // page can say is how much of the term the rows under this count are, and it says it in the
+  // heading immediately to the left of this control and in both of the sheet's own sentences,
+  // which is where issue 122 put it rather than adding a fifth reading to a row #120 had just
+  // finished cutting down.
   //
   // IN THE WIRING FILE FOR THE REASON `ghosts` IS. The count needs all seven views, which only
   // this file holds; the window, which term.js holds; the drawing on screen, which render.js

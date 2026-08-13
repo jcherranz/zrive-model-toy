@@ -377,6 +377,41 @@
       return n;
     }
 
+    // ---- drawn against declared, issue 122 --------------------------------------
+    // THE SHEET HAD ONE SHAPE FOR BOTH ANSWERS. It closed its first clause with "drawn from a term
+    // the model counts at N", and on Z-SC that printed "25 sessions across Z-SC ... the model
+    // counts at 25". Complete and sampled were the same sentence with different numbers in it, so
+    // a reader who did not stop to compare them read a sample and a whole term identically. Every
+    // figure after that clause is a property of the drawn rows and inherits the confusion: 38
+    // templates recording no duration is 38 of the 83 the documents hold, not of the 260 the
+    // model counts.
+    //
+    // ONE FUNCTION FOR THE SAME REASON stats() IS ONE FUNCTION. #84 settled that the scope is an
+    // argument to one arithmetic rather than a second copy of it under an if, and drawn-against-
+    // declared is asked by both readings, by both titles and by both sentences. Answered here and
+    // read five times below.
+    function sampleOf(sc, key) {
+      var drawn = 0, total = 0;
+      groupsFor(sc).forEach(function (g) {
+        var b = (g.view.counts || {})[key];
+        if (!b) return;
+        drawn += b.drawn;
+        total += b.total;
+      });
+      return { drawn: drawn, total: total, complete: total > 0 && drawn >= total };
+    }
+
+    // The clause both sentences carry, written once so the calendar and the outline cannot come to
+    // describe the same fact in two ways. `all 25 of the sessions the model counts` against
+    // `83 of the 260 sessions the model counts`: the two forms are told apart by the leading word
+    // and by the presence of a second number, and neither of them is a statement about the rows.
+    function sampleWords(s, noun) {
+      if (!s.total) return null;
+      return s.complete
+        ? 'all ' + s.total + ' of the ' + noun + 's the model counts'
+        : s.drawn + ' of the ' + s.total + ' ' + noun + 's the model counts';
+    }
+
     // The gaps, counted off the rows rather than written down. A calendar is opened to find what
     // is missing, so these are the numbers the sheet leads with.
     //
@@ -1167,8 +1202,19 @@
         // #120's idiom, and it is the same reading for the same reason: the denominator appears
         // only while something is taking rows off, so "83 sessions" and "11 of 83 sessions" are
         // the two states of one sentence rather than two sentences.
+        // ISSUE 122 GAVE THE UNWINDOWED FORM A DENOMINATOR OF ITS OWN, AND THE TWO `of`s MEAN
+        // DIFFERENT THINGS BY DESIGN. Under a window the denominator is the scope's own drawn
+        // rows, which is #121's reading and is untouched. With no window taking rows off, the
+        // next population up is the one the model declares, so the heading says how much of it
+        // the documents hold. The two are told apart by a word: `11 of 83 sessions` is the
+        // window's, `83 of the 260 sessions` is the model's. A form that read `83 of 260` would
+        // be indistinguishable from a window at three weeks, which is this card's own defect
+        // pointing the other way.
+        var samp = sampleOf(scope, 'CohortSession');
         var counted = windowed ? listed + ' of ' + st.sessionsInScope + ' sessions'
-                               : listed + many;
+                    : samp.complete ? 'all ' + listed + many
+                    : samp.total ? listed + ' of the ' + samp.total + many
+                    : listed + many;
         titleEl.textContent = (scope ? scopeName() : 'The term') + ', ' +
           counted + ' in date order';
         // BUILT AS PARTS AND JOINED, because a window can leave the list with nothing in it and a
@@ -1176,13 +1222,27 @@
         // reader has to decide are not zeros. #119 put that state in the data's reach; this is the
         // sentence meeting it.
         var bits = [
-          listed + many + ' across ' + (windowed && !scope ? spread : over) +
-            ', drawn from a term the model counts at ' + st.totalSessions
+          listed + many + ' across ' + (windowed && !scope ? spread : over)
         ];
+        // AND THE SAMPLE AS A CLAUSE OF ITS OWN, issue 122, where it used to be a tail on the
+        // clause above. It is its own bit because it is its own fact: the first clause is how many
+        // rows are on screen and out of which programmes, and this is how much of the term those
+        // rows are. A window moves the first and cannot move the second, which is exactly why the
+        // old sentence, which had them joined, printed a window's row count against the model's
+        // total and let the two read as one fraction.
+        var sampSaid = sampleWords(samp, 'session');
+        if (sampSaid) bits.push(sampSaid);
         if (st.from) bits.push(st.from + ' to ' + st.to);
         if (st.stateCounts) bits.push(st.stateCounts);
-        bits.push(st.noInstructor + ' with no instructor named');
-        bits.push(st.noRecording + ' with no recording');
+        // THE GAP FIGURES CARRY THE POPULATION THEY WERE COUNTED OVER. Issue 122, and it is the
+        // half of that card that is about the counts rather than about the scope: eleven sessions
+        // with nobody to teach them is eleven of the rows this sheet drew, and over an unqualified
+        // number a reader has no way to know whether the other seventy two exist or whether the
+        // term holds two hundred and sixty. The denominator is `listed` and not the term's total
+        // because that is the set the numerator was taken over, and the clause above says what
+        // that set is a part of.
+        bits.push(st.noInstructor + ' of ' + listed + ' with no instructor named');
+        bits.push(st.noRecording + ' of ' + listed + ' with no recording');
         bits.push(SHAPE_NAME[shape]);
         // AND THE WINDOW SAID TWO WAYS, which is the same split as everything above it. Where the
         // rows ARE the window, the clause says which window they are; where the shape marks
@@ -1195,16 +1255,23 @@
         subEl.textContent = '';
         subEl.appendChild(document.createTextNode(bits.join(' · ')));
       } else {
-        titleEl.textContent = scope
-          ? 'The ' + scopeName() + ' outline, ' + st.templates.length +
-            ' session templates in curriculum order'
-          : 'The outline, ' + st.templates.length + ' session templates in curriculum order';
+        // The same three moves as the calendar above, issue 122, and the outline is where the
+        // card's own example lives: `38 record no duration` is 38 of the 83 templates these
+        // documents hold and reads as 38 of a syllabus of 260.
+        var sampT = sampleOf(scope, 'SessionTemplate');
+        var nT = st.templates.length;
+        var countedT = sampT.complete ? 'all ' + nT + ' session templates'
+                     : sampT.total ? nT + ' of the ' + sampT.total + ' session templates'
+                     : nT + ' session templates';
+        titleEl.textContent = (scope ? 'The ' + scopeName() + ' outline' : 'The outline') +
+          ', ' + countedT + ' in curriculum order';
+        var tbits = [nT + ' templates across ' + over];
+        var sampTSaid = sampleWords(sampT, 'session template');
+        if (sampTSaid) tbits.push(sampTSaid);
+        tbits.push(nT + ' deliveries, at most ' + st.maxDeliveries + ' to a template');
+        tbits.push(st.noDuration + ' of ' + nT + ' record no duration');
         subEl.textContent = '';
-        subEl.appendChild(document.createTextNode(
-          st.templates.length + ' templates across ' + over + ', drawn from a ' +
-          'syllabus the model counts at ' + st.totalTemplates + ' · ' + st.templates.length +
-          ' deliveries, at most ' + st.maxDeliveries + ' to a template · ' + st.noDuration +
-          ' record no duration'));
+        subEl.appendChild(document.createTextNode(tbits.join(' · ')));
       }
 
       noticeEl.textContent = '';

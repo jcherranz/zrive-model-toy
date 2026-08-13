@@ -367,6 +367,33 @@
       });
     }
 
+    // ---- how much of the programme the drawing is, issue 122 --------------------
+    // THE MODEL DECLARES IT AND THE PAGE HAD NEVER SAID IT WHERE A COUNT COULD BE READ. Every
+    // view carries a `counts` block written by the build, and on five of the seven the cohort
+    // sessions in it read `drawn` well under `total`. The band captions on the canvas say so and
+    // nothing else did, so every number in the header was a count over a set the reader had no
+    // reason to think was partial.
+    //
+    // THE SESSIONS GRAIN IS THE POPULATION AT BOTH ALTITUDES, which is why this reads the view
+    // rather than the drawing on screen. `pgView` is always the sessions view, app.js's
+    // pairGrains() sees to that, and which rows the DOCUMENT holds is a property of the document
+    // and not of the altitude it is drawn at: collapsing Z-IB into modules re-expresses the same
+    // six sessions and does not acquire the other seventy three.
+    //
+    // AND THE COMPLETE CASE SAYS SO IN WORDS RATHER THAN BY SAYING NOTHING. #120's idiom is that
+    // a denominator appears only when something is taking rows off, and it works there because
+    // the reading is always on screen and only its shape changes. A clause that vanished would
+    // leave a reader unable to tell a complete programme from a card that forgot, which is the
+    // state this one was filed about. So both cases are printed and the two read differently:
+    // `all 25 of its sessions` against `6 of its 79 sessions`.
+    function sampleClause(v) {
+      var b = (v.counts || {}).CohortSession;
+      if (!b || !b.total) return '';
+      return b.drawn >= b.total
+        ? ', all ' + b.total + ' of its sessions'
+        : ', ' + b.drawn + ' of its ' + b.total + ' sessions';
+    }
+
     // Every place on the page that names the programme, written from the view rather than typed
     // into index.html, because a number or a name typed into that file is right on one of the
     // seven.
@@ -394,6 +421,13 @@
       }
       var cohEl = document.getElementById('subcohort');
       if (cohEl) cohEl.textContent = cohLabel;
+
+      // HOW MUCH OF THE PROGRAMME THIS DRAWING HOLDS, issue 122, and it is the same rule as the
+      // cohort above it: read off the view rather than typed, because a number typed here is right
+      // on one of seven. The argument for it being in the heading at all is in index.html beside
+      // the markup.
+      var sampEl = document.getElementById('subsample');
+      if (sampEl) sampEl.textContent = sampleClause(v);
 
       // The heading's third variant, the one #/students brings up. It names the programme by its
       // code rather than by its label because the sentence around it is short and there are seven

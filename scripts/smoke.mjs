@@ -259,6 +259,7 @@ const PHASES = {
   'cold load':            { count: 4, when: 'behavioural' },
   'students':             { count: 11, when: 'behavioural' },
   'term':                 { count: 56, when: 'behavioural' },
+  'the sample':           { count: 6, when: 'behavioural' },
   'the empty window':     { count: 6, when: 'behavioural' },
   'header':               { count: 8, when: 'behavioural' },
   'the readout':          { count: 7, when: 'behavioural' },
@@ -475,7 +476,7 @@ const PHASES = {
 // eleven over eighty three drawn chips, so the second is not a restatement of the first. Both are
 // against SENTENCE_MODEL, which walks window.GI and rebuilds every figure, and both carry the
 // claim that the other reading of the same term gives different numbers.
-const EXPECTED_ASSERTIONS = 210;
+const EXPECTED_ASSERTIONS = 216;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -1920,11 +1921,14 @@ function mondayOf(d) {
 // claim: the list filters to the window and the two grids keep the term and mark the band, so the
 // grid's sentence is this function with no window and the list's is the same function with one.
 const SENTENCE_MODEL = `(function (scopeKey, from, to) {
-  var rows = [], modelTotal = 0;
+  var rows = [], modelTotal = 0, modelDrawn = 0;
   window.GI.views.forEach(function (v) {
     if (scopeKey && v.key !== scopeKey) return;
     var b = (v.counts || {}).CohortSession;
-    if (b) modelTotal += b.total;
+    // Issue 122. Both halves of the model's own declaration, because the sentence now states the
+    // fraction and not only the total, and a driver that read the total alone could not tell a
+    // scope that draws all of its sessions from one that draws six of seventy nine.
+    if (b) { modelTotal += b.total; modelDrawn += b.drawn; }
     v.nodes.forEach(function (n) {
       if (n.type !== 'CohortSession') return;
       var p = {};
@@ -1946,7 +1950,8 @@ const SENTENCE_MODEL = `(function (scopeKey, from, to) {
     m[r.state]++;
     if (seen[r.code] === undefined) { seen[r.code] = 1; spread++; }
   });
-  return { n: rows.length, programmes: spread, modelTotal: modelTotal,
+  return { n: rows.length, programmes: spread, modelTotal: modelTotal, modelDrawn: modelDrawn,
+           complete: modelTotal > 0 && modelDrawn >= modelTotal,
            from: rows.length ? rows[0].date : '',
            to: rows.length ? rows[rows.length - 1].date : '',
            states: order.map(function (k) { return m[k] + ' ' + k; }).join(', '),
@@ -1959,23 +1964,55 @@ const SENTENCE_MODEL = `(function (scopeKey, from, to) {
 // a card that rewrites the prose around these numbers must not turn this red. Each figure is
 // found by the shape of the clause that carries it, and the state tally is the one clause that is
 // only digits and words, which is what tells it apart from "11 with no instructor named".
+//
+// ISSUE 122 SPLIT THREE OF THESE IN TWO, AND EVERY SPLIT IS A SECOND FIGURE RATHER THAN A
+// REWORDING. The sample used to be a tail on the first clause, `drawn from a term the model counts
+// at 260`, printed in that one shape whether the scope was a sample of the term or all of it; it
+// is a clause of its own now and the complete case says so in different words, so `sampleDrawn`
+// and `sampleAll` are read apart and an assertion can require the right one. The two gap figures
+// carry the population they were counted over, so each has a denominator. And the heading has two
+// kinds of `of` that mean different things: `11 of 83` is the window taking rows off the scope and
+// `83 of the 260` is the scope against the model's own declaration, which is why they are matched
+// by two patterns into two fields and never into one.
 function readSentence(title, sub) {
   const parts = sub.split(' · ');
-  const head = /^(\d+) sessions? across (.+?), drawn from a term the model counts at (\d+)$/
-    .exec(parts[0]) || [];
+  const head = /^(\d+) sessions? across (.+?)$/.exec(parts[0]) || [];
+  // `83 of the 260 sessions the model counts` against `all 25 of the sessions the model counts`.
+  const samp = /(\d+) of the (\d+) sessions? the model counts/.exec(sub) || [];
+  const sampAll = /all (\d+) of the sessions? the model counts/.exec(sub) || [];
   const span = parts.find(p => /^\d{4}-\d\d-\d\d to \d{4}-\d\d-\d\d$/.test(p)) || '';
-  const heading = /(\d+)(?: of (\d+))? sessions? in date order/.exec(title) || [];
+  const hAll = /all (\d+) sessions? in date order/.exec(title);
+  // Tried before the window's pattern and mutually exclusive with it: `of the 260` carries a word
+  // between the `of` and the digits and `of 83` does not, so neither expression can match the
+  // other's heading.
+  const hSample = /(\d+) of the (\d+) sessions? in date order/.exec(title);
+  const hWin = /(\d+) of (\d+) sessions? in date order/.exec(title);
+  const hBare = /(\d+) sessions? in date order/.exec(title);
+  const noInst = /(\d+) of (\d+) with no instructor named/.exec(sub) || [];
+  const noRec = /(\d+) of (\d+) with no recording/.exec(sub) || [];
+  const heading = hAll || hSample || hWin || hBare || [];
   return {
     n: Number(head[1]),
     across: head[2] === undefined ? null : head[2],
-    modelTotal: Number(head[3]),
+    // How many of the model's declared total this scope holds, and null on a complete scope, where
+    // the sentence says `all` instead and there is no fraction to read.
+    sampleDrawn: samp[1] === undefined ? null : Number(samp[1]),
+    modelTotal: samp[2] !== undefined ? Number(samp[2])
+              : sampAll[1] !== undefined ? Number(sampAll[1]) : null,
+    sampleAll: sampAll[1] !== undefined,
     from: span.slice(0, 10),
     to: span.slice(-10),
     states: parts.find(p => /^\d+ [a-z]+(?:, \d+ [a-z]+)*$/.test(p)) || '',
-    noInstructor: Number((/(\d+) with no instructor named/.exec(sub) || [])[1]),
-    noRecording: Number((/(\d+) with no recording/.exec(sub) || [])[1]),
+    noInstructor: Number(noInst[1]),
+    noInstructorOf: noInst[2] === undefined ? null : Number(noInst[2]),
+    noRecording: Number(noRec[1]),
+    noRecordingOf: noRec[2] === undefined ? null : Number(noRec[2]),
     headingN: Number(heading[1]),
-    headingOf: heading[2] === undefined ? null : Number(heading[2])
+    headingAll: !!hAll,
+    // The window's denominator, and null wherever no window is taking rows off the list.
+    headingOf: hWin && !hSample ? Number(hWin[2]) : null,
+    // The model's, and null wherever the heading is the window's or the scope is complete.
+    headingSample: hSample ? Number(hSample[2]) : null
   };
 }
 
@@ -2254,16 +2291,29 @@ async function checkTerm(page) {
   // ISSUE 83'S RULE, APPLIED TO A ROUTE. A lane that draws a sample says so; a sheet of 83 rows
   // that did not would read as a term. The total is the model's own, so the sheet cannot claim to
   // be complete while it is not.
+  //
+  // ISSUE 122 PUT THE HEADING UNDER THE SAME CLAIM AND MADE THE CLAUSE ITS OWN. The subtitle used
+  // to close its first clause with `drawn from a term the model counts at 260`; the sample is a
+  // clause of its own now and the heading carries the fraction as well, so the reading a manager
+  // takes off the sheet without scrolling has it. Both are required here, and the recomputation is
+  // the driver's own: `state` is the page's bookkeeping and would agree with itself.
+  const calSaid = readSentence(cal.title, cal.sub);
+  const calModel = await page.evaluate(`${SENTENCE_MODEL}(null, null, null)`);
   assert('the sheet declares the sample it drew rather than reading as the whole term',
-    state.sessionsTotal > state.sessions &&
-      cal.sub.indexOf(String(state.sessions)) === 0 &&
-      cal.sub.indexOf('the model counts at ' + state.sessionsTotal) !== -1,
-    `a subtitle saying ${state.sessions} drawn from ${state.sessionsTotal}`,
-    JSON.stringify(cal.sub.slice(0, 160)));
+    calModel.modelTotal > calModel.n && calModel.complete === false &&
+      cal.sub.indexOf(String(calModel.n)) === 0 &&
+      calSaid.sampleDrawn === calModel.modelDrawn &&
+      calSaid.modelTotal === calModel.modelTotal && calSaid.sampleAll === false &&
+      calSaid.headingN === calModel.n && calSaid.headingSample === calModel.modelTotal,
+    `a heading and a subtitle both saying ${calModel.modelDrawn} of the ${calModel.modelTotal}, ` +
+      'recomputed off window.GI in this driver',
+    `heading ${JSON.stringify(cal.title)}, subtitle ${JSON.stringify(cal.sub.slice(0, 160))}`);
 
   // The gaps, which are the only reason an operator opens a calendar. Counted twice on the page,
-  // once in the subtitle and once as a mark on each row, and the two have to agree.
-  const statedGaps = Number((/(\d+) with no instructor named/.exec(cal.sub) || [])[1]);
+  // once in the subtitle and once as a mark on each row, and the two have to agree. Issue 122 gave
+  // the figure the population it was counted over, so the pattern reads both numbers: an
+  // expression matching one digit would have read the denominator here and passed.
+  const statedGaps = Number((/(\d+) of \d+ with no instructor named/.exec(cal.sub) || [])[1]);
   assert('the sessions with nobody to teach them are marked on the rows, not only counted',
     state.noInstructor > 0 && cal.gapRows === state.noInstructor &&
       cal.gapCells === state.noInstructor && statedGaps === state.noInstructor,
@@ -2449,13 +2499,22 @@ async function checkTerm(page) {
       programmes: Number((/^(\d+) programmes?$/.exec(winSaid.across) || [])[1]),
       modelTotal: winSaid.modelTotal, from: winSaid.from, to: winSaid.to, states: winSaid.states,
       noInstructor: winSaid.noInstructor, noRecording: winSaid.noRecording,
+      // Issue 122. The two gap figures are over the rows the list filtered to and say so, and the
+      // sample clause is over the scope and is the one figure in this sentence a window must NOT
+      // move: eleven rows of a three week window are still eleven rows of a document that holds 83
+      // of the term's 260.
+      noInstructorOf: winSaid.noInstructorOf, noRecordingOf: winSaid.noRecordingOf,
+      sampleDrawn: winSaid.sampleDrawn, sampleAll: winSaid.sampleAll,
       headingN: winSaid.headingN, headingOf: winSaid.headingOf,
+      headingSample: winSaid.headingSample,
       andTheTermWouldSayOtherwiseAbout: apart.length },
     { rows: winModel.n, n: winModel.n, programmes: winModel.programmes,
       modelTotal: winModel.modelTotal, from: winModel.from, to: winModel.to,
       states: winModel.states, noInstructor: winModel.noInstructor,
       noRecording: winModel.noRecording,
-      headingN: winModel.n, headingOf: termModel.n,
+      noInstructorOf: winModel.n, noRecordingOf: winModel.n,
+      sampleDrawn: termModel.modelDrawn, sampleAll: false,
+      headingN: winModel.n, headingOf: termModel.n, headingSample: null,
       andTheTermWouldSayOtherwiseAbout:
         apart.length || 'every figure matches the term, so this row proves nothing' },
     `recomputed off window.GI for ${w3.from} to ${w3.to}, where the term says ` +
@@ -2498,12 +2557,21 @@ async function checkTerm(page) {
       programmes: Number((/^(\d+) programmes?$/.exec(gridSaid.across) || [])[1]),
       from: gridSaid.from, to: gridSaid.to, states: gridSaid.states,
       noInstructor: gridSaid.noInstructor, noRecording: gridSaid.noRecording,
-      headingN: gridSaid.headingN, headingOf: gridSaid.headingOf, insideTheWindow: inClause,
+      noInstructorOf: gridSaid.noInstructorOf, noRecordingOf: gridSaid.noRecordingOf,
+      sampleDrawn: gridSaid.sampleDrawn, sampleAll: gridSaid.sampleAll,
+      // Issue 122. No window is taking rows off this picture, so the heading's `of` is the
+      // model's declaration and not the window's, and the two are read into two fields: a heading
+      // that printed `83 of 83` under a three week window would satisfy neither.
+      headingN: gridSaid.headingN, headingOf: gridSaid.headingOf,
+      headingSample: gridSaid.headingSample, insideTheWindow: inClause,
       andTheWindowWouldSayOtherwiseAbout: apart.length },
     { chips: termModel.n, n: termModel.n, programmes: termModel.programmes,
       from: termModel.from, to: termModel.to, states: termModel.states,
       noInstructor: termModel.noInstructor, noRecording: termModel.noRecording,
-      headingN: termModel.n, headingOf: null, insideTheWindow: winModel.n,
+      noInstructorOf: termModel.n, noRecordingOf: termModel.n,
+      sampleDrawn: termModel.modelDrawn, sampleAll: false,
+      headingN: termModel.n, headingOf: null, headingSample: termModel.modelTotal,
+      insideTheWindow: winModel.n,
       andTheWindowWouldSayOtherwiseAbout:
         apart.length || 'every figure matches the window, so this row proves nothing' },
     `recomputed off window.GI with no window, against a grid that is drawing all of it under a ` +
@@ -3263,6 +3331,213 @@ async function checkTerm(page) {
     `moved ${moved.toFixed(1)}px, hash ${JSON.stringify(hashAfter)}`);
   await page.evaluate('window.ZT.fit()');
   await viewSettled(page);
+}
+
+// ---- sampled against complete, issue 122 --------------------------------------------------------
+// THE FINDING IS THAT A COUNT ON THIS PAGE NEVER SAID WHICH POPULATION IT WAS OVER. Five of the
+// seven documents hold a sample of their programme's term and two hold all of it, and until this
+// card the only place that was written was a band caption on the canvas. Everything in the header
+// is then a count over a set the reader has no reason to think is partial: `gaps 11 of 95` is 95
+// values among eighty three of the two hundred and sixty sessions the model declares, and reads as
+// a fact about the business.
+//
+// AND #121's OWN FINDING IS WHY THIS PHASE IS WRITTEN THE WAY IT IS: "all 207 read the page's own
+// bookkeeping". An assertion that took the sheet's sample clause and checked it against
+// window.ZT.term().sessionsTotal would be checking one of term.js's readings against another of
+// term.js's readings, which is precisely how a page that counted the wrong population passes.
+// SAMPLE_MODEL below walks window.GI's `counts` blocks itself, per view and summed, and every
+// figure asserted here is that recomputation. The page's strings are the input to the comparison
+// and never its answer.
+//
+// THE PARTITION IS RECOMPUTED TOO, AND THAT IS THE HALF A NAIVE FIX WOULD SHIP. A page that
+// printed the sampled form everywhere would be right on five of seven and would read as a card
+// that had been done; a page that printed the complete form everywhere would be right on two. So
+// which programmes are complete is derived here from the model's own declaration and the two sets
+// are required to be non-empty, so neither blanket answer can pass.
+const SAMPLE_MODEL = `(function () {
+  var out = { views: [], sessions: { drawn: 0, total: 0 }, templates: { drawn: 0, total: 0 } };
+  window.GI.views.forEach(function (v) {
+    var s = (v.counts || {}).CohortSession || { drawn: 0, total: 0 };
+    var t = (v.counts || {}).SessionTemplate || { drawn: 0, total: 0 };
+    out.views.push({ key: v.key, code: v.code, drawn: s.drawn, total: s.total,
+                     complete: s.total > 0 && s.drawn >= s.total,
+                     tDrawn: t.drawn, tTotal: t.total,
+                     tComplete: t.total > 0 && t.drawn >= t.total });
+    out.sessions.drawn += s.drawn;
+    out.sessions.total += s.total;
+    out.templates.drawn += t.drawn;
+    out.templates.total += t.total;
+  });
+  out.sessions.complete = out.sessions.drawn >= out.sessions.total;
+  out.templates.complete = out.templates.drawn >= out.templates.total;
+  return JSON.stringify(out);
+})()`;
+
+// The clause on the drawing's own heading, with the boxes of the two things it has to sit beside.
+// The geometry is here because "where the number is" is the whole of what the card asked for and
+// is a measurable claim: a clause that ended up in the footer, in a tooltip or on a second line
+// would satisfy every string assertion in this phase.
+const HEADING_READ = `(function () {
+  function box(e) {
+    if (!e) return null;
+    var r = e.getBoundingClientRect();
+    return { x: r.left, y: r.top, w: r.width, h: r.height, mid: r.top + r.height / 2 };
+  }
+  var s = document.getElementById('subsample');
+  var h = document.querySelector('h1 .h-diagram');
+  return JSON.stringify({
+    text: s ? s.textContent : null,
+    heading: h ? h.textContent : null,
+    sample: box(s),
+    gaps: box(document.getElementById('gapsval')),
+    plate: box(document.getElementById('hstate'))
+  });
+})()`;
+
+async function checkSample(page) {
+  await page.evaluate(`location.hash = '#/'`);
+  await page.waitFor('window.ZT.term().open === false', 'the diagram to be on screen');
+  const startedOn = await page.evaluate('window.ZT.programme().key');
+  const model = JSON.parse(await page.evaluate(SAMPLE_MODEL));
+  const complete = model.views.filter(v => v.complete);
+  const sampled = model.views.filter(v => !v.complete);
+
+  // ONE. EVERY DRAWING SAYS ITS OWN, AND THE WORDS ARE THE MODEL'S ARITHMETIC. Walked over all
+  // seven rather than read on one, for the reason the gap count is: a clause that printed the same
+  // fraction whatever the address would pass on any single view, and the seven differ by an order
+  // of magnitude.
+  const said = [];
+  for (const v of model.views) {
+    await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(v.key)}`);
+    await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(v.key)}`,
+      `the ${v.key} drawing`);
+    said.push({ key: v.key, ...JSON.parse(await page.evaluate(HEADING_READ)) });
+  }
+  const want = v => (v.complete ? `, all ${v.total} of its sessions`
+                                : `, ${v.drawn} of its ${v.total} sessions`);
+  const wrongText = model.views.filter((v, i) => said[i].text !== want(v));
+  assert('every drawing says in its heading how much of its programme it holds',
+    wrongText.length === 0 && said.length === 7 &&
+      new Set(said.map(s => s.text)).size > 1,
+    'seven headings each carrying its own view\'s drawn and declared session counts, ' +
+      'recomputed off window.GI in this driver',
+    wrongText.length
+      ? wrongText.map((v, i) => `${v.key} wanted ${JSON.stringify(want(v))}`).join(', ') +
+        ` against ${JSON.stringify(said.map(s => s.text))}`
+      : JSON.stringify(said.map(s => s.text)));
+
+  // TWO. AND SAMPLED READS DIFFERENTLY FROM COMPLETE, WHICH IS THE WHOLE CARD. Both sets are
+  // required to be non-empty and the membership is the model's, so a page that printed one form
+  // everywhere fails whichever form it chose.
+  const saysAll = said.filter(s => /^, all \d+ of its sessions$/.test(s.text)).map(s => s.key);
+  const saysPart = said.filter(s => /^, \d+ of its \d+ sessions$/.test(s.text)).map(s => s.key);
+  assert('and a complete drawing reads differently from a sampled one, by the model\'s own partition',
+    complete.length > 0 && sampled.length > 0 &&
+      saysAll.join() === complete.map(v => v.key).join() &&
+      saysPart.join() === sampled.map(v => v.key).join() &&
+      saysAll.length + saysPart.length === 7,
+    `${complete.map(v => v.key).join(', ')} complete and ` +
+      `${sampled.map(v => v.key).join(', ')} sampled, off window.GI`,
+    `the page says all of ${JSON.stringify(saysAll)} and part of ${JSON.stringify(saysPart)}`);
+
+  // THREE. AND IT IS WHERE THE NUMBERS ARE. The card's sentence is that the distinction must be at
+  // the count and not two clicks away in a band caption, so the clause is required to be painted,
+  // to have width, and to sit on the same line as the readout's own value with the plate to its
+  // right. A clause moved into a tooltip, into the footer or onto a second row would pass every
+  // string above and fail here.
+  const last = said[said.length - 1];
+  const onLine = last.sample && last.gaps && last.plate &&
+    last.sample.w > 0 && last.sample.h > 0 &&
+    Math.abs(last.sample.mid - last.gaps.mid) <= 2 &&
+    last.sample.x < last.plate.x;
+  assert('and it is on the header\'s own line, beside the counts it is the subject of',
+    onLine === true,
+    'the clause painted, on the readout value\'s own line, to the left of the plate',
+    JSON.stringify({ sample: last.sample, gaps: last.gaps, plate: last.plate }));
+
+  // FOUR. BOTH READINGS OF THE TERM SAY IT TOO, in the heading and in the sentence, because the
+  // sheet is the one place on this page where the count of eighty three is printed as a number a
+  // manager reads off the screen. Recomputed from the same model, summed across the seven, and
+  // required in both readings: the calendar lists cohort sessions and the outline session
+  // templates, and the two totals are declared separately in the document.
+  await page.evaluate(`location.hash = '#/calendar'`);
+  await page.waitFor(`window.ZT.term().reading === 'calendar'`, 'the calendar');
+  const calAll = await page.evaluate(TERM_READ);
+  await page.evaluate(`location.hash = '#/outline'`);
+  await page.waitFor(`window.ZT.term().reading === 'outline'`, 'the outline');
+  const outAll = await page.evaluate(TERM_READ);
+  const calWanted = `${model.sessions.drawn} of the ${model.sessions.total} sessions the model counts`;
+  const outWanted =
+    `${model.templates.drawn} of the ${model.templates.total} session templates the model counts`;
+  assert('both readings of the term say the sample of the rows they drew, in the heading and in the sentence',
+    model.sessions.complete === false && model.templates.complete === false &&
+      calAll.sub.indexOf(calWanted) !== -1 &&
+      calAll.title.indexOf(`${model.sessions.drawn} of the ${model.sessions.total} sessions`) !== -1 &&
+      outAll.sub.indexOf(outWanted) !== -1 &&
+      outAll.title.indexOf(
+        `${model.templates.drawn} of the ${model.templates.total} session templates`) !== -1,
+    `the calendar saying "${calWanted}" and the outline "${outWanted}", both recomputed here`,
+    `calendar ${JSON.stringify(calAll.title)} / ${JSON.stringify(calAll.sub.slice(0, 120))}, ` +
+      `outline ${JSON.stringify(outAll.title)} / ${JSON.stringify(outAll.sub.slice(0, 120))}`);
+
+  // FIVE. AND A COMPLETE SCOPE SAYS IT IS COMPLETE RATHER THAN WEARING A SAMPLE'S WORDS, which is
+  // the state the old sentence could not express: it closed with "drawn from a term the model
+  // counts at 25" over twenty five rows, the same shape it used over eighty three of two hundred
+  // and sixty. Both scopes are driven, from the model's own partition rather than from a key typed
+  // here, so a page that dropped the distinction fails on one of the two whichever way it dropped
+  // it.
+  const oneComplete = complete[0];
+  const oneSampled = sampled[0];
+  await page.evaluate(`location.hash = '#/calendar/' + ${JSON.stringify(oneComplete.key)}`);
+  await page.waitFor(`window.ZT.term().scope === ${JSON.stringify(oneComplete.key)}`,
+    `the ${oneComplete.key} calendar`);
+  const calFull = await page.evaluate(TERM_READ);
+  await page.evaluate(`location.hash = '#/calendar/' + ${JSON.stringify(oneSampled.key)}`);
+  await page.waitFor(`window.ZT.term().scope === ${JSON.stringify(oneSampled.key)}`,
+    `the ${oneSampled.key} calendar`);
+  const calPart = await page.evaluate(TERM_READ);
+  assert('a complete scope says so in words rather than in a sample\'s shape with equal numbers',
+    calFull.title.indexOf(`all ${oneComplete.total} sessions in date order`) !== -1 &&
+      calFull.sub.indexOf(`all ${oneComplete.total} of the sessions the model counts`) !== -1 &&
+      calFull.sub.indexOf(` of the ${oneComplete.total} sessions the model counts`) === -1 &&
+      calPart.title.indexOf(
+        `${oneSampled.drawn} of the ${oneSampled.total} sessions in date order`) !== -1 &&
+      calPart.sub.indexOf(
+        `${oneSampled.drawn} of the ${oneSampled.total} sessions the model counts`) !== -1,
+    `${oneComplete.key} saying all ${oneComplete.total} and ${oneSampled.key} saying ` +
+      `${oneSampled.drawn} of the ${oneSampled.total}`,
+    `${oneComplete.key} ${JSON.stringify(calFull.sub.slice(0, 110))}, ` +
+      `${oneSampled.key} ${JSON.stringify(calPart.sub.slice(0, 110))}`);
+
+  // SIX. AND EVERY GAP FIGURE CARRIES THE POPULATION IT WAS COUNTED OVER, which is the card's own
+  // worked example: thirty eight templates recording no duration is thirty eight of the eighty
+  // three these documents hold and not of the two hundred and sixty the model counts. The
+  // denominators are checked against the rows the sheet actually drew, counted here off the table
+  // rather than off the sentence that is under test.
+  await page.evaluate(`location.hash = '#/outline'`);
+  await page.waitFor(`window.ZT.term().reading === 'outline'`, 'the outline again');
+  const outRows = await page.evaluate(TERM_READ);
+  const dur = /(\d+) of (\d+) record no duration/.exec(outRows.sub) || [];
+  await page.evaluate(`location.hash = '#/calendar'`);
+  await page.waitFor(`window.ZT.term().reading === 'calendar'`, 'the calendar again');
+  const calRows = await page.evaluate(TERM_READ);
+  const calSaid = readSentence(calRows.title, calRows.sub);
+  assert('every gap figure in the sentence names the population it was counted over',
+    Number(dur[2]) === outRows.rows && outRows.rows > 0 && Number(dur[1]) > 0 &&
+      Number(dur[1]) < Number(dur[2]) &&
+      calSaid.noInstructorOf === calRows.rows && calSaid.noRecordingOf === calRows.rows &&
+      calSaid.noInstructor > 0 && calSaid.noInstructor < calRows.rows,
+    `denominators equal to the ${outRows.rows} rows the outline drew and the ${calRows.rows} the ` +
+      'calendar drew, counted off the tables',
+    `outline ${JSON.stringify(dur[0] || null)} over ${outRows.rows} rows, calendar ` +
+      `${calSaid.noInstructor} of ${calSaid.noInstructorOf} and ${calSaid.noRecording} of ` +
+      `${calSaid.noRecordingOf} over ${calRows.rows} rows`);
+
+  await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(startedOn)}`);
+  await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(startedOn)}`,
+    'the drawing this phase started on');
+  await page.evaluate(`location.hash = '#/'`);
+  await page.waitFor('window.ZT.term().open === false', 'the diagram to come back');
 }
 
 // ---- what the header says needs attention, issue 98 ---------------------------------------------
@@ -5912,6 +6187,10 @@ async function runViewport(chrome, viewport, base, full, narrow) {
       await group('cold load', () => checkColdLoad(page, base));
       await group('students', () => checkStudents(page));
       await group('term', () => checkTerm(page));
+      // After `term`, which leaves the address on the diagram with no window on, and before the
+      // phases that walk the seven programmes: this one walks them too and puts the drawing and
+      // the address back the way it found them. Issue 122.
+      await group('the sample', () => checkSample(page));
       // After `term`, which leaves the window off and the address on the diagram, and before
       // `header`, which walks all seven programmes: this one moves to a programme of its own
       // choosing and puts both back the way it found them. Issue 119.
