@@ -801,6 +801,31 @@
   // than a hole in something present. It used to exclude `n.outside` as well, #100's per lane
   // count tile, which was drawn by render.js and was in no model at all; #111 took those tiles off
   // the drawing, so nothing reaching this function is anything but a node of the model.
+  // ---- the split, issue 125 -------------------------------------------------
+  // TWO KINDS OF THING UNDER ONE NUMBER, AND THAT IS THE WHOLE OF THIS CARD. The registry the
+  // model ships answers, per class, which system holds a row of it, and `system: null` means none
+  // does. Joined against the 95 that answer decides whether the row is work:
+  //
+  //   22 have a system. A row exists in Notion or in the finance tool and one of its fields is
+  //      empty, so somebody can open that row this week and fill it in.
+  //   73 have none. No system anywhere records the fact, so no effort inside the tooling that
+  //      exists closes them; they are process decisions and they will still be true in a year.
+  //
+  // A MENU THAT SHOWS THEM AS ONE LIST OF 95 IS A THERMOMETER. It says how bad things are and
+  // gives a reader no way to tell the four rows they could act on from the ninety one they could
+  // not. The split is read off `routes.classes[<class>].system` and off nothing kept here, so a
+  // class that gains a system moves to the other side of it without this file being edited.
+  var ROUTE_CLASSES = (GI && GI.routes && GI.routes.classes) || {};
+
+  function heldBySystem(n) {
+    var e = ROUTE_CLASSES[n && n['class']];
+    return !!(e && e.system);
+  }
+
+  // Keyed on the CLASS and not on the type, which is a repair this card had to make before it
+  // could group by anything: two classes share the type Company, the employer and the empresa
+  // colaboradora, and one of them has a system and the other does not. Grouping by type would put
+  // rows from both sides of the split under one heading the moment a field name collided.
   function gapsOf(nodes) {
     var by = {}, keys = [], total = 0;
     (nodes || []).forEach(function (n) {
@@ -809,15 +834,26 @@
       for (i = first; i < props.length; i++) {
         p = props[i];
         if (p.f !== 'absent') continue;
-        k = n.type + ' ' + p.k;
-        if (!by[k]) { by[k] = { type: n.type, field: p.k, n: 0 }; keys.push(k); }
+        k = n['class'] + ' ' + p.k;
+        if (!by[k]) {
+          by[k] = { type: n.type, cls: n['class'], field: p.k, n: 0,
+                    system: heldBySystem(n), ids: [] };
+          keys.push(k);
+        }
         by[k].n++;
+        // The objects themselves, because a row that can be pressed has to be able to say which
+        // things it would take the reader to, and because a driver checking that the number and
+        // the destination are the same set needs the set.
+        by[k].ids.push(n.id);
         total++;
       }
     });
     return {
       total: total,
       rows: keys.map(function (k) { return by[k]; }).sort(function (a, b) {
+        // The work first, which is the ordering the split exists to make. Inside each side it is
+        // the ordering this menu has had since #98, biggest count first.
+        if (a.system !== b.system) return a.system ? -1 : 1;
         if (b.n !== a.n) return b.n - a.n;
         if (a.type !== b.type) return a.type < b.type ? -1 : 1;
         return a.field < b.field ? -1 : 1;
@@ -855,11 +891,18 @@
         v.drawing.nodes.forEach(function (n) {
           if (n.type !== rows.type) return;
           if (spec && spec.out(n)) return;
+          // Issue 125. A worklist is a third thing taking rows off the reading, so it takes them
+          // off this count too. The rule this control has run on since #98 is that the count is
+          // over what the view is SHOWING, and a reading filtered to eleven rows is showing
+          // eleven: `95` over that screen would be the same wrongness #121 was filed about with
+          // the numbers the other way round.
+          if (rows.gap && !isAbsent(n, rows.gap)) return;
           nodes.push(n);
         });
       });
       return {
         nodes: nodes,
+        view: views.length === 1 ? views[0] : null,
         subject: 'the ' + typeWords(rows.type, 2) + ' this reading lists',
         where: (views.length === 1 ? (views[0].label || views[0].code)
                                    : 'all ' + VIEWS.length + ' programmes') +
@@ -869,9 +912,20 @@
     var v = router.view();
     return {
       nodes: render.drawing().nodes,
+      view: v,
       subject: 'the tiles on this drawing',
       where: (v.label || v.code) + ', ' + windowWords()
     };
+  }
+
+  // Whether one node carries this field flagged absent, on the same boundary gapsOf() draws: the
+  // route rows are about the class and everything after them is about the object.
+  function isAbsent(n, field) {
+    var props = n.props || [], i;
+    for (i = (n.route || 0); i < props.length; i++) {
+      if (props[i].k === field) return props[i].f === 'absent';
+    }
+    return false;
   }
 
   function gapsMenuOpen() { return !!gapsMenu && !gapsMenu.hidden; }
@@ -880,6 +934,117 @@
     if (!gapsMenu || gapsMenuOpen() === on) return;
     gapsMenu.hidden = !on;
     if (gapsBtn) gapsBtn.setAttribute('aria-expanded', on ? 'true' : 'false');
+  }
+
+  // ---- the words, and after this card there is one set of them, issue 125 ----
+  // THREE WORDS FOR TWO FINDINGS IS WHAT THE PAGE HAD. `gaps` counts values a real object should
+  // carry and does not, `ghosts` switches the classes that exist in no system at all, and the
+  // registry says of those same classes that nothing holds a row for them. The critic's reading
+  // is that two of the three are one finding at two grains: a class no system holds, met either
+  // as a dashed tile or as the reason a field on a solid tile can never be filled. So the second
+  // heading below is not written here. It is READ, from the ghost type's own label and from the
+  // registry's own vocabulary, and the page says one thing in one wording wherever it comes up.
+  // The third word is a word for something else and stays: 22 of the 95 are a row that exists
+  // with an empty field in it, which is neither a ghost nor a class with no system.
+  function noSystemWords() {
+    return String((render.typeLabel && render.typeLabel('Ghost')) || '');
+  }
+
+  function noSystemWhy() {
+    var v = GI && GI.routes && GI.routes.vocab && GI.routes.vocab.read;
+    return (v && v['no-source']) || '';
+  }
+
+  function sideTotal(rows, system) {
+    var n = 0;
+    rows.forEach(function (r) { if (r.system === system) n += r.n; });
+    return n;
+  }
+
+  // The heading over one side of the split, and the sentence under the second one. A fragment
+  // rather than an element because the no-system side is a heading AND the registry's own reason,
+  // and a reader who is told these are not work is owed the reason in the same breath.
+  function groupHead(system, rows) {
+    var frag = document.createDocumentFragment();
+    var p = document.createElement('p');
+    p.className = 'gaps-head';
+    p.textContent = (system ? 'A system holds the row and the field is empty'
+                            : 'The class ' + noSystemWords()) +
+                    ' · ' + sideTotal(rows, system);
+    frag.appendChild(p);
+    if (!system) {
+      var why = document.createElement('p');
+      why.className = 'gaps-why';
+      why.textContent = noSystemWhy();
+      frag.appendChild(why);
+    }
+    return frag;
+  }
+
+  // ---- and where a row of work goes, issue 125 -------------------------------
+  // THE ANSWER IS WHEREVER THE PAGE ALREADY LISTS EXACTLY THOSE OBJECTS, which is why this card
+  // adds no address and no view. There are two such places. The review that #124 built lists
+  // cohort sessions, ranked and windowed, and takes a worklist on its own address; and the
+  // drawing lists everything one programme holds, where the way to one object is to select it.
+  // A row this page cannot answer for is left as text rather than given a control that would
+  // guess: a button that lands somewhere approximate is worse than a number.
+  function destinationFor(r, sc) {
+    if (r.type === 'CohortSession') {
+      var href = term.gapAddress(r.field, sc.view);
+      if (href.indexOf('?gap=') === -1) return null;
+      return {
+        title: 'the ' + r.n + ' of them, in the review, at this same window',
+        go: function () { location.hash = href; }
+      };
+    }
+    // One object and one place to put it. The count is per drawing here, so this is the row on
+    // the picture the reader is looking at; a row naming several is not offered, because there is
+    // no address that is those several and inventing one is what this card was told not to do.
+    if (r.ids.length !== 1 || term.isOpen()) return null;
+    var id = r.ids[0], on = false;
+    render.drawing().nodes.forEach(function (n) { if (n.id === id) on = true; });
+    if (!on) return null;
+    return {
+      title: 'the one it is, on this drawing, with its properties open',
+      go: function () {
+        var cur = selection.selected();
+        if (!cur || cur.id !== id) selection.select(id);
+      }
+    };
+  }
+
+  // One row of the menu. A control where the page can take the reader to the objects and a plain
+  // row where it cannot, and the difference is visible before the press rather than after it.
+  function gapRow(r, sc) {
+    var dest = r.system ? destinationFor(r, sc) : null;
+    var row = document.createElement(dest ? 'button' : 'div');
+    row.className = 'gaps-row' + (dest ? ' gaps-go' : '');
+    if (dest) {
+      row.type = 'button';
+      row.title = dest.title;
+      row.addEventListener('click', function (e) {
+        e.stopPropagation();
+        showGapsMenu(false);
+        dest.go();
+      });
+    }
+    var n = document.createElement('span');
+    n.className = 'gaps-n';
+    n.textContent = r.n;
+    var what = document.createElement('span');
+    what.className = 'gaps-what';
+    // The leading space is for the reader of the TEXT and not for the reader of the page. The
+    // 8px between the two boxes is the flex gap, and leading whitespace inside a flex item is
+    // collapsed away, so this changes no pixel; what it changes is what a capture quotes, which
+    // read `28session templates` before it. Issue 99 established that a report quotes the text
+    // a reader can see, and two boxes side by side are two words in that reading.
+    what.appendChild(document.createTextNode(' ' + typeWords(r.type, r.n) + ' with no '));
+    var code = document.createElement('code');
+    code.textContent = r.field;
+    what.appendChild(code);
+    row.appendChild(n);
+    row.appendChild(what);
+    return row;
   }
 
   // Everything the control says, rewritten from the model on every change of view. The sentence
@@ -909,26 +1074,17 @@
     head.className = 'gaps-scope';
     head.textContent = sentence;
     gapsMenu.appendChild(head);
+    // ISSUE 125. THE ROWS UNDER TWO HEADINGS, AND A HEADING IS PRINTED ONLY WHERE IT HAS ROWS.
+    // Every route has both kinds on some drawings and one kind on others, and a heading over
+    // nothing is a reader being told to look for something that is not there.
+    var side = 0;
     g.rows.forEach(function (r) {
-      var row = document.createElement('div');
-      row.className = 'gaps-row';
-      var n = document.createElement('span');
-      n.className = 'gaps-n';
-      n.textContent = r.n;
-      var what = document.createElement('span');
-      what.className = 'gaps-what';
-      // The leading space is for the reader of the TEXT and not for the reader of the page. The
-      // 8px between the two boxes is the flex gap, and leading whitespace inside a flex item is
-      // collapsed away, so this changes no pixel; what it changes is what a capture quotes, which
-      // read `28session templates` before it. Issue 99 established that a report quotes the text
-      // a reader can see, and two boxes side by side are two words in that reading.
-      what.appendChild(document.createTextNode(' ' + typeWords(r.type, r.n) + ' with no '));
-      var code = document.createElement('code');
-      code.textContent = r.field;
-      what.appendChild(code);
-      row.appendChild(n);
-      row.appendChild(what);
-      gapsMenu.appendChild(row);
+      var want = r.system ? 1 : 2;
+      if (side !== want) {
+        side = want;
+        gapsMenu.appendChild(groupHead(r.system, g.rows));
+      }
+      gapsMenu.appendChild(gapRow(r, sc));
     });
     var foot = document.createElement('p');
     foot.className = 'gaps-foot';
@@ -1355,8 +1511,17 @@
     gaps: function () {
       return { total: gapsNow.total, of: gapsNow.of, scope: gapsNow.scope,
                rows: gapsNow.rows.map(function (r) {
-                 return { type: r.type, field: r.field, n: r.n };
+                 // Issue 125. The class, whether a system holds it and which objects the row is
+                 // about, beside the count. A driver checking that the number the reader pressed
+                 // and the rows they landed on are the same set needs the set, and a driver
+                 // checking the split needs the side each row is on.
+                 return { type: r.type, cls: r.cls, field: r.field, n: r.n,
+                          system: r.system, ids: r.ids.slice() };
                }),
+               // The two sides as totals, so an assertion about the split does not have to sum a
+               // list the page also printed: 22 that are work and 73 that are not, over all seven.
+               work: sideTotal(gapsNow.rows, true),
+               settled: sideTotal(gapsNow.rows, false),
                menu: gapsMenuOpen() };
     }
   };

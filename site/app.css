@@ -876,6 +876,27 @@ h1 {
 
 .gaps-scope b { font-weight: 600; }
 
+/* ---- the split, issue 125 -------------------------------------------------------
+   TWO HEADINGS OVER ONE LIST, because the list held two kinds of thing and said so nowhere: 22
+   rows a system holds with an empty field in them, and 73 the registry says no system holds at
+   all. The heading is the register the box already has and carries no new colour, no rule and no
+   box; what separates the two sides is a line of text and the space above it, which is what the
+   scope sentence at the top of this box already does. */
+.gaps-head {
+  margin: 6px 0 2px;
+  color: var(--fg-body);
+  font-weight: 600;
+}
+
+.gapsmenu > .gaps-head:first-of-type { margin-top: 0; }
+
+/* The registry's own reason, under the second heading and in the muted register the foot uses,
+   because it is the same kind of sentence: about the machinery rather than about a count. */
+.gaps-why {
+  margin: 0 0 3px;
+  color: var(--fg-muted);
+}
+
 /* A count and the thing it counts, on a grid rather than in a sentence, because the reader is
    scanning for the largest number and a column of right-aligned figures is what that reading
    wants. */
@@ -885,6 +906,38 @@ h1 {
   gap: 8px;
   padding: 1px 0;
 }
+
+/* THE ROWS THAT ARE A PLACE TO GO. Issue 125. A work row is a <button> and the rest of the list
+   is unchanged, so the reset here is the whole of what a button costs: the browser's chrome off,
+   the box the full width of the menu, and the text left where the other rows' text is. The 26px
+   is issue 77's floor met explicitly, which the .linkbtn controls in this header get by
+   construction and an element that is a button for the first time does not. */
+.gaps-go {
+  width: 100%;
+  min-height: 26px;
+  align-items: center;
+  padding: 2px 4px;
+  margin: 0 -4px;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* The tint and the ring the other two menus in this header already use, .pgitem's and .wn-step's,
+   for the reason the box and the anchoring are theirs: a fourth idiom for the fourth disclosure
+   is four things to learn where there is one. */
+.gaps-go:hover { background: var(--tint-hover); }
+
+.gaps-go:focus-visible {
+  outline: 2px solid var(--i-primary);
+  outline-offset: -2px;
+}
+
+.gaps-go .gaps-what { color: var(--fg-body); }
 
 .gaps-n {
   flex: none;
@@ -907,9 +960,11 @@ h1 {
   color: var(--fg-body);
 }
 
-/* The definition, once, at the foot, in the words model.py and the panel's own flag already use.
-   It is the line that keeps this control from being read as a to-do list: an absence here is
-   something the analysis established, not something nobody has got round to typing. */
+/* The one claim left at the foot, that the number over the list is recomputed on every change of
+   view rather than written down anywhere. What stood beside it, that an absence here is something
+   the analysis established rather than something nobody has typed yet, went with issue 110 and
+   is answered a better way since issue 125: the two headings above say which of the two an
+   absence is, per row, off the registry rather than in a sentence over the whole list. */
 .gaps-foot {
   margin: 6px 0 0;
   padding-top: 6px;
@@ -2543,6 +2598,12 @@ body.hide-ghosts .ghost { display: none; }
    page. */
 .term-scope { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px; }
 .term-scope .term-scope-lead { color: var(--fg-muted); }
+
+/* The way off a worklist, issue 125, and it is the scope bar's rule with one word of its own: the
+   sentence between the lead and the link is prose rather than a row of codes, so it takes the
+   muted register the lead has and the link keeps the one control colour. Nothing else here, which
+   is the point: the two bars are the same control at two grains and they should read as one. */
+.term-gapbar { color: var(--fg-muted); }
 
 /* ---- the invented session agenda, issue 85 -------------------------------------
    THE HARDEST THING ON THIS PAGE TO SHIP HONESTLY, and the styling is half of the answer. Every

@@ -109,6 +109,13 @@
   // thousands. `open=all` is its own value rather than a list of every id, so the page-level
   // control has an address too and it stays true of a scope with a different set of rows in it.
   var OPEN_Q = /[?&]open=([^&]*)/;
+  // Issue 125. WHICH GAP THE REVIEW IS THE WORKLIST FOR, and it is a query for exactly the reason
+  // `open` is one: the header's gaps menu names one row per field, a field is not a place, and a
+  // path segment per field would multiply the sixteen routes this module answers by the number of
+  // fields the model happens to flag. The page answers the 33 addresses it answered before #124
+  // and the 33 it answers after this card. The value is the model's own field key, the same
+  // string the panel prints beside the value and the same string the menu row carries.
+  var GAP_Q = /[?&]gap=([^&]*)/;
 
   // Written out rather than taken from the browser's locale. The page is in English, the sheet has
   // to read the same on every machine, and a driver asserting date order should be reading the
@@ -181,6 +188,17 @@
     return r ? r.v : null;
   }
 
+  // Issue 125. WHICH OF A NODE'S OWN VALUES THE MODEL FLAGS ABSENT, and the boundary is the
+  // node's own `route` index rather than a list of field names kept here. It is the same boundary
+  // the header's count has drawn since #98 and for the same reason: the rows before it answer how
+  // a class gets filled at all, which is a fact about the class and is identical on every tile of
+  // it, and a worklist made of those would be a worklist of one item repeated eighty three times.
+  function absentFields(n) {
+    var p = n.props || [], out = {}, i;
+    for (i = (n.route || 0); i < p.length; i++) if (p[i].f === 'absent') out[p[i].k] = true;
+    return out;
+  }
+
   // "23 of 25" -> 23. The row is a sentence rather than a number because a position without its
   // total is not a position, and the outline sorts on the number inside it.
   function seqOf(n) {
@@ -236,6 +254,11 @@
     // boolean issue 85 shipped. `agendaOn` is derived from it and still means what it meant, that
     // every row in scope is open, so nothing that asked that question has to ask a new one.
     var openRows = {};          // template id -> true, issue 85's block, per row since issue 112
+    // Issue 125. WHICH GAP THE ROWS ARE THE WORKLIST FOR, a model field key or null for every row.
+    // Set from the address and from nothing else, which is the rule the open set already runs on:
+    // the header's menu navigates and this reads what it navigated to, so the number the reader
+    // pressed and the rows they land on come from one place and cannot drift apart.
+    var gapField = null;
 
     // ---- the rows, read out of the seven views once ---------------------------
     // Read once and kept, because nothing on this page can change them: the drawings are generated
@@ -269,6 +292,10 @@
             id: n.id, title: n.label,
             at: at, date: at.split(' ')[0] || '', time: at.split(' ')[1] || '',
             state: prop(n, 'state'),
+            // Issue 125. The FLAGS beside the values, because a worklist is made of flags: the
+            // header counts `absent` and this sheet has to be able to show the same set. Read off
+            // the node here, once, for the reason every other figure in this file is read once.
+            absent: absentFields(n),
             teacher: prop(n, 'teacher_assigned'),
             attendance: prop(n, 'attendance'),
             recording: prop(n, 'recording_ref')
@@ -368,6 +395,22 @@
       return out;
     }
 
+    // ---- the worklist filter, issue 125 -----------------------------------------
+    // WHICH FIELDS THIS READING WILL ANSWER FOR, off the rows themselves rather than off a list
+    // typed here. A `?gap=` naming a field no session carries is not a filter that leaves the
+    // sheet empty; it is not a filter at all, and the reading falls back to every row, which is
+    // the same answer readAddress already gives a programme code nobody has. A screen that
+    // printed "0 sessions with no elephant" would be inventing a finding out of a typo.
+    var GAP_FIELDS = (function () {
+      var seen = {};
+      sessions.forEach(function (s) {
+        Object.keys(s.absent).forEach(function (k) { seen[k] = true; });
+      });
+      return seen;
+    })();
+
+    function gapMatch(s) { return !gapField || !!s.absent[gapField]; }
+
     function totalFor(sc, key) {
       var n = 0;
       groupsFor(sc).forEach(function (g) {
@@ -428,9 +471,17 @@
     // window is READING's business and whether a shape filters or marks is the shape's, and both
     // are decided at the call site in describe(). What this owes them is one arithmetic that
     // takes the answer.
-    function stats(sc, windowed) {
+    //
+    // ISSUE 125 GAVE IT A THIRD ARGUMENT FOR THE REASON #121 GAVE IT A SECOND. A worklist is a
+    // third narrowing of the same set, so every figure in the sentence over it has to be over the
+    // narrowed set or the screen repeats #121's defect one card later: eleven rows under a
+    // sentence counting eighty three. It is the CALLER'S question again and not this function's,
+    // because the hints in the panel describe the whole reading and must not quote a filter the
+    // reader set inside a sheet they are not looking at.
+    function stats(sc, windowed, gapped) {
       var inScope = sessionsFor(sc);
-      var ss = windowed ? inScope.filter(function (s) { return inWindow(s.date); }) : inScope;
+      var inWin = windowed ? inScope.filter(function (s) { return inWindow(s.date); }) : inScope;
+      var ss = gapped ? inWin.filter(gapMatch) : inWin;
       var ts = templatesFor(sc);
       var m = {}, order = [], codes = {}, spread = 0;
       ss.forEach(function (s) {
@@ -444,6 +495,11 @@
         // showing part of its scope can say so in the idiom #120 settled for the tile count: the
         // denominator appears only when something is taking rows off.
         sessionsInScope: inScope.length,
+        // AND HOW MANY THE WINDOW LEFT BEFORE THE WORKLIST NARROWED IT AGAIN, issue 125, which is
+        // the denominator the filtered heading needs: `1 of 16 sessions` says the window holds
+        // sixteen and one of them is the row you pressed, where `1 of 83` would say the window
+        // was not there.
+        sessionsShown: inWin.length,
         templates: ts,
         programmes: groupsFor(sc).length,
         // AND THE PROGRAMMES THE ROWS IN HAND ACTUALLY CAME FROM, which is a different question
@@ -572,11 +628,12 @@
 
     var WIN_STEPS = [1, 2, 3];      // "the next 1-3 weeks", which is what the card asked for
     var win = { weeks: 0, anchor: TERM ? TERM.anchor : null };   // 0 weeks is the whole term
-    // WHETHER THE READER HAS SAID ANYTHING ABOUT THE WINDOW, issue 124. The review opens on three
-    // weeks, and the one thing it must never do is overrule somebody who has already answered that
-    // question: a reader who pressed "whole term" and then followed a link to the review would
-    // otherwise be given three weeks back with no press of their own. Set by the two controls in
-    // the window menu and by nothing else, so it means what its name says.
+    // WHETHER THE WINDOW QUESTION HAS BEEN ANSWERED, issue 124. The review opens on three weeks,
+    // and the one thing it must never do is overrule an answer already given: a reader who pressed
+    // "whole term" and then followed a link to the review would otherwise be given three weeks
+    // back with no press of their own. Set by the two controls in the window menu and, since issue
+    // 125, by a worklist address, which answers the same question a different way: it names a set
+    // counted over the window in force, and a default arriving after it would replace the set.
     var winTouched = false;
 
     function winRange() {
@@ -991,6 +1048,15 @@
       return sc ? base + '/' + sc.key : base;
     }
 
+    // Issue 125. The calendar's address with a worklist on it, built by the one function above
+    // rather than beside it, so the header's menu navigates to a string this module produced and
+    // there is still exactly one place a route to this sheet is spelled. A field this reading
+    // cannot answer for returns the plain address instead of one that would filter to nothing.
+    function gapAddress(field, sc) {
+      var a = addressFor('calendar', sc || null);
+      return (field && GAP_FIELDS[field]) ? a + '?gap=' + encodeURIComponent(field) : a;
+    }
+
     function viewByCode(code) {
       var c = normCode(code);
       if (!c) return null;
@@ -1012,8 +1078,15 @@
       var m = ADDRESS.exec(String(h || ''));
       if (!m) return null;
       var q = OPEN_Q.exec(String(h || ''));
+      // Issue 125. The worklist is the calendar's and the outline's rows have no `absent` set to
+      // filter on, so a `?gap=` on `#/outline` is read as nothing rather than carried and ignored:
+      // a state the sheet holds and never acts on is a state that will one day be acted on by
+      // accident. An unknown field falls back the same way, which GAP_FIELDS decides.
+      var gq = m[1] === 'calendar' ? GAP_Q.exec(String(h || '')) : null;
+      var gf = gq ? decodeURIComponent(gq[1]) : null;
       return { reading: m[1], scope: viewByCode(m[2] || ''),
-               open: q ? decodeURIComponent(q[1]) : null };
+               open: q ? decodeURIComponent(q[1]) : null,
+               gap: (gf && GAP_FIELDS[gf]) ? gf : null };
     }
 
     // ---- the open rows, issue 112 -----------------------------------------------
@@ -1077,8 +1150,12 @@
     function writeOpenAddress() {
       if (!reading) return;
       var v = openParam();
+      // The worklist is the calendar's and the open set is the outline's, so the two queries can
+      // never both be on. Written as a chain rather than as an if for that reason: whichever of
+      // them the reading has, the address carries, and neither can overwrite the other.
       var url = location.pathname + location.search + addressFor(reading, scope) +
-                (v ? '?open=' + encodeURIComponent(v) : '');
+                (v ? '?open=' + encodeURIComponent(v)
+                   : gapField ? '?gap=' + encodeURIComponent(gapField) : '');
       try {
         history.replaceState(null, '', url);
       } catch (err) {
@@ -1246,7 +1323,7 @@
 
     function describe() {
       var windowed = listsWindow();
-      var st = stats(scope, windowed);
+      var st = stats(scope, windowed, !!gapField);
       var over = scope ? scopeName()
                        : st.programmes + ' programmes';
       if (reading === 'calendar') {
@@ -1272,7 +1349,15 @@
         // be indistinguishable from a window at three weeks, which is this card's own defect
         // pointing the other way.
         var samp = sampleOf(scope, 'CohortSession');
-        var counted = windowed ? listed + ' of ' + st.sessionsInScope + ' sessions'
+        // ISSUE 125 ADDED THE THIRD FORM AND IT HAS A DENOMINATOR OF ITS OWN AGAIN. A worklist is
+        // a count of rows out of the rows the reader can see, so the denominator is what the
+        // window left and not what the model declares: `1 of 16 sessions` on three weeks and
+        // `11 of 83 sessions` on the whole term. Reading `11 of the 260` here would say the eleven
+        // were eleven of the term, which is the sample confusion #122 was filed about arriving by
+        // a different door.
+        var counted = gapField ? listed + ' of ' + st.sessionsShown +
+                                 (st.sessionsShown === 1 ? ' session' : ' sessions')
+                    : windowed ? listed + ' of ' + st.sessionsInScope + ' sessions'
                     : samp.complete ? 'all ' + listed + many
                     : samp.total ? listed + ' of the ' + samp.total + many
                     : listed + many;
@@ -1282,7 +1367,7 @@
         // order" over a screen whose first band is every session with nobody to teach it would be
         // the same kind of wrong as the sentence #121 was filed about, one line further up.
         titleEl.textContent = (scope ? scopeName() : 'The term') + ', ' +
-          counted + SHAPE_ORDER[shape];
+          counted + (gapField ? ', the ones with no ' + gapField : SHAPE_ORDER[shape]);
         // BUILT AS PARTS AND JOINED, because a window can leave the list with nothing in it and a
         // date span, a state tally and a separator printed over an empty set are three marks a
         // reader has to decide are not zeros. #119 put that state in the data's reach; this is the
@@ -1309,7 +1394,10 @@
         // that set is a part of.
         bits.push(st.noInstructor + ' of ' + listed + ' with no instructor named');
         bits.push(st.noRecording + ' of ' + listed + ' with no recording');
-        bits.push(SHAPE_NAME[shape]);
+        // Issue 125. What the rows are, and on a worklist that is the filter rather than the
+        // ranking: "unstaffed first" over a list every row of which is unstaffed is a sentence
+        // about an order that is not doing anything.
+        bits.push(gapField ? 'as a worklist, every row with no ' + gapField : SHAPE_NAME[shape]);
         // AND THE WINDOW SAID TWO WAYS, which is the same split as everything above it. Where the
         // rows ARE the window, the clause says which window they are; where the shape marks
         // instead of filtering, the figures are the term's and the clause is the count inside the
@@ -1358,6 +1446,9 @@
       // its own control, because a reader who arrived at Z-SC from a tile has no other way out
       // of it and an address they have to edit by hand is not a way out.
       noticeEl.appendChild(scopeBar());
+      // Issue 125. Under the scope bar because it is the narrower of the two: the scope says which
+      // programmes the rows can come from and this says which of those rows are here.
+      if (gapField) noticeEl.appendChild(gapBar(st.sessionsShown));
       if (reading === 'outline' && agendaAvailable()) noticeEl.appendChild(agendaToggle());
 
       if (calBtn) toggleCurrent(calBtn, reading === 'calendar');
@@ -1419,6 +1510,13 @@
       if (shape === k || CAL_SHAPES.indexOf(k) === -1) return;
       shape = k;
       built = null;
+      // ISSUE 125. LEAVING THE REVIEW LEAVES THE WORKLIST, and the address says so at once. The
+      // worklist is a ranking of the rows a meeting acts on, which is what the review is; the two
+      // grids keep every session and mark the window instead, so a filter on top of one of them
+      // would be a state the sheet held and did not draw. The alternative was to let the grids
+      // carry it, and a `?gap=` sitting on an address whose picture ignores it is exactly the
+      // kind of invisible state this page has spent four cards taking out of itself.
+      if (gapField && k !== 'review') { gapField = null; writeOpenAddress(); }
       // The same default the address applies, applied to the press that asks for the same screen,
       // and it steps aside on the same condition: a reader who has answered the window question
       // keeps their answer. Issue 124.
@@ -1555,6 +1653,31 @@
       return bar;
     }
 
+    // ---- the way off the worklist, issue 125 -------------------------------------
+    // A FILTER WITH NO WAY OFF IT IS A DEAD END, and the scope bar above is the precedent word for
+    // word: a reader who arrived at Z-SC from a tile has no other way out of it and an address
+    // they have to edit by hand is not a way out. This is the same control for the same reason,
+    // one row lower, and it is a link to an address rather than a toggle for the reason everything
+    // else on this sheet is: the state is on the address and the back button undoes the press.
+    //
+    // AND IT IS NOT A TENTH CONTROL IN THE HEADER, which is what #120 was filed about and what
+    // this card was told not to add. It appears only while a worklist is on, in the sheet the
+    // worklist is in, and it names the number it would give back.
+    function gapBar(all) {
+      var bar = el('p', 'term-scope term-gapbar');
+      bar.appendChild(el('span', 'term-scope-lead', 'A worklist. '));
+      // `session` and not the type's label, because that is the word this sheet has used for these
+      // rows since #80 and a second noun for them here would be a second vocabulary in the one
+      // place this card exists to take one out of.
+      bar.appendChild(document.createTextNode(
+        'Every row here is a session the model records no ' + gapField + ' for. '));
+      var a = el('a', 'linkbtn', 'all ' + all + (all === 1 ? ' session' : ' sessions'));
+      a.href = addressFor('calendar', scope);
+      a.title = 'the same window with nothing filtered out of it';
+      bar.appendChild(a);
+      return bar;
+    }
+
     function toggleCurrent(a, on) {
       if (on) a.setAttribute('aria-current', 'true');
       else a.removeAttribute('aria-current');
@@ -1617,10 +1740,19 @@
     // ranking here means choosing which band a row is in, and date order inside a band is the
     // order it was already in. The set is exactly the list shape's set, which is what makes this
     // the calendar ranked rather than a second reading of the term.
+    //
+    // ISSUE 125 PUT A THIRD NARROWING AFTER THE WINDOW AND BEFORE THE BANDS, in that order and not
+    // in any other. The window is what the reader has set and the worklist is what they pressed,
+    // so the worklist is a selection out of the window's rows: `1 of 16` on three weeks and
+    // `11 of 83` on the whole term, and both denominators are on the screen.
     function reviewBands() {
-      var rows = sessionsFor(scope).filter(function (s) { return inWindow(s.date); });
+      var inWin = sessionsFor(scope).filter(function (s) { return inWindow(s.date); });
+      var rows = inWin.filter(gapMatch);
       return {
         all: rows,
+        // What the window left before the worklist narrowed it, which is the denominator every
+        // sentence on this screen quotes and the number the way off the worklist gives back.
+        inWindow: inWin,
         unstaffed: rows.filter(function (s) { return s.teacher !== 'yes'; }),
         staffed: rows.filter(function (s) { return s.teacher === 'yes'; })
       };
@@ -1635,20 +1767,32 @@
     // the last of its sessions these documents carry before the window, which on a sampled
     // programme is the last one DRAWN and is said in those words. A row that reported the model's
     // declared total as though the sheet had seen it would be inventing a date.
+    //
+    // ISSUE 125. WITH A WORKLIST ON, "ABSENT" MEANS ABSENT FROM THE WORKLIST, and that is the case
+    // #122 has to be read against a second time. A programme can be missing from this screen for
+    // two different reasons now: it has nothing in the window at all, or it has rows in the window
+    // and none of them carries the gap. The second reads as good news and on five of the seven
+    // drawings it is a property of a document that drew six sessions of seventy nine, so it is
+    // counted over the DRAWN rows, says the word `drawn`, and carries the fraction beside it.
     function reviewAbsent() {
       var r = winRange();
       var out = [];
       groupsFor(scope).forEach(function (g) {
         var rs = sessionsFor(g.view);
-        var i, before = null, after = null;
+        var i, before = null, after = null, held = 0, hit = 0;
         for (i = 0; i < rs.length; i++) {
-          if (inWindow(rs[i].date)) return;                 // it is in the window, so not absent
+          if (inWindow(rs[i].date)) {
+            held++;
+            if (gapMatch(rs[i])) hit++;
+            continue;
+          }
           if (!r) continue;
           if (rs[i].date < r.from) before = rs[i].date;     // rs is in date order, so the last wins
           else if (rs[i].date > r.to && !after) after = rs[i].date;
         }
+        if (hit) return;                                    // it is on the screen, so not absent
         out.push({ view: g.view, samp: sampleOf(g.view, 'CohortSession'),
-                   before: before, after: after, drawn: rs.length });
+                   before: before, after: after, drawn: rs.length, held: held });
       });
       return out;
     }
@@ -1659,18 +1803,51 @@
     // say `drawn`, the fraction #122 settled is beside it, and the count of what is not here is
     // spelled out rather than left for a reader to subtract. Neither sentence says anything about
     // the standing of the content, which is #110's rule and is why this reads as arithmetic.
+    //
+    // ISSUE 125 ADDED THE THIRD, and it is the same sentence with the same rule applied to a
+    // different absence. A programme whose rows in the window all record the field says so over
+    // the DRAWN rows, because "everything here is staffed" read off six sessions of seventy nine
+    // is the sample confusion in its most flattering direction and is the one a manager would
+    // most like to believe.
     function absentWords(a) {
       var noun = a.samp.complete ? 'session' : 'drawn session';
-      var bits = [a.samp.complete ? 'no session in this window'
-                                  : 'no drawn session in this window'];
+      var bits = [];
+      if (gapField && a.held) {
+        bits.push(a.held === 1
+          ? 'its one ' + noun + ' in this window records a ' + gapField
+          : 'all ' + a.held + ' of its ' + noun + 's in this window record a ' + gapField);
+      } else {
+        bits.push(a.samp.complete ? 'no session in this window'
+                                  : 'no drawn session in this window');
+      }
       var sw = sampleWords(a.samp, 'session');
       if (sw) {
         bits.push(a.samp.complete ? sw
                 : sw + ', so ' + (a.samp.total - a.samp.drawn) + ' are not drawn here');
       }
-      bits.push(a.before ? 'last ' + noun + ' ' + longDate(a.before)
-              : a.after ? 'next ' + noun + ' ' + longDate(a.after)
-              : 'no ' + noun + ' anywhere in the term');
+      if (!(gapField && a.held)) {
+        bits.push(a.before ? 'last ' + noun + ' ' + longDate(a.before)
+                : a.after ? 'next ' + noun + ' ' + longDate(a.after)
+                : 'no ' + noun + ' anywhere in the term');
+      }
+      return bits.join(' · ');
+    }
+
+    // What the screen says when the worklist itself is empty: the window holds rows and not one of
+    // them carries the gap. Written like absentWords() above and for its reason, over the drawn
+    // rows and in the drawn rows' words, because a page that answered "nothing to do" off a sample
+    // would be manufacturing the most welcome sentence it can print.
+    function gapEmptyText(held) {
+      var samp = sampleOf(scope, 'CohortSession');
+      var noun = samp.complete ? 'session' : 'drawn session';
+      var bits = [held === 1
+        ? 'The one ' + noun + ' in this window records a ' + gapField
+        : 'All ' + held + ' ' + noun + 's in this window record a ' + gapField];
+      var sw = sampleWords(samp, 'session');
+      if (sw) {
+        bits.push(samp.complete ? sw
+                : sw + ', so ' + (samp.total - samp.drawn) + ' are not drawn here');
+      }
       return bits.join(' · ');
     }
 
@@ -1695,8 +1872,43 @@
       var bands = reviewBands();
       var n = bands.all.length;
 
+      // One row, drawn the same way whichever band it is under, because the bands are a ranking
+      // and a ranking may not change what a row says.
+      function reviewRow(s) {
+        var tr = document.createElement('tr');
+        if (s.teacher !== 'yes') tr.className = 'term-gap';
+        cell(tr, s.date, 'r-id');
+        cell(tr, s.time, 'r-id');
+        var td = el('td', 'r-id s-prog');
+        td.appendChild(progLink(s.code, s.label, s.route));
+        tr.appendChild(td);
+        cell(tr, s.title, 'r-name');
+        cell(tr, s.teacher === 'yes' ? 'named' : 'none named',
+             's-teacher' + (s.teacher === 'yes' ? ' r-state' : ' term-gap-cell'));
+        cell(tr, s.state, 'r-state');
+        cell(tr, s.attendance, 'r-num');
+        cell(tr, s.id, 'r-drawn');
+        tb.appendChild(tr);
+      }
+
       if (!n) {
-        groupRow(tb, cols.length, function (th) { th.textContent = windowEmptyText(); });
+        // Issue 125. Two ways to be empty and they are different findings: the window holds no row
+        // at all, which is #119's sentence and unchanged, or it holds rows and none of them is on
+        // the worklist, which is this card's and is said over the drawn rows.
+        groupRow(tb, cols.length, function (th) {
+          th.textContent = (gapField && bands.inWindow.length)
+            ? gapEmptyText(bands.inWindow.length) : windowEmptyText();
+        });
+      } else if (gapField) {
+        // ONE BAND AND NOT TWO WHILE A WORKLIST IS ON. The review ranks by what the meeting acts
+        // on; a worklist IS that thing, so every row is in the first band and a second band
+        // reading "none of the 11" is a heading over nothing. The count and its denominator stay,
+        // because the denominator is what the way off this filter gives back.
+        groupRow(tb, cols.length, function (th) {
+          th.textContent = 'No ' + gapField + ' recorded · ' + n + ' of ' +
+            bands.inWindow.length + ' in this window';
+        }, 'term-group rev-band');
+        bands.all.forEach(reviewRow);
       } else {
         [{ rows: bands.unstaffed, lead: 'Nobody named to teach these' },
          { rows: bands.staffed, lead: 'Instructor named' }].forEach(function (band) {
@@ -1705,30 +1917,21 @@
               (band.rows.length ? band.rows.length + ' of ' + n : 'none of the ' + n) +
               ' in this window';
           }, 'term-group rev-band');
-          band.rows.forEach(function (s) {
-            var tr = document.createElement('tr');
-            if (s.teacher !== 'yes') tr.className = 'term-gap';
-            cell(tr, s.date, 'r-id');
-            cell(tr, s.time, 'r-id');
-            var td = el('td', 'r-id s-prog');
-            td.appendChild(progLink(s.code, s.label, s.route));
-            tr.appendChild(td);
-            cell(tr, s.title, 'r-name');
-            cell(tr, s.teacher === 'yes' ? 'named' : 'none named',
-                 's-teacher' + (s.teacher === 'yes' ? ' r-state' : ' term-gap-cell'));
-            cell(tr, s.state, 'r-state');
-            cell(tr, s.attendance, 'r-num');
-            cell(tr, s.id, 'r-drawn');
-            tb.appendChild(tr);
-          });
+          band.rows.forEach(reviewRow);
         });
       }
 
       var absent = reviewAbsent();
-      if (absent.length) {
+      // Issue 125. AND NOT WHEN THE BAND WOULD BE THE SENTENCE ABOVE IT AGAIN. On a worklist over
+      // one programme that holds nothing, the empty row already says how many of its drawn rows
+      // record the field and out of how much of the term they were drawn; a band of one repeating
+      // it word for word is the same finding printed twice, which is what issues 91 and 93 spent
+      // a card taking off this sheet. The unfiltered case keeps its band, because there the row
+      // carries what the empty sentence does not: when that programme last ran.
+      if (absent.length && !(gapField && !n && groupsFor(scope).length === 1)) {
         groupRow(tb, cols.length, function (th) {
-          th.textContent = 'Nothing in this window · ' + absent.length + ' of the ' +
-            groupsFor(scope).length +
+          th.textContent = (gapField ? 'Nothing on this worklist · ' : 'Nothing in this window · ') +
+            absent.length + ' of the ' + groupsFor(scope).length +
             (groupsFor(scope).length === 1 ? ' programme' : ' programmes');
         }, 'term-group rev-head');
         absent.forEach(function (a) {
@@ -1866,7 +2069,8 @@
       // shape decides which markup the rows are, and the window decides which of them are there
       // at all on the list and which are marked on the grids.
       var key = reading + '/' + (scope ? scope.key : '') + '/' + (openParam() || '') + '/' +
-                shape + '/' + (win.weeks ? win.weeks + '@' + win.anchor : '-');
+                shape + '/' + (win.weeks ? win.weeks + '@' + win.anchor : '-') + '/' +
+                (gapField || '-');
       if (built === key) return;
       built = key;
       rowsEl.textContent = '';
@@ -1879,13 +2083,17 @@
     // ---- open, close, and the address ------------------------------------------
     function isOpen() { return !!sheet && !sheet.hidden; }
 
-    function show(next, nextScope, openTo) {
+    function show(next, nextScope, openTo, gapTo) {
       var wasOpen = isOpen();
       if (!sheet) return;
       if (!next) {
         if (!wasOpen) return;
         reading = null;
         scope = null;
+        // Issue 125. The sheet is shut, so no worklist is on. Left standing it would narrow the
+        // hints the panel writes about the whole reading, which is the one place stats() is asked
+        // its question without the filter.
+        gapField = null;
         // Issue 112. The sheet is shut, so no row is open. Left standing, the set would reopen
         // rows on the next visit to an address that says nothing about any.
         openRows = {};
@@ -1899,20 +2107,35 @@
         if (onRoute) onRoute();
         return;
       }
-      // Issue 112 added the third term. The open set is on the address now, so an address that
-      // names the same reading and the same programme and a different set of open rows is a
-      // different address and the early return may not swallow it.
+      // Issue 112 added the third term and issue 125 the fourth, both for the same reason: the
+      // state is on the address now, so an address that names the same reading and the same
+      // programme and a different set of open rows, or a different worklist, is a different
+      // address and the early return may not swallow it.
       if (reading === next && scope === (nextScope || null) &&
-          openParam() === (openTo || null)) return;
+          openParam() === (openTo || null) && gapField === (gapTo || null)) return;
       reading = next;
       scope = nextScope || null;
+      gapField = gapTo || null;
       applyOpenParam(openTo);
       // ISSUE 124. THE REVIEW OPENS ON THREE WEEKS, and this is where "opens" is: an address the
       // reader followed, not a control they pressed. It runs before the rows are built so the
       // sheet is drawn once, and the drawing and the header control are told afterwards, in the
       // order #111 made load bearing: the control quotes what the window did to the picture, so it
       // may not restate before render.js has been told.
-      var armed = reading === 'calendar' && shape === 'review' && armReview();
+      //
+      // AND A WORKLIST TAKES IT OFF, issue 125, which is the same rule and not an exception to it.
+      // #124 wrote that the three weeks apply where the reader has said nothing and step aside the
+      // moment they do. A `?gap=` address is the reader having said something: it names a set that
+      // was counted over the window in force when they pressed it, so arming a default here would
+      // hand them eleven on the control and one on the screen. The window they had is the window
+      // they get.
+      //
+      // AND IT STAYS ANSWERED WHEN THEY LEAVE THE WORKLIST, which is the half of this that was
+      // found by trying it: the way off the filter offers `all 83 sessions` and, without this
+      // line, re-armed the default on the way and delivered eleven. A control may not name a
+      // number and hand over a different one.
+      if (gapField) winTouched = true;
+      var armed = reading === 'calendar' && shape === 'review' && !gapField && armReview();
       buildRows();
       describe();
       document.body.classList.toggle('calendar', reading === 'calendar');
@@ -1946,7 +2169,7 @@
 
     function route() {
       var a = readAddress(location.hash);
-      show(a ? a.reading : null, a ? a.scope : null, a ? a.open : null);
+      show(a ? a.reading : null, a ? a.scope : null, a ? a.open : null, a ? a.gap : null);
     }
 
     if (sheet) {
@@ -2055,6 +2278,14 @@
       linkFor: linkFor,
       capLink: capLink,
       isOpen: isOpen,
+      // Issue 125. The address of one worklist, built by the same function that builds every other
+      // address this module answers. app.js has the count and this has the route, which is the
+      // split every other seam on this page already runs on.
+      gapAddress: gapAddress,
+      // Which fields this reading can be a worklist for, so the header's menu asks rather than
+      // keeping a second list of them. A row the sheet cannot answer for is not offered as a
+      // control, which is the difference between a menu that navigates and a menu that gambles.
+      gapFields: function () { return GAP_FIELDS; },
       // Built by the one function that builds every address this module answers, so a driver
       // enumerating them is enumerating what the page will answer and not a second list.
       routes: (function () {
@@ -2069,11 +2300,15 @@
       // a table holds the rows it claims is a question that should be answered off the running
       // page rather than inferred from a screenshot of 83 rows.
       state: function () {
-        var st = stats(scope);
+        var st = stats(scope, false, !!gapField);
         return {
           open: isOpen(),
           reading: reading,
           scope: scope ? scope.key : null,
+          // Issue 125. Which worklist the rows are, off the running page, so a driver can check
+          // that the number the header's menu offered and the rows this sheet drew are the same
+          // set instead of taking the sheet's word for both.
+          gap: gapField,
           // Issue 112. Still the same question, that every row in scope has its outline open, and
           // now derived from the per row state instead of being a boolean somebody set. Beside it
           // the two the card adds: how many rows are open, and the address's own parameter, so a
@@ -2160,7 +2395,14 @@
       // elsewhere, which is the shape linkFor and capLink already have: the header asks what this
       // reading is about and this file answers, so the two types and the window split stay written
       // down once.
-      readingRows: function () { return (reading && READING[reading]) || null; },
+      // ISSUE 125 ADDED THE THIRD FIELD, and it is here for the reason the other two are: the
+      // header's count is a count of what the view is SHOWING, and while a worklist is on the
+      // reading is showing eleven rows and not eighty three. Without it the control would say 83
+      // over a screen of 11, which is #121's defect with the numbers the other way round.
+      readingRows: function () {
+        var rd = (reading && READING[reading]) || null;
+        return rd ? { type: rd.type, window: rd.window, gap: gapField } : null;
+      },
       // Read by app.js on the first paint, so a drawing is dimmed from the start if a window is
       // ever on before the sheet has been opened.
       windowSpec: windowSpec,
