@@ -3015,7 +3015,12 @@ body.desk #view-desk { display: flex; }
 
 .desk-rd:first-child { font-weight: 600; }
 
-.desk-out { margin-left: auto; }
+/* Never wrapped, and one word rather than two, which is a phone measurement and not a preference.
+   At 390 the three readings and this control end at 379 of 390 with the control on one line; with
+   `the diagram` on it they end past the edge, and the chrome line CLIPS rather than scrolls, so
+   the one control on this screen would have gone silently off it. What a press does is said in
+   the label the screen reader gets rather than in a second word nobody has room for. */
+.desk-out { margin-left: auto; white-space: nowrap; }
 
 .desk-body {
   flex: 1 1 auto;
@@ -3088,4 +3093,22 @@ body.desk #view-desk { display: flex; }
   color: var(--fg-muted);
   font-size: var(--fs-sm);
   max-width: 72ch;
+}
+
+/* THE PHONE, AND THE ROW STACKS RATHER THAN WRAPPING. A wrapped flex row puts whichever cells
+   happen to fit on a line together, so at 390 the date, the programme and the title landed in a
+   different arrangement on almost every row and the eye had nothing to run down. Stacked, the row
+   is the same five lines every time and the locator is always the last of them, which is what a
+   reader carries away. The cells are unchanged, so the welded fraction is welded here too: this
+   rule cannot separate a count from its base because there is nothing here that could. */
+@media (max-width: 760px) {
+  .desk-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    padding: 6px 0;
+  }
+
+  .desk-when { min-width: 0; }
+  .desk-mark { margin-left: 0; }
 }
