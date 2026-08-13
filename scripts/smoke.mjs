@@ -262,6 +262,7 @@ const PHASES = {
   'the sample':           { count: 6, when: 'behavioural' },
   'the empty window':     { count: 6, when: 'behavioural' },
   'the review':           { count: 7, when: 'behavioural' },
+  'the worklist':         { count: 9, when: 'behavioural' },
   'header':               { count: 8, when: 'behavioural' },
   'the readout':          { count: 7, when: 'behavioural' },
   'canvas':               { count: 7, when: 'behavioural' },
@@ -477,7 +478,25 @@ const PHASES = {
 // eleven over eighty three drawn chips, so the second is not a restatement of the first. Both are
 // against SENTENCE_MODEL, which walks window.GI and rebuilds every figure, and both carry the
 // claim that the other reading of the same term gives different numbers.
-const EXPECTED_ASSERTIONS = 223;
+// 232 with issue 125, and the nine are one card's claim rather than nine readings of a menu. A gap
+// was a number a reader read and then went and found the things themselves, and the rows are a
+// place to go now; more than that, the 95 stopped being one list. The registry the model already
+// ships answers per class which system holds a row of it, and joined against the 95 that answer
+// splits them into 22 somebody can close this week and 73 no effort inside the current tooling
+// touches. So the first three are the split: that it is that join and not a partition typed into
+// app.js, that the heading over the second side is READ from the ghost type's own label and the
+// registry's own sentence rather than becoming a fourth word for a finding the page already had
+// three words for, and that exactly the rows the page can answer for are controls and each meets
+// #77's floor. Three are the destination: that the number on the row and the ids in the table are
+// one set, recomputed here; that a worklist keeps the window that was in force rather than arming
+// the review's default, which #124 put there and which would hand a reader one number on the
+// control and another on the screen; and that the way off gives back the figure its own text names.
+// One is the address, that a field the reading cannot answer for is not a filter at all and that
+// the outline never carries a worklist it would not draw. Two are #122 inherited, and they are the
+// rule met in its most flattering direction: "everything here is staffed" read off six sessions of
+// seventy nine is a property of a document, so an empty worklist and an absent programme both count
+// over the DRAWN rows and both say the word.
+const EXPECTED_ASSERTIONS = 232;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -3926,6 +3945,462 @@ async function checkReview(page, base) {
   await page.waitFor(DIAGRAM_READY, 'the diagram back at the default address, cold');
 }
 
+// ---- the worklist, issue 125 --------------------------------------------------------------------
+// A GAP WAS A NUMBER YOU READ. The header said `gaps 8 of 95`, the menu under it listed one row per
+// field, and a reader who wanted the eleven cohort sessions with nobody to teach them went and
+// found them. #124 made the destination cheap, so this card made the rows a place to go, and split
+// the list in two on the way.
+//
+// THE SPLIT IS THE CARD AND IT IS A JOIN RATHER THAN A PARTITION ANYBODY TYPED. The registry the
+// model ships answers, per class, which system holds a row of it, and `system: null` means none
+// does. Joined against the 95: 22 are a row that exists in a system with one field of it empty,
+// which somebody can open this week, and 73 are a class no system holds at all, which no effort
+// inside the tooling that exists closes. The menu showed them as one list.
+//
+// NOTHING HERE READS THE PAGE'S OWN BOOKKEEPING FOR AN ANSWER IT IS ASSERTING. #121 established
+// why: all 207 assertions at the time read what the page printed, which is exactly why none of them
+// could catch a wrong number, and #122 hit the same wall again. So GAP_SPLIT below walks window.GI,
+// does the registry join itself by a second implementation not shared with app.js, and every count,
+// every side and every id set asserted in this phase is compared against it. What is on screen is
+// the input to the comparison and never its answer.
+const GAP_SPLIT = `(function (viewKey, from, to) {
+  var reg = window.GI.routes.classes, by = {}, keys = [];
+  window.GI.views.forEach(function (v) {
+    if (viewKey && v.key !== viewKey) return;
+    v.nodes.forEach(function (n) {
+      // The ghosts are the absence itself rather than a hole in something present, which is the
+      // exclusion this count has carried since #98 and is not what the split is about.
+      if (n.ghost) return;
+      var props = n.props || [], i, p, k, at = '', d;
+      // A window narrows the sessions and nothing else, because a window is a fact about dates and
+      // only one class on this page carries one.
+      if (from) {
+        if (n.type !== 'CohortSession') return;
+        props.forEach(function (r) { if (r.k === 'scheduled_at' && !at) at = String(r.v || ''); });
+        d = at.split(' ')[0] || '';
+        if (!(d && d >= from && d <= to)) return;
+      }
+      // The boundary is the node's own route index: the rows before it answer how a class gets
+      // filled at all, which is a fact about the class and identical on every tile of it.
+      for (i = (n.route || 0); i < props.length; i++) {
+        p = props[i];
+        if (p.f !== 'absent') continue;
+        k = n['class'] + '/' + p.k;
+        if (!by[k]) {
+          keys.push(k);
+          by[k] = { cls: n['class'], type: n.type, field: p.k, n: 0, ids: [],
+                    system: !!(reg[n['class']] && reg[n['class']].system) };
+        }
+        by[k].n++;
+        by[k].ids.push(n.id);
+      }
+    });
+  });
+  function side(s) {
+    return keys.reduce(function (a, k) { return a + (by[k].system === s ? by[k].n : 0); }, 0);
+  }
+  var ghost = window.GI.types.filter(function (t) { return t.k === 'Ghost'; })[0] || {};
+  return { rows: keys.map(function (k) { return by[k]; }),
+           work: side(true), settled: side(false), total: side(true) + side(false),
+           // The two strings the menu's second heading is required to be READ from rather than to
+           // have typed into it, which is this card's other half: three words for two findings was
+           // what the page had, and a noun written into app.js would have made it four.
+           ghostLabel: ghost.label || '',
+           why: (window.GI.routes.vocab.read || {})['no-source'] || '' };
+})`;
+
+// The menu as a reader meets it: the children in the order they are painted, what each one is, the
+// field it names, the number beside it and the box it offers a finger. Nothing here is a figure the
+// page computed about itself.
+const GAP_MENU = `(function () {
+  var m = document.getElementById('gapsmenu');
+  return JSON.stringify({
+    open: !m.hidden,
+    val: (document.getElementById('gapsval') || {}).textContent || '',
+    kids: Array.prototype.map.call(m.children, function (el) {
+      var r = el.getBoundingClientRect();
+      var code = el.querySelector ? el.querySelector('code') : null;
+      var num = el.querySelector ? el.querySelector('.gaps-n') : null;
+      return { tag: el.tagName, cls: el.className, text: el.textContent,
+               field: code ? code.textContent : null,
+               n: num ? Number(num.textContent) : null,
+               w: Math.round(r.width * 10) / 10, h: Math.round(r.height * 10) / 10 };
+    }),
+    // The third place the same finding is named, read here so an assertion can require the page to
+    // have one wording for it and not two.
+    ghostTitle: (document.getElementById('ghtoggle') || {}).title || ''
+  });
+})()`;
+
+// The group rows the review prints that are not bands: the sentence a worklist with nothing on it
+// leaves behind. REVIEW_READ reads the bands and the absent block; this reads what is left.
+const TERM_GROUPS = `(function () {
+  return JSON.stringify(Array.prototype.map.call(
+    document.querySelectorAll('#termrows tbody tr.term-group th'),
+    function (th) { return { cls: th.parentNode.className, text: th.textContent }; }));
+})()`;
+
+// How many sessions a scope holds and how many of them a window leaves, off window.GI, because
+// every denominator this phase asserts is one of those two and neither may be read off the sheet.
+function sessionCount(page, viewKey, from, to) {
+  return page.evaluate(`(function () {
+    var n = 0;
+    window.GI.views.forEach(function (v) {
+      if (${JSON.stringify(viewKey)} && v.key !== ${JSON.stringify(viewKey)}) return;
+      v.nodes.forEach(function (node) {
+        if (node.type !== 'CohortSession') return;
+        var at = '';
+        (node.props || []).forEach(function (p) {
+          if (p.k === 'scheduled_at' && !at) at = String(p.v || '');
+        });
+        var d = at.split(' ')[0] || '';
+        if (${from ? 'true' : 'false'} && !(d && d >= ${JSON.stringify(from || '')} &&
+                                            d <= ${JSON.stringify(to || '')})) return;
+        n++;
+      });
+    });
+    return n;
+  })()`);
+}
+
+// Press the row of the gaps menu that names one field, by the field it names and not by its
+// position, so a reordering of the menu moves the press with it.
+async function pressGapRow(page, field) {
+  const ok = await page.evaluate(`(function () {
+    var rows = Array.prototype.slice.call(document.querySelectorAll('#gapsmenu .gaps-go'));
+    for (var i = 0; i < rows.length; i++) {
+      var c = rows[i].querySelector('code');
+      if (c && c.textContent === ${JSON.stringify(field)}) { rows[i].click(); return true; }
+    }
+    return false;
+  })()`);
+  if (!ok) throw new Error(`no pressable gap row naming ${field}`);
+  await page.waitFor(`window.ZT.term().open === true &&
+                      window.ZT.term().gap === ${JSON.stringify(field)}`,
+    `the worklist the ${field} row named`);
+}
+
+async function checkWorklist(page, base) {
+  // ONE. THE SPLIT, SUMMED OVER THE SEVEN DRAWINGS AND RECOMPUTED AGAINST THE REGISTRY. The
+  // control counts what one view is showing, so the whole of the 95 is only visible as a walk, and
+  // the walk is the assertion: each drawing's two sides, each row's own side, and each row's own
+  // set of objects, against a join this driver does itself. Both sides are required to be
+  // non-empty, because a page that had put every row on one side would otherwise pass on any
+  // drawing that happened to hold only that kind.
+  const all = JSON.parse(await page.evaluate(`JSON.stringify(${GAP_SPLIT}(null, null, null))`));
+  const views = JSON.parse(await page.evaluate(
+    `JSON.stringify(window.GI.views.map(function (v) { return { key: v.key, route: v.route }; }))`));
+  let work = 0, settled = 0, ofAll = null;
+  const wrongSide = [];
+  for (const v of views) {
+    await page.evaluate(`location.hash = ${JSON.stringify(v.route)}`);
+    await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(v.key)}`,
+      `the ${v.key} drawing`);
+    const g = await page.evaluate('window.ZT.gaps()');
+    work += g.work;
+    settled += g.settled;
+    ofAll = g.of;
+    const mine = JSON.parse(await page.evaluate(
+      `JSON.stringify(${GAP_SPLIT}(${JSON.stringify(v.key)}, null, null))`));
+    if (mine.rows.length !== g.rows.length) wrongSide.push(`${v.key} has ${g.rows.length} rows`);
+    for (const r of g.rows) {
+      const m = mine.rows.find(q => q.cls === r.cls && q.field === r.field);
+      if (!m || m.system !== r.system || m.n !== r.n ||
+          m.ids.slice().sort().join(',') !== r.ids.slice().sort().join(',')) {
+        wrongSide.push(`${v.key} ${r.cls} ${r.field}`);
+      }
+    }
+  }
+  assert('the 95 are two kinds of thing, and which kind a row is comes off the registry rather than out of a list in the page',
+    work === all.work && settled === all.settled && work + settled === ofAll &&
+      work + settled === all.total && work > 0 && settled > 0 && wrongSide.length === 0,
+    `${all.work} rows a system holds with a field empty and ${all.settled} whose class no system ` +
+      `holds, ${all.total} in all, every one on the side routes.classes gives it`,
+    `${work} and ${settled} summed over the seven drawings against ${all.work} and ${all.settled} ` +
+      `recomputed here, the readout naming ${ofAll}, ${wrongSide.length} rows on the wrong side ` +
+      `or over the wrong objects ${JSON.stringify(wrongSide.slice(0, 3))}`,
+    `${all.work} work and ${all.settled} settled of ${all.total}, ${ofAll} on the readout`);
+
+  // TWO. AND THE HEADINGS OVER THEM ARE THE MODEL'S OWN WORDS. Z-SC is the drawing that carries
+  // both sides, so it is where the pair can be read at once. The second heading is the thing this
+  // card was told to reduce: the page said `gaps`, said `ghosts`, and the registry said of the same
+  // classes that nothing holds a row for them, which is one finding under three words. It is read
+  // from the ghost type's own label and from the registry's own sentence, and the toggle in the
+  // header that switches those tiles is required to be naming the same thing in the same words, so
+  // a noun typed into app.js fails here rather than quietly becoming a fourth.
+  await page.evaluate(`location.hash = '#/p/ZSC'`);
+  await page.waitFor(`window.ZT.programme().key === 'ZSC'`, 'the Z-SC drawing');
+  await gapsMenu(page, true);
+  const menu = JSON.parse(await page.evaluate(GAP_MENU));
+  const zsc = JSON.parse(await page.evaluate(`JSON.stringify(${GAP_SPLIT}('ZSC', null, null))`));
+  const heads = menu.kids.filter(k => k.cls === 'gaps-head');
+  const whys = menu.kids.filter(k => k.cls === 'gaps-why');
+  const headAt = menu.kids.indexOf(heads[1]);
+  assert('the two sides are under two headings, work first, and the second is read from the model rather than typed into the page',
+    heads.length === 2 && whys.length === 1 &&
+      heads[0].text === `A system holds the row and the field is empty · ${zsc.work}` &&
+      heads[1].text === `The class ${zsc.ghostLabel} · ${zsc.settled}` &&
+      whys[0].text === zsc.why && zsc.ghostLabel !== '' && zsc.why !== '' &&
+      menu.kids[0].cls === 'gaps-scope' && menu.kids[1] === heads[0] &&
+      menu.kids[headAt + 1] === whys[0] &&
+      menu.kids[menu.kids.length - 1].cls === 'gaps-foot' &&
+      menu.ghostTitle.indexOf('exist in any system') !== -1,
+    `"A system holds the row and the field is empty · ${zsc.work}" first and then "The class ` +
+      `${zsc.ghostLabel} · ${zsc.settled}" with the registry's own reason under it, the same ` +
+      'words the toggle for those tiles uses',
+    `${heads.length} headings ${JSON.stringify(heads.map(h => h.text))}, reason ` +
+      `${JSON.stringify(whys.map(w => w.text))}, toggle ${JSON.stringify(menu.ghostTitle)}`,
+    `${JSON.stringify(heads.map(h => h.text))}`);
+
+  // THREE. ONLY THE ROWS THE PAGE CAN ANSWER FOR ARE CONTROLS. A row of work whose objects the page
+  // lists somewhere is a button and everything else is text, and the difference is visible before
+  // the press rather than after it. The expectation is computed from the registry join and from the
+  // ids each row is over, not read off the markup, so a page that made every row pressable and one
+  // that made none fail in opposite directions. #77's floor is on each of them, because an element
+  // that is a button for the first time does not get it by construction.
+  const rowKids = menu.kids.filter(k => /(^| )gaps-row( |$)/.test(k.cls));
+  const wantGo = zsc.rows.filter(r => r.system && (r.type === 'CohortSession' || r.ids.length === 1))
+    .map(r => r.field).sort();
+  const gotGo = rowKids.filter(k => k.tag === 'BUTTON').map(k => k.field).sort();
+  const undersized = rowKids.filter(k => k.tag === 'BUTTON' && Math.min(k.w, k.h) < 26);
+  assert('only the rows the page can take a reader to are controls, and each of those is a target of at least 26 by 26',
+    gotGo.length > 0 && rowKids.length > gotGo.length &&
+      gotGo.join(',') === wantGo.join(',') && undersized.length === 0 &&
+      rowKids.length === zsc.rows.length,
+    `${wantGo.length} of the ${zsc.rows.length} rows pressable, ${wantGo.join(', ')}, none of ` +
+      'them under 26 by 26',
+    `${gotGo.length} pressable ${JSON.stringify(gotGo)}, ${rowKids.length} rows in all, ` +
+      `${undersized.length} under the floor ${JSON.stringify(undersized.map(k => k.w + 'x' + k.h))}`,
+    `${gotGo.length} of ${rowKids.length} pressable`);
+
+  // FOUR. AND PRESSING ONE LANDS ON EXACTLY THE OBJECTS IT COUNTED. This is the claim the card is
+  // about and the one an assertion reading the page's own bookkeeping could not make: the number on
+  // the row and the ids in the table are compared against one set this driver built, and the set is
+  // required to be smaller than the sessions the programme holds, so a filter that did nothing
+  // cannot pass on a day the two happened to agree.
+  const zscSessions = await sessionCount(page, 'ZSC', null, null);
+  const zscWant = zsc.rows.find(r => r.field === 'teacher_assigned');
+  await pressGapRow(page, 'teacher_assigned');
+  const zscHash = await page.evaluate('location.hash');
+  const zscRead = await page.evaluate(REVIEW_READ);
+  const zscIds = zscRead.rows.map(r => r.id).slice().sort().join(',');
+  assert('pressing a row lands on exactly the objects it counted, recomputed from window.GI',
+    zscHash === '#/calendar/ZSC?gap=teacher_assigned' &&
+      zscIds === zscWant.ids.slice().sort().join(',') &&
+      zscRead.rows.length === zscWant.n && zscWant.n > 0 && zscWant.n < zscSessions &&
+      zscRead.title.slice(-(` ${zscWant.n} of ${zscSessions} sessions, the ones with no ` +
+        'teacher_assigned').length) ===
+        ` ${zscWant.n} of ${zscSessions} sessions, the ones with no teacher_assigned`,
+    `the ${zscWant.n} of Z-SC's ${zscSessions} sessions the row named, at ` +
+      `#/calendar/ZSC?gap=teacher_assigned, under a heading that says which of the two figures ` +
+      'is which',
+    `${zscRead.rows.length} rows at ${zscHash}, ids ${JSON.stringify(zscRead.rows.map(r => r.id))} ` +
+      `against ${JSON.stringify(zscWant.ids)}, heading ${JSON.stringify(zscRead.title)}`,
+    `${zscWant.n} of ${zscSessions}`);
+
+  // FIVE. A WORKLIST KEEPS THE WINDOW THAT WAS IN FORCE. #124 made the review open on three weeks
+  //
+  // AND THE PLANT THAT FIRES THIS ONE TAKES TWO LINES OUT OF term.js AND NOT ONE, which was
+  // measured rather than assumed: `show()` sets `winTouched` before it works out whether to arm,
+  // and armReview() refuses on `winTouched`, so the `!gapField` conjunct beside it and that
+  // assignment are one rule guarded twice and either alone still holds the arrival. Deleting the
+  // conjunct on its own leaves this suite clean at 232 of 232, which is worth writing down: it is
+  // not that the assertion is weak, it is that the code is doubled. Both lines gone and this
+  // fails, and so do the four assertions after it, which is the right shape for a defect that
+  // moves the window under every worklist on the page.
+  // where the reader has said nothing, and a worklist address is the reader having said something:
+  // it names a set that was counted over the window they had, so a default arriving after it would
+  // hand them one number on the control and another on the screen. Driven from a drawing, where the
+  // sheet has never been opened and the window is the whole term, and from the review's own cold
+  // address, where it is three weeks; the two counts differ, so neither half can pass on the other.
+  // Z-DS AND NOT Z-CFA, WHICH THE FIRST DRAFT OF THIS PHASE USED AND WHICH MADE ONE CONJUNCT
+  // UNFALSIFIABLE: every one of Z-CFA's six drawn sessions is unstaffed, so its worklist and its
+  // whole term are the same six rows and "the way off gives back more than the filter left" could
+  // not fail there. Z-DS draws six and three of them are unstaffed.
+  await page.evaluate(`location.hash = '#/p/ZDS'`);
+  await page.reload();
+  await page.waitFor(DIAGRAM_READY, 'the Z-DS drawing, cold');
+  const dsWant = JSON.parse(await page.evaluate(`JSON.stringify(${GAP_SPLIT}('ZDS', null, null))`))
+    .rows.find(r => r.field === 'teacher_assigned');
+  await gapsMenu(page, true);
+  await pressGapRow(page, 'teacher_assigned');
+  const dsTerm = await page.evaluate('window.ZT.term()');
+  const dsRead = await page.evaluate(REVIEW_READ);
+
+  // SIX, TAKEN HERE BECAUSE IT IS THIS STATE'S. THE WAY OFF GIVES BACK THE NUMBER IT NAMES. A
+  // filter with no way off it is a dead end, and a way off that re-armed the review's default would
+  // offer `all 6 sessions` and deliver whatever three weeks held. The link's own text is parsed for
+  // the figure it promises and the rows that arrive are counted against it.
+  const dsAll = await sessionCount(page, 'ZDS', null, null);
+  const bar = await page.evaluate(`(function () {
+    var a = document.querySelector('.term-gapbar a');
+    return a ? JSON.stringify({ text: a.textContent, href: a.getAttribute('href') }) : 'null';
+  })()`);
+  const barLink = JSON.parse(bar);
+  if (barLink) await page.evaluate(`document.querySelector('.term-gapbar a').click()`);
+  await page.waitFor(`window.ZT.term().gap === null`, 'the way off the worklist');
+  const offRead = await page.evaluate(REVIEW_READ);
+  const offTerm = await page.evaluate('window.ZT.term()');
+  assert('the way off the worklist gives back exactly the number it names',
+    !!barLink && barLink.text === `all ${dsAll} sessions` && barLink.href === '#/calendar/ZDS' &&
+      offRead.rows.length === dsAll && offTerm.window.on === false &&
+      offTerm.window.weeks === 0 && dsAll > dsWant.n,
+    `a link reading "all ${dsAll} sessions" and ${dsAll} rows after it, on the window that was ` +
+      'in force and not on a default',
+    `${JSON.stringify(barLink)}, ${offRead.rows.length} rows after following it, window ` +
+      `${offTerm.window.weeks} weeks on ${offTerm.window.on}`,
+    `link "all ${dsAll} sessions", ${offRead.rows.length} rows back`);
+
+  await page.evaluate(`location.hash = '#/calendar'`);
+  await page.reload();
+  await page.waitFor(`window.ZT.term().open === true && window.ZT.term().reading === 'calendar'`,
+    'the review cold, on its three weeks');
+  const w = (await page.evaluate('window.ZT.term()')).window;
+  const inWin = JSON.parse(await page.evaluate(
+    `JSON.stringify(${GAP_SPLIT}(null, ${JSON.stringify(w.from)}, ${JSON.stringify(w.to)}))`));
+  const winWant = inWin.rows.find(r => r.field === 'teacher_assigned');
+  const winAll = await sessionCount(page, null, w.from, w.to);
+  await gapsMenu(page, true);
+  await pressGapRow(page, 'teacher_assigned');
+  const winTerm = await page.evaluate('window.ZT.term()');
+  const winRead = await page.evaluate(REVIEW_READ);
+  assert('a worklist keeps the window that was in force rather than arming the review\'s own default',
+    dsTerm.window.on === false && dsTerm.window.weeks === 0 &&
+      dsRead.rows.length === dsWant.n && dsWant.n > 0 &&
+      winTerm.window.weeks === 3 && winTerm.window.from === w.from &&
+      winTerm.window.to === w.to && winRead.rows.length === winWant.n &&
+      winRead.title.indexOf(`${winWant.n} of ${winAll} sessions`) !== -1 &&
+      dsWant.n !== winWant.n,
+    `${dsWant.n} rows off the whole term from the drawing and ${winWant.n} of ${winAll} off the ` +
+      `three weeks the review opened on, ${w.from} to ${w.to}, neither replaced by the other`,
+    `from the drawing ${dsRead.rows.length} rows at ${dsTerm.window.weeks} weeks, from the ` +
+      `review ${winRead.rows.length} rows at ${winTerm.window.weeks} weeks ${winTerm.window.from}` +
+      `, heading ${JSON.stringify(winRead.title)}`,
+    `${dsWant.n} whole term, ${winWant.n} of ${winAll} in three weeks`);
+
+  // SEVEN. A FIELD THE SHEET CANNOT ANSWER FOR IS NOT A FILTER AT ALL. A `?gap=` naming a field no
+  // session carries would leave the screen empty, and "0 sessions with no elephant" is a finding
+  // invented out of a typo; it falls back to every row, which is the answer a programme code nobody
+  // has already gets. And the worklist is the calendar's, so a `?gap=` on the outline is read as
+  // nothing rather than carried and never acted on: a state a sheet holds and does not draw is a
+  // state that will one day be acted on by accident.
+  await page.evaluate(`location.hash = '#/calendar?gap=elephant'`);
+  await page.reload();
+  await page.waitFor(`window.ZT.term().open === true && window.ZT.term().reading === 'calendar'`,
+    'the review at an address naming a field nothing carries');
+  const elTerm = await page.evaluate('window.ZT.term()');
+  const elRead = await page.evaluate(REVIEW_READ);
+  const elBar = await page.evaluate(`!!document.querySelector('.term-gapbar')`);
+  const elAll = await sessionCount(page, null, elTerm.window.from, elTerm.window.to);
+  await page.evaluate(`location.hash = '#/outline?gap=teacher_assigned'`);
+  await page.waitFor(`window.ZT.term().reading === 'outline'`, 'the outline at a worklist address');
+  const ouTerm = await page.evaluate('window.ZT.term()');
+  const ouBar = await page.evaluate(`!!document.querySelector('.term-gapbar')`);
+  assert('a field the reading cannot answer for is not a filter at all, and the outline is not a worklist',
+    elTerm.gap === null && elRead.rows.length === elAll && elAll > 0 && elBar === false &&
+      elRead.title.indexOf('the ones with no') === -1 &&
+      ouTerm.gap === null && ouBar === false && ouTerm.templates > 0,
+    `every one of the ${elAll} rows in the window still listed under an unfiltered heading, and ` +
+      'the outline reading its own rows with no worklist on it',
+    `gap ${JSON.stringify(elTerm.gap)} with ${elRead.rows.length} of ${elAll} rows, bar ${elBar}` +
+      `, heading ${JSON.stringify(elRead.title)}; outline gap ${JSON.stringify(ouTerm.gap)}, ` +
+      `bar ${ouBar}, ${ouTerm.templates} rows`,
+    `${elRead.rows.length} of ${elAll} rows, no filter`);
+
+  // EIGHT. AND WHERE THE WORKLIST COMES UP EMPTY, THE SENTENCE IS OVER THE ROWS THAT WERE DRAWN.
+  // This is #122's rule met in its most flattering direction and it is the one a manager would most
+  // like to believe: "everything here is staffed" read off six sessions of seventy nine is a
+  // property of a document. Z-IB draws 6 of 79 and says `drawn` and carries the fraction; Z-BL
+  // draws all 28 and says neither. Both forms are required, so a page that chose one and printed it
+  // everywhere fails on whichever it did not choose.
+  const emptyWords = {};
+  for (const key of ['ZIB', 'ZBL']) {
+    await page.evaluate(`location.hash = '#/calendar/${key}?gap=teacher_assigned'`);
+    await page.reload();
+    await page.waitFor(`window.ZT.term().open === true && window.ZT.term().scope === '${key}'`,
+      `the ${key} worklist`);
+    emptyWords[key] = {
+      rows: (await page.evaluate(REVIEW_READ)).rows.length,
+      groups: JSON.parse(await page.evaluate(TERM_GROUPS))
+    };
+  }
+  const counts = JSON.parse(await page.evaluate(
+    `JSON.stringify(window.GI.views.reduce(function (a, v) {
+       a[v.key] = (v.counts || {}).CohortSession || {}; return a; }, {}))`));
+  const ib = counts.ZIB, bl = counts.ZBL;
+  const ibWant = `All ${ib.drawn} drawn sessions in this window record a teacher_assigned · ` +
+    `${ib.drawn} of the ${ib.total} sessions the model counts, so ${ib.total - ib.drawn} are ` +
+    'not drawn here';
+  const blWant = `All ${bl.drawn} sessions in this window record a teacher_assigned · all ` +
+    `${bl.total} of the sessions the model counts`;
+  const ibGot = emptyWords.ZIB.groups.map(g => g.text).join(' // ');
+  const blGot = emptyWords.ZBL.groups.map(g => g.text).join(' // ');
+  assert('an empty worklist on a sampled programme says so over the rows that were drawn, and on a complete one does not',
+    emptyWords.ZIB.rows === 0 && emptyWords.ZBL.rows === 0 &&
+      ib.drawn < ib.total && bl.drawn === bl.total &&
+      ibGot === ibWant && blGot === blWant && blGot.indexOf('drawn') === -1,
+    `Z-IB reading ${JSON.stringify(ibWant)} and Z-BL ${JSON.stringify(blWant)}`,
+    `Z-IB ${emptyWords.ZIB.rows} rows and ${JSON.stringify(ibGot)}, Z-BL ` +
+      `${emptyWords.ZBL.rows} rows and ${JSON.stringify(blGot)}`,
+    `Z-IB ${ib.drawn} of ${ib.total} drawn, Z-BL ${bl.drawn} of ${bl.total}`);
+
+  // NINE. AND A PROGRAMME MISSING FROM A WORKLIST SAYS WHICH OF THE TWO REASONS IT IS. With a
+  // worklist on there are two ways to be absent and they are different findings: the window holds
+  // nothing of that programme at all, or it holds rows and not one of them carries the gap. The
+  // second reads as good news, and on five of the seven drawings it is read off six sessions of
+  // seventy nine. The set is recomputed here, per programme, and so is the form of each sentence.
+  await page.evaluate(`location.hash = '#/calendar?gap=teacher_assigned'`);
+  await page.reload();
+  await page.waitFor(`window.ZT.term().open === true &&
+                      window.ZT.term().gap === 'teacher_assigned'`, 'the worklist over the term');
+  const termRead = await page.evaluate(REVIEW_READ);
+  const termWant = JSON.parse(await page.evaluate(`JSON.stringify(${GAP_SPLIT}(null, null, null))`))
+    .rows.find(r => r.field === 'teacher_assigned');
+  const hit = {};
+  termWant.ids.forEach(id => { hit[id] = true; });
+  const perView = JSON.parse(await page.evaluate(
+    `JSON.stringify(window.GI.views.map(function (v) {
+       return { key: v.key, code: v.code, counts: (v.counts || {}).CohortSession || {},
+                ids: v.nodes.filter(function (n) { return n.type === 'CohortSession'; })
+                            .map(function (n) { return n.id; }) }; }))`));
+  const wantAbsent = perView.filter(v => v.ids.every(id => !hit[id]));
+  const wrongWords = [];
+  for (const a of termRead.absent) {
+    const v = perView.find(q => q.code === a.code);
+    if (!v) { wrongWords.push(`${a.code} is no programme this page has`); continue; }
+    const complete = v.counts.total > 0 && v.counts.drawn >= v.counts.total;
+    const noun = complete ? 'session' : 'drawn session';
+    const want = `${v.code} · all ${v.counts.drawn} of its ${noun}s in this window record a ` +
+      'teacher_assigned · ' + (complete
+        ? `all ${v.counts.total} of the sessions the model counts`
+        : `${v.counts.drawn} of the ${v.counts.total} sessions the model counts, so ` +
+          `${v.counts.total - v.counts.drawn} are not drawn here`);
+    if (a.text !== want) wrongWords.push(`${a.code}: ${JSON.stringify(a.text.slice(0, 110))}`);
+  }
+  const sampled = termRead.absent.filter(a => a.text.indexOf('drawn') !== -1).length;
+  assert('a programme with nothing on the worklist says which of the two absences it is, in the words its own drawn count earns',
+    termRead.absent.map(a => a.code).sort().join(',') ===
+      wantAbsent.map(v => v.code).sort().join(',') &&
+      wantAbsent.length > 0 && wantAbsent.length < perView.length &&
+      termRead.head === `Nothing on this worklist · ${wantAbsent.length} of the ` +
+        `${perView.length} programmes` &&
+      wrongWords.length === 0 && sampled > 0 && sampled < termRead.absent.length,
+    `${wantAbsent.length} of the ${perView.length} programmes named, ` +
+      `${wantAbsent.map(v => v.code).sort().join(', ')}, each sentence in the form its own ` +
+      'drawn-against-declared count earns',
+    `${termRead.absent.length} named ${JSON.stringify(termRead.absent.map(a => a.code))} against ` +
+      `${JSON.stringify(wantAbsent.map(v => v.code))}, head ${JSON.stringify(termRead.head)}, ` +
+      `${wrongWords.length} wrong sentences ${JSON.stringify(wrongWords.slice(0, 3))}`,
+    `${wantAbsent.length} of ${perView.length} programmes, ${sampled} of them sampled`);
+
+  // Left as it was found, and cold, for the reason `the review` gives: this phase armed no window
+  // but it drove six addresses and opened the sheet, and the page every phase after it was written
+  // against is the one that comes back.
+  await page.evaluate(`location.hash = '#/'`);
+  await page.reload();
+  await page.waitFor(DIAGRAM_READY, 'the diagram back at the default address, cold');
+}
+
 // ---- what the header says needs attention, issue 98 ---------------------------------------------
 // EIGHT ASSERTIONS AND EVERY ONE OF THEM IS A DECISION THAT CARD TOOK, not a reading of what the
 // code happens to do. The card put a count in the header, and a count is the easiest thing on a
@@ -5560,7 +6035,11 @@ async function checkWidth(page, base) {
     row.length >= 9 && heights.length === 1 && small.length === 0,
     `${row.length} controls on one height, none under 24 by 24`,
     small.length ? small.map(c => `${c.id} ${c.w}x${c.h}`).join(', ')
-                 : `${row.length} controls, heights ${JSON.stringify(heights)}`);
+                 : `${row.length} controls, heights ${JSON.stringify(heights)}`,
+    // The measurement on the pass as well as on the failure, since issue 124, and issue 125 needed
+    // it: a card told not to put a control on this row has to be able to read how many are on it
+    // without planting a failure to see the number.
+    `${row.length} controls at ${heights.join('/')}px`);
 
   // AND THE ONE READING THAT IS NOT A CONTROL SITS ON THAT SAME LINE. Issue 120 put a static
   // reading inside the readout, and a span is exactly the thing the assertion above cannot see:
@@ -6601,6 +7080,10 @@ async function runViewport(chrome, viewport, base, full, narrow) {
       // the only honest way to assert what a link opens on, and it leaves the page cold on the
       // diagram for the same reason `the empty window` puts the window back. Issue 124.
       await group('the review', () => checkReview(page, base));
+      // After `the review`, which built the destination this one navigates to and leaves the page
+      // cold on the diagram, and before the phases that walk the seven programmes: this one walks
+      // them too and puts the address back where it found it. Issue 125.
+      await group('the worklist', () => checkWorklist(page, base));
       await group('header', () => checkHeader(page));
       await group('the readout', () => checkReadout(page));
       await group('canvas', () => checkCanvas(page));
