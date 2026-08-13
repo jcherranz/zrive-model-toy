@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-13T14:31:00Z",
+  "generated": "2026-08-13T16:03:20Z",
   "columns": [
     {
       "key": "raw",
@@ -44,7 +44,16 @@
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": []
+      "cards": [
+        {
+          "id": 130,
+          "title": "THE DESK: the twenty-two fixable gaps are a screen, beside the current page",
+          "labels": [
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/130"
+        }
+      ]
     },
     {
       "key": "done",
