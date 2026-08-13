@@ -11,6 +11,69 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- **The review you actually do has an address, and it is the calendar's, #124.** *"Reviewing the
+  next one to three weeks before discussing with the team"* is a Monday, seven programmes and a
+  meeting, and it had no address: the page opened on Z-IB with all 24 weeks and nothing selected,
+  which answers no question, and the review was rebuilt from four controls every time. **`#/calendar`
+  opens on it now.** Three weeks from the anchor, every session in that window across the seven
+  programmes, **the ones with nobody to teach them first** because that is what the meeting acts
+  on, date order inside each band, every row a way into that programme's own drawing **at the same
+  window**, and the programmes the window holds nothing of named underneath. At the anchor the
+  model derives that is 11 of the 83 drawn sessions, one of them unstaffed, out of six of the
+  seven programmes. **It absorbed the calendar rather than sitting beside it**: a fourth entry in
+  `CAL_SHAPES`, which #88 built that registry for and said in as many words that a fourth entry is
+  an entry, so the month grid, the week grid and the list are one press away and **the page answers
+  33 addresses after and 33 before**: 16 the sheet answers, the diagram, the board and the student
+  list, and a route and an altitude for each of the seven. The committee wrote "a new address must
+  retire one" and broke the rule in the same document; a pile of routes is #120's complaint one
+  level up. **The three weeks are a default and not a setting**: they arrive with the address and
+  step aside the moment a reader answers the window question themselves, so following a link to the
+  review after pressing "whole term" does not overrule the press. The window still belongs to the
+  page, which is #90's decision, so a row's link carries none of it and the drawing it opens is
+  showing the same weeks the row was in.
+- **And the absences are two sentences rather than one with a badge, which is the half that had to
+  consume #122 rather than reinvent it.** Five of the seven documents draw a sample: Z-IB 6 of 79,
+  Z-PE 6 of 36, Z-HR 6 of 25, Z-DS 6 of 22, Z-CFA 6 of 45, against **Z-SC 25 of 25 and Z-BL 28 of
+  28**. Rolled over the 24 three-week windows the term holds, an absence occurs 79 times and **78
+  of those are a programme whose sessions these documents mostly do not draw**, so a screen with
+  one sentence for both would have manufactured 78 statements about a business out of the scope of
+  a document. Both forms occur in that roll and both are quoted from it: at the last anchor Z-SC
+  reads `no session in this window · all 25 of the sessions the model counts · last session 21 June
+  2026`, and at the anchor the model derives Z-PE reads `no drawn session in this window · 6 of the
+  36 sessions the model counts, so 30 are not drawn here · last drawn session 19 February 2026`. The fraction is `sampleWords()`, unchanged, and the date is the last session **these
+  documents draw** before the window, or the next one where the window sits before everything the
+  programme has. Nothing here says anything about the standing of the content: which rows a
+  document holds is a fact about its scope, which is the #110 and #101 line.
+- **Seven assertions in a phase of its own, smoke 216 to 223, each proved by planting the defect
+  its name describes.** Nothing in the phase reads the page's own bookkeeping for an answer it is
+  asserting, which is #121's finding applied: `REVIEW_MODEL` walks `window.GI` in a second
+  implementation, applies the window itself, ranks the rows by the two keys the card decided and
+  works out per programme what the model declares against what the documents drew. The arrival is
+  a **reload of the address**, since two URLs differing only in their fragment are one document and
+  a hash change reloads nothing, so what is asserted is what a link opens on and not what the run
+  had left on screen. The two sampling claims are **rolled**: the anchor is walked from the term's
+  first Monday to its last through the control a reader uses, and at each of the 24 windows the
+  block is checked, set and sentence and date, against that arithmetic; both forms of the sentence
+  and both directions of the date clause are required to occur, so a run in which one of them never
+  happened proves nothing and says so. The plants: the address opening the month grid instead, the
+  review taking an address of its own, a window a week wider than the control says, the bands the
+  other way round, a row link pointing at the page, a sampled absence in a complete programme's
+  words, and the date being the programme's last session rather than the last before the window.
+  **One plant found a dead instrument rather than a defect**: the link plant made the driver wait
+  for a drawing nobody has, so the group threw and the assertion never reached its comparison; the
+  link is now followed only when it names a view, and naming one is a conjunct of the claim.
+- **What moved in the suite that was already there, and none of it is a claim weakened.** The term
+  phase drives to the state its own assertions are about, pressing the window off and the month
+  grid on after arriving, because the address now opens on a different reading of the same rows.
+  The claim that the window is off until something asks for one is read **on the diagram**, where
+  nothing has asked, since the review is now something that asks. The gutter reading measures the
+  **painted text** of a group heading that carries no link rather than its box, which is the same
+  reading the cell beside it already took: on the phone the review's band heading gave 4 against
+  the 16 every other reading paints at, and 4 is the container's padding rather than a
+  misalignment. The phone chrome is untouched at 125 of 844, share 0.1481, measured both trees, and
+  the measurement is printed on the pass now so a later card can read the gain without planting a
+  failure to see it. `build/` was not touched: the review is a reading of rows the document already
+  carries.
 - **A count says which population it is over, #122.** Five of the seven documents hold a **sample**
   of their programme and two hold all of it, and the only place that was written was a band caption
   on the canvas. Measured at `97304dc` off the `counts` blocks in `site/instance.js`: Z-IB 6 of 79,

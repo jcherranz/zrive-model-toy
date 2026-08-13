@@ -6502,7 +6502,12 @@ async function runGrain(chrome, base) {
       assert('the collapsed page does not scroll sideways at 390, and the header is 23.7 per cent or less',
         w.scrollWidth === w.clientWidth && w.header / w.inner <= CHROME_SHARE + 0.0005,
         'no sideways scroll and header chrome at or under 23.7 per cent',
-        JSON.stringify(Object.assign({}, w, { share: (w.header / w.inner).toFixed(4) })));
+        JSON.stringify(Object.assign({}, w, { share: (w.header / w.inner).toFixed(4) })),
+        // The measurement on the pass as well as on the failure, since issue 124. A card that is
+        // told not to spend a gain somebody else made has to be able to read what the gain is
+        // without planting a failure to see it, and the number a run prints is the number a
+        // report can quote.
+        `header ${w.header} of ${w.inner}, share ${(w.header / w.inner).toFixed(4)}`);
     });
   } finally {
     phone.close();
