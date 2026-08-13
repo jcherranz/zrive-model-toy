@@ -407,7 +407,21 @@
     agenda: GI && GI.agenda,
     // Opening or closing the sheet swaps the heading, and below the breakpoint a heading of a
     // different length can change how many lines the header takes.
-    onRoute: function () { measureHeader(); },
+    //
+    // ISSUE 121, AND IT IS THE OBSERVER'S OWN ARGUMENT REACHING THE ONE ROUTE IT COULD NOT SEE.
+    // The note over the MutationObserver below says the window and the programme are told
+    // directly, in windowChanged() and showView(), because those two change the count without
+    // changing a class. Moving from one programme's calendar to another's is a third: term.js's
+    // show() ends in `classList.toggle('calendar', true)` on a body that already carries the
+    // class, which writes no attribute at all, so the observer stays silent and the readout kept
+    // reporting the programme the reader had left. It read `11 of 95` on Z-CFA's calendar, which
+    // is the whole term's figure, where that reading holds 6. The address had changed, the rows
+    // had changed, the heading had changed, and the number over them had not.
+    //
+    // THE MEASUREMENT LAST, for the reason showView() refits last: the readings are IN the header
+    // and a value that grows from one digit to five can change how many lines the row takes, so a
+    // header measured before they are rewritten is a header measured against what it used to say.
+    onRoute: function () { describeReadout(); measureHeader(); },
     // Issue 90. The time window is a page-level state and the drawing obeys it, so the wiring
     // file is what carries the answer from the module that knows what a date means to the module
     // that knows where a node is drawn. render is built after this, so the first call is guarded

@@ -379,17 +379,43 @@
 
     // The gaps, counted off the rows rather than written down. A calendar is opened to find what
     // is missing, so these are the numbers the sheet leads with.
-    function stats(sc) {
-      var ss = sessionsFor(sc), ts = templatesFor(sc);
-      var m = {}, order = [];
+    //
+    // ISSUE 121 GAVE IT A SECOND ARGUMENT, FOR THE REASON IT HAS A FIRST. #84's note above says
+    // the scope is an argument to one arithmetic rather than a second copy of it under an if, and
+    // the window was the case that had escaped that rule: the sentence under the calendar was
+    // built from the unwindowed stats with the window bolted on as a trailing clause, so a reader
+    // who pressed "3 weeks" was told the date span, the state counts, the instructor gaps and the
+    // recording gaps OF THE WHOLE TERM over a list of eleven rows. Every one of those figures is
+    // now over the same set the rows are, because the window is the same kind of narrowing the
+    // scope is and there is no reason for it to be answered anywhere else.
+    //
+    // `windowed` IS THE CALLER'S QUESTION AND NOT THIS FUNCTION'S. Whether a reading obeys the
+    // window is READING's business and whether a shape filters or marks is the shape's, and both
+    // are decided at the call site in describe(). What this owes them is one arithmetic that
+    // takes the answer.
+    function stats(sc, windowed) {
+      var inScope = sessionsFor(sc);
+      var ss = windowed ? inScope.filter(function (s) { return inWindow(s.date); }) : inScope;
+      var ts = templatesFor(sc);
+      var m = {}, order = [], codes = {}, spread = 0;
       ss.forEach(function (s) {
         if (m[s.state] === undefined) { m[s.state] = 0; order.push(s.state); }
         m[s.state]++;
+        if (codes[s.code] === undefined) { codes[s.code] = 1; spread++; }
       });
       return {
         sessions: ss,
+        // How many sessions the scope holds before the window narrowed it, so a reading that is
+        // showing part of its scope can say so in the idiom #120 settled for the tile count: the
+        // denominator appears only when something is taking rows off.
+        sessionsInScope: inScope.length,
         templates: ts,
         programmes: groupsFor(sc).length,
+        // AND THE PROGRAMMES THE ROWS IN HAND ACTUALLY CAME FROM, which is a different question
+        // from how many the scope names the moment a window is on: three weeks of a term can hold
+        // sessions from four of the seven, and "across 7 programmes" over those rows is false.
+        // With no window the two agree, because every one of the seven holds sessions.
+        programmesShown: spread,
         totalSessions: totalFor(sc, 'CohortSession'),
         totalTemplates: totalFor(sc, 'SessionTemplate'),
         noInstructor: ss.filter(function (s) { return s.teacher !== 'yes'; }).length,
@@ -1102,23 +1128,72 @@
       return b;
     }
 
+    // ---- what the sentence is about, issue 121 ---------------------------------
+    // THE ONE QUESTION THE SENTENCE HAD NEVER ASKED. A reading obeys the window or it does not,
+    // which is READING's answer and #90's split; and where it does, the LIST filters to the window
+    // while the two grids keep every session and mark the band instead, which is #90's other
+    // decision kept by #100. So "is the set on screen the window's set" is the conjunction of the
+    // two, and it is the only thing that decides whether a figure in the sentence is about the
+    // term or about the window. Written once here and read three times below, because a sentence
+    // whose count came from one answer and whose date span came from another is exactly the state
+    // this card was filed about.
+    //
+    // WHY THE SHAPE IS IN IT AND WHY LEAVING IT OUT WOULD HAVE BEEN A NEW WRONGNESS. A month grid
+    // under a three week window draws all eighty three chips with twenty one days lit. A sentence
+    // that said "eleven sessions" over it would be false about the rows in exactly the way the old
+    // one was false about the window, in the other direction. The rule is that the sentence
+    // describes what the sheet drew, and on a grid what the sheet drew is the term.
+    function listsWindow() {
+      var rd = reading && READING[reading];
+      return !!(rd && rd.window && shape === 'list' && windowOn());
+    }
+
     function describe() {
-      var st = stats(scope);
+      var windowed = listsWindow();
+      var st = stats(scope, windowed);
       var over = scope ? scopeName()
                        : st.programmes + ' programmes';
       if (reading === 'calendar') {
-        titleEl.textContent = scope
-          ? scopeName() + ', ' + st.sessions.length + ' sessions in date order'
-          : 'The term, ' + st.sessions.length + ' sessions in date order';
+        // The programmes the rows came from rather than the programmes the scope names, for the
+        // reason stats() carries both: unscoped and windowed, "across 7 programmes" is a claim
+        // about the term made over a list that may hold four of them.
+        var spread = st.programmesShown === 1 ? '1 programme'
+                                              : st.programmesShown + ' programmes';
+        var listed = st.sessions.length;
+        // A window of one week over one programme can leave one row or none, which is a state the
+        // unwindowed sentence could never reach and "1 sessions" is a wrongness of the same kind
+        // as the ones above it, only smaller.
+        var many = listed === 1 ? ' session' : ' sessions';
+        // #120's idiom, and it is the same reading for the same reason: the denominator appears
+        // only while something is taking rows off, so "83 sessions" and "11 of 83 sessions" are
+        // the two states of one sentence rather than two sentences.
+        var counted = windowed ? listed + ' of ' + st.sessionsInScope + ' sessions'
+                               : listed + many;
+        titleEl.textContent = (scope ? scopeName() : 'The term') + ', ' +
+          counted + ' in date order';
+        // BUILT AS PARTS AND JOINED, because a window can leave the list with nothing in it and a
+        // date span, a state tally and a separator printed over an empty set are three marks a
+        // reader has to decide are not zeros. #119 put that state in the data's reach; this is the
+        // sentence meeting it.
+        var bits = [
+          listed + many + ' across ' + (windowed && !scope ? spread : over) +
+            ', drawn from a term the model counts at ' + st.totalSessions
+        ];
+        if (st.from) bits.push(st.from + ' to ' + st.to);
+        if (st.stateCounts) bits.push(st.stateCounts);
+        bits.push(st.noInstructor + ' with no instructor named');
+        bits.push(st.noRecording + ' with no recording');
+        bits.push(SHAPE_NAME[shape]);
+        // AND THE WINDOW SAID TWO WAYS, which is the same split as everything above it. Where the
+        // rows ARE the window, the clause says which window they are; where the shape marks
+        // instead of filtering, the figures are the term's and the clause is the count inside the
+        // band, which is what it has said since #90.
+        if (windowOn()) {
+          bits.push(windowed ? 'inside ' + windowText()
+                             : windowShown(scope) + ' of them inside the window, ' + windowText());
+        }
         subEl.textContent = '';
-        subEl.appendChild(document.createTextNode(
-          st.sessions.length + ' sessions across ' + over + ', drawn from a term ' +
-          'the model counts at ' + st.totalSessions + ' · ' + st.from + ' to ' + st.to +
-          ' · ' + st.stateCounts + ' · ' + st.noInstructor + ' with no instructor named' +
-          ' · ' + st.noRecording + ' with no recording' +
-          ' · ' + SHAPE_NAME[shape] +
-          (windowOn() ? ' · ' + windowShown(scope) + ' of them inside the window, ' +
-                        windowText() : '')));
+        subEl.appendChild(document.createTextNode(bits.join(' · ')));
       } else {
         titleEl.textContent = scope
           ? 'The ' + scopeName() + ' outline, ' + st.templates.length +

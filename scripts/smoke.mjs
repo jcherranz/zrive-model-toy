@@ -258,10 +258,10 @@ const PHASES = {
   'model and reveal':     { count: 14, when: 'behavioural' },
   'cold load':            { count: 4, when: 'behavioural' },
   'students':             { count: 11, when: 'behavioural' },
-  'term':                 { count: 54, when: 'behavioural' },
+  'term':                 { count: 56, when: 'behavioural' },
   'the empty window':     { count: 6, when: 'behavioural' },
   'header':               { count: 8, when: 'behavioural' },
-  'the readout':          { count: 6, when: 'behavioural' },
+  'the readout':          { count: 7, when: 'behavioural' },
   'canvas':               { count: 7, when: 'behavioural' },
   'capture':              { count: 15, when: 'behavioural' },
   'board':                { count: 13, when: 'behavioural' },
@@ -460,7 +460,22 @@ const PHASES = {
 // strengthening and not a repair: after the split it was measuring five of the nine controls in
 // this header, and it had never covered the programme picker in the heading, one of the eleven
 // issue 77 measured.
-const EXPECTED_ASSERTIONS = 207;
+// 210 with issue 121, and the three are two wrong numbers rather than three new claims. The
+// header's readout kept reporting the programme the reader had left, because term.js's show()
+// ends in a toggle to a class the body already carries, which writes no attribute and so wakes no
+// observer, and its one callback was wired to the header measurement alone; and the sentence under
+// the calendar was built from the unwindowed figures with the window bolted on as a trailing
+// clause, so an agenda of eleven rows carried the date span, the state tally and the gap counts of
+// a six month term. One is in `the readout` and drives the scope bar a reader presses, with both
+// counts recomputed off window.GI and a check that they differ, because two equal numbers would
+// pass on a control that never restated. Two are in `term` and they are the two directions of one
+// rule, that the sentence describes what the sheet DREW: on the filtered list every figure is the
+// window's, and on the grid, which keeps every session and marks the band instead, every figure is
+// still the term's. A fix that made the sentence follow the window everywhere would put a count of
+// eleven over eighty three drawn chips, so the second is not a restatement of the first. Both are
+// against SENTENCE_MODEL, which walks window.GI and rebuilds every figure, and both carry the
+// claim that the other reading of the same term gives different numbers.
+const EXPECTED_ASSERTIONS = 210;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -1889,6 +1904,81 @@ function mondayOf(d) {
 // menu does, so a driver that pressed its control blind would toggle it the wrong way the moment
 // something else on the page had been clicked in between. These two ask the page what state it is
 // in first, which is the same discipline as reading the routes rather than constructing them.
+// ---- the calendar's own sentence, recomputed here, issue 121 ------------------------------------
+// A SECOND IMPLEMENTATION AND NOT A SECOND READING, which is the pattern the gap count and #115's
+// layout instrument already run on. The sheet's subtitle used to be built from the unwindowed
+// figures with the window bolted on as a trailing clause, so a reader who pressed "3 weeks" was
+// given the date span, the state tally, the instructor gaps and the recording gaps OF THE WHOLE
+// TERM over a list of eleven rows. An assertion that read that sentence and checked it against
+// window.ZT.term() would have been checking one of term.js's readings against another one of
+// term.js's readings and would have passed on every day of the defect's life. So this walks
+// window.GI, applies the window itself, sorts the rows by the same three keys term.js sorts them
+// by, and rebuilds every figure the sentence quotes. What is on the page is then the input to the
+// comparison and never its answer.
+//
+// `from` AND `to` NULL MEANS NO WINDOW, which is how the same function answers both halves of the
+// claim: the list filters to the window and the two grids keep the term and mark the band, so the
+// grid's sentence is this function with no window and the list's is the same function with one.
+const SENTENCE_MODEL = `(function (scopeKey, from, to) {
+  var rows = [], modelTotal = 0;
+  window.GI.views.forEach(function (v) {
+    if (scopeKey && v.key !== scopeKey) return;
+    var b = (v.counts || {}).CohortSession;
+    if (b) modelTotal += b.total;
+    v.nodes.forEach(function (n) {
+      if (n.type !== 'CohortSession') return;
+      var p = {};
+      (n.props || []).forEach(function (r) { if (p[r.k] === undefined) p[r.k] = r.v; });
+      var at = String(p.scheduled_at || ''), d = at.split(' ')[0] || '';
+      if (from && (!d || d < from || d > to)) return;
+      rows.push({ at: at, code: v.code, id: n.id, date: d, state: p.state,
+                  teacher: p.teacher_assigned, rec: p.recording_ref });
+    });
+  });
+  rows.sort(function (a, b) {
+    if (a.at !== b.at) return a.at < b.at ? -1 : 1;
+    if (a.code !== b.code) return a.code < b.code ? -1 : 1;
+    return a.id < b.id ? -1 : 1;
+  });
+  var m = {}, order = [], seen = {}, spread = 0;
+  rows.forEach(function (r) {
+    if (m[r.state] === undefined) { m[r.state] = 0; order.push(r.state); }
+    m[r.state]++;
+    if (seen[r.code] === undefined) { seen[r.code] = 1; spread++; }
+  });
+  return { n: rows.length, programmes: spread, modelTotal: modelTotal,
+           from: rows.length ? rows[0].date : '',
+           to: rows.length ? rows[rows.length - 1].date : '',
+           states: order.map(function (k) { return m[k] + ' ' + k; }).join(', '),
+           noInstructor: rows.filter(function (r) { return r.teacher !== 'yes'; }).length,
+           noRecording: rows.filter(function (r) { return !r.rec || r.rec === 'none'; }).length };
+})`;
+
+// FIGURES PULLED OUT BY PATTERN AND NEVER BY POSITION, and no sentence is ever compared whole.
+// TERM_READ's own note records the rule this keeps: what is counted is copies and not wording, so
+// a card that rewrites the prose around these numbers must not turn this red. Each figure is
+// found by the shape of the clause that carries it, and the state tally is the one clause that is
+// only digits and words, which is what tells it apart from "11 with no instructor named".
+function readSentence(title, sub) {
+  const parts = sub.split(' · ');
+  const head = /^(\d+) sessions? across (.+?), drawn from a term the model counts at (\d+)$/
+    .exec(parts[0]) || [];
+  const span = parts.find(p => /^\d{4}-\d\d-\d\d to \d{4}-\d\d-\d\d$/.test(p)) || '';
+  const heading = /(\d+)(?: of (\d+))? sessions? in date order/.exec(title) || [];
+  return {
+    n: Number(head[1]),
+    across: head[2] === undefined ? null : head[2],
+    modelTotal: Number(head[3]),
+    from: span.slice(0, 10),
+    to: span.slice(-10),
+    states: parts.find(p => /^\d+ [a-z]+(?:, \d+ [a-z]+)*$/.test(p)) || '',
+    noInstructor: Number((/(\d+) with no instructor named/.exec(sub) || [])[1]),
+    noRecording: Number((/(\d+) with no recording/.exec(sub) || [])[1]),
+    headingN: Number(heading[1]),
+    headingOf: heading[2] === undefined ? null : Number(heading[2])
+  };
+}
+
 async function wnMenu(page, want) {
   if ((await page.evaluate('window.ZT.term().window.menu')) === want) return;
   await page.evaluate(`document.getElementById('wnbtn').click()`);
@@ -2318,14 +2408,59 @@ async function checkTerm(page) {
   const inWindow = chipDates.filter(d => d >= w3.from && d <= w3.to).length;
   // A LIST FILTERS, BECAUSE A LIST IS AN AGENDA. Ten rows is something a team reads in a meeting
   // and 83 is a document nobody opens, which is the whole of what the card asked for.
+  //
+  // ISSUE 121 MOVED ONE CONJUNCT AND IT IS A STRENGTHENING. This used to end by looking for
+  // `11 of them inside the window` in the subtitle, which was the trailing clause that card
+  // deleted: the eleven were true and every other figure in that sentence was the term's. What is
+  // read here instead is the HEADING, which now names the same two numbers the rows are, and the
+  // sentence itself is the subject of the two assertions below, against a recomputation rather
+  // than against its own arithmetic.
   assert('a three week window cuts the list down to an agenda',
     listWin.rows === w3.shown && listWin.rows === inWindow && listWin.rows > 0 &&
       listWin.rows < state.sessions &&
       listWin.wn.text === 'weeks 3 of ' + w3.termWeeks &&
-      listWin.sub.indexOf(w3.shown + ' of them inside the window') !== -1,
+      listWin.title.indexOf(w3.shown + ' of ' + state.sessions + ' sessions in date order') !== -1,
     `${inWindow} rows for ${w3.from} to ${w3.to}, out of ${state.sessions}`,
     `${listWin.rows} rows, the page says ${w3.shown}, control ` +
-      JSON.stringify(listWin.wn.text));
+      JSON.stringify(listWin.wn.text) + ', heading ' + JSON.stringify(listWin.title));
+
+  // ---- THE SENTENCE, WHICH IS ISSUE 121 ------------------------------------------
+  // THE DEFECT WAS NOT THAT A NUMBER WAS MISSING, IT WAS THAT SEVEN OF THEM WERE THE TERM'S. Over
+  // an agenda of eleven rows the subtitle read "83 sessions across 7 programmes ... 2026-01-12 to
+  // 2026-06-28 ... 11 with no instructor named ... 83 with no recording", every figure of it about
+  // the whole term, and closed with the one true clause, "11 of them inside the window". A manager
+  // who pressed "3 weeks" to find out who is missing an instructor in those three weeks was told a
+  // number about six months. Nothing on the page contradicted it and no assertion could: the
+  // window was on the sentence, so a driver reading the sentence saw a window in it.
+  //
+  // SO EVERY FIGURE IS CHECKED AGAINST SENTENCE_MODEL, which walks window.GI and applies the same
+  // window, and the row carries a second claim beside the first: that the term's own answer to
+  // each of these questions is a DIFFERENT answer. Without that second half this assertion would
+  // still pass on the defect the moment a rebuild made the window's figures and the term's
+  // coincide, which is the way a regression net rots quietly rather than loudly.
+  const winModel = await page.evaluate(`${SENTENCE_MODEL}(null, ${JSON.stringify(w3.from)}, ` +
+    `${JSON.stringify(w3.to)})`);
+  const termModel = await page.evaluate(`${SENTENCE_MODEL}(null, null, null)`);
+  const winSaid = readSentence(listWin.title, listWin.sub);
+  const apart = ['n', 'from', 'to', 'states', 'noInstructor', 'noRecording', 'programmes']
+    .filter(k => winModel[k] !== termModel[k]);
+  assertEqual('and the sentence over it is arithmetic over the rows it filtered to, not over the term',
+    { rows: listWin.rows, n: winSaid.n,
+      programmes: Number((/^(\d+) programmes?$/.exec(winSaid.across) || [])[1]),
+      modelTotal: winSaid.modelTotal, from: winSaid.from, to: winSaid.to, states: winSaid.states,
+      noInstructor: winSaid.noInstructor, noRecording: winSaid.noRecording,
+      headingN: winSaid.headingN, headingOf: winSaid.headingOf,
+      andTheTermWouldSayOtherwiseAbout: apart.length },
+    { rows: winModel.n, n: winModel.n, programmes: winModel.programmes,
+      modelTotal: winModel.modelTotal, from: winModel.from, to: winModel.to,
+      states: winModel.states, noInstructor: winModel.noInstructor,
+      noRecording: winModel.noRecording,
+      headingN: winModel.n, headingOf: termModel.n,
+      andTheTermWouldSayOtherwiseAbout:
+        apart.length || 'every figure matches the term, so this row proves nothing' },
+    `recomputed off window.GI for ${w3.from} to ${w3.to}, where the term says ` +
+      JSON.stringify({ n: termModel.n, from: termModel.from, to: termModel.to,
+                       noInstructor: termModel.noInstructor }));
 
   await pressByText(page, '#termnotice .shape-btn', 'month');
   await page.waitFor(`window.ZT.term().shape === 'month'`, 'the month grid back');
@@ -2345,6 +2480,34 @@ async function checkTerm(page) {
       `of ${w3.from} to ${w3.to} lit and every other day dimmed`,
     `${gridWin.chips} chips, ${gridWin.panels} panels, ${litDays.size} distinct days lit, ` +
       `${wrongMark} cells marked against their own date`);
+
+  // ---- AND THE OTHER DIRECTION OF ISSUE 121, WHICH IS THE HALF A NAIVE FIX WOULD BREAK --------
+  // THE RULE IS THAT THE SENTENCE DESCRIBES WHAT THE SHEET DREW, NOT THAT IT FOLLOWS THE WINDOW.
+  // The window is still on and the shape is a grid, and a grid keeps every session and marks the
+  // band, which the assertion above has just proved of the chips. So the figures here are the
+  // TERM'S, recomputed with no window at all, and the window is the trailing clause it has been
+  // since #90 because that is the only thing about it that is true of this picture. A change that
+  // made the sentence follow the window everywhere would read correctly on the list and would put
+  // "11 sessions across 6 programmes" over eighty three drawn chips, which is the same defect this
+  // card removed, pointing the other way. Asserted with the same recomputation and the same
+  // second claim: that the windowed answer differs, so a page ignoring the shape cannot pass.
+  const gridSaid = readSentence(gridWin.title, gridWin.sub);
+  const inClause = Number((/(\d+) of them inside the window/.exec(gridWin.sub) || [])[1]);
+  assertEqual('and the sentence over the grid is the term\'s, because the grid still draws the term',
+    { chips: gridWin.chips, n: gridSaid.n,
+      programmes: Number((/^(\d+) programmes?$/.exec(gridSaid.across) || [])[1]),
+      from: gridSaid.from, to: gridSaid.to, states: gridSaid.states,
+      noInstructor: gridSaid.noInstructor, noRecording: gridSaid.noRecording,
+      headingN: gridSaid.headingN, headingOf: gridSaid.headingOf, insideTheWindow: inClause,
+      andTheWindowWouldSayOtherwiseAbout: apart.length },
+    { chips: termModel.n, n: termModel.n, programmes: termModel.programmes,
+      from: termModel.from, to: termModel.to, states: termModel.states,
+      noInstructor: termModel.noInstructor, noRecording: termModel.noRecording,
+      headingN: termModel.n, headingOf: null, insideTheWindow: winModel.n,
+      andTheWindowWouldSayOtherwiseAbout:
+        apart.length || 'every figure matches the window, so this row proves nothing' },
+    `recomputed off window.GI with no window, against a grid that is drawing all of it under a ` +
+      `${w3.weeks} week window`);
 
   // ---- the outline reading ----------------------------------------------------
   // The window is still on here on purpose: a reader who set one and switched reading would
@@ -3860,6 +4023,76 @@ async function checkReadout(page) {
     `opened ${JSON.stringify(opened.items)} marked ${JSON.stringify(opened.marked)}, ` +
       `after dark ${JSON.stringify(dark.marked)} attr ${JSON.stringify(dark.theme.attr)}, ` +
       `back ${JSON.stringify(back.theme.choice)}`);
+
+  // SEVEN. AND IT FOLLOWS A CHANGE OF PROGRAMME MADE FROM INSIDE THE READING, which is issue 121
+  // and is the one route into this control that nothing had ever driven. Every other caller
+  // reaches the readout through a class on the body: the observer over `document.body` answers
+  // students, board, and the sheet opening and closing, and app.js calls the readout directly
+  // where the programme or the window moves the count without moving a class. Moving from one
+  // programme's calendar to another's was neither. term.js's show() ends in
+  // `classList.toggle('calendar', true)` on a body already carrying `calendar`, and a toggle to
+  // the value a class already has writes no attribute, so the MutationObserver never fired; and
+  // show()'s only callback, onRoute, was wired to measureHeader() alone. The address changed, the
+  // rows changed, the heading changed, and the number over them did not: on this instance the
+  // unscoped calendar reads 11 of 95 and every scoped calendar kept reading 11 of 95.
+  //
+  // DRIVEN THROUGH THE SCOPE BAR, which is the control a reader presses, and not through a hash
+  // this file wrote: the address is the same code path either way, and a driver that typed one
+  // would be proving the router rather than proving the page a reader uses.
+  //
+  // THE PROGRAMME IS CHOSEN BY MEASUREMENT AND BOTH FIGURES ARE RECOMPUTED HERE, off window.GI
+  // and by a second implementation of what gapScope() does: the calendar lists cohort sessions,
+  // so the count is the absent props of the cohort sessions in scope. A programme named in this
+  // file would be a programme that stops being the interesting one the first time the build
+  // moves, and reading the page's own answer twice would agree with a page that never restated.
+  const gapsInScope = `(function (key, type) {
+    var total = 0;
+    window.GI.views.forEach(function (v) {
+      if (key && v.key !== key) return;
+      v.nodes.forEach(function (n) {
+        if (n.ghost || (type && n.type !== type)) return;
+        var props = n.props || [];
+        for (var i = (n.route || 0); i < props.length; i++) if (props[i].f === 'absent') total++;
+      });
+    });
+    return total;
+  })`;
+  const wantAll = await page.evaluate(`${gapsInScope}(null, 'CohortSession')`);
+  // The denominator, which is every absent value in the model and belongs to no route. Recomputed
+  // here too, because a control that moved its numerator and its denominator together would be a
+  // control that had not moved at all.
+  const wantOf = await page.evaluate(`${gapsInScope}(null, null)`);
+  // The first programme whose own count differs from the unscoped one, so the two readings this
+  // asserts cannot be equal by accident. A page that never restated would pass on one that matched.
+  const moved = await page.evaluate(`(function () {
+    var all = ${gapsInScope}(null, 'CohortSession');
+    var hit = null;
+    window.GI.views.forEach(function (v) {
+      if (hit) return;
+      var n = ${gapsInScope}(v.key, 'CohortSession');
+      if (n !== all) hit = { key: v.key, code: v.code, gaps: n };
+    });
+    return hit;
+  })()`);
+  if (!moved) {
+    throw new Error('every programme holds exactly as many absent cohort session values as all ' +
+                    'seven together, so no move between two calendars could change this reading ' +
+                    'and the assertion below would prove nothing.');
+  }
+  await page.evaluate(`location.hash = '#/calendar'`);
+  await page.waitFor(`window.ZT.term().reading === 'calendar' && window.ZT.term().scope === null`,
+    'the unscoped calendar');
+  const readAll = JSON.parse(await page.evaluate(`JSON.stringify(window.ZT.gaps())`));
+  await pressByText(page, '#termnotice .term-scope a', moved.code);
+  await page.waitFor(`window.ZT.term().scope === ${JSON.stringify(moved.key)}`,
+    `the ${moved.code} calendar, reached from inside the unscoped one`);
+  const readOne = JSON.parse(await page.evaluate(`JSON.stringify(window.ZT.gaps())`));
+  assertEqual('and it follows a change of programme made from inside the reading',
+    { unscoped: readAll.total, scoped: readOne.total, of: readOne.of,
+      andTheyDiffer: readAll.total !== readOne.total },
+    { unscoped: wantAll, scoped: moved.gaps, of: wantOf, andTheyDiffer: true },
+    `${moved.code} pressed on the scope bar of the unscoped calendar, both counts recomputed ` +
+      'off window.GI');
 
   // The drawing this phase started on, and nothing selected on it. Collapsing and expanding leaves
   // the reader looking at the counterpart of what they were reading, which is issue 89's anchor
