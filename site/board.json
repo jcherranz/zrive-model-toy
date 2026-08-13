@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-13T11:59:45Z",
+  "generated": "2026-08-13T12:04:35Z",
   "columns": [
     {
       "key": "raw",
@@ -44,21 +44,20 @@
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": [
-        {
-          "id": 125,
-          "title": "A gap is a number you read, when it should be a place you go",
-          "labels": [
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/125"
-        }
-      ]
+      "cards": []
     },
     {
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 125,
+          "title": "A gap is a number you read, when it should be a place you go",
+          "labels": [
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/125"
+        },
         {
           "id": 124,
           "title": "The review you actually do has no address, and the calendar should become it rather than sit beside it",
@@ -121,18 +120,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/118"
-        },
-        {
-          "id": 117,
-          "title": "The two copies of the token-folding rule have drifted and the local safety gate is blind at every underscore, the fifth time one rule in two places has bitten this repository",
-          "labels": [
-            "audit",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/117"
         }
       ],
-      "hidden": 102,
+      "hidden": 103,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
