@@ -1,0 +1,2896 @@
+/*
+ * Design tokens transcribed and adapted from an open source UI toolkit released under the
+ * Apache License, Version 2.0. Licence text: http://www.apache.org/licenses/LICENSE-2.0
+ * Values here have been renamed and modified. This file is not that toolkit, and no
+ * affiliation with or endorsement by its authors is claimed or implied.
+ */
+
+/* ---- the palette, both schemes on one line each ---------------------------
+   Almost every colour on this page is here and is written twice, light first and dark second,
+   inside light-dark(). Which of the two is used is decided by one property, color-scheme, and by
+   nothing else. One token is an exception and it is at the foot of this file, with the reason it
+   could not come up here. Issues 55, 57 and 64.
+
+   WHY color-scheme AND NOT A MEDIA QUERY. #55 shipped this palette as a second copy of itself
+   inside @media (prefers-color-scheme: dark), which is the right shape while the operating
+   system is the only thing with an opinion. #57 gave the reader an opinion too, and a colour
+   whose only definition is inside a media block is a colour an explicit choice cannot reach:
+   overriding it means a third copy of the palette under the attribute, and three copies of one
+   set of colours is how they come to disagree. color-scheme already had to be set here for the
+   scrollbars and the native select menus, so making it the switch adds no mechanism, it removes
+   one.
+
+     color-scheme: light dark   the reader has said nothing, so the operating system decides
+     color-scheme: light        the reader chose light, whatever the operating system says
+     color-scheme: dark         the reader chose dark, whatever the operating system says
+
+   light-dark() reads that used value, so all three follow from the two rules under this block
+   and every token that carries a pair follows in both directions at once. site/app.js writes the
+   thirteen type colours as the same function into a generated stylesheet, so the tiles turn with
+   the chrome rather than a repaint later. It is Baseline (Chrome 123, Safari 17.5, Firefox 120,
+   2024) and it was checked on a real engine rather than looked up, because the site ships no
+   build step and no polyfill: driven in Chrome 149, light-dark() resolves in an SVG presentation
+   attribute, resolves through var(), and nests inside color-mix(), and the thirteen tile fills
+   it produces are pixel for pixel the fills the media query produced, on both schemes.
+
+   The dark values are not the light ones inverted. Each was chosen against the surface it lands
+   on and measured there, and the two places an inverted palette fails are commented where they
+   occur: the muted grey, and the translucent tokens, which are set from the lightness step they
+   take rather than from their alpha, because the ground they step from is at the other end of
+   the scale.
+
+   The --c-* entries are the raw ramp the semantic tokens are drawn from and it does not flip: a
+   scale entry named light-5 is #f6f7f9 in both schemes, and --c-gray-3 is the only one of them
+   read anywhere in site/ at all, so every other entry paints nothing either way. It is read
+   directly as "the grey of a line", by each rule that draws one: the edges, the arrowheads, the
+   dashed marks of the ghosts, the greyed controls, the absent flag, the separator in the narrow
+   student list and the no-module row of the term table. A ramp entry being read as a semantic
+   token has to follow the theme, so it is the one ramp entry carrying a pair; the honest repair
+   is a --line token across those rules, and that is a card and not a thing to do inside a
+   palette.
+
+   NO COUNT OF THOSE RULES IS WRITTEN HERE, AND THE MISSING NUMBER IS THE REPAIR. Issue 106. This
+   block used to say "four of the six" are read by nothing, and it was five on the day the
+   sentence was written and has been five ever since; it used to say "nine rules" read
+   --c-gray-3, and counting `var(--c-gray-3)` outside comments gives 9 at 0d23157 where the
+   sentence entered, 10 at a39bf13, 12 at 3c7be9e and 10 here. Nothing in this repository asserts
+   either figure, so neither could go red when it moved, and it moved in both directions. The
+   sentence naming the repair was the expensive half: it sized a --line token at nine rules, so a
+   reader following it converts nine and leaves the rest behind, in the one token whose whole
+   purpose is that every line on the page agrees. A count that no gate holds belongs in the grep
+   that answers it, which is always current, and not in a comment, which is only ever current
+   once. */
+:root {
+  /* Not decoration, and not only the switch above. Without a dark used value the scrollbars of
+     the panel, the board and the student list stay light, and so does the menu the browser
+     draws for the two selects in the capture popover: none of the four is reachable from any
+     rule in this file, in either direction. */
+  color-scheme: light dark;
+
+  --c-gray-1: #5f6b7c;
+  --c-gray-3: light-dark(#8f99a8, #738091);
+  --c-light-2: #dce0e5;
+  --c-light-3: #e5e8eb;
+  --c-light-5: #f6f7f9;
+  --c-white: #ffffff;
+
+  /* The mid blue and not a pale one on the dark side, because this token is a surface as well
+     as a link: the selected tile and the capture toggle are filled with it and carry
+     --i-primary-fg on top. A pale blue reads as a link and fails as a fill. And the mark on
+     that fill goes dark: white on #4c90f0 measures 3.2:1 and the page's own ground on it
+     measures 5.1:1, which is the right way round anyway, since on a dark page the selected tile
+     is the bright thing and what is written on it is a hole in the light. */
+  --i-primary: light-dark(#2d72d2, #4c90f0);
+  --i-primary-fg: light-dark(#ffffff, #1c2127);
+
+  /* The ground and the plates on it, in one order read twice: the app is the plane, a panel
+     sits on it, and the elevated fill sits on the panel. In light the panel steps up from the
+     app and the elevated fill steps back down; in dark both steps go the one way, away from the
+     ground, because on a dark page depth is light.
+
+     TWO OF THESE FOUR ARE READ BY THE BUILD, and until issue 64 that cost them their shape.
+     build/model.py reads --bg-band and --bg-app out of this file to know what the contrast
+     check measures against: `.band` is filled with the first and `html, body` is painted with
+     the second, so issue 59's gate measures the surface the page actually paints rather than a
+     hex retyped in Python, which is right and stays. It reads the TOKEN NAME off the `.band`
+     rule rather than being told it, which is why issue 81 could move the lanes onto a token of
+     their own and the gate followed with no change in Python. What that reader used to do as
+     well was fix the SHAPE of these declarations, because it found a token's two values by
+     splitting the file on the dark media block and requiring one literal on each side, and one
+     light-dark() pair gives that reader zero of each. So they were held in the old form, with a
+     --bg-app-dark and a --bg-panel-dark that existed only to be counted. Issue 64 replaced that
+     reader with one that resolves a token under each colour scheme wherever the declarations
+     sit, the two extra tokens are gone, and these are written like their neighbours.
+
+     --bg-band IS THE LANES AND IT IS NO LONGER --bg-panel, WHICH IS ISSUE 81. The lanes were
+     painted in the panel colour from the day they existed, and it was the right colour then:
+     the drawing was a fixed picture in a box and the plates did the work of saying where one
+     lane ended and the next began. Issue 46 put the drawing on an infinite plane with a dot
+     grid, the grid says "this continues" on its own, and seven opaque plates in the panel
+     colour were louder than the job left to them. So the plate steps back toward the ground it
+     sits on, and it does it by the same fraction in both themes, which is what keeps the two
+     pages one drawing: the light plate was 9, 8 and 6 above the ground per channel and is now
+     4, 4 and 3; the dark plate was 9, 9 and 10 above and is now 4, 4 and 5. A little under half
+     of the step, both times, which is one rule and not two.
+
+     WHY IT STOPS THERE, AND THE FIGURE IS NOT A TASTE. Retreating all the way to --bg-app is
+     free in dark, where every one of the thirteen type colours GAINS separation because the
+     dark plate is lighter than the dark ground. In light it is not free: the plate is the
+     denominator of thirteen gated measurements, and at the ground three of them are under
+     issue 59's 3:1, Session template at 2.9330, Cohort at 2.9690 and the ghost grey at 2.6874.
+     Two of those three cannot be repaired in the palette without moving a hex this card has no
+     business moving, and the third must not move at all: issues 65 and 70 both established that
+     #8f99a8 is the light value of --c-gray-3, the grey this file paints every edge and arrowhead
+     with, and that the value which would pass renders as a Company. So the light
+     plate goes as far as the gate allows and stops, at #fafbfc, where the lowest of the thirteen
+     is Session template at 3.0346. The dark plate then takes the same fraction rather than the
+     freedom it has, because a lane that is half a step from the ground on one page and flush
+     with it on the other is two drawings.
+
+     WHAT IS NOT --bg-band. Everything that is a real panel: the header, the footer, the detail
+     panel, the popovers, the board cards, the student sheet. Those are chrome on top of the
+     page and they still step up from it in the full amount. The only things that take the band
+     colour are the three surfaces inside the drawing that ARE the band: the lane plate itself,
+     the chip a caption sits in, and the backdrop under a stacked tile in site/render.js. */
+  --bg-app: light-dark(#f6f7f9, #1c2127);
+  --bg-panel: light-dark(#ffffff, #252a31);
+  --bg-band: light-dark(#fafbfc, #20252c);
+  --bg-elevated: light-dark(#edeff2, #2f343c);
+
+  --fg-body: light-dark(#1c2127, #f6f7f9);
+  /* The dark half is not the light grey inverted. Mirroring it onto the ramp gives #8f99a8,
+     which reads well enough on the panel and then fails at 4.4:1 on --bg-elevated, which is
+     exactly where the muted grey does its hardest work: the captured-context block in the
+     feedback popover, and the sticky heading row of the student list. One step up the ramp
+     clears every surface it lands on. */
+  --fg-muted: light-dark(#5f6b7c, #abb3bf);
+  --rule: light-dark(rgba(17, 20, 24, 0.15), rgba(255, 255, 255, 0.13));
+  --rule-muted: light-dark(rgba(17, 20, 24, 0.10), rgba(255, 255, 255, 0.09));
+  /* The dots of the canvas ground. Quieter than --rule-muted on purpose: the grid has to say
+     "this plane continues" and nothing else, and a grid a reader can count is a grid competing
+     with the drawing on it. One token, so the grid follows the theme from here and from nowhere
+     else, and the dark half is held a shade under step parity on top of that: a light mark on a
+     dark ground reads heavier than a dark mark of the same step on a light one, and a grid a
+     reader can count is a starfield rather than a plane. */
+  --grid-dot: light-dark(rgba(17, 20, 24, 0.17), rgba(255, 255, 255, 0.12));
+  --tint-hover: light-dark(rgba(143, 153, 168, 0.15), rgba(255, 255, 255, 0.07));
+  --rule-select: light-dark(rgba(45, 114, 210, 0.45), rgba(76, 144, 240, 0.55));
+  --tint-warning: light-dark(rgba(200, 118, 25, 0.10), rgba(236, 154, 60, 0.12));
+  --tint-neutral: light-dark(rgba(143, 153, 168, 0.15), rgba(255, 255, 255, 0.07));
+  --fg-warning: light-dark(#935610, #ec9a3c);
+  /* What makes the canvas inert while the student list is up. It was written into .sheet-back
+     as a literal, which is the one colour in this file a second palette could not have reached.
+     The dark half is darker and heavier and is black rather than the near-black of the ramp: a
+     scrim's job is to put the canvas behind the list, and against a ground that is already dark
+     a 28 per cent wash of a colour close to it does nothing at all. */
+  --scrim: light-dark(rgba(17, 20, 24, 0.28), rgba(0, 0, 0, 0.55));
+
+  /* The one token that is not a colour, and the one exception to everything above: a shadow
+     list, whose dark form moves the geometry as well as the colours, and light-dark() takes
+     colours and not lengths. Both forms are written here on :root, where an attribute can reach
+     them; the two rules at the foot of this file are what point the live token at the dark one.
+
+     A four stop form was tried first, so that one declaration could carry both geometries by
+     painting each scheme's unused soft shadow in `transparent`. IT IS NOT FREE, and that is
+     worth the sentence because it looks free: measured against the tree it replaced, it moved
+     eight pixels by one 255th on the antialiased corners of the panel's `estimated` badges, at
+     1536x839 and again at 1440x900. A stop painted in `transparent` is still a paint layer. It
+     was rejected for that, and this token is the exception because of a measurement rather than
+     because of a preference.
+
+     Why the two forms differ at all: a dropped shadow is nearly invisible on a dark ground, so
+     the hairline in the first stop carries the separation and becomes a rim of light rather than
+     a ring of black, and the two soft shadows go deeper, because a floating panel still has to
+     sit off the plane and not in it. */
+  --elev-1: 0 0 0 1px rgba(0, 0, 0, .10), 0 1px 3px 0 rgba(0, 0, 0, .10),
+            0 1px 2px -1px rgba(0, 0, 0, .10);
+  --elev-1-dark: 0 0 0 1px rgba(255, 255, 255, .10), 0 2px 5px 0 rgba(0, 0, 0, .40),
+                 0 1px 2px -1px rgba(0, 0, 0, .40);
+
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+             Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+               "Liberation Mono", "DejaVu Sans Mono", monospace;
+
+  --fs-sm: 12px;
+  --fs-base: 14px;
+  --lh-ui: 1.28581;
+  --radius: 4px;
+
+  /* ---- the layers, in one place and with the reason for each ----------------
+     Issue 86. Seven overlays had accumulated, each with its z-index written at the rule that
+     used it and nothing anywhere saying what the ladder was. The header sets none at all, so it
+     computed to `auto`, and a sheet backdrop at 20 whose top edge is y=0 sat on top of every
+     control in it: theme, ghosts, feedback, students and board were unreachable on all five
+     sheet addresses, in both themes, at every width. The header was not behind a scrim, it was
+     behind a click target. He had to leave the subpage to file the card about the subpage.
+
+     THE RUNGS, LOW TO HIGH, AND EACH ONE IS A SENTENCE ABOUT WHAT MAY COVER WHAT.
+
+       --z-canvas    5   the zoom control, furniture inside the plane it acts on
+       --z-panel    10   the detail panel, which describes one node of the drawing under it
+       --z-pop      15   the programme menu and the help box, which hang off their own control
+       --z-sheet    20   a sheet, which covers the drawing on purpose and keeps the reader in it
+       --z-chrome   25   the header, which belongs to the page and not to any view of it
+       --z-capture  30   the capture popover, which must reach over anything it can name
+       --z-error    40   the runtime error notice, the last thing on a page that has thrown
+
+     THE ORDER IS THE ARGUMENT, NOT THE NUMBERS. A sheet is above the drawing and above everything
+     that describes the drawing, because covering that is what a sheet is for. The header is above
+     the sheet, because theme and feedback are controls about the artefact rather than about what
+     is drawn, which is the distinction issue 57 wrote into index.html when it put the theme first
+     in that row, and which a modal that swallows the row had confused. Capture is above the
+     header, because a popover naming a control has to sit over the control it names. The error
+     notice is above capture, because a page that has thrown has nothing else left to report with.
+
+     THE RANK IS NOT THE MECHANISM, AND ON ITS OWN IT WOULD NOT HAVE FIXED THIS. Below 760px a
+     sheet is a full bleed opaque box, so a header merely raised above it would be five buttons
+     floating over the sheet's own title. What keeps the two apart is geometry, and this page
+     already had the answer: #panel is fixed at top: var(--hh), the measured header height,
+     written for exactly this defect the first time it happened. The sheets start there now too.
+     The ladder is what catches the next overlay, whose author will not have read that rule. */
+  --z-canvas: 5;
+  --z-panel: 10;
+  --z-pop: 15;
+  --z-sheet: 20;
+  --z-chrome: 25;
+  --z-capture: 30;
+  --z-error: 40;
+}
+
+/* ---- the reader disagreeing with the operating system ---------------------
+   The whole of the override, and the two rules are each other's mirror so that a choice wins in
+   both directions: light on a machine set to dark, and dark on a machine set to light. The
+   attribute is absent when the reader has chosen `system`, which is the default and which
+   leaves `light dark` above answering prefers-color-scheme exactly as the page did before this
+   existed. site/index.html sets the attribute before the first paint from the stored choice, and
+   site/app.js owns the control and the storage. Issue 57. */
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
+
+/* ---- the one token that cannot ride on color-scheme ------------------------
+   Everything else in this file is one declaration carrying both values. --elev-1 is not, and it
+   is here for a stated reason rather than because the mechanism ran out: it is a shadow list and
+   not a colour, and its dark form moves the geometry as well as the colour, which light-dark()
+   cannot express because light-dark() takes colours.
+
+   It used to be three. --bg-app and --bg-panel were held down here as literals because
+   build/model.py counted `#rrggbb` definitions on each side of the media line and needed exactly
+   one of each, so a light-dark() pair gave it none and a literal in both blocks gave it two.
+   Issue 64 replaced that reader and both tokens went back up to the palette with the rest.
+
+   The two rules are each other's mirror, token for token, so that a choice wins in both
+   directions. The media query answers a reader who has said nothing, and is written
+   `:not([data-theme="light"])` rather than `:not([data-theme])` because what it has to stand out
+   of the way of is a reader who chose light on a machine set to dark.
+
+   Keep the two blocks agreeing token for token. A token in one and not the other is a token that
+   follows the operating system and ignores the reader, or the reverse, and both of those look
+   like a working page until somebody disagrees with their machine. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --elev-1: var(--elev-1-dark);
+  }
+}
+:root[data-theme="dark"] {
+  --elev-1: var(--elev-1-dark);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-app);
+  color: var(--fg-body);
+  font-family: var(--font-ui);
+  font-size: var(--fs-base);
+  line-height: var(--lh-ui);
+  -webkit-text-size-adjust: 100%;
+}
+
+/* One screen. The shell is a column, the diagram takes what the header and the footer
+   leave, and the drawing scales itself to fit that box in both directions. */
+body {
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+#view-board { display: none; overflow-y: auto; }
+body.board #view-diagram { display: none; }
+body.board #view-board { display: flex; }
+/* The heading says what is on screen, so it is three headings and the route picks one. It is the
+   same mechanism the subtitle used to carry and the same three rules, moved up a line: nothing
+   here writes text, so a route cannot leave a heading half rewritten and no module has to own a
+   string. `students` is a route as much as `board` is, and the class for it is written by
+   router.js where the list is opened, beside the aria-current it already sets on the nav link.
+   The ghost toggle describes the drawing, so on the board it is not dimmed or reworded, it is
+   gone. Issue 77. */
+.h-board, .h-students, .h-calendar, .h-outline { display: none; }
+body.board .h-diagram { display: none; }
+body.board .h-board { display: inline; }
+body.students .h-diagram { display: none; }
+body.students .h-students { display: inline; }
+/* Five variants now, issues 80 and 82. A route with no heading of its own does not go bare, it
+   inherits the one before it, which is exactly the defect #77 was filed for, so each address on
+   this page owns a line. Written the same way as the two above and set by the module that opens
+   the view, term.js, beside the aria-current it already puts on the reading it is showing. */
+body.calendar .h-diagram { display: none; }
+body.calendar .h-calendar { display: inline; }
+body.outline .h-diagram { display: none; }
+body.outline .h-outline { display: inline; }
+/* THE GHOST TOGGLE IS WITHDRAWN WHEREVER THE DRAWING IS NOT ON SCREEN, and issue 86 is what took
+   that from one route to five. The board was the first: a control that adds dashed tiles to a
+   picture is not dimmed or reworded there, it is gone. A sheet is the same situation arrived at
+   from the other side. Until #86 the whole header was under the sheet's backdrop, so this control
+   was covered along with everything else and the question never came up; with the header live
+   above a sheet it would be the one item in that row that does nothing a reader can see, acting
+   on a drawing behind an opaque box. Withdrawn rather than disabled, because the board's answer
+   is already in this file and one behaviour is better than two.
+
+   IT IS THE ONLY ONE OF THE FIVE THAT GOES. The distinction is issue 57's, restated: theme and
+   feedback belong to the page, `students` and `board` are the way out of a place, and only
+   `ghosts` is a control about a drawing. The programme picker is the other view level control in
+   this row and it needs no rule, because the heading it lives in is already swapped out on every
+   one of these five addresses. */
+body.board #ghtoggle,
+body.students #ghtoggle,
+body.calendar #ghtoggle,
+body.outline #ghtoggle { display: none; }
+/* THE WINDOW CONTROL IS WITHDRAWN ON TWO OF THE FIVE AND KEPT ON THREE, and that split is the
+   whole reason it is not simply `ghosts` again. Issue 90. It acts on two surfaces at once: the
+   cohort session tiles on the drawing, which it dims, and the calendar's rows, which it filters
+   or marks. So it goes on the board, which draws neither, and on the student list, which is a
+   roster with no date in it; and it stays on the diagram and on BOTH readings of the term,
+   including the outline, where the sheet says in words that the window is off that reading. A
+   reader who set a window and then opened the calendar has to be able to move it from inside,
+   which is exactly what #86 made possible and is why this is not in the sheet. */
+body.board .wnpick,
+body.students .wnpick { display: none; }
+/* THE GAP COUNT LEAVES ON EXACTLY THE TWO ROUTES THE WINDOW LEAVES, and the reason is the same
+   sentence twice. Issue 98. It counts the values the model records as missing IN WHAT THE VIEW IS
+   SHOWING: on the diagram that is the tiles on screen, which #100's window already filters, and on
+   both readings of the term it is the rows the reading lists, sessions on one and templates on the
+   other. The board is GitHub issues and not the model, so there is nothing there to count; the
+   student list is a roster whose rows carry no property flag at all, and a count over the drawing
+   behind an opaque box is `ghosts`'s defect with a number on it. Withdrawn rather than zeroed,
+   because a control reading `gaps: 0 of 95` on the board would be answering a question about a
+   view it is not in.
+
+   IT STAYS OVER A SHEET, which is #86 and is the difference between this and `ghosts`. The sheet
+   is a reading of the term and this control is about what that reading is showing, so it is live,
+   hit-testable at its own centre and 26 by 26 over the backdrop, exactly as `theme`, `feedback`,
+   `students` and `board` are. */
+body.board .gapspick,
+body.students .gapspick { display: none; }
+/* THE ALTITUDE LEAVES ON THE SAME TWO ROUTES, and it is the same sentence a third time. Issue 89.
+   It changes which drawing is on the canvas, so it belongs wherever the canvas is the thing the
+   reader is looking at, and nowhere else: the board draws no model at all, and the student list
+   is a roster of people who are in no module. It is kept over the calendar and the outline for
+   #86's reason, that a sheet is a reading of the term and a reader who collapsed the drawing and
+   then opened a reading should not have to close it to change their mind. */
+body.board .grpick,
+body.students .grpick { display: none; }
+/* THE TILE COUNT LEAVES WHEREVER `ghosts` LEAVES, on all five, and it is the fourth reading of the
+   same sentence rather than a new rule. Issue 120. It is a count of the tiles on the canvas, so it
+   is worth exactly what the canvas is worth on the route: nothing on the board, which draws no
+   model; nothing on the student list; and nothing over a sheet, where the drawing it counts is
+   behind an opaque box, which is the argument that withdrew `ghosts` from those three addresses
+   and is not weaker here for being about a number rather than about a mark. */
+body.board #tilesrd,
+body.students #tilesrd,
+body.calendar #tilesrd,
+body.outline #tilesrd { display: none; }
+/* AND THE PLATE GOES WITH ITS LAST READING. The readout is a box with a rule around it, so on the
+   two routes where every reading inside it has been withdrawn by the four rules above, the box
+   itself would paint as an empty frame in the middle of the row. It is one rule and it names the
+   same two routes rather than reasoning about its own children, because a container that hides
+   itself when it happens to be empty is a container that vanishes the first time a reading is
+   added and forgotten. Issue 120. */
+body.board .hstate,
+body.students .hstate { display: none; }
+/* The detail panel describes a node in the drawing, so on the board it goes the same way. It is
+   hidden rather than closed: the selection is still the selection, and switching back brings the
+   panel and the node it is about back together. */
+body.board #panel { display: none; }
+
+/* ONE ROW, AT EVERY WIDTH THE ROW FITS ON. Issue 32 reclaimed a header row by deleting the
+   legend and issue 57 protected it; this gives back a second one rather than spending it. The
+   header used to be a heading with a subtitle under it, two lines wherever it was read and four
+   or five on a phone, where the subtitle wrapped to three and the nav took a row of its own: 123
+   CSS px, 15 per cent of a 390 by 844 viewport, before the drawing got anything. The subtitle and
+   the heading said the same kind of thing and only one of them was ever right, so they are one
+   line now, and the row is the heading beside the nav. Below the breakpoint the nav still takes
+   its own row, which is the same two rows a phone already had, with the three lines of subtitle
+   between them gone. Issue 77.
+
+   `align-items: center` and not `flex-start`, because both sides of this row are now one line of
+   the same height and there is no taller block for a top edge to align to. Issue 77.
+
+   IT IS THE PAGE, SO IT OUTRANKS EVERY VIEW, and until issue 86 it said so nowhere. It set no
+   z-index, computed to `auto`, and lost to the first overlay that started at y=0. It is a rung on
+   the ladder in the palette block now, above a sheet and below the capture popover, and the
+   `position: relative` is there so the rank is read from a rule rather than from the fact that a
+   flex item happens to honour z-index without it. Nothing moves: the offsets are unset. */
+header {
+  flex: none;
+  position: relative;
+  z-index: var(--z-chrome);
+  padding: 8px 20px;
+  border-bottom: 1px solid var(--rule-muted);
+  background: var(--bg-panel);
+}
+
+.hrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.hnav {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---- the readout, which is the half of this row that is telling the reader something ----------
+   ISSUE 120, AND THE WHOLE OF IT IS IN THE TWO DECLARATIONS THAT ARE NOT SIZES. The plate steps
+   back from the header's own ground and takes a rule around it, so the group reads as an
+   instrument the page writes into; every action beside it keeps the header's ground and the link
+   colour, so it reads as something a reader does. That is the distinction he filed the card
+   about, and until it was drawn nine controls carried one treatment between them.
+
+   --bg-band AND NOT --bg-elevated, because this box is recessed and not raised: it is the surface
+   the page reports on, under the chrome rather than on top of it, and --bg-band is already the
+   token for a plate that steps back toward the ground it sits on rather than away from it. It is
+   the same colour the lanes of the drawing take, which is the right relation: the lanes are where
+   the model is drawn and this is where the model is counted.
+
+   NOTHING HERE SETS A HEIGHT AND THAT IS ISSUE 77 STILL HOLDING. Every pressable reading is a
+   .linkbtn, so it is 26 by 26 by construction; the one reading that is not pressable takes the
+   same box from .rd-static below, so the plate is the height of the row it sits in and the
+   controls inside it are still targets a finger can land on. The gap is zero and the separation
+   is a rule between the items, because a gap inside a bordered box reads as a gap between boxes
+   and the point of the box is that the readings inside it are one statement. */
+.hstate {
+  flex: 0 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-width: 0;
+  background: var(--bg-band);
+  border-radius: var(--radius);
+  /* THE RULE AROUND THE PLATE COSTS NO HEIGHT, and that is a measurement rather than a
+     preference. Written as a border it is 26px of readings inside a 28px box, the row takes the
+     taller of the two, and the header goes from 43 to 45 at 1536 and from 107 to 109 at 390,
+     which takes the phone's chrome share from 17.3 per cent to 17.5 and breaks the one budget
+     this card was told not to spend. An inset hairline paints the same line and takes part in no
+     layout, so the plate is exactly as tall as the readings on it and the header is the height it
+     was before this card. --elev-1 already draws its own hairline this way. */
+  box-shadow: inset 0 0 0 1px var(--rule);
+}
+
+/* The rule between two readings, drawn once, on the item that follows another. `> *` and not a
+   class, because the pressable readings are wrapped in a positioning span and the static one is
+   not, so any selector naming the reading itself would miss three of the four. */
+.hstate > * + * { border-left: 1px solid var(--rule-muted); }
+
+/* The corners belong to the plate and not to the readings on it. Without this the first and last
+   .linkbtn round their own outer corners inside a box that has already rounded them, and the
+   focus ring of a control in the middle of the group draws a rounded rectangle over a straight
+   rule. */
+.hstate .linkbtn { border-radius: 0; }
+.hstate > :first-child .linkbtn { border-top-left-radius: var(--radius); border-bottom-left-radius: var(--radius); }
+.hstate > :last-child .linkbtn { border-top-right-radius: var(--radius); border-bottom-right-radius: var(--radius); }
+
+/* A READING IS A LABEL AND A VALUE AND IT IS NOT BLUE. .linkbtn paints its text --i-primary,
+   which is the page's colour for "this is a link or a control"; inside the readout the words are
+   what the page is saying, so the value takes the body colour and the label the muted one. The
+   control is still a control: it keeps the box, the target size, the focus ring and the hover
+   underline, so nothing about pressing it is any less discoverable than it was in the nav. */
+.hstate .rd { color: var(--fg-body); }
+.rd-k { color: var(--fg-muted); font-weight: 400; }
+.rd-v { color: var(--fg-body); font-weight: 600; }
+
+/* The one reading that is not a control. It takes the .linkbtn box exactly, so it sits on the
+   row's single baseline and the plate is one height, and it takes none of the affordances: no
+   pointer, no underline on hover, no focus ring, nothing to press. Issue 120. */
+.rd-static {
+  display: inline-block;
+  font-size: var(--fs-sm);
+  line-height: 18px;
+  min-height: 26px;
+  padding: 3px 8px;
+  border: 1px solid transparent;
+  cursor: default;
+}
+
+/* The open state, and it is the one place .linkbtn's own answer to aria-expanded does not serve.
+   That rule sets font-weight 600 on the control, which inside a reading would take the muted
+   label to the value's weight and lose the distinction the box exists to draw. The label and the
+   value carry their own weights, so the rule lands on nothing here and the open state is said
+   with the tint the hover already uses. */
+.hstate .linkbtn[aria-expanded="true"] { background: var(--tint-hover); }
+
+/* THE ONE DECLARATION THAT MADE FIVE CONTROLS FAIL WCAG 2.2 SC 2.5.8. This was
+   `padding: 2px 2px` with no height, and at 12px over a 1.28581 line height that is a 19 CSS px
+   box: `theme: system` 19, `students` 19, `board` 19, and `ghosts` and `feedback` 21 because those
+   two carry a border. Five of five under the 24 by 24 the standard asks for, in a repository that
+   gates itself on WCAG 2.2 for contrast and had never once measured a target. Issue 77.
+
+   THE BORDER IS TRANSPARENT RATHER THAN ABSENT, and that is the second finding rather than a
+   trick. Two of these five had a border and three had none, so the row rendered on two baselines
+   a pixel apart and a line that reads as one line was not one. Giving every control the same box
+   and letting the two that want a visible edge recolour it is what makes the baseline shared by
+   construction: there is no width here for a later control to get wrong.
+
+   The height is 26 and not 24, which is the floor plus the two pixels the border takes, so the
+   box measures 26 whether the border is painted or not and a control cannot be exactly at the
+   limit by accident. */
+.linkbtn {
+  display: inline-block;
+  font: inherit;
+  font-size: var(--fs-sm);
+  line-height: 18px;
+  min-height: 26px;
+  /* Both axes, because the standard is 24 BY 24 and a rule that only sets the height passes every
+     control whose label is a word and fails the one whose label is a glyph. The student list's
+     close button is that control: at the phone's tighter padding it measured 24.16 wide, inside
+     the standard by a sixth of a pixel and outside it on any font that renders that glyph a
+     shade narrower. */
+  min-width: 26px;
+  color: var(--i-primary);
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 3px 8px;
+  cursor: pointer;
+  text-decoration: none;
+  border-radius: var(--radius);
+}
+
+.linkbtn:hover { text-decoration: underline; }
+.linkbtn:focus-visible { outline: 2px solid var(--i-primary); outline-offset: 1px; }
+.linkbtn[aria-expanded="true"] { font-weight: 600; }
+
+/* A disabled control says so before it is clicked. It keeps its place in the row, because a
+   control that vanishes and reappears is harder to find than one that greys out. */
+.linkbtn:disabled {
+  color: var(--c-gray-3);
+  cursor: default;
+}
+
+.linkbtn:disabled:hover { text-decoration: none; }
+
+/* The heading is one line and the row is sized by it, so it takes the row's remaining width and
+   is allowed to shrink into it rather than pushing the nav off the edge. No `overflow: hidden`:
+   the programme menu is absolutely positioned inside this box and clipping it would be clipping
+   the control. */
+h1 {
+  flex: 0 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--fs-base);
+  font-weight: 600;
+  letter-spacing: .01em;
+  line-height: 1.3;
+}
+
+/* ---- the programme picker ------------------------------------------------
+   Seven drawings, one control, and no row spent on it. The heading already had to name the
+   programme on screen, so the name is the button: it sits inside the sentence, it is a .linkbtn
+   like the rest of the page's controls, and the header is exactly as tall with it as without.
+   Nothing here is a new control style. The list under it is seven ordinary links to the seven
+   addresses, so the keyboard reaches them by tabbing, the middle button opens one in a tab and
+   the address bar shows which one is drawn. Issue 66, on top of issue 32's reclaimed row and
+   issue 57's protection of it; issue 77 moved it from the subtitle into the heading when the two
+   became one line, and it is the same control in the same sentence.
+
+   The button carries aria-expanded and .linkbtn already answers that with a weight, which is
+   the same "the control says what state it is in" the theme toggle and the ghosts chip use. */
+.pgpick {
+  position: relative;
+  display: inline-block;
+  /* The horizontal padding is the nav's answer to a row with gaps and the wrong answer inside a
+     sentence: the comma after the name read as though it had a space in front of it, and the
+     first word of the heading started indented by the padding of a control nobody can see. The
+     box stays, because it is what the focus ring is drawn around and what the reader's finger
+     lands on, and the sentence takes it back on both sides. */
+  margin: 0 -5px;
+}
+
+/* A control in the middle of a sentence sits on the sentence's own type and not on the nav's: at
+   the nav's 12px inside a 14px heading it read as a chip dropped into the line, and the point of
+   issue 66 is that these are the words the sentence was already saying. Everything about the box
+   is the nav's, so it is 26 CSS px tall like every other control on the page; only the horizontal
+   padding is cut, because the height is the target size and is not negotiable. */
+.pgpick > .linkbtn {
+  font: inherit;
+  line-height: 18px;
+  min-height: 26px;
+  padding: 3px 4px;
+  color: var(--i-primary);
+}
+
+/* Every other .linkbtn answers aria-expanded with a weight. This one is already at the heading's
+   weight and has nowhere to go, so the open state is marked the way a link marks itself. */
+.pgpick > .linkbtn[aria-expanded="true"] { text-decoration: underline; }
+
+/* Absolute, so opening it moves nothing: the sentence, the header's height and the canvas under
+   it are the same before and after. The rung is --z-pop, over the canvas and the detail panel and
+   under the capture popover, and it is inside the header, so a sheet cannot reach it either way.
+   The ladder and its reasons are in the palette block at the top of this file. Issue 86. */
+.pgmenu {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  z-index: var(--z-pop);
+  min-width: 100%;
+  max-width: calc(100vw - 40px);
+  padding: 4px;
+  background: var(--bg-panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--elev-1);
+}
+
+.pgmenu[hidden] { display: none; }
+
+/* The gutter is not padding. The programme on screen is marked in it with a character, so which
+   one it is survives a forced-colours mode and a reader who cannot see the weight or the blue. */
+.pgitem {
+  position: relative;
+  display: block;
+  padding: 4px 10px 4px 20px;
+  border-radius: var(--radius);
+  font-size: var(--fs-sm);
+  color: var(--fg-body);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.pgitem:hover {
+  background: var(--tint-hover);
+  text-decoration: none;
+}
+
+.pgitem:focus-visible {
+  outline: 2px solid var(--i-primary);
+  outline-offset: -2px;
+}
+
+.pgitem[aria-current="true"] {
+  font-weight: 600;
+  color: var(--i-primary);
+}
+
+.pgitem[aria-current="true"]::before {
+  content: "\00b7";
+  position: absolute;
+  left: 9px;
+  font-weight: 700;
+}
+
+/* ---- the time window, issue 90 --------------------------------------------------
+   The same disclosure the programme picker is, in the same three listeners and with the same
+   absolute box, so opening it moves nothing: the nav's height, the header's height and the fit
+   of the drawing under it are the same before and after.
+
+   IT HANGS OFF THE RIGHT AND NOT OFF THE LEFT, which is the one difference from .pgmenu and is
+   forced by where it sits: the programme picker is at the start of the heading and this is in
+   the middle of the nav, near the right edge at every width, so a box anchored left would leave
+   the viewport. `max-width` is the viewport less the header's own padding on both sides, which
+   is the same measurement .pgmenu and .helpbox already use.
+
+   IT IS INSIDE THE HEADER, so a sheet cannot reach over it either way: the header is
+   --z-chrome and a sheet is --z-sheet, and everything inside a stacking context at 25 paints
+   above everything at 20. --z-pop is the rung it takes WITHIN the header, over the nav's own
+   line, which is all it needs. The ladder and its reasons are in the palette block at the top of
+   this file. */
+.wnpick {
+  position: relative;
+  display: inline-block;
+}
+
+.wnmenu {
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 0;
+  z-index: var(--z-pop);
+  width: 460px;
+  max-width: calc(100vw - 40px);
+  padding: 8px 10px;
+  background: var(--bg-panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--elev-1);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.wnmenu[hidden] { display: none; }
+
+/* The first paragraph in the box, and it is first because it is the reason the rest of the box
+   is allowed to exist: the term ended before the real clock reached it, so the anchor under it
+   is an anchor and not a today. It takes the warning register the sheet's own provenance line
+   takes, which is the register a reader already reads on this site as "this is not real". */
+.wn-now {
+  margin: 0 0 8px;
+  color: var(--fg-muted);
+}
+
+.wn-now .warn { margin-left: 0; margin-right: 6px; }
+
+.wn-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 4px;
+}
+
+.wn-lab {
+  min-width: 52px;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  font-size: 10px;
+}
+
+.wn-anchor {
+  padding: 0 4px;
+  font-weight: 600;
+  color: var(--fg-body);
+}
+
+/* Both kinds of button in the box are .zbtn, which carries the 26 by 26 issue 77 took every
+   control on this page to, so nothing here has to restate a size. Only the pressed state is
+   added, in the idiom .term-switch already uses for the reading that is on screen. */
+.wn-step,
+.wn-weeks {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  color: var(--i-primary);
+}
+
+.wn-step:hover,
+.wn-weeks:hover { background: var(--tint-hover); }
+
+.wn-step:focus-visible,
+.wn-weeks:focus-visible {
+  outline: 2px solid var(--i-primary);
+  outline-offset: -2px;
+}
+
+.wn-weeks[aria-pressed="true"] {
+  font-weight: 700;
+  border-color: var(--i-primary);
+  background: var(--tint-hover);
+}
+
+.wn-note {
+  margin: 6px 0 0;
+  padding-top: 6px;
+  border-top: 1px solid var(--rule-muted);
+  color: var(--fg-muted);
+}
+
+/* ---- what the window took off the drawing, issue 111 ---------------------------
+   The count that used to be a stub tile in every lane of the filtered drawing and a fourth line
+   on every lane caption. It reads in this box in the register the box already has, and the two
+   rules below are `.gaps-scope` and `.gaps-row` with different names: the sentence first, because
+   a per lane figure is meaningless without the whole, then a column of right-aligned counts,
+   because the reading a person brings to it is scanning for the lane that lost the most. Nothing
+   here sets a size or a colour those two do not already set. */
+.wn-off {
+  margin: 6px 0 2px;
+  padding-top: 6px;
+  border-top: 1px solid var(--rule-muted);
+  color: var(--fg-body);
+}
+
+.wn-lane {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  padding: 1px 0;
+}
+
+.wn-lane-n {
+  flex: none;
+  min-width: 4.4em;
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-body);
+}
+
+.wn-lane-k { color: var(--fg-muted); }
+
+.warn {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 5px;
+  border-radius: var(--radius);
+  background: var(--tint-warning);
+  color: var(--fg-warning);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* ---- what needs attention, issue 98 ---------------------------------------------
+   The third disclosure in this header and deliberately the third of the same thing: the box, the
+   anchoring, the rung and the three listeners are .wnmenu's, which were .pgmenu's before that. A
+   fourth idiom for the fourth control in a row of six would be four things for a reader to learn
+   where there is one.
+
+   NOTHING HERE SETS A SIZE, and that is issue 77 still holding. The control is a .linkbtn, so it
+   is 26 by 26 by construction and shares the row's one baseline; this file adds a position and a
+   box to hang from it and no dimension at all. A control added to this row after this one is the
+   right size for the same reason and without anybody remembering to make it so. */
+.gapspick {
+  position: relative;
+  display: inline-block;
+}
+
+/* Anchored right for .wnmenu's reason and measured the same way: this control sits fourth in a
+   six item nav, which is past the middle at every width, so a box anchored left leaves the
+   viewport. It is narrower than the window's box because it holds a sentence and a short table
+   rather than three rows of controls. */
+.gapsmenu {
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 0;
+  z-index: var(--z-pop);
+  width: 340px;
+  max-width: calc(100vw - 40px);
+  padding: 8px 10px;
+  background: var(--bg-panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--elev-1);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.gapsmenu[hidden] { display: none; }
+
+/* What the number is a number OF, in words, and it is first because the count above it is
+   meaningless without it: the same control says 31 on one drawing, 11 on the calendar and 65 on
+   the outline, and each of those is true of a different set. */
+.gaps-scope {
+  margin: 0 0 6px;
+  color: var(--fg-body);
+}
+
+.gaps-scope b { font-weight: 600; }
+
+/* A count and the thing it counts, on a grid rather than in a sentence, because the reader is
+   scanning for the largest number and a column of right-aligned figures is what that reading
+   wants. */
+.gaps-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 1px 0;
+}
+
+.gaps-n {
+  flex: none;
+  min-width: 2.2em;
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-body);
+}
+
+.gaps-what { color: var(--fg-muted); }
+
+/* The field, in the key the panel prints beside the value. The panel writes the model's own key
+   into its <dt> and this list writes the same string, so a reader who follows a row down to the
+   tile it is about meets the word they came in with. A friendlier name here would be a third name
+   for the same field, after the model's key and the sentence the term sheet writes. */
+.gaps-what code {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--fg-body);
+}
+
+/* The definition, once, at the foot, in the words model.py and the panel's own flag already use.
+   It is the line that keeps this control from being read as a to-do list: an absence here is
+   something the analysis established, not something nobody has got round to typing. */
+.gaps-foot {
+  margin: 6px 0 0;
+  padding-top: 6px;
+  border-top: 1px solid var(--rule-muted);
+  color: var(--fg-muted);
+}
+
+/* ---- the altitude, issue 89 --------------------------------------------- */
+/* The fifth control in this row and the fourth to hang a box off itself, so it is the third
+   copy of one idiom and not a fourth idiom: the anchoring, the box and the three listeners are
+   .gapsmenu's, which were .wnmenu's, which were .pgmenu's. NOTHING HERE SETS A SIZE, which is
+   issue 77 still holding: the control is a .linkbtn, so it is 26 by 26 by construction and sits
+   on the row's one baseline, and this file adds a position and a box and no dimension at all. */
+.grpick {
+  position: relative;
+  display: inline-block;
+}
+
+/* Narrower than the gap list because it holds one sentence, two choices and a note, rather than
+   a sentence and a table. Anchored right for .gapsmenu's measured reason: this control sits past
+   the middle of the row at every width, and a box anchored left leaves the viewport. */
+.grmenu {
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 0;
+  z-index: var(--z-pop);
+  width: 300px;
+  max-width: calc(100vw - 40px);
+  padding: 8px 10px;
+  background: var(--bg-panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--elev-1);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.grmenu[hidden] { display: none; }
+
+/* What this view actually costs at each altitude, first, because the two choices under it mean
+   nothing without it: on Z-BL the sentence is the reason to press and on Z-CFA it is the reason
+   not to. */
+.gr-scope {
+  margin: 0 0 6px;
+  color: var(--fg-body);
+}
+
+.gr-row {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+}
+
+/* The two altitudes as links and not as buttons, because each of them IS an address: the whole
+   point of putting the grain in the hash is that a reader can copy the collapsed view out of the
+   page, and a link is the one control a browser already knows how to copy. They are sized here
+   rather than by .linkbtn because they are inside a popover and not in the nav row, and #77's
+   floor is met explicitly: 26px of height and padding that keeps the shorter of the two over
+   24px wide. */
+   THE THEME'S THREE CHOICES TAKE THE SAME BOX, which is issue 120 reusing this rather than
+   writing a fourth version of it. They are buttons and not links, because a theme is not an
+   address and there is nothing to copy out of the page, and that is the one difference between
+   the two sets; everything a reader can see about them is this idiom, including the mark on the
+   current one. */
+.gritem,
+.thitem {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  color: var(--fg-body);
+  text-decoration: none;
+  font-size: 11px;
+}
+
+.gritem:hover,
+.thitem:hover {
+  background: var(--tint-hover);
+  text-decoration: none;
+}
+
+.gritem:focus-visible,
+.thitem:focus-visible {
+  outline: 2px solid var(--i-primary);
+  outline-offset: 1px;
+}
+
+.gritem[aria-current="true"],
+.thitem[aria-current="true"] {
+  border-color: var(--fg-body);
+  font-weight: 600;
+}
+
+/* The theme buttons carry the page's own font at the nav's size otherwise, because a button does
+   not inherit the family the way an anchor does. */
+.thitem { font-family: inherit; background: transparent; cursor: pointer; }
+
+/* What the fold cost, at the foot, in the same place the gap list puts its definition. A
+   collapse that did not say how many relationships it drew as one line would be an aggregate
+   hiding its own arithmetic, which is the failure this whole control is supposed to be the
+   opposite of. */
+.gr-foot {
+  margin: 6px 0 0;
+  padding-top: 6px;
+  border-top: 1px solid var(--rule-muted);
+  color: var(--fg-muted);
+}
+
+/* ---- the theme, behind a press, issue 120 -------------------------------- */
+/* THE FIFTH BOX TO HANG OFF A CONTROL IN THIS HEADER AND THE FOURTH COPY OF ONE IDIOM. The
+   anchoring, the plate and the three listeners are .grmenu's, which were .gapsmenu's, which were
+   .wnmenu's, which were .pgmenu's. Nothing here sets a size on the control: it is a .linkbtn, so
+   #77's floor is met by construction.
+
+   ANCHORED RIGHT, and at this end of the row that is not a preference. The control is the last
+   item in the nav, so a box anchored to its left edge and 200px wide hangs off the right of the
+   viewport at every width; anchored right it opens back into the page. .grmenu and .gapsmenu were
+   given the same treatment for the same measurement. */
+.thpick {
+  position: relative;
+  display: inline-block;
+}
+
+.thmenu {
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 0;
+  z-index: var(--z-pop);
+  width: 210px;
+  max-width: calc(100vw - 40px);
+  padding: 8px 10px;
+  background: var(--bg-panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--elev-1);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.thmenu[hidden] { display: none; }
+
+/* What the three mean, above them, in the place .grmenu puts the sentence that makes its two
+   choices mean anything. `system` is the one a reader cannot infer from the page in front of
+   them, which is #57's whole finding, so the sentence is about that one. */
+.th-scope {
+  margin: 0 0 6px;
+  color: var(--fg-body);
+}
+
+.th-row {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+}
+
+/* ---- canvas ------------------------------------------------------------- */
+
+/* The canvas is a viewport onto a plane, not a box holding a picture. It never scrolls: what
+   used to be a scroll is now the view moving over the drawing, which is what app.js writes into
+   the svg's viewBox. Everything below follows from that.
+
+   The dot grid is drawn here rather than inside the svg, and that is the whole reason it reads
+   as canvas at every zoom. A pattern inside the drawing would be in the drawing's own units, so
+   zooming in would fatten the dots until they were blobs and zooming out would thin them to
+   nothing. Here the dot is a fixed size in screen pixels and only the spacing moves:
+   --grid-step is the spacing app.js chooses so the dots stay between 22 and 44 pixels apart at
+   every zoom, and --grid-x/--grid-y are the pan, so the ground translates with the drawing on
+   it. Both are written from the same three numbers as the viewBox, so the grid and the drawing
+   cannot disagree about where the plane is.
+
+   touch-action: none is what makes one finger pan rather than scroll the page. It is scoped to
+   this box: the header, the footer, the detail panel and the whole board view keep the
+   browser's own touch behaviour. user-select: none is for the mouse: without it a drag across
+   the drawing selects the label text it passes over. */
+#canvas {
+  flex: 1 1 auto;
+  min-height: 0;
+  position: relative;
+  padding: 0;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  --grid-step: 32px;
+  --grid-x: 0px;
+  --grid-y: 0px;
+  background-image: radial-gradient(circle at center,
+    var(--grid-dot) 0, var(--grid-dot) 1px, transparent 1.15px);
+  background-size: var(--grid-step) var(--grid-step);
+  background-position: var(--grid-x) var(--grid-y);
+}
+
+#canvas.panning { cursor: grabbing; }
+
+/* Capture mode owns the cursor everywhere, and the grab hand above is specific enough to have
+   taken this box back off it. Say so here rather than let the two fight. */
+body.fb-mode #canvas { cursor: crosshair; }
+
+#graph {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ---- the view control ----------------------------------------------------
+   The way back. An infinite canvas with no way home is the classic defect of the feature, so
+   the control is on the canvas rather than in the header: it sits in the corner of the thing it
+   acts on, it is visible before anybody is lost, and `fit` says in a word what it does. The
+   readout beside it is the distance from home, where 100% is the whole drawing on screen, and
+   `fit` goes bold and blue the moment the view is anywhere else, which is the state a reader
+   needs a way out of. It is inside #canvas, so it is gone with the diagram on the board view
+   and needs no rule of its own there. */
+.zoomctl {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: var(--z-canvas);
+  display: flex;
+  align-items: center;
+  background: var(--bg-panel);
+  border: 1px solid var(--rule-muted);
+  border-radius: var(--radius);
+  box-shadow: var(--elev-1);
+  overflow: hidden;
+}
+
+/* Measured while issue 77 was measuring the header, and failing the same standard for the same
+   reason: `padding: 3px 9px` over a 12px type gave a 21.6 CSS px box, under WCAG 2.2 SC 2.5.8's
+   24 by 24. It is not in the header and it was not on that card's list, but it is a control a
+   finger lands on, the cause and the fix are the one the nav just took, and a page that fixed
+   five targets and left three is a page that has not fixed target size. The height costs the
+   chrome nothing: this control floats in the corner of the canvas. */
+.zbtn {
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--fg-muted);
+  background: transparent;
+  border: 0;
+  min-height: 26px;
+  min-width: 26px;
+  padding: 4px 9px;
+  cursor: pointer;
+  line-height: 18px;
+}
+
+.zbtn:hover { background: var(--tint-hover); color: var(--fg-body); }
+.zbtn:focus-visible { outline: 2px solid var(--i-primary); outline-offset: -2px; }
+
+.zlevel {
+  padding: 3px 2px;
+  min-width: 42px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+#zoomfit {
+  border-left: 1px solid var(--rule-muted);
+  padding: 3px 10px;
+}
+
+#zoomfit.away { color: var(--i-primary); font-weight: 600; }
+
+/* ---- column bands --------------------------------------------------------
+   The plate is --bg-band and the argument for that token is up beside its declaration. Two
+   things about this rule are load-bearing and neither is obvious from reading it.
+
+   THE TOKEN NAME IS AN INTERFACE. build/model.py finds the surface its contrast check measures
+   against by reading the var() out of THIS declaration, so the name here and the name there
+   cannot drift: change this to any other custom property and the gate measures that one
+   instead, and delete the var() and the gate refuses to emit rather than measuring a guess.
+
+   NO STROKE, STILL. Issue 81 asked whether the plate should become an outline instead of a
+   fill. It cannot, on the light side and on the measurement: an outlined lane puts every tile
+   on --bg-app, where three of the thirteen type colours fall under 3:1 and one of the three is
+   a grey that must not move. A hairline ADDED to a softened fill was the other half of that
+   question and it is not here either, because a line around a lane is the box issue 46 spent a
+   card removing. */
+
+.band {
+  fill: var(--bg-band);
+  stroke: none;
+  rx: 4;
+}
+
+/* The lane captions, and they are the one part of this drawing that is TEXT, so they answer
+   SC 1.4.3 at 4.5:1 and not the 3:1 the gate asks of a tile stroke. They are painted --fg-muted
+   and they do not sit on the plate: site/render.js stacks them upward from `bandTop`, which is
+   the plate's own top edge, so their surface is --bg-app in every theme and at every zoom. That
+   is why issue 81 moved the plate without moving them. Measured on the ground they sit on:
+   5.0482 in light and 7.6622 in dark, both clear, and both unchanged by that card. */
+.band-cap {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  fill: var(--fg-muted);
+  text-anchor: middle;
+  font-family: var(--font-ui);
+}
+
+/* What a window that left nothing says, issue 119. One line, centred on the lanes, and the only
+   text this drawing carries that is not a lane caption or a tile label. It is sentence case and
+   not the captions' spaced small caps, because it is a sentence and they are labels: setting it in
+   their idiom would read as a seventh lane heading.
+
+   IT SITS ON THE PLATE and the captions do not, so it is measured on --bg-band rather than on the
+   --bg-app they were measured on: 5.2231 in light and 7.2900 in dark against the 4.5 SC 1.4.3 asks
+   of text, both on --fg-muted, which is the fill the captions already use. Painting it --fg-body
+   would put the loudest colour on the page on the emptiest state it has.
+
+   `dominant-baseline` and not a baseline computed in render.js, so the one number that file writes
+   is the centre of the plate and the browser does the rest. Baseline Chrome 80, Safari 10.1,
+   Firefox 71, all earlier than the `light-dark()` and the `:has()` this stylesheet already
+   requires. */
+.win-empty {
+  font-size: 11px;
+  fill: var(--fg-muted);
+  text-anchor: middle;
+  dominant-baseline: middle;
+  font-family: var(--font-ui);
+}
+
+/* ---- the lane heading as a control, issue 84 -----------------------------------
+   Two of the six lane headings open the sheet the lane is a picture of, and the target is not the
+   text. site/render.js puts a rect inside a group carrying `scale(1/k)`, so one unit in there is
+   one CSS pixel and the control is 26px tall and at least 26px wide at every zoom the canvas
+   allows, against the 39,4 by 3,0 the caption itself measured at fit. WCAG 2.2 SC 2.5.8 asks 24.
+
+   THE HIT AREA IS INVISIBLE AND THE FRAME IS WHAT APPEARS. Painting a box round two of six
+   headings at rest would put a control on the drawing before anybody wanted one and would say the
+   other four are broken. `cursor: pointer` overrides the canvas grab, which is what told the
+   owner nothing was listening, and the frame is drawn on hover and on focus.
+
+   FOCUS IS NOT :focus-visible HERE, unlike a node. A node paints a frame on the keyboard walk
+   only, because a mouse click on a node also selects it and the panel opening is the feedback;
+   nothing opens behind this one, and an SVG element matches plain :focus on a click in Chrome, so
+   the two states are drawn the same and the ring is never missing when a keyboard put it there. */
+.capbtn { cursor: pointer; }
+.capbtn:focus { outline: none; }
+
+.capbtn-hit { fill: transparent; stroke: none; }
+
+.capbtn-frame {
+  fill: none;
+  stroke: none;
+  stroke-width: 1;
+}
+
+.capbtn:hover .capbtn-frame,
+.capbtn:focus .capbtn-frame {
+  stroke: var(--i-primary);
+}
+
+.capbtn:focus .capbtn-frame { stroke-width: 2; }
+
+/* The words light with the frame. The control sits after the caption in the lane's group, so a
+   sibling combinator would reach the NEXT lane's caption; `:has()` asks the lane instead, which is
+   the relationship that is actually true. Baseline Chrome 105, Safari 15.4, Firefox 121, all
+   earlier than the `light-dark()` this stylesheet already requires, and a browser without it
+   loses the colour and keeps the frame, the cursor and the target. */
+.lane:has(.capbtn:hover) .band-cap,
+.lane:has(.capbtn:focus) .band-cap { fill: var(--i-primary); }
+
+.edge {
+  fill: none;
+  stroke: var(--c-gray-3);
+  stroke-width: 1;
+}
+
+.arrow { fill: var(--c-gray-3); }
+
+/* An edge chip knocks the edge out from behind its own text, so its fill has to be whatever the
+   chip is standing on, and inside this drawing that is the lane plate. It followed --bg-panel to
+   --bg-band under issue 81 for that reason and not for tidiness: left behind, a chip would have
+   become a panel-white box sitting on a softened lane, which is the thing the card was removing. */
+.chip-bg {
+  fill: var(--bg-band);
+  stroke: var(--rule-muted);
+  stroke-width: 1;
+  rx: 3;
+}
+
+.chip-tx {
+  font-size: 9px;
+  fill: var(--fg-muted);
+  text-anchor: middle;
+  dominant-baseline: central;
+  font-family: var(--font-ui);
+}
+
+.node { cursor: pointer; }
+
+/* Nothing is drawn around a selected node. Selection is the tile inverting, the label going
+   bold, the rest of the drawing dimming and the panel opening; a frame around all of that was
+   a fourth statement of the same fact and it is gone. Issue 45.
+
+   This rule is not part of what went with it, and removing it would put issue 34 straight back.
+   Chrome's user agent stylesheet answers :focus on a focusable SVG element with
+   `outline: auto 5px -webkit-focus-ring-color`. On an SVG element that rule is :focus, where
+   on an HTML element it is :focus-visible, so a mouse click matches it, and before this line
+   existed the browser's own ring was what a reader saw on every selected node: five pixels of
+   near black around the group's bounding box, which is the tile and its label together, so its
+   width was the width of the name. `outline: none` is the whole of that repair and it stays. */
+.node:focus { outline: none; }
+
+/* Empty until app.js measures it, so a node that has never been focused draws nothing. */
+.node .focus-frame { fill: none; stroke: none; }
+
+/* Keyboard focus, and nothing else, gets a mark: a reader tabbing through the drawing has to be
+   able to see where they are, and a mouse click does not match :focus-visible. Kept faint, so
+   arriving at a node does not read as having chosen it. */
+.node:focus-visible .focus-frame {
+  stroke: var(--rule-select);
+  stroke-width: 1;
+}
+
+/* A forced colours mode replaces the stroke above with the reader's own palette and can leave
+   the frame invisible, so there the browser's ring is asked back. It frames the group rather
+   than the tile, which is the wrong shape and the right trade at that moment. */
+@media (forced-colors: active) {
+  .node:focus-visible { outline: 2px solid; outline-offset: 2px; }
+}
+
+.node .tile-bg { stroke-width: 1.25; }
+.node .lbl {
+  font-size: 10px;
+  fill: var(--fg-body);
+  text-anchor: middle;
+  font-family: var(--font-ui);
+}
+.node:hover .tile-bg { stroke-width: 2; }
+
+.node.sel .lbl { font-weight: 600; }
+.node.sel .tile-bg { stroke-width: 1.25; }
+
+.dim { opacity: .16; }
+
+/* ---- panel -------------------------------------------------------------- */
+
+/* The panel is a fixed overlay at the right edge and the header runs the full width, so a
+   panel starting at y=0 sits on top of the header's own buttons: with a node selected, the
+   feedback toggle could not be clicked at all. --hh is the measured header height, written by
+   app.js, so the panel begins where the header ends.
+
+   THIS IS THE PATTERN THE SHEETS TOOK IN ISSUE 86, and the two rules are now the same rule twice:
+   an overlay that must leave the page's own controls alone begins at --hh and not at 0. That card
+   is this paragraph's defect met again on a different overlay, and this note was the whole of the
+   prior art on it. */
+#panel {
+  position: fixed;
+  top: var(--hh, 0px);
+  right: 0;
+  width: 320px;
+  height: calc(100% - var(--hh, 0px));
+  background: var(--bg-panel);
+  border-left: 1px solid var(--rule);
+  box-shadow: var(--elev-1);
+  padding: 16px 18px 24px;
+  overflow-y: auto;
+  transform: translateX(100%);
+  transition: transform 160ms cubic-bezier(0.4, 1, 0.75, 0.9);
+  z-index: var(--z-panel);
+}
+
+#panel.open { transform: none; }
+
+body.panel-open #canvas { margin-right: 320px; }
+
+#panel .ptype {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+#panel h2 {
+  margin: 4px 0 2px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+#panel .pnote {
+  margin: 0 0 14px;
+  font-size: 11px;
+  color: var(--fg-muted);
+}
+
+#panel dl { margin: 0; }
+
+#panel dt {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--fg-muted);
+  margin-top: 11px;
+}
+
+#panel dd {
+  margin: 2px 0 0;
+  font-size: var(--fs-sm);
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+#panel dd b { font-weight: 400; }
+
+.flag {
+  flex: none;
+  padding: 0 5px;
+  border-radius: 2px;
+  font-size: 10px;
+  letter-spacing: .02em;
+  background: var(--tint-neutral);
+  color: var(--fg-muted);
+}
+
+.flag.estimated {
+  background: var(--tint-warning);
+  color: var(--fg-warning);
+}
+
+/* A fourth flag, and the first one that is not a kind of placeholder. Issue 85. `module_name`
+   and `sequence` are read off the programme syllabus, the same corpus the session titles come
+   from, and they are the first real published values to reach a property list.
+
+   IT IS THE ONLY FLAG DRAWN IN THE PANEL'S OWN BODY COLOUR, which is the whole design of it: the
+   other three are quiet because they are qualifications, and this one is not a qualification. It
+   is a solid rule against `absent`'s dashed one and against `dummy`'s filled grey, so the three
+   are told apart by their border and their weight and not only by the word inside them.
+   --fg-body on --bg-panel is what every other line of running text in this panel is painted with
+   and is measured with it. */
+.flag.real {
+  background: transparent;
+  border: 1px solid var(--fg-body);
+  color: var(--fg-body);
+  padding: 0 4px;
+}
+
+/* The min-width is the third of the three target-size fixes issue 77 turned up. This control was
+   22.52 by 26: tall enough by its type and narrow enough by its glyph, which is the failure mode a
+   height-only rule cannot catch, and it is the one place on the page where the two axes disagree.
+   The card was about the header and this is not in the header, so it is noted here rather than
+   argued: one declaration, no colour and no layout, and a page that had fixed eight targets and
+   left the ninth would not have fixed target size. WCAG 2.2 SC 2.5.8. */
+#close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  border: 0;
+  background: transparent;
+  color: var(--fg-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  min-width: 26px;
+  min-height: 26px;
+  padding: 4px 6px;
+  border-radius: var(--radius);
+}
+
+#close:hover { background: var(--tint-hover); }
+
+/* ONE CONTROL, AND NOTHING ELSE ON THE STRIP. It carried 101 words in a single paragraph and 144
+   to 158 CSS px on a 390 by 844 phone, 17 to 19 per cent of the viewport; issue 79 put three
+   instructions behind the disclosure and left one sentence, and issue 110 took that sentence off
+   the page. What is left is the disclosure, one line high at every width, and the canvas above it
+   is taller by what went. */
+footer {
+  flex: none;
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+  padding: 6px 20px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--fg-muted);
+  border-top: 1px solid var(--rule-muted);
+  background: var(--bg-panel);
+}
+
+/* THE FLOAT WENT WITH THE SENTENCE. It existed so the control could take the right hand end of
+   the first line and let the rest of the words wrap under it at full width, which on a phone was
+   the difference between a three line strip and a four line one. With no words to wrap there is
+   nothing for a float to buy, and a float in an otherwise empty box takes the box's height with
+   it: the strip would have collapsed to its padding and the control would have hung out of it.
+   A one item flex row puts it at the same right hand end and keeps the strip its own height. */
+.helppick {
+  margin-left: 12px;
+}
+
+/* Upward and absolute, so opening it moves nothing: the footer's height, the canvas above it and
+   the fit of the drawing are the same before and after. That is .pgmenu's reasoning and the same
+   rung on the ladder in the palette block: --z-pop, over the canvas and the detail panel and
+   under a sheet and the capture popover.
+
+   IT HANGS OFF THE FOOTER AND NOT OFF THE BUTTON, which is the one thing .pgmenu does differently
+   and the reason is the width. A 340px box anchored to the right edge of a control that sits 125px
+   from the left of a 390px screen starts at minus 215 and is half off the screen. Anchored to the
+   strip, its right edge lines up with the end of the sentence above it at every width, and the
+   max-width keeps it inside the viewport when the viewport is narrower than the box. */
+.helpbox {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 20px;
+  z-index: var(--z-pop);
+  width: 340px;
+  max-width: calc(100vw - 24px);
+  padding: 10px 14px 10px 4px;
+  background: var(--bg-panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--elev-1);
+  color: var(--fg-body);
+  text-align: left;
+}
+
+.helpbox[hidden] { display: none; }
+
+.helpbox ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.helpbox li { margin: 0 0 6px; }
+.helpbox li:last-child { margin-bottom: 0; }
+.helpbox b { color: var(--fg-body); font-weight: 600; }
+
+/* ---- feedback capture ----------------------------------------------------
+   The interaction is monetary-lab's, the skin is this site's: the same class names and the
+   same box, drawn with the tokens above, one radius and two font weights. */
+
+/* The toggle is the entry point to a whole capture mode, so it is a chip with a clear on
+   state rather than another muted header link. */
+/* .linkbtn already gives every control in this row a 1px border and the padding that goes with
+   it, so a chip is that box with its border painted. Issue 77: the two chips used to declare
+   both and the three plain controls declared neither, which is why the row sat on two baselines. */
+#fbtoggle {
+  border-color: var(--rule);
+  color: var(--fg-muted);
+}
+
+#fbtoggle:hover { text-decoration: none; background: var(--tint-hover); }
+
+#fbtoggle[aria-pressed="true"] {
+  background: var(--i-primary);
+  border-color: var(--i-primary);
+  color: var(--i-primary-fg);
+  font-weight: 600;
+}
+
+/* While capture mode is on, every element on the page is a target and says so. */
+body.fb-mode { cursor: crosshair; }
+
+body.fb-mode *:hover:not(html):not(body) {
+  outline: 1.5px dashed var(--i-primary);
+  outline-offset: 1px;
+}
+
+/* The popover is a real UI, not a capture target: it is exempt from both. */
+body.fb-mode .fb-popover, body.fb-mode .fb-popover * { cursor: auto; }
+body.fb-mode .fb-popover:hover, body.fb-mode .fb-popover *:hover { outline: none; }
+body.fb-mode .fb-popover .linkbtn,
+body.fb-mode .fb-popover a,
+body.fb-mode .fb-popover select { cursor: pointer; }
+
+.fb-popover {
+  position: fixed;
+  z-index: var(--z-capture);
+  width: 300px;
+  max-width: calc(100vw - 16px);
+  background: var(--bg-panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--elev-1);
+  padding: 10px 12px 11px;
+  font-size: var(--fs-sm);
+  color: var(--fg-body);
+  cursor: auto;
+}
+
+.fb-popover:focus { outline: none; }
+
+.fb-popover .fb-row {
+  font-size: 11px;
+  color: var(--fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 5px;
+}
+
+.fb-popover .fb-el {
+  color: var(--fg-body);
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+.fb-popover .fb-ctx {
+  margin: 0 0 8px;
+  padding: 6px 7px;
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.45;
+  color: var(--fg-muted);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.fb-popover .fb-note {
+  width: 100%;
+  min-height: 60px;
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--fg-body);
+  background: var(--bg-panel);
+  padding: 6px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  resize: vertical;
+  box-sizing: border-box;
+  margin: 0 0 8px;
+}
+
+.fb-popover .fb-gh { margin-bottom: 8px; }
+.fb-popover .fb-gh-row { display: flex; gap: 6px; align-items: center; }
+
+.fb-popover .fb-gh-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: inherit;
+  font-size: 11px;
+  color: var(--fg-body);
+  background: var(--bg-panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 3px 5px;
+}
+
+.fb-popover .fb-gh-note,
+.fb-popover .fb-gh-status {
+  font-size: 10px;
+  line-height: 1.45;
+  color: var(--fg-muted);
+  margin-top: 4px;
+}
+
+.fb-popover .fb-priority-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 11px;
+  color: var(--fg-muted);
+}
+
+.fb-popover .fb-priority-row label { white-space: nowrap; }
+
+.fb-popover .fb-cat,
+.fb-popover .fb-priority {
+  font: inherit;
+  font-size: 11px;
+  color: var(--fg-body);
+  background: var(--bg-panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 2px 4px;
+  cursor: pointer;
+}
+
+.fb-popover .fb-cat { flex: 1 1 auto; min-width: 0; }
+
+.fb-popover .fb-cat:focus-visible,
+.fb-popover .fb-priority:focus-visible,
+.fb-popover .fb-note:focus-visible,
+.fb-popover .fb-gh-input:focus-visible {
+  outline: 2px solid var(--i-primary);
+  outline-offset: 1px;
+}
+
+.fb-popover .fb-actions {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+/* the primary action: file straight to the board */
+.fb-popover .fb-file { font-weight: 600; }
+
+.fb-popover .fb-file-result,
+.err-notice .err-notice-result {
+  margin-top: 7px;
+  font-size: 11px;
+  color: var(--fg-muted);
+}
+
+.fb-popover .fb-file-result.ok,
+.err-notice .err-notice-result.ok { color: var(--fg-body); }
+
+.fb-popover .fb-file-result.err,
+.err-notice .err-notice-result.err { color: var(--fg-warning); }
+
+.fb-popover .fb-file-result a,
+.err-notice .err-notice-result a { color: var(--i-primary); }
+
+.fb-popover .fb-hint {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--fg-muted);
+}
+
+.fb-popover .fb-hint .fb-board {
+  color: var(--i-primary);
+  text-decoration: none;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.fb-popover .fb-hint .fb-board:hover { text-decoration: underline; }
+
+/* An uncaught runtime error offers itself to the board. It is never filed without a click. */
+.err-notice {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  z-index: var(--z-error);
+  max-width: 340px;
+  background: var(--bg-panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--elev-1);
+  padding: 9px 11px 10px;
+  font-size: var(--fs-sm);
+}
+
+.err-notice .err-notice-row { color: var(--fg-body); }
+
+.err-notice .err-notice-actions {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  margin-top: 4px;
+}
+
+.err-notice .err-report { font-weight: 600; }
+
+/* ---- board --------------------------------------------------------------- */
+
+#view-board { padding: 12px 20px 24px; }
+
+.bmeta {
+  flex: none;
+  margin: 0 0 12px;
+  font-size: 11px;
+  color: var(--fg-muted);
+}
+
+/* Which source the board is reading and how fresh it is. The smallest type on the page, the
+   same muted grey as the line above it, and no box of its own: on a board that is behaving it
+   says nothing a reader has to act on, and it earns its place only on the day the answer stops
+   being "live". It is empty before the first answer arrives, and an empty paragraph that still
+   reserves a line would read as a gap under the heading. */
+.bstatus {
+  flex: none;
+  margin: -8px 0 12px;
+  font-size: 10px;
+  color: var(--fg-muted);
+}
+
+.bstatus:empty { display: none; }
+
+.bcols {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+.bcol {
+  flex: 1 1 0;
+  min-width: 200px;
+  background: var(--bg-panel);
+  border: 1px solid var(--rule-muted);
+  border-radius: var(--radius);
+  padding: 9px 9px 10px;
+}
+
+.bcol h2 {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.bcol h2 span { font-weight: 400; }
+
+.bcard {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid var(--rule-muted);
+  border-radius: var(--radius);
+  background: var(--bg-app);
+  padding: 7px 8px;
+  margin-bottom: 7px;
+}
+
+.bcard:last-child { margin-bottom: 0; }
+.bcard:hover { background: var(--tint-hover); }
+
+.bcard .bnum {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--fg-muted);
+}
+
+.bcard .btitle {
+  margin: 1px 0 0;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.bcard .blabels {
+  margin-top: 5px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.chip {
+  padding: 0 5px;
+  border-radius: 2px;
+  font-size: 10px;
+  letter-spacing: .02em;
+  background: var(--tint-neutral);
+  color: var(--fg-muted);
+}
+
+/* An empty column keeps its heading and its zero, and drops the panel fill and the solid rule
+   so that it reads as a column with nothing in it rather than as a card that failed to load. */
+.bcol-empty {
+  background: transparent;
+  border-style: dashed;
+}
+
+.bempty {
+  font-size: 11px;
+  color: var(--fg-muted);
+  padding: 4px 1px;
+}
+
+/* The Done cards the generator did not draw, counted under the ones it did. It is set like the
+   empty-column line rather than like a card, because it stands for work that is finished and
+   off the board, and a card would put it back on. Muted, so it does not compete with the cards
+   above it, and underlined only on hover so that it still reads as the link it is. */
+.bmore {
+  display: block;
+  margin: 0;
+  padding: 4px 1px 0;
+  font-size: 11px;
+  color: var(--fg-muted);
+  text-decoration: none;
+}
+
+.bmore:hover { text-decoration: underline; }
+.bmore:focus-visible { outline: 2px solid var(--i-primary); outline-offset: 1px; }
+
+.bmeta a { color: var(--i-primary); }
+
+.bnote {
+  border: 1px solid var(--rule-muted);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+  padding: 14px 16px;
+  font-size: var(--fs-sm);
+  color: var(--fg-muted);
+  max-width: 68ch;
+}
+
+.bnote b { color: var(--fg-body); font-weight: 600; }
+
+@media (max-width: 760px) {
+  /* The page scrolls on the board and not on the diagram, and that split is new. The diagram is
+     a canvas at every width now: it holds one screen, the drawing moves inside it, and a page
+     that also scrolled would be a second way to move the same thing with no way to tell which
+     one a drag had asked for. The board is a column of cards and scrolls as it always has, so
+     the rule keeps its old form there and nothing about that view changes.
+
+     What went with it is the sideways scroll under the drawing. Below this breakpoint the
+     canvas used to keep the drawing at its designed size and scroll to it, reading
+     `min-width: var(--drawing-w)` off the number the build computes. Pan and zoom is that
+     mechanism generalised to both axes and to any scale, so the rule would now be a second,
+     worse way to reach the same pixels. app.js still writes --drawing-w and build_layout.py
+     still refuses to build while a copy of the number is sitting in this file; nothing in the
+     stylesheet reads the property today. Issue 46. */
+  body.board { height: auto; overflow: visible; }
+  /* Two rows here, and they are the two a phone already had: the heading and the nav. What is
+     gone is the three lines of subtitle that used to sit between them, which is the 123px header
+     issue 77 measured coming down to the height of its own two controls. The horizontal padding
+     comes in with them, because the five controls in this nav are 8 CSS px wider each now that
+     they are 24 by 24, and 16px of edge is what pays for that without the row wrapping again. */
+  header { padding: 8px 12px; }
+  .hrow { flex-wrap: wrap; gap: 6px 12px; }
+  /* The nav has to wrap here, not only the row that holds it. The feedback toggle grows when
+     the mode is on, from "feedback" to "feedback: on (Esc to exit)", and a nav that cannot
+     wrap answers that by pushing the board link off the right edge: at 360px and below the
+     link ends up entirely outside the viewport, reachable only by scrolling the page
+     sideways. The mode that widens the control is the one in which the header has to stay
+     usable, so this is the same requirement as issue 22 on the other axis. Wrapping alone is
+     not enough: the nav keeps `flex: none` from the desktop rule, so it is sized to its own
+     max-content width and its children never meet an edge to wrap at. It is given the row
+     here, and then wraps inside it. */
+  .hnav { flex: 1 1 100%; flex-wrap: wrap; gap: 6px; }
+  /* THREE LINES HERE, AND THEY ARE THE THREE A PHONE ALREADY HAD. Issue 120. Before this card the
+     header at 390 was the heading on one line and the nav wrapped onto two, and it measured 107px.
+     The readout takes the line the second nav line used to take: the heading, then what is on
+     screen, then what a reader can do about it, which is a better use of the same three lines than
+     nine controls wrapping wherever they happened to fall. It is given the row for .hnav's reason,
+     that a flex item sized to its own content never meets an edge to wrap at, and it is allowed to
+     wrap inside itself so that a reading added later, or a longer number in one that is already
+     there, folds inside the plate instead of pushing the page sideways. */
+  .hstate { flex: 1 1 100%; flex-wrap: wrap; }
+  /* The five controls in the nav are within a few pixels of the width of a 390px screen once
+     they are 24 by 24, so the padding that separates them in the row comes down here and the box
+     stays the size a finger needs. The picker inside the heading keeps its own, tighter, padding
+     through a more specific rule, and the footer's disclosure keeps the wider one because it sits
+     alone at the end of a sentence. */
+  .hnav .linkbtn { padding-left: 6px; padding-right: 6px; }
+  /* The readings take the same cut for the same reason, and the static one with them, because the
+     plate has to hold all four of them on one line at 390 and a reading that kept the wider
+     padding would be the one that folded the box in two. Issue 120. */
+  .hstate .linkbtn,
+  .hstate .rd-static { padding-left: 6px; padding-right: 6px; }
+  /* THE WINDOW MENU STOPS HANGING OFF ITS OWN CONTROL BELOW THE BREAKPOINT, and this is a
+     measured repair rather than a precaution. The nav wraps here, so the control it hangs from
+     sits near the LEFT of the second row; a box anchored to that control's right edge and 350px
+     wide measured left: -153.78 at 390 by 844, which is 154px of the box outside the viewport
+     with no scrollbar to reach it, because overflow to the left of the origin creates none. It
+     is anchored to the viewport instead, under the header, which is what .helpbox does on the
+     line below for the same reason at the other end of the row. --hh is the header's own
+     measured height, written by app.js and already kept current by a ResizeObserver, so a nav
+     that wraps to a third line does not put the box under the row it belongs to. */
+  .wnmenu {
+    position: fixed;
+    top: var(--hh);
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
+  }
+  /* The gap list is the same box in the same place for the same measured reason. Issue 98. It
+     hangs off the fourth control in a nav that wraps here, so its own right edge is nowhere near
+     the viewport's; anchored to the viewport under the header it is on screen at every width and
+     wherever the nav happens to have broken. It is one rule and not a second copy of .wnmenu's
+     because the two boxes are different widths on the desktop and identical here. */
+  .gapsmenu {
+    position: fixed;
+    top: var(--hh);
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
+  }
+  /* And the altitude's box is the same box in the same place for the same measured reason.
+     Issue 89. */
+  .grmenu {
+    position: fixed;
+    top: var(--hh);
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
+  }
+  /* And the theme's, which is the fourth. Issue 120. It hangs off the last control in a nav that
+     wraps here, so where its own edges are depends on where the row happened to break, which is
+     the condition all three above it are anchored to the viewport for. */
+  .thmenu {
+    position: fixed;
+    top: var(--hh);
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
+  }
+  footer { padding: 6px 12px; }
+  .helpbox { right: 12px; }
+  .bcols { display: block; }
+  .bcol { min-width: 0; margin-bottom: 10px; }
+  /* One number, used twice. The sheet's height and the room reserved under the drawing for it
+     are the same measurement, and writing it twice is how they come to disagree. It is on the
+     root because the panel is a sibling of the diagram, not a descendant of it. */
+  :root { --sheet-h: 62vh; }
+  #panel {
+    width: 100%;
+    height: var(--sheet-h);
+    top: auto;
+    bottom: 0;
+    border-left: 0;
+    border-top: 1px solid var(--rule);
+    transform: translateY(100%);
+  }
+  #panel.open { transform: none; }
+  /* The sheet covers the bottom of the screen, and reveal() answers that by bringing the node
+     up out of it. It used to do that by scrolling the page, which needed somewhere to scroll
+     to, so the canvas reserved the sheet's own height underneath the drawing. A canvas has
+     nowhere to run out of: the view pans and the plane goes on, so the reserve is gone and the
+     rule keeps only the part that was never about scrolling, which is cancelling the desktop
+     inset for the right hand rail. Issue 46, on top of issue 21. */
+  body.panel-open #canvas { margin-right: 0; }
+}
+
+/* ---- ghosts: the classes that do not exist -------------------------------
+   Everything in this block is drawn so that a reader cannot mistake it for an object the
+   company holds: no fill worth the name, a dashed outline, grey, and an empty tile because
+   there is nothing inside one. The marking on the cohort is deliberately a different mark
+   again, since that object exists and only its key does not. */
+
+/* The one view switch left in the header, and the dashes on it are the ghosts' own mark: the
+   control is drawn as the thing it adds to the drawing. It had a solid twin, the second cohort
+   switch, which is gone with the view it opened (issue 42). */
+#ghtoggle {
+  border-style: dashed;
+  border-color: var(--c-gray-3);
+  color: var(--fg-muted);
+}
+
+#ghtoggle:hover { text-decoration: none; background: var(--tint-hover); }
+
+#ghtoggle[aria-pressed="true"] {
+  color: var(--fg-body);
+  font-weight: 600;
+  background: var(--tint-neutral);
+}
+
+body.hide-ghosts .ghost { display: none; }
+
+.node.ghost .tile-bg {
+  stroke-dasharray: 3 2.4;
+  stroke-width: 1.1;
+}
+
+.node.ghost:hover .tile-bg { stroke-width: 1.9; }
+.node.ghost.sel .tile-bg { stroke-width: 1.9; }
+
+.lbl-ghost {
+  fill: var(--fg-muted);
+  font-style: italic;
+}
+
+.edge-ghost {
+  stroke: var(--c-gray-3);
+  stroke-dasharray: 3 3;
+}
+
+.arrow-ghost { fill: var(--c-gray-3); opacity: .8; }
+
+.ghost .chip-bg { stroke-dasharray: 3 2.4; }
+.ghost .chip-tx { font-style: italic; }
+
+/* The cohort keeps its own outline and gains a second, dashed one, with the name of the
+   thing that is missing under the label rather than in a tooltip nobody opens. */
+.ring-missing {
+  fill: none;
+  stroke: var(--c-gray-3);
+  stroke-width: 1;
+  stroke-dasharray: 3 2.4;
+}
+
+.lbl-missing {
+  font-size: 9px;
+  fill: var(--fg-muted);
+  font-style: italic;
+  text-anchor: middle;
+  font-family: var(--font-ui);
+}
+
+/* A third flag beside dummy and estimated. A dummy value stands in for something a system
+   holds; an absent one says no system holds it. */
+.flag.absent {
+  background: transparent;
+  border: 1px dashed var(--c-gray-3);
+  color: var(--fg-muted);
+  padding: 0 4px;
+}
+
+/* ---- the parts of the drawing that are painted only on demand ----------------
+   An employer tile, while the instructor it employs is selected (issue 48), and the four
+   Student tiles the cohort card stands for, while that card or one of them is selected
+   (issue 51). Each sits exactly where the build put it, together with its edge, that edge's
+   arrowhead and its verb chip, and none of them is painted until it is asked for. Which nodes
+   these are is decided in app.js off the link and never off the type, since the same lane holds
+   a company that employs nobody. One rule for both, because two copies of it would drift.
+
+   visibility and opacity rather than display, for three reasons. display cannot be faded. A
+   `visibility: hidden` subtree is out of the tab order and out of the hit test, so the keyboard
+   cannot land on a tile nobody can see and capture mode cannot file a card about one. And the
+   node keeps its box in the drawing, which is the point: it reappears where it always was
+   instead of pushing the drawing around.
+
+   pointer-events carries no delay while visibility does, and that gap is deliberate. The
+   visibility flip is held back until the fade has finished, or there would be nothing to watch
+   fade, and for those 120ms the tile is still a hit target unless something says otherwise.
+
+   Two classes rather than one, so the rule beats `.dim` on specificity wherever a hidden node is
+   also dimmed, which is every selection that is not one end of its own link. */
+/* ---- outside the time window, issues 90, 100 and 111 -----------------------------
+   THREE ANSWERS TO ONE QUESTION AND THIS SECTION IS WHAT IS LEFT OF THEM, which is nothing.
+   #90 answered the window with `.out-window { opacity: .16 }`: every tile stayed where the build
+   put it and the ones the window did not cover went quiet. #100 overruled it and stopped drawing
+   them at all, leaving one dashed stub tile per lane standing for what the lane had lost, dashed
+   lines folded onto those stubs, and a fourth line on every lane caption counting the lane. #111
+   overruled THAT, from the page, on the drawing: "The whole point of week filter is to not see
+   this (only the week, clean)". A filtered drawing is now the tiles that are in the window and
+   the lines between them, and nothing else at all.
+
+   THE COUNT DID NOT GO WITH THEM. It is in the header, on the window control, under `.wn-off` and
+   `.wn-lane` above: the drawing shows the window and the header says what the window excludes.
+   The rules that painted a stub, its label, its folded line, its arrowhead, its chip and the
+   caption line are all deleted rather than kept against classes nothing sets, and the classes
+   themselves are gone from render.js in the same commit. */
+
+.veil {
+  transition: opacity 120ms linear, visibility 0s linear 0s;
+}
+
+.veil.veil-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition-delay: 0s, 120ms;
+}
+
+/* The line under a card that stands for many, saying how many of them the drawing did not draw.
+   Set like the missing-key caption under the cohort and upright rather than italic, because
+   italic in this drawing means a ghost and nothing here is absent: the thirty are on the page at
+   #/students. It fades in with the tiles it is counting. */
+.lbl-tail {
+  font-size: 9px;
+  fill: var(--fg-muted);
+  text-anchor: middle;
+  font-family: var(--font-ui);
+}
+
+/* Selecting a card turns its label bold, and the marker under it is not part of the label: it
+   is a sentence about the picture. Without this it would be bold while the group is selected
+   and regular while one of the members is, which is a weight that changes for no reason a
+   reader could name. */
+.node.sel .lbl-tail { font-weight: 400; }
+
+/* ---- the way from a card that stands for many to the list of them ------------ */
+.pmore {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rule-muted);
+}
+
+.pmore-link { padding: 0; font-weight: 600; }
+
+.pmore-hint {
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--fg-muted);
+}
+
+/* ---- a sheet over the canvas -------------------------------------------------
+   A view of its own on its own route, and the reason it is an overlay rather than a main of its
+   own is that the board already takes that path: swapping the diagram out takes the canvas off
+   the screen and hands its ResizeObserver a box of nothing, which this page survives but need not
+   do twice. Over the top, the canvas keeps its size, its view and its selection.
+
+   The backdrop is not decoration. It is what makes the canvas inert while a sheet is up: a click
+   on it closes the sheet rather than reaching a node, and the wheel listener, which is on the
+   canvas, never sees an event over it, so nothing zooms behind the reader's back.
+
+   THESE WERE .roster-* AND THERE ARE THREE OF THEM NOW. #/students opens the cohort, and issues
+   80 and 82 opened #/calendar and #/outline over the same box: a fixed backdrop, a sheet, a head
+   with a title and a subtitle, and a scrolling table whose phone layout turns each row into a
+   block. That is one object, so it has one implementation and a name that is true of all of it.
+   Only the classes moved; every id is where it was, and .roster-drawn stayed, because "this row
+   is also on the canvas" is a fact about the cohort list and not about a sheet.
+
+   IT STARTS WHERE THE HEADER ENDS, AND THAT IS THE WHOLE OF ISSUE 86. It used to be `inset: 0`,
+   so the backdrop's top edge was y=0 and the box, at any height that filled the screen, reached
+   up to y=16. Measured on the deployed page at three widths, `elementFromPoint` at the centre of
+   every control in the header returned #termback, #rosterback or the sheet's own head, on all
+   five sheet addresses: theme, ghosts, feedback, students and board were unreachable, and the
+   card asking for feedback inside a subpage had to be filed from outside the subpage.
+
+   Covering the page IS what this object is for, so the repair is not a bigger number. It is the
+   line issue 57 drew when it put the theme first in the header row, "the only item here that
+   belongs to the page rather than to a view": a sheet may cover every view of the artefact and
+   may not cover the artefact's own controls. --hh is where those end. #panel is fixed at the same
+   offset for the same reason and has been since a panel at y=0 ate the feedback toggle.
+
+   GEOMETRY AND NOT RANK, and the difference matters at 390px, where the box below is full bleed
+   and opaque: a header merely raised over this would be five buttons floating on the sheet's own
+   title. The header carries --z-chrome as well, which is the declaration of what may cover what
+   for the next overlay, not the thing that separates these two. The backdrop still covers all of
+   the canvas, since all of the canvas is below the header, so nothing about the inert drawing,
+   the click that closes, or the wheel that must not reach it has changed. */
+.sheet {
+  position: fixed;
+  inset: var(--hh, 0px) 0 0 0;
+  z-index: var(--z-sheet);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.sheet[hidden] { display: none; }
+
+.sheet-back {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim);
+}
+
+.sheet-box {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(780px, 100%);
+  max-height: 100%;
+  background: var(--bg-panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--elev-1);
+  overflow: hidden;
+}
+
+.sheet-head {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--rule-muted);
+}
+
+.sheet-head h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.sheet-sub {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--fg-muted);
+}
+
+#rosterclose,
+#termclose {
+  margin-left: auto;
+  font-size: 18px;
+  line-height: 1;
+  padding: 2px 6px;
+  color: var(--fg-muted);
+}
+
+#rosterclose:hover,
+#termclose:hover { text-decoration: none; background: var(--tint-hover); }
+
+/* The rows scroll, and they scroll here rather than on the page: the diagram is one screen at
+   every width and a list long enough to move it would be a second thing to scroll.
+
+   ---- ISSUE 113, THE GUTTER, AND IT IS DECLARED HERE BECAUSE THIS IS THE CONTAINER ------------
+   Measured at 1536x839 before the card: `#termrows`, the outline's group heading, the outline's
+   data cell and the calendar's month heading all had a box at left 219 and the container's own
+   padding-left was 0. The painted TEXT was at 229 on the three table readings, which is the cell
+   padding below, and at 219 on the month heading, which has no padding of its own. So the sheet
+   had no gutter at all and its two readings did not even agree with each other: a short bold
+   month against the hard edge of the box is where the eye catches that first, which is where he
+   caught it.
+
+   TWO VALUES AND EACH IS OWNED IN EXACTLY ONE PLACE, which is the whole of what stops the two
+   readings drifting apart again. `--sheet-gutter` is the sheet's, applied once, here, on the
+   element the rows scroll inside; nothing below adds a left margin of its own. `--row-inset` is
+   what a row's own text is offset by INSIDE that gutter, and every rule that positions the left
+   edge of painted text reads it: the table's cells, the two kinds of group heading, the phone
+   layout's row padding, and the calendar grid, which had none and is why the month heading was
+   the one thing on the sheet ten pixels left of everything else.
+
+   THE SUM IS THE SHEET'S OWN INSET AND THAT IS HOW THE NUMBERS WERE CHOSEN. The head and the
+   notice above these rows are padded at 16, so 6 + 10 at the wider widths and 4 + 12 on a phone
+   put every row's text on the same x as the title over it, at both widths, without a second
+   number to keep true. A gutter of 16 in its own right would have cost 32px of a fixed-width
+   table on a 390px viewport, which is how a sheet that scrolls inside itself starts scrolling
+   the page. */
+.sheet-rows {
+  --sheet-gutter: 6px;
+  --row-inset: 10px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding-left: var(--sheet-gutter);
+  padding-right: var(--sheet-gutter);
+}
+
+.sheet-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+
+.sheet-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-elevated);
+  text-align: left;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  padding: 6px var(--row-inset);
+  white-space: nowrap;
+}
+
+.sheet-table td {
+  padding: 5px var(--row-inset);
+  border-top: 1px solid var(--rule-muted);
+  white-space: nowrap;
+}
+
+.sheet-table tbody tr:hover { background: var(--tint-hover); }
+
+.sheet-table .r-id,
+.sheet-table .r-num,
+.sheet-table .r-drawn {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--fg-muted);
+}
+
+.sheet-table .r-name { font-weight: 600; }
+.sheet-table .r-state { color: var(--fg-muted); }
+
+/* The four the canvas carries are marked and not highlighted. They are not more important rows;
+   they are the same rows, seen twice. */
+.sheet-table .roster-drawn .r-drawn { color: var(--i-primary); }
+
+@media (max-width: 760px) {
+  .sheet { padding: 0; align-items: stretch; }
+  .sheet-box { width: 100%; border: 0; border-radius: 0; }
+
+  /* Seven columns do not fit a phone, and a table that scrolls sideways inside itself hides
+     the charge state, which is one of the two columns somebody opens this to read. Each row
+     becomes a block instead: the name on its own line and the rest of the record under it as
+     one wrapped run. Same cells, same order, no second markup. */
+  .sheet-table thead { display: none; }
+  .sheet-table, .sheet-table tbody { display: block; }
+
+  /* Issue 113. The phone's own pair: a narrower gutter and a wider row inset, summing to the same
+     16 the head above is padded at. The 12 was already here and is now read from the token, so
+     the module heading below and the calendar grid follow it without a second copy of it. */
+  .sheet-rows { --sheet-gutter: 4px; --row-inset: 12px; }
+
+  .sheet-table tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 5px;
+    padding: 7px var(--row-inset);
+    border-top: 1px solid var(--rule-muted);
+  }
+
+  .sheet-table td {
+    padding: 0;
+    border: 0;
+    white-space: nowrap;
+  }
+
+  .sheet-table td.r-name {
+    order: -1;
+    flex: 1 0 100%;
+    font-size: var(--fs-sm);
+  }
+
+  /* A separator before every cell but the first of the run. An empty one, which is the
+     "on the canvas" cell on the thirty rows that are not drawn, takes its separator with it. */
+  .sheet-table td:empty { display: none; }
+  .sheet-table td::before { content: '·'; margin-right: 5px; color: var(--c-gray-3); }
+  .sheet-table td.r-name::before,
+  .sheet-table td.r-id:first-child::before { content: none; }
+}
+
+/* ---- the term, read twice ----------------------------------------------------
+   Issues 80 and 82. The sheet above, with three things of its own: two readings to switch
+   between, a notice that says what the rows are and what they are not, and a table with group
+   rows in it. Everything else, the backdrop, the box, the head, the scroll and the phone layout,
+   is the sheet's and is not repeated here. */
+.term .sheet-box { width: min(1100px, 100%); }
+
+.term-switch {
+  flex: none;
+  display: flex;
+  gap: 6px;
+  padding: 8px 16px 0;
+}
+
+/* The reading that is on screen, said with weight rather than with colour: both of these are
+   .linkbtn and already carry the link colour, so a second colour here would be one distinction
+   too many on a control whose text is its state. */
+.term-switch .linkbtn[aria-current="true"] {
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.term-notice {
+  flex: none;
+  padding: 10px 16px 12px;
+  border-bottom: 1px solid var(--rule-muted);
+}
+
+.term-notice p { margin: 0; font-size: 11px; line-height: 1.45; }
+.term-notice p + p { margin-top: 6px; }
+
+/* Issues 91 and 93 emptied this strip of prose and left it holding the controls. `.term-invented`
+   went with the paragraph it painted; `.term-finding` is kept because the window still writes one
+   paragraph here when a reader has set one on the other reading. */
+.term-notice .term-finding { color: var(--fg-muted); }
+
+/* The month, or the programme. A row in the table rather than a heading above it, so it scrolls
+   with the rows it names and the columns underneath stay aligned. */
+.term-table tbody tr.term-group th {
+  position: static;
+  text-align: left;
+  padding: 10px var(--row-inset) 4px;
+  border-top: 1px solid var(--rule);
+  background: var(--bg-panel);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--fg-body);
+}
+
+.term-table tbody tr.term-group:hover { background: transparent; }
+.term-table tbody tr.term-group th .linkbtn { padding-left: 0; padding-right: 4px; }
+
+/* The two row kinds issue 85 adds both hold running text, and the sheet's cells are nowrap so
+   that a record reads as one run. Measured at 1536: without this the invented block pushes the
+   table from 1168 to 1335 inside a 1098 box, so the whole outline scrolls sideways to make room
+   for a paragraph. They are the only rows here that are prose, so they are the rows that wrap. */
+.term-table tbody tr.term-module th,
+.term-table tbody tr.term-agenda td { white-space: normal; }
+
+/* ---- the module, issue 85 -----------------------------------------------------
+   A SECOND LEVEL OF GROUP ROW, under the programme and over the rows. It is quieter than the
+   programme heading and louder than a row, which is what a second level has to be for a reader
+   to see three levels rather than two kinds of heading: no top rule, and the module's own name
+   at the panel's body weight with the count after it in the muted colour.
+
+   ISSUE 94 TOOK THE INDENT OUT, and it was the fourth of those distinctions until he filed it.
+   The heading was at `padding-left: 26px` over rows whose cells are at 10, so a heading sat 16px
+   to the RIGHT of every row it heads, which reads as a stray gap rather than as a level: an
+   indent says "these belong under the thing above", and the things under this one were not
+   indented with it. Aligning the two leaves three distinctions carrying the level, which is what
+   the paragraph above says the level needs. Measured at 1536 before and after: heading text at
+   245 over row text at 229, and 229 over 229. */
+.term-table tbody tr.term-module th {
+  position: static;
+  text-align: left;
+  padding: 8px var(--row-inset) 3px;
+  background: var(--bg-panel);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--fg-muted);
+}
+
+.term-table tbody tr.term-module:hover { background: transparent; }
+.term-table tbody tr.term-module .term-modname { font-weight: 700; color: var(--fg-body); }
+
+/* A module heading that is the ABSENCE of a module. It takes the same dashed treatment the
+   `absent` flag takes in the panel, for the reason that flag exists: a dummy value stands in for
+   something a system holds and an absent one says no system holds it, and on Z-CFA this heading
+   is the whole finding on the route. It is not the warning colour, because nothing is wrong. */
+.term-table tbody tr.term-module .term-nomodule {
+  font-weight: 600;
+  color: var(--fg-muted);
+  border-bottom: 1px dashed var(--c-gray-3);
+}
+
+/* ---- the review, issue 124 ----------------------------------------------------
+   THREE KINDS OF GROUP ROW AND NO FOURTH SHAPE OF ONE. The review is the calendar ranked and
+   windowed, so its bands and its absences are the group row this table already has, recoloured by
+   the level they sit at: a band heading is a heading and takes the programme heading's weight,
+   and a programme with nothing in the window is a statement rather than a heading and takes the
+   module row's quiet. Nothing here sets a size on a control: the way from a row to its drawing is
+   a .linkbtn, so it is 26 by 26 by construction, which is issue 77 still holding.
+
+   AND THE ABSENCE ROW WRAPS, for the reason issue 85's two row kinds wrap: the sheet's cells are
+   nowrap so that a record reads as one run, and this row is a sentence about a programme rather
+   than a record. Left nowrap it would push the table wider than its box and scroll the whole
+   review sideways to make room for a clause. */
+.term-table tbody tr.rev-absent th {
+  border-top: 0;
+  padding-top: 4px;
+  font-weight: 400;
+  color: var(--fg-muted);
+  white-space: normal;
+}
+
+/* ---- the scope bar ------------------------------------------------------------
+   Issue 84 scoped both readings, so a reader who arrived at one programme needs the way to the
+   others and to all seven. Ordinary links to addresses, like every other navigation on this
+   page. */
+.term-scope { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px; }
+.term-scope .term-scope-lead { color: var(--fg-muted); }
+
+/* ---- the invented session agenda, issue 85 -------------------------------------
+   THE HARDEST THING ON THIS PAGE TO SHIP HONESTLY, and the styling is half of the answer. Every
+   other invented value here is an identifier, a date, a count or an amount, and each of those is
+   obviously a placeholder. Invented PROSE about what happens inside a session looks exactly like
+   curriculum design, so it may not sit in the same visual register as the published titles beside
+   it, and a reader must not be able to crop a screenshot down to a line of it and lose the fact.
+
+   FOUR THINGS DO THAT, and they are all here or in site/term.js.
+   1. It is off until a reader presses a control that says what it turns on.
+   2. It is inside a box with its own ground and a heavy left rule, indented off the row it hangs
+      under, so it is visibly not a cell of the table.
+   3. Every line carries the same `dummy` badge the panel puts on an invented property, and the
+      badge is on the LINE, so there is no line to quote without one.
+   4. The first thing in the box is the sentence saying the same four lines sit under all 83
+      templates and that they are not Zrive's, which is what survives a crop.
+
+   The ground is the warning tint, which is the token the invented notice and the sticky banner
+   already take, so the reader has met this colour twice before reaching the block and it means
+   the same thing all three times. */
+.term-table tbody tr.term-agenda td {
+  padding: 0 10px 10px 26px;
+  border-bottom: 0;
+}
+
+.term-table tbody tr.term-agenda:hover { background: transparent; }
+
+.agenda-box {
+  border-left: 3px solid var(--fg-warning);
+  background: var(--tint-warning);
+  padding: 8px 10px;
+  border-radius: 0 3px 3px 0;
+}
+
+.agenda-note {
+  margin: 0 0 6px;
+  font-size: 10px;
+  line-height: 1.45;
+  color: var(--fg-warning);
+  font-weight: 600;
+}
+
+.agenda-lines { margin: 0; padding: 0; list-style: none; }
+
+.agenda-line {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--fg-muted);
+  font-style: italic;
+}
+
+/* The badge takes the panel's own ground inside the box and not the tint it would otherwise sit
+   on, and this is a measurement rather than a preference. --fg-muted over --tint-neutral over the
+   warmed ground of this box is 4.2891 in light and 4.4503 in dark, both under the 4.5 SC 1.4.3
+   asks of ten pixel text; the same badge in the panel, which is the ground it was chosen against,
+   is 4.7292 and 5.5068. Painting --bg-panel under it puts it back on that ground exactly. */
+.agenda-line .flag,
+.agenda-note .flag {
+  font-style: normal;
+  margin-right: 2px;
+  background: var(--bg-panel);
+}
+
+.term-agendactl { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+.term-agendactl .term-agendahint { color: var(--fg-muted); }
+
+/* ---- the row's own disclosure, issue 112 ---------------------------------------
+   "Session outlines must be shown when clicked in the title not just all at once or none at all."
+   The title of the row IS the control, so this is a button that has to read as the cell it
+   replaced and behave as the target it now is, and those two pull in opposite directions.
+
+   THE SIZE IS STATED AND NOT INHERITED, WHICH IS THE WHOLE OF WHY THIS RULE EXISTS. A title is
+   text of arbitrary length, and text as a target is what #84 measured at 39,4 by 3,0px on the
+   lane caption before that card gave it a rect of its own. `min-height` is the floor #77 took
+   every control on this page to and the padding is what keeps a one-line title off it; the width
+   comes from the text, which for a title is never the short side. Nothing about the size is left
+   to the font.
+
+   IT LOOKS LIKE THE CELL AND NOT LIKE A BUTTON, and that is a decision rather than an oversight:
+   83 buttons drawn as buttons in one column is a toolbar, and the reader is reading a table. The
+   ground, the border and the radius are off, the weight is the cell's own 600, and the caret is
+   the one thing added, because a control that looks exactly like text is a control nobody presses.
+   Hover and focus are where it declares itself, and focus-visible takes the outline every other
+   control here takes. */
+.rowdisc {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  min-width: 26px;
+  margin: -3px 0;
+  padding: 3px 6px 3px 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rowdisc:hover { background: var(--tint-hover); }
+
+.rowdisc:focus-visible {
+  outline: 2px solid var(--i-primary);
+  outline-offset: -2px;
+}
+
+/* The caret is the state, and it is a glyph rather than a rotated box so that it says which way
+   it points at any text size and in any theme. Its own column is fixed, so a row that opens does
+   not move its title sideways by the difference between two glyph widths. */
+.rowdisc-mark {
+  flex: none;
+  width: 12px;
+  text-align: center;
+  font-weight: 400;
+  color: var(--fg-muted);
+}
+
+.rowdisc[aria-expanded="true"] .rowdisc-mark { color: var(--i-primary); }
+
+/* A title is a sentence and the sheet's cells are nowrap so that a record reads as one run, which
+   is the rule this cell keeps at the wider widths and the phone block below relaxes with the
+   others. */
+.term-table td.r-title { padding-top: 2px; padding-bottom: 2px; }
+
+/* ISSUES 91, 92 AND 93, AND THE ORDER THEY WERE WORKED IN IS THE POINT. A sticky banner row sat
+   above the column headers here reading that every value in the table was invented, and issue 92
+   was filed because it is transparent and the rows scroll visibly through it. 92 is a real defect
+   and the repair is one line, an opaque fill on a sticky `th`. It was not made, because 91 and 93
+   deleted the element: a transparent banner that is not on the page is not a banner to repair.
+
+   Two rules went with it. The banner's own block, and `thead tr.term-banner + tr th { top: 22px }`,
+   which offset the column headers by the banner's height because two sticky rows cannot both sit
+   at top 0. With one header row left there is nothing to offset and the columns take the `top: 0`
+   that `.sheet-table th` already gives them.
+
+   A gap is the only reason an operator opens a calendar, so a session with nobody to teach it
+   says so in the row and not only in the count above. The colour is the warning token, which is
+   the same token the invented notice takes, and it is on the cell rather than on the row: a
+   coloured row would read as an error, and a session with no instructor named yet is a fact
+   about the term rather than a fault in it. */
+.term-table .term-gap-cell { color: var(--fg-warning); font-weight: 600; }
+.term-table tr.term-gap td.r-name { color: var(--fg-body); }
+
+@media (max-width: 760px) {
+  /* The phone layout hides thead, because each row carries its own run of values and a column
+     header over a stack of blocks names nothing. It used to be written as an exception, keeping
+     the banner row visible and hiding the others; issues 91 and 93 deleted the banner, so the
+     exception went with it and the rule is the sheet's own again. */
+  .term-table tbody tr.term-group,
+  .term-table tbody tr.term-module,
+  .term-table tbody tr.term-agenda { display: block; padding: 0; border-top: 0; }
+  .term-table tbody tr.term-group th { display: block; border-top: 1px solid var(--rule); }
+  /* Issue 85's two new row kinds take the same treatment, and they have to: the phone layout
+     turns the tbody into a block, and a row left as a table-row inside it puts the whole table
+     back into table layout. Measured before the rule and after: 2055px of sideways scroll inside
+     #termrows at 390, and 0 with it. The deployed page before this card was 0, so this is a
+     regression the rule prevents rather than a limitation it works around. */
+  .term-table tbody tr.term-module th,
+  .term-table tbody tr.term-agenda td { display: block; }
+  /* 12px and not 14, issue 94's phone half: the rows this heads are `.sheet-table tr`, which the
+     phone layout pads at 12, so 14 put the heading two pixels right of its own children here for
+     the same reason 26 put it sixteen right of them at 1536. Issue 113 replaced the literal with
+     the token those rows now read, so the pair cannot come apart by editing one of them. */
+  .term-table tbody tr.term-module th { padding-left: var(--row-inset); }
+  .term-table tbody tr.term-agenda td { padding-left: 14px; }
+  .term-table tbody tr.term-agenda td::before { content: none; }
+
+  /* A session template's title is a sentence, not a name, and the sheet's cells are nowrap so
+     that a record reads as one run. At 390px the longest of them is wider than the phone, and a
+     table that scrolls sideways inside a sheet that does not is the worst of both. These four are
+     the only cells here that carry running text, so they are the four that wrap. */
+  .term-table td.r-name,
+  .term-table td.s-delivered,
+  .term-table tbody tr.term-group th,
+  .term-table tbody tr.term-module th,
+  .term-table tbody tr.term-agenda td { white-space: normal; }
+
+  /* Issue 112. The phone turns each row into a block and the title takes the whole first line of
+     it, so the control takes the whole line too rather than being a button the width of a
+     sentence that has wrapped to three. The floor is the same 26. */
+  .term-table td.r-title { flex: 1 0 100%; }
+  .rowdisc { width: 100%; align-items: flex-start; }
+  .rowdisc-mark { padding-top: 1px; }
+}
+
+/* ---- the calendar as a calendar, issue 88 ---------------------------------------
+   Two grids and one set of rules, because a month panel and a week panel are the same seven
+   columns with a different run of days in them.
+
+   `minmax(0, 1fr)` AND NOT `1fr`, and that is the declaration that keeps this off the sideways
+   scroll at 390. A grid track's default minimum is `auto`, which is the widest thing in it, so a
+   session title in a column would set the column's floor and seven of them would set the sheet's:
+   the outline's table already scrolls sideways inside #termrows at the wider viewports and this
+   would have added the same fault to a view that has no reason to have it. With a zero minimum
+   the track takes a seventh of whatever the sheet is and the content inside it wraps or clips. */
+/* Issue 113. THE ONE PLACE THE TWO READINGS OF THIS SHEET USED TO DISAGREE. A grid is not a
+   table, so the calendar had no cell padding and its month heading was painted hard against the
+   container's left edge while every row of the outline sat ten pixels in. The inset is read from
+   the same token the table's cells read, so the two readings are offset by construction and not
+   by two numbers that happen to match today. `.cal-panel` and `.cal-grid` inherit it. */
+.cal {
+  display: block;
+  padding-left: var(--row-inset);
+}
+
+/* The grids carried a sticky banner over the panels, the third of the four places this sheet said
+   the dates were invented. Issues 91 and 93 deleted it and the warning on the face of every panel
+   with it, so the first thing in the scroll is the first panel. */
+.cal-panel { margin-top: 14px; }
+.cal-panel:first-child { margin-top: 0; }
+
+/* THE FOURTH PLACE, AND THE ONE THIS CARD EXISTS FOR. Every other view here is a table, and a
+   table of invented dates still reads as a table. A month grid looks like something a reader
+   could plan against, so the warning is on the face of every panel: crop one month out of this
+   sheet and the crop still says the dates are invented. */
+.cal-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin: 0 0 6px;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--fg-body);
+}
+
+.cal-headn {
+  font-weight: 400;
+  color: var(--fg-muted);
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.cal-dow {
+  padding: 2px 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--fg-muted);
+  border-bottom: 1px solid var(--rule-muted);
+}
+
+.cal-day {
+  min-height: 46px;
+  padding: 2px 3px;
+  border: 1px solid var(--rule-muted);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.cal-dnum {
+  display: block;
+  font-size: 10px;
+  color: var(--fg-muted);
+  text-align: right;
+}
+
+/* The days a month panel draws that belong to the month before or after it. They are drawn
+   because a panel of whole weeks is what makes the columns line up down the sheet, and they are
+   quiet because they are not this month. */
+.cal-offmonth { background: var(--tint-hover); }
+.cal-offmonth .cal-dnum { opacity: .5; }
+
+/* Issue 90 on a grid. The window MARKS rather than filters here: the list is the shape that
+   drops what is outside, because a list is an agenda, and a grid that had holes cut in it would
+   stop being a picture of the term. So the band is lit and the rest of the term goes quiet at
+   exactly the strength the drawing's own out-of-window tiles take. */
+.cal-inwin {
+  border-color: var(--i-primary);
+  background: var(--tint-hover);
+}
+
+.cal-outwin { opacity: .38; }
+
+.cal-chip {
+  margin-top: 2px;
+  padding: 2px 3px;
+  border-left: 2px solid var(--i-primary);
+  background: var(--bg-panel);
+  font-size: 10px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.cal-time { font-weight: 700; color: var(--fg-body); }
+.cal-code { margin-left: 4px; color: var(--fg-muted); }
+.cal-title { display: block; color: var(--fg-body); }
+
+/* The same mark the list puts on a row with nobody to teach it, in the register a chip can carry
+   it: the edge of the chip rather than the colour of the text, because a chip is three short runs
+   and colouring all of them would read as an error rather than as a gap. */
+.cal-gap { border-left-color: var(--fg-warning); }
+.cal-gap .cal-time { color: var(--fg-warning); }
+
+.cal-empty { margin: 12px 0 0; color: var(--fg-muted); font-size: var(--fs-sm); }
+
+/* The shape control, issue 88. Three states and one press each, so it is three buttons and not a
+   cycle: a reader who wants the list should not have to walk past the week grid to reach it,
+   which is the same argument the programme picker is built on. */
+.term-shape { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+
+.term-shape .shape-btn {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  color: var(--i-primary);
+}
+
+.term-shape .shape-btn:hover { background: var(--tint-hover); }
+
+.term-shape .shape-btn:focus-visible {
+  outline: 2px solid var(--i-primary);
+  outline-offset: -2px;
+}
+
+.term-shape .shape-btn[aria-pressed="true"] {
+  font-weight: 700;
+  border-color: var(--i-primary);
+  background: var(--tint-hover);
+}
+
+@media (max-width: 760px) {
+  /* SEVEN COLUMNS SURVIVE THE PHONE, and that is a decision rather than an oversight. The
+     table beside them collapses to one block per row at this width, and the same treatment here
+     would turn a month grid into the list it is an alternative to. A seventh of 390px is about
+     50, which holds a time and a programme code at 9px and does not hold a session title, so the
+     title is what goes and the chip keeps its whole content in its own title attribute. */
+  .cal-day { min-height: 38px; padding: 1px 2px; }
+  .cal-chip { padding: 1px 2px; font-size: 9px; border-left-width: 2px; }
+  .cal-title { display: none; }
+  .cal-code { display: block; margin-left: 0; }
+  .cal-dow { padding: 2px 1px; font-size: 9px; }
+}
+
+/* A note is content and the relationship list is metadata, so they are two blocks and not
+   one run of text. */
+#panel .pnote-note {
+  display: block;
+  color: var(--fg-body);
+  font-size: var(--fs-sm);
+  margin-bottom: 8px;
+}
+
+#panel .pnote-rel { display: block; }

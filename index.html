@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Zrive operating model, toy instance diagram</title>
+<link rel="stylesheet" href="app.css">
+<!-- The reader's stored theme, applied before the first paint, and the only script in this file.
+     It has to be here and it has to be inline: app.js is at the foot of the body, so a reader who
+     chose dark on a machine set to light would meet a white page and watch it turn over, on every
+     load. Four lines, and deliberately no more than four: it sets the attribute app.css answers
+     and nothing else. app.js owns the control, the storage and the meaning of the three choices,
+     and re-derives all of it from the same key. `system` is the default and writes no attribute,
+     so a browser with no storage, or a reader who has never chosen, gets exactly the operating
+     system's own answer. Issue 57. -->
+<script>
+(function () {
+  try {
+    var t = localStorage.getItem('zmt.theme');
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) { /* storage unavailable: the page follows the operating system, as it always did */ }
+})();
+</script>
+</head>
+<body>
+
+<header>
+  <div class="hrow">
+    <!-- THE HEADING IS THE SENTENCE NOW, and that is the whole of issue 77's fourth finding.
+         There used to be a fixed h1 above a subtitle that swapped per view, so the subtitle
+         said what was on screen and the heading, which nothing ever rewrote, said "one cohort
+         as instances" over a kanban. One line cannot be right on three routes and wrong on
+         none, so the two collapse into one: the heading itself swaps, exactly as the subtitle
+         did, and the row it used to sit above is given back to the drawing. Three variants and
+         not two, because #/students is a route as much as #/board is.
+
+         THE PROGRAMME NAME IN THE SENTENCE IS STILL THE CONTROL, which is issue 66's idea and
+         the reason seven routes cost the header nothing. It moved up a line with the sentence it
+         was always part of. It is a .linkbtn like every other control on this page, it takes the
+         heading's own size and weight rather than the nav's so that it reads as the words it
+         replaced, its text is its state, and pressing it opens the other six as ordinary links
+         to their own addresses. The cohort and the programme code in the students variant are
+         written by the page from the drawing rather than typed here, because a name or a number
+         typed into this file is one that is right on one of the seven. Issue 66, issue 77.
+
+         WHAT WENT WITH THE SUBTITLE. "drawn as named instances joined by the verbs that relate
+         them" is a description of the drawing and is now the first line of the footer's help,
+         beside the other three things a reader is told once. The badge that sat beside it is gone
+         and nothing replaced it. Nothing said the badge on the board route, where the subtitle it
+         sat in was already hidden. Issue 79. -->
+    <!-- HOW MUCH OF THE PROGRAMME THE DRAWING IS, IN THE HEADING, BECAUSE THAT IS WHERE THE
+         READOUT'S NUMBERS GET THEIR SUBJECT. Issue 122. Five of the seven drawings hold a sample
+         of their programme's term and two hold all of it, and until this card the only place that
+         was said was a band caption on the canvas, two clicks and a scroll away from every count
+         in this row. `tiles` and `gaps` beside it are then counts over a set the reader has no
+         reason to think is partial: `gaps 11 of 95` reads as a fact about the business and is a
+         fact about the eighty three sessions the documents drew.
+
+         IT IS NOT A TENTH CONTROL AND NOT A FIFTH READING. #120 split this row because it already
+         carried nine, and the answer to a row that is a pile is not another thing in it. This is
+         a clause inside the sentence that was already here, written by router.js from the view's
+         own `counts` block for the reason the cohort beside it is written there: a number typed
+         into this file is right on one of seven.
+
+         AND IT IS A FACT ABOUT SCOPE RATHER THAN ABOUT STANDING. #101 and #110 withdrew every
+         reader-facing statement about whether the content is real. "6 of its 79 sessions" says
+         which rows the document holds; it says nothing about the rows. The two are different
+         sentences and only the first is on this page. -->
+    <h1>
+      <span class="h-diagram"><span class="pgpick" id="pgpick"><button id="pgbtn"
+      class="linkbtn" type="button" aria-expanded="false" aria-controls="pgmenu">Z-IB Investment
+      Banking</button><span class="pgmenu" id="pgmenu" hidden></span></span>, cohort <span
+      id="subcohort">1Q26</span><span id="subsample"></span>, as instances</span>
+      <span class="h-board">The work on this drawing, one card per issue</span>
+      <span class="h-students">The <span id="hstudprog">Z-IB</span> cohort, every student in
+      it</span>
+      <!-- The same term read twice, issues 80 and 82. A route with no heading of its own inherits
+           the one before it, which is what #77 found the board doing for months, so each of these
+           two gets its own line. Neither names a programme: the sheet under them reads across all
+           seven, which is the whole of the scope decision those two cards had to make. -->
+      <span class="h-calendar">The term, all seven programmes in date order</span>
+      <span class="h-outline">The outline, all seven programmes in curriculum order</span>
+    </h1>
+    <!-- WHAT IS ON SCREEN, AS ONE INSTRUMENT. Issue 120, and it is the fourth card pushing this
+         header in one direction after #89, #90 and #98. Each of those three ADDED a control to a
+         single row, and by the time the fourth arrived the row carried nine: four of them holding
+         a value the reader needs to know and five of them holding a verb the reader performs,
+         every one a .linkbtn, every one the same blue, at the same size, in the same line, with
+         nothing anywhere saying which kind it was. That is a nav bar that grew values into it one
+         card at a time, and it is the whole reason the features worked and the row did not read
+         as a dashboard.
+
+         SO THE ROW IS SPLIT RATHER THAN EXTENDED, WHICH IS THE ONE THING THE THREE CARDS BEFORE
+         IT DID NOT DO. What the page is telling the reader is in this box. What the reader does
+         to the page is in the nav after it. The two are told apart by treatment and not by
+         position alone, because position alone is what they already had: a reading is a muted
+         label beside a value in the body's own colour, on a recessed plate with a rule around it;
+         an action is a blue word on the header's own ground with no plate at all. Still one row,
+         so #32 and #57 are untouched and nothing here needs their argument.
+
+         NOTHING IN THIS BOX IS A NEW CONTROL. `weeks`, `grain` and `gaps` are the same three
+         buttons, with the same ids, the same menus, the same withdrawal rules and the same
+         behaviour they had in the nav. What changed is that each carries a label span and a value
+         span instead of a colon, because "weeks: all 24" is what a nav bar writes and a label
+         beside its value is what an instrument writes, and the difference is the whole of what
+         he asked for.
+
+         THE READINGS COMPOSE INTO ONE STATEMENT AND ARE ORDERED SO THAT THEY READ AS ONE. How
+         much of the term, at what altitude, how many tiles that leaves, and how many of the
+         values the model records as missing are among those tiles. The programme is not in this
+         box: it is the subject of the sentence immediately to the left, it has been the control
+         that switches drawings since #66, and taking it out of the heading would leave that
+         heading saying "cohort 1Q26, as instances" about no cohort in particular. The heading
+         says which drawing and the box says what is on it. -->
+    <div class="hstate" id="hstate" role="group" aria-label="what is on this drawing">
+      <!-- HOW MUCH OF THE TERM IS IN FOCUS. Issue 90. It is in the header and not in the calendar
+           sheet because the term is on the drawing too, one tile per session, and the card was
+           filed from the diagram: a control a reader can only reach by opening a sheet cannot
+           filter a drawing that the sheet is covering. It is view level rather than page level,
+           since a window over a term says nothing about the board or the student list, and
+           app.css withdraws it on those two and keeps it on the diagram and on both readings of
+           the term. term.js writes the value, the menu inside it and the anchor the menu
+           declares; the label is here because it never changes. -->
+      <span class="wnpick" id="wnpick"><button id="wnbtn" class="linkbtn rd" type="button"
+              aria-expanded="false" aria-controls="wnmenu"
+              title="the part of the term in focus"><span class="rd-k">weeks</span> <span
+              class="rd-v" id="wnval">all</span></button><span class="wnmenu"
+              id="wnmenu" hidden></span></span>
+      <!-- AT WHAT ALTITUDE. Issue 89, and it is the first control on this page that is about
+           working with the model rather than reading it. The syllabus groups its sessions into
+           modules, the vault has carried that grouping since before this repository existed, and
+           two of the seven drawings are 2578 and 2470 units tall because they draw every row of
+           it; the modules grain draws the same programme with those rows gathered into the
+           modules the syllabus declares, which takes Z-BL from 28 tiles in each syllabus lane to
+           5 and Z-SC from 25 to 6.
+
+           BOTH DRAWINGS ARE BUILT AT BUILD TIME, one per grain per view, each with its own
+           drawing digest that check_build.sh reproduces byte for byte. The control switches
+           between two artefacts; it lays nothing out. That is what separates it from the time
+           window beside it, which is a run-time transform because a window over 24 weeks is a
+           continuous parameter and a grain is two states.
+
+           It is view level, like `ghosts`, `weeks` and `gaps`, and app.css withdraws it on the
+           board and the student list. Every word and every number under it is written by app.js
+           off the model, never typed here. -->
+      <span class="grpick" id="grpick"><button id="grbtn" class="linkbtn rd" type="button"
+              aria-expanded="false" aria-controls="grmenu"
+              title="the altitude this drawing is drawn at"><span class="rd-k">grain</span> <span
+              class="rd-v" id="grval">sessions</span></button><span class="grmenu"
+              id="grmenu" hidden></span></span>
+      <!-- HOW MUCH IS ON THE DRAWING. Issue 120, and it is the only thing this card adds. It is
+           not a tenth control: it cannot be pressed, it opens nothing and it has no state of its
+           own. It is the number that every other control in this header moves, which is what
+           makes the readings beside it compose into a picture rather than into an argument in a
+           comment: the window takes tiles off it, the altitude folds tiles into it, the
+           programme replaces them and `ghosts` withdraws the ones no system holds.
+
+           THE PAGE ALREADY KNEW IT AND SAID IT IN A TOOLTIP. #111 took #100's stub tiles off the
+           canvas and put the count in the window control's title, which is where a number goes
+           when the row it belongs in has no shape to hold it. This is that shape. It says
+           `27 of 62` while something is filtering the drawing and `62` when nothing is, so the
+           denominator appears exactly when there is a difference to report.
+
+           IT IS A COUNT AND IT SAYS NOTHING ABOUT WHAT IT COUNTS. #101 and #110 withdrew every
+           reader-facing statement about the standing of the content, and a status line in a
+           dashboard is the first place such a statement creeps back in. This one is arithmetic
+           over the drawing on screen and carries no adjective.
+
+           It withdraws wherever `ghosts` withdraws, and for that control's own reason: a count of
+           a drawing that is behind an opaque box is a number about something the reader cannot
+           see. -->
+      <span class="rd rd-static" id="tilesrd"><span class="rd-k">tiles</span> <span
+            class="rd-v" id="tilesval"></span></span>
+      <!-- WHAT NEEDS ATTENTION. Issue 98. The model carries a provenance flag on every property
+           and 482 of them say `absent`, which is not a weaker kind of dummy: a dummy value stands
+           in for something a system holds and an absent one says no system holds it. Until that
+           card the only way to meet one was to click a tile and read its property list, so the
+           page knew that eleven sessions have nobody assigned to teach them and no view said it.
+
+           IT IS BESIDE `weeks` BECAUSE THE TWO COMPOSE, and that composition is the reason both
+           are here rather than in a sheet. #100 made the window filter the drawing, so "what is
+           missing in the next three weeks" is one reading beside another and is the question a
+           reader actually brings to a Monday meeting.
+
+           It is view level, like `ghosts` and `weeks`, and app.css withdraws it on exactly the two
+           routes the window control leaves. The count and every word in the list under it are
+           written by app.js off the model, never typed here, for the reason the cohort in the
+           heading is: a number typed into this file is right on one of seven. -->
+      <span class="gapspick" id="gapspick"><button id="gapsbtn" class="linkbtn rd" type="button"
+              aria-expanded="false" aria-controls="gapsmenu"
+              title="what this view is showing that the model records as missing"><span
+              class="rd-k">gaps</span> <span class="rd-v" id="gapsval">0</span></button><span
+              class="gapsmenu" id="gapsmenu" hidden></span></span>
+    </div>
+    <nav class="hnav">
+      <!-- WHAT THE READER DOES, DECIDED IN ISSUE 57 AND ENFORCED IN ISSUE 86. Two of these belong
+           to the page and the rest belong to a view of it, and until #86 nothing acted on the
+           difference: a sheet backdrop starting at y=0 covered all five, so a reader inside
+           #/outline could not reach `feedback`, and the card asking for it had to be filed from
+           outside the subpage it was about.
+
+           Page level, and reachable over anything the page ever puts on top of itself:
+             feedback   how anything on this page gets reported at all, which is why it is the
+                        one control that must never be behind something
+             theme      the artefact's own presentation, on every route including the board
+
+           View level, and free to go when the view does:
+             ghosts     a mark on the drawing, so app.css withdraws it on the board and on the
+                        five sheet addresses, where the drawing is behind an opaque box
+             students   navigation, and a sheet is a place, so these two stay reachable rather
+             board      than covered: they are the visible way out of the place, and a reader who
+                        wants the board from inside the outline should not have to find Escape
+                        first. Neither acts on what the sheet is showing, so neither is dead.
+           The programme picker is view level too and needs no rule, because it lives in the
+           heading, which is already swapped out on every route that opens a sheet.
+
+           WHAT LEFT THIS ROW AT ISSUE 120. The three value controls went into the readout before
+           it, where they were always going: they answer "what am I looking at" and everything
+           left here answers "what can I do". Nothing was deleted and no behaviour changed with
+           the move. -->
+      <button id="ghtoggle" class="linkbtn" type="button" aria-pressed="true"
+              title="show or hide the classes that do not exist in any system">ghosts</button>
+      <button id="fbtoggle" class="linkbtn" type="button" aria-pressed="false"
+              title="visual feedback mode: click any element to capture it with what was on screen">feedback</button>
+      <!-- The cohort in full, as its own route, beside the board's. The drawing shows four of
+           the thirty four students because it is a model diagram and not a register; this is
+           where the whole list lives, and it is a first class view rather than a way out of a
+           limitation. -->
+      <a id="navstudents" class="linkbtn" href="#/students">students</a>
+      <a id="navview" class="linkbtn" href="#/board">board</a>
+      <!-- THE THEME IS BEHIND A PRESS NOW, WHICH IS ISSUE 120's OTHER HALF. It used to be first
+           in this row and 97 CSS px wide, spending the row's anchor position on a choice a reader
+           makes about once and on a value the page is already showing them: a light page is the
+           theme saying light. It is last now, because it is the least frequent thing anybody does
+           here, and its value is inside it rather than on its face.
+
+           WHAT WAS WORTH KEEPING FROM #57 IS KEPT AND IS BETTER SERVED. That card's finding was
+           that three states cannot be told apart from a two state switch, which is why the choice
+           was written on the button. A menu of three with the current one marked says the same
+           thing and says it without a reader having to press twice to find out what pressing does:
+           system, light and dark are all visible at once, and the mark survives a forced-colours
+           mode the way the programme menu's does.
+
+           IT KEEPS ITS ID, so it is the same control to the gates that hold it live and hit
+           testable over every sheet, which is #86 and is not a thing to re-argue here. app.js
+           writes the menu, owns the stored choice and is still the only file that knows what the
+           three mean. -->
+      <span class="thpick" id="thpick"><button id="thtoggle" class="linkbtn" type="button"
+              aria-expanded="false" aria-controls="thmenu"
+              title="colour theme: follow the operating system, or choose light or dark"
+              >theme</button><span class="thmenu" id="thmenu" hidden></span></span>
+    </nav>
+  </div>
+</header>
+<!-- EVERY CONTROL IN THIS ROW IS THE SAME BOX, and that is issue 77's first two findings, which
+     had one cause between them. .linkbtn carried `padding: 2px 2px` and no height, so five of the
+     five controls here rendered 19 or 21 CSS px tall and every one of them failed WCAG 2.2
+     SC 2.5.8 Target Size (Minimum), in a repository that already gates itself on WCAG 2.2 for
+     contrast. The 19 and the 21 were the second finding as well: two of these five carry a border
+     and three did not, so the row that reads as one line sat on two baselines a pixel apart. Both
+     are fixed in the stylesheet rather than here, by one min-height and one transparent border
+     that the two bordered controls only recolour, so a control added to this row later is the
+     right size and on the right line without anybody remembering to make it so. -->
+
+<main id="view-diagram">
+  <!-- The canvas is a viewport onto a plane. The drawing is moved by app.js through the svg's
+       viewBox, and the dot grid is a background on this box, driven from the same numbers. The
+       view control sits inside the canvas because it acts on the canvas, and because being
+       inside it means the board view, which does not draw this main at all, needs no rule to
+       hide it. -->
+  <div id="canvas">
+    <svg id="graph" role="img" aria-label="Instance diagram of one cohort"></svg>
+    <div class="zoomctl" id="zoomctl" role="group" aria-label="view">
+      <button id="zoomout" class="zbtn" type="button" aria-label="zoom out"
+              title="zoom out (minus key)">&minus;</button>
+      <span class="zlevel" id="zoomlevel"
+            title="zoom, where 100% is the whole drawing on screen. Hold Ctrl, or Cmd on a Mac, and scroll to zoom; scrolling on its own moves the drawing">100%</span>
+      <button id="zoomin" class="zbtn" type="button" aria-label="zoom in"
+              title="zoom in (plus key)">+</button>
+      <button id="zoomfit" class="zbtn" type="button"
+              title="bring the whole drawing back into view (0 key)">fit</button>
+    </div>
+  </div>
+  <!-- ONE CONTROL. This strip was 101 words in a single paragraph doing four unrelated jobs, and
+       issue 79 put three of them behind one disclosure: an instruction written into a permanent
+       strip is read once and then occupies the screen forever, which on a 390px phone cost 17 per
+       cent of the viewport for a sentence nobody was still reading. Two of the three were already
+       discoverable at the control they are about, and stay there as well: the zoom readout's title
+       carries the wheel and the Ctrl or Cmd it now needs, and the programme button's title,
+       written by router.js, says how many other programmes pressing it opens.
+
+       THE FOURTH JOB WAS A STATEMENT ABOUT THE ARTEFACT and it is gone, on the owner's
+       instruction, along with the two counts that were written into it. What is left is the
+       disclosure alone. It opens upward, absolutely positioned, so the footer's height, the canvas
+       under it and the fit of the drawing are the same before and after, which is the same
+       reasoning .pgmenu is built on. The strip is one line high at every width now, so the float
+       that used to buy back a line has nothing to wrap under it and the flex row places the
+       control instead. -->
+  <footer>
+    <div class="helppick"><button id="helpbtn" class="linkbtn" type="button"
+      aria-expanded="false" aria-controls="helpbox">how to read this</button><div
+      class="helpbox" id="helpbox" hidden>
+      <ul>
+        <li>The drawing is named instances joined by the verbs that relate them.</li>
+        <li>Click a node for its properties. Clicking an instructor also brings out the employer
+          that instructor works for, and clicking the students card draws the individuals the
+          picture carries.</li>
+        <li>A cohort session opens on to <b>the term</b>, every session on the seven drawings in
+          date order, and a session template on to <b>the outline</b>, every template in
+          curriculum order. The two are the same term read twice.</li>
+        <li>Drag the canvas or scroll to move it, hold <b>Ctrl</b> (<b>Cmd</b> on a Mac) and
+          scroll to zoom, or pinch, and <b>fit</b> brings the whole drawing back.</li>
+        <li>The programme name in the heading opens the other six. <b>students</b> in the header
+          lists every person in the cohort.</li>
+      </ul>
+    </div></div>
+  </footer>
+</main>
+
+<main id="view-board">
+  <p class="bmeta" id="bmeta">The board reflects GitHub Issues. GitHub is the source of truth:
+    nothing here is editable and there is no drag and drop.</p>
+  <!-- Which source the board is reading and how fresh it is, written by board.js. Empty until
+       there is something true to say, and hidden by the stylesheet while it is empty. It is
+       deliberately not an aria-live region: the age in it moves every second and a screen
+       reader would read the whole line out again each time. -->
+  <p class="bstatus" id="bstatus"></p>
+  <div id="bbody"></div>
+</main>
+
+<aside id="panel" aria-live="polite">
+  <button id="close" aria-label="Close">&times;</button>
+  <div class="ptype" id="ptype"></div>
+  <h2 id="pname"></h2>
+  <p class="pnote" id="pnote"></p>
+  <dl id="pprops"></dl>
+  <!-- Written by app.js for the one node that stands for a list, and empty for every other. -->
+  <div class="pmore" id="pmore"></div>
+</aside>
+
+<!-- The cohort in full. The rows are not written here: they are in the drawing's own generated
+     file, because they are the model and not page furniture, and app.js builds this the first
+     time the view is opened. Hidden until then, which also keeps it out of the tab order.
+
+     `role="dialog"` AND NO `aria-modal`, WHICH IS ISSUE 86 AND IS NOT A WEAKENING. aria-modal
+     says content outside this element is inert, and a screen reader acts on that by refusing to
+     leave the dialog. Since #86 the header is deliberately outside it and deliberately live, so
+     the attribute would be a claim the page does not implement, and the one control it would put
+     out of reach is the one that card exists to make reachable: a reader who cannot get to
+     `feedback` cannot report anything at all. The sheet is still modal in every sense the page
+     enforces. It covers the drawing, the backdrop makes the canvas inert, Escape closes it and
+     the close control is focused when it opens. What it never was is modal to the page. -->
+<div id="roster" class="sheet" hidden>
+  <div class="sheet-back" id="rosterback"></div>
+  <section class="sheet-box" role="dialog" aria-labelledby="rostertitle">
+    <div class="sheet-head">
+      <div>
+        <h2 id="rostertitle"></h2>
+        <p class="sheet-sub" id="rostersub"></p>
+      </div>
+      <button id="rosterclose" class="linkbtn" type="button" aria-label="Close the student list"
+              title="close (Esc)">&times;</button>
+    </div>
+    <div class="sheet-rows" id="rosterrows"></div>
+  </section>
+</div>
+
+<!-- THE SAME TERM, READ TWICE. Issues 80 and 82, and they are one card because they are the two
+     halves of one split: #/calendar is the instances in date order, #/outline is the templates in
+     curriculum order, and a reader who meets the same term under both orderings has been shown the
+     template versus instance distinction rather than told it.
+
+     ONE SHEET AND TWO ADDRESSES. One sheet because both readings want the same box, the same
+     close and the same provenance notice, and because switching between them is the point. Two
+     addresses because #/board and #/students established that a view worth having is worth an
+     address, and because the heading can only say what is on screen if there is a route for it to
+     say it about.
+
+     ITS SCOPE IS ALL SEVEN PROGRAMMES AND THAT IS THE DECISION. A calendar of one programme is
+     what Notion already holds, one per programme per quarter, by the model's own account; the term
+     across all seven exists nowhere, which is what makes it worth building and is the finding the
+     notice states. The rows are not written here: term.js reads them out of the seven drawings.
+
+     The classes are the student list's, because this is the same object: a sheet over the canvas
+     with a scrolling table in it. They were named .roster-* while there was one of them. -->
+<div id="term" class="sheet term" hidden>
+  <div class="sheet-back" id="termback"></div>
+  <!-- No aria-modal, for the reason written above the student list: since issue 86 the header
+       is outside this dialog and live, so declaring the rest of the page inert would hide the
+       feedback control from exactly the reader who has no other way to reach it. -->
+  <section class="sheet-box" role="dialog" aria-labelledby="termtitle">
+    <div class="sheet-head">
+      <div>
+        <h2 id="termtitle"></h2>
+        <p class="sheet-sub" id="termsub"></p>
+      </div>
+      <button id="termclose" class="linkbtn" type="button" aria-label="Close"
+              title="close (Esc)">&times;</button>
+    </div>
+    <!-- The two readings, as ordinary links to their own addresses. Anchors and not a widget, for
+         issue 66's reason: the keyboard, the middle button, the context menu and the back button
+         all work without this page implementing any of them, and there is one code path into a
+         reading rather than two. -->
+    <div class="term-switch" role="group" aria-label="reading">
+      <a id="termcal" class="linkbtn" href="#/calendar">calendar</a>
+      <a id="termout" class="linkbtn" href="#/outline">outline</a>
+    </div>
+    <!-- What this reading is and what it covers, above the rows and outside the scroll, so it is
+         on screen for as long as the rows are. Written by term.js. -->
+    <div class="term-notice" id="termnotice"></div>
+    <div class="sheet-rows" id="termrows"></div>
+  </section>
+</div>
+
+<!-- The deploy stamp first, because both of the scripts under it can be asked what commit this
+     page is, and feedback.js is asked exactly when app.js has thrown. It is a static file in the
+     repository naming no commit, and the deploy workflow rewrites it with the sha it publishes. -->
+<script src="version.js"></script>
+<!-- Two documents and not one, issue 60 seam 1. instance.js is what the objects are and
+     layout.js is where they go; app.js joins them. The published page is public, so real data can
+     never go on it, and the only way this codebase ever serves both the public toy and a private
+     management tool is if the data document loads separately from the page. Anything that reads
+     the model reads instance.js; nothing but the drawing reads layout.js. -->
+<script src="instance.js"></script>
+<script src="layout.js"></script>
+<!-- The page, in four concerns and the file that wires them, issue 71 seam 2 of issue 60.
+     render.js paints the drawing from geometry and holds no state a reader can change; viewport.js
+     owns pan, zoom and fit, which is three numbers; selection.js owns what is picked, what that
+     dims and what it reveals; router.js owns the addresses and the two views an address switches
+     between. app.js joins the two generated documents, builds those four, wires them and publishes
+     window.ZT.
+
+     THE ORDER OF THESE FOUR DOES NOT MATTER AND app.js LAST DOES. There is no bundler and no build
+     step here, and the page has to work opened from a file:// URL, so ES modules are out and these
+     are ordinary scripts. Each of the four defines exactly one factory on window.ZM and executes
+     nothing at all, which is what makes their order among themselves irrelevant; app.js is the only
+     one that runs anything, and it checks all four factories are there and throws by name if one is
+     missing rather than half drawing the page. Adding a fifth means adding a tag here and naming it
+     in that check, and nothing else. -->
+<script src="render.js"></script>
+<script src="viewport.js"></script>
+<script src="selection.js"></script>
+<script src="router.js"></script>
+<!-- The fifth, and it arrived exactly as the note above says a fifth would: a tag here and a name
+     in app.js's check. term.js owns #/calendar and #/outline and the sheet they open. It is not in
+     router.js because it is the one view on this page with no opinion about which of the seven
+     programmes is drawn: it reads across all of them. Issues 80 and 82. -->
+<script src="term.js"></script>
+<script src="app.js"></script>
+<script src="board.js"></script>
+<script src="feedback.js"></script>
+</body>
+</html>
