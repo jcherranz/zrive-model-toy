@@ -11,6 +11,45 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- **The ontology becomes a declared source, and `check_ontology_registry()` re-reads it, #123.**
+  Four route rows sit on every drawn object, all of them ranked `3_observed`, and they are the half
+  of this document the whole control-centre direction rests on. `provenance.sources` declared
+  exactly one corpus, the programme syllabus, and `RECHECK_GATES_RUN` had two members and neither
+  was about routes: **the strongest claim the artefact made about itself was the one claim nothing
+  checked.** This is #118's shape and not a second mechanism beside it. A source now says which of
+  two populations it produced, `values` or `registry`, and that word is what lets one table carry
+  both: a registry source is **refused** if it claims its rows may wear the `real` chip, because
+  what it read is an analysis OF the systems and not a system. The seats it declares are the four
+  keys on every drawn type, so a route row deleted, doubled or renamed stops the build **on a
+  machine with no corpus at all**, which is every CI run. **What the gate establishes and what it
+  does not is stated above it, in that order.** It follows the ADDRESS and never the sentence
+  beside it: every citation resolves to an entity the ontology still declares, a finding the
+  register still holds, a file that is still there and a phrase still in it, and the corpus's own
+  entity count still agrees with the 55 this file has asserted in prose since #72. It establishes
+  nothing about whether any of the three sentences on a route is what the corpus says, nothing
+  about whether the systems have moved since, and **nothing at all where the corpus is absent**,
+  where it says so on stderr and returns rather than passing in silence. Proved by 18 probes, each
+  writing a whole synthetic corpus to a temporary directory so the refusals run in CI too; 16 of
+  them refuse nothing against the pre-fix body, and the two that do not are the controls. Nine
+  probes join the provenance suite for the registry seats, of which eight refuse nothing against
+  the pre-fix body.
+- **A read date, which this file argued should not exist, and the argument survives.**
+  `route_props()` says a plausible date would compute `fresh` and make an undated finding read as
+  current. That is about the ROW's date, all 1320 of them still carry none, and
+  `syllabus-row-carries-no-read-date` still holds it there. A **source's** `read_on` computes
+  nothing: `value_status()` is a function of the row's rank and the row's own date, and the
+  syllabus source has carried one since #118 while its rows stayed undated. So the date is
+  declared, and it is not a plausible one: it is bracketed **below** by the corpus's own
+  `meta.written`, which the gate re-reads and refuses a read date earlier than, and **above** by
+  the commit that wrote these citations into this file. The alternative, a source with no date and
+  a sentence explaining the hole, would have had to be bought by relaxing the rule that a source
+  says when it was read, and a gate is not weakened to let a change through.
+- **And the seats are written rather than derived, which was measured.** Read off `route_props()`
+  the tuple was circular: a row deleted from the emitter vanished from the declaration in the same
+  edit, the population rule had nothing left to compare, and a build printing three rows on every
+  panel went green. Both directions are closed now, and a mismatch between what the source declares
+  and what the panel prints stops the build at import.
+
 - **One reading the header did not have, `tiles`, #120.** The model knows 482 absences over the
   seven session grain drawings, 328 rows flagged `real` over all fourteen, 83 templates and 272
   outline beats, and the header surfaced one number of it. This adds one more and it is deliberately
