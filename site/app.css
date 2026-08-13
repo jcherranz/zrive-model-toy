@@ -430,19 +430,48 @@ header {
   background: var(--bg-panel);
 }
 
+/* WHO GIVES WAY WHEN THE ROW IS FULL, WHICH IS THE ONE DECISION THIS ROW NEVER TOOK. Issue 131.
+   Until this card all three items were `flex: 0 1 auto`, so the browser took the width out of
+   whichever was widest, and the widest is the readout. Measured across the widths a reader
+   actually has: at 1183 every reading in the plate went to two lines, at 919 the gaps reading
+   went to three and `3 of 95` broke between `of` and `95`, the four readings sat at four
+   different heights, the rules between them ran at four different lengths, and the plate went
+   from 26 CSS px to 62. That band is not exotic: it is a window at half of a 1536 screen and it
+   is most laptops with a sidebar open. The `every control on one height` assertion has never run
+   in it, because this suite drives 1536, 1440 and 390.
+
+   SO THE HEADING TAKES THE SLACK AND GIVES IT BACK FIRST. `flex: 1 1 auto` on the h1 and
+   `flex: none` on the other two, which is the same statement read twice: the readout and the nav
+   are sized by their contents at every width, and the space between the subject and the
+   instruments is the space that varies. `justify-content` is gone with it, having nothing left
+   to distribute.
+
+   AND THAT IS WHAT ANCHORS THE INSTRUMENT. `space-between` over three items put the middle one
+   at a position that is a function of the FIRST one's width, and the first one names the
+   programme: measured over the seven drawings the plate's left edge moved between 642.6 and
+   685.9, so the one box on this page whose job is to be read jumped 43px sideways every time the
+   reader changed what it was reporting on. With the heading flexible the nav is a fixed distance
+   from the right edge and the plate is a fixed distance from the nav, so both are still. */
 .hrow {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  gap: 20px;
 }
 
+/* THE NAV IS THREE GROUPS AND NOT FIVE THINGS, and the gaps say which. Issue 131. One 8px gap
+   between all five made `ghosts feedback students board theme` read as one undifferentiated row,
+   and the five are three kinds: two toggles that change what the page is doing, two links that go
+   somewhere, and one control that opens a chooser. 4px inside a group and 12px between them, which
+   comes to the same 32px the row spent before, so nothing moved and the grouping is free. */
 .hnav {
   flex: none;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
 }
+
+#navstudents { margin-left: 8px; }
+.thpick { margin-left: 8px; }
 
 /* ---- the readout, which is the half of this row that is telling the reader something ----------
    ISSUE 120, AND THE WHOLE OF IT IS IN THE TWO DECLARATIONS THAT ARE NOT SIZES. The plate steps
@@ -464,7 +493,21 @@ header {
    is a rule between the items, because a gap inside a bordered box reads as a gap between boxes
    and the point of the box is that the readings inside it are one statement. */
 .hstate {
-  flex: 0 1 auto;
+  /* `none` and not `0 1 auto` since issue 131, which is that card's whole first finding: an
+     instrument that is allowed to shrink is an instrument that folds its own readings in two.
+     The heading gives the width back instead. */
+  flex: none;
+  /* AND THE PLATE IS WHAT THE BOXES UNDER IT HANG FROM, issue 131. Each of the three pressable
+     readings used to be the containing block of its own box, and the boxes are 460, 340 and 300
+     px wide against a control of 84: anchored to the control's right edge, `weeks` measured
+     left: -73.1 at 900 by 800, with `this page has no today` reading `as no today`, `1 week`
+     cut in half and the closing sentence reading `ole term`, and nothing on the page could reach
+     any of it, because overflow to the left of the origin creates no scrollbar. Anchored to the
+     plate's left edge instead they are on screen at every width down to the breakpoint, and one
+     panel opens under one instrument rather than three panels flying out at three offsets. It is
+     the same repair the phone block already makes with `position: fixed`, arrived at from the
+     same measurement. */
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0;
@@ -481,10 +524,24 @@ header {
   box-shadow: inset 0 0 0 1px var(--rule);
 }
 
-/* The rule between two readings, drawn once, on the item that follows another. `> *` and not a
-   class, because the pressable readings are wrapped in a positioning span and the static one is
-   not, so any selector naming the reading itself would miss three of the four. */
-.hstate > * + * { border-left: 1px solid var(--rule-muted); }
+/* The rule between two readings, drawn once, on the item that follows another.
+   A MARK BETWEEN READINGS AND NOT A WALL BETWEEN BOXES, which is issue 131 and is a change of
+   length rather than of colour. Written as a border it ran the full 26px, edge to edge, into the
+   plate's own rounded corner rule at both ends, so four readings that are one statement read as
+   four boxes bolted together. It is 14px of the 26 now, centred, so the plate is one surface with
+   marks on it. Drawn as a background image on the READING and not as a border on the wrapper,
+   because a border on the wrapper is what made the wrapper the thing being separated; and because
+   the hover and open fills below are `background-color`, which paints UNDER a background image on
+   the same element, so a reading that is being pressed keeps its mark. Two selectors and not one,
+   because three of the four readings are wrapped in a positioning span and the static one is
+   not. */
+.hstate > :not(:first-child) > .rd,
+.hstate > .rd:not(:first-child) {
+  background-image: linear-gradient(var(--rule-muted), var(--rule-muted));
+  background-repeat: no-repeat;
+  background-position: left center;
+  background-size: 1px 14px;
+}
 
 /* The corners belong to the plate and not to the readings on it. Without this the first and last
    .linkbtn round their own outer corners inside a box that has already rounded them, and the
@@ -516,12 +573,84 @@ header {
   cursor: default;
 }
 
-/* The open state, and it is the one place .linkbtn's own answer to aria-expanded does not serve.
-   That rule sets font-weight 600 on the control, which inside a reading would take the muted
-   label to the value's weight and lose the distinction the box exists to draw. The label and the
-   value carry their own weights, so the rule lands on nothing here and the open state is said
-   with the tint the hover already uses. */
-.hstate .linkbtn[aria-expanded="true"] { background: var(--tint-hover); }
+/* THREE STATES AND THREE PAINTS, WHICH IS WHAT THIS ROW DID NOT HAVE. Issue 131. `--tint-hover`
+   and `--tint-neutral` are declared to the same value in both themes, and the file spent that one
+   value on three different meanings: hovering a reading, having a reading's box OPEN, and the
+   ghost toggle being ON were the same fill to the pixel. So a reader hovering the ghost chip
+   while it was off was shown the paint that means on, and a reading with its box open was
+   indistinguishable from a reading under the pointer.
+
+   The hover keeps the tint, which is what a hover is for. The open state keeps the tint AND takes
+   a two pixel accent along its bottom edge, drawn as an inset shadow so it costs no height and
+   the plate stays 26: it says which of the four readings the box below the plate belongs to, and
+   it points at it. And it is the only place on this page where the accent is used as a mark of
+   position rather than as the colour of a link, which is the whole of why it reads.
+
+   The underline goes. `.linkbtn:hover` underlines its own text, which is right for a word that is
+   a link and wrong inside an instrument, where the words are what the page is saying and the
+   underline lands on the label as well as on the value. The fill is the affordance here. */
+.hstate .linkbtn:hover {
+  text-decoration: none;
+  background-color: var(--tint-hover);
+}
+
+.hstate .linkbtn[aria-expanded="true"] {
+  background-color: var(--tint-hover);
+  box-shadow: inset 0 -2px 0 var(--i-primary);
+}
+
+/* A CONTROL THAT OPENS A BOX SAYS SO, AND ONE THAT DOES NOT SAY NOTHING. Issue 131, and it is one
+   rule applied by function rather than five treatments applied by history. Five of the nine
+   controls in this header open a box: the programme picker in the heading, three of the four
+   readings on the plate, and the theme. Nothing on any of them said so. On the plate that was the
+   sharper failure, because the fourth reading, `tiles`, is not pressable at all and was painted
+   identically to the three that are: a group that reads as one thing and behaves as three.
+
+   Drawn with borders and no `content` text, so it adds no character to the page and cannot be
+   read out as a word; `aria-expanded` is what says the same thing to a screen reader and it was
+   already on all five. `currentColor`, so it is the control's own colour in both themes by
+   construction and there is no fourth colour to keep in step: the body colour on the plate, the
+   link colour in the nav and in the heading.
+
+   AND 85 PER CENT AND NOT 70, WHICH IS A MEASUREMENT AND NOT A NUDGE. This mark is the only
+   thing on the control that says the control opens a box, so it is a graphical object WCAG 2.2
+   SC 1.4.11 asks 3:1 of. At 70 the link colour over the header's own ground measured 2.8115 in
+   light and 2.9321 in dark, under it in both. At 85 it is 3.6365 and 3.6729, and on the plate,
+   where the mark takes the body colour over the band, 9.7981 and 10.7853. It recedes by being
+   six pixels wide rather than by being faint, which is the honest way for a mark to be quiet. */
+.hstate .linkbtn.rd::after,
+.pgpick > .linkbtn::after,
+#thtoggle::after {
+  content: '';
+  display: inline-block;
+  width: 0;
+  height: 0;
+  margin-left: 4px;
+  vertical-align: 2px;
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
+  border-top: 4px solid currentColor;
+  opacity: .85;
+}
+
+/* Open, and the mark turns over with the box. The one piece of motion in this header and it is
+   50ms, which is short enough to be seen as the same object moving rather than as an animation. */
+.hstate .linkbtn.rd[aria-expanded="true"]::after,
+.pgpick > .linkbtn[aria-expanded="true"]::after,
+#thtoggle[aria-expanded="true"]::after {
+  transform: rotate(180deg);
+  opacity: 1;
+}
+
+.hstate .linkbtn.rd::after,
+.pgpick > .linkbtn::after,
+#thtoggle::after { transition: transform 50ms linear; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hstate .linkbtn.rd::after,
+  .pgpick > .linkbtn::after,
+  #thtoggle::after { transition: none; }
+}
 
 /* THE ONE DECLARATION THAT MADE FIVE CONTROLS FAIL WCAG 2.2 SC 2.5.8. This was
    `padding: 2px 2px` with no height, and at 12px over a 1.28581 line height that is a 19 CSS px
@@ -561,6 +690,13 @@ header {
 
 .linkbtn:hover { text-decoration: underline; }
 .linkbtn:focus-visible { outline: 2px solid var(--i-primary); outline-offset: 1px; }
+/* THE RING GOES INSIDE THE CELL ON THE PLATE, and that is a measurement rather than a taste.
+   Issue 131. At `outline-offset: 1px` the ring around a reading is 30px tall inside a 26px plate,
+   so it breaks out over the plate's top and bottom edges, draws square corners across the plate's
+   own rounded ones, and covers the rules of both neighbours; on a middle reading it reads as
+   damage rather than as focus. Inset by two it is drawn inside the cell it belongs to, touches
+   nothing else, and is the same 2px in the same colour, which is what the standard asks of it. */
+.hstate .linkbtn:focus-visible { outline-offset: -2px; }
 .linkbtn[aria-expanded="true"] { font-weight: 600; }
 
 /* A disabled control says so before it is clicked. It keeps its place in the row, because a
@@ -577,13 +713,70 @@ header {
    the programme menu is absolutely positioned inside this box and clipping it would be clipping
    the control. */
 h1 {
-  flex: 0 1 auto;
+  /* `1 1 auto` since issue 131: this is the item that takes the row's spare width and the item
+     that gives it back first. The argument is in the .hrow block above. */
+  flex: 1 1 auto;
   min-width: 0;
   margin: 0;
   font-size: var(--fs-base);
   font-weight: 600;
   letter-spacing: .01em;
   line-height: 1.3;
+}
+
+/* THE CONTROL NEVER ELIDES AND THE CLAUSE DOES. Issue 131. Two items on one baseline: the picker,
+   which is the control and is `flex: none`, and the rest of the sentence, which is `0 1 auto` and
+   ends in an ellipsis when the row runs out of width. The four other headings are short sentences
+   with no control in them and are left alone.
+
+   `overflow: hidden` IS ON THE CLAUSE AND NOT ON THE HEADING, and that is the reason the clause
+   exists as an element at all: the programme menu is absolutely positioned inside the picker, so
+   an overflow rule anywhere above it would clip the box rather than the words. This is the one
+   subtree that holds no popover. */
+.h-diagram {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.h-diagram > .pgpick { flex: none; }
+
+.h-tail {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* AND WHERE THE CLAUSE RUNS OUT, THE ROW BREAKS RATHER THAN THE NAME. Issue 131, and this
+   breakpoint is a measurement rather than a round number. The one row layout needs the header's
+   padding, the plate, the nav and the two gaps between them, which is 765 CSS px before the
+   heading gets anything, and the widest programme name with its mark is 205: below about 970 the
+   picker is wider than the space left for it, and because the heading can carry no overflow rule
+   above the picker, without this the name is not elided, it is painted UNDER the plate and cut
+   through the middle of a letter. Measured at 900 by 800 before this rule: `Z-IB Investment
+   Banking` with the final letter sliced by the plate's left edge.
+
+   SO THE CLAUSE ELIDES FROM ABOUT 1250 DOWN TO 980 AND THEN THE HEADING TAKES ITS OWN LINE, which
+   is the same order of sacrifice one step further: the space between the words goes, then the
+   words at the end of the sentence, then the row. The programme name is the subject of the page
+   and the control that changes it, and it is never cut. Two rows here is 77px against the 79 this
+   band measured before this card, so the height is not a cost; what it buys is a readout that is
+   one line at every width instead of three lines of folded readings.
+
+   The upper bound and not only the lower one, because the phone block below states the other end
+   of the same design and the two must not both apply. */
+@media (min-width: 761px) and (max-width: 980px) {
+  .hrow { flex-wrap: wrap; gap: 6px 20px; }
+  h1 { flex: 1 1 100%; }
+  .h-diagram { display: inline; }
+  .h-tail {
+    display: inline;
+    overflow: visible;
+    white-space: normal;
+    text-overflow: clip;
+  }
 }
 
 /* ---- the programme picker ------------------------------------------------
@@ -686,26 +879,35 @@ h1 {
    absolute box, so opening it moves nothing: the nav's height, the header's height and the fit
    of the drawing under it are the same before and after.
 
-   IT HANGS OFF THE RIGHT AND NOT OFF THE LEFT, which is the one difference from .pgmenu and is
-   forced by where it sits: the programme picker is at the start of the heading and this is in
-   the middle of the nav, near the right edge at every width, so a box anchored left would leave
-   the viewport. `max-width` is the viewport less the header's own padding on both sides, which
-   is the same measurement .pgmenu and .helpbox already use.
+   IT HUNG OFF THE RIGHT EDGE OF ITS OWN CONTROL AND IT HANGS OFF THE LEFT EDGE OF THE PLATE,
+   which is issue 131 and is a measured repair rather than a preference reversed. Right of the
+   control was correct while the control was in the nav, near the right edge at every width. Since
+   #120 it is the first reading on a plate in the middle of the row, and this box is 460px against
+   a control of 84: at 900 by 800 it measured left: -73.1, with `this page has no today` reading
+   `as no today`, `1 week` cut in half and the closing sentence reading `ole term`, and nothing
+   could reach any of it, because overflow to the left of the origin creates no scrollbar. Left of
+   the plate it is on screen at every width down to the breakpoint, where the phone block takes
+   over and pins it to the viewport for the same reason again. `max-width` is the viewport less
+   the header's own padding on both sides, which is the same measurement .pgmenu and .helpbox
+   already use.
 
    IT IS INSIDE THE HEADER, so a sheet cannot reach over it either way: the header is
    --z-chrome and a sheet is --z-sheet, and everything inside a stacking context at 25 paints
    above everything at 20. --z-pop is the rung it takes WITHIN the header, over the nav's own
    line, which is all it needs. The ladder and its reasons are in the palette block at the top of
    this file. */
+/* NOT `position: relative` SINCE ISSUE 131. The box below hangs off the plate, which is the
+   group this reading is part of, and not off this 84px control; the measurement that forced
+   it is in the .hstate block. The span stays, because it is what the plate's first and last
+   child rules round the corners of and what the divider selector counts. */
 .wnpick {
-  position: relative;
   display: inline-block;
 }
 
 .wnmenu {
   position: absolute;
   top: calc(100% + 5px);
-  right: 0;
+  left: 0;
   z-index: var(--z-pop);
   width: 460px;
   max-width: calc(100vw - 40px);
@@ -839,19 +1041,24 @@ h1 {
    is 26 by 26 by construction and shares the row's one baseline; this file adds a position and a
    box to hang from it and no dimension at all. A control added to this row after this one is the
    right size for the same reason and without anybody remembering to make it so. */
+/* NOT `position: relative` SINCE ISSUE 131. The box below hangs off the plate, which is the
+   group this reading is part of, and not off this 84px control; the measurement that forced
+   it is in the .hstate block. The span stays, because it is what the plate's first and last
+   child rules round the corners of and what the divider selector counts. */
 .gapspick {
-  position: relative;
   display: inline-block;
 }
 
-/* Anchored right for .wnmenu's reason and measured the same way: this control sits fourth in a
-   six item nav, which is past the middle at every width, so a box anchored left leaves the
-   viewport. It is narrower than the window's box because it holds a sentence and a short table
-   rather than three rows of controls. */
+/* Anchored to the plate's left edge for .wnmenu's reason and measured the same way, issue 131:
+   this is a reading on a plate in the middle of the row and not the fourth item of a nav, and a
+   340px box hung off an 84px control that is itself a third of the way across the row is a box
+   whose edges are wherever the heading beside it happens to have left them. It is narrower than
+   the window's box because it holds a sentence and a short table rather than three rows of
+   controls. */
 .gapsmenu {
   position: absolute;
   top: calc(100% + 5px);
-  right: 0;
+  left: 0;
   z-index: var(--z-pop);
   width: 340px;
   max-width: calc(100vw - 40px);
@@ -978,18 +1185,22 @@ h1 {
    .gapsmenu's, which were .wnmenu's, which were .pgmenu's. NOTHING HERE SETS A SIZE, which is
    issue 77 still holding: the control is a .linkbtn, so it is 26 by 26 by construction and sits
    on the row's one baseline, and this file adds a position and a box and no dimension at all. */
+/* NOT `position: relative` SINCE ISSUE 131. The box below hangs off the plate, which is the
+   group this reading is part of, and not off this 84px control; the measurement that forced
+   it is in the .hstate block. The span stays, because it is what the plate's first and last
+   child rules round the corners of and what the divider selector counts. */
 .grpick {
-  position: relative;
   display: inline-block;
 }
 
 /* Narrower than the gap list because it holds one sentence, two choices and a note, rather than
-   a sentence and a table. Anchored right for .gapsmenu's measured reason: this control sits past
-   the middle of the row at every width, and a box anchored left leaves the viewport. */
+   a sentence and a table. Anchored to the plate's left edge for .gapsmenu's measured reason,
+   issue 131: the three boxes on this plate open in one place, under the group they read from,
+   and the reading they belong to is the one carrying the accent along its bottom edge. */
 .grmenu {
   position: absolute;
   top: calc(100% + 5px);
-  right: 0;
+  left: 0;
   z-index: var(--z-pop);
   width: 300px;
   max-width: calc(100vw - 40px);
@@ -1995,7 +2206,7 @@ body.fb-mode .fb-popover select { cursor: pointer; }
      not enough: the nav keeps `flex: none` from the desktop rule, so it is sized to its own
      max-content width and its children never meet an edge to wrap at. It is given the row
      here, and then wraps inside it. */
-  .hnav { flex: 1 1 100%; flex-wrap: wrap; gap: 6px; }
+  .hnav { flex: 1 1 100%; flex-wrap: wrap; gap: 4px; }
   /* THREE LINES HERE, AND THEY ARE THE THREE A PHONE ALREADY HAD. Issue 120. Before this card the
      header at 390 was the heading on one line and the nav wrapped onto two, and it measured 107px.
      The readout takes the line the second nav line used to take: the heading, then what is on
@@ -2004,7 +2215,26 @@ body.fb-mode .fb-popover select { cursor: pointer; }
      that a flex item sized to its own content never meets an edge to wrap at, and it is allowed to
      wrap inside itself so that a reading added later, or a longer number in one that is already
      there, folds inside the plate instead of pushing the page sideways. */
-  .hstate { flex: 1 1 100%; flex-wrap: wrap; }
+  /* THE PLATE TAKES ITS OWN LINE AND STOPS AT ITS OWN CONTENT, issue 131. `flex: 1 1 100%` gave
+     it the line by making the box 100 per cent wide, and the four readings come to 337 of the 366
+     a 390px screen has: the remaining 29px was tinted, ruled plate with nothing on it, and when
+     `gaps` was open its highlight stopped in the middle of a cell that ran on to the edge. The
+     line is taken by the HEADING instead, which is given the full width below, so this is sized
+     by its readings and the empty pane is gone. `max-width` and the wrap are the safety they
+     always were: a longer number folds inside the plate rather than pushing the page sideways. */
+  .hstate { flex: 0 1 auto; max-width: 100%; flex-wrap: wrap; }
+  /* The heading takes the row here, which is what puts the plate and the nav below it, and its
+     clause goes back to being a clause: the ellipsis is a desktop answer to a row that is full,
+     and on a phone there is a whole line for the sentence and it should wrap into it as it always
+     did. Issue 131. */
+  h1 { flex: 1 1 100%; }
+  .h-diagram { display: inline; }
+  .h-tail {
+    display: inline;
+    overflow: visible;
+    white-space: normal;
+    text-overflow: clip;
+  }
   /* The five controls in the nav are within a few pixels of the width of a 390px screen once
      they are 24 by 24, so the padding that separates them in the row comes down here and the box
      stays the size a finger needs. The picker inside the heading keeps its own, tighter, padding
@@ -2014,8 +2244,16 @@ body.fb-mode .fb-popover select { cursor: pointer; }
   /* The readings take the same cut for the same reason, and the static one with them, because the
      plate has to hold all four of them on one line at 390 and a reading that kept the wider
      padding would be the one that folded the box in two. Issue 120. */
+  /* 5 and not 6 since issue 131, and the pixel is bought rather than trimmed: the three pressable
+     readings carry a disclosure mark now, which is 3 by 10 CSS px apiece, and on the widest
+     drawings the gap reading is `gaps 10 of 95`. Measured at 360 by 844, which is the narrowest
+     screen this file has ever named, the plate came to 342 against the 336 a 360px screen leaves,
+     and folded in two on four of the seven drawings. Four readings at one pixel each side is
+     eight, the mark's own gap gives back three, and the plate is 331 with room to spare. The box
+     is still 88 by 26 on the narrowest of the four, so #77's floor is nowhere near. */
   .hstate .linkbtn,
-  .hstate .rd-static { padding-left: 6px; padding-right: 6px; }
+  .hstate .rd-static { padding-left: 5px; padding-right: 5px; }
+  .hstate .linkbtn.rd::after { margin-left: 3px; }
   /* THE WINDOW MENU STOPS HANGING OFF ITS OWN CONTROL BELOW THE BREAKPOINT, and this is a
      measured repair rather than a precaution. The nav wraps here, so the control it hangs from
      sits near the LEFT of the second row; a box anchored to that control's right edge and 350px
@@ -2109,12 +2347,25 @@ body.fb-mode .fb-popover select { cursor: pointer; }
   color: var(--fg-muted);
 }
 
-#ghtoggle:hover { text-decoration: none; background: var(--tint-hover); }
+/* THE HOVER CANNOT BE THE ON STATE, AND IT WAS. Issue 131. `--tint-neutral` and `--tint-hover`
+   are declared to the same value in both themes, so this chip filled with that value while it was
+   pressed and filled with that value while the pointer was over it: hovering the control while
+   the ghosts were OFF showed the reader exactly the paint that means the ghosts are on. The fill
+   belongs to the state, so the hover gives it up and says what a hover says instead, which is
+   that the thing under the pointer is a target: the dashes come up to the body's own muted grey
+   and the word to the body colour. Nothing about the dashes changes, because the dashes are the
+   ghosts' own mark and are the reason this control looks like the thing it adds. */
+#ghtoggle:hover {
+  text-decoration: none;
+  border-color: var(--fg-muted);
+  color: var(--fg-body);
+}
 
 #ghtoggle[aria-pressed="true"] {
   color: var(--fg-body);
   font-weight: 600;
   background: var(--tint-neutral);
+  border-color: var(--fg-muted);
 }
 
 body.hide-ghosts .ghost { display: none; }
