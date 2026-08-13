@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-13T12:04:35Z",
+  "generated": "2026-08-13T12:13:19Z",
   "columns": [
     {
       "key": "raw",
@@ -24,6 +24,15 @@
             "limitation"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
+        },
+        {
+          "id": 127,
+          "title": "Drag must be control or shift + click drag",
+          "labels": [
+            "bug",
+            "feedback"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/127"
         }
       ]
     },
