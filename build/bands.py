@@ -111,12 +111,12 @@ SENTINEL = {
 BANDS = [
     # Plural since issue 49: the lane held one employer and now holds five, and a caption is a
     # claim about everything under it. Two lines since issue 48, which stopped painting those
-    # five until the instructor each of them employs is clicked. A lane captioned only
-    # "programme", holding one tile in a tall empty strip, would be true of what is on screen and
-    # would hide that there is anything else in it; a lane still captioned "programme and
-    # employers" with no employer under it reads as five tiles that failed to load. The second
-    # line is the affordance, so the emptiness is legible as a state rather than as a fault.
-    ([0], ("programme", "employers appear on click")),
+    # five until the instructor each of them employs is clicked; ONE AGAIN SINCE #128. The second
+    # line was the affordance, and it was the third place on the page saying it: the panel note
+    # on the students card says it, the footer help says it, and it was printed on the canvas of
+    # thirty two of the thirty three addresses whether or not anybody wanted it. The claim did
+    # not go anywhere. It is in the help, once, where a reader who does not know it looks.
+    ([0], ("programme",)),
     # Issue 83. This lane read "session templates" while it drew six tiles of a syllabus holding
     # up to seventy nine, and said nothing about the other seventy three. Two of the seven views
     # now draw their whole syllabus and five still draw six, so the lane has to say which it is:
@@ -131,10 +131,11 @@ BANDS = [
     # costs eleven units of headroom on all seven drawings, because BAND_TOP reserves for the
     # longest caption any view could carry rather than for the one this view does.
     ([3], ("cohort sessions", SAMPLE_SESSIONS, "and the visit host")),
-    # Two lines since issue 51, for the same reason the programme lane grew one in issue 48: the
-    # lane holds four Student tiles that nothing paints until the students card is clicked, and a
-    # caption naming only what is on screen would hide that the lane holds anything else.
-    ([4, 5], ("cohort and students", "individuals appear on click")),
+    # Two lines since issue 51 and one again since #128, for the reason above it: the affordance
+    # is said in the help and on the students card's own note, and this was the copy of it that
+    # was on the canvas of every address at all times. "cohort and students" already says the
+    # lane holds students; what was under it was the gesture.
+    ([4, 5], ("cohort and students",)),
     ([6, 7], ("enrolment to claim",)),
 ]
 
@@ -151,9 +152,11 @@ BAND_KEYS = ("programme", "templates", "instructors", "sessions", "cohort", "enr
 # Issue 43. BANDS above was a module constant shared by every call to layout(), which held while
 # there was one drawing to lay out. There are seven now and they do not hold the same kinds of
 # thing: Z-CFA has no instructor anywhere in its source, no employer and no visit host, so
-# "employers appear on click" would promise tiles that do not exist, "instructors" would caption
-# an empty lane as though its tiles had failed to load, and "and the visit host" would name a
-# tile nothing draws.
+# "instructors" would caption an empty lane as though its tiles had failed to load and "and the
+# visit host" would name a tile nothing draws. CAP_NO_EMPLOYERS is now the same tuple as the
+# default lane's, since #128 took the affordance line off that one too; it is kept as its own
+# name because the two are the same string for different reasons and a lane that gains a caption
+# should not have to work out which of the two it meant.
 #
 # The three alternates are chosen by what a view ACTUALLY HOLDS and never by its code. Special
 # casing Z-CFA would have been a line of code and a lie about the mechanism: the next programme
