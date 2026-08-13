@@ -3812,23 +3812,49 @@ async function checkReview(page, base) {
   // same document; the review takes the calendar's route instead. The list is rebuilt here from
   // window.GI rather than read, and the page's own list is checked against it: 16 the sheet
   // answers, plus the diagram, the board and the student list, plus a route and an altitude for
-  // each of the seven programmes, which is 33 and is what it was before this card.
+  // each of the seven programmes, which is 33 and is what it was before that card.
+  //
+  // RE-CUT TO 34 BY ISSUE 130, OPENLY, AND THE THIRTY FOURTH IS NAMED HERE. This assertion has
+  // been the ceiling every card since #120 has had to build under, and each of them did: #124 put
+  // the review on the calendar's route and #125 put the worklist on a query of it, both rather
+  // than spend one. #130 spends exactly one, by the owner's explicit choice, because the thing
+  // being built is the committee's redesign of the whole control surface and he asked for it to
+  // live BESIDE the current page at its own address so the two can be judged against each other.
+  //
+  // WHAT IS KEPT, AND IT IS THE POINT OF NOT DELETING THIS. The claim is still that the page
+  // answers exactly the addresses this driver can derive and no others: the arithmetic is
+  // unchanged, the sheet's sixteen are still checked against the page's own list, the review still
+  // has no address of its own, and the one new entry is not an assumption but a read, since
+  // `window.ZD.route()` is asked what the desk answers and the desk is required to actually come
+  // up there. A card that adds a thirty fifth has to come back to this line and say why, which is
+  // exactly what happened here.
   const views = JSON.parse(await page.evaluate(
     `JSON.stringify(window.GI.views.map(function (v) {
        return { key: v.key, code: v.code, label: v.label, route: v.route }; }))`));
   const termRoutes = JSON.parse(await page.evaluate('JSON.stringify(window.ZT.termRoutes())'));
+  const deskRoute = await page.evaluate('window.ZD.route()');
   const wantSheet = ['calendar', 'outline'].reduce(
     (a, rd) => a.concat(['#/' + rd], views.map(v => '#/' + rd + '/' + v.key)), []);
-  const wantAll = ['#/', '#/board', '#/students']
+  const wantAll = ['#/', '#/board', '#/students', deskRoute]
     .concat(views.map(v => v.route), views.map(v => v.route + '/modules'), wantSheet);
-  assert('and it added no address: the page answers the 33 it answered before, the review among them',
+  await page.evaluate(`location.hash = ${JSON.stringify(deskRoute)}`);
+  await page.waitFor('window.ZD.on() === true', `the desk to come up at ${deskRoute}`);
+  const deskUp = await page.evaluate('window.ZD.on()');
+  await page.evaluate(`location.hash = '#/calendar'`);
+  await page.waitFor(`window.ZT.term().open === true &&
+                      window.ZT.term().reading === 'calendar'`,
+    'the review back after the address count');
+  assert('and it added one address and one only: the page answers 34, the desk among them and the review not',
     termRoutes.slice().sort().join('|') === wantSheet.slice().sort().join('|') &&
-      termRoutes.length === 16 && wantAll.length === 33 &&
-      new Set(wantAll).size === 33 &&
+      termRoutes.length === 16 && wantAll.length === 34 &&
+      new Set(wantAll).size === 34 &&
+      deskRoute === '#/desk' && deskUp === true &&
       wantAll.filter(h => /review/i.test(h)).length === 0 &&
       wantAll.indexOf('#/calendar') !== -1,
-    `33 addresses, ${wantSheet.length} of them the sheet's, none of them named after the review`,
+    `34 addresses, ${wantSheet.length} of them the sheet's, one of them the desk at ` +
+      '#/desk answering there, none of them named after the review',
     `${termRoutes.length} sheet routes ${JSON.stringify(termRoutes.slice(0, 3))}, ` +
+      `desk ${JSON.stringify(deskRoute)} up ${deskUp}, ` +
       `${new Set(wantAll).size} addresses in all`);
 
   // THREE. THE ROWS ARE THE WINDOW AND NOTHING ELSE, recomputed here. The second claim is that the
