@@ -224,17 +224,57 @@
     var gest = null;
     var suppressUntil = 0;            // a click arriving before this is the end of a drag
 
-    function startPan(x, y, isDrag) {
+    // ---- what a drag may do, issue 127 -----------------------------------------
+    // THE OWNER, FROM #graph AT 1536x839: "Drag must be control or shift + click drag". A plain
+    // click drag on the drawing no longer moves the plane; Ctrl, Shift or Cmd held when the
+    // pointer goes down does.
+    //
+    // IT IS THE SHAPE #76 ALREADY GAVE THE WHEEL, and this card is that decision reaching the
+    // other gesture. The wheel zooms only with a modifier and pans bare; the drag now pans only
+    // with a modifier and does nothing bare. Neither is a new mechanism: the modifier was already
+    // read on the wheel and on the keyboard, and this reads the same three fields on the event
+    // that already starts the gesture.
+    //
+    // WHAT A PLAIN DRAG DOES INSTEAD IS NOTHING, WHICH IS A DECISION AND NOT AN OMISSION. The
+    // page has exactly two things a press on the canvas can mean: a click, which selects the node
+    // under it or clears the selection, and a pan. A plain drag is not a click, because #46's
+    // threshold has already decided that a pointer that travelled is not a click and swallows the
+    // click it leaves behind, and that stays: `drag` still means "this gesture travelled, so the
+    // click at the end of it is not a selection" and is still set by distance alone. What is
+    // gated is the new `pan` flag, and only that. So a plain drag selects nothing, clears
+    // nothing, files nothing while capture mode is on, and moves nothing. Anything else would be
+    // a gesture this page does not have, and inventing one is not what was asked for.
+    //
+    // TOUCH IS NOT GATED, and that is the one place this rule is narrower than its sentence. A
+    // touch screen has no Ctrl and no Shift, and it has no wheel either, so gating the one finger
+    // drag there would leave a reader on a phone with two fingers as the only way to move the
+    // drawing at all. The card was filed with a mouse, from a 1536 wide window, about a click
+    // drag. `pointerType` is the field that says whether a modifier was ever available, so it is
+    // the field this asks, rather than a viewport width, which is a proxy for it and wrong on a
+    // tablet with a keyboard.
+    //
+    // THE MODIFIER IS READ AT pointerdown AND NEVER AGAIN. A reader who lets go of Shift halfway
+    // through a pan is still panning; the modifier decides what the gesture IS, once, the way it
+    // does for a drag in every editor that has one. `metaKey` is Cmd, added for the same reason
+    // the wheel takes it: on a Mac, Ctrl is not the document modifier.
+    function panAllowed(e) {
+      if (e.pointerType === 'touch') return true;
+      return !!(e.ctrlKey || e.shiftKey || e.metaKey);
+    }
+
+    function startPan(x, y, isDrag, mayPan) {
       gest = { mode: 'pan', sx: x, sy: y, vx: view.x, vy: view.y, t0: now(),
-               far: 0, drag: !!isDrag };
-      if (isDrag) canvas.classList.add('panning');
+               far: 0, drag: !!isDrag, pan: !!mayPan };
+      if (isDrag && mayPan) canvas.classList.add('panning');
     }
 
     function startPinch() {
       var ids = Object.keys(ptrs);
       var a = ptrs[ids[0]], b = ptrs[ids[1]];
+      // A pinch is two pointers on the glass and can carry no modifier at all, so it is not
+      // gated: it was never a click drag and #127 is about the click drag.
       gest = { mode: 'pinch', d: dist(a, b), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2,
-               drag: true };
+               drag: true, pan: true };
       canvas.classList.add('panning');
     }
 
@@ -248,7 +288,7 @@
       ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
       suppressUntil = 0;
       if (nptr === 1) {
-        startPan(e.clientX, e.clientY, false);
+        startPan(e.clientX, e.clientY, false, panAllowed(e));
         window.addEventListener('pointermove', onMove, true);
         window.addEventListener('pointerup', onUp, true);
         window.addEventListener('pointercancel', onUp, true);
@@ -286,10 +326,12 @@
       if (far > gest.far) gest.far = far;
       if (!gest.drag &&
           (gest.far >= DRAG_PX || (gest.far >= SLOW_PX && now() - gest.t0 >= SLOW_MS))) {
+        // TRAVELLED, WHICH IS STILL DECIDED BY DISTANCE ALONE. This is the flag that swallows the
+        // click at the end, and #127 did not touch it: a plain drag is not a click either.
         gest.drag = true;
-        canvas.classList.add('panning');
+        if (gest.pan) canvas.classList.add('panning');
       }
-      if (!gest.drag) return;
+      if (!gest.drag || !gest.pan) return;
       // Measured from where the gesture started rather than accumulated frame by frame, so the
       // drawing sits exactly under the finger however many events arrived on the way.
       view.x = gest.vx - dx / view.k;
@@ -308,7 +350,7 @@
         // drag from the start: two fingers have already been on the glass and nothing about that
         // was a click.
         var p = ptrs[Object.keys(ptrs)[0]];
-        startPan(p.x, p.y, true);
+        startPan(p.x, p.y, true, true);
         return;
       }
       if (nptr === 0) endGesture();

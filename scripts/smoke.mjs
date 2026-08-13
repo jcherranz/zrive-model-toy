@@ -264,6 +264,7 @@ const PHASES = {
   'the review':           { count: 7, when: 'behavioural' },
   'the worklist':         { count: 9, when: 'behavioural' },
   'the cut':              { count: 8, when: 'behavioural' },
+  'the modified drag':    { count: 6, when: 'behavioural' },
   'header':               { count: 8, when: 'behavioural' },
   'the readout':          { count: 7, when: 'behavioural' },
   'canvas':               { count: 7, when: 'behavioural' },
@@ -497,7 +498,7 @@ const PHASES = {
 // rule met in its most flattering direction: "everything here is staffed" read off six sessions of
 // seventy nine is a property of a document, so an empty worklist and an absent programme both count
 // over the DRAWN rows and both say the word.
-const EXPECTED_ASSERTIONS = 240;
+const EXPECTED_ASSERTIONS = 246;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -1153,9 +1154,15 @@ function px(name, v) {
   return v;
 }
 
-async function mouse(page, type, x, y, buttons) {
+// The CDP modifier bitmask, named rather than spelled at the call sites. Issue 127 turned the
+// difference between 0 and one of these into the difference between a gesture that moves the
+// drawing and one that does nothing, so a bare 8 in an argument list is now load bearing.
+const MOD = { none: 0, alt: 1, ctrl: 2, meta: 4, shift: 8 };
+
+async function mouse(page, type, x, y, buttons, modifiers) {
   await page.send('Input.dispatchMouseEvent', {
-    type, x: px('x', x), y: px('y', y), button: 'left', buttons, clickCount: 1, pointerType: 'mouse'
+    type, x: px('x', x), y: px('y', y), button: 'left', buttons, clickCount: 1,
+    pointerType: 'mouse', modifiers: modifiers || 0
   });
 }
 
@@ -1164,13 +1171,34 @@ async function click(page, x, y) {
   await mouse(page, 'mouseReleased', x, y, 0);
 }
 
-async function dragBy(page, x, y, dx, dy, steps) {
-  await mouse(page, 'mousePressed', x, y, 1);
+// `modifiers` is held for the whole gesture, press included, because site/viewport.js reads it on
+// pointerdown and never again: the modifier decides what the gesture IS rather than what it is
+// doing at any instant. Issue 127.
+async function dragBy(page, x, y, dx, dy, steps, modifiers) {
+  const m = modifiers || 0;
+  await mouse(page, 'mousePressed', x, y, 1, m);
   const n = steps || 8;
   for (let i = 1; i <= n; i++) {
-    await mouse(page, 'mouseMoved', Math.round(x + (dx * i) / n), Math.round(y + (dy * i) / n), 1);
+    await mouse(page, 'mouseMoved', Math.round(x + (dx * i) / n), Math.round(y + (dy * i) / n), 1, m);
   }
-  await mouse(page, 'mouseReleased', x + dx, y + dy, 0);
+  await mouse(page, 'mouseReleased', x + dx, y + dy, 0, m);
+}
+
+// One finger on the glass, which is the one input site/viewport.js does NOT gate on a modifier,
+// because a touch screen has neither Ctrl nor Shift nor a wheel. Touch events rather than mouse
+// events with a pointerType, because a synthesised mouse event carrying pointerType 'touch' is
+// still delivered down the mouse path and would prove nothing about the branch that matters.
+async function touchDragBy(page, x, y, dx, dy, steps) {
+  const pt = (ax, ay) => [{ x: px('x', ax), y: px('y', ay), radiusX: 1, radiusY: 1, force: 1, id: 1 }];
+  await page.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: pt(x, y) });
+  const n = steps || 8;
+  for (let i = 1; i <= n; i++) {
+    await page.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: pt(Math.round(x + (dx * i) / n), Math.round(y + (dy * i) / n))
+    });
+  }
+  await page.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
 }
 
 // The view stops moving. Used where the page offers no signal for "nothing further will happen":
@@ -3408,18 +3436,31 @@ async function checkTerm(page) {
   // AND IT DOES NOT BREAK THE CANVAS. A press and drag is a pan and issue 46 spent real work on
   // the click versus drag threshold; a new click target on the drawing that swallowed a pan, or
   // that navigated at the end of one, would be a regression in the plane rather than a feature.
+  // RE-CUT AT #127, WHICH IS WHY THE MODIFIER IS HELD. A plain drag no longer pans anything, so
+  // this claim is about the pan gesture as it now is; that a PLAIN drag over this heading does
+  // not navigate either is the second half and it is asserted here too, because the heading is a
+  // click target and a plain drag ending on one is exactly the case that could start navigating.
   await page.evaluate('window.ZT.fit()');
   const beforeDrag = await viewSettled(page);
   const dragFrom = await capBox();
-  await dragBy(page, dragFrom.templates.cx, dragFrom.templates.cy, 90, 60);
+  await dragBy(page, dragFrom.templates.cx, dragFrom.templates.cy, 90, 60, 8, MOD.ctrl);
   const afterDrag = await viewSettled(page);
   const hashAfter = await page.evaluate('location.hash');
   const moved = Math.abs(afterDrag.x - beforeDrag.x) * afterDrag.k;
-  assert('a press and drag that starts on the lane heading pans and does not navigate',
-    moved > 60 && !/outline|calendar/.test(hashAfter) &&
+  await page.evaluate('window.ZT.fit()');
+  const beforePlain = await viewSettled(page);
+  const dragFrom2 = await capBox();
+  await dragBy(page, dragFrom2.templates.cx, dragFrom2.templates.cy, 90, 60);
+  const afterPlain = await viewSettled(page);
+  const hashPlain = await page.evaluate('location.hash');
+  const movedPlain = Math.abs(afterPlain.x - beforePlain.x) * afterPlain.k;
+  assert('a press and drag that starts on the lane heading pans with the modifier, does not without it, and navigates on neither',
+    moved > 60 && movedPlain === 0 &&
+      !/outline|calendar/.test(hashAfter) && !/outline|calendar/.test(hashPlain) &&
       (await page.evaluate('window.ZT.term().open')) === false,
-    'the drawing moved and the sheet stayed shut',
-    `moved ${moved.toFixed(1)}px, hash ${JSON.stringify(hashAfter)}`);
+    'the drawing moved under Ctrl and not without it, and the sheet stayed shut on both',
+    `modified moved ${moved.toFixed(1)}px hash ${JSON.stringify(hashAfter)}, plain moved ` +
+      `${movedPlain.toFixed(1)}px hash ${JSON.stringify(hashPlain)}`);
   await page.evaluate('window.ZT.fit()');
   await viewSettled(page);
 }
@@ -4822,6 +4863,202 @@ async function checkCut(page, base) {
   await viewSettled(page);
 }
 
+// ---- the modified drag, issue 127 ---------------------------------------------------------------
+// THE OWNER, FROM #graph AT 1536x839: "Drag must be control or shift + click drag". So a plain
+// click drag must not pan and a modified one must, and BOTH HALVES ARE ASSERTED HERE. A driver
+// that only drove the modified gesture would pass on a page that had never been changed, which is
+// the assertion this project spent a day removing.
+//
+// THE PLANE IS READ OFF THE SVG's OWN viewBox AND NEVER OFF window.ZT.view(). The view object is
+// what site/viewport.js believes; the viewBox is what the browser is rendering from. A gate that
+// asked the page whether it had panned would pass on a page that updated its bookkeeping and
+// painted nothing, and would fail to notice a page that painted a pan it did not record.
+const VIEWBOX = `(function () {
+  var svg = document.getElementById('graph');
+  var vb = (svg.getAttribute('viewBox') || '').trim().split(/\\s+/).map(Number);
+  var r = svg.getBoundingClientRect();
+  return JSON.stringify({ x: vb[0], y: vb[1], w: vb[2], h: vb[3],
+                          k: vb[2] ? r.width / vb[2] : 0,
+                          panning: document.getElementById('canvas').classList.contains('panning') });
+})()`;
+
+// How far the drawing moved on screen, in CSS pixels, between two viewBox readings. The scale is
+// the one the second reading was taken at, which is the same scale for every gesture here because
+// none of them zooms.
+function movedPx(a, b) {
+  return { x: Math.abs(b.x - a.x) * b.k, y: Math.abs(b.y - a.y) * b.k };
+}
+
+async function checkDrag(page, base) {
+  await page.evaluate(`location.hash = '#/'`);
+  await page.waitFor(`window.ZT.term().open === false`, 'the drawing');
+  await clearSelectionIfAny(page);
+
+  // A point on bare canvas, chosen from the drawing's own extent rather than named here, and far
+  // enough from the tiles that a gesture over it is a gesture over the plane.
+  const spot = await page.evaluate(`(function () {
+    var svg = document.getElementById('graph');
+    var r = svg.getBoundingClientRect();
+    return JSON.stringify({ x: Math.round(r.left + r.width * 0.5),
+                            y: Math.round(r.top + r.height * 0.92) });
+  })()`).then(JSON.parse);
+
+  async function drag(dx, dy, mod) {
+    await page.evaluate('window.ZT.fit()');
+    await viewSettled(page);
+    const before = JSON.parse(await page.evaluate(VIEWBOX));
+    await dragBy(page, spot.x, spot.y, dx, dy, 8, mod);
+    await viewSettled(page);
+    const after = JSON.parse(await page.evaluate(VIEWBOX));
+    return { before, after, moved: movedPx(before, after) };
+  }
+
+  // ---- 1. a plain click drag moves nothing ----------------------------------------
+  // Forty pixels, which is eight times DRAG_PX and thirteen times SLOW_PX, so the gesture is over
+  // both of #46's thresholds by a wide margin: what stops it is the missing modifier and not the
+  // distance. Equality against the viewBox it started at rather than a tolerance, because the
+  // claim is that nothing happened.
+  const plain = await drag(40, 25);
+  assert('a plain click drag on the drawing moves the plane not at all',
+    plain.after.x === plain.before.x && plain.after.y === plain.before.y &&
+      plain.after.w === plain.before.w && plain.moved.x === 0 && plain.moved.y === 0,
+    'the viewBox the browser is rendering from unchanged by a 40 by 25 drag with no modifier',
+    `viewBox ${JSON.stringify(plain.before)} became ${JSON.stringify(plain.after)}`);
+
+  // ---- 2 and 3. and each of the two modifiers he named moves it -------------------
+  // The travel is asserted rather than the direction alone: a pan that moved the plane by some
+  // other amount would be a different gesture wearing this one's name. Half a pixel of tolerance
+  // for the viewBox being written to three decimal places, which is the same allowance the
+  // anchored-zoom claims make and is argued at ZOOM_EPS_PX.
+  const ctrl = await drag(40, 25, MOD.ctrl);
+  assert('and the same drag with Ctrl held pans the drawing by exactly the pointer\'s travel',
+    Math.abs(ctrl.moved.x - 40) < 1 && Math.abs(ctrl.moved.y - 25) < 1 &&
+      ctrl.after.w === ctrl.before.w,
+    'the plane 40px across and 25px down under a Ctrl drag, at the same scale',
+    `it moved ${ctrl.moved.x.toFixed(2)}px by ${ctrl.moved.y.toFixed(2)}px, ` +
+      `width ${ctrl.before.w} became ${ctrl.after.w}`);
+
+  const shift = await drag(40, 25, MOD.shift);
+  assert('and with Shift held, which is the other modifier the card names',
+    Math.abs(shift.moved.x - 40) < 1 && Math.abs(shift.moved.y - 25) < 1 &&
+      shift.after.w === shift.before.w,
+    'the plane 40px across and 25px down under a Shift drag, at the same scale',
+    `it moved ${shift.moved.x.toFixed(2)}px by ${shift.moved.y.toFixed(2)}px, ` +
+      `width ${shift.before.w} became ${shift.after.w}`);
+
+  // ---- 4. the modifier is what the gesture IS, decided once ------------------------
+  // Read at pointerdown and never again, which is the rule every editor with a modified drag
+  // runs on and is worth asserting in both directions: a page that read it on every move would
+  // stop panning the moment a reader let go of the key mid gesture, and one that read it on the
+  // release would pan a gesture that was never meant to.
+  await page.evaluate('window.ZT.fit()');
+  await viewSettled(page);
+  const relBefore = JSON.parse(await page.evaluate(VIEWBOX));
+  await mouse(page, 'mousePressed', spot.x, spot.y, 1, MOD.ctrl);
+  for (let i = 1; i <= 8; i++) {
+    await mouse(page, 'mouseMoved', spot.x + i * 5, spot.y, 1, i > 2 ? MOD.none : MOD.ctrl);
+  }
+  await mouse(page, 'mouseReleased', spot.x + 40, spot.y, 0, MOD.none);
+  await viewSettled(page);
+  const relAfter = JSON.parse(await page.evaluate(VIEWBOX));
+
+  await page.evaluate('window.ZT.fit()');
+  await viewSettled(page);
+  const lateBefore = JSON.parse(await page.evaluate(VIEWBOX));
+  await mouse(page, 'mousePressed', spot.x, spot.y, 1, MOD.none);
+  for (let i = 1; i <= 8; i++) {
+    await mouse(page, 'mouseMoved', spot.x + i * 5, spot.y, 1, i > 2 ? MOD.ctrl : MOD.none);
+  }
+  await mouse(page, 'mouseReleased', spot.x + 40, spot.y, 0, MOD.ctrl);
+  await viewSettled(page);
+  const lateAfter = JSON.parse(await page.evaluate(VIEWBOX));
+
+  const released = movedPx(relBefore, relAfter);
+  const acquired = movedPx(lateBefore, lateAfter);
+  assert('the modifier decides what the gesture is, at the press, and nothing after the press changes it',
+    Math.abs(released.x - 40) < 1 && acquired.x === 0,
+    'a Ctrl drag that lets the key go halfway still pans the full 40px, and a plain drag that ' +
+      'takes the key halfway still moves nothing',
+    `released mid gesture moved ${released.x.toFixed(2)}px, acquired mid gesture moved ` +
+      `${acquired.x.toFixed(2)}px`);
+
+  // ---- 5. and a plain drag is still not a click -----------------------------------
+  // #46's threshold decided that a pointer which travelled is not a click and swallows the click
+  // it leaves behind, and #127 did not touch that: what it gated is the pan and only the pan. So
+  // a plain drag now does NOTHING, which is the whole of what it does, and this asserts the other
+  // three things it must not have started doing instead. Capture mode is on for it, because a
+  // plain drag that filed a card at wherever it let go is the worst of the four.
+  await page.evaluate('window.ZT.fit()');
+  await viewSettled(page);
+  await clearSelectionIfAny(page);
+  const node = await someInstructor(page);
+  const tile = await stableRect(page, `[data-node="${node}"] rect.tile-bg`);
+  const nx = Math.round(tile.cx), ny = Math.round(tile.cy);
+  await requireHit(page, nx, ny, { node });
+  const fb = await stableRect(page, '#fbtoggle');
+  await click(page, Math.round(fb.cx), Math.round(fb.cy));
+  await page.waitFor(`document.body.classList.contains('fb-mode')`, 'capture mode on');
+  const hashBefore = await page.evaluate('location.hash');
+  const beforeQuiet = JSON.parse(await page.evaluate(VIEWBOX));
+  await dragBy(page, nx, ny, 45, 18);
+  await viewSettled(page);
+  const quiet = JSON.parse(await page.evaluate(`(function () {
+    return JSON.stringify({
+      selected: window.ZT.selected(),
+      popover: !!document.querySelector('.fb-popover'),
+      hash: location.hash
+    });
+  })()`));
+  const afterQuiet = JSON.parse(await page.evaluate(VIEWBOX));
+  await page.send('Input.dispatchKeyEvent',
+    { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+  await page.send('Input.dispatchKeyEvent',
+    { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+  await page.waitFor(`!document.body.classList.contains('fb-mode')`, 'capture mode off');
+  await clearSelectionIfAny(page);
+  assert('a plain drag beginning on a node does nothing at all: no pan, no selection, no card, no navigation',
+    movedPx(beforeQuiet, afterQuiet).x === 0 && quiet.selected === null &&
+      quiet.popover === false && quiet.hash === hashBefore,
+    'the plane still, nothing selected, no capture popover open and the address unchanged, ' +
+      'after a 45 by 18 drag off a tile with capture mode on',
+    JSON.stringify(quiet) + ', moved ' + movedPx(beforeQuiet, afterQuiet).x.toFixed(2) + 'px');
+
+  // ---- 6. and one finger on a touch screen still pans ------------------------------
+  // THE ONE PLACE THE RULE IS NARROWER THAN ITS SENTENCE, and it is asserted rather than argued.
+  // A touch screen has no Ctrl, no Shift and no wheel, so gating the one finger drag there would
+  // leave two fingers as the only way to move the drawing at all. Driven as real touch events
+  // with touch emulation turned on for the length of this claim and turned off after it, because
+  // a mouse event carrying a pointerType is still delivered down the mouse path and would prove
+  // nothing about the branch this is about.
+  await page.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+  await page.evaluate('window.ZT.fit()');
+  await viewSettled(page);
+  const touchBefore = JSON.parse(await page.evaluate(VIEWBOX));
+  await touchDragBy(page, spot.x, spot.y, 40, 25);
+  await viewSettled(page);
+  const touchAfter = JSON.parse(await page.evaluate(VIEWBOX));
+  await page.send('Emulation.setTouchEmulationEnabled', { enabled: false });
+  const touched = movedPx(touchBefore, touchAfter);
+  assert('and one finger on a touch screen still pans, because there is no modifier to hold on one',
+    Math.abs(touched.x - 40) < 1 && Math.abs(touched.y - 25) < 1 &&
+      touchAfter.w === touchBefore.w,
+    'the plane 40px across and 25px down under a one finger drag with no modifier',
+    `it moved ${touched.x.toFixed(2)}px by ${touched.y.toFixed(2)}px`);
+
+  // ---- and the page is handed back able to take a click ----------------------------
+  // A gesture that travelled arms site/viewport.js's 500ms swallow, so the click at the end of it
+  // cannot select or file. The last gesture in this phase is a drag, and the first thing the
+  // phase after it does is press a control: on the first run of this phase that press was eaten
+  // and `header` waited twenty seconds for a menu that never opened. This spends the swallow on a
+  // click of its own, on bare canvas where a live one would do nothing either, rather than
+  // sleeping past it and hoping.
+  await page.evaluate('window.ZT.fit()');
+  await viewSettled(page);
+  await click(page, spot.x, spot.y);
+  await page.waitFor(`window.ZT.selected() === null`, 'nothing selected by the drain click');
+  await viewSettled(page);
+}
+
 // ---- the empty window, issue 119 --------------------------------------------------------------
 // NOTHING IN THIS SUITE EVER DROVE ONE, AND THAT IS THE FINDING RATHER THAN THE RECTS. The term
 // runs 2026-01-12 to 2026-06-28 with real gaps in April and May, so a one week window over one
@@ -5721,13 +5958,25 @@ async function checkCanvas(page) {
   const dx0 = Math.round(t3.cx), dy0 = Math.round(t3.cy);
   await requireHit(page, dx0, dy0, { node });
   const viewBeforeDrag = await viewSettled(page);
-  await dragBy(page, dx0, dy0, 40, 0);
+  // RE-CUT AT #127. The forty pixels are the same forty pixels and the arithmetic is unchanged;
+  // what moved is that the gesture now holds Shift, because a plain drag moves nothing. The
+  // claim under it, that a drag beginning on a node selects nothing, is asserted on a PLAIN drag
+  // below, which is the case that could have started selecting when the pan came off it.
+  await dragBy(page, dx0, dy0, 40, 0, 8, MOD.shift);
   const viewAfterDrag = await viewSettled(page);
   const movedPx = Math.abs(viewAfterDrag.x - viewBeforeDrag.x) * viewAfterDrag.k;
-  const sel = await page.evaluate('JSON.stringify(window.ZT.selected())');
-  assert('a forty pixel drag pans the canvas',
+  assert('a forty pixel drag with Shift held pans the canvas',
     Math.abs(movedPx - 40) < 2, 'the plane to move 40px under the pointer',
     `it moved ${movedPx.toFixed(2)}px`, `${movedPx.toFixed(2)}px`);
+  await page.evaluate('window.ZT.fit()');
+  await viewSettled(page);
+  await clearSelectionIfAny(page);
+  const t4b = await stableRect(page, `[data-node="${node}"] rect.tile-bg`);
+  const dx1 = Math.round(t4b.cx), dy1 = Math.round(t4b.cy);
+  await requireHit(page, dx1, dy1, { node });
+  await dragBy(page, dx1, dy1, 40, 0);
+  await viewSettled(page);
+  const sel = await page.evaluate('JSON.stringify(window.ZT.selected())');
   assert('and a forty pixel drag beginning on a node selects nothing',
     sel === 'null', 'no selection', sel);
 }
@@ -5768,7 +6017,10 @@ async function checkCapture(page, base) {
   const tx = Math.round(t.cx), ty = Math.round(t.cy);
   await requireHit(page, tx, ty, { node });
   const before = await viewSettled(page);
-  await dragBy(page, tx, ty, 60, 20);
+  // #127: with the modifier, because a plain drag no longer moves the plane. That a PLAIN drag
+  // in capture mode still opens no popover and files nothing is asserted in `the modified drag`,
+  // and it is the half of this that the gating could have broken.
+  await dragBy(page, tx, ty, 60, 20, 8, MOD.ctrl);
   const after = await viewSettled(page);
 
   const state = await page.evaluate(`(function () {
@@ -7438,6 +7690,10 @@ async function runViewport(chrome, viewport, base, full, narrow) {
       // seven programmes: this one opens four menus, sixteen sheet addresses and the board and
       // puts the page back on the diagram with the sheet shut. Issue 128.
       await group('the cut', () => checkCut(page, base));
+      // After `the cut`, which hands the page back on the diagram with the window off, and
+      // before the phases that walk the seven programmes: this one fits the drawing between
+      // every gesture and leaves it fitted. Issue 127.
+      await group('the modified drag', () => checkDrag(page, base));
       await group('header', () => checkHeader(page));
       await group('the readout', () => checkReadout(page));
       await group('canvas', () => checkCanvas(page));
