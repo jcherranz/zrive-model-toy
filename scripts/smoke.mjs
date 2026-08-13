@@ -263,6 +263,7 @@ const PHASES = {
   'the empty window':     { count: 6, when: 'behavioural' },
   'the review':           { count: 7, when: 'behavioural' },
   'the worklist':         { count: 9, when: 'behavioural' },
+  'the cut':              { count: 8, when: 'behavioural' },
   'header':               { count: 8, when: 'behavioural' },
   'the readout':          { count: 7, when: 'behavioural' },
   'canvas':               { count: 7, when: 'behavioural' },
@@ -496,7 +497,7 @@ const PHASES = {
 // rule met in its most flattering direction: "everything here is staffed" read off six sessions of
 // seventy nine is a property of a document, so an empty worklist and an absent programme both count
 // over the DRAWN rows and both say the word.
-const EXPECTED_ASSERTIONS = 232;
+const EXPECTED_ASSERTIONS = 240;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -4488,6 +4489,331 @@ async function gapsMenu(page, want) {
     `the gap list to ${want ? 'open' : 'close'}`);
 }
 
+// ---- the cut, issue 128 -------------------------------------------------------------------------
+// THE OWNER: "the page is still too verbose on the control center etc. remove a lot of text". A
+// deletion card, and a deletion card is the one kind whose work the next card silently undoes: a
+// sentence is one line to put back, nothing breaks when it comes back, and nobody notices until
+// the page reads the way it read before. So the cut is held by assertions rather than by the
+// diff, and each of them is a claim about what is NOT on the page any more together with the
+// figure that had to survive in its place.
+//
+// EVERY ONE OF THE EIGHT IS RECOMPUTED. The lengths are measured on the elements, the fraction on
+// the students card is rebuilt out of the view's own nodes, the empty window's sentence is built
+// from the window state and the driver's own date formatter, and the captions are read off
+// window.GL. Nothing here asks the page whether it thinks it is short.
+const CUT_MENU_PARAS = `(function () {
+  // Every paragraph in the four menus of the header's readout and its nav, and only the ones that
+  // are prose: a row of buttons is a control and not a sentence.
+  var out = [];
+  ['#wnmenu', '#grmenu', '#gapsmenu', '#thmenu'].forEach(function (sel) {
+    var m = document.querySelector(sel);
+    if (!m || m.hidden) return;
+    Array.prototype.forEach.call(m.querySelectorAll('p'), function (p) {
+      if (p.querySelector('button')) return;
+      var t = p.textContent.replace(/\\s+/g, ' ').trim();
+      if (!t) return;
+      out.push({ where: sel + ' .' + (String(p.className).split(/\\s+/)[0] || '(none)'),
+                 n: t.length, text: t.slice(0, 120) });
+    });
+  });
+  return JSON.stringify(out);
+})()`;
+
+// Every note the document carries, walked here rather than taken from any list the page keeps.
+const CUT_NOTES = `(function () {
+  var notes = [];
+  (function walk(o) {
+    if (!o || typeof o !== 'object') return;
+    if (Object.prototype.toString.call(o) === '[object Array]') {
+      for (var i = 0; i < o.length; i++) walk(o[i]);
+      return;
+    }
+    if (typeof o.note === 'string' && o.note) notes.push(o.note);
+    for (var k in o) {
+      if (k !== 'note' && Object.prototype.hasOwnProperty.call(o, k)) walk(o[k]);
+    }
+  })(window.GI);
+  return JSON.stringify(notes);
+})()`;
+
+// The students card and the individuals it draws, per view, off the instance document.
+const CUT_STUDENT_CARDS = `(function () {
+  return JSON.stringify(window.GI.views.map(function (v) {
+    var card = null, drawn = 0;
+    v.nodes.forEach(function (n) {
+      if (n.type === 'StudentGroup') card = n;
+      if (n.type === 'Student') drawn++;
+    });
+    var head = null;
+    if (card) (card.props || []).forEach(function (p) { if (p.k === 'headcount') head = p.v; });
+    return { key: v.key, drawn: drawn, head: head, note: card ? (card.note || '') : null };
+  }));
+})()`;
+
+// Every caption line on every one of the fourteen drawings, off the geometry document, plus the
+// lines actually painted on the one that is on screen.
+const CUT_CAPTIONS = `(function () {
+  var lines = [];
+  window.GL.views.forEach(function (v) {
+    (v.drawing.bands || []).forEach(function (b) {
+      (b.lines || [b.label]).forEach(function (l) { lines.push(v.key + '/' + v.grain + ' ' + l); });
+    });
+  });
+  var painted = [];
+  Array.prototype.forEach.call(document.querySelectorAll('#graph text.band-cap'), function (t) {
+    painted.push(t.textContent);
+  });
+  return JSON.stringify({ lines: lines, painted: painted });
+})()`;
+
+// A gesture named in words. `click` and the rest are what the two captions this card took off the
+// canvas said, and what three of the five help items said; the help is where they live now, so
+// the sweep is over the drawing and never over the help box.
+const GESTURE_WORDS = /\bon click\b|\bclick\b|\bpress\b|\bdrag\b|\bscroll\b|\btap\b|\bhover\b/i;
+
+async function checkCut(page, base) {
+  // THE STATE THIS PHASE FOUND, RECORDED BEFORE IT MOVES ANYTHING. It opens the review, which
+  // arms a three week window, and `header`, `canvas` and `capture` after it all read a drawing
+  // with every tile on it. A phase that leaves a window on is a phase that makes three later
+  // ones fail for a reason that is not theirs, which is what the first run of this one did.
+  const winWas = JSON.parse(await page.evaluate('JSON.stringify(window.ZT.term().window)'));
+  // AND THE DRAWING, for the same reason and it cost the same lesson twice. `#/` is the default
+  // ADDRESS and not a reset: it keeps the programme and the altitude the reader was last on, so
+  // a phase that visits Z-BL at the modules grain and then goes to `#/` has left Z-BL's modules
+  // on screen. `capture` then looks for a Z-IB instructor and finds nothing.
+  const hashWas = await page.evaluate('location.hash');
+  const pgWas = await page.evaluate('window.ZT.programme().key');
+  const routeWas = await page.evaluate(
+    `(function () { var r = null; window.GI.views.forEach(function (v) {
+       if (v.key === window.ZT.programme().key) r = v.route; }); return r; })()`);
+
+  // ---- 1. the control centre holds figures, not paragraphs ------------------------
+  // THE CARD'S OWN SUBJECT, AND A RATCHET RATHER THAN A DESCRIPTION. Two paragraphs in the window
+  // menu ran to 328 and 282 characters, saying what the anchor is not and what each of the four
+  // surfaces does with the window. Both are gone and what is left in each is its figures. 200 is
+  // above every paragraph these menus now carry and below both of the two that went, so the
+  // assertion refuses the state this card was filed about and passes the state it left.
+  //
+  // BOTH ALTITUDES, because the grain menu's paragraph only has anything to say where something
+  // folded: at the sessions grain it printed a sentence to report a fold of zero, which is the
+  // whole reason that branch is gone, and at the modules grain it carries two counts.
+  const paras = [];
+  for (const at of ['#/', '#/p/ZBL/modules']) {
+    await page.evaluate(`location.hash = ${JSON.stringify(at)}`);
+    await page.waitFor(`window.ZT.term().open === false`, `the drawing at ${at}`);
+    await sleep(120);
+    for (const id of ['wnbtn', 'grbtn', 'gapsbtn', 'thtoggle']) {
+      await page.evaluate(`document.getElementById(${JSON.stringify(id)}).click()`);
+      await sleep(90);
+      const got = JSON.parse(await page.evaluate(CUT_MENU_PARAS));
+      got.forEach(g => paras.push(Object.assign({ at }, g)));
+      await page.evaluate(`document.getElementById(${JSON.stringify(id)}).click()`);
+      await sleep(60);
+    }
+  }
+  const overLong = paras.filter(p => p.n > 200);
+  assert('every paragraph in the header\'s four menus is a figure and not an argument, at both altitudes',
+    paras.length >= 8 && overLong.length === 0,
+    `${paras.length} paragraphs across the four menus on two altitudes, the longest at most 200 ` +
+      'characters',
+    `${paras.length} paragraphs, ${overLong.length} over 200: ` +
+      JSON.stringify(overLong.slice(0, 3).map(p => p.where + ' ' + p.n + ' ' + p.text)));
+
+  // ---- 2. the empty window says the fact and stops ---------------------------------
+  // It used to say the fact and then name the two controls that move it, which are the two
+  // controls the reader is looking at. The expected sentence is BUILT HERE, out of the window
+  // state and this file's own date formatter, so a page that changed the words rather than
+  // shortening them fails, and so does one that put the instruction back.
+  await page.evaluate(`location.hash = '#/calendar'`);
+  await page.waitFor(`window.ZT.term().open === true && window.ZT.term().shape === 'review'`,
+    'the review, with its own window armed');
+  const cw = await page.evaluate('window.ZT.term().window');
+  const perProg = JSON.parse(await page.evaluate(`(function () {
+    return JSON.stringify(window.GI.views.map(function (v) {
+      var n = 0;
+      v.nodes.forEach(function (node) {
+        if (node.type !== 'CohortSession') return;
+        var at = '';
+        (node.props || []).forEach(function (p) { if (p.k === 'scheduled_at') at = p.v; });
+        var d = String(at).split(' ')[0];
+        if (d && d >= ${JSON.stringify(cw.from)} && d <= ${JSON.stringify(cw.to)}) n++;
+      });
+      return { key: v.key, inWindow: n };
+    }));
+  })()`));
+  const emptyProg = perProg.filter(p => p.inWindow === 0)[0];
+  if (!emptyProg) {
+    throw new Error(`no programme is empty over ${cw.from} to ${cw.to}, so this claim has no ` +
+                    'state to be made in');
+  }
+  await page.evaluate(`location.hash = '#/calendar/' + ${JSON.stringify(emptyProg.key)}`);
+  await page.waitFor(`window.ZT.term().scope === ${JSON.stringify(emptyProg.key)}`,
+    `the calendar scoped to ${emptyProg.key}`);
+  await pressByText(page, '#termnotice .shape-btn', 'list');
+  await page.waitFor(`window.ZT.term().shape === 'list'`, 'the list shape');
+  const emptySaid = await page.evaluate(`(function () {
+    var ths = document.querySelectorAll('#termrows tbody tr th');
+    return ths.length ? ths[ths.length - 1].textContent.replace(/\\s+/g, ' ').trim() : null;
+  })()`);
+  const wantEmpty = 'No session in ' +
+    (cw.weeks === 1 ? 'one week' : cw.weeks + ' weeks') + ', ' +
+    longDate(cw.from) + ' to ' + longDate(cw.to) + '.';
+  assert('a window with nothing in it says which window, and does not go on to name the controls that move it',
+    emptySaid === wantEmpty,
+    `"${wantEmpty}" on ${emptyProg.key}, rebuilt here from the window state`,
+    `the page says ${JSON.stringify(emptySaid)}`);
+
+  // ---- 3. the typed heading claims no scope ----------------------------------------
+  // The two headings for the sheet are typed into index.html, so they are the same string on all
+  // sixteen sheet addresses; both of them said "all seven programmes", which was a false claim on
+  // the fourteen scoped ones. A line that cannot vary cannot carry a fact that does. The scope
+  // itself is stated where it is computed, one element below, and this reads BOTH: that the
+  // heading names no scope and that the sheet does, in the words the address earns.
+  const sheetRoutes = JSON.parse(await page.evaluate('JSON.stringify(window.ZT.termRoutes())'));
+  const views = JSON.parse(await page.evaluate(
+    `JSON.stringify(window.GI.views.map(function (v) { return v.key; }))`));
+  const headBad = [], scopeBad = [];
+  for (const at of sheetRoutes) {
+    await page.evaluate(`location.hash = ${JSON.stringify(at)}`);
+    await page.waitFor(`window.ZT.term().open === true`, `the sheet at ${at}`);
+    await sleep(90);
+    const seen = JSON.parse(await page.evaluate(`(function () {
+      var h = null;
+      Array.prototype.forEach.call(document.querySelectorAll('h1 > span'), function (s) {
+        if (s.getClientRects().length) h = s.textContent.replace(/\\s+/g, ' ').trim();
+      });
+      // The LAST one in document order, and not the CSS :last-of-type, which is per parent: the
+      // shape bar carries one of these too, reading "Shape.", and it is the first.
+      var leads = document.querySelectorAll('#termnotice .term-scope-lead');
+      var lead = leads.length ? leads[leads.length - 1] : null;
+      return JSON.stringify({ head: h, lead: lead ? lead.textContent.trim() : null });
+    })()`));
+    const scoped = /^#\/(calendar|outline)\/(.+)$/.exec(at);
+    if (!seen.head || /\d/.test(seen.head) || /\b(all|seven|every)\b/i.test(seen.head) ||
+        views.some(k => seen.head.indexOf(k.replace(/^Z/, 'Z-')) !== -1)) {
+      headBad.push(at + ' :: ' + seen.head);
+    }
+    const wantLead = scoped ? 'One programme.' : 'All ' + views.length + ' programmes.';
+    if (seen.lead !== wantLead) scopeBad.push(at + ' :: ' + seen.lead + ' wanted ' + wantLead);
+  }
+  assert('the heading typed into the document names no scope, and the sheet under it names the one the address earns',
+    sheetRoutes.length === 16 && headBad.length === 0 && scopeBad.length === 0,
+    `over all ${sheetRoutes.length} sheet addresses: no count, no quantifier and no programme ` +
+      'code in the heading, and the scope stated below it in the words each address earns',
+    `${headBad.length} headings claiming a scope ${JSON.stringify(headBad.slice(0, 3))}, ` +
+      `${scopeBad.length} sheets stating the wrong one ${JSON.stringify(scopeBad.slice(0, 3))}`);
+
+  // ---- 4. and the fraction the cut had to keep -------------------------------------
+  // The students card's note lost three of its four sentences and kept the one figure in it: how
+  // many of the cohort a click draws. Rebuilt here by counting the view's own Student nodes and
+  // reading the card's own headcount, so a note that kept the words and lost the arithmetic fails.
+  const cards = JSON.parse(await page.evaluate(CUT_STUDENT_CARDS));
+  const badCards = cards.filter(c =>
+    !c.note || c.drawn < 1 || !c.head ||
+    c.note.indexOf(c.drawn + ' of the ' + c.head) === -1);
+  assert('the students card still says how many of the cohort a click draws, on all seven',
+    cards.length === 7 && badCards.length === 0,
+    'each of the seven cards naming its own fraction, recomputed here from the view\'s Student ' +
+      'nodes and the card\'s own headcount',
+    `${badCards.length} of ${cards.length} without it: ` +
+      JSON.stringify(badCards.slice(0, 3).map(c => c.key + ' ' + c.drawn + '/' + c.head + ' ' +
+        String(c.note).slice(0, 60))));
+
+  // ---- 5. no note says what the content IS -----------------------------------------
+  // #115's guard sweeps the whole document on every address, and it never saw one of these: a
+  // node's note is only in the DOM while that node is selected, and nothing in this suite ever
+  // opened a panel while the guard was running. So fifty six tiles carried "every value on it is
+  // made up" past a guard whose whole subject is that sentence. The notes are read off the
+  // document here instead, which needs no panel and covers all of them at once. The properties
+  // are NOT swept: the provenance rows are the record of where a value came from, they are
+  // untouched by #110 and by this card, and sweeping them would make this fire on the thing it
+  // is supposed to protect.
+  const notes = JSON.parse(await page.evaluate(CUT_NOTES));
+  const standing = notes.filter(n => STANDING_WORDS.test(n));
+  assert('no note on any object says anything about the standing of the page\'s own content',
+    notes.length > 100 && standing.length === 0,
+    `nothing matching ${STANDING_WORDS} in any of the ${notes.length} notes the document carries`,
+    `${standing.length} of ${notes.length}: ` +
+      JSON.stringify(standing.slice(0, 3).map(n => n.slice(0, 80))));
+
+  // ---- 6. the help is what nothing else says ---------------------------------------
+  // Five items to two. Three of them told the reader what a control says by being pressed, and
+  // what is left is a click and a modifier, which no element on the page states. 280 is above the
+  // two that are there and below the five that were.
+  await page.evaluate(`location.hash = '#/'`);
+  await page.waitFor(`window.ZT.term().open === false`, 'the drawing');
+  await page.evaluate(`document.getElementById('helpbtn').click()`);
+  await page.waitFor(`!document.getElementById('helpbox').hidden`, 'the help to open');
+  const help = JSON.parse(await page.evaluate(`(function () {
+    var box = document.getElementById('helpbox');
+    var items = Array.prototype.slice.call(box.querySelectorAll('li'))
+      .map(function (li) { return li.textContent.replace(/\\s+/g, ' ').trim(); });
+    return JSON.stringify({ items: items,
+      n: items.reduce(function (t, s) { return t + s.length; }, 0) });
+  })()`));
+  await page.evaluate(`document.getElementById('helpbtn').click()`);
+  assert('the footer help is the two things nothing on the page states, and no longer the five',
+    help.items.length === 2 && help.n <= 280 &&
+      help.items.some(t => /Ctrl/.test(t) && /Cmd/.test(t)) &&
+      help.items.some(t => /click/i.test(t)),
+    `two items totalling at most 280 characters, one naming the click and one the modifier`,
+    `${help.items.length} items, ${help.n} characters: ` +
+      JSON.stringify(help.items.map(t => t.slice(0, 70))));
+
+  // ---- 7. and the canvas names no gesture ------------------------------------------
+  // "employers appear on click" and "individuals appear on click" were caption lines, so they
+  // were painted on the drawing of thirty two of the thirty three addresses at all times. Read
+  // off window.GL, which is every caption line on all fourteen drawings and not only the one on
+  // screen, and checked against what is painted on the one that is, so a caption that came back
+  // in the geometry and a caption that came back in the renderer both fail.
+  const caps = JSON.parse(await page.evaluate(CUT_CAPTIONS));
+  const gesture = caps.lines.filter(l => GESTURE_WORDS.test(l));
+  const paintedGesture = caps.painted.filter(l => GESTURE_WORDS.test(l));
+  assert('no caption on any of the fourteen drawings names a gesture, in the geometry or on the canvas',
+    caps.lines.length > 40 && caps.painted.length > 0 &&
+      gesture.length === 0 && paintedGesture.length === 0,
+    `none of the ${caps.lines.length} caption lines the geometry carries, and none of the ` +
+      `${caps.painted.length} painted on the drawing, matching ${GESTURE_WORDS}`,
+    `${gesture.length} in the geometry ${JSON.stringify(gesture.slice(0, 3))}, ` +
+      `${paintedGesture.length} painted ${JSON.stringify(paintedGesture.slice(0, 3))}`);
+
+  // ---- 8. the board says where it comes from and stops ------------------------------
+  // It said that too, and then said it is not editable and has no drag and drop, over a board
+  // with no control on any card and nothing that responds to a drag. The expected line is built
+  // from the snapshot fetched here, so it is the served bytes and not the page's own copy.
+  const snap = await (await fetch(new URL('board.json', base))).json();
+  await page.evaluate(`location.hash = '#/board'`);
+  await page.waitFor(`(document.getElementById('bmeta').textContent || '').indexOf('GitHub') !== -1`,
+    'the board provenance line');
+  const bmeta = await page.evaluate(
+    `document.getElementById('bmeta').textContent.replace(/\\s+/g, ' ').trim()`);
+  const wantMeta = (snap.generated ? 'Generated ' + snap.generated + '. ' : '') +
+    'The board reflects GitHub Issues.';
+  assert('the board says where its cards come from and does not go on to say what it is not',
+    bmeta === wantMeta,
+    `"${wantMeta}", built here from the board.json this origin served`,
+    `the page says ${JSON.stringify(bmeta)}`);
+
+  // ---- and the page is handed back the way it was found ----------------------------
+  // The programme's own route first, which restores the altitude with it, and then the address
+  // this phase was handed.
+  await page.evaluate(`location.hash = ${JSON.stringify(routeWas)}`);
+  await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(pgWas)}`,
+    `the ${pgWas} drawing back at the altitude this phase found it`);
+  await page.evaluate(`location.hash = ${JSON.stringify(hashWas || '#/')}`);
+  await page.waitFor(`window.ZT.term().open === false &&
+                      window.ZT.programme().key === ${JSON.stringify(pgWas)}`,
+    'the drawing back');
+  if (winWas.on === false) {
+    await wnMenu(page, true);
+    await pressByText(page, '#wnmenu .wn-weeks', 'whole term');
+    await page.waitFor('window.ZT.term().window.on === false',
+      'the window off again, the way this phase found it');
+    await wnMenu(page, false);
+  }
+  await viewSettled(page);
+}
+
 // ---- the empty window, issue 119 --------------------------------------------------------------
 // NOTHING IN THIS SUITE EVER DROVE ONE, AND THAT IS THE FINDING RATHER THAN THE RECTS. The term
 // runs 2026-01-12 to 2026-06-28 with real gaps in April and May, so a one week window over one
@@ -7100,6 +7426,10 @@ async function runViewport(chrome, viewport, base, full, narrow) {
       // cold on the diagram, and before the phases that walk the seven programmes: this one walks
       // them too and puts the address back where it found it. Issue 125.
       await group('the worklist', () => checkWorklist(page, base));
+      // After the phases that arm and disarm the window, and before the phases that walk the
+      // seven programmes: this one opens four menus, sixteen sheet addresses and the board and
+      // puts the page back on the diagram with the sheet shut. Issue 128.
+      await group('the cut', () => checkCut(page, base));
       await group('header', () => checkHeader(page));
       await group('the readout', () => checkReadout(page));
       await group('canvas', () => checkCanvas(page));

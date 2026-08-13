@@ -930,14 +930,14 @@
       // Layer one, and it is the reason the rest of this is allowed to exist.
       var lead = el('p', 'wn-now');
       lead.appendChild(el('span', 'warn', 'this page has no today'));
-      // #128 kept the three measured figures and took the sentence after them off. It said the
-      // anchor is not today, which the two figures before it have just proved, and then said the
-      // reader could move it, which the two buttons under it are.
+      // #128 kept the three measured figures and took the two sentences after them off. They
+      // said the anchor is not today, which the two figures before them have just proved; that
+      // the reader could move it, which the two buttons under it are; and which Monday it is,
+      // which the anchor row itself prints in full.
       lead.appendChild(document.createTextNode(
         ' Your clock says ' + TODAY + '. The term runs ' + TERM.first + ' to ' +
         TERM.last + ', so ' + AFTER_TODAY + ' of the ' + sessions.length +
-        ' sessions are on or after today. The anchor is the Monday of the week the term\'s ' +
-        'middle session falls in.'));
+        ' sessions are on or after today.'));
       wnMenu.appendChild(lead);
 
       var anch = el('p', 'wn-row');
