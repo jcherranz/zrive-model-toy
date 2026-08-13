@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-13T13:40:17Z",
+  "generated": "2026-08-13T14:31:00Z",
   "columns": [
     {
       "key": "raw",
@@ -24,6 +24,15 @@
             "limitation"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
+        },
+        {
+          "id": 129,
+          "title": "I still don't like the current header control panel, and I think…",
+          "labels": [
+            "bug",
+            "feedback"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/129"
         }
       ]
     },
