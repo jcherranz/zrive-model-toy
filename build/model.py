@@ -1669,11 +1669,10 @@ WEBSITE = ("real, published on the company website", E)
 # at nothing outside the tile.
 WITHHELD_FIRM = {
     "title_provenance": ("real, with the firm name withheld", D),
-    "note": ("The syllabus row for this session names the law firm being visited. The name is "
-             "withheld here, and it is withheld rather than replaced with another firm's: "
-             "substituting one would have put a visit this programme did not make on a named "
-             "third party, which is a fact invented to tidy a tile. What the tile states is what "
-             "is known, that the session is a visit to a law firm."),
+    # #128 cut the two middle sentences, which argued for the withholding rather than stating
+    # anything about the session. The provenance row above already says the firm is withheld.
+    "note": ("The syllabus row for this session names the law firm being visited. What the tile "
+             "states is what is known, that the session is a visit to a law firm."),
 }
 
 # ---- how many sessions each programme actually has ---------------------------
@@ -1933,12 +1932,6 @@ PROGRAMMES = [
         "intake": "1Q26", "starts_on": "2026-01-12",
         "headcount": COHORT_HEADCOUNT, "roster": ROSTER,
         "enrolled_on": "2026-01-05", "due_on": "2026-02-01", "raised_on": "2026-03-01",
-        "students_note": (
-            "One card standing for the whole cohort. Clicking it draws four of the thirty "
-            "four as individual Student objects, in space the layout already keeps for "
-            "them, with the count of the ones it did not draw underneath. Every person in "
-            "this cohort is invented, here and in the full list: no roster of real "
-            "students is imported into this repository or published on this page."),
     },
     {
         "key": "ZSC", "pfx": "sc_", "code": "Z-SC", "name": "Strategy Consulting",
@@ -2355,11 +2348,12 @@ PROGRAMMES = [
             ("ds_st5", "5. Analyse, diagnose and improve a model", "ZDS-T5", "sync", None, "90"),
             ("ds_st6", "6. Business translation", "ZDS-T6", "sync", None, "90"),
         ],
+        # #128 kept the contradiction and its status and cut the sentence defending the choice
+        # made about it.
         "template_note": (
             "The source for this programme records no format field, yet every one of its session "
             "notes carries a delivery mode of sync. The vault flags that contradiction as "
-            "unresolved. The value is carried here and flagged invented, which is honest either "
-            "way; writing an absence instead would settle a question the source leaves open."),
+            "unresolved."),
         "instructors": [
             ("t25", "Amets Landaburu", "co_openbank", "1", None),
             ("t26", "Ekhi Zabalondo", "co_meta", "1", None),
@@ -2390,11 +2384,12 @@ PROGRAMMES = [
         # row is the whole reason this route is worth drawing.
         "title_provenance": ("real, verbatim from the reading plan. The row names curriculum "
                              "readings and not a session", E),
+        # #128 cut the last sentence, which told the reader how to take the empty lane in front
+        # of them. The three absent fields before it are the finding.
         "prog_note": (
             "The source for this programme is a reading plan and not a session calendar. It has "
             "no instructor field, no module field and no format field, so three of the lanes on "
-            "this page cannot be filled from it. The empty instructor lane is the finding, not a "
-            "fault."),
+            "this page cannot be filled from it."),
         "templates": [
             ("cfa_st1", "19, 20 & 21", "ZCFA-T1", "async", None, None),
             ("cfa_st2", "22, 23 & 24", "ZCFA-T2", "async", None, None),
@@ -2485,21 +2480,21 @@ def g(gid, label, verb, target, note):
 # (id suffix, label, verb, the class it would attach to, the id it attaches to, what the
 # absence costs). No column: a ghost is drawn beside the class it would attach to, which
 # build/build_layout.py derives from that attachment rather than being told.
+# #128 shortened the first two. Each stated its absence and then argued from it to the same
+# absence again; the four now read at one length and every absence they carry is still named.
 GHOST_SPEC = [
     ("g_inst", "Instalment", "expected by", "Agreement", "agree",
      "The schedule of payments an agreement expects is not written down as rows. A payment "
-     "that fails leaves no row at all, and a row that is missing cannot be found without an "
-     "expectation to compare against, so nothing can be queried for what did not arrive."),
+     "that fails leaves no row at all, so nothing can be queried for what did not arrive."),
     ("g_place", "Placement", "matures", "Claim", "claim",
-     "A graduate taking a job offer is not recorded anywhere. A claim on future income can "
-     "therefore expire, and nothing can make it mature, so the question of which claims are "
-     "collectible today has no answer to read."),
+     "A graduate taking a job offer is not recorded anywhere, so nothing can make a claim on "
+     "future income mature and which claims are collectible today has no answer."),
     ("g_beca", "Beca", "discounts", "Agreement", "agree",
      "A scholarship has no class of its own. A student who owes nothing and a student who "
      "owes and has not paid are the same row."),
     ("g_ref", "Refund", "reverses", "Charge", "charge",
-     "Money returned to a payer has nowhere to be recorded. A charge that was reversed still "
-     "reads exactly as it did before, so a reversal can only be established off the system."),
+     "Money returned to a payer has nowhere to be recorded. A charge that was reversed reads "
+     "exactly as it did before."),
 ]
 
 TYPES = TYPES + [GHOST_TYPE]
@@ -2534,10 +2529,10 @@ def company_node(cid, supplied):
     if cid == ZRIVE:
         return {
             "id": cid, "type": "Company", "label": COMPANIES[cid],
+            # #128 cut the clause defending the drawing choice. What is left is the fact about
+            # the company and the fact about the field it changes.
             "note": ("Zrive is the operator of the programme, not a third party like the other "
-                     "employers. It is drawn as a Company and carries the same 'employed by' "
-                     "edge so that every instructor reads the same way, and the difference is "
-                     "in the data: an instructor it employs is in house, which is also why "
+                     "employers. An instructor it employs is in house, which is why "
                      "fee_per_session on that instructor reads in scope of salary where the "
                      "others read not modelled."),
             "props": [
@@ -3256,13 +3251,12 @@ def programme_block(spec):
             # own set from 'member of'.
             "id": host_id, "type": "Company",
             "label": host_label,
-            "note": ("An invented firm. It hosts the visit for the COHORT, and that one edge is "
-                     "the whole of what the drawing says about it. The relation is real and it "
-                     "is not written down the way the drawing draws it: no system anywhere "
-                     "relates a cohort to a visit, and what the company register holds is a "
-                     "visit filed under a programme note, thirteen of them across a hundred and "
-                     "fifty six, which is a record of where somebody put the paperwork and not a "
-                     "statement of who attended."),
+            # #128 kept the finding and the count it rests on, thirteen across a hundred and
+            # fifty six, and cut the two sentences of framing around them.
+            "note": ("No system anywhere relates a cohort to a visit. What the company register "
+                     "holds is a visit filed under a programme note, thirteen of them across a "
+                     "hundred and fifty six, which records where somebody put the paperwork and "
+                     "not who attended."),
             "props": [
                 p("role", "empresa colaboradora", D),
                 p("note", "invented company, not a real firm", D),
@@ -3402,8 +3396,8 @@ def tail_block(spec):
             # itself is set by the route loop at the foot of this file and is never hand written,
             # so the drawing and the panel cannot come to disagree about which types have nowhere
             # to live.
-            "note": ("The cohort exists as a thing and its key does not. No identifier for it is "
-                     "held anywhere, so a cohort can only be picked out as the intersection of a "
+            "note": ("The cohort exists as a thing and its key does not. No identifier is held "
+                     "anywhere, so a cohort can only be picked out as the intersection of a "
                      "roster, a calendar, a campus group and a record on the website."),
             "props": [
                 p("cohort_id", "no identifier in any system", A),
@@ -3430,12 +3424,12 @@ def tail_block(spec):
             # quietly replaced a cohort with four people. It appears and disappears with the four
             # tiles, and the number in it is computed and never typed.
             "tail": f"and {not_drawn} more, not drawn",
-            "note": spec.get("students_note") or (
-                f"One card standing for the whole cohort. Clicking it draws {drawn} of the "
-                f"{head} as individual Student objects, in space the layout already keeps for "
-                f"them, with the count of the ones it did not draw underneath. Every person in "
-                f"this cohort is invented, here and in the full list: no roster of real students "
-                f"is imported into this repository or published on this page."),
+            # #128. The fraction stays, because it is the measured fact: how many of the
+            # cohort the click draws. Everything else went. Z-IB carried an override of this
+            # sentence that differed from the other six only in spelling its two numbers out,
+            # so the override went with it and the seven now read one way.
+            "note": (f"One card for the whole cohort. Clicking it draws {drawn} of the {head} "
+                     f"as individual Student objects, with the count of the rest underneath."),
             "props": [
                 p("headcount", str(head), D),
                 p("representation", f"one card for {head}, {drawn} drawn on click", E),
@@ -3515,10 +3509,12 @@ def tail_block(spec):
             # and not on either drawing id. The identity loop at the foot of this file reads it
             # and takes it back off; nothing downstream ever sees the seed.
             "source_seed": f"{pfx}STU-{i:04d}",
-            "note": ("An invented person. This card exists to show that a Student is an object "
-                     "with properties and links and not a name inside a headcount, and every "
-                     "value on it is made up: no real student, no real cohort, nothing imported "
-                     "from any Zrive system, on a page anyone with the URL can read."),
+            # NO NOTE, #128, AND IT IS THE LARGEST SINGLE CUT ON THE PAGE: fifty six tiles across
+            # the seven drawings carried the same two hundred and eighty characters. Half of it
+            # said why this card is drawn at all, which is a rationale and not a fact about the
+            # object; the other half said the person is invented, which is the standing of the
+            # page's own content and is the sentence #110 took off every other surface. The
+            # properties under it are the object.
             "props": [
                 p("name", "invented", D),
                 p("university", uni, D),
@@ -3685,11 +3681,11 @@ def collapse_view(spec, view):
                 # What a registry entry of its own would have said, on the tile, because it is a
                 # statement about this object and not about how its rows are populated. The
                 # module is real and published; the module OBJECT is not, anywhere.
+                # #128 kept the finding and took the second sentence off: it read the count on
+                # the tile's own face back to the reader looking at it.
                 "note": ("A module is real and is published on every syllabus note, and no "
                          "system holds a module as a row: it is a value repeated on the rows it "
-                         "groups. This tile is those rows gathered, and the count under it says "
-                         "how many of them the drawing carries against how many the syllabus "
-                         "puts in this module."),
+                         "groups."),
                 # THE COUNT IS THE WHOLE POINT AND IT IS ON THE TILE'S FACE. #83 set the idiom
                 # and #100 shipped a follow-up commit to stop a lane veiling its own outside
                 # count; an aggregate that loses the number is how a management tool starts
@@ -3724,10 +3720,11 @@ def collapse_view(spec, view):
                 # is not a value on anything: it is the calendar rows whose template names that
                 # module, and nothing groups them, names an owner for them or creates a row when
                 # one begins or ends.
-                "note": ("The sessions of one module in this cohort's term. Nothing groups them: "
-                         "a module in a term can only be picked out as the calendar rows whose "
-                         "template names it, no row is created when one begins or ends, and no "
-                         "role is named as its owner."),
+                # #128 dropped the opening sentence, which named the tile the reader has just
+                # opened. All three absences are kept.
+                "note": ("Nothing groups the sessions of one module in a term: they can only be "
+                         "picked out as the calendar rows whose template names it, no row is "
+                         "created when one begins or ends, and no role owns them."),
                 "count": str(len(ran)) if len(ran) > 1 else None,
                 "tail": sample_phrase(len(ran), in_syllabus, "sessions"),
                 "props": [

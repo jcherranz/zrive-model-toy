@@ -681,9 +681,11 @@
     // had: scoped to one programme the list says it of that programme, and the drawing is always
     // one programme. Nothing here says anything about the standing of the model, which is #110's
     // rule and is where a reassuring sentence would otherwise creep back in.
+    // #128 took the second sentence off. It told the reader which two header controls to press,
+    // which is what the header controls already say by being there; the fact is the first
+    // sentence and the fact is all that is left.
     function windowEmptyText() {
-      return 'No session in ' + windowText() +
-             '. Move the anchor or take the window off, in the header.';
+      return 'No session in ' + windowText() + '.';
     }
 
     // ---- what the drawing is told, issues 90 and 100 ----------------------------
@@ -928,12 +930,14 @@
       // Layer one, and it is the reason the rest of this is allowed to exist.
       var lead = el('p', 'wn-now');
       lead.appendChild(el('span', 'warn', 'this page has no today'));
+      // #128 kept the three measured figures and took the sentence after them off. It said the
+      // anchor is not today, which the two figures before it have just proved, and then said the
+      // reader could move it, which the two buttons under it are.
       lead.appendChild(document.createTextNode(
         ' Your clock says ' + TODAY + '. The term runs ' + TERM.first + ' to ' +
         TERM.last + ', so ' + AFTER_TODAY + ' of the ' + sessions.length +
-        ' sessions are on or after today. The window below is positioned on an anchor inside ' +
-        'the term, which is not today and is not pretending to be: it is the Monday of the week ' +
-        'the term\'s middle session falls in, and you can move it.'));
+        ' sessions are on or after today. The anchor is the Monday of the week the term\'s ' +
+        'middle session falls in.'));
       wnMenu.appendChild(lead);
 
       var anch = el('p', 'wn-row');
@@ -960,15 +964,12 @@
       wk.appendChild(all);
       wnMenu.appendChild(wk);
 
-      // What the window does to each surface, said once and here, because the answer differs by
-      // surface on purpose. The clause about the drawing said it DIMS what is outside the window,
-      // which stopped being true at #100 and is corrected here under #111: it draws the window
-      // and nothing else.
+      // The window as a figure, and #128 took the three sentences after it off. They said what
+      // each surface does with the window, which is what the reader is looking at while they
+      // read it.
       var note = el('p', 'wn-note');
       note.textContent = 'Now: ' + windowText() + ' · ' + windowShown(null) + ' of ' +
-        sessions.length + ' sessions. The review and the list drop what is outside it, because ' +
-        'both are an agenda. The month and week grids keep it and mark the band, because the ' +
-        'shape of the term is what a grid is for. The drawing shows the window and nothing else.';
+        sessions.length + ' sessions.';
       wnMenu.appendChild(note);
 
       // ---- and the count the drawing no longer carries, issue 111 --------------
@@ -982,8 +983,7 @@
       var off = el('p', 'wn-off');
       off.textContent = offWords(f) + '.' +
         (f.off.lines === f.off.relationships ? ''
-          : ' They were ' + f.off.lines + (f.off.lines === 1 ? ' line' : ' lines') +
-            ', because at this altitude one line can stand for several.');
+          : ' ' + f.off.lines + (f.off.lines === 1 ? ' line' : ' lines') + ' at this altitude.');
       wnMenu.appendChild(off);
       (f.lanes || []).forEach(function (l) {
         if (l.shown === l.of) return;      // a lane that lost nothing has nothing to report
@@ -1437,9 +1437,11 @@
       // Issue 90. A reader who sets a window on the calendar and switches reading would otherwise
       // meet a full outline with a header control saying three weeks and no explanation.
       if (reading === 'outline' && windowOn()) {
+        // #128 cut it to the finding. The window's own words are on the control in the header
+        // that a reader arriving here with a window set has just come from, so repeating them
+        // here was the sentence saying the same thing twice before it said its own thing once.
         noticeEl.appendChild(el('p', 'term-finding',
-          'The window is off this reading. It is ' + windowText() + ' and the drawing and the ' +
-          'calendar are both obeying it, but an outline is curriculum order and a syllabus has ' +
+          'The window is off this reading: an outline is curriculum order and a syllabus has ' +
           'no date to filter on.'));
       }
       // The way from one reading to the other keeps the scope, and the way back to all seven is

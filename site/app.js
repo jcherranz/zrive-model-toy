@@ -594,13 +594,13 @@
   // What each choice does, said in the box rather than in a tooltip. `system` is the one a reader
   // cannot infer from the page in front of them, which is #57's whole finding, so it is the one
   // the sentence is about.
+  // #128. Each of the three said its state and then said what the three buttons underneath it
+  // do, which is what a button labelled `system` beside one labelled `light` says by existing.
+  // The state is what is left.
   var THEME_WORDS = {
-    system: 'This page is following the operating system. Light and dark below override it, and ' +
-            'system hands it back.',
-    light: 'This page is on light, whatever the operating system says. system hands it back to ' +
-           'the machine.',
-    dark: 'This page is on dark, whatever the operating system says. system hands it back to ' +
-          'the machine.'
+    system: 'This page is following the operating system.',
+    light: 'This page is on light, whatever the operating system says.',
+    dark: 'This page is on dark, whatever the operating system says.'
   };
   var thBtn = document.getElementById('thtoggle');
   var thMenu = document.getElementById('thmenu');
@@ -1063,9 +1063,12 @@
     var g = gapsOf(sc.nodes);
     gapsNow = { total: g.total, of: GAPS_ALL, rows: g.rows, scope: sc.subject + ': ' + sc.where };
     if (gapsVal) gapsVal.textContent = g.total + ' of ' + GAPS_ALL;
+    // #128 shortened it and kept both figures and the subject. `values the model records as
+    // missing` is the definition of the word on the control this sentence is under, said again
+    // one line below it.
     var sentence = (g.total
-      ? g.total + ' of the ' + GAPS_ALL + ' values the model records as missing are in '
-      : 'None of the ' + GAPS_ALL + ' values the model records as missing is in ') +
+      ? g.total + ' of the ' + GAPS_ALL + ' missing values are in '
+      : 'None of the ' + GAPS_ALL + ' missing values is in ') +
       sc.subject + ': ' + sc.where + '.';
     gapsBtn.title = sentence + ' Press for what they are';
     if (!gapsMenu) return;
@@ -1090,11 +1093,11 @@
     foot.className = 'gaps-foot';
     // WHAT THIS SENTENCE USED TO SAY AND WHY IT DOES NOT. It opened with the definition that
     // separates the two flags, because the count is over one of them and not the other. That half
-    // is gone under the owner's instruction of 12 August, issue 110, and what is left is the half
-    // that is about the machinery: the number over the list is recomputed on every change of view
-    // rather than written down anywhere, which is the claim a reader can hold this control to and
-    // the one the header's own count is checked against.
-    foot.textContent = 'Counted off the model on every change of view rather than written down.';
+    // is gone under the owner's instruction of 12 August, issue 110, and what is left is the
+    // claim a reader can hold this control to: the number over the list is recomputed rather than
+    // written down. #128 cut that claim to its own words and kept the paragraph, which the
+    // menu's shape is asserted on.
+    foot.textContent = 'Counted off the model, not written down.';
     gapsMenu.appendChild(foot);
   }
 
@@ -1225,17 +1228,20 @@
     row.className = 'gr-row';
     router.grains.forEach(function (g) { row.appendChild(grainRow(f, g)); });
     grMenu.appendChild(row);
-    var foot = document.createElement('p');
-    foot.className = 'gr-foot';
     // What the fold cost, said out loud. An aggregate that loses a relationship is the same
     // failure as a lane hiding its own outside count, and this is the one place a reader can be
     // told the number without opening a tile.
-    foot.textContent = f.folded || f.inside
-      ? 'At the modules grain ' + f.folded + ' further relationships are drawn as lines that ' +
-        'already exist, and ' + f.inside + ' have both ends inside one module and cannot be ' +
-        'drawn between two lanes. Every line says in its own tooltip how many it stands for.'
-      : 'Every relationship on this view is drawn as its own line at both altitudes.';
-    grMenu.appendChild(foot);
+    //
+    // #128 TOOK THE OTHER BRANCH OFF ENTIRELY. It fired where nothing folded, and a paragraph
+    // that reports a fold of zero by saying every line is its own line is a sentence printed to
+    // say that this sentence has nothing to say. Where there is a number there is a paragraph.
+    if (f.folded || f.inside) {
+      var foot = document.createElement('p');
+      foot.className = 'gr-foot';
+      foot.textContent = 'At the modules grain ' + f.folded + ' further relationships are drawn ' +
+        'as lines that already exist, and ' + f.inside + ' have both ends inside one module.';
+      grMenu.appendChild(foot);
+    }
   }
 
   // ---- how much is on the drawing, issue 120 -------------------------------

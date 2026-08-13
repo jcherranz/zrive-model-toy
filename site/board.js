@@ -310,8 +310,10 @@
     } else {
       meta.appendChild(document.createTextNode('GitHub Issues'));
     }
-    meta.appendChild(document.createTextNode(
-      '. GitHub is the source of truth: nothing here is editable and there is no drag and drop.'));
+    // #128 took the sentence after the link off, here and out of index.html's fallback copy of
+    // it. A board with no control on any card and nothing that responds to a drag says both
+    // halves of it by being that board.
+    meta.appendChild(document.createTextNode('.'));
   }
 
   function renderColumns(data) {

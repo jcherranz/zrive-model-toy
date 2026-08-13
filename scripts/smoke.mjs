@@ -1857,8 +1857,13 @@ const TERM_READ = `(function () {
     wnMenu: (function () {
       var m = document.getElementById('wnmenu');
       if (!m || m.hidden) return null;
+      var a = m.querySelector('.wn-anchor');
       return {
         text: m.textContent,
+        // The anchor's OWN element, #128. The claim below is that this page never calls the
+        // anchor today, and the only way to hold it to that is to read the thing that names the
+        // anchor rather than to look for a sentence somewhere in the menu saying it does not.
+        anchor: a ? a.textContent : null,
         btns: Array.prototype.slice.call(m.querySelectorAll('button')).map(function (b) {
           var r = b.getBoundingClientRect();
           return { label: b.textContent, pressed: b.getAttribute('aria-pressed'),
@@ -2507,12 +2512,23 @@ async function checkTerm(page) {
       menuText.indexOf(w0.today) !== -1 && w0.afterToday === afterToday &&
       menuText.indexOf(afterToday + ' of the ' + w0.sessions + ' sessions are on or after ' +
         'today') !== -1 &&
-      /which is not today and is not pretending to be/.test(menuText) &&
-      menuText.indexOf('Monday') !== -1 &&
+      // RE-CUT AT #128, AND ONTO THE ELEMENT RATHER THAN ONTO A SENTENCE. What stood here
+      // required the menu to contain the words "which is not today and is not pretending to
+      // be", so the page said it did not call the anchor today and the driver checked that it
+      // had said so. That sentence passes just as well on a page that says it AND labels the
+      // anchor `today`. #128 deleted the sentence, and the claim is now read off the two
+      // places the word can occur: the anchor row is a date and nothing else, and the word
+      // `today` occurs in the menu exactly twice, in the warning chip and in the clause about
+      // the reader's own clock. A third occurrence anywhere fails, which is the defect the old
+      // conjunct could not see.
+      (wnOpen.wnMenu.anchor || '') === 'Monday ' + longDate(w0.anchor) &&
+      (menuText.match(/today/g) || []).length === 2 &&
       w0.anchor >= w0.firstMonday && w0.anchor <= w0.lastMonday,
-    `the reader's own date ${w0.today}, ${afterToday} sessions on or after it, and an anchor ` +
-      `between ${w0.firstMonday} and ${w0.lastMonday}`,
-    `anchor ${w0.anchor}, page says ${w0.afterToday} after today, text ` +
+    `the reader's own date ${w0.today}, ${afterToday} sessions on or after it, an anchor row ` +
+      `reading "Monday ${longDate(w0.anchor)}" and the word today nowhere but in the clause ` +
+      `about the clock, with the anchor between ${w0.firstMonday} and ${w0.lastMonday}`,
+    `anchor ${w0.anchor} labelled ${JSON.stringify(wnOpen.wnMenu.anchor)}, page says ` +
+      `${w0.afterToday} after today, "today" x${(menuText.match(/today/g) || []).length}, text ` +
       JSON.stringify(menuText.slice(0, 150)));
 
   // #77's rule reaches the newest controls on the page or it has stopped being a rule.
