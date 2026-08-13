@@ -1769,14 +1769,19 @@
       var sc = g ? g.view : null;
       var st = stats(sc);
       var where = sc ? (sc.label || sc.code) : 'the seven drawings';
+      // Issue 122. THE SAME CLAUSE THE SHEET CARRIES AND NOT A SECOND WORDING OF IT. These two
+      // hints closed with "drawn from a term the model counts at N", which is the shape the sheet
+      // has just stopped using because it printed a complete scope and a sample identically. A
+      // second copy of a fact in the wording the first copy was corrected out of is the state this
+      // repository calls drift, so both read sampleWords().
       if (n.type === 'CohortSession') {
         return {
           href: addressFor('calendar', sc),
           text: 'see the term, all ' + st.sessions.length + ' sessions',
-          hint: 'every session on ' + where + ', in date order, drawn from a term the ' +
-                'model counts at ' + st.totalSessions + '. ' + st.noInstructor +
-                ' have no instructor. All ' + VIEWS.length + ' programmes at once is one ' +
-                'click away inside.'
+          hint: 'every session on ' + where + ', in date order, ' +
+                (sampleWords(sampleOf(sc, 'CohortSession'), 'session') || '') + '. ' +
+                st.noInstructor + ' have no instructor. All ' + VIEWS.length +
+                ' programmes at once is one click away inside.'
         };
       }
       if (n.type === 'SessionTemplate') {
@@ -1784,8 +1789,8 @@
           href: addressFor('outline', sc),
           text: 'see the outline, all ' + st.templates.length + ' session templates',
           hint: 'every template on ' + where + ', grouped by the module its syllabus puts it ' +
-                'in and in syllabus order, drawn from a syllabus the model counts at ' +
-                st.totalTemplates + '.'
+                'in and in syllabus order, ' +
+                (sampleWords(sampleOf(sc, 'SessionTemplate'), 'session template') || '') + '.'
         };
       }
       return null;

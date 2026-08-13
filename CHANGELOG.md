@@ -11,6 +11,30 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- **A count says which population it is over, #122.** Five of the seven documents hold a **sample**
+  of their programme and two hold all of it, and the only place that was written was a band caption
+  on the canvas. Measured at `97304dc` off the `counts` blocks in `site/instance.js`: Z-IB 6 of 79,
+  Z-PE 6 of 36, Z-HR 6 of 25, Z-DS 6 of 22, Z-CFA 6 of 45, against **Z-SC 25 of 25 and Z-BL 28 of
+  28**, so the two readings of the term draw **83 of the 260** sessions and 83 of the 260 session
+  templates the model declares. Every number in the header is then a count over a set the reader
+  has no reason to think is partial: `gaps 11 of 95` is 95 values among the 83 drawn and reads as a
+  fact about the business, and app.js said so in a comment claiming the denominator "says how much
+  of the business the view is", which is corrected. **The heading carries the fraction now**,
+  written by router.js off the view's own counts block for the reason the cohort beside it is
+  written there, on the header's own line and to the left of the readout plate, which is where the
+  tile and gap counts take their subject from. **It is a clause inside a sentence that was already
+  there and not a fifth reading**: #120 split this row because it already carried nine, and a new
+  address must retire one. On the sheet, complete and sampled used to be **one shape with different
+  numbers in it**, `25 sessions across Z-SC, drawn from a term the model counts at 25` against the
+  same words over 83 of 260; the sample is its own clause, the two forms differ in words, the
+  heading carries the fraction wherever no window is taking rows off, and **every gap figure names
+  the set it was counted over**, so 38 templates recording no duration reads as 38 **of the 83
+  drawn**. Nothing about the standing of the content was written: which rows a document holds is a
+  fact about its scope, which is the line #110 and #101 drew. **Six assertions in a phase of their
+  own, each proved by planting the defect its name describes**, every figure recomputed in the
+  driver off `window.GI`'s counts blocks by a second implementation rather than read off the page,
+  which is #121's own finding applied: an assertion that reads the number the page printed cannot
+  detect that the page counted the wrong population. Smoke 210 to 216.
 - **The ontology becomes a declared source, and `check_ontology_registry()` re-reads it, #123.**
   Four route rows sit on every drawn object, all of them ranked `3_observed`, and they are the half
   of this document the whole control-centre direction rests on. `provenance.sources` declared
