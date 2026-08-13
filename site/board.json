@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-13T00:25:01Z",
+  "generated": "2026-08-13T00:37:55Z",
   "columns": [
     {
       "key": "raw",
@@ -47,15 +47,6 @@
       "title": "In progress",
       "cards": [
         {
-          "id": 121,
-          "title": "The header reports the previous programme, and the calendar sentence ignores the window",
-          "labels": [
-            "bug",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/121"
-        },
-        {
           "id": 123,
           "title": "The half of the document the whole thesis rests on is the half no gate re-reads",
           "labels": [
@@ -70,6 +61,15 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 121,
+          "title": "The header reports the previous programme, and the calendar sentence ignores the window",
+          "labels": [
+            "bug",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/121"
+        },
         {
           "id": 120,
           "title": "The header is a nav bar carrying dashboard values, and the two are styled identically",
@@ -133,19 +133,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/114"
-        },
-        {
-          "id": 113,
-          "title": "The sheet has no left gutter: every heading and cell sits hard on the container edge",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/113"
         }
       ],
-      "hidden": 98,
+      "hidden": 99,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
