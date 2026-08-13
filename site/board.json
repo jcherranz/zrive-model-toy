@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-13T12:15:37Z",
+  "generated": "2026-08-13T13:12:42Z",
   "columns": [
     {
       "key": "raw",
@@ -45,14 +45,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/127"
-        },
-        {
-          "id": 128,
-          "title": "Every sentence that teaches the page how to be read comes off; the measured facts stay",
-          "labels": [
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/128"
         }
       ]
     },
@@ -60,6 +52,14 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 128,
+          "title": "Every sentence that teaches the page how to be read comes off; the measured facts stay",
+          "labels": [
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/128"
+        },
         {
           "id": 126,
           "title": "The published hash list is a membership oracle",
@@ -120,18 +120,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/120"
-        },
-        {
-          "id": 119,
-          "title": "Nothing drives an empty window, the state that paints six rects at a negative height",
-          "labels": [
-            "bug",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/119"
         }
       ],
-      "hidden": 104,
+      "hidden": 105,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
