@@ -9,6 +9,81 @@ of what changed and when, and it is meant to be scannable.
 
 ## [Unreleased]
 
+### Added
+
+- **THE DESK: the twenty two fixable gaps are a screen of their own, at the thirty fourth address,
+  #130.** #129: the header carries design inertia, redo it from first principles with a committee
+  told nothing about how this page is built. The committee reported and the owner chose to have its
+  Card 1 built BESIDE the page so he can judge the two against each other. **`#/desk` shows the 22
+  gaps a person can close this week**, in session date order, each row naming the record that holds
+  the empty field: one 44px chrome line carrying `22 to fix`, `All programmes 83/260` and the
+  reader's own day, `NEEDS YOU` over three blocks of 11, 6 and 5, two marks and no legend, and a
+  closing sentence naming the six facts no system records. **No name field, no dossier, no search,
+  no per-programme roster**, which are the committee's Cards 2 and 3.
+- **It replaces the page rather than sitting over it**, which is the difference between a screen the
+  owner can judge against the first and one that can only sit beside it. A `main` like the board,
+  not a sheet: `body.desk` takes the header, the footer, the diagram and the panel off. Nothing else
+  on the page knows `site/desk.js` exists; it reads `window.GI` and publishes `window.ZD`.
+- **One control and three readings**, against the nine controls and four readings the page's own
+  header carries. The control is the way back to the page, and it is the way back rather than
+  anything else because it is also the way to every other control this product has, the one that
+  files a report about this screen included. **No button, no checkbox, no dismiss and no progress
+  bar**, because the page cannot write and a bar asserts the 73 can be finished, which is false.
+- **The rules it is built on, every one of them measured.** No number mixes the two kinds of
+  missing, on #125's join against `routes.classes[<class>].system`, so the screen prints the 22 and
+  the 95 is nowhere on it. The denominator is welded to the noun inside ONE TEXT NODE, so no reflow
+  or crop can separate a count from its base. A bare integer counts a population held whole and a
+  fraction counts records. Absence is never rendered: no `0`, no empty row, no "nothing scheduled",
+  at the knowingly accepted cost of the legitimate zero on the two complete programmes. Time
+  positions a session and never sizes one, because `duration_min` is absent on 38 of the 83 drawn
+  templates.
+- **Thirteen assertions, smoke 246 to 259**, a phase of its own plus one claim in the phone's own
+  window, each fired by planting the defect its name describes and **every figure recomputed from
+  `window.GI` by a second implementation**: `DESK_MODEL` walks the registry first and collects the
+  records after, where `site/desk.js` walks the views and files each absent property as it meets it.
+  `window.ZD` is asked two things only, what address it answers and to paint a model the driver
+  built, and neither is a reading of a figure being asserted.
+- **A fourth exception class costs no chrome, no new glyph and no new explanation, and that is
+  built rather than argued.** The committee's own strongest objection is that the only defect this
+  surface can recognise is an empty field, so its whole notion of needing him is clerical. The
+  driver computes an exception the committee named itself, a cohort with four weeks or more between
+  two consecutive sessions the model draws, hands it to the page's own renderer, and measures: same
+  three readings with only the count moved, same one control, same two glyphs, same closing
+  sentence, same row class, same locator on every row. Then the real model is painted back and the
+  screen is required to be byte-identical to what it was.
+
+### Changed
+
+- **The assertion that pinned 33 addresses is re-cut to 34, in a commit of its own and not
+  deleted, #130.** It is the ceiling every card since #120 has built under and each of them did:
+  #124 put the review on the calendar's route and #125 put the worklist on a query of it, both
+  rather than spend one. This spends exactly one, by the owner's explicit choice, and the new entry
+  is read rather than assumed: `window.ZD` is asked what it answers and the desk has to actually
+  come up there. A card that makes it 35 has to come back to that line and say why.
+- **The second block is not called what the committee called it.** Its sketch reads `NO SPONSOR
+  LINKED` over rows naming cohorts, and the field is `cohort_that_attended` on the collaborating
+  company: six sponsors host a visit and none records which cohort came. Six cohorts have a sponsor
+  and one does not, so the sketch's heading names one end of a relation while every row under it
+  names the other. The heading is `NO COHORT NAMED` and the rows name the record to open.
+- **The decay the design wants cannot run on this extract, and that is recorded rather than
+  quietly dropped.** The design has the eleven dated rows leave the block as their dates pass. Every
+  session in this model is before 2026-06-28 and the real clock is past it, so a filter on today
+  empties the block, and #90 already settled that this page may not invent a today. The eleven are
+  sorted by session date and none is withheld; the third reading is the reader's own date.
+- **The standing sweep covers the new address.** #101, #110 and #115 took every statement about the
+  standing of the content off the page, and a new screen is exactly where one comes back.
+
+### Measured, not changed
+
+- **34 addresses after and 33 before**, counted from `window.GI` by the driver and not assumed.
+- **On the new screen: 1 control, 26 by 26, and 3 readings.** The page's own 9 header controls are
+  untouched, still 26 by 26 at all three widths, and its 4 readings are untouched with them.
+- **Phone chrome on the new screen 44 of 844, share 0.0521**, against the page-wide ceiling of
+  0.1730. The current page's own phone chrome is 125.19 of 844 = 0.1483 before and after.
+- **2232 visible characters on the new screen**, which is what a screen has to be able to state for
+  itself after #128 cut the page 27 per cent. The page's own totals are untouched: this card adds an
+  address rather than text to an existing one.
+
 ### Fixed
 
 - **A plain click drag no longer pans; Ctrl or Shift does, #127.** Filed from `#graph` at 1536 by
