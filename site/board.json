@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-13T00:39:34Z",
+  "generated": "2026-08-13T01:00:38Z",
   "columns": [
     {
       "key": "raw",
@@ -44,15 +44,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/122"
-        },
-        {
-          "id": 123,
-          "title": "The half of the document the whole thesis rests on is the half no gate re-reads",
-          "labels": [
-            "audit",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/123"
         }
       ]
     },
@@ -60,6 +51,15 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 123,
+          "title": "The half of the document the whole thesis rests on is the half no gate re-reads",
+          "labels": [
+            "audit",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/123"
+        },
         {
           "id": 121,
           "title": "The header reports the previous programme, and the calendar sentence ignores the window",
@@ -123,18 +123,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/115"
-        },
-        {
-          "id": 114,
-          "title": "The reveal hit test computes a click point from a rect that has not settled, and it is not random",
-          "labels": [
-            "bug",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/114"
         }
       ],
-      "hidden": 99,
+      "hidden": 100,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
