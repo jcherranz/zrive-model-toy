@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-13T12:14:02Z",
+  "generated": "2026-08-13T12:15:37Z",
   "columns": [
     {
       "key": "raw",
@@ -24,36 +24,28 @@
             "limitation"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
-        },
-        {
-          "id": 127,
-          "title": "Drag must be control or shift + click drag",
-          "labels": [
-            "bug",
-            "feedback"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/127"
         }
       ]
     },
     {
       "key": "backlog",
       "title": "Backlog",
-      "cards": [
-        {
-          "id": 126,
-          "title": "The published hash list is a membership oracle",
-          "labels": [
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/126"
-        }
-      ]
+      "cards": []
     },
     {
       "key": "in_progress",
       "title": "In progress",
       "cards": [
+        {
+          "id": 127,
+          "title": "Drag must be control or shift + click drag",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/127"
+        },
         {
           "id": 128,
           "title": "Every sentence that teaches the page how to be read comes off; the measured facts stay",
@@ -68,6 +60,14 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 126,
+          "title": "The published hash list is a membership oracle",
+          "labels": [
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/126"
+        },
         {
           "id": 125,
           "title": "A gap is a number you read, when it should be a place you go",
@@ -129,18 +129,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/119"
-        },
-        {
-          "id": 118,
-          "title": "The suite never loads a document cold at any address but the default, so every deep link can be broken and stay at 177 of 177",
-          "labels": [
-            "audit",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/118"
         }
       ],
-      "hidden": 103,
+      "hidden": 104,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
