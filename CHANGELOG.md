@@ -11,6 +11,49 @@ of what changed and when, and it is meant to be scannable.
 
 ### Changed
 
+- **THE OUTLINE STOPS BEING A SPREADSHEET AND STARTS BEING A DOCUMENT, #135.** His words: "Make a
+  cooler, more structured visually outline", filed from a row of the curriculum table at
+  `#/outline/ZBL?open=bl_st6`, 1536 by 839. **Looked at first and measured before anything moved**,
+  at that exact address in both schemes: 33 of the 35 rows are exactly 26px tall, so three levels
+  are drawn at one rhythm; the module heading and the row ordinal share one left edge at 225 while
+  the title the heading is about sits at 399, so the parent label floats 174px left of every child
+  across two columns that belong to the children; the opened agenda hangs off the left edge of the
+  TABLE at 251, which is under the ordinal column and belongs to nothing; every row carries two
+  typefaces at one size; `delivered`, `confirmed` and `planned` are three states of a delivery
+  painted in one colour; and the table overflows its box by 82px unscoped, 49 on Z-SC and 13 on
+  Z-BL while the title column holds 385px for titles that mostly run shorter. **Five of those are
+  fixed, in that order.** ONE, a module gets a visible inside: a 2px rail down the first cell of
+  every row it holds, breaking at each heading, which is the bracket the level never had. TWO, the
+  module heading becomes a band with air above it, and the programme heading takes the larger break
+  so the outer level still reads as the outer one now that the inner one has a ground. THREE, the
+  ordinal, the template code and the drawn-as id step down to the header's own size and take
+  tabular figures, leaving the title as the one voice to read down. FOUR, the three delivery states
+  become a gradient, most settled to least. FIVE, the agenda hangs under the title. **NOTHING WAS
+  ADDED**: no control, no address, no word; the rendered text of every table on every reading is
+  byte-identical, 9785 characters unscoped, 2826 on Z-BL, 822 on Z-IB, 892 and 264 on the two
+  calendars, and the overflow fell to 75, 6 and 0. **THE INDENT IS A CELL AND NOT A NUMBER**: a
+  pixel indent is right on one outline of the eight, because `1 of 6` on Z-IB is not the width of
+  `28 of 28` on Z-BL, so site/term.js gives the agenda row a spacer cell over the two columns
+  before the title and the table computes the alignment; measured at 385 against 385 on the scoped
+  outline and on the unscoped one. **THE RAIL IS AN INSET SHADOW AND THE SUITE IS WHAT SAID SO**:
+  written as `border-left`, it went red on two of issue 113's assertions, because a border on a
+  cell of a border-collapse table is shared with the column and moved four left edges from 235 to
+  236 while the title stayed at 235. **CONTRAST**: the rail measures 5.4113 in light and 6.8298 in
+  dark against the ground it is drawn on, over the 3:1 this repository holds a graphical object to;
+  the three states measure 16.2010, 16.2010 and 5.4113 in light and 13.4718, 13.4718 and 6.8298 in
+  dark, all over the 4.5 SC 1.4.3 asks of text, with `delivered` and `confirmed` sharing a colour
+  and separated by weight. **NOTHING FLATTENED**: the dashed `no system holds it` module heading is
+  untouched, and so is the agenda's warning tint, which is provenance and not decoration; only its
+  position moved. **SUITE 261 to 267, SIX PLANTS** each reverted and each red under its own name:
+  the bracket run through the headings, the shadow made a border, the rail set to `--rule`, the
+  spacer cell set to zero columns, two states painted alike, and the `body.outline` scope dropped
+  so the calendar grew a bracket. **ONE OF THE SIX WAS A DEAD CONTROL AND THE PLANT IS WHAT FOUND
+  IT**: the rail's 3:1 check passed with the rail set to `--rule`, because relative luminance has
+  no opinion about alpha and the check measured a near-black nobody paints; it composites the
+  shadow onto its ground first now, and the same plant then goes red at 1.4. RE-MEASURED: 9 header
+  controls at 26px at all three widths, 33 addresses, phone header share 0.1481, no sideways scroll
+  at 390, and the 14 drawing digests untouched because neither generated file was.
+
 - **THE LANE PLATES GO TRANSLUCENT, AND THE PLANE GOES ON UNDER THEM, #133.** His words: "Make this
   cards more transparent", filed at `#/p/ZSC/modules` on a 1536 by 839 viewport with the window on
   two weeks from 2026-04-06. **The cards are the six lane plates and not the tiles**, established
