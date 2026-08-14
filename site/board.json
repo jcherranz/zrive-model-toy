@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-14T00:17:31Z",
+  "generated": "2026-08-14T10:21:45Z",
   "columns": [
     {
       "key": "raw",
@@ -33,6 +33,15 @@
             "feedback"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/129"
+        },
+        {
+          "id": 132,
+          "title": "Let's go and try once again with the panel of control header, I need…",
+          "labels": [
+            "bug",
+            "feedback"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
         }
       ]
     },
