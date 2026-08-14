@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-14T10:26:25Z",
+  "generated": "2026-08-14T11:09:37Z",
   "columns": [
     {
       "key": "raw",
@@ -71,6 +71,11 @@
     {
       "key": "in_progress",
       "title": "In progress",
+      "cards": []
+    },
+    {
+      "key": "done",
+      "title": "Done",
       "cards": [
         {
           "id": 133,
@@ -78,16 +83,10 @@
           "labels": [
             "feedback",
             "layout",
-            "status:in-progress"
+            "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/133"
-        }
-      ]
-    },
-    {
-      "key": "done",
-      "title": "Done",
-      "cards": [
+        },
         {
           "id": 131,
           "title": "The desk comes off and the header control panel gets the craft pass he asked for",
@@ -145,18 +144,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/124"
-        },
-        {
-          "id": 123,
-          "title": "The half of the document the whole thesis rests on is the half no gate re-reads",
-          "labels": [
-            "audit",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/123"
         }
       ],
-      "hidden": 108,
+      "hidden": 109,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
