@@ -267,6 +267,7 @@ const PHASES = {
   'the modified drag':    { count: 6, when: 'behavioural' },
   'header':               { count: 8, when: 'behavioural' },
   'the readout':          { count: 7, when: 'behavioural' },
+  'the control panel':    { count: 9, when: 'behavioural' },
   'canvas':               { count: 7, when: 'behavioural' },
   'capture':              { count: 15, when: 'behavioural' },
   'board':                { count: 13, when: 'behavioural' },
@@ -498,7 +499,29 @@ const PHASES = {
 // rule met in its most flattering direction: "everything here is staffed" read off six sessions of
 // seventy nine is a property of a document, so an empty worklist and an absent programme both count
 // over the DRAWN rows and both say the word.
-const EXPECTED_ASSERTIONS = 246;
+// 255 with issue 131, and the nine are nine defects that were on the page rather than nine
+// readings of a stylesheet. #129 said the header carries design inertia; the answer built for it
+// was a second screen at a second address, and he said in as many words that it is not what he
+// wants and asked for the control panel he already has to be made better to look at and to use.
+// So the desk is gone, its thirteen with it, and these nine hold the craft pass. FOUR OF THEM RUN
+// AT WIDTHS THIS SUITE HAS NEVER DRIVEN, which is why the worst of the defects survived nine
+// cards: the readout came apart between 761 and 1183 CSS px, which is a window at half of a 1536
+// screen, and this file drives 1536, 1440 and 390. The sweep is 25 widths and it puts the real
+// window back. The rest are the decisions that pass took: that the plate and the nav hold their
+// place while the drawing under them changes, which `space-between` over three items could not do
+// because it put the plate where the heading's own length left it, 43px of travel across the
+// seven; that the programme name is never painted under the plate, which it was, cut through a
+// letter at 900, because the heading can carry no overflow rule above a picker that has a menu
+// inside it; that exactly the controls declaring `aria-controls` carry a mark saying they open a
+// box, read as one of the page's answers against another rather than against a list in this file;
+// that rest, hover and open are three paints, after one token value was spent on all three; that
+// hovering the ghost toggle while it is off does not show the reader the fill that means it is on;
+// that the keyboard's ring is inside the cell rather than over the plate's edges and its
+// neighbours' rules; that every box this header opens is inside the viewport at every width, after
+// the window box measured left: -73.1 at 900 with three of its lines starting outside the screen
+// and no scrollbar anywhere that could reach them; and that the nav is spaced as the three kinds
+// of control it holds rather than as five equal things.
+const EXPECTED_ASSERTIONS = 255;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -5839,6 +5862,389 @@ async function checkReadout(page) {
   await page.waitFor('window.ZT.term().open === false', 'the diagram to come back');
 }
 
+// ---- the control panel, issue 131 ---------------------------------------------------------------
+// NINE ASSERTIONS AND EVERY ONE OF THEM IS A DEFECT THAT WAS ON THE PAGE, found by driving the
+// real header at three widths in both themes and looking at the pictures. He said "just make the
+// control panel better for UIUX", after #129 was over-read into a second screen at a second
+// address; so nothing here is new behaviour and every claim below is a measurement of a thing
+// that was measurably wrong.
+//
+// NOTHING HERE READS A CLASS NAME AND ASSERTS A CLASS NAME. A craft pass is the easiest kind of
+// work to assert dishonestly, because a rule that is present is not a rule that is working: the
+// header could carry every declaration this card wrote and still fold its readings in two. So
+// every geometric claim is taken off `getBoundingClientRect` on the rendered boxes, every paint
+// claim off `getComputedStyle` after a real pointer has been moved onto the control, and the set
+// of controls that OUGHT to carry a disclosure mark is derived from `aria-controls` in the
+// document rather than typed into this file.
+//
+// AND FOUR OF THE NINE RUN AT WIDTHS NO VIEWPORT IN THIS SUITE HAS. That is the whole reason the
+// worst of these defects survived: this file drives 1536, 1440 and 390, and the readout came apart
+// between 761 and 1183, which is a window at half of a 1536 screen. The sweep below drives
+// `Emulation.setDeviceMetricsOverride` across the band and puts the real window back.
+const PANEL_WIDTHS = [1536, 1440, 1366, 1280, 1200, 1183, 1100, 1024, 981, 980, 919, 900, 834,
+                      800, 768, 761, 760, 700, 600, 500, 430, 393, 390, 375, 360];
+
+// The plate, its four readings and the nine controls, as boxes. `rd` is the class every reading
+// carries, pressable or not, so the four are found in the document rather than listed here.
+const PANEL_GEO = `(function () {
+  function box(e) {
+    if (!e) return null;
+    var r = e.getBoundingClientRect();
+    return { x: +r.x.toFixed(2), y: +r.y.toFixed(2), w: +r.width.toFixed(2),
+             h: +r.height.toFixed(2), r: +(r.x + r.width).toFixed(2),
+             b: +(r.y + r.height).toFixed(2) };
+  }
+  var st = document.getElementById('hstate');
+  var readings = Array.prototype.map.call(document.querySelectorAll('#hstate .rd'), function (e) {
+    return { id: e.id, box: box(e) };
+  });
+  var controls = {};
+  Array.prototype.forEach.call(document.querySelectorAll('header button, header a'), function (e) {
+    var r = e.getBoundingClientRect();
+    if (!r.width && !r.height) return;
+    controls[e.id || e.className] = box(e);
+  });
+  var d = document.documentElement;
+  return JSON.stringify({
+    vw: innerWidth,
+    header: box(document.querySelector('header')),
+    h1: box(document.querySelector('h1')),
+    plate: box(st),
+    nav: box(document.querySelector('.hnav')),
+    pg: box(document.getElementById('pgbtn')),
+    tail: box(document.querySelector('.h-tail')),
+    readings: readings,
+    controls: controls,
+    scrollWidth: d.scrollWidth,
+    clientWidth: d.clientWidth
+  });
+})()`;
+
+// Which controls in this header declare that they own a box, and which of them carry the mark
+// that says so. The `ought` set is read off `aria-controls`, which is the page's own statement to
+// a screen reader, so a card that added a sixth disclosure and forgot to mark it fails here
+// without anybody editing this file.
+const PANEL_MARKS = `(function () {
+  var out = { ought: [], marked: [], all: [] };
+  Array.prototype.forEach.call(document.querySelectorAll('header button, header a'), function (e) {
+    var r = e.getBoundingClientRect();
+    if (!r.width && !r.height) return;
+    var id = e.id || e.className;
+    out.all.push(id);
+    if (e.getAttribute('aria-controls')) out.ought.push(id);
+    var a = getComputedStyle(e, '::after');
+    if (a.content !== 'none' && parseFloat(a.borderTopWidth) > 0) out.marked.push(id);
+  });
+  // The one reading that is not a control at all, read separately: it is a span, so the walk
+  // above cannot see it, and it is the reading a mark must never appear on.
+  var tiles = document.getElementById('tilesrd');
+  var ta = tiles ? getComputedStyle(tiles, '::after') : null;
+  out.staticMarked = !!(ta && ta.content !== 'none' && parseFloat(ta.borderTopWidth) > 0);
+  return JSON.stringify(out);
+})()`;
+
+function panelPaint(id) {
+  return `(function () {
+    var e = document.getElementById('${id}');
+    var c = getComputedStyle(e);
+    var a = getComputedStyle(e, '::after');
+    return JSON.stringify({ bg: c.backgroundColor, color: c.color, weight: c.fontWeight,
+                            border: c.borderTopColor, shadow: c.boxShadow,
+                            mark: a.transform });
+  })()`;
+}
+
+// The ring a keyboard leaves, as the rectangle it is actually painted in: the control's own box
+// grown by the offset and the width the browser resolved. Nothing here reads a declaration.
+const PANEL_RING = `(function () {
+  var e = document.activeElement;
+  if (!e || !e.id) return JSON.stringify({ focused: null });
+  var c = getComputedStyle(e);
+  var w = parseFloat(c.outlineWidth) || 0;
+  var off = parseFloat(c.outlineOffset) || 0;
+  var r = e.getBoundingClientRect();
+  var st = document.getElementById('hstate').getBoundingClientRect();
+  return JSON.stringify({
+    focused: e.id,
+    width: w,
+    colour: c.outlineColor,
+    style: c.outlineStyle,
+    ring: { x: +(r.x - off - w).toFixed(2), y: +(r.y - off - w).toFixed(2),
+            r: +(r.right + off + w).toFixed(2), b: +(r.bottom + off + w).toFixed(2) },
+    plate: { x: +st.x.toFixed(2), y: +st.y.toFixed(2), r: +st.right.toFixed(2),
+             b: +st.bottom.toFixed(2) }
+  });
+})()`;
+
+// Every box any control in this header opens, measured against the viewport it opened into.
+async function panelBoxes(page) {
+  const pairs = [['pgbtn', 'pgmenu'], ['wnbtn', 'wnmenu'], ['grbtn', 'grmenu'],
+                 ['gapsbtn', 'gapsmenu'], ['thtoggle', 'thmenu']];
+  const out = [];
+  for (const [btn, menu] of pairs) {
+    const there = await page.evaluate(`!!document.getElementById('${btn}') &&
+      !!document.getElementById('${menu}') &&
+      !!document.getElementById('${btn}').getBoundingClientRect().width`);
+    if (!there) continue;
+    await page.evaluate(`document.getElementById('${btn}').click()`);
+    await page.waitFor(`!document.getElementById('${menu}').hidden`, `the ${menu} to open`);
+    out.push(JSON.parse(await page.evaluate(`(function () {
+      var r = document.getElementById('${menu}').getBoundingClientRect();
+      return JSON.stringify({ menu: '${menu}', left: +r.x.toFixed(2), right: +r.right.toFixed(2),
+                              w: +r.width.toFixed(2), vw: innerWidth });
+    })()`)));
+    await page.evaluate(`document.getElementById('${btn}').click()`);
+    await page.waitFor(`document.getElementById('${menu}').hidden`, `the ${menu} to close`);
+  }
+  return out;
+}
+
+// The width sweep, and the real window is put back whatever happens inside it. At the behavioural
+// viewport the harness holds a real window rather than an override, so the override has to be
+// cleared and not merely reset to 1536: a page left under one would hand every phase after this
+// a viewport this file chose instead of the one the run declared.
+async function atWidths(page, widths, fn) {
+  const out = [];
+  try {
+    for (const w of widths) {
+      await page.send('Emulation.setDeviceMetricsOverride',
+        { width: w, height: page.actual.h, deviceScaleFactor: 1, mobile: false });
+      await sleep(120);
+      out.push(await fn(w));
+    }
+  } finally {
+    await page.send('Emulation.clearDeviceMetricsOverride');
+    await sleep(150);
+  }
+  return out;
+}
+
+async function checkPanel(page) {
+  const startedOn = await page.evaluate('window.ZT.programme().key');
+  await page.evaluate(`location.hash = '#/'`);
+  await page.waitFor('window.ZT.term().open === false', 'the diagram to be on screen');
+
+  // ONE. THE READOUT IS ONE LINE AT EVERY WIDTH A READER HAS, AND THE PLATE IS THE HEIGHT OF ITS
+  // READINGS. This is the defect that cost the most and the one no viewport in this suite could
+  // see: measured before the card, at 1183 all four readings were 44 CSS px tall and at 919 the
+  // gap reading was 62 and `3 of 95` was painted on two lines. The claim is read off the four
+  // boxes rather than off the plate's own height, which would pass on a plate that had grown with
+  // them, and the four are found by class in the document rather than named here.
+  const swept = await atWidths(page, PANEL_WIDTHS,
+    async () => JSON.parse(await page.evaluate(PANEL_GEO)));
+  const folded = swept.filter(s => {
+    const hs = s.readings.map(r => r.box.h);
+    const ys = s.readings.map(r => r.box.y);
+    return s.readings.length !== 4 || new Set(hs).size !== 1 || new Set(ys).size !== 1 ||
+           hs[0] !== 26 || s.plate.h !== hs[0];
+  });
+  const scrolls = swept.filter(s => s.scrollWidth !== s.clientWidth);
+  assert('every reading in the readout is one line at every width, and the plate is their height',
+    folded.length === 0 && scrolls.length === 0 && swept.length === PANEL_WIDTHS.length,
+    `four readings 26px tall on one top edge at all ${PANEL_WIDTHS.length} widths from ` +
+      `${PANEL_WIDTHS[0]} down to ${PANEL_WIDTHS[PANEL_WIDTHS.length - 1]}, and no sideways scroll`,
+    folded.length
+      ? folded.map(s => `${s.vw}: heights ${JSON.stringify(s.readings.map(r => r.box.h))} ` +
+                        `tops ${JSON.stringify(s.readings.map(r => r.box.y))} plate ${s.plate.h}`)
+              .slice(0, 4).join('; ')
+      : scrolls.map(s => `${s.vw}: scrollWidth ${s.scrollWidth} against ${s.clientWidth}`)
+               .slice(0, 4).join('; '),
+    `${swept.length} widths, header ${swept[0].header.h}px at ${swept[0].vw} and ` +
+      `${swept[swept.length - 1].header.h}px at ${swept[swept.length - 1].vw}`);
+
+  // TWO. AND THE PROGRAMME NAME IS NEVER PAINTED UNDER IT. The heading can carry no overflow rule
+  // above the picker, because the programme menu is positioned inside the picker and would be
+  // clipped with the words; so when the row runs out of width the name does not elide, it slides
+  // under the plate and is cut through the middle of a letter. Measured at 900 by 800 before this
+  // card. Asserted as a relation between two boxes and at every swept width, so a repair that
+  // worked at one width and not at another fails.
+  const under = swept.filter(s => s.pg && s.plate && s.pg.y === s.plate.y &&
+                                  s.pg.r > s.plate.x + 0.5);
+  const clause = swept.filter(s => s.tail && s.tail.w > 0);
+  assert('and the programme name is never painted under the readout at any width',
+    under.length === 0 && clause.length > 0,
+    'the picker\'s right edge left of the plate\'s left edge wherever the two share a line',
+    under.length
+      ? under.map(s => `${s.vw}: picker ends ${s.pg.r}, plate starts ${s.plate.x}`)
+             .slice(0, 4).join('; ')
+      : `checked at ${swept.length} widths, the clause rendering at ${clause.length} of them`);
+
+  // THREE. THE READOUT DOES NOT MOVE WHEN THE DRAWING DOES. `justify-content: space-between` over
+  // three items puts the middle one where the FIRST one's width leaves it, and the first one is
+  // the heading, which names the programme: measured over the seven the plate's left edge ran
+  // from 642.6 to 685.9, so the one box on this page whose job is to be read jumped 43px sideways
+  // every time the reader changed what it was reporting on. Asserted on the right edge, which is
+  // what anchoring fixes, and the headings are required to actually differ in width or the claim
+  // would pass on a page where they were all the same length.
+  const perView = [];
+  const keys = JSON.parse(await page.evaluate(
+    `JSON.stringify(window.GI.views.map(function (v) { return v.key; }))`));
+  for (const key of keys) {
+    await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(key)}`);
+    await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(key)}`, `the ${key} drawing`);
+    const g = JSON.parse(await page.evaluate(PANEL_GEO));
+    perView.push({ key, plateR: g.plate.r, navX: g.nav.x, pgW: g.pg.w, plateW: g.plate.w });
+  }
+  const plateRights = new Set(perView.map(v => v.plateR));
+  const navLefts = new Set(perView.map(v => v.navX));
+  const names = new Set(perView.map(v => v.pgW));
+  assert('the readout and the nav hold their place while the drawing under them changes',
+    perView.length === 7 && plateRights.size === 1 && navLefts.size === 1 && names.size > 1,
+    'one right edge for the plate and one left edge for the nav across all seven drawings, ' +
+      'whose headings are of different widths',
+    `plate right edges ${JSON.stringify([...plateRights])}, nav left edges ` +
+      `${JSON.stringify([...navLefts])}, ${names.size} distinct heading widths`,
+    `plate right ${[...plateRights][0]}, nav left ${[...navLefts][0]}, over ${names.size} ` +
+      'heading widths');
+  await page.evaluate(`location.hash = '#/'`);
+  await page.waitFor('window.ZT.term().open === false', 'the diagram again');
+
+  // FOUR. A CONTROL THAT OPENS A BOX SAYS SO, AND ONE THAT DOES NOT SAYS NOTHING. Five of the nine
+  // controls in this header own a box and not one of them said so; on the plate that was the
+  // sharper failure, because `tiles` is not pressable at all and was painted identically to the
+  // three beside it that are. The set that OUGHT to be marked is read off `aria-controls`, the
+  // page's own statement of the same fact to a screen reader, so this is a comparison of two of
+  // the page's answers rather than of the page against a list in this file, and a sixth
+  // disclosure added later is covered without anybody coming back here. Asserted as set equality
+  // in both directions, and the static reading separately, since a span is invisible to a walk
+  // over buttons and links.
+  const marks = JSON.parse(await page.evaluate(PANEL_MARKS));
+  const missing = marks.ought.filter(id => marks.marked.indexOf(id) === -1);
+  const spurious = marks.marked.filter(id => marks.ought.indexOf(id) === -1);
+  assert('exactly the controls that open a box carry the mark that says so',
+    marks.ought.length === 5 && missing.length === 0 && spurious.length === 0 &&
+      marks.staticMarked === false && marks.all.length === 9,
+    'five marks on the five controls declaring aria-controls, none on the four that declare ' +
+      'none, and none on the reading that is not a control',
+    `ought ${JSON.stringify(marks.ought)}, marked ${JSON.stringify(marks.marked)}, ` +
+      `the static reading marked ${marks.staticMarked}, ${marks.all.length} controls in the row`);
+
+  // FIVE. REST, HOVER AND OPEN ARE THREE PAINTS. `--tint-hover` and `--tint-neutral` are declared
+  // to the same value in both themes and this file spent that one value on three meanings, so a
+  // reading with its box open and a reading under the pointer were the same fill to the pixel.
+  // Driven with a real pointer move to the control's own centre, and all three states read off
+  // the computed style rather than off a class.
+  const rd = await stableRect(page, '#wnbtn');
+  const away = await backgroundPoint(page);
+  await mouse(page, 'mouseMoved', away.x, away.y, 0);
+  await sleep(120);
+  const rest = JSON.parse(await page.evaluate(panelPaint('wnbtn')));
+  await mouse(page, 'mouseMoved', Math.round(rd.cx), Math.round(rd.cy), 0);
+  await sleep(150);
+  const hover = JSON.parse(await page.evaluate(panelPaint('wnbtn')));
+  await mouse(page, 'mouseMoved', away.x, away.y, 0);
+  await wnMenu(page, true);
+  const open = JSON.parse(await page.evaluate(panelPaint('wnbtn')));
+  await wnMenu(page, false);
+  const three = new Set([rest.bg + '|' + rest.shadow, hover.bg + '|' + hover.shadow,
+                         open.bg + '|' + open.shadow]);
+  assert('a reading at rest, under the pointer and with its box open are three different paints',
+    three.size === 3 && rest.bg !== hover.bg && hover.shadow === 'none' &&
+      open.bg === hover.bg && open.shadow !== 'none' && open.mark !== rest.mark,
+    'the tint arriving on hover, an accent arriving on open, and the mark turning over with the box',
+    `rest ${rest.bg} ${rest.shadow}; hover ${hover.bg} ${hover.shadow}; ` +
+      `open ${open.bg} ${open.shadow}; mark ${rest.mark} to ${open.mark}`);
+
+  // SIX. AND HOVERING THE GHOST TOGGLE WHILE IT IS OFF DOES NOT SHOW THE READER THE PAINT THAT
+  // MEANS ON. That is the same one value spent twice, met from the other side and worse, because
+  // this control's whole job is to say whether the dashed tiles are on the drawing. All four
+  // states are driven: on at rest, on under the pointer, off at rest, off under the pointer.
+  const gh = await stableRect(page, '#ghtoggle');
+  const ghAt = async () => {
+    await mouse(page, 'mouseMoved', Math.round(gh.cx), Math.round(gh.cy), 0);
+    await sleep(150);
+    const on = JSON.parse(await page.evaluate(panelPaint('ghtoggle')));
+    await mouse(page, 'mouseMoved', away.x, away.y, 0);
+    await sleep(120);
+    const off = JSON.parse(await page.evaluate(panelPaint('ghtoggle')));
+    return { hovered: on, rest: off };
+  };
+  const ghOn = await ghAt();
+  await page.evaluate(`document.getElementById('ghtoggle').click()`);
+  await page.waitFor(`document.body.classList.contains('hide-ghosts')`, 'the ghosts to go');
+  const ghOff = await ghAt();
+  await page.evaluate(`document.getElementById('ghtoggle').click()`);
+  await page.waitFor(`!document.body.classList.contains('hide-ghosts')`, 'the ghosts to come back');
+  assert('and hovering the ghost toggle while it is off is not the paint that means it is on',
+    ghOff.hovered.bg === ghOff.rest.bg && ghOn.rest.bg !== ghOff.rest.bg &&
+      ghOn.rest.bg === ghOn.hovered.bg && ghOff.hovered.border !== ghOff.rest.border &&
+      ghOff.hovered.color !== ghOff.rest.color,
+    'the fill belonging to the state and the hover saying something else',
+    `on ${ghOn.rest.bg} hovered ${ghOn.hovered.bg}; off ${ghOff.rest.bg} hovered ` +
+      `${ghOff.hovered.bg}, border ${ghOff.rest.border} to ${ghOff.hovered.border}`);
+
+  // SEVEN. THE KEYBOARD'S RING IS INSIDE THE CELL IT BELONGS TO. At the offset every control on
+  // this page shares, a ring around a reading is 30 CSS px tall inside a 26px plate: it breaks
+  // out over the plate's top and bottom edges, draws square corners across the plate's rounded
+  // ones and covers the rules of both neighbours. Asserted as the rectangle the ring is painted
+  // in, computed here from the box and the resolved width and offset, against the plate's own
+  // rectangle, and the ring is required to exist at all so that removing it fails too.
+  await page.evaluate(`document.getElementById('wnbtn').focus()`);
+  await page.send('Input.dispatchKeyEvent',
+    { type: 'rawKeyDown', windowsVirtualKeyCode: 9, key: 'Tab', code: 'Tab' });
+  await page.send('Input.dispatchKeyEvent',
+    { type: 'keyUp', windowsVirtualKeyCode: 9, key: 'Tab', code: 'Tab' });
+  await sleep(150);
+  const ring = JSON.parse(await page.evaluate(PANEL_RING));
+  const inside = ring.focused && ring.ring.x >= ring.plate.x - 0.01 &&
+    ring.ring.y >= ring.plate.y - 0.01 && ring.ring.r <= ring.plate.r + 0.01 &&
+    ring.ring.b <= ring.plate.b + 0.01;
+  assert('the focus ring on a reading is drawn inside the plate rather than over it',
+    !!inside && ring.width >= 2 && ring.style !== 'none',
+    'a ring of at least 2px whose painted rectangle is inside the plate\'s own',
+    ring.focused
+      ? `${ring.focused}: ring ${JSON.stringify(ring.ring)} against plate ` +
+        `${JSON.stringify(ring.plate)}, ${ring.width}px ${ring.style} ${ring.colour}`
+      : 'nothing in the header took focus');
+  await page.evaluate(`document.activeElement && document.activeElement.blur()`);
+
+  // EIGHT. EVERY BOX THIS HEADER OPENS IS INSIDE THE VIEWPORT, AT EVERY WIDTH. The three boxes on
+  // the plate are 460, 340 and 300 CSS px and hung off controls of 84: measured at 900 by 800 the
+  // window box opened at left: -73.1, with the first words of three of its lines outside the
+  // viewport and no scrollbar anywhere that could reach them, because overflow to the left of the
+  // origin creates none. All five boxes are opened at each of a set of widths spanning the one
+  // row layout, the two row layout and the phone, and both edges are asserted.
+  const boxWidths = [1536, 1200, 1024, 900, 800, 761, 700, 500, 390];
+  const boxes = await atWidths(page, boxWidths, async () => panelBoxes(page));
+  const flat = boxes.reduce((a, b) => a.concat(b), []);
+  const escaped = flat.filter(b => b.left < -0.01 || b.right > b.vw + 0.01 || b.w <= 0);
+  assert('every box a control in this header opens is inside the viewport, at every width',
+    escaped.length === 0 && flat.length >= boxWidths.length * 4,
+    `all of them between 0 and the viewport's own width at ${boxWidths.length} widths`,
+    escaped.length
+      ? escaped.map(b => `${b.menu} at ${b.vw}: left ${b.left}, right ${b.right}`)
+               .slice(0, 4).join('; ')
+      : `${flat.length} openings across ${boxWidths.length} widths, closest edge ` +
+        `${Math.min.apply(null, flat.map(b => Math.min(b.left, b.vw - b.right))).toFixed(2)}px in`);
+
+  // NINE. THE NAV'S SPACING SAYS WHICH CONTROLS BELONG TOGETHER. Five controls at one gap read as
+  // one undifferentiated row, and they are three kinds: two toggles that change what the page is
+  // doing, two links that go somewhere, and one control that opens a chooser. Measured as the gaps
+  // between the rendered boxes, in document order, so it is a claim about what a reader sees and
+  // not about which declaration produced it; and the two gaps between groups are required to be
+  // strictly larger than the two inside them rather than to be any particular number.
+  const geo = JSON.parse(await page.evaluate(PANEL_GEO));
+  const order = ['ghtoggle', 'fbtoggle', 'navstudents', 'navview', 'thtoggle'];
+  const gaps = [];
+  for (let i = 1; i < order.length; i++) {
+    const a = geo.controls[order[i - 1]], b = geo.controls[order[i]];
+    gaps.push(a && b ? +(b.x - a.r).toFixed(2) : null);
+  }
+  assert('the nav is spaced as three groups rather than as five equal things',
+    gaps.every(g => g !== null) && gaps[0] === gaps[2] && gaps[1] === gaps[3] &&
+      gaps[1] > gaps[0] && gaps[0] > 0,
+    'a smaller gap inside each group than between them',
+    `gaps in document order ${JSON.stringify(gaps)} over ${JSON.stringify(order)}`,
+    `${gaps[0]}px inside a group, ${gaps[1]}px between them`);
+
+  await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(startedOn)}`);
+  await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(startedOn)}`,
+    'the drawing this phase started on');
+  await page.evaluate(`location.hash = '#/'`);
+  await page.waitFor('window.ZT.term().open === false', 'the diagram to come back');
+  await page.evaluate('window.ZT.fit()');
+}
+
 // ---- the canvas ---------------------------------------------------------------------------------
 async function checkCanvas(page) {
   await page.evaluate('window.ZT.fit()');
@@ -7705,6 +8111,11 @@ async function runViewport(chrome, viewport, base, full, narrow) {
       await group('the modified drag', () => checkDrag(page, base));
       await group('header', () => checkHeader(page));
       await group('the readout', () => checkReadout(page));
+      // After `the readout`, which leaves the page on the diagram with nothing selected, and
+      // before `canvas`, which refits the drawing: this one drives the viewport to twenty five
+      // widths, walks all seven programmes and puts the real window and the address back.
+      // Issue 131.
+      await group('the control panel', () => checkPanel(page));
       await group('canvas', () => checkCanvas(page));
       await group('capture', () => checkCapture(page, base));
       await group('board', () => checkBoard(page, base));
