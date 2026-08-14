@@ -1457,10 +1457,54 @@ body.fb-mode #canvas { cursor: crosshair; }
    on --bg-app, where three of the thirteen type colours fall under 3:1 and one of the three is
    a grey that must not move. A hairline ADDED to a softened fill was the other half of that
    question and it is not here either, because a line around a lane is the box issue 46 spent a
-   card removing. */
+   card removing.
+
+   ---- fill-opacity, issue 133 ----------------------------------------------
+   HE FILED "MAKE THIS CARDS MORE TRANSPARENT" AND THE ELEMENT HE POINTED AT IS THIS RECT. The
+   card carries `ancestor #graph` and no `data-node`, and feedback.js walks to the nearest
+   ancestor carrying either an id or a diagram key: a tile hands back
+   `ancestor [data-node="..."]`, a verb chip hands back `ancestor [data-edge="..."]`, and at
+   #/p/ZSC/modules on a 1536 by 839 viewport the only rect in the whole drawing that hands back
+   `ancestor #graph` is this one, six of them, one per lane. So the cards are the lane plates.
+
+   WHY IT READS AS A CARD IS NOT THE COLOUR. In light the plate stands 4, 4 and 3 above the
+   ground per channel, which is a contrast ratio of 1.0346 and is not what a reader sees. What a
+   reader sees is the dot grid stopping: #canvas paints the grid as a CSS background under the
+   svg, an opaque plate covers it, and six dot-free slabs are the result. Transparency here means
+   the plane going on under the lane, and that is the whole of what this declaration buys.
+
+   THE VALUE IS MEASURED AND THE MEASUREMENT HAS TWO RULES. The surface a tile sits on is the
+   denominator of the thirteen gated measurements build/model.py emits, so the ladder was walked
+   against the colours themselves rather than looked at.
+
+     1. On the plate's own flat surface, every type colour that is not the one declared exception
+        stays at or over the 3.0000 check_repo.sh holds it to. Session template #00a396 is the
+        binding one: 3.0346 on an opaque plate, 3.0141 here, and it crosses 3.0000 at 0.6612.
+     2. Where a grid dot shows through, nothing falls below 2.7804, which is the ratio this
+        repository already declares tolerable for the ghost grey on this plate. Session template
+        measures 2.8171 here and crosses 2.7804 at 0.7653.
+
+   Rule 2 is the binding one and 0.75 fails it, so the most transparent rung of a ladder in
+   twentieths is this one. Dark clears both rules at every value, because its plate is lighter
+   than its ground and its type colours are light, so one value serves both schemes and a lane
+   half a step from the ground on one page is half a step from it on the other.
+
+   THE BUILD GATE NOW READS AN UPPER BOUND AND NOT THE DELIVERED FIGURE, AND SAYING SO IS THE
+   PRICE OF THIS LINE. build/model.py reads the token out of the `fill` declaration above and
+   knows nothing of this one, so its table still prints Session template at 3.0346 where the page
+   delivers 3.0141. Nothing was weakened to allow that: scripts/smoke.mjs recomputes the
+   composite off the rendered document, in both schemes, and holds the delivered figure to the
+   same 3.0000 and the grid dot case to the same 2.7804. The printed table is the ceiling and the
+   smoke suite is the floor.
+
+   WHAT GETS WORSE, NAMED. A tile outline that happens to cross a grid dot measures 2.8171 rather
+   than 3.0141 over those few pixels. Measured on the rendered page, dot pixels are under one per
+   cent of the lane area and a tile outline is one pixel wide, so this is momentary rather than
+   structural; it is still worse, and it is the cost the two rules above were written to bound. */
 
 .band {
   fill: var(--bg-band);
+  fill-opacity: .8;
   stroke: none;
   rx: 4;
 }
