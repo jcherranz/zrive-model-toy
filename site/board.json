@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-14T10:21:45Z",
+  "generated": "2026-08-14T10:22:32Z",
   "columns": [
     {
       "key": "raw",
@@ -42,6 +42,15 @@
             "feedback"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
+        },
+        {
+          "id": 133,
+          "title": "Make this cards more transparent",
+          "labels": [
+            "feedback",
+            "layout"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/133"
         }
       ]
     },
