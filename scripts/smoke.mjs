@@ -269,6 +269,7 @@ const PHASES = {
   'the readout':          { count: 7, when: 'behavioural' },
   'the control panel':    { count: 9, when: 'behavioural' },
   'the plate':            { count: 6, when: 'behavioural' },
+  'the outline':          { count: 6, when: 'behavioural' },
   'canvas':               { count: 7, when: 'behavioural' },
   'capture':              { count: 15, when: 'behavioural' },
   'board':                { count: 13, when: 'behavioural' },
@@ -522,7 +523,7 @@ const PHASES = {
 // the window box measured left: -73.1 at 900 with three of its lines starting outside the screen
 // and no scrollbar anywhere that could reach them; and that the nav is spaced as the three kinds
 // of control it holds rather than as five equal things.
-const EXPECTED_ASSERTIONS = 261;
+const EXPECTED_ASSERTIONS = 267;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -6517,6 +6518,197 @@ async function checkPlate(page) {
   await page.evaluate('window.ZT.fit()');
 }
 
+// ---- the outline as a document, issue 135 -------------------------------------------------------
+// "Make a cooler, more structured visually outline", filed from a row of the curriculum table. The
+// pass gave a module a visible inside, put the opened agenda under the title it was opened from,
+// and split one delivery state into the three the model records. Six claims, and every one of them
+// is read off the rendered document: computed paints, computed box shadows and measured left
+// edges, never a class name and never window.ZT.
+const OUTLINE_READ = `(function () {
+  function paints(el, prop) { return el ? getComputedStyle(el)[prop] : null; }
+  var tbl = document.querySelector('.sheet table');
+  var rows = Array.prototype.slice.call(tbl.querySelectorAll('tbody tr'));
+  function firstCell(tr) { return tr.children[0]; }
+  // Which rows carry the rail, counted off the shadow the browser resolved rather than off the
+  // selector that drew it. A row is a heading if its first child is a th, which is the markup and
+  // not a class name.
+  var railed = 0, headingRailed = 0, sessionRows = 0, headings = 0, borders = 0;
+  rows.forEach(function (tr) {
+    var c = firstCell(tr);
+    if (!c) return;
+    var sh = getComputedStyle(c).boxShadow;
+    var has = sh && sh !== 'none';
+    var isHead = c.tagName.toLowerCase() === 'th';
+    if (isHead) { headings++; if (has) headingRailed++; }
+    else { sessionRows++; if (has) railed++; }
+    if (parseFloat(getComputedStyle(c).borderLeftWidth) > 0) borders++;
+  });
+  var railCell = null;
+  rows.some(function (tr) {
+    var c = firstCell(tr);
+    if (c && c.tagName.toLowerCase() === 'td' && getComputedStyle(c).boxShadow !== 'none') {
+      railCell = c; return true;
+    }
+    return false;
+  });
+  // The agenda's own left edge against the title cell's, both measured on screen.
+  var box = document.querySelector('.agenda-box');
+  var title = document.querySelector('.term-table td.r-title .rowdisc') ||
+              document.querySelector('.term-table td.r-name');
+  // The three states, read off the spans the browser painted.
+  var st = {};
+  ['delivered', 'confirmed', 'planned'].forEach(function (k) {
+    var e = document.querySelector('.r-settled-' + k);
+    st[k] = e ? { color: getComputedStyle(e).color, weight: getComputedStyle(e).fontWeight,
+                  text: e.textContent } : null;
+  });
+  // The ground a row is painted on, walked up until something is not transparent.
+  var ground = null, e = tbl.querySelector('tbody tr td');
+  while (e) { var bg = getComputedStyle(e).backgroundColor;
+              if (bg && bg !== 'rgba(0, 0, 0, 0)') { ground = bg; break; } e = e.parentElement; }
+  return JSON.stringify({
+    rows: rows.length, sessionRows: sessionRows, headings: headings,
+    railed: railed, headingRailed: headingRailed, borders: borders,
+    railShadow: railCell ? getComputedStyle(railCell).boxShadow : null,
+    agendaX: box ? box.getBoundingClientRect().x : null,
+    titleX: title ? title.getBoundingClientRect().x : null,
+    states: st, ground: ground
+  });
+})()`;
+
+// The shadow comes back as `rgb(r, g, b) 2px 0px 0px 0px inset`, so the colour is the head of it.
+// A shadow that is not there returns null rather than throwing, because the assertion about a
+// missing rail is the one about the rail and not the one about the ratio: a throw would take the
+// whole group down and report the wrong claim.
+function shadowPaint(s) {
+  const m = /^(rgba?\([^)]*\))/.exec(String(s));
+  return m ? parsePaint(m[1]) : null;
+}
+
+// AND IT IS COMPOSITED BEFORE IT IS MEASURED, WHICH A PLANT IS WHAT FOUND. Written first as
+// `ratio4(shadowPaint(...), ground)`, this ratio passed with the rail set to `--rule`, which is
+// `rgba(17, 20, 24, 0.15)`: relative luminance has no opinion about alpha, so the check measured a
+// near-black nobody paints and answered 17 where the reader sees 1.4. A translucent paint has to
+// be put on its ground before it is a colour at all.
+function railRatioOn(shadow, groundText) {
+  const paint = shadowPaint(shadow);
+  if (!paint) return null;
+  const ground = parsePaint(groundText);
+  return ratio4(paintOver(paint, ground), ground);
+}
+
+async function checkOutline(page, base) {
+  const seen = {};
+  for (const choice of ['light', 'dark']) {
+    await thMenu(page, true);
+    await pressByText(page, '#thmenu .thitem', choice);
+    await page.waitFor(`window.ZT.theme().attr === ${JSON.stringify(choice)}`,
+      `the page to go ${choice}`);
+    await thMenu(page, false);
+    // The scoped outline the card was filed from, with the row he had open, loaded cold so the
+    // agenda is drawn by the address rather than by a click this phase made.
+    await page.navigate(new URL('#/outline/ZBL?open=bl_st6', base).toString());
+    await page.waitFor(`!!document.querySelector('.agenda-box')`, 'the opened agenda');
+    seen[choice] = JSON.parse(await page.evaluate(OUTLINE_READ));
+  }
+  // And the unscoped outline, where the two columns before the title are wider, because an
+  // alignment that holds on one outline and not the other is the defect a fixed indent had.
+  await page.navigate(new URL('#/outline?open=bl_st6', base).toString());
+  await page.waitFor(`!!document.querySelector('.agenda-box')`, 'the opened agenda, unscoped');
+  const wide = JSON.parse(await page.evaluate(OUTLINE_READ));
+  // The calendar, which is the same table class at another reading and must have grown nothing.
+  await page.navigate(new URL('#/calendar', base).toString());
+  await page.waitFor(`!!document.querySelector('.sheet table tbody tr')`, 'the calendar rows');
+  const cal = JSON.parse(await page.evaluate(OUTLINE_READ));
+
+  await thMenu(page, true);
+  await pressByText(page, '#thmenu .thitem', 'system');
+  await page.waitFor(`window.ZT.theme().attr === null`, 'the page to follow the machine again');
+  await thMenu(page, false);
+
+  const L = seen.light, D = seen.dark;
+
+  // ---- 1. a module has an inside -------------------------------------------------
+  // Every session row carries the rail and no heading does, which is what makes it a bracket
+  // rather than a stripe: the line breaks exactly where a group does.
+  assert('every session row of the outline carries the module rail and no heading row does',
+    L.sessionRows > 0 && L.headings > 0 &&
+      L.railed === L.sessionRows && L.headingRailed === 0 &&
+      D.railed === D.sessionRows && D.headingRailed === 0 &&
+      wide.railed === wide.sessionRows && wide.headingRailed === 0,
+    'the rail on every row and on no heading, on the scoped outline in both schemes and on the ' +
+      'unscoped one',
+    `light ${L.railed}/${L.sessionRows} rows and ${L.headingRailed}/${L.headings} headings, ` +
+    `dark ${D.railed}/${D.sessionRows} and ${D.headingRailed}/${D.headings}, ` +
+    `unscoped ${wide.railed}/${wide.sessionRows} and ${wide.headingRailed}/${wide.headings}`);
+
+  // ---- 2. and it costs no layout ---------------------------------------------------
+  // A border on a cell of a border-collapse table is shared with the column and moved every left
+  // edge in it by a pixel, which is what issue 113's two assertions caught. The rail is a shadow,
+  // so no cell of this table carries a left border at all.
+  assert('the rail is painted and not laid out, so no cell of the outline has a left border',
+    L.borders === 0 && D.borders === 0 && wide.borders === 0 && !!L.railShadow &&
+      /inset/.test(L.railShadow) && /inset/.test(D.railShadow),
+    'zero left borders and an inset shadow doing the drawing, in both schemes',
+    `light ${L.borders} border(s) shadow ${JSON.stringify(L.railShadow)}, ` +
+    `dark ${D.borders} shadow ${JSON.stringify(D.railShadow)}, unscoped ${wide.borders}`);
+
+  // ---- 3. the rail is a thing a reader can see -------------------------------------
+  // 3:1 against the ground it is drawn on, which is what this repository holds a graphical object
+  // to everywhere else. Recomputed here off the two paints the browser resolved.
+  const railRatio = t => railRatioOn(t.railShadow, t.ground);
+  const rl = railRatio(L), rd = railRatio(D);
+  assert('and it clears 3:1 against the ground it is drawn on, in both schemes',
+    rl !== null && rd !== null && rl >= PLATE_MIN && rd >= PLATE_MIN,
+    `the rail at or over ${PLATE_MIN.toFixed(4)} on both grounds`,
+    `light ${rl === null ? 'no rail' : rl.toFixed(4)} on ${L.ground}, ` +
+    `dark ${rd === null ? 'no rail' : rd.toFixed(4)} on ${D.ground}`);
+
+  // ---- 4. the agenda hangs off the row it was opened from ---------------------------
+  // On the scoped outline AND on the unscoped one, where `1 of 79` and a seven-programme heading
+  // make the two columns before the title a different width. A number of pixels written into the
+  // stylesheet is right on one of those and wrong on the other; a cell spanning those columns is
+  // right on both because the table computes it.
+  const gap = t => (t.agendaX === null || t.titleX === null ? null : Math.abs(t.agendaX - t.titleX));
+  assert('the opened agenda starts on the title column, on the scoped outline and the unscoped one',
+    gap(L) !== null && gap(L) < 1 && gap(D) < 1 && gap(wide) < 1,
+    'the agenda box and the title control on one left edge, within a pixel',
+    `light ${L.agendaX} against ${L.titleX}, dark ${D.agendaX} against ${D.titleX}, ` +
+    `unscoped ${wide.agendaX} against ${wide.titleX}`);
+
+  // ---- 5. three states, three paints ------------------------------------------------
+  // `delivered`, `confirmed` and `planned` were one colour at one weight. Each is read back off
+  // its own span and the three have to be pairwise different AND each has to clear the 4.5:1 SC
+  // 1.4.3 asks of text, so a distinction bought by making one of them unreadable fails here.
+  const trio = t => ['delivered', 'confirmed', 'planned'].map(k => t.states[k]);
+  const distinct = t => {
+    const keys = trio(t).map(s => s && `${s.color}|${s.weight}`);
+    return keys.every(Boolean) && new Set(keys).size === 3;
+  };
+  const worstText = t => Math.min.apply(null,
+    trio(t).map(s => ratio4(parsePaint(s.color), parsePaint(t.ground))));
+  assert('the three states of a delivery are three paints, each still clearing 4.5:1',
+    distinct(L) && distinct(D) && worstText(L) >= 4.5 && worstText(D) >= 4.5,
+    'three different colour and weight pairs, all at or over 4.5000 on their ground',
+    `light ${JSON.stringify(trio(L))} worst ${worstText(L).toFixed(4)}; ` +
+    `dark worst ${worstText(D).toFixed(4)}`);
+
+  // ---- 6. and no other reading grew one ---------------------------------------------
+  // The calendar is the same table class at another reading. A month is not a container the way a
+  // module is, so it has no inside to draw, and a selector that forgot to say which reading it was
+  // about would put a bracket down the calendar too.
+  assert('the calendar, which is the same table at another reading, grew no rail and no state paint',
+    cal.railed === 0 && cal.headingRailed === 0 && cal.borders === 0 &&
+      cal.states.delivered === null && cal.states.confirmed === null && cal.states.planned === null,
+    'no railed row, no left border and no state span anywhere on the calendar',
+    `${cal.railed} railed of ${cal.sessionRows} rows, ${cal.borders} border(s), ` +
+    `states ${JSON.stringify(Object.keys(cal.states).filter(k => cal.states[k]))}`);
+
+  await page.navigate(new URL('#/', base).toString());
+  await page.waitFor(DIAGRAM_READY, 'the diagram to come back');
+  await page.evaluate('window.ZT.fit()');
+}
+
 // ---- the canvas ---------------------------------------------------------------------------------
 async function checkCanvas(page) {
   await page.evaluate('window.ZT.fit()');
@@ -8392,6 +8584,10 @@ async function runViewport(chrome, viewport, base, full, narrow) {
       // and before `canvas`, which refits it: this one drives the theme to both of its explicit
       // values, reads the plate under each, and puts the choice back on `system`. Issue 133.
       await group('the plate', () => checkPlate(page));
+      // After `the plate`, which leaves the theme on `system` and the page on the diagram, and
+      // before `canvas`, which refits the drawing: this one drives both explicit themes, four
+      // sheet addresses and puts the choice and the address back. Issue 135.
+      await group('the outline', () => checkOutline(page, base));
       await group('canvas', () => checkCanvas(page));
       await group('capture', () => checkCapture(page, base));
       await group('board', () => checkBoard(page, base));
