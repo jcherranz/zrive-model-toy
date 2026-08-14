@@ -11,6 +11,34 @@ of what changed and when, and it is meant to be scannable.
 
 ### Changed
 
+- **THE LANE PLATES GO TRANSLUCENT, AND THE PLANE GOES ON UNDER THEM, #133.** His words: "Make this
+  cards more transparent", filed at `#/p/ZSC/modules` on a 1536 by 839 viewport with the window on
+  two weeks from 2026-04-06. **The cards are the six lane plates and not the tiles**, established
+  by driving the page's own capture rather than by reading the CSS: the card carries
+  `ancestor #graph · div>svg>g>g>rect`, feedback.js walks to the nearest ancestor carrying an id or
+  a diagram key, and under exactly his window, viewport and drawing digest the only rect in the
+  whole drawing that hands that string back is `rect.band`, six of them; a tile hands back
+  `ancestor [data-node="..."]` and a verb chip `ancestor [data-edge="..."]`. **What made them read
+  as cards was never the colour**, which stands 4, 4 and 3 above the ground per channel in light, a
+  ratio of 1.0346; it was the dot grid stopping under an opaque plate. `fill-opacity: .8`, one
+  value for both schemes. **The value is measured against two rules and 0.75 fails the second.**
+  On the plate's own composited surface every type colour but the one declared exception stays at
+  or over check_repo.sh's 3.0000, which Session template #00a396 binds at 3.0141 here against
+  3.0346 opaque and crosses at 0.6612; and where a grid dot shows through, nothing falls below the
+  2.7804 this repository already tolerates for the ghost grey, which the same colour binds at
+  2.8171 and crosses at 0.7653. Dark clears both at every value, so one value serves both pages.
+  **The build gate now reads a ceiling and not the delivered figure**, because build/model.py finds
+  its denominator by reading the token out of `.band`'s `fill` and cannot see a `fill-opacity`
+  beside it. Nothing was weakened to allow that: the new `the plate` phase in `scripts/smoke.mjs`
+  recomputes the composite off the rendered document in both schemes, through paint probes so the
+  browser resolves `light-dark()` rather than this suite guessing at it, and holds the delivered
+  figure to the same 3.0000 and the dot case to the same 2.7804. Suite 255 to 261. **What gets
+  worse, named:** a tile outline crossing a grid dot measures 2.8171 rather than 3.0141 over those
+  few pixels, dot pixels being under one per cent of the lane area. Ghosts are not flattened, the
+  wash pair still reading 0.07 against 0.14 in both schemes; 9 header controls, 33 addresses, the
+  phone header share at 0.1481 and 3205 visible characters at his address all unmoved, and the 14
+  drawing digests are untouched because no coordinate moved.
+
 - **THE DESK COMES OFF AND THE HEADER CONTROL PANEL GETS A CRAFT PASS, #131.** His words on #130:
   "This is absolutely NOT what I want or need. I want my diagram with a control panel the way we
   are building it. Just make the control panel better for UIUX that is the whole point." So #129
