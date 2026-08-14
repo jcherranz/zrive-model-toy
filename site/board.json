@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-14T11:10:26Z",
+  "generated": "2026-08-14T11:59:52Z",
   "columns": [
     {
       "key": "raw",
@@ -62,6 +62,11 @@
     {
       "key": "in_progress",
       "title": "In progress",
+      "cards": []
+    },
+    {
+      "key": "done",
+      "title": "Done",
       "cards": [
         {
           "id": 135,
@@ -69,16 +74,10 @@
           "labels": [
             "feedback",
             "layout",
-            "status:in-progress"
+            "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/135"
-        }
-      ]
-    },
-    {
-      "key": "done",
-      "title": "Done",
-      "cards": [
+        },
         {
           "id": 133,
           "title": "Make this cards more transparent",
@@ -138,17 +137,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/125"
-        },
-        {
-          "id": 124,
-          "title": "The review you actually do has no address, and the calendar should become it rather than sit beside it",
-          "labels": [
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/124"
         }
       ],
-      "hidden": 109,
+      "hidden": 110,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
