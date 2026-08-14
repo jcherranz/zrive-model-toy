@@ -1213,14 +1213,36 @@
       return rows && rows.length ? rows : null;
     }
 
+    // How many of the outline's columns sit before the title, which is the column an opened
+    // agenda hangs under. Written once here rather than as a 2 in the row builder, because the
+    // two are the same fact: `syllabus` and `template` are the columns buildOutline names before
+    // `title`, and a column added before them has to move the block with it.
+    var AGENDA_LEAD = 2;
+
     function agendaRow(cols, t) {
       var rows = agendaFor(t);
       if (!rows) return null;
       var tr = document.createElement('tr');
       tr.className = 'term-agenda';
       tr.id = agendaBlockId(t);
+      // TWO CELLS AND NOT ONE, ISSUE 135, AND THE SECOND ONE IS WHY. This row spanned the whole
+      // table and app.css indented the box off the table's left edge, which is under the ordinal
+      // column and belongs to nothing: the block sat 124px to the left of the title it was opened
+      // from. An indent in pixels cannot fix that, because the first two columns are sized by
+      // their own content and `1 of 6` on Z-IB is not the width of `28 of 28` on Z-BL, so one
+      // number would be right on one outline of the eight.
+      //
+      // A cell spanning the two columns before the title puts the block on the title's own left
+      // edge on every outline, at every width, with nothing to keep true: the table computes it.
+      // The spacer is genuinely empty, so the phone layout's `td:empty` rule takes it out where
+      // there are no columns to be aligned to anyway. The row still spans the same nine columns.
+      var lead = document.createElement('td');
+      lead.className = 'agenda-gap';
+      lead.colSpan = AGENDA_LEAD;
+      tr.appendChild(lead);
       var td = document.createElement('td');
-      td.colSpan = cols;
+      td.className = 'agenda-cell';
+      td.colSpan = Math.max(1, cols - AGENDA_LEAD);
       var box = el('div', 'agenda-box');
       var ol = el('ul', 'agenda-lines');
       rows.forEach(function (r) {
@@ -2047,9 +2069,25 @@
             cell(tr, t.place, 'r-state');
             cell(tr, t.duration, 'r-num');
             cell(tr, String(t.deliveries.length), 'r-num s-deliveries');
-            cell(tr, t.deliveries.map(function (d) {
-              return d.date + ', ' + d.state;
-            }).join('; ') || 'none', 'r-state s-delivered');
+            // THE STATE GETS A SPAN AND NOT A WORD, ISSUE 135. This cell read
+            // `d.date + ', ' + d.state` as one text node, so `delivered`, `confirmed` and
+            // `planned` were three states of a delivery painted in one colour at one weight: a
+            // distinction the model carries that the table did not. The characters are exactly
+            // the ones this line already wrote, in the same order, with the same separators;
+            // what is new is that the state word can be reached by a rule. app.css sets the
+            // three in one direction, most settled to least, so the column reads as a gradient
+            // down the term rather than as a wall of dates.
+            var tdd = el('td', 'r-state s-delivered');
+            if (!t.deliveries.length) {
+              tdd.appendChild(document.createTextNode('none'));
+            } else {
+              t.deliveries.forEach(function (d, i) {
+                if (i) tdd.appendChild(document.createTextNode('; '));
+                tdd.appendChild(document.createTextNode(d.date + ', '));
+                tdd.appendChild(el('span', 'r-settled r-settled-' + d.state, d.state));
+              });
+            }
+            tr.appendChild(tdd);
             cell(tr, t.id, 'r-drawn');
             tb.appendChild(tr);
             if (isOpen_(t)) {
