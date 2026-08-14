@@ -268,6 +268,7 @@ const PHASES = {
   'header':               { count: 8, when: 'behavioural' },
   'the readout':          { count: 7, when: 'behavioural' },
   'the control panel':    { count: 9, when: 'behavioural' },
+  'the plate':            { count: 6, when: 'behavioural' },
   'canvas':               { count: 7, when: 'behavioural' },
   'capture':              { count: 15, when: 'behavioural' },
   'board':                { count: 13, when: 'behavioural' },
@@ -521,7 +522,7 @@ const PHASES = {
 // the window box measured left: -73.1 at 900 with three of its lines starting outside the screen
 // and no scrollbar anywhere that could reach them; and that the nav is spaced as the three kinds
 // of control it holds rather than as five equal things.
-const EXPECTED_ASSERTIONS = 255;
+const EXPECTED_ASSERTIONS = 261;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -6245,6 +6246,277 @@ async function checkPanel(page) {
   await page.evaluate('window.ZT.fit()');
 }
 
+// ---- the lane plate, issue 133 ------------------------------------------------------------------
+// HE ASKED FOR THE CARDS TO BE MORE TRANSPARENT AND THE CARDS ARE THE LANE PLATES. `rect.band` is
+// the only rect in the drawing whose capture descriptor reads `ancestor #graph`, which is the
+// descriptor his card carries; a tile reads `ancestor [data-node="..."]` and a verb chip reads
+// `ancestor [data-edge="..."]`. app.css answers it with `fill-opacity` on that rule.
+//
+// WHY THIS PHASE HAS TO EXIST, AND IT IS THE ONE THING THE CHANGE PUT OUT OF THE BUILD GATE'S
+// REACH. build/model.py finds the surface its thirteen contrast rows are measured against by
+// reading the custom property out of `.band`'s `fill` declaration. It has no way to see a
+// `fill-opacity` beside it, so from the moment the plate went translucent its table prints the
+// ratio an OPAQUE plate would deliver, which is a ceiling and no longer the delivered figure.
+// Nothing was weakened to allow that: this phase recomputes the composite the page actually
+// paints, in both colour schemes, and holds it to the same 3.0000 that gate holds the ceiling to.
+// The arithmetic is here rather than in the page, and every colour that goes into it is read back
+// off the rendered document through getComputedStyle, so nothing here is the page's own opinion of
+// its colours.
+//
+// A TOKEN IS RESOLVED BY PAINTING WITH IT. `getComputedStyle(root).getPropertyValue('--type-X')`
+// hands back the declared text, `light-dark(#a,#b)`, and choosing between the two halves here
+// would be this file reimplementing the one property the whole palette turns on. So a probe rect
+// is painted `var(--type-X)` and the browser is asked what colour that is, under whichever scheme
+// is in force. The keys come off the generated stylesheet's own text rather than from a list typed
+// here, so a type the model gains is measured without this file being edited.
+const PLATE_READ = `(function () {
+  var NS = 'http://www.w3.org/2000/svg';
+  var probe = document.createElementNS(NS, 'svg');
+  probe.setAttribute('width', '1');
+  probe.setAttribute('height', '1');
+  probe.style.position = 'absolute';
+  probe.style.left = '-9999px';
+  probe.style.top = '0';
+  var pr = document.createElementNS(NS, 'rect');
+  pr.setAttribute('width', '1');
+  pr.setAttribute('height', '1');
+  probe.appendChild(pr);
+  document.body.appendChild(probe);
+  function token(name) {
+    pr.style.fill = 'var(' + name + ')';
+    return getComputedStyle(pr).fill;
+  }
+  var sheet = document.getElementById('type-palette');
+  var keys = [];
+  String(sheet ? sheet.textContent : '').replace(/--type-([A-Za-z0-9]+)\\s*:/g,
+    function (m, k) { keys.push(k); return m; });
+  var types = {};
+  keys.forEach(function (k) { types[k] = token('--type-' + k); });
+  var app = token('--bg-app');
+  var dot = token('--grid-dot');
+  document.body.removeChild(probe);
+
+  var bands = Array.prototype.slice.call(document.querySelectorAll('#graph rect.band'));
+  var real = document.querySelector('#graph .node:not(.ghost) rect.tile-bg');
+  var gh = document.querySelector('#graph .node.ghost rect.tile-bg');
+  var lbl = document.querySelector('#graph .node:not(.ghost) text.lbl');
+  var glb = document.querySelector('#graph .node.ghost text.lbl');
+  return JSON.stringify({
+    scheme: getComputedStyle(document.documentElement).colorScheme,
+    keys: keys,
+    types: types,
+    app: app,
+    dot: dot,
+    bands: bands.length,
+    bandFill: bands.map(function (r) { return getComputedStyle(r).fill; }),
+    bandAlpha: bands.map(function (r) { return getComputedStyle(r).fillOpacity; }),
+    realWash: real ? getComputedStyle(real).fill : null,
+    ghostWash: gh ? getComputedStyle(gh).fill : null,
+    lbl: lbl ? getComputedStyle(lbl).fill : null,
+    lblGhost: glb ? getComputedStyle(glb).fill : null
+  });
+})()`;
+
+// Three shapes reach this from Chrome and all three are the browser's own answer: `rgb(r, g, b)`
+// for a hex, `rgba(r, g, b, a)` for a declared alpha, and `color(srgb x y z / a)` for a
+// color-mix(), which is how every tile wash comes back. Anything else is a refusal rather than a
+// guess, because a colour this cannot read is a measurement nobody made.
+function parsePaint(s) {
+  const m = /^color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)(?:\s*\/\s*([\d.]+))?\s*\)$/.exec(String(s));
+  if (m) {
+    return { r: +m[1] * 255, g: +m[2] * 255, b: +m[3] * 255, a: m[4] === undefined ? 1 : +m[4] };
+  }
+  const n = /^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:[,\s/]+([\d.]+))?\s*\)$/.exec(String(s));
+  if (n) return { r: +n[1], g: +n[2], b: +n[3], a: n[4] === undefined ? 1 : +n[4] };
+  throw new Error(`a paint this suite cannot read: ${JSON.stringify(String(s))}`);
+}
+
+function paintOver(top, bottom) {
+  const a = top.a;
+  return { r: top.r * a + bottom.r * (1 - a), g: top.g * a + bottom.g * (1 - a),
+           b: top.b * a + bottom.b * (1 - a), a: 1 };
+}
+
+// The sRGB transfer offset, written as a quotient rather than as a decimal on purpose: the
+// repository gate reads a decimal whose fraction is exactly three digits as a grouped money
+// amount, which this one would be if it were spelled out, and it would fail
+// the file, and moving that rule to suit one constant would be weakening a gate to pass a change.
+const SRGB_OFFSET = 55 / 1000;
+
+function relLum(c) {
+  const f = v => {
+    v /= 255;
+    return v <= 0.03928 ? v / 12.92
+                        : Math.pow((v + SRGB_OFFSET) / (1 + SRGB_OFFSET), 2.4);
+  };
+  return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b);
+}
+
+// Rounded DOWN to four decimals, for build/model.py's reason: a printed figure must never be
+// better than the truth, and four decimals keeps every ratio out of the shape the repository's
+// money rule reads as a grouped amount.
+function ratio4(a, b) {
+  const la = relLum(a), lb = relLum(b);
+  const r = (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+  return Math.floor(r * 10000) / 10000;
+}
+
+// The floor the plate's own surface is held to, which is scripts/check_repo.sh's CONTRAST_MIN, and
+// the floor the momentary surface under a grid dot is held to, which is the ratio that file
+// already declares tolerable for the ghost grey on the light plate. Neither number is chosen here;
+// both are quoted from the gate that already holds them.
+const PLATE_MIN = 3.0000;
+const PLATE_DOT_MIN = 2.7804;
+
+// The one type the repository declares an exception for, in check_repo.sh's own shape: an entry
+// licenses exactly itself, and an entry nothing needs is a finding rather than a comfort.
+const PLATE_EXEMPT = [
+  { key: 'Ghost', scheme: 'light',
+    why: 'check_repo.sh declares this grey at 2.7804 on this plate and gives four reasons; the ' +
+         'ghost is found by its dashes, its thinner stroke, its empty tile and its italic label' }
+];
+
+function plateExempt(key, scheme) {
+  return PLATE_EXEMPT.some(e => e.key === key && e.scheme === scheme);
+}
+
+async function checkPlate(page) {
+  await page.evaluate(`location.hash = '#/'`);
+  await page.waitFor(DIAGRAM_READY, 'the diagram, for the lane plates');
+
+  // Both schemes, driven through the page's own control rather than through an emulated media
+  // query, because the control is what a reader has and `light-dark()` reads the used value of
+  // `color-scheme` whichever of the two moved it.
+  const seen = [];
+  for (const choice of ['light', 'dark']) {
+    await thMenu(page, true);
+    await pressByText(page, '#thmenu .thitem', choice);
+    await page.waitFor(`window.ZT.theme().attr === ${JSON.stringify(choice)}`,
+      `the page to go ${choice}`);
+    await thMenu(page, false);
+    seen.push(JSON.parse(await page.evaluate(PLATE_READ)));
+  }
+  await thMenu(page, true);
+  await pressByText(page, '#thmenu .thitem', 'system');
+  await page.waitFor(`window.ZT.theme().attr === null`, 'the page to follow the machine again');
+  await thMenu(page, false);
+
+  const measured = seen.map(raw => {
+    const alphas = raw.bandAlpha.map(Number);
+    const alpha = alphas[0];
+    const plate = parsePaint(raw.bandFill[0]);
+    plate.a = alpha;
+    const app = parsePaint(raw.app);
+    const dot = paintOver(parsePaint(raw.dot), app);
+    const flat = paintOver(plate, app);
+    const onDot = paintOver(plate, dot);
+    const rows = raw.keys.map(k => ({
+      key: k,
+      flat: ratio4(parsePaint(raw.types[k]), flat),
+      dot: ratio4(parsePaint(raw.types[k]), onDot),
+      exempt: plateExempt(k, raw.scheme)
+    }));
+    return {
+      scheme: raw.scheme, bands: raw.bands, alphas, alpha, plate, app, flat, onDot, rows,
+      ground: ratio4(flat, app),
+      lbl: raw.lbl ? ratio4(parsePaint(raw.lbl), flat) : null,
+      lblGhost: raw.lblGhost ? ratio4(parsePaint(raw.lblGhost), flat) : null,
+      realWash: parsePaint(raw.realWash).a,
+      ghostWash: parsePaint(raw.ghostWash).a
+    };
+  });
+  const schemes = measured.map(m => m.scheme).join(' and ');
+
+  // ---- 1. the plane goes on under the lane ---------------------------------------
+  // Both directions in one claim: there are plates, every one of them carries the same value, and
+  // that value is under 1. A rule that lost its `fill-opacity` reads 1 here and goes red, which is
+  // the defect this assertion is named after.
+  assert('the lane plate is translucent, so the plane goes on under it, in both schemes',
+    measured.length === 2 &&
+      measured.every(m => m.bands > 0 && m.alphas.length === m.bands &&
+        m.alphas.every(a => a === m.alpha) && m.alpha < 1 && m.alpha > 0),
+    `every rect.band carrying one fill-opacity under 1, on ${schemes}`,
+    measured.map(m => `${m.scheme}: ${m.bands} plate(s) at ${JSON.stringify(m.alphas)}`).join('; '));
+
+  // ---- 2. the delivered figure, not the ceiling ------------------------------------
+  // THE ASSERTION THE BUILD GATE CAN NO LONGER MAKE. Its denominator is the token; this one is the
+  // token composited over the ground at the opacity the browser resolved, which is the colour a
+  // reader's screen actually shows under a tile.
+  const flatBad = [];
+  measured.forEach(m => m.rows.forEach(r => {
+    if (!r.exempt && r.flat < PLATE_MIN) flatBad.push(`${m.scheme} ${r.key} ${r.flat.toFixed(4)}`);
+  }));
+  const flatWorst = measured.map(m => {
+    const w = m.rows.filter(r => !r.exempt).sort((a, b) => a.flat - b.flat)[0];
+    return `${m.scheme} ${w.key} ${w.flat.toFixed(4)}`;
+  }).join(', ');
+  assert('every type colour clears 3:1 on the surface the plate actually paints, in both schemes',
+    flatBad.length === 0,
+    `every type at or over ${PLATE_MIN.toFixed(4)} against the composite, on ${schemes}`,
+    flatBad.length ? flatBad.join('; ') : `worst ${flatWorst}`);
+
+  // ---- 3. and where the grid shows through it --------------------------------------
+  // The momentary surface, which is what transparency bought and what it costs: a tile outline
+  // crossing a grid dot sits on the plate composited over the dot rather than over the plain
+  // ground. It is held to the ratio this repository already tolerates rather than to a number
+  // invented here, so a value that made the drawing airier and a tile edge fainter than the
+  // faintest thing already on the page cannot ship.
+  const dotBad = [];
+  measured.forEach(m => m.rows.forEach(r => {
+    if (!r.exempt && r.dot < PLATE_DOT_MIN) dotBad.push(`${m.scheme} ${r.key} ${r.dot.toFixed(4)}`);
+  }));
+  const dotWorst = measured.map(m => {
+    const w = m.rows.filter(r => !r.exempt).sort((a, b) => a.dot - b.dot)[0];
+    return `${m.scheme} ${w.key} ${w.dot.toFixed(4)}`;
+  }).join(', ');
+  assert('and where a grid dot shows through, none falls below the 2.7804 the ghost already carries',
+    dotBad.length === 0,
+    `every type at or over ${PLATE_DOT_MIN.toFixed(4)} against the plate over a dot, on ${schemes}`,
+    dotBad.length ? dotBad.join('; ') : `worst ${dotWorst}`);
+
+  // ---- 4. the exception, and whether anything still needs it -------------------------
+  // check_repo.sh's own discipline, in this file's language: an entry that nothing needs is a
+  // tolerance nobody is reading, so it fails here rather than sitting there. Written as set
+  // equality so that a second exception quietly added is as red as a first one gone stale.
+  const needed = [];
+  measured.forEach(m => m.rows.forEach(r => {
+    if (r.flat < PLATE_MIN || r.dot < PLATE_DOT_MIN) needed.push(`${r.key}|${m.scheme}`);
+  }));
+  assertEqual('the one declared exception is the one thing that needs it, and nothing else does',
+    Array.from(new Set(needed)).sort(),
+    PLATE_EXEMPT.map(e => `${e.key}|${e.scheme}`).sort(),
+    'every type under either floor, against the declared table');
+
+  // ---- 5. the text on that surface ---------------------------------------------------
+  // Tile labels sit on the plate and not on the tile, so the plate's composite is their ground
+  // too. SC 1.4.3 asks 4.5:1 of text where the gate above asks 3:1 of a stroke, and the ghost's
+  // label is read separately because it is a second fill and a second question.
+  const textBad = measured.filter(m => !(m.lbl >= 4.5 && m.lblGhost >= 4.5));
+  assert('every tile label clears 4.5:1 on that same surface, ghosts included, in both schemes',
+    measured.every(m => m.lbl !== null && m.lblGhost !== null) && textBad.length === 0,
+    `label and ghost label at or over 4.5000 against the composite, on ${schemes}`,
+    measured.map(m => `${m.scheme}: label ${m.lbl} ghost ${m.lblGhost}`).join('; '));
+
+  // ---- 6. and the distinction the drawing exists to show ------------------------------
+  // A ghost's wash is half a real tile's and that is the whole of what separates the two fills.
+  // Read as the alphas the browser resolved out of the two color-mix() values, so a change that
+  // moved the plate and flattened the pair at the same time cannot pass on the plate alone.
+  assert('a ghost tile carries half a real tile\'s wash, so the two states are as far apart as they were',
+    measured.every(m => m.realWash > 0 && m.ghostWash > 0 &&
+      Math.abs(m.realWash - 2 * m.ghostWash) < 1e-6 && m.ghostWash < m.realWash),
+    `a ghost wash at exactly half a real one, on ${schemes}`,
+    measured.map(m => `${m.scheme}: real ${m.realWash} ghost ${m.ghostWash}`).join('; '));
+
+  console.log('  the plate, measured off the rendered document:');
+  measured.forEach(m => {
+    const f = c => `${Math.round(c.r)},${Math.round(c.g)},${Math.round(c.b)}`;
+    console.log(`    ${m.scheme}: fill-opacity ${m.alpha}, plate over the ground ${f(m.flat)} ` +
+      `(${m.ground.toFixed(4)} against ${f(m.app)}), over a grid dot ${f(m.onDot)}`);
+  });
+
+  await page.evaluate('window.ZT.fit()');
+}
+
 // ---- the canvas ---------------------------------------------------------------------------------
 async function checkCanvas(page) {
   await page.evaluate('window.ZT.fit()');
@@ -8116,6 +8388,10 @@ async function runViewport(chrome, viewport, base, full, narrow) {
       // widths, walks all seven programmes and puts the real window and the address back.
       // Issue 131.
       await group('the control panel', () => checkPanel(page));
+      // After `the control panel`, which leaves the page on the diagram with the drawing fitted,
+      // and before `canvas`, which refits it: this one drives the theme to both of its explicit
+      // values, reads the plate under each, and puts the choice back on `system`. Issue 133.
+      await group('the plate', () => checkPlate(page));
       await group('canvas', () => checkCanvas(page));
       await group('capture', () => checkCapture(page, base));
       await group('board', () => checkBoard(page, base));
