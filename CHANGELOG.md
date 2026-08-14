@@ -9,6 +9,51 @@ of what changed and when, and it is meant to be scannable.
 
 ## [Unreleased]
 
+### Changed
+
+- **THE DESK COMES OFF AND THE HEADER CONTROL PANEL GETS A CRAFT PASS, #131.** His words on #130:
+  "This is absolutely NOT what I want or need. I want my diagram with a control panel the way we
+  are building it. Just make the control panel better for UIUX that is the whole point." So #129
+  was over-read. `#/desk`, `site/desk.js`, its chrome, its CSS block and its thirteen assertions
+  all go, with no stub, no dead route and no orphaned rule left behind; `router.js`, `app.js` and
+  `term.js` never knew the module existed. **Addresses 34 back to 33**, and the assertion #130
+  re-cut from 33 to 34 is re-cut back in a commit of its own, with the round trip now recorded in
+  the comment so a later card proposing a thirty fourth has to answer the fact that the last one
+  was taken out. Suite 259 to 246, the difference being `the desk` at 12 and `the desk on a phone`
+  at 1, and no non-desk assertion touched.
+- **Nine defects in the header, found by looking at the real render at three widths in both themes
+  and fixed in the order of what each cost a reader.** ONE, the readout came apart between 761 and
+  1183 CSS px, which is a window at half of a 1536 screen: every reading folded onto two lines and
+  `gaps 3 of 95` onto three, breaking between `of` and `95`, so a number was painted away from its
+  own base; the plate went 26 to 62. All three items in the row were `flex: 0 1 auto` and the
+  browser takes width out of the widest. The heading takes the slack now and the plate is
+  `flex: none`. TWO, the boxes those readings open are 460, 340 and 300px and hung off controls of
+  84: at 900 the window box opened at `left: -73.1` with three of its lines starting outside the
+  viewport and no scrollbar anywhere that could reach them. They hang off the plate now. THREE, the
+  plate moved 43px sideways between programmes, because `space-between` puts the middle item where
+  the heading's own length leaves it; its right edge is 1162.4 on all seven now. FOUR,
+  `--tint-hover` and `--tint-neutral` are the same value, and the file spent it on three meanings:
+  hover, open, and the ghost toggle being ON were one fill, so hovering that chip while it was off
+  showed the paint that means on. FIVE, five controls open a box and none said so, and `tiles`,
+  which opens nothing, was painted identically to the three beside it that do. SIX, the nav was
+  five controls at one gap and is three kinds of control. SEVEN, the focus ring was 30px tall
+  inside a 26px plate. EIGHT, below about 970 the programme name was painted UNDER the plate and
+  cut through a letter, because the heading can carry no overflow rule above a picker with a menu
+  inside it. NINE, on a phone 29px of the plate was ruled, tinted ground with nothing on it.
+- **Nothing was added and nothing taken away.** 9 header controls before and after, all 26 by 26 at
+  every width from 1536 to 360 on all seven drawings, no sideways scroll at any of them; 33
+  addresses; header one row from 1536 to 981, two rows to 761 at 75px against the 79 that band
+  measured before, three below; phone header 125.19 of 844 = 0.1483 unchanged; and the total
+  visible text over all 33 addresses is 67310 characters at 1536 and 52392 at 390 before and after,
+  byte for byte, with the five menus at 1264 both times, so #128's cut is intact.
+- **Smoke 246 to 255**, a phase of its own, **nine plants each reverted and each red under its own
+  name**, and four of the nine run at widths this suite had never driven, which is why the worst of
+  these defects survived nine cards. Every geometric claim is off `getBoundingClientRect` on the
+  rendered boxes and every paint claim off `getComputedStyle` after a real pointer move; the set of
+  controls that ought to carry a disclosure mark is derived from `aria-controls` in the document
+  rather than typed into the driver. Gates: `verify.sh` 13 of 13 `[OK]`, 255/255 locally and
+  against the origin, `check_build.sh` 0 with all 14 digests unchanged, `check_repo.sh` 0.
+
 ### Added
 
 - **THE DESK: the twenty two fixable gaps are a screen of their own, at the thirty fourth address,
