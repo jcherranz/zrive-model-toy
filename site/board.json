@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-14T10:25:36Z",
+  "generated": "2026-08-14T10:26:25Z",
   "columns": [
     {
       "key": "raw",
@@ -51,6 +51,15 @@
             "idea"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/134"
+        },
+        {
+          "id": 135,
+          "title": "Make a cooler, more structured visually outline",
+          "labels": [
+            "feedback",
+            "layout"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/135"
         }
       ]
     },
