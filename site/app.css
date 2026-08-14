@@ -2920,7 +2920,7 @@ body.hide-ghosts .ghost { display: none; }
    already take, so the reader has met this colour twice before reaching the block and it means
    the same thing all three times. */
 .term-table tbody tr.term-agenda td {
-  padding: 0 10px 10px 26px;
+  padding: 0 var(--row-inset) 10px var(--row-inset);
   border-bottom: 0;
 }
 
@@ -3044,6 +3044,121 @@ body.hide-ghosts .ghost { display: none; }
    about the term rather than a fault in it. */
 .term-table .term-gap-cell { color: var(--fg-warning); font-weight: 600; }
 .term-table tr.term-gap td.r-name { color: var(--fg-body); }
+
+/* ---- the outline as a document, issue 135 --------------------------------------
+   "Make a cooler, more structured visually outline", filed from a row of this table at 1536 by
+   839 with `bl_st6` open. Measured at that address before anything here: 33 of the 35 rows are
+   exactly 26px tall, the module heading and the row number share one left edge at 225 while the
+   title the heading is about sits at 399, and the opened agenda hangs off the left edge of the
+   TABLE at 251 rather than off the row it belongs to. Three levels, one rhythm, and the only
+   thing telling level 1 from level 2 was font weight.
+
+   EVERYTHING HERE IS SCOPED TO `body.outline`, and that is not tidiness. `.term-table` is three
+   readings: the calendar, the review and this. The calendar is date order and its group row is a
+   month; the review is a ranking and its group row is a band. A module is the only one of the
+   three whose group has an INSIDE, because a session template belongs to exactly one module and
+   the rows under a month do not belong to it in that sense. So the bracket below is the
+   outline's and no other reading grows one by accident.
+
+   NOTHING IS ADDED. No control, no address, no word. Every rule reaches text that was already
+   on the page, and the two colours it introduces are the tokens the page already paints with.
+
+   ---- 1. the bracket, and it is the one thing this screen is now remembered by ----
+   A module is a container and the table drew it as a louder row. A container has an inside, so
+   it gets one: a hairline down the left of every row the module holds, starting under the
+   heading and stopping at the next one. It is drawn on the first cell, which is the only element
+   in a collapsed table that sits on the group's left edge at every width, and the heading itself
+   carries none, so the line breaks exactly where the group does. Issue 94's finding stands and is
+   the reason this is a rail and not an indent: an indent put the heading 16px to the RIGHT of
+   every row it heads, which reads as a stray gap; a rail puts the heading ON the group's edge and
+   hangs the rows off it, which is the relation the drawing actually has.
+
+   AN INSET SHADOW AND NOT A BORDER, AND THE SUITE IS WHAT SAID SO. Written first as
+   `border-left: 2px`, it went red on two assertions issue 113 left behind: the sheet's rows, its
+   two group headings and the calendar's month heading all start their text on one x, and a
+   border on a cell of a border-collapse table is shared with the column, so every one of those
+   moved from 235 to 236 while the title stayed at 235. One pixel, on the one thing that reading
+   asserts. An inset shadow paints in the same place and costs no layout at all, so the four
+   edges are 235 again and the rail is still 2px wide at the same x.
+
+   ---- 2. the module heading becomes a band ----
+   It keeps its left edge, its size and its two weights. What it gains is air above it and a
+   ground of its own, so a group reads as a block with a top rather than as a row that happens to
+   be bold. The air is above and not below, because a heading belongs to what follows it.
+
+   ---- 3. one voice to read down ----
+   Every row carried two typefaces at one size: the ordinal and the template code in the mono
+   face, the title in the UI face, both at 11px and both at full strength. The mono columns step
+   back to the size the column headers are set at and take tabular figures, so `1 of 28` and
+   `28 of 28` line up on the same digit column instead of drifting. The title is untouched and is
+   now the only thing on the row at the body size.
+
+   ---- 4. the three states of a delivery ----
+   `delivered`, `confirmed` and `planned` were one colour. They are a gradient now, most settled
+   to least: what happened takes the body colour, what is agreed takes it unbolded, and what is
+   only planned takes the muted colour the rest of the cell already uses. Measured on the panel
+   ground these rows sit on: 15.6373 and 15.6373 in light and 14.3794 in dark for the first two,
+   and 5.2231 in light and 7.2899 in dark for the third, all over the 4.5 SC 1.4.3 asks of text.
+   The DATE beside them does not move, because the date is the fact and the state is the reading.
+
+   ---- 5. the agenda hangs off its row ----
+   The invented block was indented 26px from the table's left edge, which is under the ordinal
+   column and belongs to nothing. It starts at the title column now, so it visibly hangs off the
+   row it was opened from. Its ground, its left rule and its warning tint are untouched: that
+   colour is provenance and issue 85's argument for it is above. Only its position changed. */
+
+body.outline .term-table tbody tr:not(.term-group):not(.term-module) > :first-child {
+  box-shadow: inset 2px 0 0 var(--fg-muted);
+}
+
+/* The agenda hangs under the title column because site/term.js gives the row a spacer cell over
+   the two columns before it, so nothing here is a pixel measured off one outline. The spacer is
+   the row's first cell, so the rail runs through the block and the block is plainly inside the
+   module rather than beside it. */
+body.outline .term-table tbody tr.term-agenda > .agenda-gap { padding: 0; }
+
+body.outline .term-table tbody tr.term-module th {
+  padding-top: 16px;
+  background: var(--bg-elevated);
+}
+
+/* AND THE PROGRAMME KEEPS THE LARGER BREAK, which is the half of this a band could have quietly
+   inverted. A module heading now carries a ground and a programme heading does not, so on ground
+   alone level 2 reads heavier than level 1. What separates the outer level is separation: the
+   break above a programme is bigger than the break above a module, on top of the rule it already
+   draws and the one blue link in the table. Measured on the unscoped outline, where both levels
+   are on screen at once. */
+body.outline .term-table tbody tr.term-group th { padding-top: 26px; }
+body.outline .term-table tbody tr:first-child.term-group th { padding-top: 10px; }
+
+/* The first module of a programme sits directly under that programme's own heading, so the air
+   is already there and a second helping of it opens a hole between two headings. */
+body.outline .term-table tbody tr.term-group + tr.term-module th { padding-top: 8px; }
+
+body.outline .term-table tbody .r-num,
+body.outline .term-table tbody .r-id,
+body.outline .term-table tbody .r-drawn {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.term-table .r-settled { font-weight: 400; }
+.term-table .r-settled-delivered { color: var(--fg-body); font-weight: 600; }
+.term-table .r-settled-confirmed { color: var(--fg-body); }
+.term-table .r-settled-planned { color: var(--fg-muted); }
+
+@media (max-width: 760px) {
+  /* The phone turns every row into a block, so there is no first cell on a group's left edge to
+     draw a rail on and no title column to hang the agenda off. Both rules come off rather than
+     being scaled down: a 2px rule on the first line of a block says nothing about the lines under
+     it, and 150px of indent inside a 390px screen is most of the screen. */
+  body.outline .term-table tbody tr:not(.term-group):not(.term-module) > :first-child {
+    box-shadow: none;
+  }
+  body.outline .term-table tbody tr.term-agenda > .agenda-cell {
+    padding-left: var(--row-inset);
+  }
+}
 
 @media (max-width: 760px) {
   /* The phone layout hides thead, because each row carries its own run of values and a column
