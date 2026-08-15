@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-15T16:12:55Z",
+  "generated": "2026-08-15T16:13:48Z",
   "columns": [
     {
       "key": "raw",
@@ -54,6 +54,14 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
+        },
+        {
+          "id": 139,
+          "title": "Absence is one idea with two numbers that never add",
+          "labels": [
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/139"
         }
       ]
     },
