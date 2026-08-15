@@ -1327,6 +1327,12 @@
     },
     veiled: function () { return selection.veiledState(); },
     roster: function () { return router.rosterOpen(); },
+    // The roster's address, published rather than typed by anybody who needs it. It came off the
+    // header's `students` link until issue 139 deleted that link, and a driver enumerating the
+    // addresses that open a sheet had to construct it instead: `#/p/Z-ZIB` against `#/p/ZIB` cost
+    // this repository half an hour of false alarm once and the rule it left is to construct no
+    // address you can ask for.
+    rosterRoute: router.rosterRoute,
     // The term sheet, for the reason the roster and the view are here: whether a table holds the
     // rows it says it holds, and whether the sample it declares is the sample it drew, are claims
     // that should be read off the running page rather than inferred from a screenshot of 83 rows.

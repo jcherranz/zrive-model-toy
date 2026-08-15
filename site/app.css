@@ -452,10 +452,15 @@ header {
 
    NOTHING HERE SETS A HEIGHT. Both switches are .linkbtn, so #77's 26 by 26 is met by
    construction and the group sits on the row's one baseline. */
+/* TWO PRESSES AND ONE CONTROL, AND THE SPACING IS WHAT SAYS SO. #131 measured this row and found
+   that one gap between everything makes a nav read as one undifferentiated strip; the answer it
+   set is a smaller gap inside a group than between groups, and this is that rule applied to a
+   group with two switches in it. 2px each side of a middle dot is 7.5 CSS px between the two
+   switches against the 12 between this control and either neighbour. */
 .abs {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
 }
 
 .abs-sep {
@@ -471,6 +476,25 @@ header {
    ghost toggle: the control looks like the thing it adds. */
 .abs-btn { color: var(--fg-body); }
 .abs-btn:hover { text-decoration: none; background-color: var(--tint-hover); }
+
+/* ---- the altitude wears the nav's paint now, issue 139 ---------------------------------------
+   THREE STATES AND THREE PAINTS, WHICH IS #131's FINDING KEPT WHERE ITS CONTROL WENT. That card
+   found `--tint-hover` and `--tint-neutral` declared to the same value and spent on three
+   meanings, so a control under the pointer and a control with its box OPEN were the same fill to
+   the pixel. The rules were written against `.hstate .linkbtn`; the plate is deleted and the
+   control is in the nav, so they are written against the control. The hover gives up the
+   underline, which is right for a word that is a link and wrong on a control whose text is its
+   own state; the open state keeps the tint and takes a two pixel accent along its bottom edge,
+   drawn as an inset shadow so it costs no height. */
+#grbtn:hover {
+  text-decoration: none;
+  background-color: var(--tint-hover);
+}
+
+#grbtn[aria-expanded="true"] {
+  background-color: var(--tint-hover);
+  box-shadow: inset 0 -2px 0 var(--i-primary);
+}
 
 .abs-work[aria-pressed="true"] {
   background-color: var(--tint-hover);
@@ -2104,7 +2128,6 @@ body.fb-mode .fb-popover select { cursor: pointer; }
      named: the altitude at 67, the absence control at 198 and `feedback` at 64 come to 329, and
      the two gaps between them to 12. */
   .hnav { gap: 6px; order: 3; }
-  .abs { gap: 3px; }
   #grbtn::after { margin-left: 3px; }
   .vsel { order: 1; }
   .brush { order: 2; }
@@ -2161,6 +2184,19 @@ body.fb-mode .fb-popover select { cursor: pointer; }
      inset for the right hand rail. Issue 46, on top of issue 21. */
   body.panel-open #canvas { margin-right: 0; }
 }
+
+/* AND ONE MORE CUT BELOW 431, WHICH IS A MEASUREMENT ON THE NARROWEST SCREEN THIS FILE NAMES.
+   Issue 139. At 360 by 844 the content box is 336 and the three groups in the nav come to 321.5
+   at the paddings above, which leaves two pixels and is not a margin, it is a coincidence. Four
+   pixels each side on each of the four pressable things gives eight back and the row settles at
+   313.5 with twenty two to spare, which is what survives a font that renders a shade wider. The box a
+   finger lands on is unchanged: .linkbtn's own min-width and min-height are 26 and every one of
+   these is wider than that on its text alone. */
+@media (max-width: 430px) {
+  .hnav .linkbtn,
+  .vseg { padding-left: 4px; padding-right: 4px; }
+}
+
 
 /* ---- ghosts: the classes that do not exist -------------------------------
    Everything in this block is drawn so that a reader cannot mistake it for an object the
