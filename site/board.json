@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-15T23:13:15Z",
+  "generated": "2026-08-15T23:14:07Z",
   "columns": [
     {
       "key": "raw",
@@ -33,24 +33,6 @@
             "idea"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
-        },
-        {
-          "id": 155,
-          "title": "is alignment ok here?",
-          "labels": [
-            "bug",
-            "feedback"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/155"
-        },
-        {
-          "id": 156,
-          "title": "check arrow vs line alignment",
-          "labels": [
-            "bug",
-            "feedback"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/156"
         }
       ]
     },
@@ -171,6 +153,26 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/154"
+        },
+        {
+          "id": 155,
+          "title": "is alignment ok here?",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/155"
+        },
+        {
+          "id": 156,
+          "title": "check arrow vs line alignment",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/156"
         }
       ]
     },
