@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-15T22:49:20Z",
+  "generated": "2026-08-15T22:50:56Z",
   "columns": [
     {
       "key": "raw",
@@ -26,13 +26,13 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
         },
         {
-          "id": 142,
-          "title": "I love this idea (in general of this controler / filter)…",
+          "id": 143,
+          "title": "Make this bigger / taller maybe also include a right panel for other…",
           "labels": [
-            "feedback",
-            "layout"
+            "bug",
+            "feedback"
           ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/142"
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/143"
         }
       ]
     },
@@ -54,6 +54,16 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
+        },
+        {
+          "id": 142,
+          "title": "I love this idea (in general of this controler / filter)…",
+          "labels": [
+            "feedback",
+            "layout",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/142"
         }
       ]
     },
