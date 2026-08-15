@@ -282,6 +282,7 @@ const PHASES = {
   'the worklist':         { count: 9, when: 'behavioural' },
   'the cut':              { count: 8, when: 'behavioural' },
   'the modified drag':    { count: 6, when: 'behavioural' },
+  'the brush':            { count: 8, when: 'behavioural' },
   'header':               { count: 8, when: 'behavioural' },
   'the readout':          { count: 7, when: 'behavioural' },
   'the control panel':    { count: 9, when: 'behavioural' },
@@ -540,7 +541,22 @@ const PHASES = {
 // the window box measured left: -73.1 at 900 with three of its lines starting outside the screen
 // and no scrollbar anywhere that could reach them; and that the nav is spaced as the three kinds
 // of control it holds rather than as five equal things.
-const EXPECTED_ASSERTIONS = 278;
+// 278 until issue 137, which deletes the weeks menu and puts the window on a brush over a density
+// strip, and adds the eight of `the brush`. Every one of them is a decision that card took and not
+// a count of what the code happens to do: that the strip IS the weekly density under the scope and
+// the fill is the part of it the model holds a complete record for, which is the number the control
+// is worth its width for and the one that can be wrong while the picture looks plausible; that the
+// columns follow the scope rather than the document behind it, over a programme drawn solid and one
+// drawn hollow; that a REAL drag on the band moves it by the weeks the pointer crossed and lands on
+// a week boundary rather than truncating to the week before; that a drag of a handle is the second
+// degree of freedom and leaves the other end alone, which is the whole reason this is a brush and
+// not a scrubber; that an end cap steps exactly one week on a phone as on a desktop and does
+// nothing at all against the end of the term; that pressing a week centres the window on it,
+// clamped; that the label goes on the band where the band can hold it and beside it where it
+// cannot, which is the one place this card could not follow the design's sketch and says so; and
+// that widening the band to the whole term over all seven meets the budget's own printed refusal
+// rather than a broken drawing, which is the release valve the budget's argument rests on.
+const EXPECTED_ASSERTIONS = 286;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -6252,6 +6268,385 @@ async function checkHeader(page) {
   await page.waitFor('window.ZT.term().open === false', 'the diagram to come back');
 }
 
+// ---- the term strip and its brush, issue 137 ----------------------------------------------------
+// EIGHT ASSERTIONS AND EVERY ONE OF THEM IS A DECISION THIS CARD TOOK. The owner singled the weeks
+// control out: "the weeks filter is crucial, but is this the best we can do?" The answer this card
+// gives is that a menu of names cannot express an interval, so the control is a brush on a density
+// strip, and what has to be proved is that the strip is the density, that it follows the scope,
+// that a REAL drag does what it looks like it does, that the two gestures a thumb can be relied on
+// land exactly one week, that the label goes where the arithmetic says it can, and that widening the
+// band past the node budget meets the refusal the budget already prints rather than a broken
+// drawing.
+//
+// FEWER PLANTS AND BETTER CHOSEN ONES, WHICH IS A CHANGE OF POLICY AND NOT OF STANDARD. A CI smoke
+// run takes about 240s now, up 3.2x from 71s before the union, and every plant costs at least two
+// runs. So there is no assertion here that restates what another one already covers: the mark and
+// the `aria-controls` the strip must not have are asserted in `the readout`, where the set equality
+// over the whole header already lives, and the withdrawal on the board and the student list is
+// asserted where every other withdrawal in this header is. Each of the eight below was planted, the
+// plant was reverted, and each went red under its own name.
+//
+// AND THE DRAG IS A REAL DRAG. Input.dispatchMouseEvent produces trusted pointer events down the
+// same path a finger and a mouse take, which is what the modified-drag phase has driven since #127.
+// If it could not, the honest thing would be to say so rather than to assert something weaker
+// through the keyboard and call the pointer proved; it can, and both are driven, the keyboard as
+// setup everywhere else and the pointer here where the gesture is the claim.
+
+// A SECOND IMPLEMENTATION OF THE STRIP, out of window.GI, sharing no line with term.js. The term's
+// axis is every Monday from the first session in the WHOLE document to the last, so it does not
+// move when the scope narrows; the column is how many sessions the scope holds in that week; the
+// fill is the ones carrying no property the model flags `absent` at or after the node's own route
+// boundary, which is where absentFields() draws the line and is a rule this has to reproduce rather
+// than ask for.
+const STRIP_MODEL = `(function (codes) {
+  function dnum(s) { var p = String(s).split('-'); return Date.UTC(+p[0], +p[1] - 1, +p[2]); }
+  function dstr(ms) {
+    var d = new Date(ms);
+    function p2(n) { return (n < 10 ? '0' : '') + n; }
+    return d.getUTCFullYear() + '-' + p2(d.getUTCMonth() + 1) + '-' + p2(d.getUTCDate());
+  }
+  function monday(s) {
+    var d = new Date(dnum(s));
+    return dstr(dnum(s) - ((d.getUTCDay() + 6) % 7) * 86400000);
+  }
+  function sessionsOf(v) {
+    var out = [];
+    (v.nodes || []).forEach(function (n) {
+      if (n.type !== 'CohortSession') return;
+      var date = null, absent = false, i;
+      for (i = 0; i < (n.props || []).length; i++) {
+        if (n.props[i].k === 'scheduled_at') date = String(n.props[i].v || '').split(' ')[0];
+        if (i >= (n.route || 0) && n.props[i].f === 'absent') absent = true;
+      }
+      if (date) out.push({ m: monday(date), absent: absent });
+    });
+    return out;
+  }
+  var every = [], mine = [], on = {};
+  (codes || []).forEach(function (c) { on[c] = 1; });
+  (window.GI.views || []).forEach(function (v) {
+    var ss = sessionsOf(v);
+    every = every.concat(ss);
+    if (!codes || !codes.length || on[v.code]) mine = mine.concat(ss);
+  });
+  var ms = every.map(function (r) { return r.m; }).sort();
+  var out = [], cur = ms[0], last = ms[ms.length - 1], by = {};
+  while (cur <= last) { by[cur] = out.length; out.push({ monday: cur, n: 0, rec: 0 }); cur = dstr(dnum(cur) + 7 * 86400000); }
+  mine.forEach(function (r) {
+    var i = by[r.m];
+    if (i === undefined) return;
+    out[i].n++;
+    if (!r.absent) out[i].rec++;
+  });
+  var max = out.reduce(function (m, o) { return Math.max(m, o.n); }, 0);
+  return out.map(function (o) {
+    return { monday: o.monday, n: o.n, rec: o.rec,
+             all: max ? (o.n / max) * 100 : 0, recPct: max ? (o.rec / max) * 100 : 0 };
+  });
+})`;
+
+async function stripModel(page, codes) {
+  return page.evaluate(`${STRIP_MODEL}(${JSON.stringify(codes || null)})`);
+}
+
+// How far the painted columns are from the recomputed ones, as one number, plus the two shapes the
+// solid-against-hollow distinction is made of. A strip whose fill always equalled its outline would
+// draw a picture and say nothing, so `hollow` and `solid` are counted and both are required.
+function stripGap(painted, want) {
+  if (painted.length !== want.length) return { worst: Infinity, hollow: 0, solid: 0, empty: 0 };
+  let worst = 0, hollow = 0, solid = 0, empty = 0;
+  for (let i = 0; i < want.length; i++) {
+    if (painted[i].monday !== want[i].monday) return { worst: Infinity, hollow, solid, empty };
+    worst = Math.max(worst, Math.abs(painted[i].all - want[i].all),
+                     Math.abs(painted[i].rec - want[i].recPct));
+    if (want[i].n === 0) empty++;
+    else if (want[i].rec < want[i].n) hollow++;
+    else solid++;
+  }
+  return { worst: +worst.toFixed(4), hollow, solid, empty };
+}
+
+// The pointer, on the strip, at a y inside its own box. READ OFF THE RENDERED ELEMENT AND NOT
+// COMPUTED FROM THE HEADER'S PADDING, which is a correction this phase's own phone half made before
+// it was ever planted: the strip is the second item of a one row header at 1536 and a line of its
+// own on the third row at 390, so a y taken from the header's 8px padding lands on the chip rail
+// there. Every cap press at 390 did nothing and the page was fine.
+function brushY(st) { return Math.round(st.box.y + st.box.h / 2); }
+
+async function checkBrush(page, base) {
+  // `#/p/ALL` and not `#/`. Both draw all seven, and only one of them does it on a hashchange:
+  // router.js reads the scope out of the `#/p/` prefix and answers null to everything else, so
+  // an address with no opinion is all seven on a cold load and leaves the scope alone on a move
+  // to it. #/p/ALL is the address the page itself writes for the union, off `window.ZT.scope()`
+  // rather than typed here, which is the rule the term routes already run on.
+  const allRoute = await page.evaluate('window.ZT.scope().all');
+  await page.evaluate(`location.hash = ${JSON.stringify(allRoute)}`);
+  await page.waitFor('window.ZT.scope().n === window.ZT.scope().of', 'the union, all seven drawn');
+  await setWindow(page, 0);
+  await viewSettled(page);
+
+  // ONE. THE STRIP IS THE WEEKLY DENSITY UNDER THE SCOPE, AND THE FILL IS THE PART OF IT THE MODEL
+  // HOLDS A COMPLETE RECORD FOR. This is the number the whole control is worth its width for, and
+  // it is the one that can be wrong while the picture looks entirely plausible. Every column is
+  // compared against the second implementation above, as the per cent of the tallest week that each
+  // of the two rectangles is drawn at, and the two shapes are counted: a strip on which nothing is
+  // hollow, or nothing is solid, has drawn a distinction it is not making.
+  const allCodes = (await page.evaluate('window.ZT.scope().codes')).slice();
+  const wantAll = await stripModel(page, allCodes);
+  const gotAll = await page.evaluate('window.ZT.brush()');
+  const gapAll = stripGap(gotAll.columns, wantAll);
+  assert('the strip is the weekly density under the scope, solid where the record is complete',
+    gotAll.columns.length === wantAll.length && gotAll.columns.length === gotAll.termWeeks &&
+      gapAll.worst < 0.01 && gapAll.hollow > 0 && gapAll.solid > 0 &&
+      gotAll.drawn === wantAll.reduce((n, w) => n + w.n, 0),
+    `${wantAll.length} columns recomputed out of window.GI, every one of them within a hundredth ` +
+      'of a per cent of what is painted, with both shapes on the strip',
+    `${gotAll.columns.length} columns against ${wantAll.length}, worst ${gapAll.worst} per cent, ` +
+      `${gapAll.solid} solid, ${gapAll.hollow} part hollow, ${gapAll.empty} empty, ` +
+      `${gotAll.drawn} sessions against ${wantAll.reduce((n, w) => n + w.n, 0)}`);
+
+  // TWO. AND IT FOLLOWS THE SCOPE, over a programme whose drawn rows carry a complete record and
+  // one whose do not. Z-BL draws 28 of its 28 sessions and every one of them is complete, so its
+  // strip is solid; Z-CFA draws 6 of 45 and every one of the six records no instructor, so its
+  // strip is hollow to the last column. Both are recomputed and both are required to differ from
+  // each other, so a strip that painted the union's columns whatever the address said fails here
+  // rather than passing on a picture that is right on one of seven.
+  const perScope = [];
+  for (const code of ['ZBL', 'ZCFA']) {
+    await page.evaluate(`location.hash = '#/p/${code}'`);
+    await page.waitFor(`window.ZT.scope().n === 1`, `the ${code} drawing alone`);
+    await viewSettled(page);
+    const key = await page.evaluate('window.ZT.scope().codes[0]');
+    perScope.push({ code, key, want: await stripModel(page, [key]),
+                    got: await page.evaluate('window.ZT.brush()') });
+  }
+  const gaps = perScope.map(p => stripGap(p.got.columns, p.want));
+  const differ = JSON.stringify(perScope[0].got.columns.map(c => [c.all, c.rec])) !==
+                 JSON.stringify(perScope[1].got.columns.map(c => [c.all, c.rec]));
+  assert('and it is the density of the scope on screen rather than of the document behind it',
+    gaps.every(g => g.worst < 0.01) && differ &&
+      gaps[0].hollow === 0 && gaps[0].solid > 0 && gaps[1].solid === 0 && gaps[1].hollow > 0,
+    'Z-BL solid in every week it holds and Z-CFA hollow in every week it holds, each within a ' +
+      'hundredth of a per cent of its own recomputation',
+    perScope.map((p, i) => `${p.key} worst ${gaps[i].worst}, ${gaps[i].solid} solid, ` +
+      `${gaps[i].hollow} hollow`).join('; ') + `, the two differ ${differ}`);
+
+  // THREE. A REAL DRAG ON THE BAND MOVES THE WINDOW BY THE WEEKS THE POINTER CROSSED, AND LANDS ON
+  // A WEEK BOUNDARY. Pressed, moved in eight steps and released, with Input.dispatchMouseEvent, so
+  // this is the pointer path a finger and a mouse take and not a synthesised click. The distance is
+  // deliberately five and three fifths of a column: a control that truncated instead of snapping to
+  // the nearest boundary would land on the fifth week and look entirely reasonable doing it. The
+  // landing is recomputed here, off the track this driver measured and the pixels it moved, and the
+  // window is required to start on a Monday of the term rather than on a date between two.
+  await page.evaluate(`location.hash = '#/p/ZBL'`);
+  await page.waitFor(`window.ZT.scope().n === 1`, 'the Z-BL drawing to drag on');
+  await setWindow(page, 3);
+  await viewSettled(page);
+  const dragFrom = await page.evaluate('window.ZT.brush()');
+  const cw = dragFrom.track.w / dragFrom.termWeeks;
+  const dx = cw * 5.6;
+  const wantStart = dragFrom.start + Math.round(dx / cw);
+  const y = brushY(dragFrom);
+  await dragBy(page, Math.round(dragFrom.band.x + dragFrom.band.w / 2), y, Math.round(dx), 0, 8);
+  await page.waitFor(`window.ZT.brush().start === ${wantStart}`,
+    `the band to land on week ${wantStart}`);
+  await viewSettled(page);
+  const dragged = await page.evaluate('window.ZT.brush()');
+  const w1 = await page.evaluate('window.ZT.term().window');
+  const onBoundary = dragged.columns[dragged.start].monday === w1.from &&
+    (Date.parse(w1.from + 'T00:00:00Z') - Date.parse(w1.firstMonday + 'T00:00:00Z')) %
+      (7 * 86400000) === 0;
+  assert('a drag on the band moves the window by the weeks the pointer crossed, snapped to a week',
+    dragged.start === wantStart && dragged.span === dragFrom.span && onBoundary &&
+      w1.from === dragged.columns[wantStart].monday && dragFrom.start !== wantStart,
+    `a band of ${dragFrom.span} dragged ${dx.toFixed(1)}px, which is 5.6 columns of ` +
+      `${cw.toFixed(2)}, landing on week ${wantStart} and starting on its Monday`,
+    `start ${dragFrom.start} to ${dragged.start}, span ${dragFrom.span} to ${dragged.span}, ` +
+      `window from ${w1.from} against column ${JSON.stringify(dragged.columns[dragged.start].monday)}`);
+
+  // FOUR. A DRAG OF A HANDLE CHANGES THE WIDTH AND LEAVES THE OTHER END WHERE IT WAS. This is the
+  // second degree of freedom and it is the whole reason the control is a brush and not a scrubber:
+  // an interval has a position and an extent, and a gesture that moved both at once would make
+  // "just this week" and "the whole spring" the same operation twice. The right handle is pressed
+  // on the band's own right edge and pulled four columns out; the left edge is required not to
+  // move, and the window's own `from` with it.
+  const grip = await page.evaluate('window.ZT.brush()');
+  const before = await page.evaluate('window.ZT.term().window');
+  await dragBy(page, Math.round(grip.band.x + grip.band.w - 2), brushY(grip),
+    Math.round(cw * 4), 0, 8);
+  await page.waitFor(`window.ZT.brush().span === ${grip.span + 4}`,
+    `the band to widen to ${grip.span + 4} weeks`);
+  await viewSettled(page);
+  const widened = await page.evaluate('window.ZT.brush()');
+  const after = await page.evaluate('window.ZT.term().window');
+  assert('a drag of a handle changes the width and leaves the other end where it was',
+    widened.span === grip.span + 4 && widened.start === grip.start &&
+      after.from === before.from && after.to > before.to &&
+      Math.abs(widened.band.w - grip.band.w - cw * 4) < 1.5,
+    `${grip.span} weeks widened to ${grip.span + 4} from the same Monday ${before.from}`,
+    `start ${grip.start} to ${widened.start}, span ${grip.span} to ${widened.span}, ` +
+      `from ${before.from} to ${after.from}, to ${before.to} to ${after.to}, band width ` +
+      `${grip.band.w} to ${widened.band.w} against ${(grip.band.w + cw * 4).toFixed(1)} wanted`);
+
+  // FIVE. AN END CAP STEPS EXACTLY ONE WEEK, ON A PHONE AS ON A DESKTOP, AND STOPS AT THE TERM.
+  // This is the gesture the design put the caps there for: a two pixel handle is not a phone target
+  // and stepping to the week next door is the commonest thing anybody does with this control, so it
+  // has to be a press that a thumb lands. Driven at 1536 and at 390, both directions, and driven
+  // once more against the end of the term, where the cap is required to do NOTHING rather than to
+  // carry the band off the strip. A cap that stepped two weeks, or that stepped one at one width
+  // and none at the other, fails here.
+  const stepped = [];
+  const firstMonday = await page.evaluate('window.ZT.term().window.firstMonday');
+  await atWidths(page, [1536, 390], async width => {
+    // Positioned on the term's third week rather than wherever the phase before it left the band:
+    // a cap that is already against an end does nothing, correctly, and a sub-run that started
+    // there would report that as a step of zero and fail its own arithmetic rather than the page's.
+    await setWindowAt(page, 3, plusDays(firstMonday, 14));
+    await sleep(120);
+    const st0 = await page.evaluate('window.ZT.brush()');
+    await click(page, Math.round(st0.caps.right.x + st0.caps.right.w / 2), brushY(st0));
+    await sleep(180);
+    const st1 = await page.evaluate('window.ZT.brush()');
+    await click(page, Math.round(st1.caps.left.x + st1.caps.left.w / 2), brushY(st1));
+    await sleep(180);
+    const st2 = await page.evaluate('window.ZT.brush()');
+    // And against the end of the term, where the right cap has nowhere to go.
+    await brushFocus(page);
+    for (let i = 0; i < st0.termWeeks; i++) await brushKey(page, 'ArrowRight', false);
+    await sleep(200);
+    const st3 = await page.evaluate('window.ZT.brush()');
+    await click(page, Math.round(st3.caps.right.x + st3.caps.right.w / 2), brushY(st3));
+    await sleep(180);
+    const st4 = await page.evaluate('window.ZT.brush()');
+    stepped.push({ width, a: st0.start, b: st1.start, c: st2.start,
+                   end: st3.start, endAgain: st4.start,
+                   endStops: st3.start + st3.span === st3.termWeeks,
+                   capW: Math.min(st0.caps.left.w, st0.caps.right.w),
+                   capH: Math.min(st0.caps.left.h, st0.caps.right.h),
+                   offAtEnd: st4.caps.rightOff });
+  });
+  const capsWrong = stepped.filter(s => s.b !== s.a + 1 || s.c !== s.a || !s.endStops ||
+    s.endAgain !== s.end || !s.offAtEnd || Math.min(s.capW, s.capH) < 24);
+  assert('an end cap steps exactly one week on every device, and refuses past the end of the term',
+    stepped.length === 2 && capsWrong.length === 0,
+    'one week forward and one back at 1536 and at 390, caps at least 24 by 24, and nothing at ' +
+      'all from the cap that is already against the end of the term',
+    JSON.stringify(stepped));
+
+  // SIX. PRESSING A WEEK CENTRES THE WINDOW ON IT. The other gesture the design named for a device
+  // with no pointer to hover with, and the one that makes the strip a way of TRAVELLING rather than
+  // of nudging: a reader looking at a tall week in April reaches it with one press instead of
+  // fifteen. The landing is recomputed here, and the clamp at the ends of the term is part of the
+  // claim rather than an accident: centring on the second week of a five week band cannot start
+  // before the term does.
+  await setWindowAt(page, 5, firstMonday);
+  await viewSettled(page);
+  const centre = await page.evaluate('window.ZT.brush()');
+  // A week the band is NOT already over, which is the gesture being asserted: pressing inside the
+  // band is a drag of it and pressing outside is a jump to it, and a target chosen without that in
+  // mind would drive the wrong one of the two.
+  const target = centre.termWeeks - 4;
+  const cwNow = centre.track.w / centre.termWeeks;
+  const wantCentred = Math.max(0, Math.min(centre.termWeeks - centre.span,
+    target - Math.floor((centre.span - 1) / 2)));
+  await click(page, Math.round(centre.track.x + cwNow * (target + 0.5)), brushY(centre));
+  await page.waitFor(`window.ZT.brush().start === ${wantCentred}`,
+    `the band to centre on week ${target}`);
+  await viewSettled(page);
+  const centred = await page.evaluate('window.ZT.brush()');
+  assert('pressing a week centres the window on it, clamped to the term',
+    centred.start === wantCentred && centred.span === centre.span &&
+      centred.start !== centre.start &&
+      centred.start + centred.span <= centred.termWeeks && centred.start >= 0,
+    `a band of ${centre.span} centred on week ${target} of ${centre.termWeeks}, which starts it ` +
+      `at ${wantCentred}`,
+    `start ${centre.start} to ${centred.start}, wanted ${wantCentred}, span ${centred.span}`);
+
+  // SEVEN. THE LABEL SITS ON THE BAND WHEN THE BAND CAN HOLD IT AND BESIDE IT WHEN IT CANNOT, and
+  // this is the one place the design's own sketch could not be followed as drawn. That sketch gives
+  // the strip a full width row, where twenty four weeks are sixty pixels each and three of them
+  // hold `24 Feb to 16 Mar` comfortably. This header is one row at every width from 1536 down to
+  // 981 and this card was told to keep it that way, so the band at three weeks is an eighth of a
+  // 332px track and the label is 78. A label forced inside would be clipped; a label painted over
+  // the band regardless would cover eight weeks of the density the strip exists to show. Both
+  // branches are driven, and the rule is recomputed here off the two rendered widths rather than
+  // read off the class the page set.
+  const labels = [];
+  for (const span of [3, 14]) {
+    await setWindowAt(page, span, null);
+    await sleep(160);
+    const st = await page.evaluate('window.ZT.brush()');
+    labels.push({ span: st.span, fits: st.label.box.w + 6 <= st.band.w, inside: st.label.inside,
+                  lw: st.label.box.w, bw: st.band.w, lx: st.label.box.x,
+                  br: st.band.x + st.band.w, bx: st.band.x, tx: st.track.x,
+                  tr: st.track.x + st.track.w, text: st.label.text });
+  }
+  const labelWrong = labels.filter(l => l.inside !== l.fits ||
+    (l.inside && (l.lx < l.bx - 0.5 || l.lx + l.lw > l.br + 0.5)) ||
+    (!l.inside && l.lx + l.lw > l.br + 0.5 && l.lx < l.bx - 0.5) ||
+    l.lx < l.tx - 0.5 || l.lx + l.lw > l.tr + 0.5 || !l.text);
+  assert('the label is on the band where the band can hold it and beside it where it cannot',
+    labels.length === 2 && labelWrong.length === 0 &&
+      labels[0].inside === false && labels[1].inside === true,
+    'a three week band too narrow for its own dates and a fourteen week band wide enough, the ' +
+      'label outside the first and inside the second, and inside the track in both',
+    JSON.stringify(labels));
+
+  // EIGHT. WIDENING THE BAND PAST THE NODE BUDGET LANDS ON THE REFUSAL THE BUDGET ALREADY PRINTS,
+  // AND NEVER ON A BROKEN DRAWING. The budget is 72, set by measurement in issue 136, and what it
+  // refuses is the whole term over six or seven programmes, which the canvas provably cannot frame.
+  // The brush is the release valve for exactly that refusal, so the state has to be reachable BY
+  // WIDENING and the landing has to be legible: the `sessions` row of `grain` greys and carries the
+  // count that broke it, the drawing is at modules, it is drawn rather than empty, and the console
+  // says nothing. Both directions on one gesture, because a page that refused everything would
+  // satisfy half of this: narrowed back to three weeks the same scope draws at sessions again.
+  await page.evaluate(`location.hash = ${JSON.stringify(allRoute)}`);
+  await page.waitFor('window.ZT.scope().n === window.ZT.scope().of', 'all seven drawn again');
+  await setWindow(page, 3);
+  await viewSettled(page);
+  const narrow = await page.evaluate(`(function () {
+    var g = window.ZT.grain();
+    return { grain: g.grain, refused: g.refused, load: g.load, budget: g.budget,
+             tiles: document.querySelectorAll('#graph [data-node]').length };
+  })()`);
+  const consoleBefore = page.console.length;
+  await setWindow(page, 0);
+  await viewSettled(page);
+  const wide = await page.evaluate(`(function () {
+    var g = window.ZT.grain(), b = window.ZT.brush();
+    document.getElementById('grbtn').click();
+    var row = null;
+    Array.prototype.forEach.call(document.querySelectorAll('#grmenu .gritem'), function (a) {
+      if (a.textContent.indexOf('sessions') === 0) {
+        row = { tag: a.tagName, off: /gritem-off/.test(a.className),
+                n: a.querySelector('.gritem-n') ? a.querySelector('.gritem-n').textContent : null,
+                href: a.getAttribute('href') };
+      }
+    });
+    document.getElementById('grbtn').click();
+    return { grain: g.grain, refused: g.refused, load: g.load, budget: g.budget, row: row,
+             span: b.span, termWeeks: b.termWeeks,
+             tiles: document.querySelectorAll('#graph [data-node]').length,
+             val: document.getElementById('grval').textContent };
+  })()`);
+  const noise = page.console.slice(consoleBefore)
+    .filter(e => !(KNOWN_404.test(e.url) && /404/.test(e.text)));
+  assert('widening the band to the whole term over all seven meets the budget\'s own refusal',
+    narrow.refused === null && narrow.grain === 'sessions' && narrow.tiles > 0 &&
+      wide.span === wide.termWeeks && wide.refused === 'sessions' && wide.grain === 'modules' &&
+      wide.val === 'modules' && wide.load > wide.budget && wide.tiles > 0 &&
+      !!wide.row && wide.row.off === true && wide.row.tag === 'SPAN' && wide.row.href === null &&
+      wide.row.n === String(wide.load) && noise.length === 0,
+    `three weeks drawing at sessions, the whole term refusing them with ${wide.load} against a ` +
+      `budget of ${wide.budget}, printed on the row that was refused, and a drawing on the canvas`,
+    `narrow ${JSON.stringify(narrow)}, wide ${JSON.stringify(wide)}, ` +
+      `${noise.length} console error(s) ${JSON.stringify(noise.slice(0, 2))}`);
+
+  await page.evaluate('location.hash = ' + JSON.stringify(ONE));
+  await page.waitFor(`window.ZT.scope().n === 1`, 'the drawing this suite drives');
+  await viewSettled(page);
+}
+
 // ---- the readout, issue 120 ---------------------------------------------------------------------
 // SIX ASSERTIONS AND EVERY ONE OF THEM IS A DECISION THAT CARD TOOK, which is the standard the
 // header phase above was written to and the reason it is worth writing twice. He asked for a
@@ -9330,6 +9725,11 @@ async function runViewport(chrome, viewport, base, full, narrow) {
       // before the phases that walk the seven programmes: this one fits the drawing between
       // every gesture and leaves it fitted. Issue 127.
       await group('the modified drag', () => checkDrag(page, base));
+      // After `the modified drag`, which leaves the drawing fitted with the window off, and before
+      // the phases that walk the seven programmes: this one moves the scope to the union and to two
+      // programmes of its own choosing, drags the band about, and hands the page back on the
+      // address this suite drives with the window off. Issue 137.
+      await group('the brush', () => checkBrush(page, base));
       await group('header', () => checkHeader(page));
       await group('the readout', () => checkReadout(page));
       // After `the readout`, which leaves the page on the diagram with nothing selected, and

@@ -860,9 +860,14 @@ h1 {
    than a preference. The plate is `flex: none` since #131 precisely so that its readings never
    fold, and a strip inside it would be the item that has to give way at every width; and on the
    phone the plate holds three readings across 366 CSS px with nothing left over. So the strip is
-   the third item of `.hrow`: on the desktop it sits between the scope and the readout, on the
-   phone `.hrow` wraps and it takes a line of its own, which is what the design asked for at that
-   width and is where a thumb can reach it.
+   the third item of `.hrow`, between the readout and the nav, and that slot is a measurement too:
+   the nav is a fixed distance from the right edge and the plate a fixed distance from the nav, so
+   this is the only place in the row whose left edge and width are both constant. In the slot
+   before the plate the strip's own track moved 31.4 CSS px the first time a window came on,
+   because `tiles` goes from `80` to `76 of 80` and everything to its left shifts by the
+   difference, and a direct manipulation control that walks out from under the pointer is not one.
+   On the phone `.hrow` wraps and the strip takes a line of its own, low in the header where a
+   thumb reaches it.
 
    IT TAKES THE PLATE'S OWN TREATMENT because it is doing the plate's job: a recessed surface the
    page reports on, with the same inset hairline that costs no height, so the row is two

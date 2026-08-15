@@ -143,36 +143,6 @@
          that switches drawings since #66, and taking it out of the heading would leave that
          heading saying "cohort 1Q26, as instances" about no cohort in particular. The heading
          says which drawing, the strip says which weeks, and the box says what is on it. -->
-    <!-- TIME IS AN INTERVAL YOU DRAG AND NOT A NAME YOU PICK. Issue 137. What stood in the box
-         after this was `weeks`, a reading whose value was a menu of four presets, and the owner
-         singled it out: "the weeks filter is crucial, but is this the best we can do?" It is not,
-         and the reason is functional rather than a matter of taste. The term is a bounded ordered
-         continuum of 24 weeks browsed in about 22 overlapping windows. A menu treats it as an
-         unordered set of names: it hides the neighbourhood, so stepping to the week next door
-         costs two interactions instead of one and there is no way to see that the week you are
-         moving into is empty until after you have moved into it; and it can express membership in
-         a preset list but not extent, so "just this week" and "the whole of the spring" both fall
-         outside it. The value has two degrees of freedom, position and width, which is a brush by
-         definition and not a scrubber.
-
-         IT IS A READING AND A CONTROL AT ONCE, WHICH IS WHAT PAYS FOR ITS WIDTH. One column per
-         week across the term. The column is how many sessions the scope holds that week; the part
-         of it the model holds a complete record for is solid and the remainder is hollow, in the
-         same filled-against-hollow grammar the chips beside it use as a fraction. So a reader sees
-         which weeks are heavy and which weeks the records barely cover BEFORE travelling there,
-         which is the thing no menu of names could ever have shown.
-
-         IT OPENS NOTHING AND CARRIES NO DISCLOSURE MARK. Every other control on this row that owns
-         a box declares `aria-controls` and takes the mark that says so; this one owns no box, so
-         it declares nothing and is marked with nothing. A mark here would be an affordance
-         promising a panel that does not exist.
-
-         NOT ONE COLUMN OF IT IS TYPED HERE. term.js owns the term, the window and every number on
-         this strip, and it builds the whole of the inside of this element from the model, for the
-         reason the chips beside it are built by router.js: a count typed into this file is right
-         on one scope out of a hundred and twenty seven. -->
-    <div class="brush" id="brush" role="slider" tabindex="0"
-         aria-valuemin="1" aria-valuemax="1" aria-valuenow="1"></div>
     <div class="hstate" id="hstate" role="group" aria-label="what is on this drawing">
       <!-- AT WHAT ALTITUDE. Issue 89, and it is the first control on this page that is about
            working with the model rather than reading it. The syllabus groups its sessions into
@@ -240,6 +210,48 @@
               class="rd-k">gaps</span> <span class="rd-v" id="gapsval">0</span></button><span
               class="gapsmenu" id="gapsmenu" hidden></span></span>
     </div>
+    <!-- TIME IS AN INTERVAL YOU DRAG AND NOT A NAME YOU PICK. Issue 137. What stood in the box
+         after this was `weeks`, a reading whose value was a menu of four presets, and the owner
+         singled it out: "the weeks filter is crucial, but is this the best we can do?" It is not,
+         and the reason is functional rather than a matter of taste. The term is a bounded ordered
+         continuum of 24 weeks browsed in about 22 overlapping windows. A menu treats it as an
+         unordered set of names: it hides the neighbourhood, so stepping to the week next door
+         costs two interactions instead of one and there is no way to see that the week you are
+         moving into is empty until after you have moved into it; and it can express membership in
+         a preset list but not extent, so "just this week" and "the whole of the spring" both fall
+         outside it. The value has two degrees of freedom, position and width, which is a brush by
+         definition and not a scrubber.
+
+         IT IS A READING AND A CONTROL AT ONCE, WHICH IS WHAT PAYS FOR ITS WIDTH. One column per
+         week across the term. The column is how many sessions the scope holds that week; the part
+         of it the model holds a complete record for is solid and the remainder is hollow, in the
+         same filled-against-hollow grammar the chips beside it use as a fraction. So a reader sees
+         which weeks are heavy and which weeks the records barely cover BEFORE travelling there,
+         which is the thing no menu of names could ever have shown.
+
+         IT OPENS NOTHING AND CARRIES NO DISCLOSURE MARK. Every other control on this row that owns
+         a box declares `aria-controls` and takes the mark that says so; this one owns no box, so
+         it declares nothing and is marked with nothing. A mark here would be an affordance
+         promising a panel that does not exist.
+
+         NOT ONE COLUMN OF IT IS TYPED HERE. term.js owns the term, the window and every number on
+         this strip, and it builds the whole of the inside of this element from the model, for the
+         reason the chips beside it are built by router.js: a count typed into this file is right
+         on one scope out of a hundred and twenty seven.
+
+         AND IT IS AFTER THE READOUT RATHER THAN BEFORE IT, WHICH IS A MEASUREMENT AND NOT A TASTE.
+         Between the heading and the plate it read better and it MOVED: `tiles` goes from `80` to
+         `76 of 80` the moment a window is on, the plate is sized by its own readings, and every
+         item before it in the row shifts by the difference. Measured at 1536 with the strip in that
+         slot, its own track jumped 31.4 CSS px on the first narrowing and a further 6.8 as the
+         digits changed, which is more than two weeks of a 24 week track moving out from under the
+         pointer dragging it. The nav is a fixed distance from the right edge and the plate a fixed
+         distance from the nav, which is #131's arrangement; this slot is the only one in the row
+         whose left edge and width are both constant, so it is the slot a direct manipulation
+         control has to have. Measured again here: 806.36 and 332 wide at every one of the 24
+         window widths. -->
+    <div class="brush" id="brush" role="slider" tabindex="0"
+         aria-valuemin="1" aria-valuemax="1" aria-valuenow="1"></div>
     <nav class="hnav">
       <!-- WHAT THE READER DOES, DECIDED IN ISSUE 57 AND ENFORCED IN ISSUE 86. Two of these belong
            to the page and the rest belong to a view of it, and until #86 nothing acted on the

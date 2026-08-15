@@ -1150,11 +1150,7 @@
       return { x: r.left, w: r.width, cw: r.width / TERM.weeks };
     }
 
-    function weekAtX(x) {
-      var g = trackGeom();
-      if (!g.cw) return 0;
-      return Math.max(0, Math.min(TERM.weeks - 1, Math.floor((x - g.x) / g.cw)));
-    }
+    function weekAtX(x) { return weekIn(trackGeom(), x); }
 
     function centreOn(week, span) {
       return week - Math.floor((span - 1) / 2);
@@ -1176,7 +1172,14 @@
         mode = 'move';
         start = bandStart();
       }
-      drag = { mode: mode, x0: x, start: start, end: start + span - 1 };
+      // THE GEOMETRY IS TAKEN ONCE, HERE, AND THE REST OF THE GESTURE USES IT. Every change of
+      // window repaints the readout beside this strip, and `tiles` goes from `80` to `76 of 80`
+      // the moment a window comes on, which is a reflow of the row the strip is in. Re-measuring
+      // the track on each move would read the geometry of a row that has changed since the press,
+      // so a drag would land on a week other than the one under the pointer. The slot this
+      // control sits in is chosen so the row cannot move it at all, and this is the second half
+      // of the same answer: even a row that did move could not corrupt a gesture already begun.
+      drag = { mode: mode, x0: x, start: start, end: start + span - 1, g: g };
       brushEl.classList.add('brush-drag');
       if (brushEl.setPointerCapture && e.pointerId !== undefined) {
         try { brushEl.setPointerCapture(e.pointerId); } catch (err) { /* no capture, still works */ }
@@ -1185,18 +1188,23 @@
       if (brushEl.focus) brushEl.focus();
     }
 
+    function weekIn(g, x) {
+      if (!g.cw) return 0;
+      return Math.max(0, Math.min(TERM.weeks - 1, Math.floor((x - g.x) / g.cw)));
+    }
+
     function brushMove(e) {
       if (!drag) return;
-      var g = trackGeom();
+      var g = drag.g;
       if (!g.cw) return;
       if (drag.mode === 'move') {
         var by = Math.round((e.clientX - drag.x0) / g.cw);
         setBand(drag.start + by, drag.end - drag.start + 1);
       } else if (drag.mode === 'left') {
-        var l = Math.min(weekAtX(e.clientX), drag.end);
+        var l = Math.min(weekIn(g, e.clientX), drag.end);
         setBand(l, drag.end - l + 1);
       } else {
-        var r = Math.max(weekAtX(e.clientX), drag.start);
+        var r = Math.max(weekIn(g, e.clientX), drag.start);
         setBand(drag.start, r - drag.start + 1);
       }
       e.preventDefault();
@@ -2706,8 +2714,8 @@
         function box(e) {
           if (!e) return null;
           var r = e.getBoundingClientRect();
-          return { x: +r.x.toFixed(2), w: +r.width.toFixed(2), h: +r.height.toFixed(2),
-                   r: +r.right.toFixed(2) };
+          return { x: +r.x.toFixed(2), y: +r.y.toFixed(2), w: +r.width.toFixed(2),
+                   h: +r.height.toFixed(2), r: +r.right.toFixed(2), b: +r.bottom.toFixed(2) };
         }
         var wks = stripWeeks();
         return {
