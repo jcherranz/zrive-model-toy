@@ -11,6 +11,88 @@ of what changed and when, and it is meant to be scannable.
 
 ### Changed
 
+- **SCOPE IS A SET, AND THE UNION IS ONE DRAWING, #136.** Card 1 of WINDOW-FIRST. Until this card
+  the programme WAS the address and time was a filter, so "this week, across several programmes"
+  had no form in the tool at all; the programme set is a scope now and it starts at All. **The
+  picker is gone and the rail is what replaces it**: eight chips, always visible, multi-select, and
+  every one of them carries its own population at rest, `IB 6/79 SC 25/25 BL 28/28 PE 6/36 HR 6/25
+  DS 6/22 CFA 6/45`, re-derived from each view's own counts block at this sha. Those seven
+  fractions are the sample clause the heading used to carry for the one programme on screen, said
+  about all seven at once, at every width including the phone.
+- **The union is ONE drawing and not seven side by side.** Each programme owns a fixed sector down
+  one shared set of lanes, in the build's own order, so a programme added below fills an empty
+  sector; objects the seven documents share collapse to a single node, joined **by id**, which is
+  what the build already writes for the same object across documents, and that collapse is the
+  whole reason an inter-programme line exists at all. Seven objects collapse today, four employers
+  and three instructors, and 25 lines reach across the sectors because of them. A programme hue is
+  painted on session and cohort tiles, and only while more than one programme is drawn.
+- **A SINGLE CHIP IS THE ARTEFACT THE BUILD WROTE, AND IT IS ASSERTED AS AN IDENTITY.** All 14
+  drawings, at both altitudes: every tile at the coordinate `layout.js` gives it, every line at its
+  path, the extent, the digest, the six lane captions and no hue anywhere. `drawingFor()` hands the
+  built object back untouched for a scope of one; there is no merge to be nearly right.
+- **The layout is the build's own and not a second opinion about it.** `filtered()`'s second half
+  became `compose()`, so the window transform and the union run the same pack, the same two edge
+  shapes and the same chip slide, and `reflowCheck()` stands behind both. `place()` grew sectors:
+  a node carries `sec` or it does not, the canonical artefacts carry none, so one programme takes
+  the branch this file has always taken.
+- **THE BUDGET IS 72 SESSION TILES AND IT WAS MEASURED, NOT ESTIMATED.** The committee's own
+  strongest objection is that the merged drawing bets on legibility from a snapshot where 177 of
+  260 sessions hold no detailed record. So: all 127 scopes were rendered at the whole term at the
+  sessions grain, at 390 by 844, which is the stricter viewport at 698 CSS px of canvas against
+  757. 121 frame whole; six do not, and they are the five scopes of six programmes at 77 tiles and
+  7405 to 7439 units and all seven at 83 tiles and 8017 units. The largest scope that frames whole
+  is 71 tiles at 6852. The criterion is the page's own arithmetic and not a taste: `viewport.js`
+  clamps the scale at a tenth, so a drawing taller than the canvas over that cannot be framed by
+  `fit` at all. **71 frames, 77 does not, and 72 sits in the gap the measurement left.**
+- **And it does not refuse the question this card exists for.** The densest three week window
+  across all seven, 19 January to 8 February, draws 17 session tiles and 146 tiles in all, 2880
+  units, and frames at 24.6 per cent at 1536 and 21.7 at 390, against the Z-BL term drawing the
+  tool already ships at 27.5 and 25.2. Filled in, the corpus is about 3.1 times the drawn one and
+  that window would draw about 53, still under 72. What 72 refuses is the whole term over six or
+  seven programmes, and the refusal is printed on the control that was refused: the `sessions` row
+  of the grain control greys, carries the count that broke it, and the drawing renders at modules.
+  A scope of one is never refused.
+- **RE-MEASURED, before and after, in the same browser by the same walk.** **35 addresses where
+  there were 33**, `#/p/ALL` and `#/p/ALL/modules` added and none replaced; every one of the 33
+  resolves to what it named. **Header one row at 43px from 1536 down to 981, two rows at 75px to
+  761, three at 760**, identical in both trees. **Phone chrome 107 of 844, share 0.1268**, against
+  0.1483 before and the ceiling of 0.1730. **16 controls in the header, every one 26 by 26**, at
+  1536 and at 390, where there were 9. **Visible characters over the 33 addresses both trees
+  answer: 39758 to 39590 at 1536**, a fall of 168, with no address rising and the seven programme
+  addresses falling by up to 16 apiece. **Counting the drawing's own tile labels as well the total
+  does rise, 114886 to 147062 over those same 33, and the rise sits on exactly two addresses**: the
+  one with no opinion, and the student list, which is a sheet over the drawing. Both are +16160 and
+  both are the same fact, that the address at rest draws seven programmes where it drew one. Every
+  other address is unchanged or lower. #128's cut was over the words the page says about itself and
+  that cut is intact; what grew is the model on the canvas, which is the card.
+- **Every programme hue clears the bar a drawn object is held to.** The bar is composited onto the
+  tile wash onto the lane plate onto the page, through paint probes so the engine resolves
+  `light-dark()`: at 33 per cent lightness the second programme's yellow bound at 2.8115 on the
+  amber session wash, under check_repo.sh's 3.0000; at 30 the worst of the thirty measurements is
+  3.3321 in light and 3.4834 in dark.
+- **The disclosure mark loses a user and gains none.** #131's mark is keyed on `aria-controls` and
+  the picker was one of the five that declared it. The rail opens no box, so it declares none and
+  carries none; a mark on it would have been an affordance saying that pressing a chip reveals
+  something. Four marks on four controls, asserted as set equality in both directions.
+- **SUITE 267 TO 278, FOURTEEN PLANTS**, each reverted and each red under its own name: the default
+  scope back to one programme, the chip fraction reading drawn over drawn, a scope of one routed
+  through the union, the collapse switched off, the lines that cross the sectors dropped, the
+  sectors laid out tallest first, the hue painted on a shared object, the hue back at the lightness
+  that failed, the refusal made silent, the budget cut to 12 so it refuses the flagship window, a
+  lane caption summing the seven, the fraction written only for the chip in scope, the rail painting
+  over the plate, and the rail dropping the altitude. **Two of the fourteen found a defect rather
+  than confirming a claim**: the budget was being asked about a scope of one, so a smaller number
+  would have refused a programme its own built drawing, and the assertion holding the scope control
+  off the plate read `elementFromPoint`, which answers with the topmost element and therefore cannot
+  see a chip buried under the plate, which is the defect #131 was filed about. **Every claim in the
+  new phase is recomputed in the driver out of `window.GI` and `window.GL`** and never read off the
+  page's own bookkeeping, which is #121's finding held against the largest card this drawing has
+  taken. **The rest of the suite is re-anchored and not re-cut**: `#/` draws all seven now, so every
+  phase about one programme's drawing is driven at `#/p/ZIB`, and not one assertion changed its
+  claim. Gates: `verify.sh` 13 of 13 `[OK]`, 278/278 locally and against the origin,
+  `check_build.sh` 0 with all 14 digests unchanged because no generated file was touched,
+  `check_repo.sh` 0.
+
 - **THE OUTLINE STOPS BEING A SPREADSHEET AND STARTS BEING A DOCUMENT, #135.** His words: "Make a
   cooler, more structured visually outline", filed from a row of the curriculum table at
   `#/outline/ZBL?open=bl_st6`, 1536 by 839. **Looked at first and measured before anything moved**,

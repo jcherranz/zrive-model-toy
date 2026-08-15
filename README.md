@@ -91,6 +91,36 @@ The drawing is one cohort and there is no route to any other view. A `2nd cohort
 second one, 2Q26, off the same six session templates; it is removed. The page ships exactly one
 coordinate set, `window.G`, and holds no state that could put it into another.
 
+## Scope is a set
+
+The programme is not the address any more. **The address carries a SET of programmes and it starts
+at all seven**: `#/p/ZIB` is the same address it always was and resolves to the same drawing,
+`#/p/ZIB+ZSC` is two, `#/p/ALL` is every programme the document holds, and an address with no
+opinion draws all of them. The control is a rail of eight chips in the heading, All and the seven,
+and **each chip carries its own programme's population at rest**, `IB 6/79` beside `BL 28/28`,
+because five of the seven documents hold a sample of their programme's term and a merged drawing
+read without those fractions invites being read as a fact about the business. The fractions travel
+to the phone unchanged; the rail scrolls sideways rather than dropping them.
+
+**More than one programme is ONE drawing.** Each programme owns a fixed sector down one shared set
+of lanes, in the build's own order, so adding a programme fills an empty sector rather than
+re-laying what was already on screen. Objects the documents share are drawn **once**, joined by the
+id the build already writes for the same object across documents, and that collapse is the whole
+reason a line between two programmes exists at all: a shared instructor drawn twice is two nodes
+with nothing between them. A programme hue appears on session and cohort tiles, and only while more
+than one programme is drawn. **A scope of one is the artefact the build wrote**, node for node and
+path for path, which `scripts/smoke.mjs` asserts as an identity over all fourteen drawings.
+
+**The budget is seventy two session tiles, and it is a measurement.** `viewport.js` clamps the
+scale at a tenth, so a drawing taller than the canvas over that cannot be framed whole by `fit`.
+All 127 scopes were driven at the whole term at 390 by 844: 121 frame, six do not, the largest
+that frames is 71 tiles and the smallest that does not is 77. Where the scope, the window and the
+altitude would exceed it the drawing renders at the modules grain, and the refusal is printed on
+the control that was refused: the `sessions` row of `grain` greys and carries the count that broke
+it. A scope of one is never refused. The densest three week window across all seven draws 17
+session tiles and frames at about a quarter, which is the size the Z-BL term drawing already
+renders at.
+
 Object types shown, one instance at least of each: Programme, Company, Instructor, session
 template, cohort session, Cohort, an aggregate students card, Student, Enrolment, Agreement,
 Charge, Claim.
@@ -127,7 +157,7 @@ site/            what is deployed
   render.js      paints the drawing from geometry
   viewport.js    pan, zoom and fit
   selection.js   what is picked, what it dims and what it reveals
-  router.js      the programme addresses and #/students
+  router.js      the scope in the address, the chip rail and #/students
   term.js        the term read twice, at #/calendar and #/outline
   instance.js    generated: the objects, their properties and identity, do not edit by hand
   layout.js      generated: every coordinate, do not edit by hand
@@ -271,7 +301,8 @@ size and the build id.
 ## The cohort in full
 
 `#/students` lists all thirty four students as rows, over the drawing, from the roster the build
-writes into `site/instance.js`. It is a view of its own, reached from `students` in the header or
+writes into `site/instance.js`. With more than one programme in scope it is the first of them, and
+its heading says which. It is a view of its own, reached from `students` in the header or
 from the students card's own panel, and the drawing is not a way to reach part of it: the diagram
 answers what shape a student record is and this answers who is in the cohort. Escape, the close
 button and a click outside all dismiss it, and it closes itself on the way to the board.
