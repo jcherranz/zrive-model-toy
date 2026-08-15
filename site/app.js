@@ -323,9 +323,37 @@
   // the header ends. Without it the open panel covers the header's own buttons.
   var hdr = document.querySelector('header');
 
+  // WRITTEN ONLY WHEN IT CHANGED, WHICH IS A COST AND NOT A TIDINESS. Issue 145. `--hh` is set on
+  // the document element, so writing it invalidates style for everything that could inherit it,
+  // which on this page is the whole document including a drawing of up to 2688 SVG elements. This
+  // runs from a ResizeObserver on the header and from `onDescribed`, so a drag on the term strip
+  // called it once per week crossed and paid a full style recalculation each time to write the
+  // same string. Chrome's own sampling profiler put it at 276ms of the 1470ms of script three
+  // drags at `#/p/ALL` on a 2560 viewport cost, second only to the label placement this card
+  // deleted. The header's height genuinely does change, on the phone and when the heading wraps,
+  // and the guard is a string comparison, so nothing that used to be answered is not answered.
+  var lastHH = null, hdrObserved = false;
   function measureHeader() {
-    document.documentElement.style.setProperty('--hh', (hdr ? hdr.offsetHeight : 0) + 'px');
+    var hh = (hdr ? hdr.offsetHeight : 0) + 'px';
+    if (hh === lastHH) return;
+    lastHH = hh;
+    document.documentElement.style.setProperty('--hh', hh);
   }
+
+  // AND THE CALLERS THAT RAN INSIDE A REDRAW DO NOT CALL IT WHILE THE OBSERVER IS WATCHING, which
+  // is the rest of issue 145's answer and the larger half of it. The guard above stops the WRITE
+  // and the write was not the expensive part: reading `offsetHeight` immediately after the drawing
+  // has been replaced forces a synchronous layout of a document holding up to 2688 SVG elements,
+  // and it forces it whether or not the number turns out to have changed. With the guard alone the
+  // profiler still put this at 459ms of three drags, the largest frame in the run.
+  //
+  // A ResizeObserver ON THE HEADER IS ALREADY INSTALLED and it is the right instrument: it is
+  // delivered after layout and before paint, so `--hh` is right before a reader can see anything,
+  // and it fires exactly when the header's box changes, which is exactly when the value is stale.
+  // The two eager calls are what a browser without one needs, so they are kept and made
+  // conditional rather than deleted: the observer says it owns this, and where there is no
+  // observer nothing has changed at all.
+  function measureHeaderEagerly() { if (!hdrObserved) measureHeader(); }
 
   var router, render, selection, viewport, term;
 
@@ -563,12 +591,17 @@
     // THE MEASUREMENT LAST, for the reason showView() refits last: the readings are IN the header
     // and a value that grows from one digit to five can change how many lines the row takes, so a
     // header measured before they are rewritten is a header measured against what it used to say.
-    onRoute: function () { describeReadout(); measureHeader(); },
+    onRoute: function () { describeReadout(); measureHeaderEagerly(); },
     // Issue 90. The time window is a page-level state and the drawing obeys it, so the wiring
     // file is what carries the answer from the module that knows what a date means to the module
     // that knows where a node is drawn. render is built after this, so the first call is guarded
     // and the initial state is applied below beside the first draw.
     onWindow: function (spec) { windowChanged(spec); },
+    // Issue 145. How many times render.js has rebuilt the drawing, handed over as a question for
+    // the reason `onWindow` is a callback: render is built after this. The strip publishes it on
+    // its own state so a driver can assert that a run of week crossings inside one animation frame
+    // costs one rebuild rather than one each, which is the whole claim the coalescer makes.
+    rebuilds: function () { return render ? render.paints() : null; },
     // Issue 137. WHICH PROGRAMMES THE STRIP IS THE DENSITY OF. The column over a week is how many
     // sessions the scope holds in it, and the scope is a set since #136, so the strip has to be
     // told the same set the drawing is. Handed over as a question for `windowEffect`'s reason:
@@ -604,7 +637,7 @@
     drawing: function () { return router.view().drawing || render.drawing(); },
     onView: showView,
     onGrain: grainChanged,
-    onDescribed: measureHeader
+    onDescribed: measureHeaderEagerly
   });
 
   render = ZM.render({
@@ -1244,7 +1277,14 @@
   // somebody had to remember to hook. One observer on the element answers all of them and any
   // reason a later card invents. The resize listener stays as the answer where there is no
   // ResizeObserver. Issue 77.
-  if (window.ResizeObserver && hdr) new ResizeObserver(measureHeader).observe(hdr);
+  if (window.ResizeObserver && hdr) {
+    // Issue 145. The flag says the observer owns this, so the two eager callers step aside and
+    // nothing forces a layout in the middle of a redraw. Set before observe() rather than inside
+    // the callback, because the first delivery is asynchronous and a route change in between
+    // would take the expensive path once for nothing.
+    hdrObserved = true;
+    new ResizeObserver(measureHeader).observe(hdr);
+  }
 
   // What feedback.js needs in order to say what was on screen when a note was written, plus the
   // view, which is here for a driver to read and assert against rather than for the page: an

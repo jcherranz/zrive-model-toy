@@ -892,7 +892,8 @@ h1 {
    arguments, one number, so it is the number.
 
    AND IT STOPS THERE, WHICH IS THE OTHER HALF OF THE DECISION. 24 weeks at 24 px is 576 of track,
-   and the strip is that plus its two 24 px caps: past it nothing measured improves. The target is already at the floor the standard names, and a column
+   and the strip is that plus its two 24 px caps and the value slot the label moved into: past it
+   nothing measured improves. The target is already at the floor the standard names, and a column
    is 60 per cent of its week, so further width buys gutter rather than shape. The surplus beyond
    the ceiling goes back to the heading, which is #131's arrangement unchanged: the space between
    the subject and the instruments is the space that varies, and it is what keeps the nav a fixed
@@ -910,8 +911,10 @@ h1 {
   flex: 1 1 356px;
   min-width: 180px;
   /* 576 of track, which is the term's 24 weeks at the 24 px the paragraph above derives, plus the
-     two 24 px caps. */
-  max-width: 624px;
+     two 24 px caps and the 44 the stacked value slot and its margins measure at this type ramp.
+     Measured on the running page rather than added up here: at this ceiling the track is 576.0 and
+     the week is 24.00. */
+  max-width: 668px;
   position: relative;
   display: flex;
   align-items: stretch;
@@ -1002,7 +1005,13 @@ h1 {
   transform: translateX(-50%);
   width: 60%;
   min-width: 2px;
-  max-width: 9px;
+  /* 14 AND NOT 9 SINCE ISSUE 142. The column is 60 per cent of its week and the cap was set when a
+     week was 12.83 CSS px, where 60 per cent is 7.7 and the cap never bound. The week reaches 24 at
+     the strip's new ceiling, where 60 per cent is 14.4, and a 9px bar in a 24px week is a hairline
+     in a field: the shape the reader is meant to read comes from the bars, so the bar has to keep
+     its share of the week it stands in. It still binds nothing below a 15px week, which is every
+     width under about 1400 and the phone. */
+  max-width: 14px;
 }
 
 .brush-col-all {
@@ -1060,37 +1069,60 @@ h1 {
 .brush-grip-l { left: 2px; }
 .brush-grip-r { right: 2px; }
 
-/* THE LABEL SITS ON THE BAND WHEN THE BAND CAN HOLD IT AND BESIDE IT WHEN IT CANNOT, which is
-   arithmetic and not a preference. The band is the window's width as a fraction of the term, so
-   three weeks of twenty four is an eighth of the track: 42 CSS px at the strip's designed width,
-   against 78 for `24 Feb to 16 Mar`. A label forced inside would either be clipped or would cover
-   eight weeks of the density the strip exists to show. So it is centred on the band while it
-   fits, and it steps to whichever side of the band has room while it does not, and it is
-   positioned by term.js off the two measured widths rather than guessed at here. */
-.brush-label {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  padding: 0 3px;
-  font-size: 10px;
-  line-height: 14px;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  pointer-events: none;
+/* THE VALUE, AND IT IS OFF THE TRACK NOW, WHICH IS ISSUE 142 AND THE OWNER'S OWN QUESTION. What
+   stood here was `.brush-label` and `.brush-label-out`: an absolutely positioned label centred on
+   the band while the band could hold it and stepped beside the band while it could not, with an
+   opaque ground under the words because the columns run the whole length of the track and it was
+   over them wherever it went.
+
+   THE EXCEPTION WAS THE RULE, MEASURED. `9 Mar to 12 Apr` renders at 75.61 CSS px and the band is
+   the window's share of the track, so at the strip's own 12.83 px week the label fitted inside the
+   band from SIX weeks up. Nineteen of the 24 window widths a reader can set put it outside, with
+   its ground over about six columns of the density this strip is worth its width for. Two
+   behaviours for one thing, and the reader met the ugly one almost every time.
+
+   SO IT IS A SLOT AFTER THE RIGHT CAP AND NOT A THING ON THE TRACK. It never moves, it covers no
+   column, it has one behaviour, and it is the strip stating what it is set to, which is exactly
+   what a chip's `25/25` and the altitude's `sessions` already do in this row. It adds no reading
+   to the header: it is inside the control, inside its one focus stop, and the control answers a
+   press, so the two counts of this row are the 14 the suite's query sees and the 15 that answer a
+   press, unchanged.
+
+   NOTHING HERE SETS ITS WIDTH. term.js pins it once at startup to the widest interval this term
+   can name, measured against the real font in the element itself, because a slot sized by its
+   content would change width as the dates changed and the track is to its left: the track's right
+   edge, and its pixels per week, would move under the pointer dragging it.
+
+   AND NO GROUND, which is the other half of the deletion. The ground existed because the label was
+   over the columns. It is not over anything now, so it takes the strip's own recessed surface like
+   the caps beside it.
+
+   AND IT IS THE TWO DATES STACKED AND NOT THE SENTENCE, WHICH IS A MEASUREMENT AND NOT A STYLE.
+   `9 Mar to 12 Apr` on one line is 74 CSS px of slot, and every pixel of the slot comes off the
+   track: measured across the widths a reader has, a one line slot took the week BELOW what it was
+   before this card everywhere under about 1650, from 12.83 to 9.34 at 1366. The strip is 26 tall
+   and a 10px date on a 12px line is 24 of it, so the interval goes on two lines, which is 34 of
+   slot instead of 74 and reads as a from and a to rather than as a phrase. It also spends two
+   visible characters fewer than the sentence it replaces, because the word between the dates is
+   gone; `aria-valuetext` and the control's own title still say the whole phrase, so nothing a
+   screen reader is given changed. */
+.brush-val {
+  flex: none;
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 0 6px 0 4px;
   color: var(--fg-body);
-  border-radius: 2px;
-  /* THE GROUND UNDER THE WORDS IS NOT OPTIONAL. The columns run the whole length of the track, so
-     the label is over them wherever it goes, inside the band and out; the first draft gave it a
-     ground only outside and `12 Jan to 28 Jun` was painted through twenty four bars. It is the
-     header's own ground rather than the plate's, so the label reads as a value sitting on the
-     track in both places, which is what it is. */
-  background: var(--bg-panel);
 }
 
-/* The class is the state and not the paint since the ground moved up: term.js sets it when the
-   band is too narrow to hold the label, and window.ZT.brush() reports it, so an assertion about
-   where the label went is reading the page's own answer. */
-.brush-label-out { box-shadow: 0 0 0 1px var(--rule-muted); }
+.brush-val-d {
+  font-size: 10px;
+  line-height: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 
 /* ---- the altitude, issue 89 --------------------------------------------- */
 /* THE SECOND BOX TO HANG OFF A CONTROL IN THIS HEADER AND THE SECOND COPY OF ONE IDIOM: the
@@ -2198,7 +2230,10 @@ body.fb-mode .fb-popover select { cursor: pointer; }
 
      `flex: 1 1 100%` FOR .hnav's REASON, restated: a flex item sized to its own content never
      meets an edge to wrap at, so the line has to be given rather than left to be taken. */
-  .brush { flex: 1 1 100%; min-width: 0; }
+  /* `max-width: none` because the ceiling above is a desktop ceiling: it exists to stop the strip
+     eating a row that has surplus, and this row has none. 366 across 24 weeks is a 13px week here
+     however the desktop is sized. */
+  .brush { flex: 1 1 100%; min-width: 0; max-width: none; }
   /* The altitude's box is anchored to the viewport under the header, and this is a measured repair
      rather than a precaution. Issue 89, and the measurement is #98's: a box hung off a control in a
      row that wraps here has its own right edge nowhere near the viewport's, and a 350px box
