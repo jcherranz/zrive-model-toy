@@ -345,3 +345,31 @@ build on a cited slug that resolves to nothing.
   the header ends, and neither is evidence for the other. A further instance of
   `kaizen-a-widened-control-keeps-its-neighbours-reachable`, and the first here where nothing
   touched the control at all: something else arrived on top of it.
+- `kaizen-a-wait-must-be-weaker-than-the-claim` &middot; **A wait that encodes the assertion can
+  only ever time out.** A driver waits for the page to finish answering and then asserts that the
+  answer is right, and those are two different sentences. Issue 137 wrote them as one: the wait was
+  for the brush to land on the RIGHT week, so when the plant made it truncate instead of snapping,
+  the wait was never satisfied, the group threw at twenty seconds, and the assertion whose own name
+  describes that exact defect never ran at all. The report then said the harness had failed, which
+  sends a reader somewhere else entirely, and the plant proved nothing about the assertion it was
+  supposed to prove. A wait has to be satisfied by every answer the page could give, the wrong ones
+  included: "the band moved at all" is a wait, "the band is on week fourteen" is the claim. Three
+  waits were rewritten that way and the eight plants each then went red under their own name. This
+  is `kaizen-gate-shown-to-fire` met inside the driver rather than inside a gate:
+  an assertion that cannot be reached is an assertion that has never been tested, and a suite full
+  of them reports on the ones that happen to be reachable.
+- `kaizen-a-control-you-drag-sits-where-its-own-state-cannot-move-it` &middot; **A direct
+  manipulation control has to sit in a slot its own state cannot move.** The term strip's first slot
+  was between the heading and the readout, which reads better and is wrong: the readout is sized by
+  its own readings, `tiles` goes from `80` to `76 of 80` the moment a window is on, and every item
+  to its left shifts by the difference. Measured at 1536: the strip's own track jumped 31.4 CSS px
+  the first time the reader narrowed the band and 6.8 more as the digits changed, which is two weeks
+  of a 24 week track moving out from under the pointer that was dragging it. The row already had the
+  answer in it, from issue 131: the nav is a fixed distance from the right edge and the readout a
+  fixed distance from the nav, so the slot between them is the only one in the row whose left edge
+  and width are both constant. The general form is that a control which reports a value AND is set
+  by a gesture couples the layout to itself, and every other control on a row that resizes with its
+  own text is a control whose geometry is a function of what it is saying. The second half of the
+  repair is that the gesture takes its geometry once, at the press, so a row that did reflow could
+  not corrupt a drag already begun; the two are separate, because being in a stable slot is not the
+  same as surviving an unstable one.

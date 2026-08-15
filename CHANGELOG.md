@@ -56,6 +56,7 @@ of what changed and when, and it is meant to be scannable.
   edge and width are both constant, 806.36 and 332 at every one of the 24 widths, because the nav is
   a fixed distance from the right edge. The drag also takes its geometry once, at the press, so a
   row that did reflow could not corrupt a gesture already begun.
+  KAIZEN.md `kaizen-a-control-you-drag-sits-where-its-own-state-cannot-move-it`.
 - **What the design's sketch asks for and this could not give it.** That sketch puts the strip on a
   full width row where 24 weeks are 60 pixels each and three of them hold `24 Feb to 16 Mar`
   comfortably. This header is one row from 1536 down to 981 and this card was told to keep it that
