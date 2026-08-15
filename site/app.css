@@ -900,12 +900,20 @@ h1 {
   outline-offset: -2px;
 }
 
-/* The two end caps. They step the window one week, and they exist because dragging a fifteen
-   pixel handle with a thumb is the one genuinely unreliable gesture in this design: the cap is a
-   26 by 22 target that does the commonest thing the control is for. They are not buttons, and
-   that is deliberate: the strip is ONE instrument with one focus stop and one keyboard, the way a
-   scrollbar is, and eight chips plus a menu plus two arrows is the pile this redesign exists to
-   take down. The arrows the caps draw are the keyboard's own two keys, said in pixels. */
+/* The two end caps. They step the window one week, and they exist because dragging a two pixel
+   handle with a thumb is the one genuinely unreliable gesture in this design: the cap is a 24 by 26
+   target that does the commonest thing the control is for. They are not buttons, and that is
+   deliberate: the strip is ONE instrument with one focus stop and one keyboard, the way a scrollbar
+   is, and eight chips plus a menu plus two arrows is the pile this redesign exists to take down.
+   The arrows the caps draw are the keyboard's own two keys, said in pixels.
+
+   AND THEY ARE DRAWN RATHER THAN TYPED, which is a measurement. As `\2039` and `\203a` in the
+   markup they were two characters of the page's own visible text on every one of the 33 addresses
+   that draw, which is a budget this card was told not to spend; the band's label is two characters
+   longer than the `weeks all 24` it replaces, and the two cancel exactly. A chevron is a square
+   with two of its borders and a rotation, it carries no text for a screen reader to read as a
+   single left-pointing angle quotation mark, and the strip's own `aria-valuetext` is what says
+   where the window is. */
 .brush-cap {
   flex: none;
   width: 24px;
@@ -913,9 +921,18 @@ h1 {
   align-items: center;
   justify-content: center;
   color: var(--i-primary);
-  font-size: 12px;
-  line-height: 1;
 }
+
+.brush-cap::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-left: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+}
+
+.brush-cap-r::before { transform: rotate(-135deg); }
 
 .brush-cap.brush-cap-off { color: var(--fg-muted); opacity: .45; }
 .brush:not(.brush-drag) .brush-cap:not(.brush-cap-off):hover { background: var(--tint-hover); }
@@ -1030,11 +1047,18 @@ h1 {
   pointer-events: none;
   color: var(--fg-body);
   border-radius: 2px;
+  /* THE GROUND UNDER THE WORDS IS NOT OPTIONAL. The columns run the whole length of the track, so
+     the label is over them wherever it goes, inside the band and out; the first draft gave it a
+     ground only outside and `12 Jan to 28 Jun` was painted through twenty four bars. It is the
+     header's own ground rather than the plate's, so the label reads as a value sitting on the
+     track in both places, which is what it is. */
+  background: var(--bg-panel);
 }
 
-/* Outside the band the label is over the columns, so it takes the plate's own ground back with it
-   rather than reading through them. */
-.brush-label-out { background: var(--bg-band); }
+/* The class is the state and not the paint since the ground moved up: term.js sets it when the
+   band is too narrow to hold the label, and window.ZT.brush() reports it, so an assertion about
+   where the label went is reading the page's own answer. */
+.brush-label-out { box-shadow: 0 0 0 1px var(--rule-muted); }
 
 /* ---- what needs attention, issue 98 ---------------------------------------------
    The third disclosure in this header and deliberately the third of the same thing: the box, the

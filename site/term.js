@@ -888,7 +888,7 @@
       if (!brushEl || !TERM) return;
       brushEl.textContent = '';
       brushCols = [];
-      brushCapL = el('span', 'brush-cap brush-cap-l', '‹');
+      brushCapL = el('span', 'brush-cap brush-cap-l');
       brushEl.appendChild(brushCapL);
       brushTrack = el('span', 'brush-track');
       var i;
@@ -909,7 +909,7 @@
       brushLabel = el('span', 'brush-label');
       brushTrack.appendChild(brushLabel);
       brushEl.appendChild(brushTrack);
-      brushCapR = el('span', 'brush-cap brush-cap-r', '›');
+      brushCapR = el('span', 'brush-cap brush-cap-r');
       brushEl.appendChild(brushCapR);
     }
 
