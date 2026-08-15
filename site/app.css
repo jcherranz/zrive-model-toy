@@ -870,10 +870,48 @@ h1 {
    together, so a strip wider than 367 clips a chip the moment a reader sets a window: at 380 the
    rail measured 420 against the 426 it wants and the last fraction was six pixels short of whole.
    The rail is still the item that gives way when there is genuinely not enough row, which is what
-   it does below about 1100; it should not have to give way at the width the tool is read at. */
+   it does below about 1100; it should not have to give way at the width the tool is read at.
+
+   ---------------------------------------------------------------------------------------------
+   AND THE GROW WAS ZERO, WHICH IS ISSUES 142 AND 143 AND IS ONE DEFECT SEEN TWICE. Measured on
+   the running page at the viewport he filed all three cards from: the strip was 356 CSS px at
+   2560 by 1317 and 356 at 1536 by 839, the track inside it 308 in both, and the week 12.83 px in
+   both. The highest breakpoint in this file was 980, so NOTHING in this header answered a screen
+   wider than the one it was drawn on: at 2560 the row was 2520 wide, the eight chips, the strip,
+   the nav and the view selector came to 1252 of it, and 1208 px, 48 per cent of the row, was
+   space. One instrument in that row can use width and it was the one thing capped.
+
+   THE WEEK IS 24 CSS PX AND THAT IS A MEASUREMENT AND NOT A ROUND NUMBER. term.js maps a drag to
+   weeks as `Math.round(dx / cw)`, so the pointer travel that lands exactly one week is the
+   half-open interval from half a week to one and a half weeks: THE TARGET FOR A ONE WEEK SLIDE IS
+   EXACTLY ONE WEEK WIDE. At 12.83 that target was 12.83 px, about half the 24 by 24 minimum this
+   repository has held every control to since issue 77 and that WCAG 2.2 SC 2.5.8 names. 24 is
+   also, independently, the width at which `HANDLE * 3` in term.js stops suppressing the two
+   handles on the narrowest band the control can express: below it a one week band has no ends to
+   grab and a two week band is two resize zones with 10 px of move between them. Two different
+   arguments, one number, so it is the number.
+
+   AND IT STOPS THERE, WHICH IS THE OTHER HALF OF THE DECISION. 24 weeks at 24 px is 576 of track,
+   and the strip is that plus its two 24 px caps: past it nothing measured improves. The target is already at the floor the standard names, and a column
+   is 60 per cent of its week, so further width buys gutter rather than shape. The surplus beyond
+   the ceiling goes back to the heading, which is #131's arrangement unchanged: the space between
+   the subject and the instruments is the space that varies, and it is what keeps the nav a fixed
+   distance from the right edge while the subject changes under it.
+
+   THE SURPLUS IS SPLIT EVENLY WITH THE HEADING RATHER THAN TAKEN, `flex-grow: 1` against the h1's
+   own 1, because there is no measurement that says the instrument should be fed before the
+   subject and an invented ratio would be exactly the kind of number this file refuses. At 1536
+   the row has 184 px of surplus, so the strip takes 92 and stands at 448 with a 19 px week, and
+   the rail keeps 46 px of slack over the 426 its eight chips need, which it needs: the nav is
+   356.08 wide with a window on it and 362.84 without one, because `work 0/22` and `work 3/22` are
+   not the same width. Nothing below about 1350 is changed at all, because below it the row has no
+   surplus to split and the shrink that was already here is what runs. */
 .brush {
-  flex: 0 1 356px;
+  flex: 1 1 356px;
   min-width: 180px;
+  /* 576 of track, which is the term's 24 weeks at the 24 px the paragraph above derives, plus the
+     two 24 px caps. */
+  max-width: 624px;
   position: relative;
   display: flex;
   align-items: stretch;
