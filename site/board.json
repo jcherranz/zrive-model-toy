@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-15T16:11:28Z",
+  "generated": "2026-08-15T16:12:55Z",
   "columns": [
     {
       "key": "raw",
@@ -30,7 +30,16 @@
     {
       "key": "backlog",
       "title": "Backlog",
-      "cards": []
+      "cards": [
+        {
+          "id": 138,
+          "title": "A hashchange to the bare address leaves the scope where it was",
+          "labels": [
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/138"
+        }
+      ]
     },
     {
       "key": "in_progress",
