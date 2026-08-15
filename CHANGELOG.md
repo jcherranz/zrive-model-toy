@@ -53,9 +53,13 @@ of what changed and when, and it is meant to be scannable.
   own readings, and everything to its left shifts. Measured at 1536 in that slot: the track jumped
   31.4 CSS px on the first narrowing and 6.8 more as the digits changed, which is two weeks of a 24
   week track moving out from under the pointer dragging it. Between the readout and the nav its left
-  edge and width are both constant, 806.36 and 332 at every one of the 24 widths, because the nav is
+  edge and width are both constant, 806.36 and 356 at every one of the 24 widths, because the nav is
   a fixed distance from the right edge. The drag also takes its geometry once, at the press, so a
-  row that did reflow could not corrupt a gesture already begun.
+  row that did reflow could not corrupt a gesture already begun. **356 and not 380 is a measurement
+  too**: the readout is 271 with no window and 309 with one, `tiles` going from `230` to
+  `296 of 320`, so at 1536 the rail and the strip share 793 and a strip wider than 367 clips a chip
+  the moment a reader sets a window. At 380 the rail measured 420 against the 426 the eight chips
+  want; at 356 it fits whole in all 24 of the window's states.
   KAIZEN.md `kaizen-a-control-you-drag-sits-where-its-own-state-cannot-move-it`.
 - **What the design's sketch asks for and this could not give it.** That sketch puts the strip on a
   full width row where 24 weeks are 60 pixels each and three of them hold `24 Feb to 16 Mar`

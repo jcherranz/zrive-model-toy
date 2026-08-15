@@ -875,10 +875,16 @@ h1 {
    180 is what keeps the header one row down to 981: measured at 981, the padding, the three gaps,
    the readout and the nav come to 665 of the 941 a 981px viewport has, so the strip and the rail
    share 276, and a strip that could not shrink would break the row instead of the rail's scroll.
-   380 rather than more, because the eight chips are 426 CSS px wide and 1536 leaves exactly 405
-   for this after them: at 380 the rail still fits whole at the width the tool is read at. */
+   356 AND NOT 380, WHICH IS A MEASUREMENT AND NOT A ROUND NUMBER. The eight chips are 426 CSS px
+   wide, and the readout is 271 with no window on it and 309 with one, because `tiles` goes from
+   `230` to `296 of 320` and `gaps` from `50 of 95` to `83 of 95`. At 1536 that leaves
+   1536 less 40 of padding, 60 of gaps, 309 and 334, which is 793 for the rail and the strip
+   together, so a strip wider than 367 clips a chip the moment a reader sets a window: at 380 the
+   rail measured 420 against the 426 it wants and the last fraction was six pixels short of whole.
+   The rail is still the item that gives way when there is genuinely not enough row, which is what
+   it does below about 1100; it should not have to give way at the width the tool is read at. */
 .brush {
-  flex: 0 1 380px;
+  flex: 0 1 356px;
   min-width: 180px;
   position: relative;
   display: flex;
