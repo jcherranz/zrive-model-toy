@@ -6579,6 +6579,26 @@ const PANEL_GEO = `(function () {
       var r = document.getElementById('pgrail');
       return r ? { w: r.clientWidth, sw: r.scrollWidth } : null;
     })(),
+    // WHAT IS UNDER THE PLATE'S OWN LEFT EDGE, AND THE PLURAL HIT TEST AND NOT THE
+    // SINGULAR ONE. elementFromPoint answers with the topmost element, which is the plate
+    // itself whether or not a chip is buried beneath it, so it cannot see the defect at all: #131
+    // was a programme name painted UNDER the plate and cut through a letter, and a thing under
+    // something else is exactly what the topmost element hides. The plural returns the stack, and
+    // a chip anywhere in it is a chip the plate is sitting on.
+    atPlateEdge: (function () {
+      var st2 = document.getElementById('hstate');
+      if (!st2 || !document.elementsFromPoint) return null;
+      var r = st2.getBoundingClientRect();
+      var stack = document.elementsFromPoint(r.x + 1, r.y + r.height / 2);
+      for (var i = 0; i < stack.length; i++) {
+        var e = stack[i];
+        if (e.closest && e.closest('#pgrail')) {
+          return 'pgrail ' + (e.className && e.className.baseVal !== undefined
+            ? e.className.baseVal : (e.className || e.id || e.tagName));
+        }
+      }
+      return null;
+    })(),
     readings: readings,
     controls: controls,
     scrollWidth: d.scrollWidth,
@@ -6726,18 +6746,29 @@ async function checkPanel(page) {
   // claim about the same two boxes, with one more thing to say: what the rail does when it runs
   // out of width is scroll inside itself, so a fraction is never half painted, and the rail's own
   // scroller is required to be a scroller and never wider than the page.
+  //
+  // AND IT IS A HIT TEST AND NOT A RECTANGLE, WHICH IS THE HALF A RECTANGLE CANNOT SEE. A chip
+  // whose content overflows the rail is at the same coordinates whether the overflow is clipped or
+  // painted, so `getBoundingClientRect` answers the same either way and an assertion built on it
+  // would pass on a rail painting its last chip over the plate. What separates the two is what is
+  // on the pixel: `elementFromPoint` just inside the plate's own left edge must never come back a
+  // chip, at any width.
   const under = swept.filter(s => s.pg && s.plate && s.pg.y === s.plate.y &&
                                   s.pg.r > s.plate.x + 0.5);
+  const overlapping = swept.filter(s => s.atPlateEdge && /chip|pgrail/.test(s.atPlateEdge));
   const railed = swept.filter(s => s.pg && s.pg.w > 0 && s.railScroll &&
                                    s.railScroll.w <= s.vw);
   assert('and the scope control is never painted under the readout at any width',
-    under.length === 0 && railed.length === swept.length,
-    'the rail\'s right edge left of the plate\'s left edge wherever the two share a line, and ' +
-      'the rail inside the viewport at every one of them',
+    under.length === 0 && overlapping.length === 0 && railed.length === swept.length,
+    'the rail\'s right edge left of the plate\'s left edge wherever the two share a line, no ' +
+      'chip on the pixel just inside that edge, and the rail inside the viewport at every width',
     under.length
       ? under.map(s => `${s.vw}: rail ends ${s.pg.r}, plate starts ${s.plate.x}`)
              .slice(0, 4).join('; ')
-      : `checked at ${swept.length} widths, the rail measured at ${railed.length} of them`);
+      : overlapping.length
+        ? overlapping.map(s => `${s.vw}: ${s.atPlateEdge} on the plate's own edge`)
+                     .slice(0, 4).join('; ')
+        : `checked at ${swept.length} widths, the rail measured at ${railed.length} of them`);
 
   // THREE. THE READOUT DOES NOT MOVE WHEN THE DRAWING DOES. `justify-content: space-between` over
   // three items puts the middle one where the FIRST one's width leaves it, and the first one is

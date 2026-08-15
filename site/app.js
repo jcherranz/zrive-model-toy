@@ -251,9 +251,14 @@
   // refuses it. A scope of one is never refused: the seven built artefacts are what they are and
   // the largest of them is 28 tiles.
   function effectiveGrain() {
-    var g = router.grain();
-    if (g !== 'sessions') return g;
-    return sessionLoad(router.scope(), 'sessions') > SESSION_BUDGET ? 'modules' : g;
+    var g = router.grain(), sc = router.scope();
+    // A SCOPE OF ONE IS NEVER REFUSED, AND THAT IS A RULE RATHER THAN AN ARITHMETIC THAT HAPPENS
+    // TO HOLD. The seven artefacts the build ships are what they are, the largest of them draws 28
+    // tiles in the term lane, and a page that declined to draw a programme's own drawing would be
+    // refusing the thing it exists to show. The budget is about what the union stacks up, so it is
+    // asked about the union and about nothing else.
+    if (sc.length < 2 || g !== 'sessions') return g;
+    return sessionLoad(sc, 'sessions') > SESSION_BUDGET ? 'modules' : g;
   }
 
   function drawingFor(sc, grain) {
