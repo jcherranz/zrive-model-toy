@@ -23,9 +23,17 @@
 # site/version.js is written by .github/workflows/pages.yml at deploy time, names the commit whose
 # tree went into the artifact, and that step fails the deploy unless the origin serves it back.
 # So this gate reads version.js off the target, takes the sha, and lists that commit's site/ out
-# of git. The list is then authoritative about the deploy that is LIVE, however many commits
-# behind main it is, rather than about the last thing anybody pushed. origin_freshness reads the
-# same file for the same reason.
+# of git. The list then describes the deploy the origin says is live, however many commits behind
+# main that is, rather than the last thing anybody pushed. origin_freshness reads the same file
+# for the same reason.
+#
+# NOT AN ATOMIC READING OF THE ORIGIN, and an outside review was right to push on this. version.js
+# and the rest of the site are separate requests and can be answered by different edges, so a
+# fresh stamp beside a stale asset is possible for as long as propagation takes. What the stamp
+# buys is that the list is derived from a deploy that actually happened rather than from a tree
+# nobody published; it does not make the fetch that follows a single instant. The bytes are still
+# scanned as fetched, which is the claim that matters, and the ghost sweep below is where a path
+# that outlived its deploy gets found.
 #
 # Not from the Pages API, and that was measured rather than assumed. On 2026-08-16 the origin
 # served commit 48d1d17 and `GET /repos/{owner}/{repo}/pages/builds/latest` reported 3bb347a from
@@ -177,33 +185,70 @@ LIST_FROM_COMMIT=0
 # Decide where the list comes from, and say so. Separate from the function that emits it
 # because that one is called in a command substitution, which is a subshell, and a decision
 # recorded in a subshell is a decision the banner never sees.
+#
+# AGAINST A REMOTE ORIGIN THERE IS NO FALLBACK, and that is the half of this an outside review
+# argued for. Falling back to this tree when a remote origin will not say what it is serving
+# leaves a safety gate able to print "clean" about a published site whose contents it could not
+# establish, which is the vacuous green this repository keeps finding. A local server is
+# different in kind: the tree's own version.js names no commit by design, the server is serving
+# that tree, and a list taken from the tree is the true list for it.
 resolve_list_source() {
+  local kind="$1"
   if [ -n "$ORIGIN_SHA" ] && git -C "$ROOT" cat-file -e "${ORIGIN_SHA}^{commit}" 2>/dev/null; then
     LIST_FROM_COMMIT=1
-    LIST_SOURCE="the commit the origin names, ${ORIGIN_SHA:0:7}, read out of git. This is what is LIVE."
+    LIST_SOURCE="the commit the origin names, ${ORIGIN_SHA:0:7}, read out of git."
     return 0
   fi
   LIST_FROM_COMMIT=0
-  if [ -n "$ORIGIN_SHA" ]; then
-    LIST_SOURCE="$SITE_DIR in this tree. The origin names ${ORIGIN_SHA:0:7} and this clone does not hold that commit, so the list is this tree's and may not be the live one."
-  else
-    LIST_SOURCE="$SITE_DIR in this tree. The target served no deploy stamp naming a commit, so there is nothing to derive a live list from."
+  if [ "$kind" = remote ]; then
+    echo "ASSERTION FAILED: this is a remote origin and the live file list could not be" >&2
+    if [ -n "$ORIGIN_SHA" ]; then
+      echo "  established: it names commit $ORIGIN_SHA and this clone does not hold it." >&2
+      echo "  Fetch that commit, or check out with fetch-depth: 0." >&2
+    else
+      echo "  established: it served no version.js naming a commit." >&2
+      echo "  A deployment by .github/workflows/pages.yml always serves one, and that workflow" >&2
+      echo "  fails if the origin does not. Something else is serving this url." >&2
+    fi
+    echo "  Falling back to this tree here would let the gate print clean about a published" >&2
+    echo "  site whose contents it could not establish, so it stops instead." >&2
+    exit 2
   fi
+  LIST_SOURCE="$SITE_DIR in this tree, which is what this local server is serving."
   [ -d "$SITE_DIR" ] || { echo "ASSERTION FAILED: no $SITE_DIR directory to take the file list from" >&2; exit 2; }
   return 0
 }
 
+# HIDDEN FILES ARE NOT IN THE ARTIFACT, so they are not in this list. Verified in the pinned
+# action rather than assumed: actions/upload-pages-artifact v5.0.0 tars site/ with
+# `--exclude=.git --exclude=.github` and, because include-hidden-files defaults to false,
+# `--exclude=.[^/]*`. A committed site/.something would therefore be in `git ls-tree` and absent
+# from the origin, and the fetch below would abort on a path that was never published.
+#
+# It stays a GHOST CANDIDATE, which is the direction that matters: excluded from the artifact
+# means the origin must not serve it, so an origin that does is exactly a ghost.
+artifact_excluded() {  # path -> 0 if the artifact would not carry it
+  case "/$1/" in */.*) return 0 ;; esac
+  return 1
+}
+
 # The file list, one path per line, relative to the root of the served site.
 deployed_paths() {
+  local p
   if [ "$LIST_FROM_COMMIT" = 1 ]; then
     git -C "$ROOT" ls-tree -r --name-only "$ORIGIN_SHA" -- "$SITE_DIR" \
       | while IFS= read -r p; do
           [ -n "$p" ] || continue
-          printf '%s\n' "${p#"$SITE_DIR"/}"
+          p="${p#"$SITE_DIR"/}"
+          artifact_excluded "$p" || printf '%s\n' "$p"
         done
     return 0
   fi
-  (cd "$SITE_DIR" && find . -type f -printf '%P\n')
+  (cd "$SITE_DIR" && find . -type f -printf '%P\n') \
+    | while IFS= read -r p; do
+        [ -n "$p" ] || continue
+        artifact_excluded "$p" || printf '%s\n' "$p"
+      done
 }
 
 # ---------------------------------------------------------------------------------------
@@ -304,9 +349,14 @@ ghost_sweep() {
   while IFS= read -r p; do
     [ -n "$p" ] || continue
     mkdir -p "$dest/$(dirname "$p")"
-    code="$(curl -sS -L -o "$dest/$p.ghost" -w '%{http_code}' "$base$p" 2>/dev/null || echo 000)"
+    # Saved under its OWN path, not a decorated one. scan_dir labels a finding by the name of
+    # the file it read, so a ghost written to "desk.js.ghost" would be reported at a path the
+    # origin does not serve, and the one thing a finding has to get right is where it is. There
+    # is no collision to decorate around: a ghost is by construction a path the deployed list
+    # does not contain, so nothing already fetched sits there.
+    code="$(curl -sS -L -o "$dest/$p" -w '%{http_code}' "$base$p" 2>/dev/null || echo 000)"
     size=0
-    [ -f "$dest/$p.ghost" ] && size="$(stat -c%s "$dest/$p.ghost")"
+    [ -f "$dest/$p" ] && size="$(stat -c%s "$dest/$p")"
     if [ "$code" = "200" ] && [ "$size" -gt 0 ]; then
       sleep "$GHOST_CONFIRM_WAIT"
       code2="$(curl -sS -L -o /dev/null -w '%{http_code}' "$base$p" 2>/dev/null || echo 000)"
@@ -316,13 +366,13 @@ ghost_sweep() {
         # Left in place so scan_dir reads it. A ghost is a finding whatever it holds, and what it
         # holds is a second, worse finding.
       else
-        rm -f "$dest/$p.ghost"
+        rm -f "$dest/$p"
         echo "  [TRANSIENT] $p: answered 200 with $size bytes and then HTTP $code2. Not counted as a"
         echo "              ghost, and not silent either: an origin mid-propagation looks like this,"
         echo "              and so does a ghost that something removed while this was reading it."
       fi
     else
-      rm -f "$dest/$p.ghost"
+      rm -f "$dest/$p"
       printf '  gone    %-20s HTTP %s\n' "$p" "$code"
     fi
   done < "$sweepfile"
@@ -374,7 +424,7 @@ fetch_deployed() {
 #
 # A short run exits 2, which is "the suite could not answer for itself" and not "the gate is
 # broken"; a run that also recorded a MISS reports the MISS and exits 1.
-EXPECTED_PROBES=24
+EXPECTED_PROBES=25
 
 self_test() {
   local tmp fake_hashes whole_hashes rc pass=0 total=0
@@ -698,6 +748,21 @@ s.close()' 2>/dev/null)" || return 1
     fi
   fi
 
+  # 6. AND A REMOTE ORIGIN THAT WILL NOT SAY WHAT IT IS SERVING STOPS THE GATE. Both directions,
+  #    because the whole value of the refusal is that it is not the same answer as the local
+  #    case: against a server on this machine the tree IS what is being served and the tree's
+  #    list is the true one, so the same missing stamp must not abort there.
+  total=$((total + 1))
+  local rc_remote=0 rc_local=0
+  ( ORIGIN_SHA=""; resolve_list_source remote >/dev/null 2>&1 ) || rc_remote=$?
+  ( ORIGIN_SHA=""; resolve_list_source local  >/dev/null 2>&1 ) || rc_local=$?
+  if [ "$rc_remote" -eq 2 ] && [ "$rc_local" -eq 0 ]; then
+    echo "  [OK]   a remote origin with no deploy stamp aborted, and a local server did not"
+    pass=$((pass + 1))
+  else
+    echo "  [MISS] the no-stamp refusal is wrong (remote exit $rc_remote, local exit $rc_local)"
+  fi
+
   echo
   echo "self-test: $pass/$total, of $EXPECTED_PROBES intended"
   local short=0
@@ -759,7 +824,7 @@ main() {
   else
     echo "  it says it is serving: nothing. It served no version.js naming a commit."
   fi
-  resolve_list_source
+  resolve_list_source "$kind"
   echo
   fetch_deployed "$base" "$tmp" "$tmp.list"
   echo
