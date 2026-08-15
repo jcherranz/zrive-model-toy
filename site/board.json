@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-15T23:09:51Z",
+  "generated": "2026-08-15T23:10:42Z",
   "columns": [
     {
       "key": "raw",
@@ -33,6 +33,24 @@
             "idea"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
+        },
+        {
+          "id": 153,
+          "title": "what value does \"4 rows here\" add?",
+          "labels": [
+            "bug",
+            "feedback"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/153"
+        },
+        {
+          "id": 154,
+          "title": "Is this what a professional webapp footer looks like?",
+          "labels": [
+            "bug",
+            "feedback"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/154"
         }
       ]
     },
