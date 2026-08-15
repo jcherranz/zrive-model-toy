@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-15T23:07:14Z",
+  "generated": "2026-08-15T23:08:05Z",
   "columns": [
     {
       "key": "raw",
@@ -26,15 +26,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
         },
         {
-          "id": 143,
-          "title": "Make this bigger / taller maybe also include a right panel for other…",
-          "labels": [
-            "bug",
-            "feedback"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/143"
-        },
-        {
           "id": 144,
           "title": "I LOVED this kind of implementations is the kind of things I need YOU…",
           "labels": [
@@ -44,15 +35,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
         },
         {
-          "id": 145,
-          "title": "The rendering of the diagram when I drag this controller is very…",
-          "labels": [
-            "bug",
-            "feedback"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/145"
-        },
-        {
           "id": 149,
           "title": "There is a gap to the left of this header blocks whicch looks bad",
           "labels": [
@@ -60,6 +42,24 @@
             "feedback"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/149"
+        },
+        {
+          "id": 151,
+          "title": "Remove",
+          "labels": [
+            "bug",
+            "feedback"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/151"
+        },
+        {
+          "id": 152,
+          "title": "Why this here?",
+          "labels": [
+            "bug",
+            "feedback"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/152"
         }
       ]
     },
@@ -74,16 +74,6 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/146"
-        },
-        {
-          "id": 148,
-          "title": "Make the format of this outlines more in line with the style…",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/148"
         }
       ]
     },
@@ -110,6 +100,36 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/142"
+        },
+        {
+          "id": 143,
+          "title": "Make this bigger / taller maybe also include a right panel for other…",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/143"
+        },
+        {
+          "id": 145,
+          "title": "The rendering of the diagram when I drag this controller is very…",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/145"
+        },
+        {
+          "id": 148,
+          "title": "Make the format of this outlines more in line with the style…",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/148"
         }
       ]
     },
