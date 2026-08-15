@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-15T22:50:56Z",
+  "generated": "2026-08-15T22:52:34Z",
   "columns": [
     {
       "key": "raw",
@@ -33,6 +33,15 @@
             "feedback"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/143"
+        },
+        {
+          "id": 144,
+          "title": "I LOVED this kind of implementations is the kind of things I need YOU…",
+          "labels": [
+            "feedback",
+            "idea"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
         }
       ]
     },
