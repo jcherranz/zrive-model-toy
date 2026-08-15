@@ -7384,9 +7384,11 @@ async function checkPanel(page) {
   assert('hovering a switch that is off is not the paint that means it is on, and the two never share a colour',
     wOff.hovered.bg === wOff.rest.bg && wOn.rest.bg !== wOff.rest.bg &&
       wOn.rest.bg === wOn.hovered.bg &&
+      wOff.hovered.border !== wOff.rest.border && wOff.hovered.color !== wOff.rest.color &&
       !!hues.work && !!hues.unrec && hues.work !== hues.unrec &&
       hues.workAccent !== hues.unrecAccent,
-    'the fill belonging to the state, and one colour for each of the two numbers',
+    'the fill belonging to the state, the hover saying something else, and one colour for each ' +
+      'of the two numbers',
     `on ${wOn.rest.bg} hovered ${wOn.hovered.bg}; off ${wOff.rest.bg} hovered ` +
       `${wOff.hovered.bg}; work ${hues.work} against unrecorded ${hues.unrec}`);
 
