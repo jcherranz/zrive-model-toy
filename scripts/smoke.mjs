@@ -271,7 +271,7 @@ const ZOOM_TOLERANCE_PX = 0.5;
 const PHASES = {
   'the viewport opened':  { count: 2, when: 'every' },
   'every width':          { count: 6, when: 'every' },
-  'the scope':            { count: 11, when: 'behavioural' },
+  'the scope':            { count: 14, when: 'behavioural' },
   'model and reveal':     { count: 14, when: 'behavioural' },
   'cold load':            { count: 4, when: 'behavioural' },
   'students':             { count: 11, when: 'behavioural' },
@@ -556,7 +556,16 @@ const PHASES = {
 // cannot, which is the one place this card could not follow the design's sketch and says so; and
 // that widening the band to the whole term over all seven meets the budget's own printed refusal
 // rather than a broken drawing, which is the release valve the budget's argument rests on.
-const EXPECTED_ASSERTIONS = 285;
+// 285 until issue 138, which adds three to `the scope` and changes no other count. All three are
+// about one thing, that an address means the same on every arrival: that `#/` is the union arrived
+// at warm as well as reloaded, which it was not; that the board, the student list and the sheet
+// still say nothing about the scope, which is the assertion a careless repair fails; and that the
+// three controls which hand a reader back to the drawing hand back that drawing's address rather
+// than the bare one, which is the same defect seen from the reader's side. The phase's own first
+// assertion is repaired in the same commit rather than counted again: its three arrivals were
+// fragment navigations that built no document, so the union it called `read cold` was the scope the
+// page had been constructed with, and it reloads now.
+const EXPECTED_ASSERTIONS = 288;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -1700,23 +1709,87 @@ function barPaint(id) {
   })()`;
 }
 
+// ---- what an address means, recomputed in the driver, issue 138 --------------------------------
+// A SECOND IMPLEMENTATION AND NOT A SECOND READING. The three functions below resolve an address to
+// a scope, to the altitude it asks for, and a scope back to its address, out of the keys and routes
+// the document ships and nothing else. Nothing here calls into site/router.js and nothing here asks
+// the page what it thinks it is showing: the page's answer is the input to a comparison and never
+// its answer, which is #121's finding and the rule the whole `the scope` phase already runs on.
+//
+// WHY THE PAGE'S OWN `scope().route` IS NOT USED FOR THE THIRD OF THEM. That string is written by
+// the same addressFor() that writes what the roster, the sheet and the view selector hand back, so
+// comparing one against the other would be comparing a function with itself and would pass on any
+// address at all as long as the page was consistent about it. Assertion FOURTEEN is about the
+// address a reader is left holding, so the address it is held to is spelled here.
+const normKey = s => String(s).toUpperCase().replace(/[^A-Z0-9]/g, '');
+// The bare address in every spelling: no fragment at all, a lone `#`, `#/`, and any of those with a
+// query on the end. Written out here rather than compared against one string, for site/router.js's
+// own reason: a reader who opens the page with no fragment has `location.hash === ''` and one who
+// follows a link has `'#/'`, and those are the same address.
+const ROOT_ADDRESS = /^(#\/?)?(\?.*)?$/;
+const PG_ADDRESS = '#/p/';
+
+// null is "this address says nothing about the scope", which is a different answer from the union
+// and must not be collapsed into it: it is what makes THIRTEEN a claim rather than a restatement.
+function scopeForAddress(hash, keys) {
+  const h = String(hash || '');
+  if (ROOT_ADDRESS.test(h)) return keys.slice();
+  if (h.slice(0, PG_ADDRESS.length).toLowerCase() !== PG_ADDRESS) return null;
+  const seg = h.slice(PG_ADDRESS.length).split('?')[0].split('/')[0];
+  if (normKey(seg) === 'ALL') return keys.slice();
+  const want = seg.split('+').map(normKey);
+  const got = keys.filter(k => want.indexOf(normKey(k)) !== -1);
+  return got.length ? got : keys.slice();
+}
+
+// THE ALTITUDE THE ADDRESS ASKS FOR AND NOT THE ONE ON SCREEN. The budget can put a drawing at the
+// modules grain that was asked for at sessions, which is assertion NINE, so a driver comparing
+// against the effective grain would be comparing against the budget's arithmetic instead of against
+// the address. The page reports both and this is held against `asked`.
+function grainForAddress(hash) {
+  const h = String(hash || '');
+  if (h.slice(0, PG_ADDRESS.length).toLowerCase() !== PG_ADDRESS) return 'sessions';
+  const seg = (h.slice(PG_ADDRESS.length).split('?')[0].split('/')[1] || '').toLowerCase();
+  return seg === 'modules' ? 'modules' : 'sessions';
+}
+
+function addressForScope(keys, all, routes, grain) {
+  const tail = grain === 'modules' ? '/modules' : '';
+  if (keys.length === 1) return routes[keys[0]] + tail;
+  if (keys.length === all.length) return PG_ADDRESS + 'ALL' + tail;
+  return PG_ADDRESS + keys.join('+') + tail;
+}
+
 async function checkScope(page, base) {
   const M = await page.evaluate(`(function () { var m = ${SCOPE_MODEL};
-    return JSON.stringify({ fractions: m.fractions, keys: m.keys }); })()`).then(JSON.parse);
+    return JSON.stringify({ fractions: m.fractions, keys: m.keys, routes: (function () {
+      var r = {};
+      window.GI.views.forEach(function (v) { r[v.key] = v.route; });
+      return r;
+    })() }); })()`).then(JSON.parse);
+
+  // A COLD ARRIVAL, AND UNTIL ISSUE 138 THIS PHASE HAD NEVER MADE ONE. The three arrivals below
+  // were `page.navigate` to a url differing from the one on screen only in its fragment, which is a
+  // same-document navigation: no document is built and no load event fires, so the driver waited
+  // out its whole timeout and then read a page it had not reloaded. The first of the three did not
+  // even change the hash, because `every width` hands this phase the page at `#/`, so the union
+  // assertion ONE called `read cold` was the scope the page had been CONSTRUCTED with. It is
+  // checkColdLoad's idiom now, which is a reader's F5 on the address in their bar: the hash is put
+  // where it is wanted and THEN the document is built again.
+  const coldAt = async at => {
+    await page.evaluate(`location.hash = ${JSON.stringify(at)}`);
+    await page.reload();
+    await page.waitFor(DIAGRAM_READY, `the diagram to draw cold at ${at}`);
+    return page.evaluate('JSON.stringify(window.ZT.scope())').then(JSON.parse);
+  };
 
   // ---- ONE. THE DEFAULT IS ALL SEVEN AND ONE ADDRESS IS STILL ONE PROGRAMME ---------------------
   // The inversion, asserted in both directions in one place, because a page that made everything
   // the union and a page that changed nothing both have to fail here. Driven cold at each address
   // rather than by fragment navigation, since what an address means on arrival is the claim.
-  await page.navigate(new URL('#/', base).toString());
-  await page.waitFor(DIAGRAM_READY, 'the diagram to draw at the address with no opinion');
-  const atRoot = await page.evaluate('JSON.stringify(window.ZT.scope())').then(JSON.parse);
-  await page.navigate(new URL('#/p/ZSC', base).toString());
-  await page.waitFor(DIAGRAM_READY, 'the Z-SC drawing to draw cold');
-  const atOne = await page.evaluate('JSON.stringify(window.ZT.scope())').then(JSON.parse);
-  await page.navigate(new URL('#/p/ZIB+ZSC', base).toString());
-  await page.waitFor(DIAGRAM_READY, 'a scope of two to draw cold');
-  const atTwo = await page.evaluate('JSON.stringify(window.ZT.scope())').then(JSON.parse);
+  const atRoot = await coldAt('#/');
+  const atOne = await coldAt('#/p/ZSC');
+  const atTwo = await coldAt('#/p/ZIB+ZSC');
   assert('the address with no opinion draws all seven, and a programme address is a scope of one',
     atRoot.n === M.keys.length && atRoot.keys.join('+') === M.keys.join('+') &&
       atOne.n === 1 && atOne.keys[0] === 'ZSC' && atOne.route === '#/p/ZSC' &&
@@ -1729,12 +1802,12 @@ async function checkScope(page, base) {
   // block recomputed above and against nothing the page prints elsewhere. The addresses are the
   // other half: a chip that showed the right number and linked to the wrong scope would be a rail
   // that reads correctly and does not work.
-  // BACK TO ALL, AND THROUGH THE CHIP RATHER THAN THROUGH THE ADDRESS, which is the honest way and
-  // is also the only way that works: `#/` is an address with no opinion about the scope, exactly as
-  // `#/board` and `#/students` are, so arriving at it from a scoped address leaves the drawing
-  // where it was. That rule is older than this card and this card kept it deliberately: a reader
-  // who looks at the board and comes back finds the drawing they left. Where `#/` means all seven
-  // is on a cold load, which assertion ONE above has already driven.
+  // BACK TO ALL, AND THROUGH THE CHIP RATHER THAN THROUGH THE ADDRESS, which is the honest way: the
+  // rail is what a reader presses and this phase is about the rail. Until issue 138 it was also the
+  // only way that worked, because `#/` had no opinion about the scope warm and every opinion cold;
+  // it is an address that means the union at every arrival now, which assertion TWELVE drives, and
+  // what still leaves the drawing where it was is `#/board`, `#/students` and the sheet's sixteen,
+  // which is THIRTEEN.
   await page.evaluate(`document.querySelector('#pgrail .chip-all').click()`);
   await page.waitFor('window.ZT.scope().n === window.ZT.scope().of', 'all seven back in scope');
   const chips = (await page.evaluate('JSON.stringify(window.ZT.scope())').then(JSON.parse)).chips;
@@ -2081,6 +2154,132 @@ async function checkScope(page, base) {
 
   await setWindow(page, 0);
   await page.waitFor('window.ZT.term().window.weeks === 0', 'the window back off');
+
+  // A HASHCHANGE, WAITED ON BY THE ADDRESS AND NEVER BY WHAT THE PAGE DID ABOUT IT. Every wait below
+  // is satisfied by every answer the page could give, the wrong ones included: the bar reads what
+  // was typed into it whether the page redraws, redraws wrongly or ignores the address entirely.
+  // A wait on `the scope became the union` would time out on exactly the defect this card is about
+  // and the run would report a harness failure over an assertion that never ran, which is what #137
+  // paid for. The settle after it is a fixed pause that elapses either way.
+  const warmTo = async at => {
+    await page.evaluate(`location.hash = ${JSON.stringify(at)}`);
+    await page.waitFor(`location.hash === ${JSON.stringify(at)}`,
+      `the address bar to read ${at}`);
+    await sleep(220);
+  };
+  const stateNow = () => page.evaluate(
+    `JSON.stringify({ keys: window.ZT.scope().keys, asked: window.ZT.grain().asked })`)
+    .then(JSON.parse);
+
+  // ---- TWELVE. THE BARE ADDRESS MEANS THE UNION AT EVERY ARRIVAL, ISSUE 138 ---------------------
+  // WHAT IT MEANT BEFORE. router.js read the scope off the `#/p/` prefix and answered null to
+  // everything else, and the null became the union in a fallback beside the construction line. That
+  // fallback runs once. So `#/` drew all seven to a reader who opened it and did nothing whatever to
+  // a reader who arrived at it from anywhere else, and #137, which needed the union, could not use
+  // it and drove `#/p/ALL` instead. Issue 136 put the scope in the address so that the
+  // cross-programme question could be asked and sent to somebody; an address that means one thing
+  // cold and another thing warm cannot carry that.
+  //
+  // THREE WARM ARRIVALS AND A COLD ONE, and the three come from a different scope each time, one of
+  // them the union at the other altitude, so a page that answered `#/` only when the scope was
+  // already one programme fails here. Each start is required to have been REACHED, against the same
+  // recomputation, which is what stops this passing on a page that drew all seven at every address:
+  // that page would never have arrived at the starts.
+  const bare = [];
+  for (const from of ['#/p/ZSC', '#/p/ZIB+ZBL', '#/p/ALL/modules']) {
+    await warmTo(from);
+    const before = await stateNow();
+    await warmTo('#/');
+    bare.push({ from, before, after: await stateNow() });
+  }
+  await page.evaluate(`location.hash = '#/p/ZBL/modules'`);
+  await page.waitFor(`location.hash === '#/p/ZBL/modules'`, 'the address bar to read #/p/ZBL/modules');
+  const coldBare = await coldAt('#/');
+  const coldBareGrain = await page.evaluate('window.ZT.grain().asked');
+  const union = M.keys.join('+');
+  const wrongStart = bare.filter(a => a.before.keys.join('+') !== scopeForAddress(a.from, M.keys).join('+') ||
+                                      a.before.asked !== grainForAddress(a.from));
+  const wrongBare = bare.filter(a => a.after.keys.join('+') !== scopeForAddress('#/', M.keys).join('+') ||
+                                     a.after.asked !== grainForAddress('#/'));
+  assert('the bare address draws all seven arrived at warm, and it is the drawing it draws cold',
+    bare.length === 3 && wrongStart.length === 0 && wrongBare.length === 0 &&
+      scopeForAddress('#/', M.keys).join('+') === union &&
+      coldBare.keys.join('+') === union && coldBareGrain === 'sessions' &&
+      bare.filter(a => a.before.keys.join('+') !== union).length === 2,
+    `${M.keys.length} programmes at the sessions grain on every arrival at #/, from ` +
+      bare.map(a => a.from).join(', ') + ' and from a reload of it, recomputed off window.GI',
+    JSON.stringify({ warm: bare, cold: { keys: coldBare.keys, asked: coldBareGrain },
+                     badStarts: wrongStart.map(a => a.from) }));
+
+  // ---- THIRTEEN. AND WHAT IS DRAWN OVER THE DRAWING STILL LEAVES IT WHERE IT WAS ----------------
+  // The inverse, and it is the assertion a careless repair fails: making every address that is not
+  // `#/p/` mean the union would pass TWELVE and would throw the reader's drawing away every time
+  // they opened the board, the student list or the sheet. Those three are something drawn OVER a
+  // drawing rather than a drawing, so the scope they name is none, which is `null` out of the
+  // recomputation above and is not the same answer as the union.
+  await warmTo('#/p/ZSC/modules');
+  const under = await stateNow();
+  const overlaid = [];
+  // The sheet twice and at both of its shapes of address, the unscoped one and one scoped to a
+  // programme that is not in scope, because a scoped sheet address names a programme and naming one
+  // is the most likely way a sheet address would come to move the drawing. The calendar is left out
+  // of the four deliberately: `#/calendar` is the review and arms a three week window, and a phase
+  // that hands the next one a window on is the fault this phase's own tail is guarding against.
+  for (const at of ['#/board', '#/students', '#/outline', '#/outline/ZBL']) {
+    await warmTo(at);
+    overlaid.push({ at, state: await stateNow(), says: scopeForAddress(at, M.keys) });
+  }
+  const disturbed = overlaid.filter(o => o.says !== null ||
+                                     o.state.keys.join('+') !== under.keys.join('+') ||
+                                     o.state.asked !== under.asked);
+  assert('the board, the student list and the sheet say nothing about the scope and change none of it',
+    overlaid.length === 4 && disturbed.length === 0 &&
+      under.keys.join('+') === 'ZSC' && under.asked === 'modules' &&
+      under.keys.join('+') !== union,
+    'Z-SC at the modules grain still the scope behind all four of #/board, #/students, #/outline ' +
+      'and #/calendar/ZBL, none of which the recomputation gives a scope for at all',
+    JSON.stringify({ under, disturbed }));
+
+  // ---- FOURTEEN. AND THE WAY BACK OUT OF ONE OF THEM IS THAT DRAWING'S OWN ADDRESS -------------
+  // THE OTHER HALF OF THE SAME DEFECT, and it only becomes visible once `#/` means something. Both
+  // sheets wrote `#/` over the address when they closed, through replaceState, which raises no
+  // hashchange: the drawing stayed put and the address stopped describing it. The view selector's
+  // diagram segment was frozen on `#/` in index.html for the same reason. Now that the six
+  // characters are the union, all three would hand a reader who had narrowed to two programmes an
+  // address that throws the other five back in on the next reload, or on the next person to open
+  // the link they were sent.
+  //
+  // DRIVEN THROUGH THE THREE CONTROLS THEMSELVES, at a scope of two at the modules grain, which is
+  // a state neither `#/` nor `#/p/ALL` nor the default can be mistaken for. The address each one
+  // leaves is held against this file's own spelling of it and not against the page's `scope().route`,
+  // which is written by the very function under test.
+  const backTo = addressForScope(['ZIB', 'ZSC'], M.keys, M.routes, 'modules');
+  await warmTo('#/p/ZIB+ZSC/modules');
+  const ways = [];
+  await warmTo('#/students');
+  await page.evaluate(`document.getElementById('rosterclose').click()`);
+  await page.waitFor('window.ZT.roster() === false', 'the student list to close on its own button');
+  ways.push({ by: 'the roster close', hash: await page.evaluate('location.hash') });
+  await warmTo('#/outline');
+  await page.evaluate(`document.getElementById('termclose').click()`);
+  await page.waitFor('window.ZT.term().open === false', 'the sheet to close on its own button');
+  ways.push({ by: 'the sheet close', hash: await page.evaluate('location.hash') });
+  await warmTo('#/board');
+  const segHref = await page.evaluate(
+    `document.getElementById('navdiagram').getAttribute('href')`);
+  await page.evaluate(`document.getElementById('navdiagram').click()`);
+  await page.waitFor(`!document.body.classList.contains('board')`,
+    'the diagram back, through the view selector');
+  ways.push({ by: 'the diagram segment', hash: await page.evaluate('location.hash') });
+  const ended = await stateNow();
+  const strayBack = ways.filter(w => w.hash !== backTo);
+  assert('every way back to the drawing is the drawing\'s own address and none of them is the bare one',
+    ways.length === 3 && strayBack.length === 0 && segHref === backTo &&
+      backTo === '#/p/ZIB+ZSC/modules' && !ROOT_ADDRESS.test(backTo) &&
+      ended.keys.join('+') === 'ZIB+ZSC' && ended.asked === 'modules',
+    `${backTo} left in the bar by the roster's close, the sheet's close and the diagram segment, ` +
+      'with the two programmes still drawn at the altitude they were drawn at',
+    JSON.stringify({ ways, segHref, want: backTo, ended }));
 }
 
 async function checkColdLoad(page, base) {
@@ -6797,15 +6996,31 @@ const DELETED = `(function () {
 // page's own published readings and the stored theme, are asserted absent too.
 async function checkReadout(page) {
   // Which drawing this phase started on, for the reason the absence phase records it: this one
-  // walks off the default drawing on purpose and `#/` is not a way back, so the address it leaves
-  // behind would be the address every phase after it runs on.
+  // walks off the default drawing on purpose, and the address it leaves behind would be the address
+  // every phase after it runs on. `#/` is a way back to all seven since issue 138 and was a way back
+  // to nothing at all before it, so it is not the way back this phase wants either way.
   const startedOn = await page.evaluate('window.ZT.programme().key');
+
+  // WHERE THE DIAGRAM SEGMENT LEADS, AND ISSUE 138 MOVED IT. It was frozen on `#/` in index.html,
+  // which meant nothing on a hashchange, so it was a way back to whatever happened to be drawn.
+  // `#/` is the union now, so a frozen segment would take a reader who had narrowed the scope,
+  // looked at the board and pressed `diagram` to a drawing they never left; router.js writes the
+  // address from the scope instead. Recomputed here off window.GI and the scope the page is on, and
+  // this phase drives the diagram through THAT address rather than through the bare one, which
+  // would have handed every phase after this a scope of seven.
+  const here = await page.evaluate(`JSON.stringify({
+    keys: window.ZT.scope().keys, asked: window.ZT.grain().asked,
+    all: window.GI.views.map(function (v) { return v.key; }),
+    routes: (function () { var r = {};
+      window.GI.views.forEach(function (v) { r[v.key] = v.route; }); return r; })() })`)
+    .then(JSON.parse);
+  const diagramAt = addressForScope(here.keys, here.all, here.routes, here.asked);
 
   // ONE. BOTH VIEWS ARE ON SCREEN AT BOTH OF THEM, AND THE ONE YOU ARE ON IS MARKED. Asserted on
   // the diagram and on the board, so a selector that marked nothing and one that marked everything
   // both fail, and each segment is required to clear #77's floor, which a link that has just
   // become a segment does not get by construction.
-  await page.evaluate(`location.hash = '#/'`);
+  await page.evaluate(`location.hash = ${JSON.stringify(diagramAt)}`);
   await page.waitFor(`!document.body.classList.contains('board')`, 'the diagram');
   const onDiagram = JSON.parse(await page.evaluate(VSEL_READ));
   await page.evaluate(`location.hash = '#/board'`);
@@ -6817,8 +7032,8 @@ async function checkReadout(page) {
       onDiagram.every(v => v.visible) && onBoard.every(v => v.visible) &&
       onDiagram.map(v => v.text).join('|') === 'diagram|board' &&
       onBoard.map(v => v.text).join('|') === 'diagram|board' &&
-      onDiagram.map(v => v.href).join('|') === '#/|#/board' &&
-      onBoard.map(v => v.href).join('|') === '#/|#/board' &&
+      onDiagram.map(v => v.href).join('|') === diagramAt + '|#/board' &&
+      onBoard.map(v => v.href).join('|') === diagramAt + '|#/board' &&
       onDiagram[0].current === 'page' && onDiagram[1].current === null &&
       onBoard[1].current === 'page' && onBoard[0].current === null &&
       undersized.length === 0,
@@ -6837,8 +7052,9 @@ async function checkReadout(page) {
   await page.waitFor(`!document.body.classList.contains('board')`, 'the diagram, through the selector');
   const wentTo = await page.evaluate('location.hash');
   assert('pressing the segment you are on goes nowhere and pressing the other one goes there',
-    stayed === '#/board' && wentTo === '#/',
-    'the board still at #/board after pressing its own segment, and at #/ after pressing the other',
+    stayed === '#/board' && wentTo === diagramAt,
+    `the board still at #/board after pressing its own segment, and at ${diagramAt} after ` +
+      'pressing the other',
     `stayed at ${JSON.stringify(stayed)}, then moved to ${JSON.stringify(wentTo)}`);
 
   // THREE. `students` IS NOT ONE OF THE VIEWS AND ITS ADDRESS STILL ANSWERS. The roster is one
@@ -6870,7 +7086,10 @@ async function checkReadout(page) {
   await page.evaluate(`document.querySelector('#pmore .pmore-link').click()`);
   await page.waitFor('window.ZT.roster() === true', 'the roster, opened from the cohort\'s own panel');
   const rosterAt = await page.evaluate('location.hash');
-  await page.evaluate(`location.hash = '#/'`);
+  // Back to the drawing the list was opened over, by name. `#/` was what stood here and it is the
+  // union since issue 138, so it would have left every assertion below this one reading a drawing of
+  // seven programmes where the phase put one.
+  await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor('window.ZT.roster() === false', 'the roster to close');
   await clearSelectionIfAny(page);
   assert('the roster is not one of the views, its address still answers, and the way in names its own cohort',
@@ -7921,7 +8140,14 @@ async function checkOutline(page, base) {
     `${cal.railed} railed of ${cal.sessionRows} rows, ${cal.borders} border(s), ` +
     `states ${JSON.stringify(Object.keys(cal.states).filter(k => cal.states[k]))}`);
 
-  await page.navigate(new URL('#/', base).toString());
+  // Back on the address this suite drives, by name. This read `page.navigate` to `#/`, which is two
+  // wrongs that cancelled: a url differing from the one on screen only in its fragment is a
+  // same-document navigation, so it built no document and waited out the driver's whole timeout, and
+  // `#/` then meant nothing on the hashchange it did raise, so the phases after this one inherited
+  // whichever drawing was already up. It is the union since issue 138, and the drawing that was
+  // already up is `ONE`, so the address is written out rather than arrived at by accident.
+  await page.evaluate('location.hash = ' + JSON.stringify(ONE));
+  await page.waitFor(`location.hash === ${JSON.stringify(ONE)}`, 'the address bar to read ' + ONE);
   await page.waitFor(DIAGRAM_READY, 'the diagram to come back');
   await page.evaluate('window.ZT.fit()');
 }
