@@ -1010,13 +1010,19 @@
       // control it was about. Four claims and no more: what the window is, what it holds, what it
       // has taken off the drawing, and that the page has no today. The three sentences #128 cut
       // from that box stay cut.
+      // AND THE PER LANE BREAKDOWN THE DELETED BOX CARRIED, which is #111's and is not this card's
+      // to throw away. It was a column of rows in the window menu, and a menu is exactly what this
+      // control does not have, so it is a clause on the title instead: the lanes named as the
+      // DRAWING names them, off render.js's own report, so nothing here invents a second
+      // vocabulary for the same six columns.
       var f = windowOff();
       brushEl.title = 'the part of the term in focus: ' + windowText() + '. ' +
         shown + ' of the ' + sessionsInScope(stripScope()).length +
         ' sessions these documents draw, ' + held + ' of them with a complete record' +
-        (f ? '. ' + offWords(f) : '') +
-        '. This page has no today: your clock says ' + TODAY + ' and the term ran ' +
-        TERM.first + ' to ' + TERM.last +
+        (f ? '. ' + offWords(f) + laneWords(f) : '') +
+        '. This page has no today: your clock says ' + TODAY + ', the term ran ' + TERM.first +
+        ' to ' + TERM.last + ', and ' + AFTER_TODAY + ' of the ' + sessions.length +
+        ' sessions are on or after it' +
         '. Drag the band to move it, drag an end to widen it, press an arrow to step a week';
     }
 
@@ -1099,6 +1105,16 @@
       var f = windowEffect ? windowEffect() : null;
       if (!f || !f.on || !f.off || !f.off.tiles) return null;
       return f;
+    }
+
+    // The lanes that lost something, in the drawing's own words. A lane that lost nothing has
+    // nothing to report, which is the rule the menu's own rows ran on.
+    function laneWords(f) {
+      var rows = (f.lanes || []).filter(function (l) { return l.shown !== l.of; });
+      if (!rows.length) return '';
+      return ': ' + rows.map(function (l) {
+        return l.label + ' ' + l.shown + ' of ' + l.of;
+      }).join(' \u00b7 ');
     }
 
     function offWords(f) {

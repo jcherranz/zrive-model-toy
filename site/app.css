@@ -903,7 +903,7 @@ h1 {
    take down. The arrows the caps draw are the keyboard's own two keys, said in pixels. */
 .brush-cap {
   flex: none;
-  width: 22px;
+  width: 24px;
   display: flex;
   align-items: center;
   justify-content: center;

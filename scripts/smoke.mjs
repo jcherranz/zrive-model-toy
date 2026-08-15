@@ -2015,17 +2015,10 @@ async function checkScope(page, base) {
     }
     return JSON.stringify(best);
   })()`).then(JSON.parse);
-  await wnMenu(page, true);
-  for (let turn = 0; turn < 64; turn++) {
-    const at = await page.evaluate('window.ZT.term().window.anchor');
-    if (at === dense.from) break;
-    await pressByText(page, '#wnmenu .wn-step', at > dense.from ? '‹' : '›');
-    await page.waitFor(`window.ZT.term().window.anchor !== ${JSON.stringify(at)}`,
-      `the anchor to move off ${at}`);
-  }
-  await pressByText(page, '#wnmenu .wn-weeks', '3 weeks');
-  await page.waitFor('window.ZT.term().window.weeks === 3', 'the three week window');
-  await wnMenu(page, false);
+  await setWindowAt(page, 3, dense.from);
+  await page.waitFor(`window.ZT.term().window.from === ${JSON.stringify(dense.from)} &&
+                      window.ZT.term().window.weeks === 3`,
+    `the three week window on ${dense.from}`);
   await viewSettled(page);
   const denseState = await page.evaluate(`(function () {
     var g = window.ZT.grain(), p = window.ZT.programme(), v = window.ZT.view();
@@ -2070,10 +2063,8 @@ async function checkScope(page, base) {
     JSON.stringify({ sums: badSums, missingFractions: missing.map(f => f.text),
                      captions: sampleCaptions }));
 
-  await wnMenu(page, true);
-  await pressByText(page, '#wnmenu .wn-weeks', 'whole term');
+  await setWindow(page, 0);
   await page.waitFor('window.ZT.term().window.weeks === 0', 'the window back off');
-  await wnMenu(page, false);
 }
 
 async function checkColdLoad(page, base) {
@@ -2519,32 +2510,19 @@ const TERM_READ = `(function () {
                  title: b.getAttribute('title') || '', w: r.width, h: r.height };
       }),
 
-    // ---- issue 90, the window control -------------------------------------------
+    // ---- issue 90's window, issue 137's strip -----------------------------------
     // The control is in the HEADER and not in the sheet, because the window acts on the drawing
-    // as well, so it is read from there on every one of these routes.
-    wn: (function () {
-      var b = document.getElementById('wnbtn');
-      if (!b) return null;
-      var r = b.getBoundingClientRect();
-      return { text: b.textContent, expanded: b.getAttribute('aria-expanded'),
-               w: r.width, h: r.height };
-    })(),
-    wnMenu: (function () {
-      var m = document.getElementById('wnmenu');
-      if (!m || m.hidden) return null;
-      var a = m.querySelector('.wn-anchor');
-      return {
-        text: m.textContent,
-        // The anchor's OWN element, #128. The claim below is that this page never calls the
-        // anchor today, and the only way to hold it to that is to read the thing that names the
-        // anchor rather than to look for a sentence somewhere in the menu saying it does not.
-        anchor: a ? a.textContent : null,
-        btns: Array.prototype.slice.call(m.querySelectorAll('button')).map(function (b) {
-          var r = b.getBoundingClientRect();
-          return { label: b.textContent, pressed: b.getAttribute('aria-pressed'),
-                   w: r.width, h: r.height };
-        })
-      };
+    // as well, so it is read from there on every one of these routes. Since #137 it is the term
+    // strip, which has no text of its own at all: what it says it says by being a shape, so what
+    // is read here is the shape, from the page's own report of what it painted, and the sentence
+    // that used to lead the deleted menu, which is on the control's title.
+    brush: (function () {
+      var b = document.getElementById('brush');
+      if (!b || !window.ZT.brush) return null;
+      var st = window.ZT.brush();
+      if (!st) return null;
+      st.title = b.title;
+      return st;
     })()
   };
 })()`;
@@ -2741,11 +2719,67 @@ function readSentence(title, sub) {
   };
 }
 
-async function wnMenu(page, want) {
-  if ((await page.evaluate('window.ZT.term().window.menu')) === want) return;
-  await page.evaluate(`document.getElementById('wnbtn').click()`);
-  await page.waitFor(`window.ZT.term().window.menu === ${want}`,
-    `the window menu to be ${want ? 'open' : 'closed'}`);
+// ---- driving the term strip, issue 137 --------------------------------------------------------
+// THROUGH THE KEYS A READER HAS AND NOT THROUGH A HOOK THIS FILE ASKED THE PAGE FOR. What stood
+// here opened the window menu and pressed one of its four presets by the words on it. The menu is
+// deleted and the brush has no words, so what is driven here is its keyboard, which is the same
+// keyboard a reader has and reaches every state the pointer reaches. The pointer is driven too,
+// with a real press, move and release, in `the brush` phase, where the drag itself is the claim;
+// everywhere else the window is setup and setup takes the cheapest reliable gesture.
+//
+// AND IT LANDS WHERE THE MENU LANDED. `setWindowWeeks(n)` changed the width and kept the anchor, so
+// every phase that asked for three weeks got three weeks at whatever anchor the window was on.
+// Shift and Home widen the band to the whole term, shift and the left arrow narrow it from the
+// right, and the plain right arrow steps it along, so the same state is reached by the reader's own
+// route and no phase below had to be re-cut around a different window.
+const BRUSH_KEYS = { ArrowLeft: 37, ArrowRight: 39, Home: 36, End: 35 };
+
+async function brushKey(page, key, shift) {
+  const p = { windowsVirtualKeyCode: BRUSH_KEYS[key], key: key, code: key,
+              modifiers: shift ? 8 : 0 };
+  await page.send('Input.dispatchKeyEvent', Object.assign({ type: 'rawKeyDown' }, p));
+  await page.send('Input.dispatchKeyEvent', Object.assign({ type: 'keyUp' }, p));
+}
+
+// The strip has to have the focus before a key means anything, and a strip that would not take it
+// is a dead instrument rather than a slow one: every setWindow below would then silently do
+// nothing and every phase after it would report on a page nobody filtered.
+async function brushFocus(page) {
+  await page.evaluate(`document.getElementById('brush').focus()`);
+  const ok = await page.evaluate(`document.activeElement === document.getElementById('brush')`);
+  if (!ok) throw new Error('the term strip would not take focus, so no key can reach it');
+}
+
+function weekIndexIn(anchor, firstMonday) {
+  return Math.round((Date.parse(anchor + 'T00:00:00Z') - Date.parse(firstMonday + 'T00:00:00Z')) /
+                    (7 * 86400000));
+}
+
+// `weeks` of 0 is the whole term, which is the same number term.js has carried since issue 90 and
+// is the band over all 24 columns. `anchor` is the Monday the band should start on, or null to keep
+// the one the window is already on.
+async function setWindowAt(page, weeks, anchor) {
+  const w0 = await page.evaluate('window.ZT.term().window');
+  const want = anchor || w0.anchor;
+  await brushFocus(page);
+  await brushKey(page, 'Home', true);
+  await page.waitFor('window.ZT.term().window.weeks === 0', 'the band over the whole term');
+  if (!weeks) { await sleep(60); return; }
+  for (let i = w0.termWeeks; i > weeks; i--) await brushKey(page, 'ArrowLeft', true);
+  const idx = weekIndexIn(want, w0.firstMonday);
+  for (let i = 0; i < idx; i++) await brushKey(page, 'ArrowRight', false);
+  await page.waitFor(`window.ZT.term().window.weeks === ${weeks}`,
+    `a ${weeks} week window on the strip`);
+  await sleep(60);
+}
+
+async function setWindow(page, weeks) { await setWindowAt(page, weeks, null); }
+
+// One week along, which is what an end cap does with a press and what an arrow does with a key.
+async function stepWindow(page, dir) {
+  await brushFocus(page);
+  await brushKey(page, dir < 0 ? 'ArrowLeft' : 'ArrowRight', false);
+  await sleep(60);
 }
 
 // Press one of the buttons in the window menu by the words on it, because the words are what a
@@ -2925,10 +2959,8 @@ async function checkTerm(page) {
   // off through the control a reader would use and the month grid is pressed, and every assertion
   // below reads exactly what it read before. Nothing here is weaker: what the address opens on is
   // asserted, cold, in `the review`, and this is the same suite driving to the state it is about.
-  await wnMenu(page, true);
-  await pressByText(page, '#wnmenu .wn-weeks', 'whole term');
+  await setWindow(page, 0);
   await page.waitFor('window.ZT.term().window.on === false', 'the window off for the shapes');
-  await wnMenu(page, false);
   await pressByText(page, '#termnotice .shape-btn', 'month');
   await page.waitFor(`window.ZT.term().shape === 'month'`, 'the month grid');
 
@@ -3161,62 +3193,70 @@ async function checkTerm(page) {
   // the state of a page nobody has asked anything of is read where nobody has asked anything of
   // it. The claim is #90's and is unchanged, that this page does not quietly invent a today and
   // does not window itself until something asks.
-  assert('the window is off where nothing has asked for one, and the header says so in whole weeks',
-    w0.on === false && w0.weeks === 0 && atDiagram.wn &&
-      // `weeks all 24` and not `weeks: all 24` since issue 120. The colon went when the control
-      // stopped being a nav item and became a reading in the header's readout: the label is
-      // markup and the value is written by term.js, and the two are told apart by weight and
-      // colour rather than by punctuation. The claim is the same claim, which is that the window
-      // is off on arrival and that the control says so in whole weeks.
-      atDiagram.wn.text === 'weeks all ' + w0.termWeeks && w0.termWeeks > 1 &&
+  assert('the window is off where nothing has asked for one, and the strip is a band over all of it',
+    w0.on === false && w0.weeks === 0 && atDiagram.brush &&
+      // ONE STATE AND TWO SPELLINGS, AND BOTH ARE ASSERTED. `weeks: 0` is what term.js has meant
+      // by "no window" since #90 and it is what every other surface on this page reads; the band
+      // over all 24 columns is what a reader sees. A strip that painted a three week band over a
+      // page reporting no window would satisfy the first half alone, and a page reporting three
+      // weeks under a full band would satisfy the second, so the two are required to agree and the
+      // band is required to actually reach both ends of the track it is drawn in.
+      atDiagram.brush.start === 0 && atDiagram.brush.span === w0.termWeeks && w0.termWeeks > 1 &&
+      atDiagram.brush.span === atDiagram.brush.columns.length &&
+      Math.abs(atDiagram.brush.band.w - atDiagram.brush.track.w) < 1 &&
+      Math.abs(atDiagram.brush.band.x - atDiagram.brush.track.x) < 1 &&
       off0.on === false && off0.hidden.length === 0,
-    `a control reading "weeks all ${w0.termWeeks}" and nothing taken off the drawing`,
-    `${JSON.stringify(atDiagram.wn && atDiagram.wn.text)}, window on ${w0.on}, ` +
+    `a band ${w0.termWeeks} columns wide over a track of ${w0.termWeeks}, and nothing taken off ` +
+      'the drawing',
+    `start ${atDiagram.brush && atDiagram.brush.start}, span ` +
+      `${atDiagram.brush && atDiagram.brush.span} of ${w0.termWeeks}, band ` +
+      `${JSON.stringify(atDiagram.brush && atDiagram.brush.band)} in track ` +
+      `${JSON.stringify(atDiagram.brush && atDiagram.brush.track)}, window on ${w0.on}, ` +
       `${off0.hidden.length} tiles filtered out`);
 
-  await wnMenu(page, true);
-  const wnOpen = await page.evaluate(TERM_READ);
-  // THE ANCHOR MUST BE VISIBLE AND MUST NOT BE CALLED TODAY. A management tool that quietly
-  // invents a today is worse than one that shows nothing, so the control leads with the reader's
-  // real date, states how many sessions are on or after it, and only then offers the anchor. The
-  // count is recomputed here off the dates the reader can read rather than taken from the page.
+  // THE STRIP SAYS WHERE NOW COMES FROM AND MARKS NO TODAY THE TERM DOES NOT HAVE. A management
+  // tool that quietly invents a today is worse than one that shows nothing. The deleted menu
+  // answered that by leading with the reader's real date; the strip answers it twice, once in the
+  // same words on its title and once by drawing nothing where the marker would go, because the
+  // reader's own day is months past the last session. The count is recomputed here off the dates
+  // the reader can read rather than taken from the page.
+  //
+  // AND THE WORD OCCURS ONCE. #128's finding was that a page can say it does not call the anchor
+  // today and label the anchor `today` in the next line, and the repair was to count the word
+  // rather than to look for a sentence. The strip has no anchor row to label at all, so the count
+  // is one: the clause about the reader's own clock, and nothing else anywhere on the control.
   const afterToday = chipDates.filter(d => d >= w0.today).length;
-  const menuText = (wnOpen.wnMenu || { text: '' }).text.replace(/\s+/g, ' ');
-  assert('the control says where now comes from, and does not call the anchor today',
-    !!wnOpen.wnMenu && menuText.indexOf('this page has no today') !== -1 &&
-      menuText.indexOf(w0.today) !== -1 && w0.afterToday === afterToday &&
-      menuText.indexOf(afterToday + ' of the ' + w0.sessions + ' sessions are on or after ' +
-        'today') !== -1 &&
-      // RE-CUT AT #128, AND ONTO THE ELEMENT RATHER THAN ONTO A SENTENCE. What stood here
-      // required the menu to contain the words "which is not today and is not pretending to
-      // be", so the page said it did not call the anchor today and the driver checked that it
-      // had said so. That sentence passes just as well on a page that says it AND labels the
-      // anchor `today`. #128 deleted the sentence, and the claim is now read off the two
-      // places the word can occur: the anchor row is a date and nothing else, and the word
-      // `today` occurs in the menu exactly twice, in the warning chip and in the clause about
-      // the reader's own clock. A third occurrence anywhere fails, which is the defect the old
-      // conjunct could not see.
-      (wnOpen.wnMenu.anchor || '') === 'Monday ' + longDate(w0.anchor) &&
-      (menuText.match(/today/g) || []).length === 2 &&
+  const brushTitle = (atDiagram.brush || { title: '' }).title.replace(/\s+/g, ' ');
+  assert('the strip says where now comes from, and marks no today the term does not have',
+    !!atDiagram.brush && brushTitle.indexOf('This page has no today') !== -1 &&
+      brushTitle.indexOf(w0.today) !== -1 && w0.afterToday === afterToday &&
+      brushTitle.indexOf(afterToday + ' of the ' + w0.sessions +
+        ' sessions are on or after it') !== -1 &&
+      (brushTitle.match(/today/g) || []).length === 1 &&
+      atDiagram.brush.now === (w0.today >= w0.firstMonday && w0.today <= w0.termTo) &&
       w0.anchor >= w0.firstMonday && w0.anchor <= w0.lastMonday,
-    `the reader's own date ${w0.today}, ${afterToday} sessions on or after it, an anchor row ` +
-      `reading "Monday ${longDate(w0.anchor)}" and the word today nowhere but in the clause ` +
-      `about the clock, with the anchor between ${w0.firstMonday} and ${w0.lastMonday}`,
-    `anchor ${w0.anchor} labelled ${JSON.stringify(wnOpen.wnMenu.anchor)}, page says ` +
-      `${w0.afterToday} after today, "today" x${(menuText.match(/today/g) || []).length}, text ` +
-      JSON.stringify(menuText.slice(0, 150)));
+    `the reader's own date ${w0.today}, ${afterToday} sessions on or after it, the word today ` +
+      'once and nowhere else, and a now marker only where the clock falls inside the term',
+    `title ${JSON.stringify(brushTitle.slice(0, 220))}, page says ${w0.afterToday} after today, ` +
+      `"today" x${(brushTitle.match(/today/g) || []).length}, marker ` +
+      `${atDiagram.brush && atDiagram.brush.now}`);
 
-  // #77's rule reaches the newest controls on the page or it has stopped being a rule.
-  const wnBtns = (wnOpen.wnMenu || { btns: [] }).btns;
-  const smallest = wnBtns.concat([wnOpen.wn]).concat(cal.shapeBtns)
-    .reduce((m, b) => Math.min(m, b.w, b.h), Infinity);
+  // #77's rule reaches the newest control on the page or it has stopped being a rule, and on a
+  // brush it reaches the END CAPS rather than the band. The band is the window's width as a
+  // fraction of the term, so at one week it is a fourteen pixel target and no rule can make it
+  // otherwise without lying about what it is showing; the caps are the equivalent target that does
+  // the same thing, they are on every device, and they are what this holds to 24 by 24. The shape
+  // buttons of the sheet are checked in the same breath, as they were.
+  const caps = [atDiagram.brush.caps.left, atDiagram.brush.caps.right];
+  const smallest = caps.concat(cal.shapeBtns).reduce((m, b) => Math.min(m, b.w, b.h), Infinity);
   assert('every control the two cards added clears 24 by 24',
-    wnBtns.length >= 6 && cal.shapeBtns.length === 4 && smallest >= 24,
-    `${wnBtns.length + 1 + cal.shapeBtns.length} controls, the smallest side at least 24`,
-    `smallest side ${Number(smallest).toFixed(2)} over ${wnBtns.length} window controls, ` +
-      `the header button and ${cal.shapeBtns.length} shape controls`);
+    caps.length === 2 && cal.shapeBtns.length === 4 && smallest >= 24 &&
+      atDiagram.brush.box.h === 26,
+    `${caps.length + cal.shapeBtns.length} controls, the smallest side at least 24`,
+    `smallest side ${Number(smallest).toFixed(2)} over the strip's two end caps and ` +
+      `${cal.shapeBtns.length} shape controls, in a strip ${atDiagram.brush.box.h}px tall`);
 
-  await pressByText(page, '#wnmenu .wn-weeks', '3 weeks');
+  await setWindow(page, 3);
   await page.waitFor('window.ZT.term().window.weeks === 3', 'a three week window');
   const w3 = await page.evaluate('window.ZT.term().window');
   const listWin = await page.evaluate(TERM_READ);
@@ -3233,11 +3273,16 @@ async function checkTerm(page) {
   assert('a three week window cuts the list down to an agenda',
     listWin.rows === w3.shown && listWin.rows === inWindow && listWin.rows > 0 &&
       listWin.rows < state.sessions &&
-      listWin.wn.text === 'weeks 3 of ' + w3.termWeeks &&
+      // The strip says the same three weeks the rows are, in the one spelling it has: a band
+      // three columns wide. #120's `weeks 3 of 24` was a string and this is a shape, and it is the
+      // same claim about the same window.
+      listWin.brush.span === 3 && listWin.brush.termWeeks === w3.termWeeks &&
+      listWin.brush.columns[listWin.brush.start].monday === w3.from &&
       listWin.title.indexOf(w3.shown + ' of ' + state.sessions + ' sessions in date order') !== -1,
     `${inWindow} rows for ${w3.from} to ${w3.to}, out of ${state.sessions}`,
-    `${listWin.rows} rows, the page says ${w3.shown}, control ` +
-      JSON.stringify(listWin.wn.text) + ', heading ' + JSON.stringify(listWin.title));
+    `${listWin.rows} rows, the page says ${w3.shown}, a band of ${listWin.brush.span} from ` +
+      `${listWin.brush.columns[listWin.brush.start].monday}, heading ` +
+      JSON.stringify(listWin.title));
 
   // ---- THE SENTENCE, WHICH IS ISSUE 121 ------------------------------------------
   // THE DEFECT WAS NOT THAT A NUMBER WAS MISSING, IT WAS THAT SEVEN OF THEM WERE THE TERM'S. Over
@@ -3356,10 +3401,8 @@ async function checkTerm(page) {
     'the notice saying the window does not apply, over the full outline',
     `${outWin.rows} rows, notice ${JSON.stringify(outWin.notice.slice(-200))}`);
 
-  await wnMenu(page, true);
-  await pressByText(page, '#wnmenu .wn-weeks', 'whole term');
+  await setWindow(page, 0);
   await page.waitFor('window.ZT.term().window.on === false', 'the window off again');
-  await wnMenu(page, false);
   await page.evaluate(`location.hash = '#/calendar'`);
   await page.waitFor(`window.ZT.term().reading === 'calendar'`, 'the calendar back');
   await pressByText(page, '#termnotice .shape-btn', 'list');
@@ -3697,8 +3740,7 @@ async function checkTerm(page) {
     return { digest: p.digest, w: p.w, h: p.h, k: window.ZT.view().k,
              nodes: document.querySelectorAll('#graph [data-node]').length };
   })()`);
-  await wnMenu(page, true);
-  await pressByText(page, '#wnmenu .wn-weeks', '3 weeks');
+  await setWindow(page, 3);
   await page.waitFor('window.ZT.filtered().on === true', 'the drawing to take the window');
   await viewSettled(page);
   const drawn = await page.evaluate(`(function () {
@@ -3848,7 +3890,7 @@ async function checkTerm(page) {
   // existed to prevent and which #111 did not license.
   const off = await page.evaluate(`(function () {
     var f = window.ZT.filtered();
-    var b = document.getElementById('wnbtn');
+    var b = document.getElementById('brush');
     return { hidden: f.hidden.length, off: f.off, canonNodes: f.canonNodes,
              canonEdges: f.canonEdges, drawnEdges: f.drawnEdges,
              title: b ? b.title : '',
@@ -3868,31 +3910,37 @@ async function checkTerm(page) {
       off.canonEdges - off.drawnEdges === off.off.lines &&
       !!said && Number(said[1]) === off.off.tiles && Number(said[2]) === off.canonNodes &&
       Number(said[3]) === off.off.relationships,
-    `nothing on the canvas standing for what is off it, and the window control saying ` +
+    `nothing on the canvas standing for what is off it, and the term strip saying ` +
       `${off.off.tiles} of ${off.canonNodes} tiles and ${off.off.relationships} relationships`,
     `${off.marks} stub tiles, ${off.capWindow} window captions, ${off.dashed} folded lines, ` +
       `report ${JSON.stringify(off.off)} against title ${JSON.stringify(off.title)}`);
 
-  await wnMenu(page, true);
+  // AND THE LANE BY LANE BREAKDOWN #111 PUT IN THE WINDOW MENU IS NOT LOST WITH THE MENU. That
+  // card took a fourth line off every lane caption and a stub tile out of every lane and put the
+  // numbers in the box behind the window control; issue 137 deletes the box, because the brush
+  // opens nothing, and the numbers move to the control's own title rather than going. The claim is
+  // the claim it was: the lanes named as the DRAWING names them, summing to exactly what the
+  // window took off, over a canvas whose caption lines are the ones the build wrote and no more.
   const menuOff = await page.evaluate(`(function () {
-    var p = document.querySelector('#wnmenu .wn-off');
-    var rows = Array.prototype.slice.call(document.querySelectorAll('#wnmenu .wn-lane'))
-      .map(function (r) {
-        var n = r.querySelector('.wn-lane-n'), k = r.querySelector('.wn-lane-k');
-        return { n: n ? n.textContent : '', k: k ? k.textContent : '' };
-      });
+    var b = document.getElementById('brush');
+    var t = b ? b.title : '';
+    var i = t.indexOf('are off the drawing:');
+    var rows = i === -1 ? [] : t.slice(i + 20).split('.')[0].split(' \u00b7 ').map(function (r) {
+      var m = /^\\s*(.+?)\\s+(\\d+) of (\\d+)\\s*$/.exec(r);
+      return m ? { k: m[1], n: m[2] + ' of ' + m[3] } : { k: r, n: '' };
+    });
     var key = window.ZT.programme().key, bands = null;
     window.GL.views.forEach(function (v) { if (v.key === key) bands = v.drawing.bands; });
-    var want = (bands || []).reduce(function (t, b) {
-      return t + ((b.lines || [b.label]).length);
+    var want = (bands || []).reduce(function (t2, b2) {
+      return t2 + ((b2.lines || [b2.label]).length);
     }, 0);
-    return { lead: p ? p.textContent : null, rows: rows, capWant: want,
+    return { lead: t, rows: rows, capWant: want,
              capGot: document.querySelectorAll('#graph .band-cap').length,
              lanes: window.ZT.filtered().lanes };
   })()`);
   const lost = menuOff.rows.map(r => /^(\d+) of (\d+)$/.exec(r.n))
     .map(m => (m ? Number(m[2]) - Number(m[1]) : NaN));
-  assert('and the lane by lane breakdown the captions used to carry is in the window menu',
+  assert('and the lane by lane breakdown the captions used to carry is on the strip',
     menuOff.rows.length > 0 && lost.every(n => n > 0) &&
       lost.reduce((a, b) => a + b, 0) === off.off.tiles &&
       menuOff.rows.every(r => !!r.k && menuOff.lanes.some(l => l.label === r.k)) &&
@@ -3901,8 +3949,7 @@ async function checkTerm(page) {
       `${off.off.tiles} tiles the window took off, and ${menuOff.capWant} caption lines on the ` +
       'canvas, which is what the build wrote',
     `rows ${JSON.stringify(menuOff.rows)}, captions ${menuOff.capGot} against ` +
-      `${menuOff.capWant}, lead ${JSON.stringify(menuOff.lead)}`);
-  await wnMenu(page, false);
+      `${menuOff.capWant}, title ${JSON.stringify(menuOff.lead.slice(0, 260))}`);
 
   // AND THE FIT FRAMES WHAT IS ON SCREEN RATHER THAN WHAT IT CAME FROM. This is the obvious
   // regression of the whole card: the drawing is a fraction of its old height and a fit that never
@@ -3942,8 +3989,7 @@ async function checkTerm(page) {
     `the three week window still on, filtering ${away.key} down from its own full set`,
     `on ${across.on}, ${across.weeks} weeks, ${across.hidden} taken out of ${away.key}`);
 
-  await wnMenu(page, true);
-  await pressByText(page, '#wnmenu .wn-weeks', 'whole term');
+  await setWindow(page, 0);
   await page.waitFor('window.ZT.filtered().on === false', 'the window to come off');
   const litAgain = await page.evaluate(`(function () {
     var f = window.ZT.filtered();
@@ -3958,7 +4004,6 @@ async function checkTerm(page) {
     'every node back on the page, no outside tile left and no window line on a caption',
     `${litAgain.drawn} drawn of ${litAgain.shown}, ${litAgain.marks} outside tiles, ` +
       `${litAgain.caps} window captions`);
-  await wnMenu(page, false);
   await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(here)}`);
   await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(here)}`,
     'the drawing this phase started on');
@@ -4470,13 +4515,15 @@ async function checkReview(page, base) {
   assert('one address opens the review, cold, on three weeks from the anchor',
     t0.shape === 'review' && w.on === true && w.weeks === 3 &&
       w.from === w.anchor && w.to === plusDays(w.anchor, 20) &&
-      head0.wn && head0.wn.text === 'weeks 3 of ' + w.termWeeks &&
+      head0.brush && head0.brush.span === 3 && head0.brush.termWeeks === w.termWeeks &&
+      head0.brush.columns[head0.brush.start].monday === w.anchor &&
       r0.rows.length > 0 && / unstaffed first$/.test(r0.title),
-    `the review on screen at ${w.anchor} to ${plusDays(w.anchor, 20)}, the header reading ` +
-      `"weeks 3 of ${w.termWeeks}", and a heading that says what it is ranked by`,
-    `shape ${t0.shape}, window ${w.weeks} weeks ${w.from} to ${w.to}, control ` +
-      `${JSON.stringify(head0.wn && head0.wn.text)}, ${r0.rows.length} rows, heading ` +
-      JSON.stringify(r0.title));
+    `the review on screen at ${w.anchor} to ${plusDays(w.anchor, 20)}, a band three columns ` +
+      `wide of ${w.termWeeks} starting on the anchor, and a heading that says what it is ranked by`,
+    `shape ${t0.shape}, window ${w.weeks} weeks ${w.from} to ${w.to}, band ` +
+      `${head0.brush && head0.brush.span} from ` +
+      `${head0.brush && head0.brush.columns[head0.brush.start].monday}, ` +
+      `${r0.rows.length} rows, heading ` + JSON.stringify(r0.title));
 
   // TWO. AND IT ADDED NO ADDRESS, which is the difference between this being holistic and being a
   // tenth feature. The committee wrote "a new address must retire one" and broke the rule in the
@@ -4590,31 +4637,48 @@ async function checkReview(page, base) {
   // 6 of 22, Z-CFA 6 of 45, and only Z-SC and Z-BL are whole. Rolled over real three week windows
   // this screen meets, from April, five of seven programmes with nothing in the window, and a
   // screen that reported those as absences in the business would be manufacturing five sentences a
-  // week out of what these documents happen to draw. So the roll is the assertion: the anchor is
+  // week out of what these documents happen to draw. So the roll is the assertion: the band is
   // walked from the term's first Monday to its last through the control a reader uses, and at
   // every one of those positions the block is checked against this driver's own arithmetic.
+  //
+  // AND THE END OF THE ROLL IS THE BAND MEETING THE END OF THE TERM RATHER THAN THE ANCHOR
+  // REACHING THE LAST MONDAY, which is issue 137's one behavioural change to the window itself.
+  // The menu's stepper clamped the ANCHOR to the last Monday, so a three week window could be
+  // positioned two weeks past the end of the term; a band is inside the strip it is drawn on, so
+  // the last position is the one whose right edge is the term's. Nothing else about the roll
+  // moves: the same positions are visited, minus the two that were off the end of the term.
   await page.evaluate(`location.hash = '#/calendar'`);
   await page.waitFor(`window.ZT.term().reading === 'calendar'`, 'the review again');
-  await wnMenu(page, true);
-  for (let i = 0; i < 40; i++) {
-    const at = await page.evaluate('window.ZT.term().window.anchor');
-    if (at === w.firstMonday) break;
-    await pressByText(page, '#wnmenu .wn-step', '‹');
-    await page.waitFor(`window.ZT.term().window.anchor !== ${JSON.stringify(at)}`,
-      `the anchor to step back off ${at}`);
-  }
+  await setWindowAt(page, 3, w.firstMonday);
   const rolled = [];
   for (let i = 0; i < 40; i++) {
     const at = await page.evaluate('window.ZT.term().window');
     const m = await page.evaluate(
       `${REVIEW_MODEL}(${JSON.stringify(at.from)}, ${JSON.stringify(at.to)})`);
     rolled.push({ at: at, model: m, read: await page.evaluate(REVIEW_READ) });
-    if (at.anchor === at.lastMonday) break;
-    await pressByText(page, '#wnmenu .wn-step', '›');
+    if (at.start + at.span >= at.termWeeks) break;
+    await stepWindow(page, 1);
     await page.waitFor(`window.ZT.term().window.anchor !== ${JSON.stringify(at.anchor)}`,
-      `the anchor to step forward off ${at.anchor}`);
+      `the band to step forward off ${at.anchor}`);
   }
-  await wnMenu(page, false);
+  // AND ONE MORE POSITION, WHICH IS A FINDING RATHER THAN A CONVENIENCE. The assertion below
+  // requires both forms of the absence sentence to occur in the roll, the complete programme's and
+  // the sampled one's. Measured over this document: across every three week window INSIDE the
+  // term, no complete programme is ever empty, so the only positions that ever proved the complete
+  // form were the two the old stepper could reach by clamping the ANCHOR to the last Monday, which
+  // put two of the window's three weeks past the last session of the term. A band lives inside the
+  // strip it is drawn on and cannot do that. The state is real and reachable without it: at one
+  // week on the term's last week, Z-SC has nothing, and that is the one position in this document
+  // where a programme whose drawn rows ARE its term holds no session. So the roll ends by
+  // narrowing the band there, through the same control, rather than by asserting a form the run
+  // never met.
+  await setWindowAt(page, 1, w.lastMonday);
+  {
+    const at = await page.evaluate('window.ZT.term().window');
+    const m = await page.evaluate(
+      `${REVIEW_MODEL}(${JSON.stringify(at.from)}, ${JSON.stringify(at.to)})`);
+    rolled.push({ at: at, model: m, read: await page.evaluate(REVIEW_READ) });
+  }
 
   // SIX. THE PROGRAMME IS NAMED, AND WHAT IS SAID OF IT IS SAID IN THE WORDS ITS OWN STANDING
   // EARNS. Two sentences and not one with a badge: where the drawn rows ARE the term the absence
@@ -5235,7 +5299,7 @@ const CUT_MENU_PARAS = `(function () {
   // Every paragraph in the four menus of the header's readout and its nav, and only the ones that
   // are prose: a row of buttons is a control and not a sentence.
   var out = [];
-  ['#wnmenu', '#grmenu', '#gapsmenu', '#thmenu'].forEach(function (sel) {
+  ['#grmenu', '#gapsmenu', '#thmenu'].forEach(function (sel) {
     var m = document.querySelector(sel);
     if (!m || m.hidden) return;
     Array.prototype.forEach.call(m.querySelectorAll('p'), function (p) {
@@ -5332,7 +5396,7 @@ async function checkCut(page, base) {
     await page.evaluate(`location.hash = ${JSON.stringify(at)}`);
     await page.waitFor(`window.ZT.term().open === false`, `the drawing at ${at}`);
     await sleep(120);
-    for (const id of ['wnbtn', 'grbtn', 'gapsbtn', 'thtoggle']) {
+    for (const id of ['grbtn', 'gapsbtn', 'thtoggle']) {
       await page.evaluate(`document.getElementById(${JSON.stringify(id)}).click()`);
       await sleep(90);
       const got = JSON.parse(await page.evaluate(CUT_MENU_PARAS));
@@ -5543,11 +5607,9 @@ async function checkCut(page, base) {
                       window.ZT.programme().key === ${JSON.stringify(pgWas)}`,
     'the drawing back');
   if (winWas.on === false) {
-    await wnMenu(page, true);
-    await pressByText(page, '#wnmenu .wn-weeks', 'whole term');
+    await setWindow(page, 0);
     await page.waitFor('window.ZT.term().window.on === false',
       'the window off again, the way this phase found it');
-    await wnMenu(page, false);
   }
   await viewSettled(page);
 }
@@ -5817,29 +5879,23 @@ async function checkEmptyWindow(page) {
     `the ${pair.key} drawing, which has a week with nothing in it`);
   await viewSettled(page);
 
-  // THROUGH THE CONTROLS AND NOT THROUGH A SETTER, which is the rule the cold load phase runs on:
-  // a driver that reached inside term.js would prove the transform and not the page. The anchor is
-  // stepped with the same two buttons a reader presses, until it is the one measured above.
-  await wnMenu(page, true);
-  for (let turn = 0; turn < 64; turn++) {
-    const at = await page.evaluate('window.ZT.term().window.anchor');
-    if (at === pair.anchor) break;
-    await pressByText(page, '#wnmenu .wn-step', at > pair.anchor ? '‹' : '›');
-    await page.waitFor(`window.ZT.term().window.anchor !== ${JSON.stringify(at)}`,
-      `the anchor to move off ${at}`);
-  }
-  const landed = await page.evaluate('window.ZT.term().window.anchor');
-  if (landed !== pair.anchor) {
-    throw new Error(`the anchor control never reached ${pair.anchor}; it stopped at ${landed}`);
-  }
+  // THROUGH THE CONTROL AND NOT THROUGH A SETTER, which is the rule the cold load phase runs on:
+  // a driver that reached inside term.js would prove the transform and not the page. The band is
+  // put over the whole term first, so the drawing is whole and the repaint below is the one this
+  // phase is about, and then narrowed to the one week measured above by the strip's own keyboard.
+  await setWindow(page, 0);
+  await viewSettled(page);
   // The console is read as a DELTA over the repaint that empties the drawing, so what this phase
   // reports is what THIS state produced rather than what the run has accumulated. checkConsole
   // still judges the total at the end of the viewport; this names the state.
   const before = page.console.length;
-  await pressByText(page, '#wnmenu .wn-weeks', '1 week');
+  await setWindowAt(page, 1, pair.anchor);
+  const landed = await page.evaluate('window.ZT.term().window.anchor');
+  if (landed !== pair.anchor) {
+    throw new Error(`the strip never reached ${pair.anchor}; it stopped at ${landed}`);
+  }
   await page.waitFor('window.ZT.filtered().shown.length === 0',
     'the window to leave the drawing with nothing on it');
-  await wnMenu(page, false);
   await viewSettled(page);
   const afterConsole = page.console.slice(before);
 
@@ -5884,8 +5940,8 @@ async function checkEmptyWindow(page) {
       neg: neg, plates: plates,
       text: t ? t.textContent : null,
       textBox: bb ? { x: bb.x, w: bb.width } : null,
-      title: document.getElementById('wnbtn').title,
-      wnText: document.getElementById('wnbtn').textContent,
+      title: document.getElementById('brush').title,
+      brush: window.ZT.brush(),
       h: window.ZT.programme().h, w: window.ZT.programme().w,
       k: v.k, vw: v.w, vh: v.h, boxW: box.width, boxH: box.height, ctm: m ? m.a : null
     });
@@ -5965,7 +6021,7 @@ async function checkEmptyWindow(page) {
     return JSON.stringify({
       outside: svg.querySelectorAll('[data-outside]').length,
       capWindow: svg.querySelectorAll('.cap-window').length,
-      title: document.getElementById('wnbtn').title,
+      title: document.getElementById('brush').title,
       off: window.ZT.filtered().off, canonNodes: window.ZT.filtered().canonNodes,
       h: window.ZT.programme().h,
       k: v.k, vw: v.w, vh: v.h, boxW: canvas.width, boxH: canvas.height, ctm: m ? m.a : null,
@@ -6017,10 +6073,8 @@ async function checkEmptyWindow(page) {
 
   // Left as it was found: the window off, and the address back on the diagram. Every phase after
   // this one starts on a page nobody filtered.
-  await wnMenu(page, true);
-  await pressByText(page, '#wnmenu .wn-weeks', 'whole term');
+  await setWindow(page, 0);
   await page.waitFor('window.ZT.filtered().on === false', 'the window off again');
-  await wnMenu(page, false);
   await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor('window.ZT.term().open === false', 'the diagram back');
   await viewSettled(page);
@@ -6079,10 +6133,8 @@ async function checkHeader(page) {
   await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(heavy.key)}`);
   await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(heavy.key)}`,
     `the ${heavy.key} drawing`);
-  await wnMenu(page, true);
-  await pressByText(page, '#wnmenu .wn-weeks', '3 weeks');
+  await setWindow(page, 3);
   await page.waitFor('window.ZT.term().window.weeks === 3', 'a three week window');
-  await wnMenu(page, false);
   const windowed = await page.evaluate('window.ZT.gaps()');
   const onShown = await page.evaluate(GAPS_ON_SHOWN);
   assert('a window moves the count, and moves it to the gaps left on the drawing',
@@ -6105,10 +6157,8 @@ async function checkHeader(page) {
     `${menu.rows} rows summing to ${menu.sum}, control ${JSON.stringify(menu.text)}, ` +
       `sentence ${JSON.stringify(menu.scope.slice(0, 80))}`);
   await gapsMenu(page, false);
-  await wnMenu(page, true);
-  await pressByText(page, '#wnmenu .wn-weeks', 'whole term');
+  await setWindow(page, 0);
   await page.waitFor('window.ZT.term().window.on === false', 'the window to come off');
-  await wnMenu(page, false);
 
   // FIVE. Each reading answers about the rows it lists and not about the model behind it. The
   // calendar's one row is the number the sheet has carried since issues 80 and 82 under another
@@ -6138,10 +6188,8 @@ async function checkHeader(page) {
   // than this card's: a window is a slice of dates and an outline is a syllabus in curriculum
   // order. Asserted in both directions on one press of one control, so a window that reached
   // everything and a window that reached nothing both fail.
-  await wnMenu(page, true);
-  await pressByText(page, '#wnmenu .wn-weeks', '3 weeks');
+  await setWindow(page, 3);
   await page.waitFor('window.ZT.term().window.weeks === 3', 'a three week window');
-  await wnMenu(page, false);
   const outWin = await page.evaluate('window.ZT.gaps()');
   await page.evaluate(`location.hash = '#/calendar'`);
   await page.waitFor(`window.ZT.term().reading === 'calendar'`, 'the calendar again');
@@ -6150,12 +6198,10 @@ async function checkHeader(page) {
     outWin.total === out.total && calWin.total < cal.total && calWin.total >= 0,
     `the outline still ${out.total} and the calendar under its ${cal.total}`,
     `outline ${outWin.total}, calendar ${calWin.total}`);
-  await wnMenu(page, true);
-  await pressByText(page, '#wnmenu .wn-weeks', 'whole term');
+  await setWindow(page, 0);
   await page.waitFor('window.ZT.term().window.on === false', 'the window to come off');
-  await wnMenu(page, false);
 
-  // SEVEN. Withdrawn where the window control is withdrawn, and the object says `null` rather than
+  // SEVEN. Withdrawn where the term strip is withdrawn, and the object says `null` rather than
   // zero, because "no gaps here" and "this question does not apply to this view" are different
   // answers and a control reading `gaps: 0 of 95` over the board would be giving the wrong one.
   // Both directions again: back on the diagram it is present, visible and answering.
@@ -6234,8 +6280,8 @@ const PAINT_READ = `(function () {
   function col(sel) { var e = document.querySelector(sel); return e ? getComputedStyle(e).color : null; }
   var st = document.getElementById('hstate'), hd = document.querySelector('header');
   return JSON.stringify({
-    readings: ['#wnval', '#grval', '#tilesval', '#gapsval'].map(col),
-    labels: ['.wnpick .rd-k', '.grpick .rd-k', '#tilesrd .rd-k', '.gapspick .rd-k'].map(col),
+    readings: ['#grval', '#tilesval', '#gapsval'].map(col),
+    labels: ['.grpick .rd-k', '#tilesrd .rd-k', '.gapspick .rd-k'].map(col),
     links: ['#navstudents', '#navview', '#thtoggle'].map(col),
     plate: st ? getComputedStyle(st).backgroundColor : null,
     header: hd ? getComputedStyle(hd).backgroundColor : null
@@ -6253,7 +6299,7 @@ const PLACE_READ = `(function () {
   var tops = kids.map(function (k) { return +k.getBoundingClientRect().top.toFixed(2); });
   var hs = kids.map(function (k) { return +k.getBoundingClientRect().height.toFixed(2); });
   return JSON.stringify({
-    readings: ['wnbtn', 'grbtn', 'tilesrd', 'gapsbtn'].map(where),
+    readings: ['grbtn', 'tilesrd', 'gapsbtn'].map(where),
     actions: ['ghtoggle', 'fbtoggle', 'navstudents', 'navview', 'thtoggle'].map(where),
     plateH: r ? +r.height.toFixed(2) : null,
     tallest: hs.length ? Math.max.apply(null, hs) : null,
@@ -6321,7 +6367,7 @@ async function checkReadout(page) {
   assert('every reading is on the plate and every action is in the nav',
     strayReading.length === 0 && strayAction.length === 0 &&
       place.plateH !== null && place.plateH === place.tallest && place.oneLine,
-    'four readings inside the readout, five actions inside the nav, and the plate one line high',
+    'three readings inside the readout, five actions inside the nav, and the plate one line high',
     `${strayReading.length} readings out of place, ${strayAction.length} actions out of place, ` +
       `plate ${place.plateH} against its tallest reading ${place.tallest}, ` +
       `one line ${place.oneLine}`);
@@ -6329,8 +6375,8 @@ async function checkReadout(page) {
   // TWO. THE SPLIT, AS PAINT, AND IT IS A SEPARATE CLAIM FROM THE ONE ABOVE. The row already had
   // the two kinds in two places before this card, at #98 and at #89: what it did not have was any
   // way to tell them apart by looking, every one of the nine being a .linkbtn in the link colour
-  // unless it had a state of its own. So the four values take the body colour, their four labels
-  // the muted one, and the plate under them a ground the header does not paint, while the three
+  // unless it had a state of its own. So the values take the body colour, their labels the muted
+  // one, and the plate under them a ground the header does not paint, while the three
   // actions that carry no state of their own keep the link colour they always had. A readout
   // painted in the link colour is the defect this card was filed about with a box drawn around it,
   // and it is exactly what this would catch.
@@ -6353,10 +6399,8 @@ async function checkReadout(page) {
   // render.js's own record of what the window left. A reading that always printed `N of N` would
   // pass half of this and a reading that never printed the denominator would pass the other half.
   const whole = JSON.parse(await page.evaluate(TILES_STATE));
-  await wnMenu(page, true);
-  await pressByText(page, '#wnmenu .wn-weeks', '3 weeks');
+  await setWindow(page, 3);
   await page.waitFor('window.ZT.term().window.weeks === 3', 'a three week window');
-  await wnMenu(page, false);
   const windowed = JSON.parse(await page.evaluate(TILES_STATE));
   assert('the tile reading is the drawing, and names a denominator only when one is being filtered',
     whole.on === false && whole.text === String(whole.canon) && whole.shown === whole.canon &&
@@ -6366,10 +6410,8 @@ async function checkReadout(page) {
     `"${whole.canon}" over the whole term and "${windowed.shown} of ${windowed.canon}" under a ` +
       'three week window',
     `whole term ${JSON.stringify(whole)}, windowed ${JSON.stringify(windowed)}`);
-  await wnMenu(page, true);
-  await pressByText(page, '#wnmenu .wn-weeks', 'whole term');
+  await setWindow(page, 0);
   await page.waitFor('window.ZT.term().window.on === false', 'the window to come off');
-  await wnMenu(page, false);
 
   // FOUR. AND IT FOLLOWS THE GHOST TOGGLE, BY THE NUMBER OF GHOSTS THE MODEL RECORDS. This is the
   // claim that makes the reading a count of what is painted rather than a count of what was built:
@@ -6541,8 +6583,10 @@ async function checkReadout(page) {
 const PANEL_WIDTHS = [1536, 1440, 1366, 1280, 1200, 1183, 1100, 1024, 981, 980, 919, 900, 834,
                       800, 768, 761, 760, 700, 600, 500, 430, 393, 390, 375, 360];
 
-// The plate, its four readings and the nine controls, as boxes. `rd` is the class every reading
-// carries, pressable or not, so the four are found in the document rather than listed here.
+// The plate, its readings and the controls of the row, as boxes. `rd` is the class every reading
+// carries, pressable or not, so they are found in the document rather than listed here. Three of
+// them since issue 137, which deleted `weeks`: the window is the strip before the plate now, and
+// the strip is measured separately below because it is not a reading on this box.
 const PANEL_GEO = `(function () {
   function box(e) {
     if (!e) return null;
@@ -6626,6 +6670,16 @@ const PANEL_MARKS = `(function () {
   var tiles = document.getElementById('tilesrd');
   var ta = tiles ? getComputedStyle(tiles, '::after') : null;
   out.staticMarked = !!(ta && ta.content !== 'none' && parseFloat(ta.borderTopWidth) > 0);
+  // And the term strip, read the same way and for a sharper reason. Issue 137. It is a control and
+  // it is not a button or a link, so the walk above cannot see it either; it opens nothing, so a
+  // mark on it would be an affordance promising a panel that does not exist. That is the mistake
+  // this whole family of assertions exists to catch, met from the one side it had not been met
+  // from: a control that is marked and opens nothing rather than one that opens something and is
+  // not marked.
+  var br = document.getElementById('brush');
+  var ba = br ? getComputedStyle(br, '::after') : null;
+  out.brushMarked = !!(ba && ba.content !== 'none' && parseFloat(ba.borderTopWidth) > 0);
+  out.brushControls = br ? br.getAttribute('aria-controls') : 'no strip';
   return JSON.stringify(out);
 })()`;
 
@@ -6664,7 +6718,7 @@ const PANEL_RING = `(function () {
 
 // Every box any control in this header opens, measured against the viewport it opened into.
 async function panelBoxes(page) {
-  const pairs = [['pgbtn', 'pgmenu'], ['wnbtn', 'wnmenu'], ['grbtn', 'grmenu'],
+  const pairs = [['pgbtn', 'pgmenu'], ['grbtn', 'grmenu'],
                  ['gapsbtn', 'gapsmenu'], ['thtoggle', 'thmenu']];
   const out = [];
   for (const [btn, menu] of pairs) {
@@ -6721,13 +6775,13 @@ async function checkPanel(page) {
   const folded = swept.filter(s => {
     const hs = s.readings.map(r => r.box.h);
     const ys = s.readings.map(r => r.box.y);
-    return s.readings.length !== 4 || new Set(hs).size !== 1 || new Set(ys).size !== 1 ||
+    return s.readings.length !== 3 || new Set(hs).size !== 1 || new Set(ys).size !== 1 ||
            hs[0] !== 26 || s.plate.h !== hs[0];
   });
   const scrolls = swept.filter(s => s.scrollWidth !== s.clientWidth);
   assert('every reading in the readout is one line at every width, and the plate is their height',
     folded.length === 0 && scrolls.length === 0 && swept.length === PANEL_WIDTHS.length,
-    `four readings 26px tall on one top edge at all ${PANEL_WIDTHS.length} widths from ` +
+    `three readings 26px tall on one top edge at all ${PANEL_WIDTHS.length} widths from ` +
       `${PANEL_WIDTHS[0]} down to ${PANEL_WIDTHS[PANEL_WIDTHS.length - 1]}, and no sideways scroll`,
     folded.length
       ? folded.map(s => `${s.vw}: heights ${JSON.stringify(s.readings.map(r => r.box.h))} ` +
@@ -6821,10 +6875,10 @@ async function checkPanel(page) {
   const missing = marks.ought.filter(id => marks.marked.indexOf(id) === -1);
   const spurious = marks.marked.filter(id => marks.ought.indexOf(id) === -1);
   assert('exactly the controls that open a box carry the mark that says so',
-    marks.ought.length === 4 && missing.length === 0 && spurious.length === 0 &&
-      marks.staticMarked === false && marks.all.length === 16,
-    'four marks on the four controls declaring aria-controls, none on the twelve that declare ' +
-      'none, and none on the reading that is not a control',
+    marks.ought.length === 3 && missing.length === 0 && spurious.length === 0 &&
+      marks.staticMarked === false && marks.all.length === 15 && marks.brushMarked === false,
+    'three marks on the three controls declaring aria-controls, none on the twelve that declare ' +
+      'none, none on the reading that is not a control, and none on the strip, which opens nothing',
     `ought ${JSON.stringify(marks.ought)}, marked ${JSON.stringify(marks.marked)}, ` +
       `the static reading marked ${marks.staticMarked}, ${marks.all.length} controls in the row`);
 
@@ -6833,18 +6887,24 @@ async function checkPanel(page) {
   // reading with its box open and a reading under the pointer were the same fill to the pixel.
   // Driven with a real pointer move to the control's own centre, and all three states read off
   // the computed style rather than off a class.
-  const rd = await stableRect(page, '#wnbtn');
+  const rd = await stableRect(page, '#grbtn');
   const away = await backgroundPoint(page);
   await mouse(page, 'mouseMoved', away.x, away.y, 0);
   await sleep(120);
-  const rest = JSON.parse(await page.evaluate(panelPaint('wnbtn')));
+  const rest = JSON.parse(await page.evaluate(panelPaint('grbtn')));
   await mouse(page, 'mouseMoved', Math.round(rd.cx), Math.round(rd.cy), 0);
   await sleep(150);
-  const hover = JSON.parse(await page.evaluate(panelPaint('wnbtn')));
+  const hover = JSON.parse(await page.evaluate(panelPaint('grbtn')));
   await mouse(page, 'mouseMoved', away.x, away.y, 0);
-  await wnMenu(page, true);
-  const open = JSON.parse(await page.evaluate(panelPaint('wnbtn')));
-  await wnMenu(page, false);
+  // MEASURED ON `grain` SINCE ISSUE 137 AND IT IS THE SAME CLAIM. It was `weeks`, which was the
+  // first reading on the plate and is deleted; `grain` is the first reading on the plate now, it
+  // is a .linkbtn with a box behind it exactly as that one was, and every rule this assertion is
+  // about is written against `.hstate .linkbtn` rather than against an id.
+  await page.evaluate(`document.getElementById('grbtn').click()`);
+  await page.waitFor('window.ZT.grain().menu === true', 'the altitude box to open');
+  const open = JSON.parse(await page.evaluate(panelPaint('grbtn')));
+  await page.evaluate(`document.getElementById('grbtn').click()`);
+  await page.waitFor('window.ZT.grain().menu === false', 'the altitude box to close');
   const three = new Set([rest.bg + '|' + rest.shadow, hover.bg + '|' + hover.shadow,
                          open.bg + '|' + open.shadow]);
   assert('a reading at rest, under the pointer and with its box open are three different paints',
@@ -6888,7 +6948,7 @@ async function checkPanel(page) {
   // ones and covers the rules of both neighbours. Asserted as the rectangle the ring is painted
   // in, computed here from the box and the resolved width and offset, against the plate's own
   // rectangle, and the ring is required to exist at all so that removing it fails too.
-  await page.evaluate(`document.getElementById('wnbtn').focus()`);
+  await page.evaluate(`document.getElementById('grbtn').focus()`);
   await page.send('Input.dispatchKeyEvent',
     { type: 'rawKeyDown', windowsVirtualKeyCode: 9, key: 'Tab', code: 'Tab' });
   await page.send('Input.dispatchKeyEvent',
@@ -6911,14 +6971,16 @@ async function checkPanel(page) {
   // the plate are 460, 340 and 300 CSS px and hung off controls of 84: measured at 900 by 800 the
   // window box opened at left: -73.1, with the first words of three of its lines outside the
   // viewport and no scrollbar anywhere that could reach them, because overflow to the left of the
-  // origin creates none. All five boxes are opened at each of a set of widths spanning the one
-  // row layout, the two row layout and the phone, and both edges are asserted.
+  // origin creates none. Every box this header still opens is opened at each of a set of widths
+  // spanning the one row layout, the two row layout and the phone, and both edges are asserted.
+  // Three of them since issue 137: the window's was the widest of the four and it is deleted, the
+  // brush having no box at all.
   const boxWidths = [1536, 1200, 1024, 900, 800, 761, 700, 500, 390];
   const boxes = await atWidths(page, boxWidths, async () => panelBoxes(page));
   const flat = boxes.reduce((a, b) => a.concat(b), []);
   const escaped = flat.filter(b => b.left < -0.01 || b.right > b.vw + 0.01 || b.w <= 0);
   assert('every box a control in this header opens is inside the viewport, at every width',
-    escaped.length === 0 && flat.length >= boxWidths.length * 4,
+    escaped.length === 0 && flat.length >= boxWidths.length * 3,
     `all of them between 0 and the viewport's own width at ${boxWidths.length} widths`,
     escaped.length
       ? escaped.map(b => `${b.menu} at ${b.vw}: left ${b.left}, right ${b.right}`)
@@ -8883,14 +8945,7 @@ async function runGrain(chrome, base) {
       for (const g of ['sessions', 'modules']) {
         for (const k of ['ZBL', 'ZSC']) {
           await goto(base + '#/p/' + k + (g === 'modules' ? '/modules' : ''));
-          await ev(`
-            document.getElementById('wnbtn').click();
-            var b = Array.prototype.filter.call(
-              document.querySelectorAll('#wnmenu .wn-weeks'),
-              function (x) { return x.textContent === '3 weeks'; })[0];
-            b.click();
-            document.getElementById('wnbtn').click();
-            return true;`);
+          await setWindow(page, 3);
           await sleep(150);
           const r = await read();
           filteredReflow[k + '/' + g] = { on: r.filtered.on, reflow: r.reflow,
@@ -9016,13 +9071,7 @@ async function runGrain(chrome, base) {
       // The window from the reflow phase is still on: this page keeps its state across a hash
       // change, which is the behaviour, so the driver takes it off rather than measuring one
       // control through another.
-      await ev(`
-        document.getElementById('wnbtn').click();
-        Array.prototype.filter.call(
-          document.querySelectorAll('#wnmenu .wn-weeks'),
-          function (x) { return x.textContent === 'whole term'; })[0].click();
-        document.getElementById('wnbtn').click();
-        return true;`);
+      await setWindow(page, 0);
       await sleep(200);
       // WHICH MODULE, AND NOT ONLY WHICH KIND OF TILE. Both assertions below used to read
       // `sel.type` and nothing else, so a page that landed the reader on a module they had never
@@ -9079,14 +9128,7 @@ async function runGrain(chrome, base) {
     await group('composing', async () => {
       await goto(base + '#/p/ZBL/modules');
       const before = await ev('return window.ZT.gaps();');
-      await ev(`
-        document.getElementById('wnbtn').click();
-        var b = Array.prototype.filter.call(
-          document.querySelectorAll('#wnmenu .wn-weeks'),
-          function (x) { return x.textContent === '1 week'; })[0];
-        b.click();
-        document.getElementById('wnbtn').click();
-        return true;`);
+      await setWindow(page, 1);
       await sleep(200);
       const after = await ev(`
         return { gaps: window.ZT.gaps(), f: window.ZT.filtered(), g: window.ZT.grain() };`);
