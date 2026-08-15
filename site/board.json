@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-15T23:18:03Z",
+  "generated": "2026-08-15T23:18:59Z",
   "columns": [
     {
       "key": "raw",
@@ -35,13 +35,13 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
         },
         {
-          "id": 160,
-          "title": "check space frame above, do a general review",
+          "id": 161,
+          "title": "this is what i mean by duplicate days",
           "labels": [
             "bug",
             "feedback"
           ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/160"
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/161"
         }
       ]
     },
@@ -206,6 +206,16 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/156"
+        },
+        {
+          "id": 160,
+          "title": "check space frame above, do a general review",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/160"
         }
       ]
     },
