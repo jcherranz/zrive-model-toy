@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-15T23:18:59Z",
+  "generated": "2026-08-15T23:19:49Z",
   "columns": [
     {
       "key": "raw",
@@ -35,13 +35,13 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
         },
         {
-          "id": 161,
-          "title": "this is what i mean by duplicate days",
+          "id": 162,
+          "title": "check space of frame below",
           "labels": [
             "bug",
             "feedback"
           ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/161"
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/162"
         }
       ]
     },
@@ -224,6 +224,16 @@
       "title": "Done",
       "cards": [
         {
+          "id": 161,
+          "title": "this is what i mean by duplicate days",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/161"
+        },
+        {
           "id": 147,
           "title": "Make the format of this outlines more in line with the style…",
           "labels": [
@@ -284,19 +294,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/134"
-        },
-        {
-          "id": 133,
-          "title": "Make this cards more transparent",
-          "labels": [
-            "feedback",
-            "layout",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/133"
         }
       ],
-      "hidden": 117,
+      "hidden": 118,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
