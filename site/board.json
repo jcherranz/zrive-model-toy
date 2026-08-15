@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-15T23:06:30Z",
+  "generated": "2026-08-15T23:07:14Z",
   "columns": [
     {
       "key": "raw",
@@ -53,13 +53,13 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/145"
         },
         {
-          "id": 148,
-          "title": "Make the format of this outlines more in line with the style…",
+          "id": 149,
+          "title": "There is a gap to the left of this header blocks whicch looks bad",
           "labels": [
             "bug",
             "feedback"
           ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/148"
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/149"
         }
       ]
     },
@@ -74,6 +74,16 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/146"
+        },
+        {
+          "id": 148,
+          "title": "Make the format of this outlines more in line with the style…",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/148"
         }
       ]
     },
@@ -100,16 +110,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/142"
-        },
-        {
-          "id": 147,
-          "title": "Make the format of this outlines more in line with the style…",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/147"
         }
       ]
     },
@@ -117,6 +117,16 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 147,
+          "title": "Make the format of this outlines more in line with the style…",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/147"
+        },
         {
           "id": 139,
           "title": "Absence is one idea with two numbers that never add",
@@ -178,17 +188,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/133"
-        },
-        {
-          "id": 131,
-          "title": "The desk comes off and the header control panel gets the craft pass he asked for",
-          "labels": [
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/131"
         }
       ],
-      "hidden": 116,
+      "hidden": 117,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
