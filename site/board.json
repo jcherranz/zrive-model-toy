@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-15T10:32:24Z",
+  "generated": "2026-08-15T13:39:22Z",
   "columns": [
     {
       "key": "raw",
@@ -45,14 +45,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
-        },
-        {
-          "id": 136,
-          "title": "Scope is a set, and the union is one drawing",
-          "labels": [
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/136"
         }
       ]
     },
@@ -60,6 +52,14 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 136,
+          "title": "Scope is a set, and the union is one drawing",
+          "labels": [
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/136"
+        },
         {
           "id": 135,
           "title": "Make a cooler, more structured visually outline",
@@ -123,19 +123,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/128"
-        },
-        {
-          "id": 127,
-          "title": "Drag must be control or shift + click drag",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/127"
         }
       ],
-      "hidden": 112,
+      "hidden": 113,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
