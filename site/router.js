@@ -28,15 +28,38 @@
 // null and the default below and is the whole of the interaction with the other two routes.
 // #/students and #/board say nothing about which programme is drawn, so they leave it alone: a
 // reader on Z-CFA who opens the student list gets the Z-CFA cohort, and one who looks at the
-// board and comes back to #/ finds Z-CFA still on the canvas. An address that IS a programme
+// board still has Z-CFA on the canvas behind it. An address that IS a programme
 // address and names nothing, #/p/ or #/p/NOPE, falls back to the default rather than drawing
 // nothing, because the reader asked for a programme and the honest answer to an unknown one is
 // the page they would have got with no code at all.
+//
+// AND THE BARE ADDRESS IS NOT ONE OF THOSE, ISSUE 138. `#/` had no opinion either, so it drew the
+// union on a cold load, out of the fallback beside the construction line, and did nothing at all on
+// a hashchange. The same six characters meant "every programme" to a reader who opened them and
+// "leave the drawing alone" to a reader who arrived at them, and issue 137 had to drive `#/p/ALL`
+// to get the union it wanted. An address that means one thing cold and another thing warm is not an
+// address, and issue 136 put the scope in the address precisely so that the cross-programme
+// question could be asked, answered and sent to somebody. So `#/` carries a scope, it is the union,
+// and it carries it at every arrival.
+//
+// WHAT THAT MOVED IS WHERE "BACK" POINTS, and nothing else. #/board, #/students and the sheet's
+// sixteen still answer null, because each of them is something drawn OVER the drawing rather than a
+// drawing, and a reader who looks at one of them must find the drawing they left underneath it.
+// Until this card the way back out of two of them was `#/`, written by replaceState, which left a
+// reader on Z-CFA looking at an address that would have given them all seven on F5. The way back is
+// the address of the scope on screen now, off addressFor(), which is the same function every chip
+// and every link on this page is addressed from.
 (function () {
   'use strict';
 
   var PGPREFIX = '#/p/';
   var ROSTER_ROUTE = '#/students';
+  // The bare address, in every spelling a browser can hand it over in: nothing at all on a URL with
+  // no fragment, a lone `#` on one that has been given an empty one, `#/` as the page writes it, and
+  // any of those carrying a query. Issue 138. It is matched here rather than compared against one
+  // string because `location.hash` is `''` for a reader who opened the page with no fragment and
+  // `'#/'` for one who arrived through a link, and those are the same address.
+  var ROOTROUTE = /^(#\/?)?(\?.*)?$/;
   // ---- scope is a set, issue 136 ---------------------------------------------
   // THE PROGRAMME WAS THE ADDRESS AND IT IS NOW A SET IN THE ADDRESS. Until this card `#/p/ZSC`
   // named one drawing and there was no way to write down two, so "this week, across several
@@ -122,8 +145,18 @@
 
     // null means "this address is not about a programme", which is not the same answer as the
     // scope and must not be collapsed into it.
+    //
+    // THE BARE ADDRESS IS ABOUT A PROGRAMME SET AND ANSWERS HERE, issue 138. It names no code, and
+    // the set it means is the one this tool is at rest on, which is every programme the document
+    // holds. Answering it here rather than in the fallback beside the construction line is the whole
+    // of the repair: the fallback runs once, so a reader who arrived at `#/` by any other route than
+    // opening it got whatever was already on the canvas. The grain is not answered here for the same
+    // reason it is not written into the address: `#/` carries no altitude segment, so both readers
+    // of a null grain, the construction line and the hashchange listener, resolve it to `sessions`,
+    // which is what a bare address has always drawn cold.
     function scopeFromHash(h) {
       h = String(h || '');
+      if (ROOTROUTE.test(h)) return VIEWS.slice();
       if (h.slice(0, PGPREFIX.length).toLowerCase() !== PGPREFIX) return null;
       var got = scopeByCodes(h.slice(PGPREFIX.length).split('/')[0].split('?')[0]);
       return got.length ? got : VIEWS.slice();
@@ -329,12 +362,19 @@
     // write: the entry that is being left is the list, so replacing it means the back button goes
     // to whatever the reader was on before they opened it rather than back into the list they just
     // closed. It fires no hashchange, so the close is done here rather than waiting for one.
+    // AND IT GOES BACK TO THE DRAWING IT WAS OPENED OVER, ISSUE 138. This wrote `#/`, which was the
+    // address that meant nothing warm, so closing the list changed no drawing and that was the whole
+    // intent. It also left a reader who had narrowed to two programmes looking at an address that
+    // draws seven, and it is now this card's business that `#/` says what it means: pressing F5 on
+    // what the page had just written would have thrown the scope away. addressFor() is asked instead,
+    // which is the one function on this page allowed to name an address for a scope.
     function closeRoster() {
       if (location.hash === ROSTER_ROUTE) {
+        var back = addressFor(pgScope, pgGrain);
         try {
-          history.replaceState(null, '', location.pathname + location.search + '#/');
+          history.replaceState(null, '', location.pathname + location.search + back);
         } catch (err) {
-          location.hash = '#/';   // a file:// URL, where replaceState throws
+          location.hash = back;   // a file:// URL, where replaceState throws
         }
       }
       showRoster(false);
@@ -400,6 +440,14 @@
     // paste an address and know what the other person saw.
     var pgRail = document.getElementById('pgrail');
     var pgChips = [];
+    // The view selector's diagram segment, issue 138, and this file writes its address for the same
+    // reason it writes every chip's: the scope is the thing an address names and this is the only
+    // module that holds it. index.html ships it pointing at `#/` because that is what it means before
+    // any drawing exists, and board.js goes on owning the mark that says which of the two views is on
+    // screen. Now that `#/` is the union, a segment frozen on it would take a reader who narrowed to
+    // two programmes, looked at the board and pressed `diagram` back to all seven, which is the
+    // drawing they did not leave.
+    var navDiagram = document.getElementById('navdiagram');
 
     function inScope(v) {
       for (var i = 0; i < pgScope.length; i++) if (pgScope[i] === v) return true;
@@ -472,6 +520,7 @@
     // Every chip's address and every chip's state, rewritten on every change of scope and of
     // grain, because both are in the address the chip links to.
     function describeRail() {
+      if (navDiagram) navDiagram.setAttribute('href', addressFor(pgScope, pgGrain));
       pgChips.forEach(function (c) {
         var target = c.v ? toggled(c.v) : VIEWS.slice();
         c.a.href = addressFor(target, pgGrain);

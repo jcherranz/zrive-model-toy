@@ -396,3 +396,43 @@ build on a cited slug that resolves to nothing.
   repair is that the gesture takes its geometry once, at the press, so a row that did reflow could
   not corrupt a drag already begun; the two are separate, because being in a stable slot is not the
   same as surviving an unstable one.
+- `kaizen-a-fallback-that-runs-once-is-not-an-address` &middot; **State that lives in the URL has to
+  be resolved on every arrival, and a default applied at construction is not that.** Issue 136 put
+  the programme scope in the address, which is the whole mechanism by which a cross-programme
+  question is answerable and can be sent to somebody. The resolver answered `null` to every address
+  that was not a `#/p/` one, and one line at construction turned that null into the union, so `#/`
+  drew all seven to a reader who OPENED it and did nothing at all to a reader who ARRIVED at it. The
+  page was consistent, the code read reasonably, and the same six characters meant two different
+  things depending on how you got there. The tell is structural and cheap to look for: a resolver
+  with a "no opinion" answer and a caller that supplies a default is a design where the default is
+  reachable on exactly one code path. The address either names a state or it does not, and if it
+  does, the resolver owes it an answer on the hashchange path too. Issue 137 hit this, worked around
+  it by driving `#/p/ALL`, and reported it rather than patching it, which was right: a workaround in
+  a driver is not a fix in a page.
+- `kaizen-a-fragment-navigation-builds-no-document` &middot; **Two urls differing only in their
+  fragment are the same document, so "navigating" between them is not a load and a driver that waits
+  for one waits out its timeout.** The sixth dead instrument found in this run, after relative
+  luminance ignoring alpha, a driver waiting for a drawing nobody has, a hit test answering the same
+  either way, an `elementFromPoint` check blind to a chip under the plate, and a press whose y came
+  from the header padding. The `the scope` phase reached three addresses with `Page.navigate` and its
+  assertion said `each read cold`; none of the three built a document, and the first did not even
+  change the hash, because the phase before it hands the page over at `#/`. So the union that
+  assertion called cold was the scope the page had been CONSTRUCTED with, and it would have passed
+  against a page with no hashchange handler at all. The cost was visible in the clock and nobody had
+  looked: four such navigations at 20000 ms each, and replacing them with reloads took the suite from
+  278.0 s to 209.0 s. Two countermeasures, and the second is the one that generalises: a cold claim
+  is made with a reload of the address, never with a navigation to it; and **a driver step that
+  regularly consumes its whole timeout is evidence, not a slow machine**. This is
+  `kaizen-a-wait-must-be-weaker-than-the-claim` from the other end: that lesson is about a wait so
+  strong it can never be satisfied, and this is about one so weak it is satisfied by a page that was
+  never asked the question.
+- `kaizen-a-generator-must-not-run-beside-a-server-of-its-output` &middot; **A gate that regenerates
+  the bytes another process is serving will be blamed on the change under test.** `check_build.sh`
+  rebuilds `site/instance.js` and `site/layout.js` in place; run while a smoke suite was serving that
+  same directory, the grain browser fetched a truncated `instance.js`, `window.GI` was undefined and
+  every one of the nine grain phases failed with the page throwing `no view`. It reads exactly like a
+  page regression, in the phases furthest from the change, and the only reason it did not become a
+  false defect is that the suite prints the page's own thrown error rather than only the assertion
+  that fell over. Run the gates and the suite one after another, and read `no view`, `undefined` and
+  a whole phase group failing at once as a question about the bytes before it is a question about the
+  code.

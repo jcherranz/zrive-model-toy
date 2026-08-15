@@ -9,6 +9,47 @@ of what changed and when, and it is meant to be scannable.
 
 ## [Unreleased]
 
+### Fixed
+
+- **AN ADDRESS THAT MEANS ONE THING COLD AND ANOTHER THING WARM IS NOT AN ADDRESS, #138.**
+  `router.js` read the scope off the `#/p/` prefix and answered null to everything else, and the
+  null became the union in a fallback that runs once, at construction. So **`#/` drew all seven to a
+  reader who opened it and did nothing whatever to a reader who arrived at it** by hashchange. #137
+  met this and could not fix it, correctly, because it is #136's; it drove `#/p/ALL` instead. #136
+  put the scope in the address so the cross-programme question could be asked, answered and sent to
+  somebody, and half an address carries none of that. The bare address answers in the resolver now,
+  beside the seven programme addresses, and every arrival at it is the same arrival.
+- **AND `#/` WAS WHAT THREE CONTROLS HANDED BACK WHEN THEY MEANT THE DRAWING UNDERNEATH.** The
+  student list's close and the sheet's close both wrote it over the address with `replaceState`, and
+  the view selector's `diagram` segment was frozen on it in `index.html`. That was invisible while
+  the six characters meant nothing, and the moment they mean the union it is a reader who narrowed to
+  two programmes being handed an address that throws the other five back in on the next reload or on
+  the next person to open the link they were sent. **All three ask `addressFor()`**, which is the one
+  function on this page allowed to name an address for a scope, so the way out of a sheet is the
+  address of the drawing that was under it, at its own altitude.
+- **THE SIXTH DEAD INSTRUMENT IN THIS RUN, AND IT IS THE ASSERTION THAT SAID `each read cold`.** The
+  `the scope` phase reached its three addresses by `Page.navigate` to a url differing from the one on
+  screen only in its fragment, **which is a same-document navigation: no document is built and no
+  load event fires**, so the driver waited out its whole timeout and read a page it had not reloaded.
+  The first of the three did not change the hash at all, because `every width` hands the phase the
+  page at `#/`, so **the union it called cold was the scope the page had been constructed with**
+  twenty seconds earlier. It reloads now, which is a reader's F5. Measured: **the suite went from
+  278.0 s to 209.0 s** on one machine, which is the four such navigations no longer waiting out
+  20000 ms each.
+- **Three assertions added to `the scope`, 285 to 288, and each proved by planting the defect its own
+  name describes.** That the bare address is the union arrived at warm from a scope of one, from a
+  scope of two and from the union at the other altitude, and reloaded; that `#/board`, `#/students`
+  and the sheet's addresses say nothing about the scope and change none of it, which is the assertion
+  a careless repair fails; and that the three ways back hand back the drawing's own address. Every
+  one recomputed in the driver from `window.GI` by a second implementation of the resolver, never
+  read off the page's own `scope().route`, which is written by the function under test.
+- **Nothing else moves.** **Addresses 35 and this card adds none**: `#/` was already one of them and
+  is one of them still, and no address was retired. **Control ELEMENTS 14**, six static plus the
+  eight chips, **GROUPS 6**, **READINGS 0**, header **one row at 43px** at 1536, every control
+  **26 by 26**. **Phone chrome 107 of 844, share 0.1268**, against the ceiling of 0.1730 and
+  unmoved by this card. **`of 95` occurs zero times in the served page with comments stripped.**
+  **The fourteen drawing digests are untouched**, nothing in `build/` was edited.
+
 ### Changed
 
 - **ABSENCE IS ONE IDEA WITH TWO NUMBERS THAT NEVER ADD, #139.** Card 3 of WINDOW-FIRST, and the
