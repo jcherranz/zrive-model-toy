@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-15T13:40:07Z",
+  "generated": "2026-08-15T16:11:28Z",
   "columns": [
     {
       "key": "raw",
@@ -45,14 +45,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
-        },
-        {
-          "id": 137,
-          "title": "Time is an interval you drag, not a name you pick",
-          "labels": [
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/137"
         }
       ]
     },
@@ -60,6 +52,14 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 137,
+          "title": "Time is an interval you drag, not a name you pick",
+          "labels": [
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/137"
+        },
         {
           "id": 136,
           "title": "Scope is a set, and the union is one drawing",
@@ -123,17 +123,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/129"
-        },
-        {
-          "id": 128,
-          "title": "Every sentence that teaches the page how to be read comes off; the measured facts stay",
-          "labels": [
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/128"
         }
       ],
-      "hidden": 113,
+      "hidden": 114,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
