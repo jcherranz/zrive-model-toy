@@ -207,6 +207,22 @@ const VIEWPORTS = [
 ];
 const WINDOW_FLOOR_PX = 500;
 
+// ---- the address a phase about ONE drawing is driven at, issue 136 -----------------------------
+// `#/` NOW MEANS ALL SEVEN AND THAT IS THE CARD'S WHOLE INVERSION. The programme set is a scope
+// that starts at All, so the address with no opinion draws the union. Every phase below that is
+// about one programme's drawing, its cohort, its gaps, its panel, its capture or its plate is
+// driven at this address instead, which is the address a reader has always been able to type and
+// which this card promises still resolves to the byte-identical drawing it always did.
+//
+// THAT IS A RE-ANCHORING AND NOT A WEAKENING, and the difference is worth writing down because it
+// is the shape a weakening takes. Not one assertion changed its claim: each still asserts the same
+// property of the same drawing, and each now says out loud which drawing that is rather than
+// inheriting it from a default. The `scope` phase is what asserts the default, and the identity
+// assertion in it is what makes THIS constant load bearing: `#/p/ZIB` is the artefact the build
+// wrote, node for node and path for path, so a phase driven here is driven at the same picture it
+// was driven at before this card.
+const ONE = '#/p/ZIB';
+
 // The one console error this page is expected to produce. It ships no favicon, so every browser
 // asks for one and every origin answers 404. Allowed by URL and not by message text, so a 404 on
 // any other file is still a failure.
@@ -255,6 +271,7 @@ const ZOOM_TOLERANCE_PX = 0.5;
 const PHASES = {
   'the viewport opened':  { count: 2, when: 'every' },
   'every width':          { count: 6, when: 'every' },
+  'the scope':            { count: 11, when: 'behavioural' },
   'model and reveal':     { count: 14, when: 'behavioural' },
   'cold load':            { count: 4, when: 'behavioural' },
   'students':             { count: 11, when: 'behavioural' },
@@ -523,7 +540,7 @@ const PHASES = {
 // the window box measured left: -73.1 at 900 with three of its lines starting outside the screen
 // and no scrollbar anywhere that could reach them; and that the nav is spaced as the three kinds
 // of control it holds rather than as five equal things.
-const EXPECTED_ASSERTIONS = 267;
+const EXPECTED_ASSERTIONS = 278;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -1479,6 +1496,586 @@ async function checkModelAndReveal(page) {
 // read back off location.hash, which is the page's own statement of where the reader is, and it is
 // THAT string the reload is given. A reader who presses a control, copies the bar and opens it
 // somewhere else is the case, and it is the case the page is for.
+// ---- scope is a set, and the union is one drawing, issue 136 -------------------------------------
+// ELEVEN CLAIMS, AND EVERY ONE OF THEM IS RECOMPUTED HERE RATHER THAN READ OFF THE PAGE'S OWN
+// BOOKKEEPING. That is #121's finding held against the largest card this drawing has taken: all 207
+// assertions of the time read what the page printed, which is why none of them could catch a wrong
+// number. So the seven fractions, the union membership, the shared-node collapse, the sector
+// offsets and the budget's own load are each rebuilt in this file out of window.GI and window.GL,
+// by arithmetic that does not run on the page, and the page's answers are the input to the
+// comparison and never its answer.
+//
+// AND THE ONE THAT IS AN IDENTITY IS WRITTEN AS AN IDENTITY. He likes the drawing the tool renders
+// today. A scope of one is therefore required to be the artefact the build wrote, node for node,
+// path for path, extent and digest, against window.GL read straight out of the document; a
+// resemblance would pass on a union that happened to look similar, and this does not.
+const SCOPE_MODEL = `(function () {
+  // A second implementation of everything the union does, over the two shipped documents, with no
+  // call into anything site/app.js or site/render.js exposes.
+  var GI = window.GI, GL = window.GL;
+  function drawingOf(key, grain) {
+    var list = grain === 'modules' ? GL.collapsed : GL.views;
+    for (var i = 0; i < list.length; i++) if (list[i].key === key) return list[i].drawing;
+    return null;
+  }
+  function viewOf(key, grain) {
+    var list = grain === 'modules' ? GI.collapsed : GI.views;
+    for (var i = 0; i < list.length; i++) if (list[i].key === key) return list[i];
+    return null;
+  }
+  return {
+    // The seven fractions, off each view's own counts block.
+    fractions: GI.views.map(function (v) {
+      var c = (v.counts || {}).CohortSession || { drawn: 0, total: 0 };
+      return { key: v.key, code: v.code, short: String(v.code).replace(/^Z-/, ''),
+               text: c.drawn + '/' + c.total, drawn: c.drawn, total: c.total };
+    }),
+    keys: GI.views.map(function (v) { return v.key; }),
+    // What a scope of keys draws, as a SET of node ids: the union of the views' own ids, which is
+    // where the collapse comes from, since the build writes one id per object across documents.
+    union: function (keys, grain) {
+      var ids = {}, order = [], shared = {}, per = {};
+      keys.forEach(function (k) {
+        var v = viewOf(k, grain);
+        per[k] = v.nodes.length;
+        v.nodes.forEach(function (n) {
+          if (ids[n.id]) { shared[n.id] = true; return; }
+          ids[n.id] = true;
+          order.push(n.id);
+        });
+      });
+      var edges = {}, eo = [];
+      keys.forEach(function (k) {
+        viewOf(k, grain).edges.forEach(function (e) {
+          var key = e.s + ' ' + e.t + ' ' + e.v;
+          if (edges[key]) return;
+          edges[key] = true;
+          eo.push(key);
+        });
+      });
+      var sum = keys.reduce(function (a, k) { return a + per[k]; }, 0);
+      return { ids: order, n: order.length, per: per, edges: eo.length,
+               shared: Object.keys(shared).sort(),
+               // An object three documents carry is ONE shared object and TWO duplicate rows, so
+               // the two numbers are different and the arithmetic below needs both.
+               dupes: sum - order.length,
+               sumOfParts: sum };
+    },
+    // The built artefact for one programme, which a scope of one has to BE.
+    // THE COORDINATES ARE PUT IN THE PAINTER'S OWN TERMS AND NOT THE OTHER WAY ROUND. A node's y
+    // in layout.js is the centre of its tile and the rect the browser holds carries the corner, so
+    // the document is converted here, by the same subtraction render.js does, rather than the
+    // painted value being rounded until it agrees.
+    artefact: function (key, grain) {
+      var d = drawingOf(key, grain), v = viewOf(key, grain), R = d.tile / 2;
+      return {
+        w: d.w, h: d.h, digest: d.drawingDigest, tile: d.tile,
+        nodes: d.nodes.map(function (n) { return n.id + '@' + (n.x - R) + ',' + (n.y - R); }),
+        edges: d.edges.map(function (e) { return e.s + '->' + e.t + '|' + e.d; }),
+        bands: (d.bands || []).map(function (b) { return (b.lines || []).join('/'); }),
+        count: v.nodes.length
+      };
+    },
+    // What the budget is over: one tile per cohort session, one per module delivery, across the
+    // scope, minus whatever the window in force excludes. The window is read off the page's own
+    // range, which is a date pair and not an arithmetic this could get wrong.
+    load: function (keys, grain, from, to) {
+      var n = 0;
+      keys.forEach(function (k) {
+        viewOf(k, grain).nodes.forEach(function (x) {
+          var at = null, a = null, b = null;
+          (x.props || []).forEach(function (p) {
+            if (p.k === 'scheduled_at') at = String(p.v).split(' ')[0];
+            if (p.k === 'first_session') a = String(p.v).split(' ')[0];
+            if (p.k === 'last_session') b = String(p.v).split(' ')[0];
+          });
+          if (x.type === 'CohortSession') {
+            if (!at) { n++; return; }
+            if (from && (at < from || at > to)) return;
+            n++;
+          } else if (x.type === 'ModuleDelivery') {
+            if (!(a && b)) { n++; return; }
+            if (from && (b < from || a > to)) return;
+            n++;
+          }
+        });
+      });
+      return n;
+    },
+    // Which classes may carry a programme hue, and the ids that must not: an object drawn once for
+    // several programmes belongs to no one of them.
+    hueTypes: { CohortSession: 1, ModuleDelivery: 1, Cohort: 1 },
+    typeOf: (function () {
+      var ix = {};
+      GI.views.concat(GI.collapsed).forEach(function (v) {
+        v.nodes.forEach(function (n) { ix[n.id] = n.type; });
+      });
+      return ix;
+    })()
+  };
+})()`;
+
+// What is painted, as a set of ids with their coordinates, so a drawing can be compared against
+// the document that generated it without either of them being asked to summarise itself.
+const PAINTED = `(function () {
+  var g = window.ZT ? null : null;
+  var out = { nodes: [], edges: [], bars: [], ids: [] };
+  document.querySelectorAll('#graph .node').forEach(function (el) {
+    var id = el.getAttribute('data-node');
+    var t = el.querySelector('.tile-bg');
+    out.ids.push(id);
+    out.nodes.push(id + '@' + t.getAttribute('x') + ',' + t.getAttribute('y'));
+    var bar = el.querySelector('.pgbar');
+    if (bar) out.bars.push({ id: id, fill: bar.getAttribute('fill') });
+  });
+  document.querySelectorAll('#graph g[data-edge] path.edge').forEach(function (p) {
+    out.edges.push(p.parentNode.getAttribute('data-edge') + '|' + p.getAttribute('d'));
+  });
+  out.bands = [];
+  document.querySelectorAll('#graph .lane').forEach(function (l) {
+    var t = [];
+    l.querySelectorAll('.band-cap').forEach(function (x) { t.push(x.textContent); });
+    out.bands.push(t.join('/'));
+  });
+  return JSON.stringify(out);
+})()`;
+
+// Every string a reader can see, so a claim about what the page does NOT say can be made over the
+// page rather than over a file. Same walk `the cut` uses: rendered text only, nothing behind
+// display:none, and the SVG's own text nodes with it, because the lane captions are drawn there.
+const VISIBLE_TEXT = `(function () {
+  function vis(el) {
+    var s = getComputedStyle(el);
+    if (s.display === 'none' || s.visibility === 'hidden') return false;
+    return true;
+  }
+  var out = [];
+  (function walk(el) {
+    if (el.nodeType === 3) { out.push(el.nodeValue); return; }
+    if (el.nodeType !== 1) return;
+    if (el.hidden) return;
+    if (el.namespaceURI !== 'http://www.w3.org/2000/svg' && !vis(el)) return;
+    for (var i = 0; i < el.childNodes.length; i++) walk(el.childNodes[i]);
+  })(document.body);
+  return out.join(' ').replace(/\\s+/g, ' ');
+})()`;
+
+// The paint of one element, resolved by the browser, so light-dark() and color-mix() are the
+// engine's answers and never this file's guess. `the plate` phase's mechanism, reused.
+function barPaint(id) {
+  return `(function () {
+    var el = document.querySelector('#graph [data-node="${id}"] .pgbar');
+    if (!el) return null;
+    var probe = document.createElement('span');
+    probe.style.color = el.getAttribute('fill');
+    document.body.appendChild(probe);
+    var c = getComputedStyle(probe).color;
+    document.body.removeChild(probe);
+    var tile = document.querySelector('#graph [data-node="${id}"] .tile-bg');
+    var probe2 = document.createElement('span');
+    probe2.style.color = tile.getAttribute('fill');
+    document.body.appendChild(probe2);
+    var t = getComputedStyle(probe2).color;
+    document.body.removeChild(probe2);
+    var band = document.querySelector('#graph rect.band');
+    var bs = getComputedStyle(band);
+    return JSON.stringify({ bar: c, tile: t, band: bs.fill, bandOpacity: bs.fillOpacity,
+                            page: getComputedStyle(document.body).backgroundColor });
+  })()`;
+}
+
+async function checkScope(page, base) {
+  const M = await page.evaluate(`(function () { var m = ${SCOPE_MODEL};
+    return JSON.stringify({ fractions: m.fractions, keys: m.keys }); })()`).then(JSON.parse);
+
+  // ---- ONE. THE DEFAULT IS ALL SEVEN AND ONE ADDRESS IS STILL ONE PROGRAMME ---------------------
+  // The inversion, asserted in both directions in one place, because a page that made everything
+  // the union and a page that changed nothing both have to fail here. Driven cold at each address
+  // rather than by fragment navigation, since what an address means on arrival is the claim.
+  await page.navigate(new URL('#/', base).toString());
+  await page.waitFor(DIAGRAM_READY, 'the diagram to draw at the address with no opinion');
+  const atRoot = await page.evaluate('JSON.stringify(window.ZT.scope())').then(JSON.parse);
+  await page.navigate(new URL('#/p/ZSC', base).toString());
+  await page.waitFor(DIAGRAM_READY, 'the Z-SC drawing to draw cold');
+  const atOne = await page.evaluate('JSON.stringify(window.ZT.scope())').then(JSON.parse);
+  await page.navigate(new URL('#/p/ZIB+ZSC', base).toString());
+  await page.waitFor(DIAGRAM_READY, 'a scope of two to draw cold');
+  const atTwo = await page.evaluate('JSON.stringify(window.ZT.scope())').then(JSON.parse);
+  assert('the address with no opinion draws all seven, and a programme address is a scope of one',
+    atRoot.n === M.keys.length && atRoot.keys.join('+') === M.keys.join('+') &&
+      atOne.n === 1 && atOne.keys[0] === 'ZSC' && atOne.route === '#/p/ZSC' &&
+      atTwo.n === 2 && atTwo.keys.join('+') === 'ZIB+ZSC',
+    `${M.keys.length} at #/, one at #/p/ZSC and two at #/p/ZIB+ZSC, each read cold`,
+    JSON.stringify({ root: atRoot.keys, one: atOne.keys, two: atTwo.keys }));
+
+  // ---- TWO. THE EIGHT CHIPS, THEIR FRACTIONS AND WHERE EACH ONE GOES ----------------------------
+  // The fractions are the honesty constraint made ambient, so they are checked against the counts
+  // block recomputed above and against nothing the page prints elsewhere. The addresses are the
+  // other half: a chip that showed the right number and linked to the wrong scope would be a rail
+  // that reads correctly and does not work.
+  // BACK TO ALL, AND THROUGH THE CHIP RATHER THAN THROUGH THE ADDRESS, which is the honest way and
+  // is also the only way that works: `#/` is an address with no opinion about the scope, exactly as
+  // `#/board` and `#/students` are, so arriving at it from a scoped address leaves the drawing
+  // where it was. That rule is older than this card and this card kept it deliberately: a reader
+  // who looks at the board and comes back finds the drawing they left. Where `#/` means all seven
+  // is on a cold load, which assertion ONE above has already driven.
+  await page.evaluate(`document.querySelector('#pgrail .chip-all').click()`);
+  await page.waitFor('window.ZT.scope().n === window.ZT.scope().of', 'all seven back in scope');
+  const chips = (await page.evaluate('JSON.stringify(window.ZT.scope())').then(JSON.parse)).chips;
+  const wantChips = [{ code: 'All', fraction: null, href: '#/p/ALL', on: true }].concat(
+    M.fractions.map(f => ({
+      code: f.short, fraction: f.text,
+      href: '#/p/' + M.keys.filter(k => k !== f.key).join('+'), on: true
+    })));
+  assert('the rail is All and the seven, each carrying its own population and the scope it leads to',
+    JSON.stringify(chips) === JSON.stringify(wantChips),
+    JSON.stringify(wantChips),
+    JSON.stringify(chips));
+
+  // ---- THREE. A SCOPE OF ONE IS THE ARTEFACT THE BUILD WROTE ------------------------------------
+  // He likes the current drawing, so this is an identity and not a resemblance: every tile at the
+  // coordinate layout.js gives it, every line with the path layout.js gives it, the extent, the
+  // digest and the six lane captions, at both altitudes, on all seven programmes.
+  const sameAsBuilt = [];
+  for (const key of M.keys) {
+    for (const grain of ['sessions', 'modules']) {
+      await page.evaluate(`location.hash = ${JSON.stringify('#/p/')} + ${JSON.stringify(key)} + ` +
+        JSON.stringify(grain === 'modules' ? '/modules' : ''));
+      await page.waitFor(`window.ZT.scope().n === 1 && window.ZT.programme().key === ` +
+        `${JSON.stringify(key)} && window.ZT.grain().grain === ${JSON.stringify(grain)}`,
+        `the ${key} drawing at the ${grain} grain`);
+      const built = await page.evaluate(`(function () { var m = ${SCOPE_MODEL};
+        return JSON.stringify(m.artefact(${JSON.stringify(key)}, ${JSON.stringify(grain)})); })()`)
+        .then(JSON.parse);
+      const drawn = await page.evaluate(PAINTED).then(JSON.parse);
+      const p = await page.evaluate('JSON.stringify(window.ZT.programme())').then(JSON.parse);
+      sameAsBuilt.push({
+        key, grain,
+        nodes: drawn.nodes.slice().sort().join('|') === built.nodes.slice().sort().join('|'),
+        edges: drawn.edges.slice().sort().join('|') === built.edges.slice().sort().join('|'),
+        bands: drawn.bands.join('|') === built.bands.join('|'),
+        extent: p.w === built.w && p.h === built.h,
+        digest: p.digest === built.digest,
+        bars: drawn.bars.length === 0
+      });
+    }
+  }
+  const broke = sameAsBuilt.filter(r => !(r.nodes && r.edges && r.bands && r.extent && r.digest &&
+                                          r.bars));
+  assert('a scope of one is the artefact the build wrote, node for node and path for path',
+    broke.length === 0 && sameAsBuilt.length === 14,
+    '14 drawings, each identical to its own entry in window.GL: every tile at its coordinate, ' +
+      'every line at its path, the extent, the digest, the six lane captions, and no hue anywhere',
+    broke.length ? JSON.stringify(broke.slice(0, 3)) : `${sameAsBuilt.length} checked`);
+
+  // ---- FOUR. THE UNION IS THE UNION, AND THE COLLAPSE IS WHERE THE DIFFERENCE IS ----------------
+  // Recomputed as a set: the ids the seven documents hold between them, deduped by id. The
+  // arithmetic that makes it a claim rather than a tautology is the second conjunct, that the
+  // drawn count is strictly under the sum of the parts by exactly the number of shared objects.
+  await page.evaluate(`location.hash = '#/p/ALL/modules'`);
+  await page.waitFor(`window.ZT.scope().n === 7 && window.ZT.grain().grain === 'modules'`,
+    'all seven at the modules grain');
+  const unionModel = await page.evaluate(`(function () { var m = ${SCOPE_MODEL};
+    return JSON.stringify(m.union(m.keys, 'modules')); })()`).then(JSON.parse);
+  const unionDrawn = await page.evaluate(PAINTED).then(JSON.parse);
+  assert('the union draws every object the seven documents hold, and each of them exactly once',
+    unionDrawn.ids.slice().sort().join('|') === unionModel.ids.slice().sort().join('|') &&
+      unionDrawn.ids.length === unionModel.n &&
+      new Set(unionDrawn.ids).size === unionDrawn.ids.length &&
+      unionModel.shared.length > 0 && unionModel.dupes >= unionModel.shared.length &&
+      unionModel.n === unionModel.sumOfParts - unionModel.dupes,
+    `${unionModel.n} tiles, which is the ${unionModel.sumOfParts} rows the seven documents hold ` +
+      `less the ${unionModel.dupes} of them that are a second copy of one of the ` +
+      `${unionModel.shared.length} objects more than one document carries`,
+    `${unionDrawn.ids.length} painted, ${new Set(unionDrawn.ids).size} distinct`);
+
+  // ---- FIVE. AND THAT COLLAPSE IS WHAT MAKES AN INTER-PROGRAMME LINE EXIST ----------------------
+  // The point of the card, measured. A shared object is drawn once, so its edges reach into every
+  // sector that holds one of its neighbours; the count of edges whose two ends sit in different
+  // sectors is recomputed from the documents and compared against the lines the page drew.
+  await page.evaluate(`location.hash = '#/p/ALL/modules'`);
+  await page.waitFor(`window.ZT.scope().n === 7`, 'all seven');
+  const crossing = await page.evaluate(`(function () {
+    var sec = {}, n = 0, list = [];
+    window.GI.collapsed.forEach(function (v, i) {
+      v.nodes.forEach(function (x) { if (sec[x.id] === undefined) sec[x.id] = i; else sec[x.id] = null; });
+    });
+    document.querySelectorAll('#graph g[data-edge]').forEach(function (g2) {
+      if (!g2.querySelector('path.edge')) return;
+      var k = g2.getAttribute('data-edge').split('->');
+      var a = sec[k[0]], b = sec[k[1]];
+      if (a === null || b === null) { n++; list.push(g2.getAttribute('data-edge')); }
+    });
+    return JSON.stringify({ n: n, list: list.slice(0, 6),
+                            shared: Object.keys(sec).filter(function (k) { return sec[k] === null; }) });
+  })()`).then(JSON.parse);
+  const wantCross = await page.evaluate(`(function () {
+    var seen = {}, shared = {};
+    window.GI.collapsed.forEach(function (v) {
+      v.nodes.forEach(function (x) { if (seen[x.id]) shared[x.id] = true; seen[x.id] = true; });
+    });
+    var keys = {};
+    window.GI.collapsed.forEach(function (v) {
+      v.edges.forEach(function (e) {
+        if (shared[e.s] || shared[e.t]) keys[e.s + '->' + e.t] = true;
+      });
+    });
+    return Object.keys(keys).length;
+  })()`);
+  assert('a shared object is one node, and its lines are what reach across the programmes',
+    crossing.shared.length === unionModel.shared.length && crossing.shared.length > 0 &&
+      crossing.n === wantCross && crossing.n > crossing.shared.length,
+    `${wantCross} lines touching the ${unionModel.shared.length} objects more than one document ` +
+      'carries, recomputed off window.GI',
+    `${crossing.n} drawn, on ${crossing.shared.length} shared objects, e.g. ` +
+      JSON.stringify(crossing.list));
+
+  // ---- SIX. A FIXED SECTOR IN A STABLE ORDER --------------------------------------------------
+  // Adding a programme fills an empty sector rather than re-laying what he was already reading, so
+  // every tile of the programmes already in scope is required to be at the SAME y after a
+  // programme is added below them. Measured as coordinates and not as a claim about an algorithm.
+  await page.evaluate(`location.hash = '#/p/ZIB+ZSC/modules'`);
+  await page.waitFor(`window.ZT.scope().keys.join('+') === 'ZIB+ZSC'`, 'two programmes');
+  const two = await page.evaluate(PAINTED).then(JSON.parse);
+  await page.evaluate(`location.hash = '#/p/ZIB+ZSC+ZBL/modules'`);
+  await page.waitFor(`window.ZT.scope().keys.join('+') === 'ZIB+ZSC+ZBL'`, 'three programmes');
+  const three = await page.evaluate(PAINTED).then(JSON.parse);
+  const twoAt = {};
+  two.nodes.forEach(s => { twoAt[s.split('@')[0]] = s.split('@')[1]; });
+  const threeAt = {};
+  three.nodes.forEach(s => { threeAt[s.split('@')[0]] = s.split('@')[1]; });
+  const movedIds = Object.keys(twoAt).filter(id => threeAt[id] !== undefined &&
+                                                   threeAt[id] !== twoAt[id]);
+  // AND THE COST IS NAMED RATHER THAN WAVED OFF. A programme added below cannot move a sector
+  // above it, and it CAN move a lane: Z-BL shares an employer with Z-IB, so that employer stops
+  // being Z-IB's and is drawn between the two, and the lane it left repacks around the space. That
+  // is the price of drawing the connection instead of merely lighting it up, and this asserts the
+  // shape of it: every tile that moved is in a lane the collapse took an object out of, and every
+  // tile in every other lane is where it was.
+  const newlyShared = await page.evaluate(`(function () {
+    var two = {}, three = {}, out = [];
+    ['ZIB', 'ZSC'].forEach(function (k) {
+      window.GI.collapsed.forEach(function (v) {
+        if (v.key !== k) return;
+        v.nodes.forEach(function (n) { two[n.id] = (two[n.id] || 0) + 1; });
+      });
+    });
+    ['ZIB', 'ZSC', 'ZBL'].forEach(function (k) {
+      window.GI.collapsed.forEach(function (v) {
+        if (v.key !== k) return;
+        v.nodes.forEach(function (n) { three[n.id] = (three[n.id] || 0) + 1; });
+      });
+    });
+    Object.keys(three).forEach(function (id) {
+      if (three[id] > 1 && (two[id] || 0) <= 1) out.push(id);
+    });
+    return JSON.stringify(out);
+  })()`).then(JSON.parse);
+  const touchedLanes = new Set(newlyShared.map(id => twoAt[id] && twoAt[id].split(',')[0])
+    .filter(Boolean));
+  const strays = movedIds.filter(id => !touchedLanes.has(twoAt[id].split(',')[0]));
+  assert('a programme added below moves nothing outside the one lane its shared object left',
+    strays.length === 0 && newlyShared.length > 0 && touchedLanes.size === 1 &&
+      movedIds.length > 0 && movedIds.length < Object.keys(twoAt).length / 4 &&
+      three.ids.length > two.ids.length,
+    `every tile of Z-IB and Z-SC at the same coordinate after Z-BL is added under them, except ` +
+      `in the one lane that lost ${newlyShared.join(', ')} to the collapse`,
+    strays.length
+      ? `${strays.length} moved outside that lane, e.g. ` +
+        strays.slice(0, 4).map(i => i + ' ' + twoAt[i] + ' to ' + threeAt[i]).join(', ')
+      : `${movedIds.length} of ${Object.keys(twoAt).length} moved, all in lane ` +
+        JSON.stringify([...touchedLanes]));
+
+  // ---- SEVEN. THE HUE IS ON EXACTLY THE CLASSES THAT BELONG TO ONE PROGRAMME -------------------
+  // And only while more than one is drawn, which assertion THREE has already checked in its own
+  // direction over all fourteen single drawings. Here it is the positive half: every session and
+  // every cohort carries one, no shared object carries one, and the seven hues are seven.
+  await page.evaluate(`location.hash = '#/p/ALL/modules'`);
+  await page.waitFor(`window.ZT.scope().n === 7`, 'all seven');
+  const hue = await page.evaluate(`(function () {
+    var m = ${SCOPE_MODEL};
+    var want = 0, got = 0, wrong = [], fills = {};
+    var shared = {}, seen = {};
+    window.GI.collapsed.forEach(function (v) {
+      v.nodes.forEach(function (x) { if (seen[x.id]) shared[x.id] = true; seen[x.id] = true; });
+    });
+    document.querySelectorAll('#graph .node').forEach(function (el) {
+      var id = el.getAttribute('data-node');
+      var t = m.typeOf[id];
+      var bar = el.querySelector('.pgbar');
+      var should = !!m.hueTypes[t] && !shared[id];
+      if (should) want++;
+      if (bar) { got++; fills[bar.getAttribute('fill')] = 1; }
+      if (should !== !!bar) wrong.push(id + ' ' + t + ' ' + (bar ? 'has' : 'has no') + ' hue');
+    });
+    return JSON.stringify({ want: want, got: got, wrong: wrong.slice(0, 5),
+                            fills: Object.keys(fills).length });
+  })()`).then(JSON.parse);
+  assert('the hue is on every session and cohort of a merged drawing, on nothing shared, and it is seven hues',
+    hue.wrong.length === 0 && hue.want === hue.got && hue.want > 0 && hue.fills === 7,
+    `${hue.want} tiles carrying one of 7 hues, recomputed off window.GI, and no shared object ` +
+      'carrying any',
+    `${hue.got} carried one, ${hue.fills} distinct hues, wrong: ${JSON.stringify(hue.wrong)}`);
+
+  // ---- EIGHT. AND IT CLEARS THE BAR A DRAWN OBJECT IS HELD TO ----------------------------------
+  // The bar is a graphical object drawn over the tile's own wash over the lane plate, so it is
+  // WCAG 2.2 SC 1.4.11's 3:1 against exactly that composite, which is the same threshold and the
+  // same compositing `the plate` phase holds a tile outline to. Through paint probes, so the
+  // engine resolves light-dark() rather than this file guessing at it, and with the plate's own
+  // fill-opacity composited first, which is the dead-control trap #133's own plant found.
+  const hues = [];
+  const barIds = await page.evaluate(`(function () {
+    var out = [];
+    document.querySelectorAll('#graph .node .pgbar').forEach(function (b) {
+      out.push(b.parentNode.getAttribute('data-node'));
+    });
+    return JSON.stringify(out);
+  })()`).then(JSON.parse);
+  const byFill = {};
+  for (const id of barIds) {
+    const paint = await page.evaluate(barPaint(id)).then(x => JSON.parse(x));
+    if (byFill[paint.bar]) continue;
+    byFill[paint.bar] = true;
+    // The plate carries a fill-opacity since #133, so it is composited onto the page ground
+    // before anything is measured against it; the tile's wash goes on top of that, and the bar on
+    // top of the tile. Three layers, in the order the browser paints them.
+    const band = parsePaint(paint.band);
+    band.a = band.a * (paint.bandOpacity === undefined || paint.bandOpacity === ''
+      ? 1 : Number(paint.bandOpacity));
+    const plate = paintOver(band, parsePaint(paint.page));
+    const under = paintOver(parsePaint(paint.tile), plate);
+    hues.push({ id, ratio: ratio4(parsePaint(paint.bar), under) });
+  }
+  const dim = hues.filter(h => h.ratio < PLATE_MIN);
+  assert('and every programme hue clears 3:1 on the tile it is painted on, in the reader\'s scheme',
+    dim.length === 0 && hues.length === 7,
+    `7 hues at or over ${PLATE_MIN.toFixed(4)} against the tile wash over the lane plate`,
+    dim.length ? dim.map(h => `${h.id} ${h.ratio.toFixed(4)}`).join(', ')
+               : hues.map(h => h.ratio.toFixed(4)).join(', '));
+
+  // ---- NINE. THE BUDGET, AND ITS REFUSAL IS PRINTED ON THE CONTROL THAT WAS REFUSED -------------
+  // The load is recomputed here over the scope, the window and the altitude, and the page is
+  // required to refuse exactly when that recomputation is over the budget and to draw the other
+  // altitude when it does. The refusal has to be legible: the row for the altitude that was
+  // refused is not a link and carries the count that broke it.
+  await page.evaluate(`location.hash = '#/p/ALL'`);
+  await page.waitFor(`window.ZT.scope().n === 7`, 'all seven at the sessions grain');
+  const over = await page.evaluate('JSON.stringify(window.ZT.grain())').then(JSON.parse);
+  const overModel = await page.evaluate(`(function () { var m = ${SCOPE_MODEL};
+    return m.load(m.keys, 'sessions', null, null); })()`);
+  const refusal = await page.evaluate(`(function () {
+    document.getElementById('grbtn').click();
+    var rows = [];
+    document.querySelectorAll('#grmenu .gritem').forEach(function (el) {
+      rows.push({ tag: el.tagName.toLowerCase(), text: el.textContent,
+                  href: el.getAttribute('href'), off: el.className.indexOf('gritem-off') !== -1 });
+    });
+    var why = document.querySelector('#grmenu .gr-why');
+    document.getElementById('grbtn').click();
+    return JSON.stringify({ rows: rows, why: why ? why.textContent : null });
+  })()`).then(JSON.parse);
+  const refused = refusal.rows.filter(r => r.off);
+  assert('the budget refuses the altitude it cannot frame, and says so on that altitude\'s own row',
+    over.load === overModel && over.load > over.budget && over.budget === 72 &&
+      over.asked === 'sessions' && over.grain === 'modules' && over.refused === 'sessions' &&
+      refused.length === 1 && refused[0].tag === 'span' && refused[0].href === null &&
+      refused[0].text === 'sessions' + over.load &&
+      /over the budget of 72/.test(refusal.why || ''),
+    `a load of ${overModel} against a budget of 72, the drawing at modules, and the sessions row ` +
+      'greyed with its own count on it',
+    JSON.stringify({ grain: over, refused: refusal.rows, why: (refusal.why || '').slice(0, 60) }));
+
+  // ---- TEN. AND IT DOES NOT REFUSE THE QUESTION THIS CARD EXISTS FOR ----------------------------
+  // The densest three week window across all seven, found here by walking the documents rather
+  // than by reading a date off the page, driven through the window control a reader presses, and
+  // required to draw at the sessions grain AND to frame whole at the viewport's own floor. That
+  // second half is the budget's criterion turned back on the state the budget allows.
+  const dense = await page.evaluate(`(function () {
+    var days = [];
+    window.GI.views.forEach(function (v) {
+      v.nodes.forEach(function (n) {
+        if (n.type !== 'CohortSession') return;
+        var at = '';
+        (n.props || []).forEach(function (p) { if (p.k === 'scheduled_at') at = p.v; });
+        var d = String(at).split(' ')[0];
+        if (d) days.push(d);
+      });
+    });
+    days.sort();
+    function mon(s) { var t = new Date(s + 'T00:00:00Z');
+      t.setUTCDate(t.getUTCDate() - ((t.getUTCDay() + 6) % 7)); return t.toISOString().slice(0, 10); }
+    function add(s, n) { var t = new Date(s + 'T00:00:00Z');
+      t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); }
+    var a = mon(days[0]), last = mon(days[days.length - 1]), best = null;
+    while (a <= last) {
+      var to = add(a, 20);
+      var n = days.filter(function (d) { return d >= a && d <= to; }).length;
+      if (!best || n > best.n) best = { from: a, to: to, n: n };
+      a = add(a, 7);
+    }
+    return JSON.stringify(best);
+  })()`).then(JSON.parse);
+  await wnMenu(page, true);
+  for (let turn = 0; turn < 64; turn++) {
+    const at = await page.evaluate('window.ZT.term().window.anchor');
+    if (at === dense.from) break;
+    await pressByText(page, '#wnmenu .wn-step', at > dense.from ? '‹' : '›');
+    await page.waitFor(`window.ZT.term().window.anchor !== ${JSON.stringify(at)}`,
+      `the anchor to move off ${at}`);
+  }
+  await pressByText(page, '#wnmenu .wn-weeks', '3 weeks');
+  await page.waitFor('window.ZT.term().window.weeks === 3', 'the three week window');
+  await wnMenu(page, false);
+  await viewSettled(page);
+  const denseState = await page.evaluate(`(function () {
+    var g = window.ZT.grain(), p = window.ZT.programme(), v = window.ZT.view();
+    var c = document.getElementById('canvas').getBoundingClientRect();
+    var tiles = document.querySelectorAll('#graph .node').length;
+    return JSON.stringify({ grain: g.grain, load: g.load, budget: g.budget, refused: g.refused,
+      tiles: tiles, h: p.h, w: p.w, k: v.k,
+      need: Math.min(c.width / p.w, c.height / p.h) });
+  })()`).then(JSON.parse);
+  const denseModel = await page.evaluate(`(function () { var m = ${SCOPE_MODEL};
+    return m.load(m.keys, 'sessions', ${JSON.stringify(dense.from)}, ${JSON.stringify(dense.to)}); })()`);
+  assert('the densest three weeks across all seven draws at sessions and frames whole',
+    denseState.load === denseModel && denseState.load === dense.n &&
+      denseState.load < denseState.budget && denseState.refused === null &&
+      denseState.grain === 'sessions' && denseState.need >= 0.1 &&
+      denseState.k > 0.1 && denseState.k <= denseState.need,
+    `${dense.n} session tiles from ${dense.from} to ${dense.to}, under the budget, at the ` +
+      'sessions grain, and framed whole by the fit',
+    JSON.stringify(denseState));
+
+  // ---- ELEVEN. AND NO NUMBER ANYWHERE IS A TOTAL ACROSS PROGRAMMES ------------------------------
+  // The refusal this design is built on. `6/45` beside `28/28` is a legitimate screen and
+  // `83 sessions` is not, so the sums are computed here and the page's whole visible text is
+  // required to contain none of them, while the seven fractions are required to be in it. The lane
+  // captions are where such a sum would land: the build writes `6 of 79 session templates` per
+  // programme, and a merged drawing that kept one of them would be printing one programme's
+  // fraction over seven, while one that added them up would be printing the sentence with no
+  // place in this design.
+  const sums = M.fractions.reduce((a, f) => ({ drawn: a.drawn + f.drawn, total: a.total + f.total }),
+    { drawn: 0, total: 0 });
+  const text = await page.evaluate(VISIBLE_TEXT);
+  const badSums = [String(sums.drawn), String(sums.total)]
+    .filter(n => new RegExp('(^|[^0-9])' + n + '([^0-9]|$)').test(text));
+  const missing = M.fractions.filter(f => text.indexOf(f.text) === -1);
+  const captions = await page.evaluate(PAINTED).then(x => JSON.parse(x).bands);
+  const sampleCaptions = captions.filter(c => /\d+ of \d+|all \d+/.test(c));
+  assert('no number on a merged drawing is a total across programmes, and all seven fractions are on it',
+    badSums.length === 0 && missing.length === 0 && sampleCaptions.length === 0 &&
+      captions.length === 6,
+    `neither ${sums.drawn} nor ${sums.total} anywhere in the page's visible text, all seven ` +
+      'fractions in it, and no lane caption carrying a sample clause',
+    JSON.stringify({ sums: badSums, missingFractions: missing.map(f => f.text),
+                     captions: sampleCaptions }));
+
+  await wnMenu(page, true);
+  await pressByText(page, '#wnmenu .wn-weeks', 'whole term');
+  await page.waitFor('window.ZT.term().window.weeks === 0', 'the window back off');
+  await wnMenu(page, false);
+}
+
 async function checkColdLoad(page, base) {
   // The reload is on the address the page wrote, so this is the reader's F5 and not a second
   // navigation invented by the driver.
@@ -1487,18 +2084,39 @@ async function checkColdLoad(page, base) {
     await page.waitFor(DIAGRAM_READY, `the diagram to draw cold at ${what}`);
   };
 
-  // A programme that is not the default, reached the way a reader reaches it, through the picker.
-  const moved = await page.evaluate(`(function () {
-    var here = window.ZT.programme().key;
-    var items = document.querySelectorAll('#pgmenu .pgitem');
-    for (var i = 0; i < items.length; i++) {
-      if (items[i].getAttribute('href') !== (window.GI.views.filter(function (v) {
-            return v.key === here; })[0] || {}).route) { items[i].click(); return true; }
-    }
-    return false;
-  })()`);
-  await page.waitFor(`window.ZT.programme().key !== ${JSON.stringify(await page.evaluate('window.GI.default'))}`,
-    'the picker to move off the default programme');
+  // A SCOPE OF ONE THAT IS NOT THE DEFAULT, reached the way a reader reaches it: by pressing the
+  // chips. Issue 136 replaced the picker with the rail and the gesture is different in kind, so
+  // this drives the different gesture rather than the old one dressed up. Taking every chip but
+  // one out of the scope is what a reader does to get to one programme, and it is done by pressing
+  // the chips themselves, in the order they sit in, never by writing an address.
+  // ONE PRESS AT A TIME AND THE PAGE ANSWERS BETWEEN THEM. A chip is an anchor, so pressing it is
+  // a fragment navigation and the page hears it on a task of its own; a loop that pressed six of
+  // them inside one evaluate would be reading a scope the page had not been given a chance to
+  // change yet.
+  // From All, because that is where a reader starts and because the phases before this one leave
+  // the page on a scope of one. `All` is a chip like the other eight and is pressed like one.
+  await page.evaluate(`document.querySelector('#pgrail .chip-all').click()`);
+  await page.waitFor('window.ZT.scope().n === window.ZT.scope().of',
+    'the All chip to put every programme back in scope');
+  let moved = false;
+  for (let turn = 0; turn < 12; turn++) {
+    const n = await page.evaluate('window.ZT.scope().n');
+    if (n === 1) { moved = await page.evaluate(`window.ZT.scope().keys[0] === 'ZSC'`); break; }
+    const pressed = await page.evaluate(`(function () {
+      var chips = document.querySelectorAll('#pgrail .chip');
+      for (var i = 1; i < chips.length; i++) {
+        if (chips[i].getAttribute('aria-current') !== 'true') continue;
+        if (chips[i].querySelector('.chip-k').textContent === 'SC') continue;
+        chips[i].click();
+        return true;
+      }
+      return false;
+    })()`);
+    if (!pressed) break;
+    await page.waitFor(`window.ZT.scope().n !== ${n}`, 'the scope to lose a programme');
+  }
+  await page.waitFor(`window.ZT.scope().n === 1 && window.ZT.programme().key === 'ZSC'`,
+    'the rail to be pressed down to one programme that is not the default');
   const warm = await page.evaluate(
     `JSON.stringify({ hash: location.hash, key: window.ZT.programme().key })`).then(JSON.parse);
   await coldReload(warm.hash);
@@ -1506,8 +2124,8 @@ async function checkColdLoad(page, base) {
     `JSON.stringify({ hash: location.hash, key: window.ZT.programme().key,
                       dflt: window.GI.default })`).then(JSON.parse);
   assert('a programme address the page wrote draws its own programme on a cold load',
-    moved === true && coldPg.key === warm.key && coldPg.key !== coldPg.dflt &&
-      coldPg.hash === warm.hash,
+    moved === true && coldPg.key === warm.key && coldPg.hash === warm.hash &&
+      warm.hash === '#/p/ZSC',
     `${warm.key} at ${warm.hash} after a reload of that address, and not the default ` +
       `${coldPg.dflt}`,
     JSON.stringify(coldPg));
@@ -1562,9 +2180,12 @@ async function checkColdLoad(page, base) {
       `${coldT.rows} line(s) drawn`);
 
   // Back to the address the rest of the run reasons about, and cold, so nothing after this
-  // inherits a state that arrived through a fragment.
-  await page.navigate(new URL('#/', base).toString());
-  await page.waitFor(DIAGRAM_READY, 'the diagram back at the default address');
+  // inherits a state that arrived through a fragment. Since issue 136 that address is the scope of
+  // one this suite drives and not the default, because the default is now all seven and every
+  // phase after this one is about one programme's drawing.
+  await page.navigate(new URL(ONE, base).toString());
+  await page.waitFor(DIAGRAM_READY, 'the diagram back at the scope of one this suite drives');
+  await page.waitFor('window.ZT.scope().n === 1', 'a scope of one');
 }
 
 // ---- students -----------------------------------------------------------------------------------
@@ -1656,7 +2277,7 @@ async function checkStudents(page) {
     roster.drawnMarked === subDrawn,
     `${subDrawn} rows marked drawn`, `${roster.drawnMarked} rows marked drawn`);
 
-  await page.evaluate(`location.hash = '#/'`);
+  await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor('window.ZT.roster() === false', 'the student list to close');
 }
 
@@ -2982,7 +3603,7 @@ async function checkTerm(page) {
   // the address reopens the same one row after the sheet has been shut, the page-level control
   // writes `all` rather than 83 ids, and closing them all takes the parameter off rather than
   // leaving an empty one, which would be a second spelling of the same address.
-  await page.evaluate(`location.hash = '#/'`);
+  await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor('window.ZT.term().open === false', 'the sheet to shut');
   await page.evaluate(`location.hash = ${JSON.stringify(linked)}`);
   await page.waitFor(`window.ZT.term().reading === 'outline'`, 'the linked outline back');
@@ -3019,7 +3640,7 @@ async function checkTerm(page) {
     'three different headings, one per route',
     headings.map(h => JSON.stringify(h)).join(' | '));
 
-  await page.evaluate(`location.hash = '#/'`);
+  await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor('window.ZT.term().open === false', 'the term sheet to close');
   const back = await page.evaluate(`(function () {
     return { heading: (document.querySelector('h1') || {}).innerText || '',
@@ -3341,7 +3962,7 @@ async function checkTerm(page) {
   await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(here)}`);
   await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(here)}`,
     'the drawing this phase started on');
-  await page.evaluate(`location.hash = '#/'`);
+  await page.evaluate('location.hash = ' + JSON.stringify(ONE));
 
   // ---- the lane heading as a control, issue 84 ----------------------------------
   // HE CLICKED THE CAPTION AND EXPECTED THE OUTLINE. Measured on the deployed page at fit, the
@@ -3442,7 +4063,7 @@ async function checkTerm(page) {
   await click(page, capPoints.templates.cx, capPoints.templates.cy);
   await page.waitFor(`window.ZT.term().reading === 'outline'`, 'the caption to open the outline');
   const viaCapOut = await page.evaluate('location.hash');
-  await page.evaluate(`location.hash = '#/'`);
+  await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor('window.ZT.term().open === false', 'the sheet to close again');
   await page.evaluate('window.ZT.fit()');
   await viewSettled(page);
@@ -3451,7 +4072,7 @@ async function checkTerm(page) {
   await page.waitFor(`window.ZT.term().reading === 'calendar'`,
     'the neighbouring caption to open the calendar');
   const viaCapCal = await page.evaluate('location.hash');
-  await page.evaluate(`location.hash = '#/'`);
+  await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor('window.ZT.term().open === false', 'the sheet to close');
   assert('the templates heading opens the scoped outline and the sessions heading the calendar',
     viaCapOut === '#/outline/' + here && viaCapCal === '#/calendar/' + here,
@@ -3540,19 +4161,28 @@ const HEADING_READ = `(function () {
     var r = e.getBoundingClientRect();
     return { x: r.left, y: r.top, w: r.width, h: r.height, mid: r.top + r.height / 2 };
   }
-  var s = document.getElementById('subsample');
+  // ISSUE 136 MOVED THE CLAUSE AND MULTIPLIED IT BY SEVEN. It was one sentence in the heading
+  // about the programme on screen, ", 6 of its 79 sessions"; it is a fraction on every chip in
+  // scope rail, at rest, at every width and on every address. So this reads the rail, and what it
+  // returns is one row per chip: the code on its face, the fraction beside it, and the box the
+  // fraction is painted in, which is what the placement assertion measures.
+  var chips = [];
+  document.querySelectorAll('#pgrail .chip').forEach(function (a) {
+    var k = a.querySelector('.chip-k'), n = a.querySelector('.chip-n');
+    chips.push({ code: k ? k.textContent : '', text: n ? n.textContent : null,
+                 on: a.getAttribute('aria-current') === 'true', box: box(n) });
+  });
   var h = document.querySelector('h1 .h-diagram');
   return JSON.stringify({
-    text: s ? s.textContent : null,
+    chips: chips,
     heading: h ? h.textContent : null,
-    sample: box(s),
     gaps: box(document.getElementById('gapsval')),
     plate: box(document.getElementById('hstate'))
   });
 })()`;
 
 async function checkSample(page) {
-  await page.evaluate(`location.hash = '#/'`);
+  await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor('window.ZT.term().open === false', 'the diagram to be on screen');
   const startedOn = await page.evaluate('window.ZT.programme().key');
   const model = JSON.parse(await page.evaluate(SAMPLE_MODEL));
@@ -3570,47 +4200,63 @@ async function checkSample(page) {
       `the ${v.key} drawing`);
     said.push({ key: v.key, ...JSON.parse(await page.evaluate(HEADING_READ)) });
   }
-  const want = v => (v.complete ? `, all ${v.total} of its sessions`
-                                : `, ${v.drawn} of its ${v.total} sessions`);
-  const wrongText = model.views.filter((v, i) => said[i].text !== want(v));
-  assert('every drawing says in its heading how much of its programme it holds',
-    wrongText.length === 0 && said.length === 7 &&
-      new Set(said.map(s => s.text)).size > 1,
-    'seven headings each carrying its own view\'s drawn and declared session counts, ' +
-      'recomputed off window.GI in this driver',
-    wrongText.length
-      ? wrongText.map((v, i) => `${v.key} wanted ${JSON.stringify(want(v))}`).join(', ') +
-        ` against ${JSON.stringify(said.map(s => s.text))}`
-      : JSON.stringify(said.map(s => s.text)));
+  // The chip for a view, by its own short code, which is the programme code with the company's
+  // own prefix off it. Derived here from window.GI's code rather than typed, so a driver looking
+  // for `SC` is looking for what the model calls it.
+  const shortOf = v => String(v.code).replace(/^Z-/, '');
+  const chipFor = (row, v) => (row.chips || []).filter(c => c.code === shortOf(v))[0] || null;
 
-  // TWO. AND SAMPLED READS DIFFERENTLY FROM COMPLETE, WHICH IS THE WHOLE CARD. Both sets are
-  // required to be non-empty and the membership is the model's, so a page that printed one form
-  // everywhere fails whichever form it chose.
-  const saysAll = said.filter(s => /^, all \d+ of its sessions$/.test(s.text)).map(s => s.key);
-  const saysPart = said.filter(s => /^, \d+ of its \d+ sessions$/.test(s.text)).map(s => s.key);
-  assert('and a complete drawing reads differently from a sampled one, by the model\'s own partition',
+  const wrongText = model.views.filter(v => said.some(row => {
+    const c = chipFor(row, v);
+    return !c || c.text !== `${v.drawn}/${v.total}`;
+  }));
+  assert('every chip carries its own programme\'s population, on all seven addresses',
+    wrongText.length === 0 && said.length === 7 &&
+      said.every(row => row.chips.length === 8 && row.chips[0].code === 'All' &&
+                        row.chips[0].text === null) &&
+      new Set(model.views.map(v => `${v.drawn}/${v.total}`)).size > 1,
+    'eight chips on every address: All with no fraction, and seven each carrying its own ' +
+      'view\'s drawn and declared session counts, recomputed off window.GI in this driver',
+    wrongText.length
+      ? wrongText.map(v => `${v.key} wanted ${v.drawn}/${v.total}`).join(', ') +
+        ` against ${JSON.stringify(said[0].chips.map(c => c.code + ' ' + c.text))}`
+      : JSON.stringify(said[0].chips.map(c => c.code + ' ' + c.text)));
+
+  // TWO. AND A COMPLETE PROGRAMME READS DIFFERENTLY FROM A SAMPLED ONE, WHICH IS THE WHOLE CARD.
+  // `28/28` beside `6/79` is the legitimate screen this design is built around and `34 sessions`
+  // is the sentence it refuses. Both sets are required to be non-empty and the membership is the
+  // model's, so a rail that printed one form everywhere fails whichever form it chose.
+  const rail = said[said.length - 1].chips;
+  const num = c => c && c.text ? c.text.split('/').map(Number) : null;
+  const saysAll = model.views.filter(v => { const n = num(chipFor(said[0], v)); return n && n[0] === n[1]; })
+    .map(v => v.key);
+  const saysPart = model.views.filter(v => { const n = num(chipFor(said[0], v)); return n && n[0] < n[1]; })
+    .map(v => v.key);
+  assert('and a complete programme reads differently from a sampled one, by the model\'s own partition',
     complete.length > 0 && sampled.length > 0 &&
       saysAll.join() === complete.map(v => v.key).join() &&
       saysPart.join() === sampled.map(v => v.key).join() &&
       saysAll.length + saysPart.length === 7,
     `${complete.map(v => v.key).join(', ')} complete and ` +
       `${sampled.map(v => v.key).join(', ')} sampled, off window.GI`,
-    `the page says all of ${JSON.stringify(saysAll)} and part of ${JSON.stringify(saysPart)}`);
+    `the rail says whole for ${JSON.stringify(saysAll)} and part for ${JSON.stringify(saysPart)}`);
 
-  // THREE. AND IT IS WHERE THE NUMBERS ARE. The card's sentence is that the distinction must be at
-  // the count and not two clicks away in a band caption, so the clause is required to be painted,
-  // to have width, and to sit on the same line as the readout's own value with the plate to its
-  // right. A clause moved into a tooltip, into the footer or onto a second row would pass every
-  // string above and fail here.
+  // THREE. AND THEY ARE WHERE THE NUMBERS ARE. The card's sentence is that the distinction must be
+  // at the count and not two clicks away in a band caption, so every fraction is required to be
+  // painted, to have width, and to sit on the same line as the readout's own value with the plate
+  // to its right. A fraction moved into a tooltip, into the footer or onto a second row would pass
+  // every string above and fail here.
   const last = said[said.length - 1];
-  const onLine = last.sample && last.gaps && last.plate &&
-    last.sample.w > 0 && last.sample.h > 0 &&
-    Math.abs(last.sample.mid - last.gaps.mid) <= 2 &&
-    last.sample.x < last.plate.x;
-  assert('and it is on the header\'s own line, beside the counts it is the subject of',
+  const withN = rail.filter(c => c.text !== null);
+  const onLine = last.gaps && last.plate && withN.length === 7 &&
+    withN.every(c => c.box && c.box.w > 0 && c.box.h > 0 &&
+                     Math.abs(c.box.mid - last.gaps.mid) <= 2 &&
+                     c.box.x < last.plate.x);
+  assert('and they are on the header\'s own line, beside the counts they are the subject of',
     onLine === true,
-    'the clause painted, on the readout value\'s own line, to the left of the plate',
-    JSON.stringify({ sample: last.sample, gaps: last.gaps, plate: last.plate }));
+    'all seven fractions painted, on the readout value\'s own line, to the left of the plate',
+    JSON.stringify({ chips: withN.map(c => [c.code, c.box && c.box.w, c.box && c.box.mid]),
+                     gaps: last.gaps, plate: last.plate }));
 
   // FOUR. BOTH READINGS OF THE TERM SAY IT TOO, in the heading and in the sentence, because the
   // sheet is the one place on this page where the count of eighty three is printed as a number a
@@ -3693,7 +4339,7 @@ async function checkSample(page) {
   await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(startedOn)}`);
   await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(startedOn)}`,
     'the drawing this phase started on');
-  await page.evaluate(`location.hash = '#/'`);
+  await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor('window.ZT.term().open === false', 'the diagram to come back');
 }
 
@@ -3853,15 +4499,24 @@ async function checkReview(page, base) {
   const termRoutes = JSON.parse(await page.evaluate('JSON.stringify(window.ZT.termRoutes())'));
   const wantSheet = ['calendar', 'outline'].reduce(
     (a, rd) => a.concat(['#/' + rd], views.map(v => '#/' + rd + '/' + v.key)), []);
-  const wantAll = ['#/', '#/board', '#/students']
+  // ISSUE 136 TOOK IT FROM 33 TO 35 AND EVERY ONE OF THE 33 IS STILL HERE. A scope is a set now
+  // and the set lives in the address, so `#/p/ALL` and `#/p/ALL/modules` are two addresses this
+  // page answers that it did not answer before. Nothing was replaced: the seven per-programme
+  // addresses and their seven collapsed twins resolve to the drawings they always resolved to,
+  // which the `the scope` phase asserts as a byte identity rather than as a resemblance, and the
+  // sixteen the sheet answers are untouched. The set of two-or-more codes a reader can spell,
+  // `#/p/ZIB+ZSC` and the other 118 of them, is deliberately NOT enumerated here: an address the
+  // page constructs from a set is not an address anybody maintains, and counting 2 to the seventh
+  // would make this number a fact about arithmetic rather than about the page.
+  const wantAll = ['#/', '#/board', '#/students', '#/p/ALL', '#/p/ALL/modules']
     .concat(views.map(v => v.route), views.map(v => v.route + '/modules'), wantSheet);
-  assert('and it added no address: the page answers the 33 it answered before, the review among them',
+  assert('and it added two addresses and replaced none: 35 where there were 33, the review among them',
     termRoutes.slice().sort().join('|') === wantSheet.slice().sort().join('|') &&
-      termRoutes.length === 16 && wantAll.length === 33 &&
-      new Set(wantAll).size === 33 &&
+      termRoutes.length === 16 && wantAll.length === 35 &&
+      new Set(wantAll).size === 35 &&
       wantAll.filter(h => /review/i.test(h)).length === 0 &&
       wantAll.indexOf('#/calendar') !== -1,
-    `33 addresses, ${wantSheet.length} of them the sheet's, none of them named after the review`,
+    `35 addresses, ${wantSheet.length} of them the sheet's, none of them named after the review`,
     `${termRoutes.length} sheet routes ${JSON.stringify(termRoutes.slice(0, 3))}, ` +
       `${new Set(wantAll).size} addresses in all`);
 
@@ -4032,7 +4687,7 @@ async function checkReview(page, base) {
   // Left as it was found, and cold, because this phase moved the anchor and armed a window: a hash
   // change would carry both into the phases after it. The page that comes back is the one every
   // one of them was written against.
-  await page.evaluate(`location.hash = '#/'`);
+  await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.reload();
   await page.waitFor(DIAGRAM_READY, 'the diagram back at the default address, cold');
 }
@@ -4488,7 +5143,7 @@ async function checkWorklist(page, base) {
   // Left as it was found, and cold, for the reason `the review` gives: this phase armed no window
   // but it drove six addresses and opened the sheet, and the page every phase after it was written
   // against is the one that comes back.
-  await page.evaluate(`location.hash = '#/'`);
+  await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.reload();
   await page.waitFor(DIAGRAM_READY, 'the diagram back at the default address, cold');
 }
@@ -4673,7 +5328,7 @@ async function checkCut(page, base) {
   // folded: at the sessions grain it printed a sentence to report a fold of zero, which is the
   // whole reason that branch is gone, and at the modules grain it carries two counts.
   const paras = [];
-  for (const at of ['#/', '#/p/ZBL/modules']) {
+  for (const at of [ONE, '#/p/ZBL/modules']) {
     await page.evaluate(`location.hash = ${JSON.stringify(at)}`);
     await page.waitFor(`window.ZT.term().open === false`, `the drawing at ${at}`);
     await sleep(120);
@@ -4815,7 +5470,7 @@ async function checkCut(page, base) {
   // Five items to two. Three of them told the reader what a control says by being pressed, and
   // what is left is a click and a modifier, which no element on the page states. 280 is above the
   // two that are there and below the five that were.
-  await page.evaluate(`location.hash = '#/'`);
+  await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor(`window.ZT.term().open === false`, 'the drawing');
   await page.evaluate(`document.getElementById('helpbtn').click()`);
   await page.waitFor(`!document.getElementById('helpbox').hidden`, 'the help to open');
@@ -4883,7 +5538,7 @@ async function checkCut(page, base) {
   await page.evaluate(`location.hash = ${JSON.stringify(routeWas)}`);
   await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(pgWas)}`,
     `the ${pgWas} drawing back at the altitude this phase found it`);
-  await page.evaluate(`location.hash = ${JSON.stringify(hashWas || '#/')}`);
+  await page.evaluate(`location.hash = ${JSON.stringify(hashWas || ONE)}`);
   await page.waitFor(`window.ZT.term().open === false &&
                       window.ZT.programme().key === ${JSON.stringify(pgWas)}`,
     'the drawing back');
@@ -4924,7 +5579,7 @@ function movedPx(a, b) {
 }
 
 async function checkDrag(page, base) {
-  await page.evaluate(`location.hash = '#/'`);
+  await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor(`window.ZT.term().open === false`, 'the drawing');
   await clearSelectionIfAny(page);
 
@@ -5366,13 +6021,13 @@ async function checkEmptyWindow(page) {
   await pressByText(page, '#wnmenu .wn-weeks', 'whole term');
   await page.waitFor('window.ZT.filtered().on === false', 'the window off again');
   await wnMenu(page, false);
-  await page.evaluate(`location.hash = '#/'`);
+  await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor('window.ZT.term().open === false', 'the diagram back');
   await viewSettled(page);
 }
 
 async function checkHeader(page) {
-  await page.evaluate(`location.hash = '#/'`);
+  await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor('window.ZT.term().open === false', 'the diagram to be on screen');
   // Which drawing this phase started on, because it walks all seven and `#/` is not a way back:
   // an address that is not a programme address has no opinion about which of the seven is drawn,
@@ -5512,7 +6167,7 @@ async function checkHeader(page) {
     const m = JSON.parse(await page.evaluate(headerProbe(['gapsbtn'])));
     off.push({ at, visible: m.gapsbtn.visible, total: (await page.evaluate('window.ZT.gaps()')).total });
   }
-  await page.evaluate(`location.hash = '#/'`);
+  await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor('window.ZT.roster() === false', 'the diagram to come back');
   const back = JSON.parse(await page.evaluate(headerProbe(['gapsbtn'])));
   const backGaps = await page.evaluate('window.ZT.gaps()');
@@ -5547,7 +6202,7 @@ async function checkHeader(page) {
   await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(startedOn)}`);
   await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(startedOn)}`,
     'the drawing this phase started on');
-  await page.evaluate(`location.hash = '#/'`);
+  await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor('window.ZT.term().open === false', 'the diagram to come back');
 }
 
@@ -5860,7 +6515,7 @@ async function checkReadout(page) {
   await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(startedOn)}`,
     'the drawing this phase started on');
   await clearSelectionIfAny(page);
-  await page.evaluate(`location.hash = '#/'`);
+  await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor('window.ZT.term().open === false', 'the diagram to come back');
 }
 
@@ -5913,8 +6568,17 @@ const PANEL_GEO = `(function () {
     h1: box(document.querySelector('h1')),
     plate: box(st),
     nav: box(document.querySelector('.hnav')),
-    pg: box(document.getElementById('pgbtn')),
-    tail: box(document.querySelector('.h-tail')),
+    // Issue 136. The picker is gone and the rail is what sits where it sat, so "pg" is the rail's
+    // own box: the thing that must never be painted under the plate is the scope control and it
+    // has been since #131, whatever the control happens to be. "tail" was the heading's elided
+    // clause, and the sentence it was part of went with the picker; what takes the slack now is
+    // the rail, and what it does with it is scroll rather than elide, so the box measured for the
+    // second assertion is the rail's scroller and the claim about it is that it fits.
+    pg: box(document.getElementById('pgrail')),
+    railScroll: (function () {
+      var r = document.getElementById('pgrail');
+      return r ? { w: r.clientWidth, sw: r.scrollWidth } : null;
+    })(),
     readings: readings,
     controls: controls,
     scrollWidth: d.scrollWidth,
@@ -6023,7 +6687,7 @@ async function atWidths(page, widths, fn) {
 
 async function checkPanel(page) {
   const startedOn = await page.evaluate('window.ZT.programme().key');
-  await page.evaluate(`location.hash = '#/'`);
+  await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor('window.ZT.term().open === false', 'the diagram to be on screen');
 
   // ONE. THE READOUT IS ONE LINE AT EVERY WIDTH A READER HAS, AND THE PLATE IS THE HEIGHT OF ITS
@@ -6054,22 +6718,26 @@ async function checkPanel(page) {
     `${swept.length} widths, header ${swept[0].header.h}px at ${swept[0].vw} and ` +
       `${swept[swept.length - 1].header.h}px at ${swept[swept.length - 1].vw}`);
 
-  // TWO. AND THE PROGRAMME NAME IS NEVER PAINTED UNDER IT. The heading can carry no overflow rule
-  // above the picker, because the programme menu is positioned inside the picker and would be
-  // clipped with the words; so when the row runs out of width the name does not elide, it slides
-  // under the plate and is cut through the middle of a letter. Measured at 900 by 800 before this
-  // card. Asserted as a relation between two boxes and at every swept width, so a repair that
-  // worked at one width and not at another fails.
+  // TWO. AND THE SCOPE CONTROL IS NEVER PAINTED UNDER IT. The heading can carry no overflow rule
+  // above the control it holds, because that control had a menu positioned inside it and would
+  // have been clipped with the words; so when the row ran out of width the programme name did not
+  // elide, it slid under the plate and was cut through the middle of a letter. Measured at 900 by
+  // 800 before #131. Issue 136 replaced the name with the chip rail and the claim is the same
+  // claim about the same two boxes, with one more thing to say: what the rail does when it runs
+  // out of width is scroll inside itself, so a fraction is never half painted, and the rail's own
+  // scroller is required to be a scroller and never wider than the page.
   const under = swept.filter(s => s.pg && s.plate && s.pg.y === s.plate.y &&
                                   s.pg.r > s.plate.x + 0.5);
-  const clause = swept.filter(s => s.tail && s.tail.w > 0);
-  assert('and the programme name is never painted under the readout at any width',
-    under.length === 0 && clause.length > 0,
-    'the picker\'s right edge left of the plate\'s left edge wherever the two share a line',
+  const railed = swept.filter(s => s.pg && s.pg.w > 0 && s.railScroll &&
+                                   s.railScroll.w <= s.vw);
+  assert('and the scope control is never painted under the readout at any width',
+    under.length === 0 && railed.length === swept.length,
+    'the rail\'s right edge left of the plate\'s left edge wherever the two share a line, and ' +
+      'the rail inside the viewport at every one of them',
     under.length
-      ? under.map(s => `${s.vw}: picker ends ${s.pg.r}, plate starts ${s.plate.x}`)
+      ? under.map(s => `${s.vw}: rail ends ${s.pg.r}, plate starts ${s.plate.x}`)
              .slice(0, 4).join('; ')
-      : `checked at ${swept.length} widths, the clause rendering at ${clause.length} of them`);
+      : `checked at ${swept.length} widths, the rail measured at ${railed.length} of them`);
 
   // THREE. THE READOUT DOES NOT MOVE WHEN THE DRAWING DOES. `justify-content: space-between` over
   // three items puts the middle one where the FIRST one's width leaves it, and the first one is
@@ -6098,7 +6766,7 @@ async function checkPanel(page) {
       `${JSON.stringify([...navLefts])}, ${names.size} distinct heading widths`,
     `plate right ${[...plateRights][0]}, nav left ${[...navLefts][0]}, over ${names.size} ` +
       'heading widths');
-  await page.evaluate(`location.hash = '#/'`);
+  await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor('window.ZT.term().open === false', 'the diagram again');
 
   // FOUR. A CONTROL THAT OPENS A BOX SAYS SO, AND ONE THAT DOES NOT SAYS NOTHING. Five of the nine
@@ -6110,13 +6778,21 @@ async function checkPanel(page) {
   // disclosure added later is covered without anybody coming back here. Asserted as set equality
   // in both directions, and the static reading separately, since a span is invisible to a walk
   // over buttons and links.
+  //
+  // AND THE COUNT IS NO LONGER FIVE, WHICH IS ISSUE 136 AND IS WORTH SAYING RATHER THAN QUIETLY
+  // EDITING. The programme picker was one of the five and it is gone: the chip rail opens no box,
+  // so it declares no `aria-controls` and carries no mark, and a mark put on it out of consistency
+  // would have been an affordance saying that pressing a chip reveals something. What is asserted
+  // is the equality, which is the claim, plus the fact that the set is not empty, so a card that
+  // deletes the last disclosure has to come back to this line and say so rather than passing on
+  // two empty sets.
   const marks = JSON.parse(await page.evaluate(PANEL_MARKS));
   const missing = marks.ought.filter(id => marks.marked.indexOf(id) === -1);
   const spurious = marks.marked.filter(id => marks.ought.indexOf(id) === -1);
   assert('exactly the controls that open a box carry the mark that says so',
-    marks.ought.length === 5 && missing.length === 0 && spurious.length === 0 &&
-      marks.staticMarked === false && marks.all.length === 9,
-    'five marks on the five controls declaring aria-controls, none on the four that declare ' +
+    marks.ought.length === 4 && missing.length === 0 && spurious.length === 0 &&
+      marks.staticMarked === false && marks.all.length === 16,
+    'four marks on the four controls declaring aria-controls, none on the twelve that declare ' +
       'none, and none on the reading that is not a control',
     `ought ${JSON.stringify(marks.ought)}, marked ${JSON.stringify(marks.marked)}, ` +
       `the static reading marked ${marks.staticMarked}, ${marks.all.length} controls in the row`);
@@ -6242,7 +6918,7 @@ async function checkPanel(page) {
   await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(startedOn)}`);
   await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(startedOn)}`,
     'the drawing this phase started on');
-  await page.evaluate(`location.hash = '#/'`);
+  await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor('window.ZT.term().open === false', 'the diagram to come back');
   await page.evaluate('window.ZT.fit()');
 }
@@ -6382,7 +7058,7 @@ function plateExempt(key, scheme) {
 }
 
 async function checkPlate(page) {
-  await page.evaluate(`location.hash = '#/'`);
+  await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor(DIAGRAM_READY, 'the diagram, for the lane plates');
 
   // Both schemes, driven through the page's own control rather than through an emulated media
@@ -7144,7 +7820,7 @@ async function checkCaptureOverASheet(page) {
   // control that is missing everywhere would satisfy half of this. `ghosts` marks the drawing, and
   // over a sheet the drawing is behind an opaque box, so it goes the way it already goes on the
   // board rather than staying in the row doing nothing a reader can see.
-  await page.evaluate(`location.hash = '#/'`);
+  await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor(`window.ZT.term().open === false && window.ZT.roster() === false`,
     'the sheet to close again');
   const onDiagram = JSON.parse(await page.evaluate(headerProbe(['ghtoggle'])));
@@ -7247,7 +7923,7 @@ async function checkCaptureOverASheet(page) {
     'the sheet still open on the same reading after capture mode is left',
     `open ${between.open}, reading ${JSON.stringify(between.reading)}`);
 
-  await page.evaluate(`location.hash = '#/'`);
+  await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor(DIAGRAM_READY, 'the diagram to come back');
   await page.evaluate('window.ZT.fit()');
   await viewSettled(page);
@@ -7358,7 +8034,7 @@ async function checkBoard(page, base) {
     // its live path, and the request it then makes is answered by the stub without ever leaving
     // the page. Nothing here reads or needs a real GitHub token.
     localStorage.setItem('zmt.gh.token', 'smoke-suite-placeholder-not-a-token');
-    location.hash = '#/';
+    location.hash = '#/p/ZIB';
   })()`);
   await page.reload();
   await page.waitFor(DIAGRAM_READY, 'the diagram to draw again after the reload');
@@ -7406,7 +8082,7 @@ async function checkBoard(page, base) {
   await page.evaluate(`(function () {
     localStorage.removeItem('__smoke.issues');
     localStorage.removeItem('zmt.gh.token');
-    location.hash = '#/';
+    location.hash = '#/p/ZIB';
   })()`);
   await page.waitFor(`!document.body.classList.contains('board')`, 'the diagram to come back');
 }
@@ -7589,7 +8265,7 @@ async function checkGutter(page) {
     `review ${cal.gutter && cal.gutter.group}, month ${calM.gutter && calM.gutter.month}, ` +
       `group ${out.gutter.group}, cell ${out.gutter.cell}`);
 
-  await page.evaluate(`location.hash = '#/'`);
+  await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor('window.ZT.term().open === false', 'the sheet to close again');
 }
 
@@ -8276,26 +8952,27 @@ async function runGrain(chrome, base) {
         reloaded.g.grain === 'modules' && /\/modules$/.test(reloaded.hash),
         'the modules grain on #/p/ZSC/modules',
         JSON.stringify(reloaded));
-      // EVERY ITEM AND NOT AN ITEM. Issue 115's F10. The probe here was
-      // `#pgmenu .pgitem[href$="/modules"]`, a selector that can only ever return an item which
-      // kept the altitude, beside `n === 7`, which is the picker's size and not a count of items
-      // that kept it. Six of the seven losing the grain was 177 of 177. So the items are
-      // enumerated, every href is required to carry the altitude, and the seven programmes they
-      // address are required to be the seven the document declares rather than seven of anything.
+      // EVERY CHIP AND NOT A CHIP. Issue 115's F10, on the control that replaced the one that
+      // finding was made against. The probe was `#pgmenu .pgitem[href$="/modules"]`, a selector
+      // that can only ever return an item which kept the altitude, beside `n === 7`, which is the
+      // picker's size and not a count of items that kept it; six of the seven losing the grain was
+      // 177 of 177. Issue 136 deleted the picker and the claim moved to the rail, which has one
+      // more thing to keep true: eight chips and not seven, because `All` carries the altitude
+      // too and a reader who collapses a drawing and then presses All should not be expanded by it.
       const moved = await ev(`
-        var items = Array.prototype.slice.call(document.querySelectorAll('#pgmenu .pgitem'));
+        var items = Array.prototype.slice.call(document.querySelectorAll('#pgrail .chip'));
         return { hrefs: items.map(function (a) { return a.getAttribute('href'); }),
                  keys: window.GI.views.map(function (v) { return v.key; }) };`);
-      const AT_MODULES = /^#\/p\/([A-Za-z0-9-]+)\/modules$/;
-      const pickerKeys = moved.hrefs.map(h => (AT_MODULES.exec(h || '') || [])[1]).filter(Boolean);
-      assert('the programme picker keeps the altitude when it moves programme',
-        moved.hrefs.length === moved.keys.length && moved.keys.length > 1 &&
-          pickerKeys.length === moved.hrefs.length &&
-          moved.keys.every(k => pickerKeys.indexOf(k) !== -1) &&
-          new Set(pickerKeys).size === pickerKeys.length,
-        `${moved.keys.length} items, one per programme in the document, every one of them ` +
-          'addressing the modules grain',
-        JSON.stringify({ kept: pickerKeys.length, of: moved.hrefs.length, hrefs: moved.hrefs }));
+      const AT_MODULES = /^#\/p\/([A-Za-z0-9+-]+)\/modules$/;
+      const railScopes = moved.hrefs.map(h => (AT_MODULES.exec(h || '') || [])[1]).filter(Boolean);
+      assert('every chip in the scope rail keeps the altitude when it changes the scope',
+        moved.hrefs.length === moved.keys.length + 1 && moved.keys.length > 1 &&
+          railScopes.length === moved.hrefs.length &&
+          railScopes[0] === 'ALL' &&
+          new Set(railScopes).size === railScopes.length,
+        `${moved.keys.length + 1} chips, All and one per programme in the document, every one of ` +
+          'them addressing the modules grain',
+        JSON.stringify({ kept: railScopes.length, of: moved.hrefs.length, hrefs: moved.hrefs }));
       await goto(base + '#/p/ZSC/nonsense');
       assert('an altitude nobody recognises is the sessions grain and not an error',
         (await ev('return window.ZT.grain().grain;')) === 'sessions',
@@ -8544,6 +9221,13 @@ async function runViewport(chrome, viewport, base, full, narrow) {
     await group('every width', () => checkWidth(page, base));
 
     if (full) {
+      // THE SCOPE FIRST, BECAUSE IT IS THE ONE PHASE THAT IS ABOUT THE RESTING STATE. `#/` draws
+      // all seven since issue 136, and everything after this is about one drawing, so this phase
+      // reads the union and then hands the page over on `ONE`. Every phase after it is driven at
+      // that address rather than at the default, which is the note beside the constant.
+      await group('the scope', () => checkScope(page, base));
+      await page.evaluate('location.hash = ' + JSON.stringify(ONE));
+      await page.waitFor(`window.ZT.scope().n === 1`, 'the scope of one this suite drives');
       await group('model and reveal', () => checkModelAndReveal(page));
       await group('cold load', () => checkColdLoad(page, base));
       await group('students', () => checkStudents(page));

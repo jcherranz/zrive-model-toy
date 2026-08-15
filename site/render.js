@@ -202,6 +202,11 @@
     // measured rather than picked: the bar is a graphical object drawn over the tile's own wash
     // over the lane plate, and scripts/smoke.mjs recomputes every one of them against that
     // composite and holds them to the same 3.0000 this repository holds a tile outline to.
+    // Measured over all fifteen composites this document produces, in both schemes: at 33 per cent
+    // the yellow the second programme takes bound at 2.8115 on the amber session wash, under the
+    // bar; at 30 the worst of the thirty is 3.3321 in light and 3.4834 in dark, and the seven stay
+    // far enough apart in hue to be told from one another. Darker clears by more and costs that
+    // separation, which is the trade the number sits in.
     var PGHUE = {};
     (function () {
       var decls = [];
@@ -213,7 +218,7 @@
       pgs.forEach(function (p, i) {
         var h = Math.round(i * 360 / (pgs.length || 1)) + 12;
         PGHUE[p.key] = 'var(--pg-' + p.key + ')';
-        decls.push('--pg-' + p.key + ':light-dark(hsl(' + h + ' 72% 33%),hsl(' + h + ' 78% 66%));');
+        decls.push('--pg-' + p.key + ':light-dark(hsl(' + h + ' 72% 30%),hsl(' + h + ' 78% 66%));');
       });
       var st = document.createElement('style');
       st.id = 'type-palette';
