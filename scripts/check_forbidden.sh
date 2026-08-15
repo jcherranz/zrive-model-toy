@@ -101,6 +101,10 @@ PAGES_BRANCHES="${PAGES_BRANCHES:-gh-pages}"
 # named list rather than a silent skip, because every entry is a hole in the sweep.
 GHOST_ALLOW="${GHOST_ALLOW:-404.html}"
 
+# Seconds between the two readings that a ghost has to survive. Small, because the point is to
+# cross a propagation boundary and not to wait out a deploy.
+GHOST_CONFIRM_WAIT="${GHOST_CONFIRM_WAIT:-3}"
+
 # The rules themselves (banned words, the money pattern, the timestamp mask, the identifier
 # patterns, the allowed money figures) live in scripts/forbidden_lib.sh, sourced above, and
 # nowhere else, so this gate and scripts/check_repo.sh cannot drift apart. This file carries
@@ -286,7 +290,17 @@ ghost_sweep() {
     return 0
   fi
 
-  local p code size
+  # A 200 IS CONFIRMED BEFORE IT IS CALLED A GHOST, and the transient is printed either way.
+  # This gate runs seconds after a deploy, and an edge that has not caught up can hand back a
+  # path the new artifact dropped. A single reading would make that a "FORBIDDEN CONTENT" class
+  # andon on an origin that is merely propagating, and TPS.md's Andon section is about exactly
+  # what that costs: a signal people learn to squint at is worse than a slower one.
+  #
+  # This is not the gate being softened. A stale artifact does not heal itself between two
+  # readings, so anything real survives the second one, and a candidate that answers 200 and then
+  # stops is REPORTED rather than dropped, on its own line, so no reading disappears. What the
+  # confirmation buys is that the loud verdict means the origin is still serving it now.
+  local p code size code2
   while IFS= read -r p; do
     [ -n "$p" ] || continue
     mkdir -p "$dest/$(dirname "$p")"
@@ -294,10 +308,19 @@ ghost_sweep() {
     size=0
     [ -f "$dest/$p.ghost" ] && size="$(stat -c%s "$dest/$p.ghost")"
     if [ "$code" = "200" ] && [ "$size" -gt 0 ]; then
-      GHOSTS=$((GHOSTS + 1))
-      echo "  [GHOST] $p: served HTTP 200, $size bytes, and the live deployment does not include it"
-      # Left in place so scan_dir reads it. A ghost is a finding whatever it holds, and what it
-      # holds is a second, worse finding.
+      sleep "$GHOST_CONFIRM_WAIT"
+      code2="$(curl -sS -L -o /dev/null -w '%{http_code}' "$base$p" 2>/dev/null || echo 000)"
+      if [ "$code2" = "200" ]; then
+        GHOSTS=$((GHOSTS + 1))
+        echo "  [GHOST] $p: served HTTP 200, $size bytes, twice, and the live deployment does not include it"
+        # Left in place so scan_dir reads it. A ghost is a finding whatever it holds, and what it
+        # holds is a second, worse finding.
+      else
+        rm -f "$dest/$p.ghost"
+        echo "  [TRANSIENT] $p: answered 200 with $size bytes and then HTTP $code2. Not counted as a"
+        echo "              ghost, and not silent either: an origin mid-propagation looks like this,"
+        echo "              and so does a ghost that something removed while this was reading it."
+      fi
     else
       rm -f "$dest/$p.ghost"
       printf '  gone    %-20s HTTP %s\n' "$p" "$code"

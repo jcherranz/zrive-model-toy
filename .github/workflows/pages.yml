@@ -248,9 +248,25 @@ jobs:
       # site/board.json; a checkout of the older triggering sha would then publish a site
       # without that commit and undo it. A static site deploy should publish whatever is current
       # on main at the moment it actually runs.
+      #
+      # fetch-depth: 0, and it is load-bearing rather than tidy. Issue 6 gave the forbidden-content
+      # gate a ghost sweep: it probes the origin for every path any commit on any ref ever placed
+      # under site/, plus every path on a branch that has itself served this site, so a file an
+      # earlier deploy published and this one does not is a path the gate can name and ask for.
+      # That list is git history. The default depth of 1 has none, the candidate set would collapse
+      # to the files already being fetched, and the sweep would probe nothing while printing the
+      # same clean line as a sweep that probed everything. The gate ABORTS on a shallow clone
+      # rather than going quietly green, so this value is what keeps the deploy from failing, and
+      # the abort is what keeps a hand that removes it from getting a green deploy anyway.
+      #
+      # It also brings origin/gh-pages, which is not incidental: this site really was published
+      # from that branch on 2026-08-13 while Actions was billing-blocked, and that branch carries a
+      # .nojekyll the tree's site/ has never held. Depth 0 fetches every branch, so the sweep can
+      # ask about it. The whole history is 1.67 MiB packed.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: main
+          fetch-depth: 0
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
 
       # THE DEPLOY STAMP. Issue 47. A feedback report has to name the code the reporter saw, and
