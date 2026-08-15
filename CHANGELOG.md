@@ -11,6 +11,100 @@ of what changed and when, and it is meant to be scannable.
 
 ### Changed
 
+- **ABSENCE IS ONE IDEA WITH TWO NUMBERS THAT NEVER ADD, #139.** Card 3 of WINDOW-FIRST, and the
+  card the first two were for. #136 swapped a picker for a rail and #137 swapped a menu for a
+  strip, one for one; both are better on capability and honesty and neither reduced anything.
+  Every merge the design promises is here. **One control with two switches**, reading
+  `work n/22 &middot; unrecorded n/73`: the left number is what falls inside what is currently drawn
+  and the right is the term total, in the fraction grammar the chips already use.
+- **THE 95 WERE TWO POPULATIONS UNDER ONE HEADING, AND ONE OF THEM IS NOT WORK.** The registry says
+  of each class whether any system holds a row of it, and joined against the 95 that answer splits
+  them. **22 a system holds the row and the field in it is empty**: 11 cohort sessions with nobody
+  assigned to teach them, 6 sponsor links absent, 5 instructors with no employer named. Somebody can
+  open those rows this week. **73 no system anywhere records**: duration 38, location 13, module 8,
+  cohort identity 7, delivery 6, and the programme's own module list. No effort inside the tooling
+  that exists closes them and they will still be true in a year. `gaps N of 95` printed their sum,
+  which reads as a backlog of ninety five items, and it was the last place on the page that did.
+  **There is now no cell anywhere in the design where 95 could be rendered**, the two are separated
+  by a middle dot and never by a plus, and they never share a colour: `work` takes the warning hue
+  and `unrecorded` the ghost grey and the ghosts' own dashes.
+- **AND EACH SWITCH DRAWS ITS OWN KIND ON THE CANVAS WHERE IT IS MISSING**, which is what makes this
+  a control rather than a second thermometer and is the thing `gaps N of 95` could never do: a
+  reader looking at three weeks was told eleven sessions have nobody teaching them and could not see
+  WHICH. **One empty ring per missing value, on the object that is missing it**, 2.1 units on a 34
+  unit tile, so the rings on a tile count to the same number its own property list does and the
+  rings on the canvas count to the number on the control. Four is the most any one object carries.
+  Which side a row is on is read once, at the join, off `routes.classes[<class>].system`, so the
+  count and the picture are one answer read twice rather than two opinions.
+- **DELETED: the gaps menu, the standalone ghosts toggle, `theme`, the `tiles` reading, and the
+  readout plate all four sat on.** `unrecorded` IS the ghosts toggle, unchanged in what it does to
+  the tiles no system holds and now governing the 73 in that same treatment, because a class no
+  system holds is one finding met at two grains: a dashed tile, or a socket on a solid one. `theme`
+  goes because a control that does not show its own state, is touched a handful of times a year and
+  governs nothing about the data is inertia by the owner's own definition; the page follows the
+  operating system, which is what #55 shipped. `tiles` goes because the picture is the reading.
+- **AND `students` AND THE SWAPPING VIEW LINK FOLD INTO ONE SEGMENTED VIEW SELECTOR**, `diagram` and
+  `board`, both always on screen with the current one marked, so the diagram is a peer view rather
+  than a home the others depart from and pressing the one you are on does nothing. **`students` is
+  not one of them, and that is a repair rather than a deletion**: the roster is one cohort's list,
+  and since #136 the scope is a SET, so a header link to it opened the roster of whichever programme
+  happened to be first and named none of them, which is #121's defect with the numbers the other way
+  round. `#/students` is unchanged and still answers; the way in is the cohort tile's own panel,
+  where `see all 34 students` names the cohort it is about.
+- **`grain` KEEPS ITS CONTROL AND LOSES THE PLATE'S GRAMMAR.** It was never a reading: it changes
+  the address and every mark on the canvas, and it was on the plate only because #120 gathered the
+  three "what am I looking at" controls together. It says `sessions` and not `grain sessions`, since
+  a nav item states what it is set to and lets the disclosure mark say that pressing it offers
+  something else, which is what the chips beside it and the segments after it already do. The word
+  cost five visible characters on each of the 35 addresses and the two altitudes name themselves.
+- **RE-MEASURED, before and after, in one browser by one walk over all 35 addresses.** **Control
+  GROUPS 9 to 6**: rail, strip, grain, absence, view, feedback, where the nine were rail, strip,
+  grain, gaps, ghosts, theme, feedback, students, view. **Elements, both ways: 15 to 14 by the
+  `header button, header a` query the suite and both watchdogs use, and 16 to 15 counting everything
+  in the header that answers a press**, the difference being the strip, which is neither a button
+  nor an anchor. **Readings 3 to 0** and **`aria-controls` 3 to 1**, the altitude being the one
+  control in this header that still opens a box. **Addresses 35 to 35 and this card adds none and
+  removes none.** **Header one row at 43px from 1536 down to 981**, unchanged. **Phone chrome 139 of
+  844 to 107, share 0.1647 to 0.1268**, against the ceiling of 0.1730: the plate's row is gone and
+  the header is the rail, the strip and one line of controls. **360 goes 139 to 107 and 320 goes 169
+  to 139**, and the 761 to 980 band is unchanged at 107. **The page's own visible words fall by 138
+  over all 35 addresses**, 105277 to 105139: they fall by 10 on each of the 19 that draw and rise by
+  3 on each of the 16 the sheet answers, where `gaps` was withdrawn and this control is not.
+  **The fourteen drawing digests are untouched**, nothing in `build/` was edited.
+- **Every control is 26 by 26 at 1536 and at 390**, and no width from 320 to 1536 scrolls sideways.
+  The one width rule this card adds is a padding cut below 431, which is a measurement: at 360 the
+  content box is 336 and the three groups in the nav come to 321.5 at the paddings above it, which
+  leaves two pixels and is a coincidence rather than a margin.
+- **The view selector goes up to the heading's row below 761**, which is where it belongs on a
+  narrow screen rather than being an economy: the heading IS the view, the rail on the diagram and a
+  sentence naming the board or a reading of the term on the other four, so a control saying which
+  view beside the line that names it is one statement. It is what leaves the nav one line at 390 and
+  at 360 with every word intact. `flex: 1 1 0` and not `1 1 auto` on the heading is the whole of why
+  the two share a line: a flex row that wraps wraps BEFORE it shrinks, and the rail's eight chips
+  want 426 CSS px, so at a basis of auto the browser gives the selector a line of its own rather
+  than squeezing the box that could squeeze.
+- **NOT ONE WORD IS ABBREVIATED AT 390, AND THAT IS THE TRADE THIS CARD REFUSED.** The design's own
+  phone sketch reads `[3/22 &middot; 9/73]`, which fits and is 65 CSS px narrower. Stripped of their
+  words the two numbers are two fractions in one grammar with nothing to tell them apart but a
+  colour and a title, and a title is a hover, which a phone does not have. They keep their words at
+  every width, which is what this card is about.
+- **SUITE 286 TO 285, and the phase table moved rather than the total.** `header` becomes `absence`
+  at ten, `the readout` becomes `the view selector` at six, and `the worklist` goes 9 to 7: the two
+  it loses are about the deleted menu, and both of their claims survive elsewhere, that which side a
+  row is on comes off the registry on the control that replaced the menu, and that the page can take
+  a reader to exactly the objects a count is over on the worklist address itself.
+  **Both schemes are driven through the machine now** rather than through the page's own control,
+  because the machine is the only thing that decides one.
+- **Proved by planting five defects, one at a time, each reverted and each red under its own name**,
+  and the plants found two defects rather than confirming a claim. The two switches filled on hover
+  with the same value they fill with when pressed, so a reader merely pointing at an OFF switch was
+  shown exactly the paint that means ON, which is what #131 took off the ghost toggle and these two
+  switches ARE that control; and the focus ring on a view segment broke out of its group top and
+  bottom, because `.linkbtn:focus-visible` sets the offset to 1 and is written later in the file, so
+  at equal specificity it won. Both were repaired by moving the block after the `.linkbtn` rules
+  rather than by a specificity hack.
+  KAIZEN.md `kaizen-a-control-that-leaves-a-group-leaves-the-groups-rules-behind` and
+  `kaizen-a-new-control-inherits-the-old-ones-defects-not-its-repairs`.
 - **TIME IS AN INTERVAL YOU DRAG, NOT A NAME YOU PICK, #137.** Card 2 of WINDOW-FIRST. The owner
   singled the weeks control out: "the weeks filter is crucial, but is this the best we can do?" It
   is not, and the reason is functional. The term is a bounded ordered continuum of 24 weeks browsed

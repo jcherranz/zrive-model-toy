@@ -131,6 +131,29 @@ repoints the moment a lesson is added or removed: two changelog entries citing "
 entry" already meant two different lessons, which is issue 54. `scripts/check_repo.sh` fails the
 build on a cited slug that resolves to nothing.
 
+- `kaizen-a-control-that-leaves-a-group-leaves-the-groups-rules-behind` &middot; **A control that
+  moves out of a group loses every rule that was written against the group, and the loss is
+  invisible until somebody presses it.** Issue 139 deleted the readout plate and moved the altitude
+  into the nav. Every state that control had was written as `.hstate .linkbtn:hover` and
+  `.hstate .linkbtn[aria-expanded="true"]`, which are #131's three-paints repair, and the moment the
+  plate went those selectors matched nothing: the control still worked, still opened its box, still
+  said its own state, and had one paint for rest, hover and open, which is the exact defect #131 was
+  filed about. Nothing failed to compile and nothing looked broken in a diff. The rule is that
+  moving an element between containers is a rewrite of its stylesheet and not a change of address,
+  and the way to find what has to move with it is to grep the container's own class rather than the
+  element's id.
+- `kaizen-a-new-control-inherits-the-old-ones-defects-not-its-repairs` &middot; **When one control
+  replaces another, it starts with the base rules and none of the repairs, so every measured fix the
+  old one carried has to be carried across by hand.** The absence switches replace the ghosts
+  toggle, and the first version filled on hover with `--tint-hover` and filled when pressed with the
+  same value, which is precisely what #131 measured off the ghost toggle and removed: a reader
+  merely pointing at an OFF switch is shown exactly the paint that means ON, because the two tokens
+  are declared to the same colour. The same version put its own focus rule before `.linkbtn`'s in
+  the file, so at equal specificity the base rule won and the ring broke out of the group top and
+  bottom, which is #131's other measurement. Both were found by the assertions #131 left behind
+  rather than by looking, which is what those assertions are for; and the repair for both was to put
+  the new block AFTER the base rules rather than to reach for a specificity hack, because a
+  specificity hack is a third statement of an ordering the file already has.
 - `kaizen-gate-shown-to-fire` &middot; **A gate that cannot be shown to fire is not a gate.**
   `scripts/check_forbidden.sh --self-test` runs in CI beside the live check, not to find bugs in the
   rules but so that a run reporting clean means the rules ran.
