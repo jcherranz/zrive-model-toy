@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-14T11:59:52Z",
+  "generated": "2026-08-15T10:31:38Z",
   "columns": [
     {
       "key": "raw",
@@ -24,33 +24,6 @@
             "limitation"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
-        },
-        {
-          "id": 129,
-          "title": "I still don't like the current header control panel, and I think…",
-          "labels": [
-            "bug",
-            "feedback"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/129"
-        },
-        {
-          "id": 132,
-          "title": "Let's go and try once again with the panel of control header, I need…",
-          "labels": [
-            "bug",
-            "feedback"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
-        },
-        {
-          "id": 134,
-          "title": "I like the idea behind this view",
-          "labels": [
-            "feedback",
-            "idea"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/134"
         }
       ]
     },
@@ -62,7 +35,18 @@
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": []
+      "cards": [
+        {
+          "id": 132,
+          "title": "Let's go and try once again with the panel of control header, I need…",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
+        }
+      ]
     },
     {
       "key": "done",
@@ -77,6 +61,15 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/135"
+        },
+        {
+          "id": 134,
+          "title": "I like the idea behind this view",
+          "labels": [
+            "feedback",
+            "idea"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/134"
         },
         {
           "id": 133,
@@ -105,6 +98,16 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/130"
         },
         {
+          "id": 129,
+          "title": "I still don't like the current header control panel, and I think…",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/129"
+        },
+        {
           "id": 128,
           "title": "Every sentence that teaches the page how to be read comes off; the measured facts stay",
           "labels": [
@@ -121,25 +124,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/127"
-        },
-        {
-          "id": 126,
-          "title": "The published hash list is a membership oracle",
-          "labels": [
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/126"
-        },
-        {
-          "id": 125,
-          "title": "A gap is a number you read, when it should be a place you go",
-          "labels": [
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/125"
         }
       ],
-      "hidden": 110,
+      "hidden": 112,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
