@@ -182,6 +182,91 @@
     return (grain === 'modules' && v.alt) ? v.alt.drawing : v.drawing;
   }
 
+  // ---- the drawing a SCOPE is, issue 136 -------------------------------------
+  // ONE PROGRAMME IN SCOPE IS THE ARTEFACT THE BUILD WROTE, UNTOUCHED, and that is a decision this
+  // card is held to rather than a shortcut it took. He likes the drawing the tool renders today,
+  // so a scope of one hands back the very object `layout.js` shipped: no merge, no transform, no
+  // second opinion about a coordinate, and therefore the same digest, the same extent and the same
+  // pixels. scripts/smoke.mjs asserts it as an identity rather than as a resemblance.
+  //
+  // MORE THAN ONE IS ONE DRAWING AND NOT SEVEN NEXT TO EACH OTHER. render.union() merges the
+  // documents, collapses the objects the documents share and lays the result out with the build's
+  // own pack, and everything downstream meets a drawing of the shape it already knows.
+  //
+  // CACHED ON THE ADDRESS THE SCOPE HAS. The union costs a full layout, chips and all, and a
+  // reader stepping the week control would otherwise pay it on every press. The key is the scope
+  // and the altitude, which is exactly what the drawing is a function of.
+  var UNION = {};
+
+  // ---- the budget, issue 136, and it is one number set by measurement -------
+  // WHAT WAS MEASURED, BEFORE ANY NUMBER WAS CHOSEN. The union is drawn in sectors down one set of
+  // lanes, so its height is the sum of what the programmes in scope hold, and the page already has
+  // a hard arithmetic limit on height: viewport.js clamps the scale at 0.1, so a drawing taller
+  // than the canvas divided by that cannot be framed whole by `fit` at all. All 127 scopes were
+  // driven at the whole term at the sessions grain, at 390 by 844, which is the stricter of the
+  // two viewports because its canvas is 698 CSS px against 757. 121 of the 127 frame whole. Six do
+  // not, and they are the six largest: the five scopes of six programmes, at 77 session tiles and
+  // 7405 to 7439 units, and all seven, at 83 tiles and 8017 units. The largest scope that frames
+  // whole is 71 tiles at 6852 units.
+  //
+  // SO THE BUDGET IS 72 AND THE BOUNDARY IS MEASURED RATHER THAN CHOSEN. 71 frames on every one of
+  // the 127; 77 is the smallest count that does not. Nothing between them is reachable in this
+  // document, so the number sits in the gap the measurement left.
+  //
+  // IT DOES NOT REFUSE THE QUESTION THIS CARD EXISTS FOR, and that was the committee's own
+  // strongest objection against itself: a budget that starts refusing the flagship view as the
+  // records fill in would read as the tool punishing him for improving his data. Measured: the
+  // DENSEST three week window across all seven, 19 January to 8 February, draws 17 session tiles
+  // and 146 tiles in all, 2880 units, and frames at 24.6 per cent at 1536 and 21.7 at 390, which
+  // is within a hair of the Z-BL term drawing the tool already ships at 27.5 and 25.2.
+  // 177 of the 260 sessions hold no detailed record today, so the whole corpus filled in is about
+  // 3.1 times the drawn one and that same window would draw about 53. Still under 72. What the
+  // budget refuses is the WHOLE TERM over six or seven programmes, which is exactly the state the
+  // canvas provably cannot frame, and the two ways out of it are a window and the other altitude.
+  //
+  // THE REFUSAL IS PRINTED ON THE CONTROL THAT WAS REFUSED AND IS NEVER SILENT. `grain` greys its
+  // own `sessions` row and carries the count that broke it, the drawing is rendered at modules,
+  // and the control's own value says which altitude is on screen.
+  var SESSION_BUDGET = 72;
+
+  // What the scope, the window and the altitude would put in the two term lanes, counted off the
+  // documents rather than off a drawing, so it can be asked before anything is laid out. It is the
+  // same population the budget is stated in: one tile per cohort session at the sessions grain and
+  // one per module delivery at the modules grain.
+  var TERM_TYPES = { CohortSession: 1, ModuleDelivery: 1 };
+
+  function sessionLoad(sc, grain) {
+    var spec = term ? term.windowSpec() : null, n = 0;
+    sc.forEach(function (v) {
+      drawingAt(v, grain).nodes.forEach(function (x) {
+        if (!TERM_TYPES[x.type]) return;
+        if (spec && spec.governs(x) && spec.out(x)) return;
+        n++;
+      });
+    });
+    return n;
+  }
+
+  // The altitude the drawing is at, which is the one the address asks for unless the budget
+  // refuses it. A scope of one is never refused: the seven built artefacts are what they are and
+  // the largest of them is 28 tiles.
+  function effectiveGrain() {
+    var g = router.grain();
+    if (g !== 'sessions') return g;
+    return sessionLoad(router.scope(), 'sessions') > SESSION_BUDGET ? 'modules' : g;
+  }
+
+  function drawingFor(sc, grain) {
+    if (sc.length === 1) return drawingAt(sc[0], grain);
+    var key = sc.map(function (v) { return v.key; }).join('+') + '/' + grain;
+    if (!UNION[key]) {
+      UNION[key] = render.union(sc.map(function (v) {
+        return { key: v.key, code: v.code, label: v.label, drawing: drawingAt(v, grain) };
+      }));
+    }
+    return UNION[key];
+  }
+
   // A `viewAt` twin of this stood here, returning the view rather than its drawing, and #89 added
   // it in the same commit as this one without ever calling it. Removed by issue 106. Two
   // near-identical selectors where one is dead is how a later edit fixes the wrong one.
@@ -206,12 +291,12 @@
   // ---- the wiring itself -----------------------------------------------------
   // What happens when the address starts naming a different programme. The order is the whole of
   // it and each step is here because of what the step before it leaves behind.
-  function showView(v, grain) {
+  function showView(sc) {
     // The selection belongs to the drawing that is leaving. Cleared before the repaint, because
     // clearing repaints the selected tile and after a repaint that tile is gone: on six of the
     // seven routes the id would not even exist.
     selection.clear();
-    render.draw(drawingAt(v, grain || router.grain()));
+    render.draw(drawingFor(sc, effectiveGrain()));
     // The elements the reveal rules act on were all replaced, so the rules are read off the new
     // drawing and applied to the new handles.
     selection.bind(render.gfx());
@@ -315,13 +400,12 @@
     return best;
   }
 
-  function grainChanged(grain) {
+  function grainChanged() {
     if (!render || !selection || !viewport) return;
-    var v = router.view();
     var was = render.canonical() || render.drawing();
     var anchor = anchorId();
     selection.clear();
-    render.draw(drawingAt(v, grain));
+    render.draw(drawingFor(router.scope(), effectiveGrain()));
     selection.bind(render.gfx());
     stampDigest();
     router.describe();
@@ -381,6 +465,22 @@
   function windowChanged(spec) {
     if (!render || !selection || !viewport) return;   // a call before the wiring is finished
     selection.clear();
+    // Issue 136. THE WINDOW IS PART OF WHAT THE BUDGET IS OVER, so a window that takes the load
+    // under it gives the sessions grain back and one that pushes it over takes it away. That is
+    // the release valve the budget's whole argument rests on, and it has to be answered here
+    // because the altitude the drawing is at can change without the address changing at all.
+    var want = drawingFor(router.scope(), effectiveGrain());
+    if (want !== render.canonical()) {
+      render.setWindow(spec);
+      render.draw(want);
+      selection.bind(render.gfx());
+      stampDigest();
+      router.describe();
+      describeReadout();
+      describeGrain();
+      viewport.refit();
+      return;
+    }
     if (!render.setWindow(spec)) return;
     selection.bind(render.gfx());
     stampDigest();
@@ -389,6 +489,7 @@
     // screen moved, so the count of what is missing in it moved. Here rather than in the observer
     // because a window changes no class on the body.
     describeReadout();
+    describeGrain();
     viewport.refit();
   }
 
@@ -456,7 +557,15 @@
   render = ZM.render({
     svg: svg,
     canvas: canvas,
+    // The FIRST of the scope, and this argument is read for the type palette and the tile size
+    // alone: both are the build's and cannot differ between drawings. What goes on the canvas is
+    // the draw() below, which is the whole scope. Issue 136.
     drawing: drawingAt(router.view(), router.grain()),
+    // Issue 136. The seven, in the build's order, for the one hue apiece the union paints on a
+    // session and on a cohort while more than one programme is drawn. It is a list and not a
+    // palette: render.js spaces the hues over however many there are, so an eighth programme needs
+    // no colour chosen for it here or anywhere else.
+    programmes: VIEWS.map(function (v) { return { key: v.key, code: v.code, label: v.label }; }),
     // Issue 100. Every column x there is, across all seven drawings, because a column's INDEX is
     // what decides whether an edge is a hop to the next lane or a long arc slung under the row,
     // and the drawings do not all hold every column: Z-CFA has no instructor and no employer, so
@@ -519,7 +628,7 @@
   // draw() and not after, because after this card a window rebuilds the drawing rather than adding
   // a class to it, and a reader would otherwise watch the whole term appear and then collapse.
   render.setWindow(term.windowSpec());
-  render.draw(drawingAt(router.view(), router.grain()));
+  render.draw(drawingFor(router.scope(), effectiveGrain()));
   selection.bind(render.gfx());
 
   viewport = ZM.viewport({
@@ -620,7 +729,7 @@
     b.type = 'button';
     b.className = 'thitem';
     b.textContent = choice;
-    // The mark is an attribute and not a weight alone, for .pgitem's reason: which one is on has
+    // The mark is an attribute and not a weight alone, for the scope chip's reason: which one is on has
     // to survive a forced-colours mode and a reader who cannot see the difference.
     if (choice === theme) b.setAttribute('aria-current', 'true');
     b.addEventListener('click', function (e) {
@@ -909,13 +1018,28 @@
                ', ' + (rows.window ? windowWords() : 'the whole term')
       };
     }
-    var v = router.view();
+    // Issue 136. THE SUBJECT OF THE COUNT IS THE SCOPE AND NOT THE FIRST OF IT. On a drawing of
+    // several programmes a sentence reading `Z-IB, the whole term` over a count taken across all
+    // seven names one seventh of its own population, which is the exact defect #121 was filed
+    // about with the numbers the other way round. A scope of one reads as it always read.
+    // `view` is what a row of work is taken to, and a row that spans programmes has no single
+    // programme to be taken to, so it is null and destinationFor() falls back to the unscoped
+    // review, which is the reading that holds all seven.
+    var sc = router.scope();
     return {
       nodes: render.drawing().nodes,
-      view: v,
+      view: sc.length === 1 ? sc[0] : null,
       subject: 'the tiles on this drawing',
-      where: (v.label || v.code) + ', ' + windowWords()
+      where: scopeWords(sc) + ', ' + windowWords()
     };
+  }
+
+  // The scope in words, and it never sums anything: one programme is named, and more than one is
+  // counted and listed by code. Issue 136.
+  function scopeWords(sc) {
+    if (sc.length === 1) return sc[0].label || sc[0].code;
+    if (sc.length === VIEWS.length) return 'all ' + VIEWS.length + ' programmes';
+    return sc.length + ' programmes, ' + sc.map(function (v) { return v.code || v.key; }).join(', ');
   }
 
   // Whether one node carries this field flagged absent, on the same boundary gapsOf() draws: the
@@ -1175,20 +1299,44 @@
     return n;
   }
 
+  // ISSUE 136 GAVE THIS A SECOND CASE AND THE TWO ARE DIFFERENT SENTENCES. With one programme in
+  // scope it is what it has always been: how many modules that syllabus declares, how many
+  // templates fall in none of them, and what each altitude costs the two syllabus lanes. With
+  // several, none of those can be stated as one number without adding up seven syllabi, which is
+  // precisely the total across programmes this design has no cell for. What survives a merge is
+  // the tile count, which is arithmetic over the picture on screen and says nothing about the
+  // business, so that is what the control reports and it names the scope it is over.
   function grainFacts() {
-    var v = router.view();
+    var sc = router.scope(), v = sc[0];
     var mods = (v.alt && v.alt.counts && v.alt.counts.Module) || { drawn: 0, total: 0 };
     var loose = (v.alt && v.alt.counts && v.alt.counts.SessionTemplate) || { drawn: 0, total: 0 };
     var rel = (v.alt && v.alt.counts && v.alt.counts.Relationship) || { folded: 0, inside: 0 };
-    return { view: v, grain: router.grain(), modules: mods.drawn, ofModules: mods.total,
+    var st = 0, mt = 0, folded = 0, inside = 0;
+    sc.forEach(function (w) {
+      st += laneCount(w);
+      mt += laneCount(w.alt || w);
+      var r = (w.alt && w.alt.counts && w.alt.counts.Relationship) || {};
+      folded += r.folded || 0;
+      inside += r.inside || 0;
+    });
+    var asked = router.grain(), on = effectiveGrain();
+    return { view: v, scope: sc, grain: on, asked: asked,
+             refused: on !== asked ? asked : null,
+             load: sessionLoad(sc, 'sessions'), budget: SESSION_BUDGET,
+             modules: mods.drawn, ofModules: mods.total,
              loose: loose.drawn, ofSessions: loose.total,
-             sessionTiles: laneCount(v), moduleTiles: laneCount(v.alt || v),
-             folded: rel.folded || 0, inside: rel.inside || 0 };
+             sessionTiles: st, moduleTiles: mt,
+             folded: sc.length === 1 ? (rel.folded || 0) : folded,
+             inside: sc.length === 1 ? (rel.inside || 0) : inside };
   }
 
   // One sentence, written from the counts and used by the control, by its title and by the menu,
   // so the three cannot come to describe the same view differently.
   function grainWords(f) {
+    if (f.scope.length > 1) {
+      return f.moduleTiles + ' tiles in the two syllabus lanes at the modules grain against ' +
+             f.sessionTiles + ' at sessions, over ' + scopeWords(f.scope);
+    }
     if (!f.ofModules) {
       return 'the syllabus records no module on any of its ' + f.ofSessions +
              ' rows, so both altitudes draw the same ' + f.sessionTiles + ' tiles';
@@ -1203,11 +1351,27 @@
            f.sessionTiles;
   }
 
+  // ---- and where a refusal is printed, issue 136 -----------------------------
+  // ON THE CONTROL THAT WAS REFUSED, WITH THE NUMBER THAT BROKE IT, AND NEVER SILENTLY. The row
+  // for the altitude the budget will not draw is not a link: it is a plain box carrying the count
+  // beside its own name, `sessions 83`, so a reader who presses the control meets the reason
+  // rather than a link that does nothing. The drawing is at the other altitude and the value on
+  // the face of the control says so, which is the difference between a refusal and a silence.
   function grainRow(f, g) {
-    var a = document.createElement('a');
-    a.className = 'gritem';
-    a.href = router.grainRoute(g);
+    var refused = f.refused === g;
+    var a = document.createElement(refused ? 'span' : 'a');
+    a.className = 'gritem' + (refused ? ' gritem-off' : '');
+    if (!refused) a.href = router.grainRoute(g);
     a.textContent = g === 'modules' ? 'modules' : 'sessions';
+    if (refused) {
+      var n = document.createElement('span');
+      n.className = 'gritem-n';
+      n.textContent = f.load;
+      a.appendChild(n);
+      a.title = f.load + ' session tiles is over the budget of ' + f.budget +
+        ', which is the most this canvas can frame whole. Narrow the window or take a ' +
+        'programme out of the scope';
+    }
     if (g === f.grain) a.setAttribute('aria-current', 'true');
     a.addEventListener('click', function () { showGrainMenu(false); });
     return a;
@@ -1217,13 +1381,26 @@
     if (!grBtn) return;
     var f = grainFacts();
     if (grVal) grVal.textContent = f.grain;
-    grBtn.title = 'the altitude this drawing is drawn at: ' + grainWords(f) + '. Press to change';
+    grBtn.title = 'the altitude this drawing is drawn at: ' + grainWords(f) +
+      (f.refused ? '. The ' + f.refused + ' grain is ' + f.load + ' tiles, over the budget of ' +
+                   f.budget + ', so this drawing is at ' + f.grain
+                 : '') +
+      '. Press to change';
     if (!grMenu) return;
     grMenu.textContent = '';
     var head = document.createElement('p');
     head.className = 'gr-scope';
-    head.textContent = (f.view.label || f.view.code) + ': ' + grainWords(f) + '.';
+    head.textContent = (f.scope.length === 1 ? (f.view.label || f.view.code) + ': ' : '') +
+                       grainWords(f) + '.';
     grMenu.appendChild(head);
+    if (f.refused) {
+      var why = document.createElement('p');
+      why.className = 'gr-why';
+      why.textContent = 'The ' + f.refused + ' grain would draw ' + f.load +
+        ' tiles in the term lane, over the budget of ' + f.budget + ', which is the most this ' +
+        'canvas frames whole. Narrow the window, or take a programme out of the scope.';
+      grMenu.appendChild(why);
+    }
     var row = document.createElement('p');
     row.className = 'gr-row';
     router.grains.forEach(function (g) { row.appendChild(grainRow(f, g)); });
@@ -1454,6 +1631,43 @@
                digest: g.drawingDigest || 'unknown', w: g.w, h: g.h,
                menu: router.pgMenuOpen() };
     },
+    // Issue 136. THE SCOPE, AND WHAT THE UNION DID TO IT, read off the page rather than inferred
+    // from a screenshot of a very tall drawing. `keys` is the set in the build's order, which is
+    // the order the sectors are in; `shared` is every object drawn once for more than one
+    // programme, which is the whole mechanism that makes an inter-programme line exist; `sectors`
+    // is how many slices the canvas is in, so a driver can check that a programme added below
+    // moved nothing above it. `canon` is the digest of what is on the canvas, which for a scope of
+    // one is the build's own and for a union names the artefacts it was built from.
+    scope: function () {
+      var sc = router.scope(), c = render.canonical() || {};
+      var shared = (c.shared || []).slice();
+      var secs = {};
+      (c.nodes || []).forEach(function (n) { if (n.sec !== null && n.sec !== undefined) secs[n.sec] = 1; });
+      return {
+        keys: sc.map(function (v) { return v.key; }),
+        codes: sc.map(function (v) { return v.code; }),
+        route: router.scopeRoute(sc),
+        all: router.allRoute(),
+        n: sc.length, of: VIEWS.length,
+        union: sc.length > 1,
+        shared: shared,
+        sectors: Object.keys(secs).length,
+        programmes: (c.programmes || []).map(function (p) { return p.key; }),
+        canon: c.drawingDigest || 'unknown',
+        w: c.w, h: c.h,
+        // The chips as the reader meets them: what each says, where each goes and which are on.
+        // Read off the rendered rail, so an assertion about the fractions is an assertion about
+        // what is painted rather than about the model this file could recompute.
+        chips: Array.prototype.slice
+          .call(document.querySelectorAll('#pgrail .chip'))
+          .map(function (a) {
+            var k = a.querySelector('.chip-k'), f = a.querySelector('.chip-n');
+            return { code: k ? k.textContent : '', fraction: f ? f.textContent : null,
+                     href: a.getAttribute('href'),
+                     on: a.getAttribute('aria-current') === 'true' };
+          })
+      };
+    },
     // The theme, for the same reason view() is here: which of the three the reader is on, what
     // the machine is saying underneath it, and what the page actually resolved to are three
     // different claims, and a driver checking an override should be able to read all three off
@@ -1507,7 +1721,9 @@
     grain: function () {
       var f = grainFacts();
       var g = render.canonical() || render.drawing();
-      return { grain: f.grain, route: router.grainRoute(f.grain),
+      return { grain: f.grain, asked: f.asked, refused: f.refused,
+               load: f.load, budget: f.budget,
+               route: router.grainRoute(f.grain),
                digest: g.drawingDigest || 'unknown',
                modules: f.modules, ofModules: f.ofModules, loose: f.loose,
                tiles: f.grain === 'modules' ? f.moduleTiles : f.sessionTiles,

@@ -619,7 +619,6 @@ header {
    where the mark takes the body colour over the band, 9.7981 and 10.7853. It recedes by being
    six pixels wide rather than by being faint, which is the honest way for a mark to be quiet. */
 .hstate .linkbtn.rd::after,
-.pgpick > .linkbtn::after,
 #thtoggle::after {
   content: '';
   display: inline-block;
@@ -636,19 +635,16 @@ header {
 /* Open, and the mark turns over with the box. The one piece of motion in this header and it is
    50ms, which is short enough to be seen as the same object moving rather than as an animation. */
 .hstate .linkbtn.rd[aria-expanded="true"]::after,
-.pgpick > .linkbtn[aria-expanded="true"]::after,
 #thtoggle[aria-expanded="true"]::after {
   transform: rotate(180deg);
   opacity: 1;
 }
 
 .hstate .linkbtn.rd::after,
-.pgpick > .linkbtn::after,
 #thtoggle::after { transition: transform 50ms linear; }
 
 @media (prefers-reduced-motion: reduce) {
   .hstate .linkbtn.rd::after,
-  .pgpick > .linkbtn::after,
   #thtoggle::after { transition: none; }
 }
 
@@ -735,19 +731,16 @@ h1 {
    subtree that holds no popover. */
 .h-diagram {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   min-width: 0;
 }
 
-.h-diagram > .pgpick { flex: none; }
-
-.h-tail {
-  flex: 0 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+/* THE RAIL TAKES THE HEADING'S WHOLE WIDTH AND GIVES IT BACK BY SCROLLING, issue 136. #131 gave
+   the heading `flex: 1 1 auto` so that the readout beside it never folds, and the elision that
+   used to absorb the slack was on a clause of a sentence that no longer exists. The rail is the
+   item that gives way now, and what it does when it runs out of room is scroll rather than
+   elide, because a chip half painted is a fraction half painted. */
+.h-diagram > .pgrail { flex: 1 1 auto; }
 
 /* AND WHERE THE CLAUSE RUNS OUT, THE ROW BREAKS RATHER THAN THE NAME. Issue 131, and this
    breakpoint is a measurement rather than a round number. The one row layout needs the header's
@@ -770,109 +763,91 @@ h1 {
 @media (min-width: 761px) and (max-width: 980px) {
   .hrow { flex-wrap: wrap; gap: 6px 20px; }
   h1 { flex: 1 1 100%; }
-  .h-diagram { display: inline; }
-  .h-tail {
-    display: inline;
-    overflow: visible;
-    white-space: normal;
-    text-overflow: clip;
-  }
 }
 
-/* ---- the programme picker ------------------------------------------------
-   Seven drawings, one control, and no row spent on it. The heading already had to name the
-   programme on screen, so the name is the button: it sits inside the sentence, it is a .linkbtn
-   like the rest of the page's controls, and the header is exactly as tall with it as without.
-   Nothing here is a new control style. The list under it is seven ordinary links to the seven
-   addresses, so the keyboard reaches them by tabbing, the middle button opens one in a tab and
-   the address bar shows which one is drawn. Issue 66, on top of issue 32's reclaimed row and
-   issue 57's protection of it; issue 77 moved it from the subtitle into the heading when the two
-   became one line, and it is the same control in the same sentence.
+/* ---- the scope rail, issue 136 --------------------------------------------
+   EIGHT CHIPS WHERE ONE CONTROL AND ITS MENU USED TO BE, and the row is exactly as tall. Every
+   chip is 26 CSS px, which is what issue 77 took every control on this page to and what the width
+   assertion holds all of them to at every viewport; the rail adds no height and opens no box, so
+   nothing in this header hangs off it and the canvas under it is the size it was.
 
-   The button carries aria-expanded and .linkbtn already answers that with a weight, which is
-   the same "the control says what state it is in" the theme toggle and the ghosts chip use. */
-.pgpick {
-  position: relative;
-  display: inline-block;
-  /* The horizontal padding is the nav's answer to a row with gaps and the wrong answer inside a
-     sentence: the comma after the name read as though it had a space in front of it, and the
-     first word of the heading started indented by the padding of a control nobody can see. The
-     box stays, because it is what the focus ring is drawn around and what the reader's finger
-     lands on, and the sentence takes it back on both sides. */
-  margin: 0 -5px;
+   ONE LINE PER CHIP AT EVERY WIDTH, INCLUDING THE PHONE, and that is a decision against the
+   design's own sketch. Two lines would have fitted the eight across 390px without scrolling, and
+   it would have put one control in this header at forty pixels beside eight at twenty six: the
+   claim this repository holds itself to is that every control in the row is ONE height, and a
+   chip that breaks it to avoid a scroll has spent a gate to buy a gesture. The rail scrolls
+   sideways inside itself instead. That scroll is inside the box and never the page's: the
+   `scrollWidth === clientWidth` assertion at 390 is what says so.
+
+   THE FRACTIONS TRAVEL TO THE PHONE UNCHANGED, which is the one thing the small screen was not
+   allowed to drop. Hiding them behind a press would delete the only thing stopping a mixed
+   drawing being read as a fact about the business, on the device where a reader is most likely to
+   glance rather than study. */
+.pgrail {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* The scrollbar is a phone affordance and a desktop distraction, and at every width the rail
+     either fits or is the one box on this row a thumb is expected to push. */
+  scrollbar-width: none;
 }
 
-/* A control in the middle of a sentence sits on the sentence's own type and not on the nav's: at
-   the nav's 12px inside a 14px heading it read as a chip dropped into the line, and the point of
-   issue 66 is that these are the words the sentence was already saying. Everything about the box
-   is the nav's, so it is 26 CSS px tall like every other control on the page; only the horizontal
-   padding is cut, because the height is the target size and is not negotiable. */
-.pgpick > .linkbtn {
-  font: inherit;
-  line-height: 18px;
+.pgrail::-webkit-scrollbar { display: none; }
+
+/* A chip is the nav's own control box with a second value inside it, so it inherits the height,
+   the radius and the focus ring from nothing typed twice: the numbers here are the ones .linkbtn
+   already carries, and a chip added later is the right size without anybody remembering. */
+.chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   min-height: 26px;
-  padding: 3px 4px;
-  color: var(--i-primary);
-}
-
-/* Every other .linkbtn answers aria-expanded with a weight. This one is already at the heading's
-   weight and has nowhere to go, so the open state is marked the way a link marks itself. */
-.pgpick > .linkbtn[aria-expanded="true"] { text-decoration: underline; }
-
-/* Absolute, so opening it moves nothing: the sentence, the header's height and the canvas under
-   it are the same before and after. The rung is --z-pop, over the canvas and the detail panel and
-   under the capture popover, and it is inside the header, so a sheet cannot reach it either way.
-   The ladder and its reasons are in the palette block at the top of this file. Issue 86. */
-.pgmenu {
-  position: absolute;
-  top: calc(100% + 5px);
-  left: 0;
-  z-index: var(--z-pop);
-  min-width: 100%;
-  max-width: calc(100vw - 40px);
-  padding: 4px;
-  background: var(--bg-panel);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  box-shadow: var(--elev-1);
-}
-
-.pgmenu[hidden] { display: none; }
-
-/* The gutter is not padding. The programme on screen is marked in it with a character, so which
-   one it is survives a forced-colours mode and a reader who cannot see the weight or the blue. */
-.pgitem {
-  position: relative;
-  display: block;
-  padding: 4px 10px 4px 20px;
+  min-width: 26px;
+  padding: 3px 7px;
+  justify-content: center;
+  border: 1px solid transparent;
   border-radius: var(--radius);
   font-size: var(--fs-sm);
-  color: var(--fg-body);
+  font-weight: 400;
+  line-height: 18px;
+  color: var(--i-primary);
   text-decoration: none;
   white-space: nowrap;
 }
 
-.pgitem:hover {
+.chip:hover {
   background: var(--tint-hover);
   text-decoration: none;
 }
 
-.pgitem:focus-visible {
+.chip:focus-visible {
   outline: 2px solid var(--i-primary);
   outline-offset: -2px;
 }
 
-.pgitem[aria-current="true"] {
+/* IN SCOPE IS A FILL AND A RULE AND NOT A WEIGHT ALONE, for .pgitem's reason one card on: which
+   chips are on has to survive a forced-colours mode and a reader who cannot see the blue. The
+   attribute is what the forced-colours block at the foot of this file answers. */
+.chip[aria-current="true"] {
+  border-color: var(--i-primary);
+  background: var(--tint-hover);
   font-weight: 600;
-  color: var(--i-primary);
+  color: var(--fg-body);
 }
 
-.pgitem[aria-current="true"]::before {
-  content: "\00b7";
-  position: absolute;
-  left: 9px;
-  font-weight: 700;
+/* The fraction is the population and not the name, so it steps back from it and takes tabular
+   figures: eight chips in a row with proportional digits sit at eight different rhythms and the
+   row reads as noise rather than as one instrument. */
+.chip-n {
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
 }
+
+.chip[aria-current="true"] .chip-n { color: var(--fg-body); }
 
 /* ---- the time window, issue 90 --------------------------------------------------
    The same disclosure the programme picker is, in the same three listeners and with the same
@@ -1274,6 +1249,32 @@ h1 {
 /* The theme buttons carry the page's own font at the nav's size otherwise, because a button does
    not inherit the family the way an anchor does. */
 .thitem { font-family: inherit; background: transparent; cursor: pointer; }
+
+/* ---- and the altitude the budget will not draw, issue 136 -----------------
+   IT KEEPS ITS PLACE AND ITS SIZE AND LOSES ITS LINK, which is `.linkbtn:disabled`'s rule one
+   box over: a control that vanishes and reappears is harder to find than one that greys out, and
+   an altitude the reader cannot have has to be visible for the number beside it to mean anything.
+   The count is what disqualified it and it is ON the row, so the refusal and its reason are the
+   same object rather than a greyed box and a sentence somewhere else. */
+.gritem-off {
+  color: var(--c-gray-3);
+  border-color: var(--rule-muted);
+  cursor: default;
+}
+
+.gritem-off:hover { background: none; }
+
+.gritem-n {
+  margin-left: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The sentence under the row, in the place .gr-foot already occupies at the other end of the box
+   and in the same voice: what the budget is, what broke it, and the two ways out. */
+.gr-why {
+  margin: 0 0 6px;
+  color: var(--fg-muted);
+}
 
 /* What the fold cost, at the foot, in the same place the gap list puts its definition. A
    collapse that did not say how many relationships it drew as one line would be an aggregate
@@ -2272,13 +2273,10 @@ body.fb-mode .fb-popover select { cursor: pointer; }
      and on a phone there is a whole line for the sentence and it should wrap into it as it always
      did. Issue 131. */
   h1 { flex: 1 1 100%; }
-  .h-diagram { display: inline; }
-  .h-tail {
-    display: inline;
-    overflow: visible;
-    white-space: normal;
-    text-overflow: clip;
-  }
+  /* The rail is the whole heading on a phone, and it is the one box in this header a thumb is
+     meant to push sideways: eight chips carrying their fractions are wider than 390px and the
+     fractions are the half that must not be dropped to make them fit. Issue 136. */
+  .pgrail { -webkit-overflow-scrolling: touch; }
   /* The five controls in the nav are within a few pixels of the width of a 390px screen once
      they are 24 by 24, so the padding that separates them in the row comes down here and the box
      stays the size a finger needs. The picker inside the heading keeps its own, tighter, padding

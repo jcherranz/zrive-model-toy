@@ -37,6 +37,19 @@
 
   var PGPREFIX = '#/p/';
   var ROSTER_ROUTE = '#/students';
+  // ---- scope is a set, issue 136 ---------------------------------------------
+  // THE PROGRAMME WAS THE ADDRESS AND IT IS NOW A SET IN THE ADDRESS. Until this card `#/p/ZSC`
+  // named one drawing and there was no way to write down two, so "this week, across several
+  // programmes" was unaskable by construction rather than by oversight. A set costs the parser one
+  // separator and the reader nothing: `#/p/ZIB` is the same address it always was and resolves to
+  // the same drawing, `#/p/ZIB+ZSC` is two, and `#/p/ALL` is every programme the document holds.
+  //
+  // `ALL` IS A WORD AND NOT A LIST, deliberately. A bookmark of all seven should still be all
+  // eight the day an eighth programme is built, and a list of the seven keys frozen into somebody's
+  // bookmark bar is a bookmark that silently stops being what it says. The word is the only token
+  // in this file that is not a programme code, and `normCode` cannot produce it from any of them.
+  var ALL = 'ALL';
+  var JOIN = '+';
 
   function normCode(s) {
     return String(s === null || s === undefined ? '' : s).toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -61,6 +74,13 @@
     var onGrain = opts.onGrain;
     var onDescribed = opts.onDescribed;
 
+    // WHAT AN ADDRESS WITH NO OPINION DRAWS, AND ISSUE 136 TURNED IT OVER. It was the one
+    // programme the document names as its default, and it is now every programme the document
+    // holds. That is the inversion this card exists for: the cross-programme drawing is what the
+    // tool is at rest, and one programme is a scope the reader narrows to, rather than the other
+    // way round. `GI.default` is not deleted with it; it is what decides which of the seven is the
+    // FIRST of the seven for everything that still has to name one, the cohort behind #/students
+    // among them.
     var DEFAULT_VIEW = (function () {
       var want = normCode(opts.defaultKey);
       for (var i = 0; i < VIEWS.length; i++) if (normCode(VIEWS[i].key) === want) return VIEWS[i];
@@ -76,12 +96,37 @@
       return null;
     }
 
+    // A scope is always in the build's own order and never in the order the address happened to
+    // write it, which is what makes `#/p/ZSC+ZIB` and `#/p/ZIB+ZSC` the same picture rather than
+    // two pictures of the same set. The sectors are laid out in that order too, so the order is
+    // the one thing about the union a reader can rely on.
+    function orderScope(list) {
+      var seen = {}, out = [];
+      VIEWS.forEach(function (v) {
+        list.forEach(function (w) {
+          if (w === v && !seen[v.key]) { seen[v.key] = true; out.push(v); }
+        });
+      });
+      return out;
+    }
+
+    function scopeByCodes(seg) {
+      if (normCode(seg) === ALL) return VIEWS.slice();
+      var parts = String(seg).split(JOIN), got = [];
+      parts.forEach(function (p) {
+        var v = viewByCode(p);
+        if (v) got.push(v);
+      });
+      return orderScope(got);
+    }
+
     // null means "this address is not about a programme", which is not the same answer as the
-    // default and must not be collapsed into it.
-    function viewFromHash(h) {
+    // scope and must not be collapsed into it.
+    function scopeFromHash(h) {
       h = String(h || '');
       if (h.slice(0, PGPREFIX.length).toLowerCase() !== PGPREFIX) return null;
-      return viewByCode(h.slice(PGPREFIX.length).split('/')[0].split('?')[0]) || DEFAULT_VIEW;
+      var got = scopeByCodes(h.slice(PGPREFIX.length).split('/')[0].split('?')[0]);
+      return got.length ? got : VIEWS.slice();
     }
 
     // ---- the altitude, issue 89 ------------------------------------------------
@@ -111,15 +156,27 @@
     // watchdog B's `#/p/Z-ZIB` false alarm left behind: a route constructed in a second place is
     // a route that can be constructed wrong. The instance document ships each view's own `route`
     // and this is the one function allowed to put a grain on the end of it.
-    function addressFor(v, g) {
-      return (v.route || (PGPREFIX + v.key)) + (g === 'modules' ? '/modules' : '');
+    // Issue 136. A scope of one is written the way it has always been written, off the view's own
+    // `route`, so every address a reader has bookmarked, every link the panel writes and every one
+    // of the fourteen the board and the sheet name resolve to the byte-identical drawing they
+    // resolved to before this card. Only a set of more than one is spelled here.
+    function addressFor(sc, g) {
+      var tail = (g === 'modules' ? '/modules' : '');
+      if (sc.length === 1) return (sc[0].route || (PGPREFIX + sc[0].key)) + tail;
+      if (sc.length === VIEWS.length) return PGPREFIX + ALL + tail;
+      return PGPREFIX + sc.map(function (v) { return v.key; }).join(JOIN) + tail;
     }
 
     // A VIEW IS CHOSEN BEFORE THE FIRST DRAW AND NEVER AFTER IT. Resolving the address here, at
     // construction, is what makes a deep link draw its own programme once rather than draw the
     // default and then replace it. A reader who follows a link to #/p/ZCFA and a reader who
     // clicks their way there see the same page produced by the same path.
-    var pgView = viewFromHash(location.hash) || DEFAULT_VIEW;
+    var pgScope = scopeFromHash(location.hash) || VIEWS.slice();
+    // The one of the scope everything that still has to name a single programme names: the student
+    // list's cohort, the tab title's code, and the drawing the panel's own links are built from.
+    // It is the first in the build's order, which on the scope the page opens on is the document's
+    // own default and on a scope of one is that one.
+    var pgView = pgScope[0];
     // Issue 89, and it is resolved here at construction for the reason the view above it is: a
     // reader following a link to a collapsed drawing should get the collapsed drawing on the
     // FIRST paint, not the expanded one replaced a frame later.
@@ -304,130 +361,174 @@
       window.addEventListener('hashchange', rosterRoute);
     }
 
-    // ---- moving between the seven ----------------------------------------------
-    // The control is the programme's own name in the subtitle, which was already the sentence
-    // saying what is on screen. It costs the header no row and the nav no item, which was the
-    // constraint: issue 32 reclaimed a row by deleting the legend and issue 57 protected it, and a
-    // sixth .linkbtn in the nav would have pushed `board` towards the edge at 390px, where the nav
-    // already wraps when capture mode widens the feedback toggle.
+    // ---- the scope rail, issue 136 ----------------------------------------------
+    // WHAT WENT, AND WHY A MENU COULD NOT DO THIS. The control here was the programme's own name in
+    // the heading, and pressing it opened the other six as links. It was the right control for the
+    // question it answered, which is "which one of the seven", and that is the question this card
+    // says was the wrong question: a control that CLOSES on a choice cannot express a set, and the
+    // set is the whole capability the tool was missing. Eight chips, always visible, multi-select.
     //
-    // WHAT PRESSING IT OPENS IS SEVEN LINKS AND NOT A WIDGET. The theme toggle cycles because it
-    // has three states and any of them is one press away; seven is not, and a reader looking for
-    // one programme should not have to walk past four others to reach it. Ordinary anchors to the
-    // seven addresses mean the keyboard, the middle mouse button, the context menu and the back
-    // button all work without this file implementing any of them, and the navigation goes through
-    // the hash exactly as it would if the reader had typed it, so there is one code path into a
-    // view and not two.
+    // EACH CHIP CARRIES ITS OWN POPULATION AT REST AND THAT IS NOT DECORATION. Five of the seven
+    // documents hold a sample of their programme's term and two hold all of it, so a merged drawing
+    // read without those fractions is a picture that invites being read as a fact about the
+    // business. `IB 6/79` beside `BL 28/28` is the honesty constraint made ambient, and it travels
+    // to the phone unchanged: hiding it behind a press on the small screen would delete the one
+    // thing stopping the mixed drawing being misread, on the device where a reader is most likely
+    // to glance rather than study. The numbers are the view's own `counts` block and are written
+    // here from it, never typed, for the reason every other number in this file is read: a figure
+    // typed into the page is right on one of seven.
+    //
+    // THEY ARE ANCHORS, WHICH IS THE ONE THING KEPT WHOLE FROM THE CONTROL THIS REPLACES. Each chip
+    // is an ordinary link to the address the scope would become, so the keyboard, the middle mouse
+    // button, the context menu and the back button all work without this file implementing any of
+    // them, and there is one code path into a drawing rather than two: the hash changes and the one
+    // listener below answers it. Nothing here decides what is drawn.
+    //
+    // A SCOPE CANNOT BE EMPTIED. The chip that is the only one selected links to its own address,
+    // so pressing it changes nothing rather than leaving the reader looking at no programme at all,
+    // and `All` is one press away from every state.
     //
     // A ROUTE CHANGE REFITS THE VIEW, and the alternative was to keep the reader's pan and zoom.
     // Keeping it is defensible while a switch is between two pictures of the same thing; these are
-    // seven different drawings of seven different programmes, 576 to 610 units tall, with different
-    // node counts and one of them missing a whole lane. A reader zoomed into the agreement lane of
-    // one and moved to another would land on a rectangle of another drawing chosen by arithmetic
-    // rather than by meaning. Two further reasons, both about not lying to the reader: the zoom
-    // readout is a percentage OF THE FIT, so carrying k across a change of extent silently changes
-    // what the number means, and a refit makes a followed link and a clicked control produce the
-    // same screen, which is what lets somebody paste an address and know what the other person saw.
-    var pgBtn = document.getElementById('pgbtn');
-    var pgMenu = document.getElementById('pgmenu');
-    var pgItems = [];
+    // seven different drawings of seven different programmes and their unions, 587 to some
+    // thousands of units tall, with different node counts and one of them missing a whole lane. A
+    // reader zoomed into the agreement lane of one and moved to another would land on a rectangle
+    // of another drawing chosen by arithmetic rather than by meaning. Two further reasons, both
+    // about not lying to the reader: the zoom readout is a percentage OF THE FIT, so carrying k
+    // across a change of extent silently changes what the number means, and a refit makes a
+    // followed link and a clicked control produce the same screen, which is what lets somebody
+    // paste an address and know what the other person saw.
+    var pgRail = document.getElementById('pgrail');
+    var pgChips = [];
 
-    function pgMenuOpen() { return !!pgMenu && !pgMenu.hidden; }
-
-    function openPgMenu() {
-      if (!pgMenu || pgMenuOpen()) return;
-      pgMenu.hidden = false;
-      if (pgBtn) pgBtn.setAttribute('aria-expanded', 'true');
+    function inScope(v) {
+      for (var i = 0; i < pgScope.length; i++) if (pgScope[i] === v) return true;
+      return false;
     }
 
-    function closePgMenu(refocus) {
-      if (!pgMenuOpen()) return;
-      pgMenu.hidden = true;
-      if (pgBtn) pgBtn.setAttribute('aria-expanded', 'false');
-      if (refocus && pgBtn && pgBtn.focus) pgBtn.focus();
+    // The scope this chip would leave behind: itself removed if it is in, itself added if it is
+    // not, and itself alone if taking it out would leave nothing.
+    function toggled(v) {
+      if (!inScope(v)) return orderScope(pgScope.concat([v]));
+      if (pgScope.length === 1) return pgScope.slice();
+      return pgScope.filter(function (w) { return w !== v; });
     }
 
-    function buildPgMenu() {
-      if (!pgMenu) return;
-      pgMenu.textContent = '';
-      pgItems = [];
+    // The short name on the chip. `Z-` is the company's own prefix on all seven codes and says
+    // nothing that tells one from another, so it is dropped from the chip and kept everywhere the
+    // code is the subject of a sentence. Read off the code rather than held as an eighth field.
+    function shortCode(v) {
+      return String(v.code || v.key).replace(/^Z-/, '');
+    }
+
+    // The fraction, in the same grammar the heading used to state for one programme: how many of
+    // the programme's own sessions this document holds. A programme whose document holds all of
+    // them reads `28/28`, which is a legitimate screen beside `6/79` and is the pair of numbers
+    // this design refuses to reduce to one.
+    function fractionOf(v) {
+      var b = (v.counts || {}).CohortSession;
+      if (!b || !b.total) return '';
+      return b.drawn + '/' + b.total;
+    }
+
+    function chipTitle(v) {
+      var b = (v.counts || {}).CohortSession, label = v.label || v.name || v.code;
+      var pop = (!b || !b.total) ? label
+        : label + ', ' + (b.drawn >= b.total
+            ? 'all ' + b.total + ' of its sessions drawn'
+            : b.drawn + ' of its ' + b.total + ' sessions drawn');
+      if (!inScope(v)) return pop + '. Press to add it to the scope';
+      if (pgScope.length === 1) return pop + '. It is the whole scope';
+      return pop + '. Press to take it out of the scope';
+    }
+
+    function buildRail() {
+      if (!pgRail) return;
+      pgRail.textContent = '';
+      pgChips = [];
+      var all = document.createElement('a');
+      all.className = 'chip chip-all';
+      all.appendChild(el('span', 'chip-k', 'All'));
+      pgRail.appendChild(all);
+      pgChips.push({ v: null, a: all });
       VIEWS.forEach(function (v) {
         var a = document.createElement('a');
-        a.className = 'pgitem';
-        // Issue 89. The href carries the grain the reader is on, so moving between programmes
-        // keeps the altitude. It is rewritten in describeProgramme() on every change rather than
-        // frozen here, because the menu is built once and the grain is not.
-        a.href = addressFor(v, pgGrain);
-        a.textContent = v.label || v.name || v.code;
-        // The list closes on the way out. The navigation itself is the anchor's, so nothing here
-        // decides which view is drawn: the hash changes, and the one listener below answers it.
-        a.addEventListener('click', function () { closePgMenu(false); });
-        pgMenu.appendChild(a);
-        pgItems.push({ v: v, a: a });
+        a.className = 'chip';
+        a.appendChild(el('span', 'chip-k', shortCode(v)));
+        var f = fractionOf(v);
+        if (f) a.appendChild(el('span', 'chip-n', f));
+        pgRail.appendChild(a);
+        pgChips.push({ v: v, a: a });
+      });
+    }
+
+    function el(tag, cls, text) {
+      var e = document.createElement(tag);
+      e.className = cls;
+      e.textContent = text;
+      return e;
+    }
+
+    // Every chip's address and every chip's state, rewritten on every change of scope and of
+    // grain, because both are in the address the chip links to.
+    function describeRail() {
+      pgChips.forEach(function (c) {
+        var target = c.v ? toggled(c.v) : VIEWS.slice();
+        c.a.href = addressFor(target, pgGrain);
+        var on = c.v ? inScope(c.v) : pgScope.length === VIEWS.length;
+        if (on) c.a.setAttribute('aria-current', 'true');
+        else c.a.removeAttribute('aria-current');
+        c.a.title = c.v ? chipTitle(c.v)
+          : (pgScope.length === VIEWS.length
+              ? 'all ' + VIEWS.length + ' programmes are drawn'
+              : 'draw all ' + VIEWS.length + ' programmes');
       });
     }
 
     // ---- how much of the programme the drawing is, issue 122 --------------------
     // THE MODEL DECLARES IT AND THE PAGE HAD NEVER SAID IT WHERE A COUNT COULD BE READ. Every
     // view carries a `counts` block written by the build, and on five of the seven the cohort
-    // sessions in it read `drawn` well under `total`. The band captions on the canvas say so and
-    // nothing else did, so every number in the header was a count over a set the reader had no
-    // reason to think was partial.
+    // sessions in it read `drawn` well under `total`. That card put the clause in the heading,
+    // beside the programme name, because every other number in the header was otherwise a count
+    // over a set the reader had no reason to think was partial.
     //
-    // THE SESSIONS GRAIN IS THE POPULATION AT BOTH ALTITUDES, which is why this reads the view
-    // rather than the drawing on screen. `pgView` is always the sessions view, app.js's
-    // pairGrains() sees to that, and which rows the DOCUMENT holds is a property of the document
-    // and not of the altitude it is drawn at: collapsing Z-IB into modules re-expresses the same
-    // six sessions and does not acquire the other seventy three.
-    //
-    // AND THE COMPLETE CASE SAYS SO IN WORDS RATHER THAN BY SAYING NOTHING. #120's idiom is that
-    // a denominator appears only when something is taking rows off, and it works there because
-    // the reading is always on screen and only its shape changes. A clause that vanished would
-    // leave a reader unable to tell a complete programme from a card that forgot, which is the
-    // state this one was filed about. So both cases are printed and the two read differently:
-    // `all 25 of its sessions` against `6 of its 79 sessions`.
-    function sampleClause(v) {
-      var b = (v.counts || {}).CohortSession;
-      if (!b || !b.total) return '';
-      return b.drawn >= b.total
-        ? ', all ' + b.total + ' of its sessions'
-        : ', ' + b.drawn + ' of its ' + b.total + ' sessions';
-    }
+    // ISSUE 136 MOVED IT AND MULTIPLIED IT BY SEVEN. The heading named one programme and could
+    // carry one clause; the rail names eight chips and every one of them carries its own, at rest,
+    // at every width. `sampleClause` is gone rather than left standing with no caller, and
+    // `fractionOf` above is what replaces it. The finding is the same finding and it is now stated
+    // about every programme in scope instead of about the one on screen.
 
-    // Every place on the page that names the programme, written from the view rather than typed
+    // Every place on the page that names the programme, written from the scope rather than typed
     // into index.html, because a number or a name typed into that file is right on one of the
     // seven.
+    //
+    // AND WHAT IT SAYS WHEN THE SCOPE IS MORE THAN ONE, issue 136. Three things here name a single
+    // programme: the cohort behind #/students, the tab title, and the accessible name of the whole
+    // drawing. The first two go on naming the first of the scope, because they are about a list of
+    // students and about telling two tabs apart and both of those need exactly one answer. The
+    // third names the set, because the drawing IS the set and a screen reader told it is a diagram
+    // of Z-IB would be told something false about six sevenths of it.
     function describeProgramme() {
       var v = pgView;
       var G = drawing();
       var label = v.label || v.name || v.code;
-      if (pgBtn) {
-        pgBtn.textContent = label;
-        pgBtn.title = 'programme drawn: ' + label + '. Press for the other ' + (VIEWS.length - 1);
-      }
-      pgItems.forEach(function (it) {
-        it.a.href = addressFor(it.v, pgGrain);
-        if (it.v === v) it.a.setAttribute('aria-current', 'true');
-        else it.a.removeAttribute('aria-current');
-      });
+      describeRail();
 
       // The cohort, off its own node rather than out of a second list of names. The code is
-      // dropped from the front of it because the sentence has just said the code.
+      // dropped from the front of it because the sentence around it has just said the code.
       var coh = null;
       G.nodes.forEach(function (n) { if (n.type === 'Cohort' && !coh) coh = n; });
       var cohLabel = coh ? coh.label : '';
       if (v.code && cohLabel.indexOf(v.code + ' ') === 0) {
         cohLabel = cohLabel.slice(v.code.length + 1);
       }
-      var cohEl = document.getElementById('subcohort');
-      if (cohEl) cohEl.textContent = cohLabel;
 
-      // HOW MUCH OF THE PROGRAMME THIS DRAWING HOLDS, issue 122, and it is the same rule as the
-      // cohort above it: read off the view rather than typed, because a number typed here is right
-      // on one of seven. The argument for it being in the heading at all is in index.html beside
-      // the markup.
-      var sampEl = document.getElementById('subsample');
-      if (sampEl) sampEl.textContent = sampleClause(v);
+      // THE HEADING'S SENTENCE WENT WITH THE PICKER, issue 136, and its two clauses are not lost.
+      // It read `Z-IB Investment Banking, cohort 1Q26, 6 of its 79 sessions, as instances`, and of
+      // that the sample clause is now on every chip in the rail, one per programme instead of one
+      // for the one on screen, and the cohort is on the cohort's own tile where it always also
+      // was. What a set cannot have is a single cohort, so the clause could not have survived a
+      // scope of seven in any case: it would have named one of them over a drawing of all.
 
       // The heading's third variant, the one #/students brings up. It names the programme by its
       // code rather than by its label because the sentence around it is short and there are seven
@@ -447,9 +548,11 @@
 
       // The drawing has no text in it saying what it is of, so this is the only name a screen
       // reader gets for the whole svg, and the tab title is what a second window is told apart by.
-      svg.setAttribute('aria-label',
-        'Instance diagram of programme ' + label + (cohLabel ? ', cohort ' + cohLabel : ''));
-      document.title = (v.code ? v.code + ' · ' : '') + PAGE_TITLE;
+      svg.setAttribute('aria-label', pgScope.length === 1
+        ? 'Instance diagram of programme ' + label + (cohLabel ? ', cohort ' + cohLabel : '')
+        : 'Instance diagram of ' + pgScope.length + ' programmes, ' +
+          pgScope.map(function (w) { return w.code || w.key; }).join(', '));
+      document.title = (v.code ? v.code + ' \u00b7 ' : '') + PAGE_TITLE;
 
       // The sentence changed length, and below the breakpoint that can change how many lines the
       // header takes. The custom property that keeps the detail panel off the header's own buttons
@@ -457,81 +560,33 @@
       if (onDescribed) onDescribed();
     }
 
-    if (pgBtn && pgMenu) {
-      buildPgMenu();
-
-      pgBtn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        if (pgMenuOpen()) closePgMenu(false);
-        else openPgMenu();
-      });
-      // Down into the list from the button, which is the disclosure keyboard and costs one line.
-      pgBtn.addEventListener('keydown', function (e) {
-        if (e.key !== 'ArrowDown' && e.key !== 'Down') return;
-        e.preventDefault();
-        openPgMenu();
-        if (pgItems.length) pgItems[0].a.focus();
-      });
-      pgMenu.addEventListener('keydown', function (e) {
-        var i = pgItems.map(function (it) { return it.a; }).indexOf(document.activeElement);
-        if (e.key === 'ArrowDown' || e.key === 'Down') {
-          e.preventDefault();
-          if (pgItems.length) pgItems[Math.min(pgItems.length - 1, i + 1)].a.focus();
-        } else if (e.key === 'ArrowUp' || e.key === 'Up') {
-          e.preventDefault();
-          if (i <= 0) { if (pgBtn.focus) pgBtn.focus(); }
-          else pgItems[i - 1].a.focus();
-        } else if (e.key === 'Home') {
-          e.preventDefault();
-          if (pgItems.length) pgItems[0].a.focus();
-        } else if (e.key === 'End') {
-          e.preventDefault();
-          if (pgItems.length) pgItems[pgItems.length - 1].a.focus();
-        }
-      });
-      // Anywhere else on the page closes it, and so does tabbing out of it. Both are read off the
-      // one container, so neither has to know what the list is made of.
-      document.addEventListener('click', function (e) {
-        var t = e.target;
-        if (t && t.closest && t.closest('#pgpick')) return;
-        closePgMenu(false);
-      });
-      document.addEventListener('focusin', function (e) {
-        var t = e.target;
-        if (t && t.closest && t.closest('#pgpick')) return;
-        closePgMenu(false);
-      });
-      // Escape, in the capture phase, ahead of the bubble listener that clears the selection: a
-      // reader who opens the list and changes their mind must not also lose the node they had open
-      // behind it. Capture mode is left alone for the reason the student list leaves it alone,
-      // that Escape is how a reader gets out of capture mode.
-      document.addEventListener('keydown', function (e) {
-        if (e.key !== 'Escape' || !pgMenuOpen()) return;
-        if (document.body.classList.contains('fb-mode')) return;
-        e.preventDefault();
-        e.stopPropagation();
-        closePgMenu(true);
-      }, true);
-    }
+    buildRail();
 
     // One listener, and it answers only the addresses that are about a programme. #/students and
     // #/board reach it too and it says nothing to them, which is what leaves the drawing where it
     // was while a reader looks at the list or the board.
     window.addEventListener('hashchange', function () {
-      var v = viewFromHash(location.hash);
-      if (!v) return;
+      var sc = scopeFromHash(location.hash);
+      if (!sc) return;
       // Issue 89. TWO THINGS THE ADDRESS CAN CHANGE AND THEY COST DIFFERENT WORK. A change of
-      // programme replaces the drawing, the selection, the roster and the gaps; a change of grain
-      // replaces the drawing and the selection and leaves the programme's own chrome exactly
-      // where it is. Reported separately so that the wiring can do the smaller of the two when
-      // that is what happened, and so that collapsing does not reset the reader's roster.
+      // scope replaces the drawing, the selection, the roster and the gaps; a change of grain
+      // replaces the drawing and the selection and leaves the scope's own chrome exactly where it
+      // is. Reported separately so that the wiring can do the smaller of the two when that is what
+      // happened, and so that collapsing does not reset the reader's roster.
       var g = grainFromHash(location.hash) || 'sessions';
-      var moved = v !== pgView, altitude = g !== pgGrain;
-      pgView = v;
+      var moved = !sameScope(sc, pgScope), altitude = g !== pgGrain;
+      pgScope = sc;
+      pgView = sc[0];
       pgGrain = g;
-      if (moved && onView) onView(v, g);
-      else if (altitude && onGrain) onGrain(g, v);
+      if (moved && onView) onView(sc, g);
+      else if (altitude && onGrain) onGrain(g, sc);
     });
+
+    function sameScope(a, b) {
+      if (a.length !== b.length) return false;
+      for (var i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+      return true;
+    }
 
     return {
       // Called once, after the first drawing is on the canvas: the list is built from the drawing
@@ -543,22 +598,31 @@
       },
       describe: describeProgramme,
       resetRoster: resetRoster,
+      // The one of the scope every caller that has to name a single programme names. Issue 136.
       view: function () { return pgView; },
+      // And the whole of it, which is what the drawing is of. Handed out as a copy, because a
+      // caller that could push onto it would be a second thing deciding what is drawn.
+      scope: function () { return pgScope.slice(); },
+      scopeRoute: function (sc, g) { return addressFor(sc, g === undefined ? pgGrain : g); },
+      allRoute: function (g) { return addressFor(VIEWS.slice(), g === undefined ? pgGrain : g); },
       // Issue 89. The altitude, read and set through the address and never held anywhere else:
       // two copies of a state that is also in the URL is how a control and a link come to
       // disagree about what is on screen. `setGrain` navigates and answers nothing; the
       // hashchange listener above is what tells the page.
       grain: function () { return pgGrain; },
       grains: GRAINS.slice(),
-      grainRoute: function (g) { return addressFor(pgView, g); },
+      grainRoute: function (g) { return addressFor(pgScope, g); },
       setGrain: function (g) {
         if (GRAINS.indexOf(g) < 0 || g === pgGrain) return false;
-        location.hash = addressFor(pgView, g);
+        location.hash = addressFor(pgScope, g);
         return true;
       },
       rosterRoute: ROSTER_ROUTE,
       rosterOpen: rosterOpen,
-      pgMenuOpen: pgMenuOpen
+      // Issue 136. There is no menu behind the scope any more: eight chips are on the row and
+      // none of them opens a box, so the viewport's `busy` list and the capture suite ask this
+      // and get the honest answer that nothing here is over the canvas.
+      pgMenuOpen: function () { return false; }
     };
   };
 })();

@@ -187,11 +187,33 @@
     // an SVG presentation attribute, resolves through var(), nests inside color-mix(), and the
     // thirteen fills it produces are pixel for pixel the fills the media query produced, in both
     // schemes. Baseline: Chrome 123, Safari 17.5, Firefox 120, all 2024.
+    // ---- and the programme hue, issue 136 --------------------------------------
+    // ONE HUE PER PROGRAMME, GENERATED FROM THE LIST AND NOT TYPED ANYWHERE. It is the only
+    // visual addition the union makes, it is painted on nothing while one programme is drawn,
+    // and it exists because a session tile in a merged drawing has to say which of the seven it
+    // belongs to without a second label under it.
+    //
+    // WHY IT IS NOT A COLOUR PER PROGRAMME IN THE MODEL. The thirteen type colours above are the
+    // model's, chosen against a contrast bar and shipped in build/model.py, and a programme is
+    // not a type: adding an eighth programme would then mean choosing a colour for it by hand.
+    // These are a rotation over the number of programmes the document holds, so the set is a
+    // function of the list and an eighth programme re-spaces the seven rather than needing a
+    // decision. The lightness is fixed per scheme, and it is the one number here that was
+    // measured rather than picked: the bar is a graphical object drawn over the tile's own wash
+    // over the lane plate, and scripts/smoke.mjs recomputes every one of them against that
+    // composite and holds them to the same 3.0000 this repository holds a tile outline to.
+    var PGHUE = {};
     (function () {
       var decls = [];
       opts.drawing.types.forEach(function (t) {
         COLOR[t.k] = 'var(--type-' + t.k + ')';
         decls.push('--type-' + t.k + ':light-dark(' + t.c + ',' + (t.cDark || t.c) + ');');
+      });
+      var pgs = opts.programmes || [];
+      pgs.forEach(function (p, i) {
+        var h = Math.round(i * 360 / (pgs.length || 1)) + 12;
+        PGHUE[p.key] = 'var(--pg-' + p.key + ')';
+        decls.push('--pg-' + p.key + ':light-dark(hsl(' + h + ' 72% 33%),hsl(' + h + ' 78% 66%));');
       });
       var st = document.createElement('style');
       st.id = 'type-palette';
@@ -208,6 +230,9 @@
     // file. The seven drawings are laid out by one build with one tile, so a second reading per
     // drawing would be a second copy of a number that cannot differ.
     var TILE = opts.drawing.tile, R = TILE / 2;
+
+    // The classes that belong to exactly one programme and therefore can carry its hue. Issue 136.
+    var HUE_TYPES = { CohortSession: 1, ModuleDelivery: 1, Cohort: 1 };
 
     var G = null;
     var nodeById = {}, edgesOf = {}, gfxNode = {}, gfxEdge = [];
@@ -574,6 +599,23 @@
           fill: tint(col, n.ghost ? 7 : 14), stroke: col
         }, g2);
 
+        // ---- which programme this tile belongs to, issue 136 ---------------------
+        // A BAR ALONG THE FOOT OF THE TILE, AND ONLY WHILE MORE THAN ONE PROGRAMME IS DRAWN.
+        // `G.programmes` is written by union() and by nothing else, so a drawing of one programme
+        // cannot paint this: the canonical artefacts the build ships carry no such field, and a
+        // single chip therefore renders the drawing this page has always rendered, byte for byte.
+        //
+        // ON THE SESSIONS AND THE COHORTS AND ON NOTHING ELSE, which is the design's own line and
+        // is the honest one: those are the classes that belong to exactly one programme each. An
+        // instructor, an employer or a sponsor may belong to several, is drawn once for exactly
+        // that reason, and a hue on it would name one of the programmes it serves and hide the
+        // rest. The module delivery is the sessions lane's tile at the other altitude and takes
+        // the same bar for the same reason.
+        if (HUE_TYPES[n.type] && n.pg && G.programmes && G.programmes.length > 1 && PGHUE[n.pg]) {
+          el('rect', { class: 'pgbar', x: n.x - R + 4, y: n.y + R - 6, width: TILE - 8,
+                       height: 3, rx: 1.5, fill: PGHUE[n.pg] }, g2);
+        }
+
         var mark;
         if (n.ghost) {
           // Deliberately empty. A ghost tile holds no glyph because there is nothing in it.
@@ -762,7 +804,7 @@
     // build_layout.py's pack(), one column at a time, vertically centred, honouring the gap. The
     // spread on the short right hand columns is here for the reason it is there: without it the
     // enrolment chain reads as a small clump adrift in a tall empty lane.
-    function place(g, nodes, gap0, top) {
+    function packOne(g, nodes, gap0) {
       var cols = byColumn(g, nodes), H = 0, at = {};
       // Down each column in the order the canonical drawing stacked them. That order is the whole
       // of what this transform inherits from the build's thirty barycentre sweeps, and re-deriving
@@ -786,9 +828,103 @@
           y += h + gap;
         });
       });
-      var lift = Infinity;
-      nodes.forEach(function (n) { lift = Math.min(lift, at[n.id] - g.tile / 2); });
-      nodes.forEach(function (n) { at[n.id] = r1(at[n.id] + top - lift); });
+      return at;
+    }
+
+    // =============================================================================================
+    // THE SECTORS, ISSUE 136
+    // =============================================================================================
+    // A PROGRAMME OWNS A SLICE OF THE CANVAS AND THE SIX LANES RUN THROUGH ALL OF THEM. That is the
+    // whole of the union's geometry and it is the only arrangement that keeps two promises at once:
+    // the lanes still mean what they meant, so a session is in the sessions lane on every
+    // programme, and a shared instructor can sit BETWEEN the programmes it serves rather than being
+    // drawn twice. Sectors side by side would have given each programme its own instructors lane,
+    // which is the drawing that cannot show the thing this card exists to show.
+    //
+    // THE ORDER IS THE BUILD'S AND NEVER CHANGES, which is what makes adding a programme fill an
+    // empty sector below rather than re-laying the ones already on screen. A programme added ABOVE
+    // the ones already drawn does move them down, by exactly its own sector height, and that cost
+    // is real and admitted rather than waved off: fixed ABSOLUTE offsets across all seven would
+    // have avoided it and would have opened seven thousand units of blank canvas between Z-IB and
+    // Z-CFA when only those two are in scope.
+    //
+    // A NODE CARRIES `sec` OR IT DOES NOT, AND THAT IS THE WHOLE OF THE SWITCH. The canonical
+    // drawings the build ships carry none, so one programme takes the branch this file has always
+    // taken, node for node, and `reflowCheck()` still reproduces build_layout.py's own coordinates.
+    // `sec === null` is the third answer and means a node the union drew once for several sectors.
+    var SECTOR_GAP = 64;
+
+    // Where a shared node goes: the mean of the nodes it is joined to, which is the layout's own
+    // rule ("Y relaxed towards the mean of each node's neighbours") and lands it between the
+    // sectors it serves. Then pushed to the nearest position in its own column that clears
+    // everything already placed there, which is the chip's rule one axis over: slide until clear
+    // rather than overlap.
+    function freeSlot(want, h, boxes, gap0) {
+      var cand = [want], best = null, bd = Infinity;
+      boxes.forEach(function (b) { cand.push(b[0] - gap0 - h); cand.push(b[1] + gap0); });
+      cand.forEach(function (y) {
+        var clash = false;
+        boxes.forEach(function (b) { if (y < b[1] + gap0 && b[0] < y + h + gap0) clash = true; });
+        if (clash) return;
+        var d = Math.abs(y - want);
+        if (d < bd) { bd = d; best = y; }
+      });
+      return best === null ? want : best;
+    }
+
+    function placeShared(g, shared, at, gap0, ix) {
+      if (!shared.length) return;
+      var mid = 0, k0 = 0;
+      Object.keys(at).forEach(function (id) { mid += at[id]; k0++; });
+      mid = k0 ? mid / k0 : 0;
+      var want = shared.map(function (n) {
+        var sum = 0, k = 0;
+        (n.near || []).forEach(function (m) {
+          if (at[m] === undefined) return;
+          sum += at[m];
+          k++;
+        });
+        return { n: n, col: colOf(n.x), want: k ? sum / k : mid };
+      });
+      // Lowest barycentre first, so the order a reader meets them down a lane is the order their
+      // own sessions put them in, and the one that has to give way is the one arriving later.
+      want.sort(function (a, b) { return a.want - b.want; });
+      want.forEach(function (p) {
+        var h = boxH(g, p.n), occupied = [];
+        Object.keys(at).forEach(function (id) {
+          var m = ix[id];
+          if (!m || colOf(m.x) !== p.col) return;
+          occupied.push([at[id] - g.tile / 2, at[id] - g.tile / 2 + boxH(g, m)]);
+        });
+        at[p.n.id] = freeSlot(p.want - g.tile / 2, h, occupied, gap0) + g.tile / 2;
+      });
+    }
+
+    function place(g, nodes, gap0, top) {
+      var groups = {}, order = [], shared = [], at = {}, i, ix = {};
+      nodes.forEach(function (n) { ix[n.id] = n; });
+      nodes.forEach(function (n) {
+        if (n.sec === null) { shared.push(n); return; }
+        var k = (n.sec === undefined) ? 0 : n.sec;
+        if (!groups[k]) { groups[k] = []; order.push(k); }
+        groups[k].push(n);
+      });
+      order.sort(function (a, b) { return a - b; });
+      var y0 = top;
+      for (i = 0; i < order.length; i++) {
+        var list = groups[order[i]];
+        var local = packOne(g, list, gap0);
+        var lift = Infinity, bottom = -Infinity;
+        list.forEach(function (n) { lift = Math.min(lift, local[n.id] - g.tile / 2); });
+        list.forEach(function (n) {
+          var v = local[n.id] + y0 - lift;
+          at[n.id] = v;
+          bottom = Math.max(bottom, v - g.tile / 2 + boxH(g, n));
+        });
+        y0 = bottom + SECTOR_GAP;
+      }
+      placeShared(g, shared, at, gap0, ix);
+      nodes.forEach(function (n) { at[n.id] = r1(at[n.id]); });
       return at;
     }
 
@@ -974,18 +1110,6 @@
       var keep = g.nodes.filter(function (n) { return !gone[n.id]; });
       var hidden = g.nodes.filter(function (n) { return gone[n.id]; });
 
-      // Issue 111. WHAT IS DRAWN IS WHAT STAYED, and that is the whole of the node set now. No
-      // stub tile per lane, so nothing is placed that the build did not lay out, and the lane
-      // captions are the three lines the build wrote rather than four. The line of headroom the
-      // fourth caption needed went with it, which is why `topOf(g)` and `g.bandTop` are taken
-      // bare here where they used to be offset by one caption line.
-      var nodes = keep;
-
-      var gap = pitchOf(g);
-      var at = place(g, nodes, gap, topOf(g));
-      var pos = {};
-      nodes.forEach(function (n) { pos[n.id] = { x: n.x, y: at[n.id], col: colOf(n.x) }; });
-
       // ---- the edges, and after issue 111 there is one kind -------------------------
       // A LINE IS DRAWN WHEN BOTH OF ITS ENDS ARE DRAWN. Anything else is counted here and said
       // in the header, which is the trade this card made: what used to be a dashed line into a
@@ -1008,6 +1132,38 @@
         }
         out.push({ s: e.s, t: e.t, e: e, n: (e.n || 1) });
       });
+
+      // Issue 111. WHAT IS DRAWN IS WHAT STAYED, and that is the whole of the node set now. No
+      // stub tile per lane, so nothing is placed that the build did not lay out, and the lane
+      // captions are the three lines the build wrote rather than four. The line of headroom the
+      // fourth caption needed went with it, which is why `topOf(g)` and `g.bandTop` are taken
+      // bare here where they used to be offset by one caption line.
+      return compose(g, keep, out, {
+        hidden: hidden,
+        off: { tiles: hidden.length, relationships: offRel, lines: offLines },
+        emptyOn: true, spec: spec
+      });
+    }
+
+    // ---- one composer, two callers, issue 136 ---------------------------------------------------
+    // EVERYTHING BELOW WAS THE SECOND HALF OF filtered() AND IS NOW ITS OWN FUNCTION, because the
+    // union needs exactly it: a set of nodes and a set of relationships, packed down their columns
+    // by the build's own pack(), joined by the build's own two edge shapes, with the verb chips
+    // slid along their own lines and the extent measured off what came out. A second copy of that
+    // for the union would have been a second opinion about where the build puts things, which is
+    // the mistake `reflowCheck()` exists to catch and the one this file spent issue 106 removing
+    // elsewhere.
+    //
+    // `opt.pitch` AND `opt.top` ARE HANDED IN RATHER THAN READ WHEN THERE IS NO ONE ARTEFACT TO
+    // READ THEM FROM. A window reads them off the drawing it is filtering, which is what it has
+    // always done. The union has seven such drawings and their nodes carry seven overlapping sets
+    // of y coordinates, so pitchOf() over the merged list would measure a gap between two tiles
+    // that were never in the same picture. union() takes the strictest of the seven and says so.
+    function compose(g, nodes, out, opt) {
+      var gap = (opt && opt.pitch) || pitchOf(g);
+      var at = place(g, nodes, gap, (opt && opt.top !== undefined) ? opt.top : topOf(g));
+      var pos = {};
+      nodes.forEach(function (n) { pos[n.id] = { x: n.x, y: at[n.id], col: colOf(n.x) }; });
 
       var edges = out.map(function (r) {
         var geo = edgeGeom(g, pos[r.s], pos[r.t]);
@@ -1104,8 +1260,9 @@
       // rule at its limit.
       var emptyText = null;
       if (!nodes.length) {
-        h = Math.max(h, topOf(g) + g.tile + g.gapLabel + g.lineH + FOOT);
-        emptyText = (spec && spec.empty) || null;
+        h = Math.max(h, ((opt && opt.top !== undefined) ? opt.top : topOf(g)) +
+                        g.tile + g.gapLabel + g.lineH + FOOT);
+        emptyText = (opt && opt.spec && opt.spec.empty) || null;
       }
 
       // KEEPING THE COUNT, WHICH IS THE HALF OF #100 THAT #111 DID NOT OVERRULE. Every lane still
@@ -1119,25 +1276,27 @@
       var lanes = [], bands = (g.bands || []).map(function (b) {
         var was = 0, now = 0;
         g.nodes.forEach(function (n) { if (n.x >= b.x && n.x <= b.x + b.w) was++; });
-        keep.forEach(function (n) { if (n.x >= b.x && n.x <= b.x + b.w) now++; });
+        nodes.forEach(function (n) { if (n.x >= b.x && n.x <= b.x + b.w) now++; });
         lanes.push({ key: b.key, label: (b.lines && b.lines[0]) || b.label || b.key,
                      shown: now, of: was });
         return b;
       });
 
-      WINFO = {
-        on: true, hidden: hidden.map(function (n) { return n.id; }),
-        shown: keep.map(function (n) { return n.id; }),
-        // Issue 111. WHAT THE DRAWING NO LONGER SAYS ABOUT ITSELF, in the three numbers a reader
-        // needs to be told it: the tiles the window took off, the relationships that went with
-        // them, and the lines those relationships were drawn as. The last two differ at the
-        // modules grain, where one line stands for many, so both are here and neither is inferred
-        // from the other. `outside` was a list of the stub tiles and there are none.
-        off: { tiles: hidden.length, relationships: offRel, lines: offLines },
-        lanes: lanes, canonNodes: g.nodes.length, canonEdges: g.edges.length,
-        drawnEdges: edges.length,
-        digest: g.drawingDigest || 'unknown'
-      };
+      if (opt && opt.off) {
+        WINFO = {
+          on: true, hidden: opt.hidden.map(function (n) { return n.id; }),
+          shown: nodes.map(function (n) { return n.id; }),
+          // Issue 111. WHAT THE DRAWING NO LONGER SAYS ABOUT ITSELF, in the three numbers a reader
+          // needs to be told it: the tiles the window took off, the relationships that went with
+          // them, and the lines those relationships were drawn as. The last two differ at the
+          // modules grain, where one line stands for many, so both are here and neither is
+          // inferred from the other. `outside` was a list of the stub tiles and there are none.
+          off: opt.off,
+          lanes: lanes, canonNodes: g.nodes.length, canonEdges: g.edges.length,
+          drawnEdges: edges.length,
+          digest: g.drawingDigest || 'unknown'
+        };
+      }
 
       var d = {};
       Object.keys(g).forEach(function (k) { d[k] = g[k]; });
@@ -1155,6 +1314,149 @@
       // the sentence cannot appear on a page nobody filtered.
       d.emptyText = emptyText;
       d.filteredFrom = g;
+      return d;
+    }
+
+    // =============================================================================================
+    // THE UNION, ISSUE 136
+    // =============================================================================================
+    // SCOPE IS A SET AND THE SET IS ONE DRAWING. What comes in is the canonical drawings of the
+    // programmes in scope, in the build's own order; what goes out is a drawing of exactly the
+    // shape the build ships, so everything downstream, the painter, the window, the selection, the
+    // viewport and the header, meets it as a drawing and learns nothing new.
+    //
+    // A NODE IN TWO PROGRAMMES IS ONE NODE, JOINED BY ITS ID AND BY NOTHING ELSE. The build already
+    // writes the same id for the same object across documents: `t4` is one instructor on Z-IB, Z-SC
+    // and Z-PE and `co_emp4` is one employer on four of the seven, while every enrolment, charge,
+    // ghost and cohort carries a per-programme id because it IS per programme. So the collapse is
+    // read out of the documents rather than decided here, and a class that starts sharing an object
+    // tomorrow collapses without this file being edited. That collapse is the whole of why an
+    // inter-programme line exists at all: a shared instructor drawn twice is two nodes with no line
+    // between the programmes, and drawn once it is one node with edges reaching into both.
+    //
+    // WHERE THE VALUES DISAGREE, BOTH ARE PRINTED AND NEITHER IS SUMMED. Two properties on those
+    // shared objects are counts over the drawing that carried them, `sessions_taught` and
+    // `instructors_supplied`, so the same instructor reads 2 on Z-IB and 3 on Z-SC. A collapsed
+    // node cannot print one of them as though it were the answer and must not add them, so a
+    // property whose value differs across the documents it came from is printed as the values it
+    // has, each named by the programme it is true of.
+    //
+    // AND THE LANE CAPTIONS LOSE EVERY NUMBER THAT WOULD BE A SUM. Four of the six say the same
+    // words on all seven and are kept whole. The other two carry a sample clause, `6 of 79 session
+    // templates` against `all 25 session templates`, and a merged drawing has no honest single
+    // value for it: the fractions live on the chips, one per programme, and the caption keeps only
+    // the words every document in scope writes. That is a rule over the strings the build wrote and
+    // not a noun typed here.
+    function commonTail(lines) {
+      var words = lines.map(function (s) { return String(s).split(/\s+/); });
+      var n = Math.min.apply(null, words.map(function (w) { return w.length; })), i, k = 0;
+      for (i = 1; i <= n; i++) {
+        var w = words[0][words[0].length - i];
+        if (!words.every(function (x) { return x[x.length - i] === w; })) break;
+        k = i;
+      }
+      return k ? words[0].slice(words[0].length - k).join(' ') : '';
+    }
+
+    function mergeBands(list) {
+      var first = list[0].drawing.bands || [];
+      return first.map(function (b, bi) {
+        var mine = list.map(function (v) { return (v.drawing.bands || [])[bi] || {}; });
+        var lines = [], i, j;
+        var depth = Math.min.apply(null, mine.map(function (x) { return (x.lines || []).length; }));
+        for (i = 0; i < depth; i++) {
+          var same = true;
+          for (j = 1; j < mine.length; j++) if (mine[j].lines[i] !== mine[0].lines[i]) same = false;
+          if (same) lines.push(mine[0].lines[i]);
+        }
+        if (!lines.length) {
+          var tail = commonTail(mine.map(function (x) { return (x.lines || [])[0] || ''; }));
+          if (tail) lines.push(tail);
+        }
+        return { key: b.key, x: b.x, w: b.w, label: lines.join(' ') || b.key, lines: lines };
+      });
+    }
+
+    function mergeProps(rows, codes) {
+      var base = rows[0] || [];
+      return base.map(function (p, i) {
+        var vals = rows.map(function (r) { return (r[i] || {}).v; });
+        var same = vals.every(function (v) { return v === vals[0]; });
+        if (same) return p;
+        var out = {}, k;
+        for (k in p) if (Object.prototype.hasOwnProperty.call(p, k)) out[k] = p[k];
+        out.v = vals.map(function (v, j) { return v + ' in ' + codes[j]; }).join(', ');
+        return out;
+      });
+    }
+
+    function union(list) {
+      var g0 = list[0].drawing;
+      var byId = {}, order = [];
+      list.forEach(function (v, i) {
+        v.drawing.nodes.forEach(function (n) {
+          if (!byId[n.id]) { byId[n.id] = { rows: [], views: [], sec: i }; order.push(n.id); }
+          byId[n.id].rows.push(n);
+          byId[n.id].views.push(v);
+        });
+      });
+      var edgeBy = {}, edgeOrder = [];
+      list.forEach(function (v) {
+        v.drawing.edges.forEach(function (e) {
+          var k = e.s + ' ' + e.t + ' ' + e.v;
+          if (edgeBy[k]) { edgeBy[k].n = Math.max(edgeBy[k].n, e.n || 1); return; }
+          edgeBy[k] = { s: e.s, t: e.t, e: e, n: e.n || 1 };
+          edgeOrder.push(k);
+        });
+      });
+      var out = edgeOrder.map(function (k) { return edgeBy[k]; });
+
+      var near = {};
+      out.forEach(function (r) {
+        (near[r.s] || (near[r.s] = [])).push(r.t);
+        (near[r.t] || (near[r.t] = [])).push(r.s);
+      });
+
+      var shared = [];
+      var nodes = order.map(function (id) {
+        var rec = byId[id], n0 = rec.rows[0], c = {}, k;
+        for (k in n0) if (Object.prototype.hasOwnProperty.call(n0, k)) c[k] = n0[k];
+        c.pg = rec.views[0].key;
+        if (rec.rows.length > 1) {
+          c.sec = null;
+          c.props = mergeProps(rec.rows.map(function (n) { return n.props || []; }),
+                               rec.views.map(function (v) { return v.code || v.key; }));
+          c.near = near[id] || [];
+          c.pgs = rec.views.map(function (v) { return v.key; });
+          shared.push(id);
+        } else {
+          c.sec = rec.sec;
+        }
+        return c;
+      });
+
+      var g = {};
+      Object.keys(g0).forEach(function (k) { g[k] = g0[k]; });
+      g.nodes = nodes;
+      g.edges = out.map(function (r) { return r.e; });
+      g.bands = mergeBands(list);
+      g.programmes = list.map(function (v) {
+        return { key: v.key, code: v.code, label: v.label };
+      });
+      g.shared = shared;
+      // THE DIGEST NAMES THE ARTEFACTS IT WAS BUILT FROM AND CLAIMS NOTHING ELSE. There is no
+      // built artefact for a union and check_build.sh reproduces none, so a bare digest here
+      // would be a reader being sent to a picture no build ever wrote. What pins the geometry is
+      // the seven digests that went in, so those are what it carries, and feedback.js quotes the
+      // whole string.
+      g.drawingDigest = 'union of ' + list.map(function (v) {
+        return v.key + ' ' + (v.drawing.drawingDigest || 'unknown');
+      }).join(', ');
+      var d = compose(g, nodes, out, {
+        pitch: Math.min.apply(null, list.map(function (v) { return pitchOf(v.drawing); })),
+        top: Math.min.apply(null, list.map(function (v) { return topOf(v.drawing); }))
+      });
+      d.w = Math.max.apply(null, list.map(function (v) { return v.drawing.w; }));
       return d;
     }
 
@@ -1214,6 +1516,12 @@
     return {
       // The canonical drawing goes in and whatever the window leaves of it comes out on screen.
       draw: function (g) { CANON = g; repaint(); },
+      // Issue 136. The scope's drawings in, one drawing out, and the caller then hands it to
+      // draw() exactly as it hands over a built artefact. It is here rather than in a module of
+      // its own because it is the build's own pack(), the build's own two edge shapes and the
+      // build's own chip slide over a different node set, and every one of those lives in this
+      // file behind `reflowCheck()`.
+      union: union,
       // Issue 84. The one thing the viewport tells this file. Everything else about the view is
       // the viewport's and stays there; a control that has to be the same size on screen at every
       // zoom is the one thing painted here that cannot be painted without knowing the scale.
