@@ -6448,8 +6448,12 @@ async function checkBrush(page, base) {
   const wantStart = dragFrom.start + Math.round(dx / cw);
   const y = brushY(dragFrom);
   await dragBy(page, Math.round(dragFrom.band.x + dragFrom.band.w / 2), y, Math.round(dx), 0, 8);
-  await page.waitFor(`window.ZT.brush().start === ${wantStart}`,
-    `the band to land on week ${wantStart}`);
+  // WAITED ON THE BAND HAVING MOVED AT ALL AND ASSERTED ON WHERE IT LANDED, which are two
+  // different things and only the first belongs in a wait. A wait for the RIGHT week is a wait
+  // that times out and throws the whole group when the page lands on the wrong one, so the
+  // assertion that names the defect never runs and the report says the harness broke. Found by
+  // planting it: truncating instead of rounding lands one week short, and the group threw.
+  await page.waitFor(`window.ZT.brush().start !== ${dragFrom.start}`, 'the band to move at all');
   await viewSettled(page);
   const dragged = await page.evaluate('window.ZT.brush()');
   const w1 = await page.evaluate('window.ZT.term().window');
@@ -6474,8 +6478,7 @@ async function checkBrush(page, base) {
   const before = await page.evaluate('window.ZT.term().window');
   await dragBy(page, Math.round(grip.band.x + grip.band.w - 2), brushY(grip),
     Math.round(cw * 4), 0, 8);
-  await page.waitFor(`window.ZT.brush().span === ${grip.span + 4}`,
-    `the band to widen to ${grip.span + 4} weeks`);
+  await page.waitFor(`window.ZT.brush().span !== ${grip.span}`, 'the band to change width at all');
   await viewSettled(page);
   const widened = await page.evaluate('window.ZT.brush()');
   const after = await page.evaluate('window.ZT.term().window');
@@ -6550,8 +6553,7 @@ async function checkBrush(page, base) {
   const wantCentred = Math.max(0, Math.min(centre.termWeeks - centre.span,
     target - Math.floor((centre.span - 1) / 2)));
   await click(page, Math.round(centre.track.x + cwNow * (target + 0.5)), brushY(centre));
-  await page.waitFor(`window.ZT.brush().start === ${wantCentred}`,
-    `the band to centre on week ${target}`);
+  await page.waitFor(`window.ZT.brush().start !== ${centre.start}`, 'the band to move at all');
   await viewSettled(page);
   const centred = await page.evaluate('window.ZT.brush()');
   assert('pressing a week centres the window on it, clamped to the term',
