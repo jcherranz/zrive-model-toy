@@ -754,6 +754,35 @@ h1 {
   h1 { flex: 1 1 100%; }
 }
 
+/* ---- the strip's ladder, issues 142 and 143 --------------------------------
+   THE FIRST BREAKPOINTS THIS FILE HAS EVER HAD ABOVE 980, and that absence WAS the defect. He
+   filed both cards from 2560 by 1317 and nothing in this header answered a screen wider than the
+   1536 it was drawn on: the strip was 356 CSS px and the week 12.83 at both widths, while 48 per
+   cent of a 2520px row was space.
+
+   THE RUNGS ARE WHAT THE ROW CAN HOLD AT THE BOTTOM OF EACH BAND, not round numbers. Everything
+   else in the row is content sized: the eight chips are 425.69, the nav is 370.45 at its widest,
+   which is with no window on it, the view selector is 113.58 and the three gaps are 60. So the
+   row's own width less 40 of padding less 969.72 is what is free, and each basis below is under
+   it with room left for the heading:
+
+     1500  490 free, basis 452, track 360, week 15.1
+     1700  690 free, basis 560, track 468, week 19.5
+     1900  890 free, basis 668, track 576, week 24.0
+
+   AND 24 IS WHERE IT STOPS, which is the argument on `.brush` itself: the target for a one week
+   slide is exactly one week wide, and 24 is the minimum target this repository has held every
+   control to since issue 77. Past it the strip would buy gutter rather than shape, and the surplus
+   goes back to the heading, which is #131's arrangement: the space between the subject and the
+   instruments is the space that varies, and it is what keeps the nav a fixed distance from the
+   right edge while the subject changes under it. */
+/* THE THREE RULES THEMSELVES ARE FURTHER DOWN, IMMEDIATELY AFTER `.brush`, AND THAT IS NOT A
+   FILING PREFERENCE. They and the base rule have the same specificity, so the later one wins, and
+   written here they lost to the `flex` shorthand below and the strip stayed 356 at every width.
+   Caught by driving the page rather than by reading the file: the sweep reported 11.08 px per week
+   at 2560 and at 1366 alike, which is the defect this card is about, still there under a
+   stylesheet that says otherwise. */
+
 /* ---- the scope rail, issue 136 --------------------------------------------
    EIGHT CHIPS WHERE ONE CONTROL AND ITS MENU USED TO BE, and the row is exactly as tall. Every
    chip is 26 CSS px, which is what issue 77 took every control on this page to and what the width
@@ -899,22 +928,33 @@ h1 {
    the subject and the instruments is the space that varies, and it is what keeps the nav a fixed
    distance from the right edge while the subject changes under it.
 
-   THE SURPLUS IS SPLIT EVENLY WITH THE HEADING RATHER THAN TAKEN, `flex-grow: 1` against the h1's
-   own 1, because there is no measurement that says the instrument should be fed before the
-   subject and an invented ratio would be exactly the kind of number this file refuses. At 1536
-   the row has 184 px of surplus, so the strip takes 92 and stands at 448 with a 19 px week, and
-   the rail keeps 46 px of slack over the 426 its eight chips need, which it needs: the nav is
-   356.08 wide with a window on it and 362.84 without one, because `work 0/22` and `work 3/22` are
-   not the same width. Nothing below about 1350 is changed at all, because below it the row has no
-   surplus to split and the shrink that was already here is what runs. */
+   AND IT IS A LADDER OF WIDTHS AND NOT A SHARE OF THE FREE SPACE, WHICH IS A DEFECT THIS CARD
+   BUILT AND THEN MEASURED. The first draft gave the strip `flex-grow: 1` beside the heading's own,
+   so the two split whatever the row had spare. It works, and it reintroduces exactly what #137
+   chose this slot in the row to prevent: free space is what is left after everything else, so
+   anything else in the row changing width changes the strip's. The nav does change width, because
+   `work 0/22` and `work 10/22` are not the same string, and the suite caught it at once: the
+   strip's own value slot moved 6.76 CSS px between a one week window and a fourteen week one, and
+   the track's right edge and its pixels per week moved with it. A direct manipulation control
+   whose scale changes when a number beside it gains a digit is the defect one level down from the
+   one #137 fixed.
+
+   SO THE GROW IS STILL ZERO AND THE BASIS CLIMBS INSTEAD. Three rungs, each a measurement of what
+   the row can hold at the bottom of its own band, so the strip's width is a function of the
+   VIEWPORT and of nothing else, and every reader at a given width has the same instrument whatever
+   their window is set to. Measured with the eight chips at 425.69, the nav at its widest 370.45,
+   the view selector at 113.58 and the three 20px gaps:
+
+     under 1500   356, which is what it was, and the week is 12.8
+     1500 to 1699 452, of the 490 a 1500px row can hold, and the week is 15.1
+     1700 to 1899 560, of the 690 a 1700px row can hold, and the week is 19.5
+     1900 and up  668, of the 890 a 1900px row can hold, and the week is 24.0
+
+   Below about 1300 the row has no surplus at all and the shrink that was already here is what
+   runs, unchanged by this card and still dependent on the rest of the row, which it always was. */
 .brush {
-  flex: 1 1 356px;
+  flex: 0 1 356px;
   min-width: 180px;
-  /* 576 of track, which is the term's 24 weeks at the 24 px the paragraph above derives, plus the
-     two 24 px caps and the 44 the stacked value slot and its margins measure at this type ramp.
-     Measured on the running page rather than added up here: at this ceiling the track is 576.0 and
-     the week is 24.00. */
-  max-width: 668px;
   position: relative;
   display: flex;
   align-items: stretch;
@@ -929,6 +969,14 @@ h1 {
   -webkit-user-select: none;
   user-select: none;
 }
+
+/* THE LADDER, AND IT HAS TO SIT AFTER THE RULE IT RAISES. Same specificity, so the later
+   declaration wins; up beside the other breakpoints these three lost to the `flex` shorthand above
+   and the strip stayed 356 at 2560. The measurement for each rung is in the scope-rail block's
+   neighbour above. */
+@media (min-width: 1500px) { .brush { flex-basis: 452px; } }
+@media (min-width: 1700px) { .brush { flex-basis: 560px; } }
+@media (min-width: 1900px) { .brush { flex-basis: 668px; } }
 
 .brush:focus-visible {
   outline: 2px solid var(--i-primary);
@@ -2230,10 +2278,12 @@ body.fb-mode .fb-popover select { cursor: pointer; }
 
      `flex: 1 1 100%` FOR .hnav's REASON, restated: a flex item sized to its own content never
      meets an edge to wrap at, so the line has to be given rather than left to be taken. */
-  /* `max-width: none` because the ceiling above is a desktop ceiling: it exists to stop the strip
-     eating a row that has surplus, and this row has none. 366 across 24 weeks is a 13px week here
-     however the desktop is sized. */
-  .brush { flex: 1 1 100%; min-width: 0; max-width: none; }
+  /* The desktop ladder is three `min-width` rules starting at 1500 and none of them is live here,
+     so the strip is the line it is given: 366 less the two caps and the value slot is 276 of track
+     and an 11.5px week, where before issue 142 it was 318 of track and a 13.25px week with the
+     label's own ground painted over about six of the twenty four columns. All twenty four are
+     visible now, which is the trade this card took at every width and took here too. */
+  .brush { flex: 1 1 100%; min-width: 0; }
   /* The altitude's box is anchored to the viewport under the header, and this is a measured repair
      rather than a precaution. Issue 89, and the measurement is #98's: a box hung off a control in a
      row that wraps here has its own right edge nowhere near the viewport's, and a 350px box
