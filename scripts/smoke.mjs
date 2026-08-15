@@ -6734,6 +6734,24 @@ async function checkBrush(page, base) {
   await viewSettled(page);
 }
 
+// WHICH SCHEME THE PAGE IS PAINTING IN, DRIVEN THROUGH THE MACHINE. Issue 139 deleted the theme
+// control: the page follows the operating system, which is what #55 shipped and what #57 added an
+// override to. So the way to put the page in a scheme is to tell the browser what the operating
+// system says, which is what a reader's machine does and is now the only thing that decides.
+//
+// AND IT IS WAITED ON THROUGH THE PAGE'S OWN ANSWER rather than through a sleep. The used value of
+// color-scheme resolves to "light dark" when nothing pins it, so window.ZT.theme() reports the
+// media query's answer, which is exactly what this just changed. The wait is satisfied by either
+// value the page could give, which is what a wait has to be: the assertion is what the scheme is,
+// and it is made by the caller.
+async function setScheme(page, choice) {
+  await page.send('Emulation.setEmulatedMedia', {
+    features: [{ name: 'prefers-color-scheme', value: choice }]
+  });
+  await page.waitFor(`window.ZT.theme().resolved === ${JSON.stringify(choice)}`,
+    `the machine to say ${choice} and the page to follow it`);
+}
+
 // The view selector as a reader meets it: what each segment says, where it goes, which one is
 // marked, and the box each offers a finger. Nothing here is a figure the page computed about
 // itself.
@@ -7509,7 +7527,12 @@ const PLATE_READ = `(function () {
   var lbl = document.querySelector('#graph .node:not(.ghost) text.lbl');
   var glb = document.querySelector('#graph .node.ghost text.lbl');
   return JSON.stringify({
-    scheme: getComputedStyle(document.documentElement).colorScheme,
+    // Issue 139. The used value of color-scheme resolves to "light dark" whenever nothing pins it,
+    // and after this card nothing ever does: the override is deleted and the machine is what
+    // decides. So the name of the scheme comes from the page's own resolution of the media query,
+    // which is the one thing that moved, rather than from a used value that now reads the same in
+    // both.
+    scheme: window.ZT.theme().resolved,
     keys: keys,
     types: types,
     app: app,

@@ -302,8 +302,10 @@ size and the build id.
 
 `#/students` lists all thirty four students as rows, over the drawing, from the roster the build
 writes into `site/instance.js`. With more than one programme in scope it is the first of them, and
-its heading says which. It is a view of its own, reached from `students` in the header or
-from the students card's own panel, and the drawing is not a way to reach part of it: the diagram
+its heading says which. It is a list of one cohort, reached from the students card's own panel,
+where the link names the cohort it is about; it is not one of the views the header offers, because
+under a scope that is a set a header link to it named none of the seven. The drawing is not a way
+to reach part of it: the diagram
 answers what shape a student record is and this answers who is in the cohort. Escape, the close
 button and a click outside all dismiss it, and it closes itself on the way to the board.
 
