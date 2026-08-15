@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-15T10:31:38Z",
+  "generated": "2026-08-15T10:32:24Z",
   "columns": [
     {
       "key": "raw",
@@ -45,6 +45,14 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
+        },
+        {
+          "id": 136,
+          "title": "Scope is a set, and the union is one drawing",
+          "labels": [
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/136"
         }
       ]
     },
@@ -67,7 +75,8 @@
           "title": "I like the idea behind this view",
           "labels": [
             "feedback",
-            "idea"
+            "idea",
+            "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/134"
         },
