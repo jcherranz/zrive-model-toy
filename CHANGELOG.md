@@ -11,6 +11,86 @@ of what changed and when, and it is meant to be scannable.
 
 ### Changed
 
+- **TIME IS AN INTERVAL YOU DRAG, NOT A NAME YOU PICK, #137.** Card 2 of WINDOW-FIRST. The owner
+  singled the weeks control out: "the weeks filter is crucial, but is this the best we can do?" It
+  is not, and the reason is functional. The term is a bounded ordered continuum of 24 weeks browsed
+  in about 22 overlapping windows, and a menu treats an ordered continuum as an unordered set of
+  names: it hides the neighbourhood, so stepping to the week next door costs two interactions
+  against one drag and there is no way to see that the week being entered is empty until after
+  entering it; and it can express membership in a preset list but not extent, so "just this week"
+  and "the whole of the spring" both fall outside it. The value has two degrees of freedom,
+  position and width, which is a brush by definition and not a scrubber.
+- **A DENSITY STRIP, AND IT IS A READING AND A CONTROL AT ONCE.** One column per week across the
+  term. The column is how many sessions the scope holds that week; the part of it the model holds a
+  complete record for is solid and the remainder is hollow, in the filled-against-hollow grammar the
+  chips already use as a fraction. Measured on this snapshot: 83 sessions are drawn, 72 carry no
+  field the model flags absent and the 11 that do are the 11 with no instructor named, so Z-BL's
+  weeks are solid and Z-CFA's six are hollow to the last one. **The population is named rather than
+  glossed**: the 177 sessions no document draws carry no date anywhere in the model, so there is no
+  week to put them in, and the control's title says which set the columns are over. The chips carry
+  drawn against declared; the strip carries the shape of what is drawn.
+- **The brush.** Drag the body to slide it, drag either end to widen or narrow it, press anywhere on
+  the track to centre the window on that week, press an end cap to step exactly one week on every
+  device, and the arrows do the same on a keyboard with shift for the width and Home and End for the
+  ends of the term. It snaps to week boundaries. The label sits on the band.
+- **THE WEEKS MENU AND ITS READING ARE DELETED**, and with them `.wnpick`, `.wnmenu`, the seven
+  `.wn-*` rules and `.warn`, which was declared for the one sentence inside that box. **Readings 4
+  to 3**, `grain tiles gaps`. **`aria-controls` 4 to 3**, and the strip declares none and carries no
+  disclosure mark: it opens nothing, and a mark on it would promise a panel that does not exist.
+  **Header control elements 16 to 15**, measured on the rendered page by the same walk #136 used.
+- **The band over all 24 columns IS the no-window state**, which `win.weeks === 0` has meant since
+  #90 and every surface on this page reads. A strip with no band on it would read as a control
+  nobody has set rather than as a term entirely in view, so the two spellings are converted in one
+  function and nowhere else, and the anchor is left alone while the band is full so that #124's
+  review still opens on three weeks from the term's own middle.
+- **Two facts the deleted box carried are on the strip's title rather than gone**: that this page
+  has no today, with the reader's own clock, the term's dates and how many sessions are on or after
+  it, which is #90's rule; and #111's lane by lane breakdown of what the window took off the
+  drawing, named as the drawing names its lanes. The now marker is drawn only where the reader's day
+  falls inside the term, so on this snapshot nothing is marked and nothing invents a today.
+- **THE SLOT IS A MEASUREMENT.** Between the heading and the readout the strip read better and it
+  MOVED: `tiles` goes from `80` to `76 of 80` the moment a window is on, the plate is sized by its
+  own readings, and everything to its left shifts. Measured at 1536 in that slot: the track jumped
+  31.4 CSS px on the first narrowing and 6.8 more as the digits changed, which is two weeks of a 24
+  week track moving out from under the pointer dragging it. Between the readout and the nav its left
+  edge and width are both constant, 806.36 and 332 at every one of the 24 widths, because the nav is
+  a fixed distance from the right edge. The drag also takes its geometry once, at the press, so a
+  row that did reflow could not corrupt a gesture already begun.
+- **What the design's sketch asks for and this could not give it.** That sketch puts the strip on a
+  full width row where 24 weeks are 60 pixels each and three of them hold `24 Feb to 16 Mar`
+  comfortably. This header is one row from 1536 down to 981 and this card was told to keep it that
+  way, so the band at three weeks is an eighth of a 332px track, 41.5 CSS px against a label of 77.
+  The label therefore sits ON the band while the band can hold it and steps beside it while it
+  cannot, which is what a progress bar's own figure does, and both branches are asserted.
+- **RE-MEASURED, before and after, in one browser by one walk over all 35 addresses.** **35
+  addresses and this card adds none.** **Header one row at 43px from 1536 down to 981**, unchanged.
+  **Phone chrome 107 of 844 to 139, share 0.1268 to 0.1647**, against the ceiling of 0.1730: the
+  strip takes a line of its own at 390, because the three readings left on the plate come to 251 of
+  366 and a strip sharing that line would be a four pixel week. **Control elements 16 to 15 and
+  readings 4 to 3.** **The page's own visible words rise by 2 on each of the 33 addresses that
+  draw**, 103545 to 103595 over all 35: `12 Jan to 28 Jun` is twelve characters where `weeks all 24`
+  was ten. Four of those characters were bought back by drawing the two end caps as a rotated square
+  with two borders instead of typing `‹` and `›`; the remaining two are the date range
+  itself and they are reported rather than traded for a label nobody can read. **The fourteen
+  drawing digests are untouched**, nothing in `build/` was edited.
+- **SUITE 278 TO 286, EIGHT PLANTS**, each reverted and each red under its own name: the fill made
+  equal to the outline, the repaint dropped from a change of scope, the drag truncating instead of
+  snapping, a handle drag moving the other end too, an end cap stepping two weeks, the press on a
+  week landing on it instead of centring on it, the label forced inside the band, and the budget
+  stopped from refusing. **The plants found two defects rather than confirming a claim**: the phone
+  half of the cap assertion pressed at a y computed from the header's padding, which lands on the
+  chip rail when the strip is on the third row, so every cap press at 390 did nothing and the page
+  was fine; and the drag assertion waited for the RIGHT week, so the truncation plant timed the wait
+  out and threw the group instead of failing the assertion that names the defect.
+- **The suite sets the window through one helper now.** Thirty call sites in six groups that are not
+  about the window at all pressed the deleted menu; they call `setWindowAt` and it presses the
+  strip's own keyboard. **One behavioural change to the window itself, and it is a finding**: the
+  menu's stepper clamped the ANCHOR to the last Monday, so a three week window could sit two weeks
+  past the end of the term, and a band lives inside the strip it is drawn on. Measured over this
+  document: across every three week window INSIDE the term no complete programme is ever empty, so
+  the old roll only ever proved the "no session in this window" sentence on windows running off the
+  end. The roll ends on the one week window on the term's last week instead, where Z-SC genuinely
+  holds nothing.
 - **SCOPE IS A SET, AND THE UNION IS ONE DRAWING, #136.** Card 1 of WINDOW-FIRST. Until this card
   the programme WAS the address and time was a filter, so "this week, across several programmes"
   had no form in the tool at all; the programme set is a scope now and it starts at All. **The
