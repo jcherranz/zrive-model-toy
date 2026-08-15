@@ -311,11 +311,11 @@
         }
         rosterReturn = null;
       }
-      var nav = document.getElementById('navstudents');
-      if (nav) {
-        if (on) nav.setAttribute('aria-current', 'page');
-        else nav.removeAttribute('aria-current');
-      }
+      // Issue 139 deleted the header's `students` link, so there is no nav item left to mark.
+      // The roster is one cohort's list and the scope is a set: a header link to it opened the
+      // roster of whichever programme happened to be first in scope and named none of them. The
+      // address is unchanged and the way in is the cohort tile's own panel, where the link names
+      // the cohort it is about. The body class below is what the heading and the stylesheet read.
       // The heading says what is on screen, and what is on screen here is the list. One class on
       // the body and the stylesheet picks the variant, which is the mechanism board.js already
       // uses for #/board and the mechanism the subtitle used before the heading took its job. It

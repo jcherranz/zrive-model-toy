@@ -21,7 +21,13 @@
               '"cards": [{"id": 1, "title": "...", "labels": [], "url": "..."}]}]}';
 
   var body = document.body;
-  var nav = document.getElementById('navview');
+  // Issue 139. The two segments of the view selector, and this file marks which of them is the
+  // one on screen. What stood here was ONE link whose word and whose target both swapped, so the
+  // page had no element anywhere that said what the views are: it named the one you were not on
+  // and said nothing about the one you were. A segmented selector says both by existing, and all
+  // this file has to write is the mark.
+  var navDiagram = document.getElementById('navdiagram');
+  var navBoard = document.getElementById('navboard');
   var meta = document.getElementById('bmeta');
   var host = document.getElementById('bbody');
   var statusEl = document.getElementById('bstatus');
@@ -669,9 +675,15 @@
   function route() {
     onBoard = location.hash === '#/board';
     body.classList.toggle('board', onBoard);
-    if (nav) {
-      nav.textContent = onBoard ? 'diagram' : 'board';
-      nav.setAttribute('href', onBoard ? '#/' : '#/board');
+    // `page` and not `true`, which is the value aria-current takes for the item that is the
+    // current page, and is the value router.js already writes on the scope chip that is on.
+    if (navDiagram) {
+      if (onBoard) navDiagram.removeAttribute('aria-current');
+      else navDiagram.setAttribute('aria-current', 'page');
+    }
+    if (navBoard) {
+      if (onBoard) navBoard.setAttribute('aria-current', 'page');
+      else navBoard.removeAttribute('aria-current');
     }
     // The diagram is the other half of this page and does not show the board, so nothing is
     // polled while it is on screen. Coming back asks at once, for the same reason returning to

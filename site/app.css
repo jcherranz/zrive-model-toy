@@ -328,24 +328,24 @@ body.calendar .h-diagram { display: none; }
 body.calendar .h-calendar { display: inline; }
 body.outline .h-diagram { display: none; }
 body.outline .h-outline { display: inline; }
-/* THE GHOST TOGGLE IS WITHDRAWN WHEREVER THE DRAWING IS NOT ON SCREEN, and issue 86 is what took
-   that from one route to five. The board was the first: a control that adds dashed tiles to a
-   picture is not dimmed or reworded there, it is gone. A sheet is the same situation arrived at
-   from the other side. Until #86 the whole header was under the sheet's backdrop, so this control
-   was covered along with everything else and the question never came up; with the header live
-   above a sheet it would be the one item in that row that does nothing a reader can see, acting
-   on a drawing behind an opaque box. Withdrawn rather than disabled, because the board's answer
-   is already in this file and one behaviour is better than two.
+/* THE ABSENCE CONTROL IS WITHDRAWN WHEREVER THE DRAWING IS NOT ON SCREEN, and it inherits that
+   rule from the two controls it replaces rather than inventing one. Issue 139.
 
-   IT IS THE ONLY ONE OF THE FIVE THAT GOES. The distinction is issue 57's, restated: theme and
-   feedback belong to the page, `students` and `board` are the way out of a place, and only
-   `ghosts` is a control about a drawing. The programme picker is the other view level control in
-   this row and it needs no rule, because the heading it lives in is already swapped out on every
-   one of these five addresses. */
-body.board #ghtoggle,
-body.students #ghtoggle,
-body.calendar #ghtoggle,
-body.outline #ghtoggle { display: none; }
+   `ghosts` went on all five: a control that adds dashed tiles to a picture is not dimmed or
+   reworded on the board, it is gone, and a sheet is the same situation arrived at from the other
+   side, with the header live above an opaque box since #86. `gaps` stayed over a sheet and went on
+   two, because it counted what the READING is showing and a reading of the term is a reading of
+   the model. Merged, the control does both: it counts, and it marks the canvas. So the count is
+   what decides, and the rule is `gaps`'s: gone on the board, which is GitHub issues and not the
+   model, and on the student list, whose rows carry no property flag at all; live over both
+   readings of the term, where it counts the rows the reading lists, hit-testable at its own centre
+   and 26 by 26 over the backdrop, exactly as `feedback` and the view selector are.
+
+   Withdrawn rather than zeroed, because a control reading `work 0/22` on the board would be
+   answering a question about a view it is not in, and "nothing is missing here" and "this question
+   is not about this view" are different answers. */
+body.board .abs,
+body.students .abs { display: none; }
 /* THE TERM STRIP IS WITHDRAWN ON TWO OF THE FIVE AND KEPT ON THREE, and that split is the whole
    reason it is not simply `ghosts` again. Issue 90 decided it for the menu this replaces and issue
    137 keeps the rule word for word. It acts on two surfaces at once: the cohort session tiles on
@@ -357,22 +357,6 @@ body.outline #ghtoggle { display: none; }
    possible and is why this is not in the sheet. */
 body.board .brush,
 body.students .brush { display: none; }
-/* THE GAP COUNT LEAVES ON EXACTLY THE TWO ROUTES THE WINDOW LEAVES, and the reason is the same
-   sentence twice. Issue 98. It counts the values the model records as missing IN WHAT THE VIEW IS
-   SHOWING: on the diagram that is the tiles on screen, which #100's window already filters, and on
-   both readings of the term it is the rows the reading lists, sessions on one and templates on the
-   other. The board is GitHub issues and not the model, so there is nothing there to count; the
-   student list is a roster whose rows carry no property flag at all, and a count over the drawing
-   behind an opaque box is `ghosts`'s defect with a number on it. Withdrawn rather than zeroed,
-   because a control reading `gaps: 0 of 95` on the board would be answering a question about a
-   view it is not in.
-
-   IT STAYS OVER A SHEET, which is #86 and is the difference between this and `ghosts`. The sheet
-   is a reading of the term and this control is about what that reading is showing, so it is live,
-   hit-testable at its own centre and 26 by 26 over the backdrop, exactly as `theme`, `feedback`,
-   `students` and `board` are. */
-body.board .gapspick,
-body.students .gapspick { display: none; }
 /* THE ALTITUDE LEAVES ON THE SAME TWO ROUTES, and it is the same sentence a third time. Issue 89.
    It changes which drawing is on the canvas, so it belongs wherever the canvas is the thing the
    reader is looking at, and nowhere else: the board draws no model at all, and the student list
@@ -381,24 +365,10 @@ body.students .gapspick { display: none; }
    then opened a reading should not have to close it to change their mind. */
 body.board .grpick,
 body.students .grpick { display: none; }
-/* THE TILE COUNT LEAVES WHEREVER `ghosts` LEAVES, on all five, and it is the fourth reading of the
-   same sentence rather than a new rule. Issue 120. It is a count of the tiles on the canvas, so it
-   is worth exactly what the canvas is worth on the route: nothing on the board, which draws no
-   model; nothing on the student list; and nothing over a sheet, where the drawing it counts is
-   behind an opaque box, which is the argument that withdrew `ghosts` from those three addresses
-   and is not weaker here for being about a number rather than about a mark. */
-body.board #tilesrd,
-body.students #tilesrd,
-body.calendar #tilesrd,
-body.outline #tilesrd { display: none; }
-/* AND THE PLATE GOES WITH ITS LAST READING. The readout is a box with a rule around it, so on the
-   two routes where every reading inside it has been withdrawn by the four rules above, the box
-   itself would paint as an empty frame in the middle of the row. It is one rule and it names the
-   same two routes rather than reasoning about its own children, because a container that hides
-   itself when it happens to be empty is a container that vanishes the first time a reading is
-   added and forgotten. Issue 120. */
-body.board .hstate,
-body.students .hstate { display: none; }
+/* WHAT USED TO BE HERE. Four rules withdrew the four readings of the readout plate and a fifth
+   withdrew the plate itself once they had all gone. Issue 139 deleted the plate: `gaps` and
+   `tiles` are gone, `grain` is in the nav and keeps its own rule above, and the two rules left in
+   this file are the strip's and the absence control's. */
 /* The detail panel describes a node in the drawing, so on the board it goes the same way. It is
    hidden rather than closed: the selection is still the selection, and switching back brings the
    panel and the node it is about back together. */
@@ -459,146 +429,122 @@ header {
   gap: 20px;
 }
 
-/* THE NAV IS THREE GROUPS AND NOT FIVE THINGS, and the gaps say which. Issue 131. One 8px gap
-   between all five made `ghosts feedback students board theme` read as one undifferentiated row,
-   and the five are three kinds: two toggles that change what the page is doing, two links that go
-   somewhere, and one control that opens a chooser. 4px inside a group and 12px between them, which
-   comes to the same 32px the row spent before, so nothing moved and the grouping is free. */
+/* THE NAV IS FOUR CONTROLS AND THE GAPS SAY WHICH ARE ONE THING. Issue 139. #131 read this row as
+   three groups of five loose items; this card leaves four, and two of them are groups with more
+   than one press in them. 4px inside a group and 12px between them, which is the spacing #131
+   measured and set, kept word for word because the reason for it did not change: a single gap
+   between everything makes a row of instruments read as one undifferentiated strip. */
 .hnav {
   flex: none;
   display: flex;
   align-items: center;
+  gap: 12px;
+}
+
+/* ---- absence, one control with two switches, issue 139 -------------------------------------
+   THE TWO NUMBERS SIT SIDE BY SIDE AND NOTHING BETWEEN THEM IS AN OPERATOR. The separator is a
+   middle dot, which is the character this page already uses to put two independent facts on one
+   line and is the one character in the row that could never be read as arithmetic. There is no
+   plus sign anywhere near them, there is no third box holding a total, and the two switches do not
+   share a colour: `work` takes the warning hue, which is the page's colour for something a person
+   should act on, and `unrecorded` takes the muted body colour, which is the ghosts' own. A reader
+   who cannot tell the two apart is a reader who will add them.
+
+   NOTHING HERE SETS A HEIGHT. Both switches are .linkbtn, so #77's 26 by 26 is met by
+   construction and the group sits on the row's one baseline. */
+.abs {
+  display: inline-flex;
+  align-items: center;
   gap: 4px;
 }
 
-#navstudents { margin-left: 8px; }
-.thpick { margin-left: 8px; }
-
-/* ---- the readout, which is the half of this row that is telling the reader something ----------
-   ISSUE 120, AND THE WHOLE OF IT IS IN THE TWO DECLARATIONS THAT ARE NOT SIZES. The plate steps
-   back from the header's own ground and takes a rule around it, so the group reads as an
-   instrument the page writes into; every action beside it keeps the header's ground and the link
-   colour, so it reads as something a reader does. That is the distinction he filed the card
-   about, and until it was drawn nine controls carried one treatment between them.
-
-   --bg-band AND NOT --bg-elevated, because this box is recessed and not raised: it is the surface
-   the page reports on, under the chrome rather than on top of it, and --bg-band is already the
-   token for a plate that steps back toward the ground it sits on rather than away from it. It is
-   the same colour the lanes of the drawing take, which is the right relation: the lanes are where
-   the model is drawn and this is where the model is counted.
-
-   NOTHING HERE SETS A HEIGHT AND THAT IS ISSUE 77 STILL HOLDING. Every pressable reading is a
-   .linkbtn, so it is 26 by 26 by construction; the one reading that is not pressable takes the
-   same box from .rd-static below, so the plate is the height of the row it sits in and the
-   controls inside it are still targets a finger can land on. The gap is zero and the separation
-   is a rule between the items, because a gap inside a bordered box reads as a gap between boxes
-   and the point of the box is that the readings inside it are one statement. */
-.hstate {
-  /* `none` and not `0 1 auto` since issue 131, which is that card's whole first finding: an
-     instrument that is allowed to shrink is an instrument that folds its own readings in two.
-     The heading gives the width back instead. */
-  flex: none;
-  /* AND THE PLATE IS WHAT THE BOXES UNDER IT HANG FROM, issue 131. Each of the three pressable
-     readings used to be the containing block of its own box, and the boxes are 460, 340 and 300
-     px wide against a control of 84: anchored to the control's right edge, `weeks` measured
-     left: -73.1 at 900 by 800, with `this page has no today` reading `as no today`, `1 week`
-     cut in half and the closing sentence reading `ole term`, and nothing on the page could reach
-     any of it, because overflow to the left of the origin creates no scrollbar. Anchored to the
-     plate's left edge instead they are on screen at every width down to the breakpoint, and one
-     panel opens under one instrument rather than three panels flying out at three offsets. It is
-     the same repair the phone block already makes with `position: fixed`, arrived at from the
-     same measurement. */
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 0;
-  min-width: 0;
-  background: var(--bg-band);
-  border-radius: var(--radius);
-  /* THE RULE AROUND THE PLATE COSTS NO HEIGHT, and that is a measurement rather than a
-     preference. Written as a border it is 26px of readings inside a 28px box, the row takes the
-     taller of the two, and the header goes from 43 to 45 at 1536 and from 107 to 109 at 390,
-     which takes the phone's chrome share from 17.3 per cent to 17.5 and breaks the one budget
-     this card was told not to spend. An inset hairline paints the same line and takes part in no
-     layout, so the plate is exactly as tall as the readings on it and the header is the height it
-     was before this card. --elev-1 already draws its own hairline this way. */
-  box-shadow: inset 0 0 0 1px var(--rule);
+.abs-sep {
+  color: var(--fg-muted);
+  user-select: none;
 }
 
-/* The rule between two readings, drawn once, on the item that follows another.
-   A MARK BETWEEN READINGS AND NOT A WALL BETWEEN BOXES, which is issue 131 and is a change of
-   length rather than of colour. Written as a border it ran the full 26px, edge to edge, into the
-   plate's own rounded corner rule at both ends, so four readings that are one statement read as
-   four boxes bolted together. It is 14px of the 26 now, centred, so the plate is one surface with
-   marks on it. Drawn as a background image on the READING and not as a border on the wrapper,
-   because a border on the wrapper is what made the wrapper the thing being separated; and because
-   the hover and open fills below are `background-color`, which paints UNDER a background image on
-   the same element, so a reading that is being pressed keeps its mark. Two selectors and not one,
-   because three of the four readings are wrapped in a positioning span and the static one is
-   not. */
-.hstate > :not(:first-child) > .rd,
-.hstate > .rd:not(:first-child) {
+/* THE ON STATE IS A FILL AND NOT A COLOUR CHANGE, which is `ghosts`'s own treatment carried over
+   with the control. Off, the switch is the header's ordinary link; on, it takes the tint and a
+   bottom rule in its own hue, so which of the two is drawing on the canvas is legible without
+   reading the words, and the two states are as far apart as they were before this card merged
+   them. The dashes on `unrecorded` are the ghosts' own mark, for the reason #131 gave them to the
+   ghost toggle: the control looks like the thing it adds. */
+.abs-btn { color: var(--fg-body); }
+.abs-btn:hover { text-decoration: none; background-color: var(--tint-hover); }
+
+.abs-work[aria-pressed="true"] {
+  background-color: var(--tint-hover);
+  box-shadow: inset 0 -2px 0 var(--fg-warning);
+}
+
+.abs-unrec[aria-pressed="true"] {
+  background-color: var(--tint-hover);
+  border-bottom: 1px dashed var(--c-gray-3);
+  box-shadow: inset 0 -2px 0 var(--c-gray-3);
+}
+
+.abs-work .ctl-v { color: var(--fg-warning); }
+.abs-unrec .ctl-v { color: var(--fg-muted); }
+
+/* ---- the view selector, issue 139 -----------------------------------------------------------
+   A SEGMENTED SELECTOR SAYS WHAT THE VIEWS ARE BY EXISTING. What stood here was `students` and a
+   link whose word and target swapped with the route, so at any moment the page named one view and
+   silently was another. Both segments are on screen at every width, the current one is filled and
+   carries aria-current, and pressing the one you are on does nothing rather than taking you
+   somewhere.
+
+   ONE BOX ROUND BOTH, with the corners belonging to the group and not to the segments, which is
+   the treatment the readout plate used for its readings and is the reason it is reused: a reader
+   who has learned that a ruled box means "these belong together" has learned it once. */
+/* THE RULE ROUND THE GROUP IS AN INSET SHADOW AND NOT A BORDER, and that is #77's floor doing the
+   deciding. Both segments are .linkbtn, so each is 26 by 26; a one pixel border round them would
+   make the group 28 and the header 45 where it has measured 43 since #77. A shadow paints the same
+   line and takes no space. */
+.vsel {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius);
+  background: var(--bg-band);
+  box-shadow: inset 0 0 0 1px var(--rule-muted);
+}
+
+.vseg { border-radius: 0; border-color: transparent; }
+.vseg:first-child { border-top-left-radius: var(--radius); border-bottom-left-radius: var(--radius); }
+.vseg:last-child { border-top-right-radius: var(--radius); border-bottom-right-radius: var(--radius); }
+.vseg + .vseg {
   background-image: linear-gradient(var(--rule-muted), var(--rule-muted));
   background-repeat: no-repeat;
   background-position: left center;
   background-size: 1px 14px;
 }
 
-/* The corners belong to the plate and not to the readings on it. Without this the first and last
-   .linkbtn round their own outer corners inside a box that has already rounded them, and the
-   focus ring of a control in the middle of the group draws a rounded rectangle over a straight
-   rule. */
-.hstate .linkbtn { border-radius: 0; }
-.hstate > :first-child .linkbtn { border-top-left-radius: var(--radius); border-bottom-left-radius: var(--radius); }
-.hstate > :last-child .linkbtn { border-top-right-radius: var(--radius); border-bottom-right-radius: var(--radius); }
+.vseg:hover { text-decoration: none; background-color: var(--tint-hover); }
+.vseg:focus-visible { outline-offset: -2px; }
 
-/* A READING IS A LABEL AND A VALUE AND IT IS NOT BLUE. .linkbtn paints its text --i-primary,
-   which is the page's colour for "this is a link or a control"; inside the readout the words are
-   what the page is saying, so the value takes the body colour and the label the muted one. The
-   control is still a control: it keeps the box, the target size, the focus ring and the hover
-   underline, so nothing about pressing it is any less discoverable than it was in the nav. */
-.hstate .rd { color: var(--fg-body); }
-.rd-k { color: var(--fg-muted); font-weight: 400; }
-.rd-v { color: var(--fg-body); font-weight: 600; }
-
-/* The one reading that is not a control. It takes the .linkbtn box exactly, so it sits on the
-   row's single baseline and the plate is one height, and it takes none of the affordances: no
-   pointer, no underline on hover, no focus ring, nothing to press. Issue 120. */
-.rd-static {
-  display: inline-block;
-  font-size: var(--fs-sm);
-  line-height: 18px;
-  min-height: 26px;
-  padding: 3px 8px;
-  border: 1px solid transparent;
+/* The one that is on. It is the body colour rather than the link colour, because the segment you
+   are already on is not somewhere to go; the fill and the accent rule are what say which, and both
+   survive a forced-colours mode through the aria-current the page also sets. */
+.vseg[aria-current="page"] {
+  color: var(--fg-body);
+  font-weight: 600;
+  background-color: var(--tint-hover);
+  box-shadow: inset 0 -2px 0 var(--i-primary);
   cursor: default;
 }
 
-/* THREE STATES AND THREE PAINTS, WHICH IS WHAT THIS ROW DID NOT HAVE. Issue 131. `--tint-hover`
-   and `--tint-neutral` are declared to the same value in both themes, and the file spent that one
-   value on three different meanings: hovering a reading, having a reading's box OPEN, and the
-   ghost toggle being ON were the same fill to the pixel. So a reader hovering the ghost chip
-   while it was off was shown the paint that means on, and a reading with its box open was
-   indistinguishable from a reading under the pointer.
+.vseg[aria-current="page"]:hover { text-decoration: none; }
 
-   The hover keeps the tint, which is what a hover is for. The open state keeps the tint AND takes
-   a two pixel accent along its bottom edge, drawn as an inset shadow so it costs no height and
-   the plate stays 26: it says which of the four readings the box below the plate belongs to, and
-   it points at it. And it is the only place on this page where the accent is used as a mark of
-   position rather than as the colour of a link, which is the whole of why it reads.
+/* ---- a label and a value on a control, issue 120 and issue 139 -------------------------------
+   THE IDIOM SURVIVED THE PLATE. `grain sessions` and `work 3/22` are a muted label beside a value
+   in a colour the switch chooses, which is what #120 built for the readout and is the right form
+   for any control whose state is a word or a number rather than a verb. What went with the plate
+   is the CLAIM the plate made, that these are things the page is telling you rather than things
+   you do: `grain` changes the address and every mark on the canvas, and both absence switches
+   change the drawing, so all three are in the nav wearing the nav's paint. */
+.ctl-k { color: var(--fg-muted); font-weight: 400; }
+.ctl-v { font-weight: 600; }
 
-   The underline goes. `.linkbtn:hover` underlines its own text, which is right for a word that is
-   a link and wrong inside an instrument, where the words are what the page is saying and the
-   underline lands on the label as well as on the value. The fill is the affordance here. */
-.hstate .linkbtn:hover {
-  text-decoration: none;
-  background-color: var(--tint-hover);
-}
-
-.hstate .linkbtn[aria-expanded="true"] {
-  background-color: var(--tint-hover);
-  box-shadow: inset 0 -2px 0 var(--i-primary);
-}
 
 /* A CONTROL THAT OPENS A BOX SAYS SO, AND ONE THAT DOES NOT SAY NOTHING. Issue 131, and it is one
    rule applied by function rather than five treatments applied by history. Five of the nine
@@ -617,10 +563,13 @@ header {
    thing on the control that says the control opens a box, so it is a graphical object WCAG 2.2
    SC 1.4.11 asks 3:1 of. At 70 the link colour over the header's own ground measured 2.8115 in
    light and 2.9321 in dark, under it in both. At 85 it is 3.6365 and 3.6729, and on the plate,
-   where the mark takes the body colour over the band, 9.7981 and 10.7853. It recedes by being
-   six pixels wide rather than by being faint, which is the honest way for a mark to be quiet. */
-.hstate .linkbtn.rd::after,
-#thtoggle::after {
+   where the mark took the body colour over the band, 9.7981 and 10.7853.
+
+   TWO CONTROLS CARRY IT AFTER ISSUE 139 AND NOT FIVE, and the rule is unchanged: the mark is on
+   exactly the controls that open a box, which is now the scope picker's heir in the heading and
+   `grain`. The gap menu and the theme menu are deleted with their controls, and neither absence
+   switch nor either view segment opens anything, so neither takes it. */
+#grbtn::after {
   content: '';
   display: inline-block;
   width: 0;
@@ -635,18 +584,15 @@ header {
 
 /* Open, and the mark turns over with the box. The one piece of motion in this header and it is
    50ms, which is short enough to be seen as the same object moving rather than as an animation. */
-.hstate .linkbtn.rd[aria-expanded="true"]::after,
-#thtoggle[aria-expanded="true"]::after {
+#grbtn[aria-expanded="true"]::after {
   transform: rotate(180deg);
   opacity: 1;
 }
 
-.hstate .linkbtn.rd::after,
-#thtoggle::after { transition: transform 50ms linear; }
+#grbtn::after { transition: transform 50ms linear; }
 
 @media (prefers-reduced-motion: reduce) {
-  .hstate .linkbtn.rd::after,
-  #thtoggle::after { transition: none; }
+  #grbtn::after { transition: none; }
 }
 
 /* THE ONE DECLARATION THAT MADE FIVE CONTROLS FAIL WCAG 2.2 SC 2.5.8. This was
@@ -687,13 +633,12 @@ header {
 
 .linkbtn:hover { text-decoration: underline; }
 .linkbtn:focus-visible { outline: 2px solid var(--i-primary); outline-offset: 1px; }
-/* THE RING GOES INSIDE THE CELL ON THE PLATE, and that is a measurement rather than a taste.
-   Issue 131. At `outline-offset: 1px` the ring around a reading is 30px tall inside a 26px plate,
-   so it breaks out over the plate's top and bottom edges, draws square corners across the plate's
-   own rounded ones, and covers the rules of both neighbours; on a middle reading it reads as
-   damage rather than as focus. Inset by two it is drawn inside the cell it belongs to, touches
-   nothing else, and is the same 2px in the same colour, which is what the standard asks of it. */
-.hstate .linkbtn:focus-visible { outline-offset: -2px; }
+/* THE RING GOES INSIDE THE CELL WHEREVER A CONTROL SITS IN A RULED GROUP, and that is a
+   measurement rather than a taste. Issue 131 found it on the readout plate: at `outline-offset:
+   1px` the ring around a cell is 30px tall inside a 26px box, so it breaks out over the group's
+   top and bottom edges, draws square corners across its rounded ones, and covers the rules of both
+   neighbours. The plate is deleted and the measurement is not: the view selector is the ruled
+   group in this header now, and its rule is written beside it, in .vseg. */
 .linkbtn[aria-expanded="true"] { font-weight: 600; }
 
 /* A disabled control says so before it is clicked. It keeps its place in the row, because a
@@ -1066,173 +1011,22 @@ h1 {
    where the label went is reading the page's own answer. */
 .brush-label-out { box-shadow: 0 0 0 1px var(--rule-muted); }
 
-/* ---- what needs attention, issue 98 ---------------------------------------------
-   The third disclosure in this header and deliberately the third of the same thing: the box, the
-   anchoring, the rung and the three listeners were .wnmenu's, which were .pgmenu's before that. A
-   fourth idiom for the fourth control in a row of six would be four things for a reader to learn
-   where there is one.
-
-   NOTHING HERE SETS A SIZE, and that is issue 77 still holding. The control is a .linkbtn, so it
-   is 26 by 26 by construction and shares the row's one baseline; this file adds a position and a
-   box to hang from it and no dimension at all. A control added to this row after this one is the
-   right size for the same reason and without anybody remembering to make it so. */
-/* NOT `position: relative` SINCE ISSUE 131. The box below hangs off the plate, which is the
-   group this reading is part of, and not off this 84px control; the measurement that forced
-   it is in the .hstate block. The span stays, because it is what the plate's first and last
-   child rules round the corners of and what the divider selector counts. */
-.gapspick {
-  display: inline-block;
-}
-
-/* Anchored to the plate's left edge for the window menu's reason and measured the same way, #131:
-   this is a reading on a plate in the middle of the row and not the fourth item of a nav, and a
-   340px box hung off an 84px control that is itself a third of the way across the row is a box
-   whose edges are wherever the heading beside it happens to have left them. It is narrower than
-   the window's box because it holds a sentence and a short table rather than three rows of
-   controls. */
-.gapsmenu {
-  position: absolute;
-  top: calc(100% + 5px);
-  left: 0;
-  z-index: var(--z-pop);
-  width: 340px;
-  max-width: calc(100vw - 40px);
-  padding: 8px 10px;
-  background: var(--bg-panel);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  box-shadow: var(--elev-1);
-  font-size: 11px;
-  line-height: 1.45;
-}
-
-.gapsmenu[hidden] { display: none; }
-
-/* What the number is a number OF, in words, and it is first because the count above it is
-   meaningless without it: the same control says 31 on one drawing, 11 on the calendar and 65 on
-   the outline, and each of those is true of a different set. */
-.gaps-scope {
-  margin: 0 0 6px;
-  color: var(--fg-body);
-}
-
-.gaps-scope b { font-weight: 600; }
-
-/* ---- the split, issue 125 -------------------------------------------------------
-   TWO HEADINGS OVER ONE LIST, because the list held two kinds of thing and said so nowhere: 22
-   rows a system holds with an empty field in them, and 73 the registry says no system holds at
-   all. The heading is the register the box already has and carries no new colour, no rule and no
-   box; what separates the two sides is a line of text and the space above it, which is what the
-   scope sentence at the top of this box already does. */
-.gaps-head {
-  margin: 6px 0 2px;
-  color: var(--fg-body);
-  font-weight: 600;
-}
-
-.gapsmenu > .gaps-head:first-of-type { margin-top: 0; }
-
-/* The registry's own reason, under the second heading and in the muted register the foot uses,
-   because it is the same kind of sentence: about the machinery rather than about a count. */
-.gaps-why {
-  margin: 0 0 3px;
-  color: var(--fg-muted);
-}
-
-/* A count and the thing it counts, on a grid rather than in a sentence, because the reader is
-   scanning for the largest number and a column of right-aligned figures is what that reading
-   wants. */
-.gaps-row {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding: 1px 0;
-}
-
-/* THE ROWS THAT ARE A PLACE TO GO. Issue 125. A work row is a <button> and the rest of the list
-   is unchanged, so the reset here is the whole of what a button costs: the browser's chrome off,
-   the box the full width of the menu, and the text left where the other rows' text is. The 26px
-   is issue 77's floor met explicitly, which the .linkbtn controls in this header get by
-   construction and an element that is a button for the first time does not. */
-.gaps-go {
-  width: 100%;
-  min-height: 26px;
-  align-items: center;
-  padding: 2px 4px;
-  margin: 0 -4px;
-  border: 0;
-  border-radius: var(--radius);
-  background: none;
-  font: inherit;
-  text-align: left;
-  color: inherit;
-  cursor: pointer;
-}
-
-/* The tint and the ring the other menu in this header already uses, which were .pgitem's and the
-   window menu's steppers',
-   for the reason the box and the anchoring are theirs: a fourth idiom for the fourth disclosure
-   is four things to learn where there is one. */
-.gaps-go:hover { background: var(--tint-hover); }
-
-.gaps-go:focus-visible {
-  outline: 2px solid var(--i-primary);
-  outline-offset: -2px;
-}
-
-.gaps-go .gaps-what { color: var(--fg-body); }
-
-.gaps-n {
-  flex: none;
-  min-width: 2.2em;
-  text-align: right;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: var(--fg-body);
-}
-
-.gaps-what { color: var(--fg-muted); }
-
-/* The field, in the key the panel prints beside the value. The panel writes the model's own key
-   into its <dt> and this list writes the same string, so a reader who follows a row down to the
-   tile it is about meets the word they came in with. A friendlier name here would be a third name
-   for the same field, after the model's key and the sentence the term sheet writes. */
-.gaps-what code {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--fg-body);
-}
-
-/* The one claim left at the foot, that the number over the list is recomputed on every change of
-   view rather than written down anywhere. What stood beside it, that an absence here is something
-   the analysis established rather than something nobody has typed yet, went with issue 110 and
-   is answered a better way since issue 125: the two headings above say which of the two an
-   absence is, per row, off the registry rather than in a sentence over the whole list. */
-.gaps-foot {
-  margin: 6px 0 0;
-  padding-top: 6px;
-  border-top: 1px solid var(--rule-muted);
-  color: var(--fg-muted);
-}
-
 /* ---- the altitude, issue 89 --------------------------------------------- */
-/* The fifth control in this row and the fourth to hang a box off itself, so it is the third
-   copy of one idiom and not a fourth idiom: the anchoring, the box and the three listeners are
-   .gapsmenu's, which were the window menu's, which were .pgmenu's. NOTHING HERE SETS A SIZE, which is
-   issue 77 still holding: the control is a .linkbtn, so it is 26 by 26 by construction and sits
-   on the row's one baseline, and this file adds a position and a box and no dimension at all. */
-/* NOT `position: relative` SINCE ISSUE 131. The box below hangs off the plate, which is the
-   group this reading is part of, and not off this 84px control; the measurement that forced
-   it is in the .hstate block. The span stays, because it is what the plate's first and last
-   child rules round the corners of and what the divider selector counts. */
+/* THE SECOND BOX TO HANG OFF A CONTROL IN THIS HEADER AND THE SECOND COPY OF ONE IDIOM: the
+   anchoring, the box and the three listeners are the scope menu's. NOTHING HERE SETS A SIZE, which
+   is issue 77 still holding: the control is a .linkbtn, so it is 26 by 26 by construction and sits
+   on the row's one baseline, and this file adds a position and a box and no dimension at all.
+
+   `position: relative` CAME BACK WITH ISSUE 139. #131 took it off because the box hung off the
+   readout plate, which was the group this control was part of; the plate is deleted and this
+   control is a nav item again, so the box hangs off the control it belongs to. */
 .grpick {
+  position: relative;
   display: inline-block;
 }
-
-/* Narrower than the gap list because it holds one sentence, two choices and a note, rather than
-   a sentence and a table. Anchored to the plate's left edge for .gapsmenu's measured reason,
-   issue 131: the three boxes on this plate open in one place, under the group they read from,
-   and the reading they belong to is the one carrying the accent along its bottom edge. */
+/* Anchored to the control's left edge and 300px wide. It holds a sentence and a short table, and
+   at this end of a four item nav a box that opens leftward opens back into the page rather than
+   off it. */
 .grmenu {
   position: absolute;
   top: calc(100% + 5px);
@@ -1270,14 +1064,9 @@ h1 {
    page, and a link is the one control a browser already knows how to copy. They are sized here
    rather than by .linkbtn because they are inside a popover and not in the nav row, and #77's
    floor is met explicitly: 26px of height and padding that keeps the shorter of the two over
-   24px wide. */
-   THE THEME'S THREE CHOICES TAKE THE SAME BOX, which is issue 120 reusing this rather than
-   writing a fourth version of it. They are buttons and not links, because a theme is not an
-   address and there is nothing to copy out of the page, and that is the one difference between
-   the two sets; everything a reader can see about them is this idiom, including the mark on the
-   current one. */
-.gritem,
-.thitem {
+   24px wide. The theme's three choices shared this box until issue 139 deleted that control; the
+   idiom is the grain's alone again, which is where it started. */
+.gritem {
   display: inline-flex;
   align-items: center;
   min-height: 26px;
@@ -1289,27 +1078,23 @@ h1 {
   font-size: 11px;
 }
 
-.gritem:hover,
-.thitem:hover {
+.gritem:hover {
   background: var(--tint-hover);
   text-decoration: none;
 }
 
-.gritem:focus-visible,
-.thitem:focus-visible {
+.gritem:focus-visible {
   outline: 2px solid var(--i-primary);
   outline-offset: 1px;
 }
 
-.gritem[aria-current="true"],
-.thitem[aria-current="true"] {
+.gritem[aria-current="true"] {
   border-color: var(--fg-body);
   font-weight: 600;
 }
 
 /* The theme buttons carry the page's own font at the nav's size otherwise, because a button does
    not inherit the family the way an anchor does. */
-.thitem { font-family: inherit; background: transparent; cursor: pointer; }
 
 /* ---- and the altitude the budget will not draw, issue 136 -----------------
    IT KEEPS ITS PLACE AND ITS SIZE AND LOSES ITS LINK, which is `.linkbtn:disabled`'s rule one
@@ -1348,52 +1133,6 @@ h1 {
   color: var(--fg-muted);
 }
 
-/* ---- the theme, behind a press, issue 120 -------------------------------- */
-/* THE FIFTH BOX TO HANG OFF A CONTROL IN THIS HEADER AND THE FOURTH COPY OF ONE IDIOM. The
-   anchoring, the plate and the three listeners are .grmenu's, which were .gapsmenu's, which were
-   the window menu's, which were .pgmenu's. Nothing here sets a size on the control: it is a .linkbtn, so
-   #77's floor is met by construction.
-
-   ANCHORED RIGHT, and at this end of the row that is not a preference. The control is the last
-   item in the nav, so a box anchored to its left edge and 200px wide hangs off the right of the
-   viewport at every width; anchored right it opens back into the page. .grmenu and .gapsmenu were
-   given the same treatment for the same measurement. */
-.thpick {
-  position: relative;
-  display: inline-block;
-}
-
-.thmenu {
-  position: absolute;
-  top: calc(100% + 5px);
-  right: 0;
-  z-index: var(--z-pop);
-  width: 210px;
-  max-width: calc(100vw - 40px);
-  padding: 8px 10px;
-  background: var(--bg-panel);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  box-shadow: var(--elev-1);
-  font-size: 11px;
-  line-height: 1.45;
-}
-
-.thmenu[hidden] { display: none; }
-
-/* What the three mean, above them, in the place .grmenu puts the sentence that makes its two
-   choices mean anything. `system` is the one a reader cannot infer from the page in front of
-   them, which is #57's whole finding, so the sentence is about that one. */
-.th-scope {
-  margin: 0 0 6px;
-  color: var(--fg-body);
-}
-
-.th-row {
-  display: flex;
-  gap: 6px;
-  margin: 0;
-}
 
 /* ---- canvas ------------------------------------------------------------- */
 
@@ -2313,27 +2052,25 @@ body.fb-mode .fb-popover select { cursor: pointer; }
      max-content width and its children never meet an edge to wrap at. It is given the row
      here, and then wraps inside it. */
   .hnav { flex: 1 1 100%; flex-wrap: wrap; gap: 4px; }
-  /* THREE LINES HERE, AND THEY ARE THE THREE A PHONE ALREADY HAD. Issue 120. Before this card the
-     header at 390 was the heading on one line and the nav wrapped onto two, and it measured 107px.
-     The readout takes the line the second nav line used to take: the heading, then what is on
-     screen, then what a reader can do about it, which is a better use of the same three lines than
-     nine controls wrapping wherever they happened to fall. It is given the row for .hnav's reason,
-     that a flex item sized to its own content never meets an edge to wrap at, and it is allowed to
-     wrap inside itself so that a reading added later, or a longer number in one that is already
-     there, folds inside the plate instead of pushing the page sideways. */
-  /* THE PLATE TAKES ITS OWN LINE AND STOPS AT ITS OWN CONTENT, issue 131. `flex: 1 1 100%` gave
-     it the line by making the box 100 per cent wide, and the four readings come to 337 of the 366
-     a 390px screen has: the remaining 29px was tinted, ruled plate with nothing on it, and when
-     `gaps` was open its highlight stopped in the middle of a cell that ran on to the edge. The
-     line is taken by the HEADING instead, which is given the full width below, so this is sized
-     by its readings and the empty pane is gone. `max-width` and the wrap are the safety they
-     always were: a longer number folds inside the plate rather than pushing the page sideways. */
-  .hstate { flex: 0 1 auto; max-width: 100%; flex-wrap: wrap; }
-  /* The heading takes the row here, which is what puts the plate and the nav below it, and its
-     clause goes back to being a clause: the ellipsis is a desktop answer to a row that is full,
-     and on a phone there is a whole line for the sentence and it should wrap into it as it always
-     did. Issue 131. */
-  h1 { flex: 1 1 100%; }
+  /* THREE LINES HERE AND NOT FOUR, WHICH IS WHAT ISSUE 139 BOUGHT. The header at 390 was the rail,
+     the readout plate, the strip and the nav, four rows of 26 and 139 CSS px of an 844px screen.
+     The plate is deleted, `grain` moves into the nav beside the one control that replaced the two
+     it used to sit with, and the row it took is gone: rail, strip, nav. */
+  /* The heading is allowed to shrink here rather than taking the row outright, because the view
+     selector is on the row with it after issue 139. On the diagram the heading is the scope rail,
+     which is a horizontal scroller at this width by #136's decision and stays one: eight chips
+     carrying their fractions want 426 CSS px and a 390px screen has 366, so it scrolled before
+     this card and it scrolls after it. On the other four routes the heading is a sentence and it
+     elides, which is the answer #131 gave a full row on the desktop.
+
+     `1 1 0` AND NOT `1 1 auto`, WHICH IS THE WHOLE OF WHY THE TWO SHARE A LINE. A flex row that
+     wraps wraps BEFORE it shrinks, and on the diagram this heading's own content is the rail,
+     whose eight chips want 426 CSS px: at a basis of auto the heading is hypothetically 426, the
+     selector beside it does not fit, and the browser puts it on a line of its own rather than
+     squeezing the box that could squeeze. At a basis of zero the heading is hypothetically
+     nothing and grows into whatever the selector leaves, which is 246 at 390, and the rail scrolls
+     inside it exactly as it already did. */
+  h1 { flex: 1 1 0; min-width: 0; }
   /* The rail is the whole heading on a phone, and it is the one box in this header a thumb is
      meant to push sideways: eight chips carrying their fractions are wider than 390px and the
      fractions are the half that must not be dropped to make them fit. Issue 136. */
@@ -2343,20 +2080,34 @@ body.fb-mode .fb-popover select { cursor: pointer; }
      stays the size a finger needs. The picker inside the heading keeps its own, tighter, padding
      through a more specific rule, and the footer's disclosure keeps the wider one because it sits
      alone at the end of a sentence. */
-  .hnav .linkbtn { padding-left: 6px; padding-right: 6px; }
-  /* The readings take the same cut for the same reason, and the static one with them, because the
-     plate has to hold all four of them on one line at 390 and a reading that kept the wider
-     padding would be the one that folded the box in two. Issue 120. */
-  /* 5 and not 6 since issue 131, and the pixel is bought rather than trimmed: the three pressable
-     readings carry a disclosure mark now, which is 3 by 10 CSS px apiece, and on the widest
-     drawings the gap reading is `gaps 10 of 95`. Measured at 360 by 844, which is the narrowest
-     screen this file has ever named, the plate came to 342 against the 336 a 360px screen leaves,
-     and folded in two on four of the seven drawings. Four readings at one pixel each side is
-     eight, the mark's own gap gives back three, and the plate is 331 with room to spare. The box
-     is still 88 by 26 on the narrowest of the four, so #77's floor is nowhere near. */
-  .hstate .linkbtn,
-  .hstate .rd-static { padding-left: 5px; padding-right: 5px; }
-  .hstate .linkbtn.rd::after { margin-left: 3px; }
+  .hnav .linkbtn,
+  .vseg { padding-left: 5px; padding-right: 5px; }
+  /* AND THE NAV FITS ONE LINE, WHICH IS THE WHOLE OF THE THIRD ROW. Issue 139. Measured at 390 by
+     844, where the content box is 366: `grain sessions` with its mark, `work n/22`, the dot,
+     `unrec n/73`, the two view segments and `feedback` come to 344 at these paddings, and to 401
+     at the desktop's. The 12px gaps between the four groups come down to 8 with them, which is
+     what keeps the fourth group on the line rather than under it.
+
+     NOT ONE WORD IS ABBREVIATED OR DROPPED AT THIS WIDTH, and that is deliberate. `grain` lost
+     its key at every width and not at this one, in the markup, where a reader can see it. `work`
+     and `unrecorded` are the case that would have tempted a phone-only rule and they are exactly
+     the case that must not have one: their values are `20/22` and `9/73`, two fractions in the
+     same grammar, and stripped of their words the reader has two numbers and no way at all to tell
+     which is which. The colour and the title would be the only difference left, and a title is a
+     hover, which a phone does not have.
+
+     AND THE VIEW SELECTOR GOES UP TO THE HEADING'S ROW, which is where it belongs on a narrow
+     screen rather than being an economy. The heading IS the view: the rail on the diagram, a
+     sentence naming the board or the roster or a reading of the term on the other four. A control
+     that says which view beside the line that names the view is one statement, and it is what
+     leaves this nav one line at 390 and at 360, which is the narrowest width this file has ever
+     named: the altitude at 67, the absence control at 198 and `feedback` at 64 come to 329, and
+     the two gaps between them to 12. */
+  .hnav { gap: 6px; order: 3; }
+  .abs { gap: 3px; }
+  #grbtn::after { margin-left: 3px; }
+  .vsel { order: 1; }
+  .brush { order: 2; }
   /* THE TERM STRIP TAKES A LINE OF ITS OWN HERE, and that is the design's own phone sketch and a
      measurement. The three readings left on the plate come to 251 of the 366 a 390px screen
      leaves, so a strip sharing that line would be 115 CSS px over twenty four weeks, which is a
@@ -2368,36 +2119,15 @@ body.fb-mode .fb-popover select { cursor: pointer; }
      `flex: 1 1 100%` FOR .hnav's REASON, restated: a flex item sized to its own content never
      meets an edge to wrap at, so the line has to be given rather than left to be taken. */
   .brush { flex: 1 1 100%; min-width: 0; }
-  /* The gap list is anchored to the viewport under the header, and this is a measured repair
-     rather than a precaution. Issue 98. It hangs off a control in a row that wraps here, so its
-     own right edge is nowhere near the viewport's; a box anchored to that control's right edge and
-     350px wide measured left: -153.78 at 390 by 844, which is 154px of the box outside the
-     viewport with no scrollbar to reach it, because overflow to the left of the origin creates
-     none. --hh is the header's own measured height, written by app.js and kept current by a
-     ResizeObserver, so a row that wraps to a fourth line does not put the box under the row it
+  /* The altitude's box is anchored to the viewport under the header, and this is a measured repair
+     rather than a precaution. Issue 89, and the measurement is #98's: a box hung off a control in a
+     row that wraps here has its own right edge nowhere near the viewport's, and a 350px box
+     anchored to a control a third of the way along measured left: -153.78 at 390 by 844, which is
+     154px of it outside the viewport with no scrollbar to reach it, because overflow to the left
+     of the origin creates none. --hh is the header's own measured height, written by app.js and
+     kept current by a ResizeObserver, so a row that wraps does not put the box under the row it
      belongs to. */
-  .gapsmenu {
-    position: fixed;
-    top: var(--hh);
-    left: 12px;
-    right: 12px;
-    width: auto;
-    max-width: none;
-  }
-  /* And the altitude's box is the same box in the same place for the same measured reason.
-     Issue 89. */
   .grmenu {
-    position: fixed;
-    top: var(--hh);
-    left: 12px;
-    right: 12px;
-    width: auto;
-    max-width: none;
-  }
-  /* And the theme's, which is the fourth. Issue 120. It hangs off the last control in a nav that
-     wraps here, so where its own edges are depends on where the row happened to break, which is
-     the condition all three above it are anchored to the viewport for. */
-  .thmenu {
     position: fixed;
     top: var(--hh);
     left: 12px;
@@ -2438,37 +2168,42 @@ body.fb-mode .fb-popover select { cursor: pointer; }
    there is nothing inside one. The marking on the cohort is deliberately a different mark
    again, since that object exists and only its key does not. */
 
-/* The one view switch left in the header, and the dashes on it are the ghosts' own mark: the
-   control is drawn as the thing it adds to the drawing. It had a solid twin, the second cohort
-   switch, which is gone with the view it opened (issue 42). */
-#ghtoggle {
-  border-style: dashed;
-  border-color: var(--c-gray-3);
-  color: var(--fg-muted);
+/* THE SWITCH THAT GOVERNS ALL OF THIS IS `unrecorded` AND ITS PAINT IS IN THE NAV BLOCK. Issue
+   139 merged `ghosts` into the absence control as its second switch, beside the number it governs,
+   so nobody flips it without seeing that the 73 are a different animal from the 22. What it does
+   to the drawing did not change by a pixel; what changed is its name, the number on its face, and
+   that it now also governs the sockets below, which are the same finding one grain down.
+
+   #ghtoggle's own dashed border, its hover and its pressed fill are deleted with the id. The
+   dashes survive on the switch itself, in .abs-unrec, for the reason #131 gave them: the control
+   is drawn as the thing it adds to the drawing. */
+body.hide-unrecorded .ghost { display: none; }
+
+/* ---- the empty sockets, issue 139 -----------------------------------------
+   ONE RING PER MISSING VALUE, ON THE OBJECT THAT IS MISSING IT, and the two kinds are told apart
+   the way the two switches are: `work` in the warning hue with a solid ring, because somebody can
+   fill it in, and `unrecorded` in the ghost grey with the ghosts' own dashes, because it is a
+   ghost met one grain down. They are drawn unfilled, which is the whole of the metaphor: the
+   socket is empty because the value is.
+
+   THE STROKE IS 1.1 AND MATCHES THE GHOST TILE'S, so a dashed ring and a dashed tile read as one
+   language rather than as two weights of the same idea. The dash array is the tile's own 3 2.4
+   scaled to a 2.1 unit radius, which is what keeps four dashes on a ring this small. */
+.sock { fill: none; }
+
+.sock-work {
+  stroke: var(--fg-warning);
+  stroke-width: 1.1;
 }
 
-/* THE HOVER CANNOT BE THE ON STATE, AND IT WAS. Issue 131. `--tint-neutral` and `--tint-hover`
-   are declared to the same value in both themes, so this chip filled with that value while it was
-   pressed and filled with that value while the pointer was over it: hovering the control while
-   the ghosts were OFF showed the reader exactly the paint that means the ghosts are on. The fill
-   belongs to the state, so the hover gives it up and says what a hover says instead, which is
-   that the thing under the pointer is a target: the dashes come up to the body's own muted grey
-   and the word to the body colour. Nothing about the dashes changes, because the dashes are the
-   ghosts' own mark and are the reason this control looks like the thing it adds. */
-#ghtoggle:hover {
-  text-decoration: none;
-  border-color: var(--fg-muted);
-  color: var(--fg-body);
+.sock-unrec {
+  stroke: var(--c-gray-3);
+  stroke-width: 1.1;
+  stroke-dasharray: 1.5 1.2;
 }
 
-#ghtoggle[aria-pressed="true"] {
-  color: var(--fg-body);
-  font-weight: 600;
-  background: var(--tint-neutral);
-  border-color: var(--fg-muted);
-}
-
-body.hide-ghosts .ghost { display: none; }
+body.hide-work .sock-work { display: none; }
+body.hide-unrecorded .sock-unrec { display: none; }
 
 .node.ghost .tile-bg {
   stroke-dasharray: 3 2.4;
