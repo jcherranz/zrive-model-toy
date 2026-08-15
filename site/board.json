@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-15T23:08:58Z",
+  "generated": "2026-08-15T23:09:51Z",
   "columns": [
     {
       "key": "raw",
@@ -33,24 +33,6 @@
             "idea"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
-        },
-        {
-          "id": 151,
-          "title": "Remove",
-          "labels": [
-            "bug",
-            "feedback"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/151"
-        },
-        {
-          "id": 152,
-          "title": "Why this here?",
-          "labels": [
-            "bug",
-            "feedback"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/152"
         }
       ]
     },
@@ -131,6 +113,26 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/149"
+        },
+        {
+          "id": 151,
+          "title": "Remove",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/151"
+        },
+        {
+          "id": 152,
+          "title": "Why this here?",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/152"
         }
       ]
     },
