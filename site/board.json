@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-15T13:39:22Z",
+  "generated": "2026-08-15T13:40:07Z",
   "columns": [
     {
       "key": "raw",
@@ -45,6 +45,14 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
+        },
+        {
+          "id": 137,
+          "title": "Time is an interval you drag, not a name you pick",
+          "labels": [
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/137"
         }
       ]
     },
