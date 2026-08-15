@@ -533,6 +533,13 @@
     // that knows where a node is drawn. render is built after this, so the first call is guarded
     // and the initial state is applied below beside the first draw.
     onWindow: function (spec) { windowChanged(spec); },
+    // Issue 137. WHICH PROGRAMMES THE STRIP IS THE DENSITY OF. The column over a week is how many
+    // sessions the scope holds in it, and the scope is a set since #136, so the strip has to be
+    // told the same set the drawing is. Handed over as a question for `windowEffect`'s reason:
+    // `router` is built after this, so an eager read would be a read of nothing, and the answer
+    // moves every time the reader presses a chip. showView() restates the control right after it
+    // redraws, which is where the repaint comes from.
+    drawnScope: function () { return router ? router.scope() : VIEWS; },
     // Issue 111. The count that used to be a stub tile on every filtered lane is a sentence on
     // the window control now, and the numbers in it are render.js's. Handed over as a question
     // rather than as a value: `render` is built after this, so an eager read would be a read of
@@ -648,7 +655,7 @@
     // reader cannot see.
     busy: function () {
       return router.rosterOpen() || router.pgMenuOpen() || term.isOpen() ||
-             term.windowMenuOpen() || gapsMenuOpen() || grainMenuOpen() ||
+             gapsMenuOpen() || grainMenuOpen() ||
              // Issue 120. The theme grew a box of its own when it went behind a press, and a box
              // over the canvas is a box a digit typed into it must not reach past. It is in this
              // list for the reason the other four are and not because anything about the theme
@@ -1711,6 +1718,10 @@
     // canonical coordinates, which is what makes the filtered drawing the build's own geometry
     // with tiles taken out rather than a second opinion about where things go.
     filtered: function () { return render.windowState(); },
+    // Issue 137. THE TERM STRIP AS PAINTED, so that an assertion about the brush is an assertion
+    // about what is on the screen rather than about the state it was drawn from. term.js owns it
+    // and answers; this file only publishes, which is the split every other seam here runs on.
+    brush: function () { return term.brushState(); },
     reflow: function () { return render.reflowCheck(); },
     // Issue 98. What the header says needs attention, read off the same object the control was
     // written from rather than recomputed here, so a driver asserting the count is asserting the

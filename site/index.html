@@ -134,27 +134,46 @@
          beside its value is what an instrument writes, and the difference is the whole of what
          he asked for.
 
-         THE READINGS COMPOSE INTO ONE STATEMENT AND ARE ORDERED SO THAT THEY READ AS ONE. How
-         much of the term, at what altitude, how many tiles that leaves, and how many of the
-         values the model records as missing are among those tiles. The programme is not in this
-         box: it is the subject of the sentence immediately to the left, it has been the control
+         THE READINGS ARE THREE SINCE ISSUE 137, AND `weeks` IS THE ONE THAT WENT. The window is
+         not a value the page reports at somebody any more, it is an interval on the strip before
+         this box, so the reading and the menu behind it are both deleted rather than moved. What
+         is left composes as it did: at what altitude, how many tiles that leaves, and how many of
+         the values the model records as missing are among those tiles. The programme is not in
+         this box either: it is the subject of the sentence to the left, it has been the control
          that switches drawings since #66, and taking it out of the heading would leave that
          heading saying "cohort 1Q26, as instances" about no cohort in particular. The heading
-         says which drawing and the box says what is on it. -->
+         says which drawing, the strip says which weeks, and the box says what is on it. -->
+    <!-- TIME IS AN INTERVAL YOU DRAG AND NOT A NAME YOU PICK. Issue 137. What stood in the box
+         after this was `weeks`, a reading whose value was a menu of four presets, and the owner
+         singled it out: "the weeks filter is crucial, but is this the best we can do?" It is not,
+         and the reason is functional rather than a matter of taste. The term is a bounded ordered
+         continuum of 24 weeks browsed in about 22 overlapping windows. A menu treats it as an
+         unordered set of names: it hides the neighbourhood, so stepping to the week next door
+         costs two interactions instead of one and there is no way to see that the week you are
+         moving into is empty until after you have moved into it; and it can express membership in
+         a preset list but not extent, so "just this week" and "the whole of the spring" both fall
+         outside it. The value has two degrees of freedom, position and width, which is a brush by
+         definition and not a scrubber.
+
+         IT IS A READING AND A CONTROL AT ONCE, WHICH IS WHAT PAYS FOR ITS WIDTH. One column per
+         week across the term. The column is how many sessions the scope holds that week; the part
+         of it the model holds a complete record for is solid and the remainder is hollow, in the
+         same filled-against-hollow grammar the chips beside it use as a fraction. So a reader sees
+         which weeks are heavy and which weeks the records barely cover BEFORE travelling there,
+         which is the thing no menu of names could ever have shown.
+
+         IT OPENS NOTHING AND CARRIES NO DISCLOSURE MARK. Every other control on this row that owns
+         a box declares `aria-controls` and takes the mark that says so; this one owns no box, so
+         it declares nothing and is marked with nothing. A mark here would be an affordance
+         promising a panel that does not exist.
+
+         NOT ONE COLUMN OF IT IS TYPED HERE. term.js owns the term, the window and every number on
+         this strip, and it builds the whole of the inside of this element from the model, for the
+         reason the chips beside it are built by router.js: a count typed into this file is right
+         on one scope out of a hundred and twenty seven. -->
+    <div class="brush" id="brush" role="slider" tabindex="0"
+         aria-valuemin="1" aria-valuemax="1" aria-valuenow="1"></div>
     <div class="hstate" id="hstate" role="group" aria-label="what is on this drawing">
-      <!-- HOW MUCH OF THE TERM IS IN FOCUS. Issue 90. It is in the header and not in the calendar
-           sheet because the term is on the drawing too, one tile per session, and the card was
-           filed from the diagram: a control a reader can only reach by opening a sheet cannot
-           filter a drawing that the sheet is covering. It is view level rather than page level,
-           since a window over a term says nothing about the board or the student list, and
-           app.css withdraws it on those two and keeps it on the diagram and on both readings of
-           the term. term.js writes the value, the menu inside it and the anchor the menu
-           declares; the label is here because it never changes. -->
-      <span class="wnpick" id="wnpick"><button id="wnbtn" class="linkbtn rd" type="button"
-              aria-expanded="false" aria-controls="wnmenu"
-              title="the part of the term in focus"><span class="rd-k">weeks</span> <span
-              class="rd-v" id="wnval">all</span></button><span class="wnmenu"
-              id="wnmenu" hidden></span></span>
       <!-- AT WHAT ALTITUDE. Issue 89, and it is the first control on this page that is about
            working with the model rather than reading it. The syllabus groups its sessions into
            modules, the vault has carried that grouping since before this repository existed, and
@@ -169,8 +188,8 @@
            window beside it, which is a run-time transform because a window over 24 weeks is a
            continuous parameter and a grain is two states.
 
-           It is view level, like `ghosts`, `weeks` and `gaps`, and app.css withdraws it on the
-           board and the student list. Every word and every number under it is written by app.js
+           It is view level, like `ghosts`, the term strip and `gaps`, and app.css withdraws it
+           on the board and the student list. Every word and every number under it is written by app.js
            off the model, never typed here. -->
       <span class="grpick" id="grpick"><button id="grbtn" class="linkbtn rd" type="button"
               aria-expanded="false" aria-controls="grmenu"
@@ -206,13 +225,13 @@
            card the only way to meet one was to click a tile and read its property list, so the
            page knew that eleven sessions have nobody assigned to teach them and no view said it.
 
-           IT IS BESIDE `weeks` BECAUSE THE TWO COMPOSE, and that composition is the reason both
-           are here rather than in a sheet. #100 made the window filter the drawing, so "what is
-           missing in the next three weeks" is one reading beside another and is the question a
-           reader actually brings to a Monday meeting.
+           IT IS BESIDE THE TERM STRIP BECAUSE THE TWO COMPOSE, and that composition is the
+           reason both are here rather than in a sheet. #100 made the window filter the drawing, so
+           "what is missing in the next three weeks" is one reading beside the brush that sets those
+           three weeks, and it is the question a reader actually brings to a Monday meeting.
 
-           It is view level, like `ghosts` and `weeks`, and app.css withdraws it on exactly the two
-           routes the window control leaves. The count and every word in the list under it are
+           It is view level, like `ghosts` and the strip, and app.css withdraws it on exactly the
+           two routes the brush leaves. The count and every word in the list under it are
            written by app.js off the model, never typed here, for the reason the cohort in the
            heading is: a number typed into this file is right on one of seven. -->
       <span class="gapspick" id="gapspick"><button id="gapsbtn" class="linkbtn rd" type="button"

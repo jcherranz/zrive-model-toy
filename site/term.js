@@ -756,43 +756,268 @@
       };
     }
 
-    // ---- the window control, and where `now` comes from -------------------------
-    // THE BLOCKER THIS CARD HAD TO ANSWER BEFORE IT COULD BUILD ANYTHING. "The next three weeks"
-    // needs a now, and every date on this page is invented: the term ends 2026-06-28 and the real
-    // clock is past it, so a window built against the system clock renders empty today and every
-    // day after. Three ways out were on the table: an anchor declared inside the term, a range
-    // the reader positions with no now at all, and the real clock with "the term is over" as the
-    // answer. This is the first with the second as the override AND the third said out loud,
-    // because the one thing that would be worse than an empty view is a page that quietly invents
-    // a today.
+    // ---- the term strip and its brush, issue 137 --------------------------------
+    // WHAT WENT, AND WHY A MENU COULD NOT DO THIS. The control here was `weeks`, a reading whose
+    // value opened a box holding four preset widths, a pair of anchor steppers and the sentence
+    // about the anchor. It answered "which of these four", and this card's finding is that the
+    // question was the wrong one. The term is a bounded ordered continuum of 24 weeks browsed in
+    // about 22 overlapping windows, and a menu treats an ordered continuum as an unordered set of
+    // names: it hides the neighbourhood, so stepping to the week next door costs two interactions
+    // against one drag and there is no way to see that the week being entered is empty until after
+    // entering it, and it can express membership in a list but not extent, so "just this week" and
+    // "the whole of the spring" both fall outside it. The value has two degrees of freedom,
+    // position and width, which is a brush by definition and not a scrubber.
     //
-    // SO THE CONTROL LEADS WITH THE TRUTH. It states the reader's own date, states that no
-    // session is on or after it, and only then offers an anchor, named as an anchor and not as
-    // today. The anchor is derived from the term rather than made up, which is why nothing here
-    // carries a `dummy` badge: a badge marks a value somebody invented, and the Monday of the
-    // term's middle week is arithmetic over values that already carry theirs.
+    // THE ANCHOR PROBLEM DID NOT GO AWAY, IT STOPPED BEING A PROBLEM. #90's blocker was that "the
+    // next three weeks" needs a now, and every date on this page is invented: the term ends
+    // 2026-06-28 and the real clock is past it, so a window built against the system clock renders
+    // empty today and every day after. The menu answered it by declaring an anchor and leading
+    // with the sentence saying the anchor is not today. A brush needs no now at all: the reader
+    // positions the interval by looking at the term, and the strip shows the whole term at rest
+    // with the band over all of it. The now marker is drawn only where the reader's own day falls
+    // inside the term, so on this snapshot there is none, and the sentence about the clock is on
+    // the control's title rather than deleted. Nothing here invents a today.
     //
-    // IT IS IN THE HEADER AND NOT IN THE SHEET, because the sheet covers the drawing and the
-    // window acts on both. #86 made every header control hit-testable over a sheet, so one
-    // control now serves the diagram and the calendar without a second copy of it.
-    var wnBtn = document.getElementById('wnbtn');
-    var wnMenu = document.getElementById('wnmenu');
+    // IT IS IN THE HEADER AND NOT IN A SHEET, which is #90's decision kept whole: the window acts
+    // on the drawing and on the calendar's rows at once, and #86 made every header control
+    // hit-testable over a sheet, so one control serves both without a second copy of it.
+    var brushEl = document.getElementById('brush');
+    var brushTrack = null, brushBand = null, brushLabel = null, brushCols = [];
+    var brushCapL = null, brushCapR = null, brushNow = null;
     var onWindow = opts.onWindow;
 
-    function wnMenuOpen() { return !!wnMenu && !wnMenu.hidden; }
+    // ---- the band, said in week indices --------------------------------------
+    // ONE STATE AND TWO SPELLINGS OF IT, AND THE MAPPING IS THE WHOLE OF WHAT THIS CARD ADDS TO
+    // THE WINDOW ITSELF. `win.weeks === 0` has meant "no window, the whole term" since #90, and
+    // every surface on this page reads it: windowSpec() returns null, the drawing is unfiltered,
+    // the sheet lists every row, and `armReview` steps aside for a reader who has chosen it. The
+    // brush cannot show "no window" as an absence, because a strip with no band on it would read
+    // as a control nobody has set rather than as a term entirely in view. So the band over all 24
+    // weeks IS `win.weeks === 0`, and the two spellings are converted here and nowhere else.
+    //
+    // THE ANCHOR IS LEFT ALONE WHILE THE BAND IS FULL, which is not tidiness. #124's review opens
+    // on three weeks from the anchor the term derives, the Monday of its middle session's week,
+    // and an anchor rewritten to the first Monday every time the band reached full width would
+    // move the review to the start of the term without anybody asking it to.
+    function bandSpan() { return win.weeks || (TERM ? TERM.weeks : 1); }
 
-    function openWnMenu() {
-      if (!wnMenu || wnMenuOpen()) return;
-      buildWnMenu();
-      wnMenu.hidden = false;
-      if (wnBtn) wnBtn.setAttribute('aria-expanded', 'true');
+    function weekIndexOf(date) {
+      if (!TERM || !date) return 0;
+      return Math.round(daysBetween(TERM.firstMonday, mondayOf(date)) / 7);
     }
 
-    function closeWnMenu(refocus) {
-      if (!wnMenuOpen()) return;
-      wnMenu.hidden = true;
-      if (wnBtn) wnBtn.setAttribute('aria-expanded', 'false');
-      if (refocus && wnBtn && wnBtn.focus) wnBtn.focus();
+    function mondayAt(i) { return TERM ? addDays(TERM.firstMonday, i * 7) : null; }
+
+    function bandStart() { return win.weeks ? weekIndexOf(win.anchor) : 0; }
+
+    // The one writer. Clamps into the term, converts a full band back to "no window", and returns
+    // whether anything moved, so a drag that has not crossed a week boundary and a press against
+    // the end of the term both cost nothing.
+    //
+    // `winTouched` IS SET ONLY WHEN SOMETHING MOVES, which is the difference between this and the
+    // menu it replaces: `setWindowWeeks` set the flag before its own early return, because
+    // pressing `whole term` while already on the whole term was a reader answering the question
+    // #124 is about. There is no such press here. The reader answers it by moving the band, and a
+    // gesture that changed nothing has not answered anything.
+    function setBand(start, span) {
+      if (!TERM) return false;
+      span = Math.max(1, Math.min(TERM.weeks, span));
+      start = Math.max(0, Math.min(TERM.weeks - span, start));
+      var weeks = span >= TERM.weeks ? 0 : span;
+      var anchor = mondayAt(start);
+      if (win.weeks === weeks && (!weeks || win.anchor === anchor)) return false;
+      winTouched = true;
+      win.weeks = weeks;
+      if (weeks) win.anchor = anchor;
+      windowChanged();
+      return true;
+    }
+
+    // ---- what the columns are, and the population each of them is over --------
+    // THE COLUMN IS WHAT THE SCOPE HOLDS THAT WEEK AND THE FILL IS WHAT THE MODEL HOLDS A COMPLETE
+    // RECORD FOR. Those are two different claims and the strip draws both, in the filled-against-
+    // hollow grammar the chips beside it already use as a fraction: the outline is every session
+    // in the week, the fill is the ones carrying no field the model flags `absent`. Measured on
+    // this snapshot: 83 sessions are drawn, 72 of them carry no absent field, and the 11 that do
+    // are the 11 with no instructor named. So Z-BL's weeks are solid and Z-CFA's six are hollow to
+    // the last one, which is exactly the reading the card asked the strip to give at rest.
+    //
+    // AND IT IS OVER THE DRAWN SESSIONS, WHICH IS SAID RATHER THAN GLOSSED. Five of the seven
+    // documents hold a sample of their programme's term, and the 177 sessions they do not hold
+    // carry no date anywhere in the model: there is no week to put them in. The strip therefore
+    // cannot show them and does not pretend to, and the control's own title names the population.
+    // The chips carry the drawn-against-declared fraction; this carries the shape of what is
+    // drawn. Two honest readings rather than one dishonest one.
+    function stripScope() {
+      if (isOpen() && scope) return [scope];
+      var sc = opts.drawnScope ? opts.drawnScope() : null;
+      return (sc && sc.length) ? sc : VIEWS;
+    }
+
+    function sessionsInScope(sc) {
+      if (!sc || sc.length >= VIEWS.length) return sessions;
+      var on = {};
+      sc.forEach(function (v) { on[v.code] = 1; });
+      return sessions.filter(function (s) { return on[s.code]; });
+    }
+
+    function stripWeeks() {
+      var out = [], i;
+      if (!TERM) return out;
+      for (i = 0; i < TERM.weeks; i++) out.push({ monday: mondayAt(i), n: 0, rec: 0 });
+      sessionsInScope(stripScope()).forEach(function (s) {
+        if (!s.date) return;
+        var i = weekIndexOf(s.date);
+        if (i < 0 || i >= out.length) return;
+        out[i].n++;
+        // A complete record is one with nothing the model records as absent on it. `absent` is
+        // built by absentFields() off the node's own route boundary, so this is the model's own
+        // flag read once rather than a second opinion about which fields matter.
+        if (!Object.keys(s.absent).length) out[i].rec++;
+      });
+      return out;
+    }
+
+    // ---- the strip as elements, built once ------------------------------------
+    // TWENTY FOUR COLUMNS, A BAND AND A LABEL, laid out by the browser rather than by arithmetic
+    // here. The columns are flex children of one row and the band is positioned in per cent of the
+    // track, so the whole strip is right at 1536, at 981 and at 390 without anything measuring
+    // anything: the only thing that needs a measurement is where the label goes, and that is one
+    // comparison of two rendered widths.
+    function buildBrush() {
+      if (!brushEl || !TERM) return;
+      brushEl.textContent = '';
+      brushCols = [];
+      brushCapL = el('span', 'brush-cap brush-cap-l', '‹');
+      brushEl.appendChild(brushCapL);
+      brushTrack = el('span', 'brush-track');
+      var i;
+      for (i = 0; i < TERM.weeks; i++) {
+        var wk = el('span', 'brush-wk');
+        wk.appendChild(el('span', 'brush-col brush-col-all'));
+        wk.appendChild(el('span', 'brush-col brush-col-rec'));
+        brushTrack.appendChild(wk);
+        brushCols.push(wk);
+      }
+      brushNow = el('span', 'brush-now');
+      brushNow.hidden = true;
+      brushTrack.appendChild(brushNow);
+      brushBand = el('span', 'brush-band');
+      brushBand.appendChild(el('span', 'brush-grip brush-grip-l'));
+      brushBand.appendChild(el('span', 'brush-grip brush-grip-r'));
+      brushTrack.appendChild(brushBand);
+      brushLabel = el('span', 'brush-label');
+      brushTrack.appendChild(brushLabel);
+      brushEl.appendChild(brushTrack);
+      brushCapR = el('span', 'brush-cap brush-cap-r', '›');
+      brushEl.appendChild(brushCapR);
+    }
+
+    // `24 Feb`, and it is back after #106 deleted its predecessor as uncalled. That deletion was
+    // right at the time and the reason it was right is the reason this is here now: the band's
+    // label is the one place on this page where a date has to be read inside 42 CSS px, and
+    // `24 February 2026` is 96 of them.
+    function shortDate(s) {
+      return String(Number(s.slice(8, 10))) + ' ' + MONTHS[Number(s.slice(5, 7)) - 1].slice(0, 3);
+    }
+
+    function bandWords() {
+      var r = winRange();
+      if (!r) return shortDate(TERM.first) + ' to ' + shortDate(TERM.last);
+      return shortDate(r.from) + ' to ' + shortDate(r.to);
+    }
+
+    // WHERE THE LABEL GOES, AND IT IS ARITHMETIC RATHER THAN A PREFERENCE. The band is the
+    // window's width as a fraction of the term, so three weeks of twenty four is an eighth of the
+    // track: 42 CSS px at the strip's designed width against about 78 for `24 Feb to 16 Mar`. A
+    // label forced inside would be clipped, and a label painted over the band regardless would
+    // cover eight weeks of the density the strip exists to show. So it sits on the band while the
+    // band can hold it and steps to whichever side has room while it cannot, which is what a
+    // progress bar's own figure does and is one comparison of two measured widths.
+    //
+    // THIS IS THE ONE PLACE THE DESIGN'S SKETCH COULD NOT BE FOLLOWED AS DRAWN. That sketch gives
+    // the strip a full width row of its own, where twenty four weeks are sixty pixels each and
+    // three of them hold the label comfortably. This header is one row at every width from 1536
+    // down to 981 and this card was told to keep it that way, so the strip is 380 and the label
+    // goes where it fits.
+    function placeLabel() {
+      if (!brushLabel || !brushBand || !brushTrack) return;
+      var tw = brushTrack.clientWidth;
+      var bl = brushBand.offsetLeft, bw = brushBand.offsetWidth;
+      var lw = brushLabel.offsetWidth;
+      var inside = lw + 6 <= bw;
+      var x;
+      if (inside) x = bl + (bw - lw) / 2;
+      else if (bl + bw + 2 + lw <= tw) x = bl + bw + 2;
+      else if (bl - 2 - lw >= 0) x = bl - 2 - lw;
+      else x = Math.max(0, Math.min(tw - lw, bl + (bw - lw) / 2));
+      brushLabel.className = 'brush-label' + (inside ? '' : ' brush-label-out');
+      brushLabel.style.left = Math.round(x) + 'px';
+    }
+
+    // ---- what the strip says, restated on every change ------------------------
+    // ISSUE 111'S ORDER IS LOAD BEARING AND IS KEPT: the title quotes how many tiles the window
+    // has taken off the drawing, which is an answer only render.js can give and only after it has
+    // been told, so windowChanged() tells the drawing before it calls this.
+    function paintBrush() {
+      if (!brushEl || !TERM) return;
+      if (!brushTrack) buildBrush();
+      var wks = stripWeeks(), max = 0, i, shown = 0, held = 0;
+      for (i = 0; i < wks.length; i++) if (wks[i].n > max) max = wks[i].n;
+      for (i = 0; i < brushCols.length; i++) {
+        var w = wks[i] || { n: 0, rec: 0 };
+        var all = brushCols[i].firstChild, rec = all.nextSibling;
+        all.style.height = (max ? (w.n / max) * 100 : 0) + '%';
+        rec.style.height = (max ? (w.rec / max) * 100 : 0) + '%';
+        brushCols[i].title = w.n
+          ? longDate(w.monday) + ': ' + w.n + (w.n === 1 ? ' session' : ' sessions') + ', ' +
+            w.rec + ' with a complete record'
+          : longDate(w.monday) + ': no session in this week';
+      }
+      var start = bandStart(), span = bandSpan();
+      brushBand.style.left = (start / TERM.weeks * 100) + '%';
+      brushBand.style.width = (span / TERM.weeks * 100) + '%';
+      brushLabel.textContent = bandWords();
+      placeLabel();
+      // The now marker, drawn only where the reader's own day falls inside the term. It is 0 of 83
+      // sessions on or after today on this snapshot, so there is nothing to mark and nothing is
+      // marked; a page that drew a line at the edge would be marking a today the term does not
+      // have.
+      var inTerm = TODAY >= TERM.firstMonday && TODAY <= addDays(TERM.lastMonday, 6);
+      brushNow.hidden = !inTerm;
+      if (inTerm) {
+        brushNow.style.left = ((weekIndexOf(TODAY) + 0.5) / TERM.weeks * 100) + '%';
+        brushNow.title = 'your clock says ' + TODAY;
+      }
+      var atStart = start <= 0, atEnd = start + span >= TERM.weeks;
+      brushCapL.className = 'brush-cap brush-cap-l' + (atStart ? ' brush-cap-off' : '');
+      brushCapR.className = 'brush-cap brush-cap-r' + (atEnd ? ' brush-cap-off' : '');
+      brushCapL.title = atStart ? 'the window is already at the start of the term'
+                                : 'one week earlier';
+      brushCapR.title = atEnd ? 'the window is already at the end of the term' : 'one week later';
+      for (i = 0; i < wks.length; i++) {
+        if (i < start || i >= start + span) continue;
+        shown += wks[i].n;
+        held += wks[i].rec;
+      }
+      brushEl.setAttribute('aria-valuemin', '1');
+      brushEl.setAttribute('aria-valuemax', String(TERM.weeks));
+      brushEl.setAttribute('aria-valuenow', String(start + 1));
+      brushEl.setAttribute('aria-valuetext',
+        (span === 1 ? 'one week' : span + ' weeks') + ', ' + bandWords() + ', ' +
+        shown + ' of ' + sessionsInScope(stripScope()).length + ' drawn sessions');
+      // EVERYTHING THE DELETED BOX SAID THAT NOTHING ELSE ON THE PAGE SAYS, on the title of the
+      // control it was about. Four claims and no more: what the window is, what it holds, what it
+      // has taken off the drawing, and that the page has no today. The three sentences #128 cut
+      // from that box stay cut.
+      var f = windowOff();
+      brushEl.title = 'the part of the term in focus: ' + windowText() + '. ' +
+        shown + ' of the ' + sessionsInScope(stripScope()).length +
+        ' sessions these documents draw, ' + held + ' of them with a complete record' +
+        (f ? '. ' + offWords(f) : '') +
+        '. This page has no today: your clock says ' + TODAY + ' and the term ran ' +
+        TERM.first + ' to ' + TERM.last +
+        '. Drag the band to move it, drag an end to widen it, press an arrow to step a week';
     }
 
     // Everything that has to happen when the window moves, in one place, so a control added later
@@ -811,20 +1036,11 @@
     }
 
     // The same restatement, for a caller that changed the drawing rather than the window. A change
-    // of programme or of altitude leaves the window exactly where it was and changes every number
-    // the control quotes about it, so app.js calls this beside the other things it restates. Issue
-    // 111.
-    function restateWindow() {
-      describeWindow();
-      if (wnMenuOpen()) buildWnMenu();
-    }
-
-    function setWindowWeeks(n) {
-      winTouched = true;
-      if (win.weeks === n) return;
-      win.weeks = n;
-      windowChanged();
-    }
+    // of scope or of altitude leaves the window exactly where it was and changes every number the
+    // control quotes about it, and since issue 137 it changes the columns as well: the strip is the
+    // density under the scope on screen, so adding a programme to the scope is a repaint of every
+    // column. app.js calls this beside the other things it restates. Issues 111 and 137.
+    function restateWindow() { paintBrush(); }
 
     // The review's own opening window, issue 124, and it is a DEFAULT rather than a setting: it
     // applies where the reader has said nothing and steps aside the moment they do. Returns
@@ -837,14 +1053,7 @@
     }
 
     function stepAnchor(delta) {
-      if (!TERM) return;
-      winTouched = true;
-      var next = addDays(win.anchor, delta * 7);
-      if (next < TERM.firstMonday) next = TERM.firstMonday;
-      if (next > TERM.lastMonday) next = TERM.lastMonday;
-      if (next === win.anchor) return;
-      win.anchor = next;
-      windowChanged();
+      setBand(bandStart() + delta, bandSpan());
     }
 
     function windowState() {
@@ -865,7 +1074,11 @@
         termWeeks: TERM ? TERM.weeks : 0,
         firstMonday: TERM ? TERM.firstMonday : null,
         lastMonday: TERM ? TERM.lastMonday : null,
-        menu: wnMenuOpen()
+        // Issue 137. The band as the reader sees it, in week indices, which is the one spelling of
+        // this state a driver can check the painted strip against. `weeks: 0` and a band over all
+        // 24 are the same fact and only one of them is on screen.
+        start: bandStart(),
+        span: bandSpan()
       };
     }
 
@@ -875,9 +1088,9 @@
     // onto it, and gave every lane caption a fourth line reading "6 of 28 in this window". He
     // filed #111 on one of those stubs: "The whole point of week filter is to not see this (only
     // the week, clean)". Honest bookkeeping and a clean view were treated as one requirement and
-    // they are two. render.js draws the window and counts what it dropped; this row is where the
-    // number lives now, beside `weeks: 3 of 24` and `gaps: 11 of 95`, which is the established
-    // home on this page for a number about what is not on screen.
+    // they are two. render.js draws the window and counts what it dropped; the strip's own title
+    // is where the number lives now, which is the same home it had on the window control's title
+    // before #137 deleted the control and kept the sentence.
     //
     // IT IS ASKED FOR AND NEVER CACHED. `windowEffect` reaches render.js's own report of the
     // drawing that is on screen at the moment this runs, so a change of programme or of altitude
@@ -895,127 +1108,126 @@
              ' are off the drawing';
     }
 
-    function describeWindow() {
-      if (!wnBtn || !TERM) return;
-      // THE VALUE AND NOT THE WHOLE CONTROL, since issue 120. This used to write
-      // `weeks: 3 of 24` over the button's own text, which is the idiom of a nav bar: a colon,
-      // and one string doing the work of a label and a value at once. The control is a reading in
-      // the header's readout now, so the label `weeks` is markup that never changes and this
-      // writes the value alone. Nothing about what it says has moved; what moved is which half of
-      // it this file owns.
-      var wnVal = document.getElementById('wnval');
-      if (wnVal) {
-        wnVal.textContent = win.weeks ? win.weeks + ' of ' + TERM.weeks : 'all ' + TERM.weeks;
+    // ---- the gestures, and every one of them on every device ------------------
+    // ONE ELEMENT, ONE FOCUS STOP, ONE KEYBOARD, and the parts of the strip are told apart by
+    // where the pointer landed rather than by being separate controls. That is the difference
+    // between this and the row it sits in: the eight chips beside it are eight tab stops because
+    // eight programmes are eight things, and a brush is one thing whose ends mean something, the
+    // way a scrollbar's thumb and its track are one control.
+    //
+    // WHAT EACH ZONE DOES. Outside the track on the left or the right is an end cap and steps the
+    // window one week, which is the commonest thing this control is for and the one gesture a
+    // thumb can be relied on to land: a two pixel handle is not a phone target and the caps are
+    // 22 by 26. Within a handle's width of either end of the band is a resize. Inside the band is
+    // a move. Anywhere else on the track centres the window on the week pressed and then moves
+    // with the pointer, so a press and a press-and-drag are the same gesture at two lengths.
+    //
+    // A BAND TOO NARROW TO HOLD TWO HANDLES IS ALL MOVE. Below three handle widths the two resize
+    // zones would meet in the middle and a reader aiming at the band would resize it instead. The
+    // way to widen a narrow band is then the keyboard or an end of a wider one, and the caps and
+    // the arrows are unaffected either way.
+    var HANDLE = 8;
+    var drag = null;
+
+    function trackGeom() {
+      var r = brushTrack.getBoundingClientRect();
+      return { x: r.left, w: r.width, cw: r.width / TERM.weeks };
+    }
+
+    function weekAtX(x) {
+      var g = trackGeom();
+      if (!g.cw) return 0;
+      return Math.max(0, Math.min(TERM.weeks - 1, Math.floor((x - g.x) / g.cw)));
+    }
+
+    function centreOn(week, span) {
+      return week - Math.floor((span - 1) / 2);
+    }
+
+    function brushDown(e) {
+      if (!TERM || !brushTrack || e.button > 0) return;
+      var g = trackGeom(), x = e.clientX;
+      var start = bandStart(), span = bandSpan();
+      if (x < g.x) { stepAnchor(-1); return; }
+      if (x > g.x + g.w) { stepAnchor(1); return; }
+      var bx = g.x + start * g.cw, bw = span * g.cw;
+      var mode;
+      if (bw >= HANDLE * 3 && x >= bx - HANDLE / 2 && x <= bx + HANDLE) mode = 'left';
+      else if (bw >= HANDLE * 3 && x >= bx + bw - HANDLE && x <= bx + bw + HANDLE / 2) mode = 'right';
+      else if (x >= bx && x <= bx + bw) mode = 'move';
+      else {
+        setBand(centreOn(weekAtX(x), span), span);
+        mode = 'move';
+        start = bandStart();
       }
-      var f = windowOff();
-      wnBtn.title = 'the part of the term in focus: ' + windowText() +
-        '. ' + windowShown(null) + ' of ' + sessions.length + ' sessions' +
-        (f ? '. ' + offWords(f) : '') + '. Press to move it';
+      drag = { mode: mode, x0: x, start: start, end: start + span - 1 };
+      brushEl.classList.add('brush-drag');
+      if (brushEl.setPointerCapture && e.pointerId !== undefined) {
+        try { brushEl.setPointerCapture(e.pointerId); } catch (err) { /* no capture, still works */ }
+      }
+      e.preventDefault();
+      if (brushEl.focus) brushEl.focus();
     }
 
-    function wnButton(cls, label, title, fn) {
-      var b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'zbtn ' + cls;
-      b.textContent = label;
-      if (title) b.title = title;
-      b.addEventListener('click', function (e) { e.stopPropagation(); fn(); });
-      return b;
+    function brushMove(e) {
+      if (!drag) return;
+      var g = trackGeom();
+      if (!g.cw) return;
+      if (drag.mode === 'move') {
+        var by = Math.round((e.clientX - drag.x0) / g.cw);
+        setBand(drag.start + by, drag.end - drag.start + 1);
+      } else if (drag.mode === 'left') {
+        var l = Math.min(weekAtX(e.clientX), drag.end);
+        setBand(l, drag.end - l + 1);
+      } else {
+        var r = Math.max(weekAtX(e.clientX), drag.start);
+        setBand(drag.start, r - drag.start + 1);
+      }
+      e.preventDefault();
     }
 
-    function buildWnMenu() {
-      if (!wnMenu || !TERM) return;
-      wnMenu.textContent = '';
-
-      // Layer one, and it is the reason the rest of this is allowed to exist.
-      var lead = el('p', 'wn-now');
-      lead.appendChild(el('span', 'warn', 'this page has no today'));
-      // #128 kept the three measured figures and took the two sentences after them off. They
-      // said the anchor is not today, which the two figures before them have just proved; that
-      // the reader could move it, which the two buttons under it are; and which Monday it is,
-      // which the anchor row itself prints in full.
-      lead.appendChild(document.createTextNode(
-        ' Your clock says ' + TODAY + '. The term runs ' + TERM.first + ' to ' +
-        TERM.last + ', so ' + AFTER_TODAY + ' of the ' + sessions.length +
-        ' sessions are on or after today.'));
-      wnMenu.appendChild(lead);
-
-      var anch = el('p', 'wn-row');
-      anch.appendChild(el('span', 'wn-lab', 'anchor'));
-      anch.appendChild(wnButton('wn-step', '‹', 'one week earlier',
-        function () { stepAnchor(-1); }));
-      anch.appendChild(el('span', 'wn-anchor', 'Monday ' + longDate(win.anchor)));
-      anch.appendChild(wnButton('wn-step', '›', 'one week later',
-        function () { stepAnchor(1); }));
-      wnMenu.appendChild(anch);
-
-      var wk = el('p', 'wn-row');
-      wk.appendChild(el('span', 'wn-lab', 'window'));
-      WIN_STEPS.forEach(function (n) {
-        var b = wnButton('wn-weeks', n === 1 ? '1 week' : n + ' weeks',
-          'the ' + (n === 1 ? 'week' : n + ' weeks') + ' from the anchor',
-          function () { setWindowWeeks(n); });
-        b.setAttribute('aria-pressed', win.weeks === n ? 'true' : 'false');
-        wk.appendChild(b);
-      });
-      var all = wnButton('wn-weeks', 'whole term', 'no window: the whole term',
-        function () { setWindowWeeks(0); });
-      all.setAttribute('aria-pressed', win.weeks ? 'false' : 'true');
-      wk.appendChild(all);
-      wnMenu.appendChild(wk);
-
-      // The window as a figure, and #128 took the three sentences after it off. They said what
-      // each surface does with the window, which is what the reader is looking at while they
-      // read it.
-      var note = el('p', 'wn-note');
-      note.textContent = 'Now: ' + windowText() + ' · ' + windowShown(null) + ' of ' +
-        sessions.length + ' sessions.';
-      wnMenu.appendChild(note);
-
-      // ---- and the count the drawing no longer carries, issue 111 --------------
-      // THE NUMBER DID NOT GO ANYWHERE, IT MOVED HERE. One line for the whole drawing and one row
-      // per lane, which is what the lane captions used to say and is the finer answer a reader
-      // who wants it should still be able to get. The lanes are named as the DRAWING names them:
-      // the label comes over on render.js's report, off the band the build wrote, so nothing here
-      // invents a second vocabulary for the same six columns.
-      var f = windowOff();
-      if (!f) return;
-      var off = el('p', 'wn-off');
-      off.textContent = offWords(f) + '.' +
-        (f.off.lines === f.off.relationships ? ''
-          : ' ' + f.off.lines + (f.off.lines === 1 ? ' line' : ' lines') + ' at this altitude.');
-      wnMenu.appendChild(off);
-      (f.lanes || []).forEach(function (l) {
-        if (l.shown === l.of) return;      // a lane that lost nothing has nothing to report
-        var row = el('p', 'wn-lane');
-        row.appendChild(el('span', 'wn-lane-n', l.shown + ' of ' + l.of));
-        row.appendChild(el('span', 'wn-lane-k', l.label));
-        wnMenu.appendChild(row);
-      });
+    function brushUp(e) {
+      if (!drag) return;
+      drag = null;
+      brushEl.classList.remove('brush-drag');
+      if (brushEl.releasePointerCapture && e.pointerId !== undefined) {
+        try { brushEl.releasePointerCapture(e.pointerId); } catch (err) { /* already released */ }
+      }
     }
 
-    if (wnBtn && wnMenu) {
-      // The same three listeners the programme menu has, in the same shapes and for the same
-      // reasons. Escape is in the capture phase, ahead of the bubble listener in selection.js
-      // that clears the selection, and it is left alone while capture mode is on because Escape
-      // is how a reader gets out of that.
-      wnBtn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        if (wnMenuOpen()) closeWnMenu(false);
-        else openWnMenu();
-      });
-      document.addEventListener('click', function (e) {
-        var t = e.target;
-        if (t && t.closest && t.closest('#wnpick')) return;
-        closeWnMenu(false);
-      });
-      document.addEventListener('keydown', function (e) {
-        if (e.key !== 'Escape' || !wnMenuOpen()) return;
-        if (document.body.classList.contains('fb-mode')) return;
-        e.preventDefault();
-        e.stopPropagation();
-        closeWnMenu(true);
-      }, true);
+    // THE KEYBOARD DOES EVERYTHING THE POINTER DOES, which is the rule the end caps exist to keep
+    // from the other side: nothing this control can do is available to one input and not the
+    // other. Arrows step the window, shift and an arrow change its width, Home and End take it to
+    // the ends of the term, and shift with them is the whole term and one week, which are the two
+    // extremes a reader would otherwise reach by dragging a handle the length of the strip.
+    function brushKey(e) {
+      if (!TERM || e.ctrlKey || e.metaKey || e.altKey) return;
+      var start = bandStart(), span = bandSpan(), used = true;
+      if (e.key === 'ArrowLeft') setBand(start + (e.shiftKey ? 0 : -1), span - (e.shiftKey ? 1 : 0));
+      else if (e.key === 'ArrowRight') setBand(start + (e.shiftKey ? 0 : 1), span + (e.shiftKey ? 1 : 0));
+      else if (e.key === 'Home') setBand(0, e.shiftKey ? TERM.weeks : span);
+      else if (e.key === 'End') {
+        if (e.shiftKey) setBand(start, 1);
+        else setBand(TERM.weeks - span, span);
+      } else used = false;
+      if (!used) return;
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    if (brushEl) {
+      buildBrush();
+      brushEl.addEventListener('pointerdown', brushDown);
+      brushEl.addEventListener('pointermove', brushMove);
+      brushEl.addEventListener('pointerup', brushUp);
+      brushEl.addEventListener('pointercancel', brushUp);
+      brushEl.addEventListener('keydown', brushKey);
+      // The label is the one thing on this strip that is placed rather than laid out, so it is the
+      // one thing a change of width can leave wrong. Everything else is flex children and per cent
+      // offsets and is right at any size without being told.
+      if (window.ResizeObserver) {
+        new window.ResizeObserver(function () { placeLabel(); }).observe(brushEl);
+      }
     }
 
     // ---- what the sheet no longer says about itself ---------------------------
@@ -2320,9 +2532,10 @@
 
     return {
       start: function () {
-        // The header control says what the window is before anybody has pressed anything, which
-        // is the whole of issue 90's rule that the anchor must be visible.
-        describeWindow();
+        // The strip says what the window is before anybody has pressed anything, which is issue
+        // 90's rule that the anchor must be visible, restated for a control whose whole face is
+        // the answer.
+        paintBrush();
         route();
       },
       linkFor: linkFor,
@@ -2460,7 +2673,55 @@
       // Issue 111. Called by app.js after anything that changes the drawing without changing the
       // window, because the control now quotes a number about the drawing.
       restateWindow: restateWindow,
-      windowMenuOpen: wnMenuOpen
+      // ---- what a driver reads off the strip, issue 137 ------------------------
+      // READ OFF THE PAINTED ELEMENTS AND NOT OFF THE STATE THEY WERE PAINTED FROM, which is the
+      // whole reason it is worth publishing at all. `start` and `span` are the window and are
+      // already in term().window; what is here is the strip as pixels: where the band actually is,
+      // how tall each column actually is, where the label actually landed and whether it is on the
+      // band or beside it. An assertion built on the state would pass on a strip that painted
+      // nothing, which is the failure mode a control drawn out of numbers has.
+      //
+      // A COLUMN'S HEIGHT IS A PER CENT AND NOT A PIXEL. The strip is 26 CSS px tall at every
+      // width and the columns are a fraction of the tallest week, so the per cent is the claim and
+      // the pixel is a rounding of it. A driver recomputing the fractions out of window.GI is then
+      // comparing two numbers of the same kind.
+      brushState: function () {
+        if (!brushEl || !TERM) return null;
+        function box(e) {
+          if (!e) return null;
+          var r = e.getBoundingClientRect();
+          return { x: +r.x.toFixed(2), w: +r.width.toFixed(2), h: +r.height.toFixed(2),
+                   r: +r.right.toFixed(2) };
+        }
+        var wks = stripWeeks();
+        return {
+          on: !!brushEl.getBoundingClientRect().width,
+          start: bandStart(), span: bandSpan(), weeks: win.weeks, termWeeks: TERM.weeks,
+          scope: stripScope().map(function (v) { return v.code; }),
+          // The population the strip is over, named beside the strip, because a column that cannot
+          // hold the 177 sessions no document dates is a column whose denominator has to be said.
+          drawn: sessionsInScope(stripScope()).length,
+          box: box(brushEl), track: box(brushTrack), band: box(brushBand),
+          caps: { left: box(brushCapL), right: box(brushCapR),
+                  leftOff: /brush-cap-off/.test(brushCapL.className),
+                  rightOff: /brush-cap-off/.test(brushCapR.className) },
+          label: { text: brushLabel.textContent,
+                   inside: !/brush-label-out/.test(brushLabel.className),
+                   box: box(brushLabel) },
+          now: !brushNow.hidden,
+          focused: document.activeElement === brushEl,
+          valuenow: Number(brushEl.getAttribute('aria-valuenow')),
+          valuemax: Number(brushEl.getAttribute('aria-valuemax')),
+          valuetext: brushEl.getAttribute('aria-valuetext'),
+          columns: brushCols.map(function (c, i) {
+            var all = c.firstChild, rec = all.nextSibling;
+            return { monday: wks[i] ? wks[i].monday : null,
+                     all: parseFloat(all.style.height) || 0,
+                     rec: parseFloat(rec.style.height) || 0,
+                     box: box(c) };
+          })
+        };
+      },
     };
   };
 })();

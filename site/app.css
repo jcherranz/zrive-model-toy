@@ -346,16 +346,17 @@ body.board #ghtoggle,
 body.students #ghtoggle,
 body.calendar #ghtoggle,
 body.outline #ghtoggle { display: none; }
-/* THE WINDOW CONTROL IS WITHDRAWN ON TWO OF THE FIVE AND KEPT ON THREE, and that split is the
-   whole reason it is not simply `ghosts` again. Issue 90. It acts on two surfaces at once: the
-   cohort session tiles on the drawing, which it dims, and the calendar's rows, which it filters
-   or marks. So it goes on the board, which draws neither, and on the student list, which is a
-   roster with no date in it; and it stays on the diagram and on BOTH readings of the term,
-   including the outline, where the sheet says in words that the window is off that reading. A
-   reader who set a window and then opened the calendar has to be able to move it from inside,
-   which is exactly what #86 made possible and is why this is not in the sheet. */
-body.board .wnpick,
-body.students .wnpick { display: none; }
+/* THE TERM STRIP IS WITHDRAWN ON TWO OF THE FIVE AND KEPT ON THREE, and that split is the whole
+   reason it is not simply `ghosts` again. Issue 90 decided it for the menu this replaces and issue
+   137 keeps the rule word for word. It acts on two surfaces at once: the cohort session tiles on
+   the drawing, which it filters, and the calendar's rows, which it filters or marks. So it goes on
+   the board, which draws neither, and on the student list, which is a roster with no date in it;
+   and it stays on the diagram and on BOTH readings of the term, including the outline, where the
+   sheet says in words that the window is off that reading. A reader who set a window and then
+   opened the calendar has to be able to move it from inside, which is exactly what #86 made
+   possible and is why this is not in the sheet. */
+body.board .brush,
+body.students .brush { display: none; }
 /* THE GAP COUNT LEAVES ON EXACTLY THE TWO ROUTES THE WINDOW LEAVES, and the reason is the same
    sentence twice. Issue 98. It counts the values the model records as missing IN WHAT THE VIEW IS
    SHOWING: on the diagram that is the tiles on screen, which #100's window already filters, and on
@@ -849,166 +850,190 @@ h1 {
 
 .chip[aria-current="true"] .chip-n { color: var(--fg-body); }
 
-/* ---- the time window, issue 90 --------------------------------------------------
-   The same disclosure the programme picker is, in the same three listeners and with the same
-   absolute box, so opening it moves nothing: the nav's height, the header's height and the fit
-   of the drawing under it are the same before and after.
+/* ---- the term strip and its brush, issue 137 ------------------------------------
+   WHAT WENT. `.wnpick` and `.wnmenu` and the seven `.wn-*` rules under them, which dressed a
+   460px disclosure holding four preset widths and a pair of anchor steppers. The window is not a
+   value with a menu behind it any more; it is an interval on a strip, and the strip is the
+   control. `.warn` went with the box, having been declared for the one sentence inside it.
 
-   IT HUNG OFF THE RIGHT EDGE OF ITS OWN CONTROL AND IT HANGS OFF THE LEFT EDGE OF THE PLATE,
-   which is issue 131 and is a measured repair rather than a preference reversed. Right of the
-   control was correct while the control was in the nav, near the right edge at every width. Since
-   #120 it is the first reading on a plate in the middle of the row, and this box is 460px against
-   a control of 84: at 900 by 800 it measured left: -73.1, with `this page has no today` reading
-   `as no today`, `1 week` cut in half and the closing sentence reading `ole term`, and nothing
-   could reach any of it, because overflow to the left of the origin creates no scrollbar. Left of
-   the plate it is on screen at every width down to the breakpoint, where the phone block takes
-   over and pins it to the viewport for the same reason again. `max-width` is the viewport less
-   the header's own padding on both sides, which is the same measurement .pgmenu and .helpbox
-   already use.
+   IT IS ITS OWN ITEM IN THE ROW AND NOT A READING ON THE PLATE, and that is a measurement rather
+   than a preference. The plate is `flex: none` since #131 precisely so that its readings never
+   fold, and a strip inside it would be the item that has to give way at every width; and on the
+   phone the plate holds three readings across 366 CSS px with nothing left over. So the strip is
+   the third item of `.hrow`: on the desktop it sits between the scope and the readout, on the
+   phone `.hrow` wraps and it takes a line of its own, which is what the design asked for at that
+   width and is where a thumb can reach it.
 
-   IT IS INSIDE THE HEADER, so a sheet cannot reach over it either way: the header is
-   --z-chrome and a sheet is --z-sheet, and everything inside a stacking context at 25 paints
-   above everything at 20. --z-pop is the rung it takes WITHIN the header, over the nav's own
-   line, which is all it needs. The ladder and its reasons are in the palette block at the top of
-   this file. */
-/* NOT `position: relative` SINCE ISSUE 131. The box below hangs off the plate, which is the
-   group this reading is part of, and not off this 84px control; the measurement that forced
-   it is in the .hstate block. The span stays, because it is what the plate's first and last
-   child rules round the corners of and what the divider selector counts. */
-.wnpick {
-  display: inline-block;
-}
-
-.wnmenu {
-  position: absolute;
-  top: calc(100% + 5px);
-  left: 0;
-  z-index: var(--z-pop);
-  width: 460px;
-  max-width: calc(100vw - 40px);
-  padding: 8px 10px;
-  background: var(--bg-panel);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  box-shadow: var(--elev-1);
-  font-size: 11px;
-  line-height: 1.45;
-}
-
-.wnmenu[hidden] { display: none; }
-
-/* The first paragraph in the box, and it is first because it is the reason the rest of the box
-   is allowed to exist: the term ended before the real clock reached it, so the anchor under it
-   is an anchor and not a today. It takes the warning register the sheet's own provenance line
-   takes, which is the register a reader already reads on this site as "this is not real". */
-.wn-now {
-  margin: 0 0 8px;
-  color: var(--fg-muted);
-}
-
-.wn-now .warn { margin-left: 0; margin-right: 6px; }
-
-.wn-row {
+   IT TAKES THE PLATE'S OWN TREATMENT because it is doing the plate's job: a recessed surface the
+   page reports on, with the same inset hairline that costs no height, so the row is two
+   instruments and a nav rather than a strip, a box and a nav. `flex: 0 1 380px` with a floor at
+   180 is what keeps the header one row down to 981: measured at 981, the padding, the three gaps,
+   the readout and the nav come to 665 of the 941 a 981px viewport has, so the strip and the rail
+   share 276, and a strip that could not shrink would break the row instead of the rail's scroll.
+   380 rather than more, because the eight chips are 426 CSS px wide and 1536 leaves exactly 405
+   for this after them: at 380 the rail still fits whole at the width the tool is read at. */
+.brush {
+  flex: 0 1 380px;
+  min-width: 180px;
+  position: relative;
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
-  margin: 0 0 4px;
-}
-
-.wn-lab {
-  min-width: 52px;
-  color: var(--fg-muted);
-  text-transform: uppercase;
-  letter-spacing: .04em;
-  font-size: 10px;
-}
-
-.wn-anchor {
-  padding: 0 4px;
-  font-weight: 600;
-  color: var(--fg-body);
-}
-
-/* Both kinds of button in the box are .zbtn, which carries the 26 by 26 issue 77 took every
-   control on this page to, so nothing here has to restate a size. Only the pressed state is
-   added, in the idiom .term-switch already uses for the reading that is on screen. */
-.wn-step,
-.wn-weeks {
-  border: 1px solid var(--rule);
+  align-items: stretch;
+  height: 26px;
+  background: var(--bg-band);
   border-radius: var(--radius);
-  color: var(--i-primary);
+  box-shadow: inset 0 0 0 1px var(--rule);
+  /* A brush is a horizontal gesture and a phone scrolls vertically. Without this a thumb dragging
+     the band across a 366px strip is as likely to scroll the page as to move the window. */
+  touch-action: none;
+  cursor: default;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
-.wn-step:hover,
-.wn-weeks:hover { background: var(--tint-hover); }
-
-.wn-step:focus-visible,
-.wn-weeks:focus-visible {
+.brush:focus-visible {
   outline: 2px solid var(--i-primary);
   outline-offset: -2px;
 }
 
-.wn-weeks[aria-pressed="true"] {
-  font-weight: 700;
-  border-color: var(--i-primary);
-  background: var(--tint-hover);
-}
-
-.wn-note {
-  margin: 6px 0 0;
-  padding-top: 6px;
-  border-top: 1px solid var(--rule-muted);
-  color: var(--fg-muted);
-}
-
-/* ---- what the window took off the drawing, issue 111 ---------------------------
-   The count that used to be a stub tile in every lane of the filtered drawing and a fourth line
-   on every lane caption. It reads in this box in the register the box already has, and the two
-   rules below are `.gaps-scope` and `.gaps-row` with different names: the sentence first, because
-   a per lane figure is meaningless without the whole, then a column of right-aligned counts,
-   because the reading a person brings to it is scanning for the lane that lost the most. Nothing
-   here sets a size or a colour those two do not already set. */
-.wn-off {
-  margin: 6px 0 2px;
-  padding-top: 6px;
-  border-top: 1px solid var(--rule-muted);
-  color: var(--fg-body);
-}
-
-.wn-lane {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin: 0;
-  padding: 1px 0;
-}
-
-.wn-lane-n {
+/* The two end caps. They step the window one week, and they exist because dragging a fifteen
+   pixel handle with a thumb is the one genuinely unreliable gesture in this design: the cap is a
+   26 by 22 target that does the commonest thing the control is for. They are not buttons, and
+   that is deliberate: the strip is ONE instrument with one focus stop and one keyboard, the way a
+   scrollbar is, and eight chips plus a menu plus two arrows is the pile this redesign exists to
+   take down. The arrows the caps draw are the keyboard's own two keys, said in pixels. */
+.brush-cap {
   flex: none;
-  min-width: 4.4em;
-  text-align: right;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: var(--fg-body);
+  width: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--i-primary);
+  font-size: 12px;
+  line-height: 1;
 }
 
-.wn-lane-k { color: var(--fg-muted); }
+.brush-cap.brush-cap-off { color: var(--fg-muted); opacity: .45; }
+.brush:not(.brush-drag) .brush-cap:not(.brush-cap-off):hover { background: var(--tint-hover); }
+.brush-cap-l { border-top-left-radius: var(--radius); border-bottom-left-radius: var(--radius); }
+.brush-cap-r { border-top-right-radius: var(--radius); border-bottom-right-radius: var(--radius); }
 
-.warn {
-  display: inline-block;
-  margin-left: 6px;
-  padding: 1px 5px;
+/* The track. One column per week of the term, laid out by the browser rather than by arithmetic
+   in the script, so the strip is right at every width without anything measuring anything. */
+.brush-track {
+  flex: 1 1 auto;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  min-width: 0;
+  padding: 3px 0;
+}
+
+.brush-wk {
+  flex: 1 1 0;
+  min-width: 0;
+  position: relative;
+  height: 100%;
+}
+
+/* SOLID AGAINST HOLLOW IS THE CHIPS' OWN GRAMMAR IN ANOTHER GEOMETRY. The outline is every
+   session the scope holds that week; the fill is the part of it the model holds a complete record
+   for. So a week the records barely cover is a tall empty box and a week they cover is a solid
+   one, and the reader sees which is which BEFORE moving the band there, which is the whole reason
+   the strip is worth its width. Both are drawn from the same baseline and the fill sits inside
+   the outline, so nothing is ever painted taller than the column it belongs to. */
+.brush-col {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  min-width: 2px;
+  max-width: 9px;
+}
+
+.brush-col-all {
+  border: 1px solid var(--fg-muted);
+  border-radius: 1px;
+  opacity: .65;
+}
+
+.brush-col-rec {
+  background: var(--fg-muted);
+  border-radius: 1px;
+}
+
+/* THE NOW MARKER IS DRAWN ONLY WHERE THERE IS A NOW TO MARK. The term ended 2026-06-28 and the
+   real clock is past it, so on this snapshot nothing is marked and this rule paints nothing. It is
+   here rather than deferred because the alternative to a marker that can be absent is a page that
+   pins a line to the edge of the strip and lets a reader read it as today. term.js decides. */
+.brush-now {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  width: 1px;
+  background: var(--fg-warning);
+}
+
+.brush-now[hidden] { display: none; }
+
+/* The band. It is the window, it is what a drag moves, and it is the only element on this strip
+   that carries the accent, because it is the only one that is a value the reader set. */
+.brush-band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--tint-hover);
+  border: 1px solid var(--i-primary);
   border-radius: var(--radius);
-  background: var(--tint-warning);
-  color: var(--fg-warning);
-  font-size: 11px;
-  font-weight: 600;
+  cursor: grab;
 }
+
+.brush.brush-drag .brush-band { cursor: grabbing; }
+
+/* The two handles, at the band's own edges, drawn as a pair of rules so that the band reads as a
+   thing with ends rather than as a shaded region. The hit zone is wider than the paint, which is
+   the ordinary answer to a 1px edge and a pointer; the caps are what a thumb uses instead. */
+.brush-grip {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  width: 2px;
+  background: var(--i-primary);
+  border-radius: 1px;
+  cursor: ew-resize;
+}
+
+.brush-grip-l { left: 2px; }
+.brush-grip-r { right: 2px; }
+
+/* THE LABEL SITS ON THE BAND WHEN THE BAND CAN HOLD IT AND BESIDE IT WHEN IT CANNOT, which is
+   arithmetic and not a preference. The band is the window's width as a fraction of the term, so
+   three weeks of twenty four is an eighth of the track: 42 CSS px at the strip's designed width,
+   against 78 for `24 Feb to 16 Mar`. A label forced inside would either be clipped or would cover
+   eight weeks of the density the strip exists to show. So it is centred on the band while it
+   fits, and it steps to whichever side of the band has room while it does not, and it is
+   positioned by term.js off the two measured widths rather than guessed at here. */
+.brush-label {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0 3px;
+  font-size: 10px;
+  line-height: 14px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+  color: var(--fg-body);
+  border-radius: 2px;
+}
+
+/* Outside the band the label is over the columns, so it takes the plate's own ground back with it
+   rather than reading through them. */
+.brush-label-out { background: var(--bg-band); }
 
 /* ---- what needs attention, issue 98 ---------------------------------------------
    The third disclosure in this header and deliberately the third of the same thing: the box, the
-   anchoring, the rung and the three listeners are .wnmenu's, which were .pgmenu's before that. A
+   anchoring, the rung and the three listeners were .wnmenu's, which were .pgmenu's before that. A
    fourth idiom for the fourth control in a row of six would be four things for a reader to learn
    where there is one.
 
@@ -1024,7 +1049,7 @@ h1 {
   display: inline-block;
 }
 
-/* Anchored to the plate's left edge for .wnmenu's reason and measured the same way, issue 131:
+/* Anchored to the plate's left edge for the window menu's reason and measured the same way, #131:
    this is a reading on a plate in the middle of the row and not the fourth item of a nav, and a
    340px box hung off an 84px control that is itself a third of the way across the row is a box
    whose edges are wherever the heading beside it happens to have left them. It is narrower than
@@ -1109,7 +1134,8 @@ h1 {
   cursor: pointer;
 }
 
-/* The tint and the ring the other two menus in this header already use, .pgitem's and .wn-step's,
+/* The tint and the ring the other menu in this header already uses, which were .pgitem's and the
+   window menu's steppers',
    for the reason the box and the anchoring are theirs: a fourth idiom for the fourth disclosure
    is four things to learn where there is one. */
 .gaps-go:hover { background: var(--tint-hover); }
@@ -1157,7 +1183,7 @@ h1 {
 /* ---- the altitude, issue 89 --------------------------------------------- */
 /* The fifth control in this row and the fourth to hang a box off itself, so it is the third
    copy of one idiom and not a fourth idiom: the anchoring, the box and the three listeners are
-   .gapsmenu's, which were .wnmenu's, which were .pgmenu's. NOTHING HERE SETS A SIZE, which is
+   .gapsmenu's, which were the window menu's, which were .pgmenu's. NOTHING HERE SETS A SIZE, which is
    issue 77 still holding: the control is a .linkbtn, so it is 26 by 26 by construction and sits
    on the row's one baseline, and this file adds a position and a box and no dimension at all. */
 /* NOT `position: relative` SINCE ISSUE 131. The box below hangs off the plate, which is the
@@ -1290,7 +1316,7 @@ h1 {
 /* ---- the theme, behind a press, issue 120 -------------------------------- */
 /* THE FIFTH BOX TO HANG OFF A CONTROL IN THIS HEADER AND THE FOURTH COPY OF ONE IDIOM. The
    anchoring, the plate and the three listeners are .grmenu's, which were .gapsmenu's, which were
-   .wnmenu's, which were .pgmenu's. Nothing here sets a size on the control: it is a .linkbtn, so
+   the window menu's, which were .pgmenu's. Nothing here sets a size on the control: it is a .linkbtn, so
    #77's floor is met by construction.
 
    ANCHORED RIGHT, and at this end of the row that is not a preference. The control is the last
@@ -2296,28 +2322,25 @@ body.fb-mode .fb-popover select { cursor: pointer; }
   .hstate .linkbtn,
   .hstate .rd-static { padding-left: 5px; padding-right: 5px; }
   .hstate .linkbtn.rd::after { margin-left: 3px; }
-  /* THE WINDOW MENU STOPS HANGING OFF ITS OWN CONTROL BELOW THE BREAKPOINT, and this is a
-     measured repair rather than a precaution. The nav wraps here, so the control it hangs from
-     sits near the LEFT of the second row; a box anchored to that control's right edge and 350px
-     wide measured left: -153.78 at 390 by 844, which is 154px of the box outside the viewport
-     with no scrollbar to reach it, because overflow to the left of the origin creates none. It
-     is anchored to the viewport instead, under the header, which is what .helpbox does on the
-     line below for the same reason at the other end of the row. --hh is the header's own
-     measured height, written by app.js and already kept current by a ResizeObserver, so a nav
-     that wraps to a third line does not put the box under the row it belongs to. */
-  .wnmenu {
-    position: fixed;
-    top: var(--hh);
-    left: 12px;
-    right: 12px;
-    width: auto;
-    max-width: none;
-  }
-  /* The gap list is the same box in the same place for the same measured reason. Issue 98. It
-     hangs off the fourth control in a nav that wraps here, so its own right edge is nowhere near
-     the viewport's; anchored to the viewport under the header it is on screen at every width and
-     wherever the nav happens to have broken. It is one rule and not a second copy of .wnmenu's
-     because the two boxes are different widths on the desktop and identical here. */
+  /* THE TERM STRIP TAKES A LINE OF ITS OWN HERE, and that is the design's own phone sketch and a
+     measurement. The three readings left on the plate come to 251 of the 366 a 390px screen
+     leaves, so a strip sharing that line would be 115 CSS px over twenty four weeks, which is a
+     four pixel week and a band a thumb cannot find. Given the row it is 366 wide, the week is 13
+     and the three week band is 40 by 26, which is a target a thumb lands on. It costs the header
+     one line, 32 of the 844 a phone has, taking the chrome from 107 to 139 and its share from
+     0.1268 to 0.1647, against the 0.1730 this repository holds itself to.
+
+     `flex: 1 1 100%` FOR .hnav's REASON, restated: a flex item sized to its own content never
+     meets an edge to wrap at, so the line has to be given rather than left to be taken. */
+  .brush { flex: 1 1 100%; min-width: 0; }
+  /* The gap list is anchored to the viewport under the header, and this is a measured repair
+     rather than a precaution. Issue 98. It hangs off a control in a row that wraps here, so its
+     own right edge is nowhere near the viewport's; a box anchored to that control's right edge and
+     350px wide measured left: -153.78 at 390 by 844, which is 154px of the box outside the
+     viewport with no scrollbar to reach it, because overflow to the left of the origin creates
+     none. --hh is the header's own measured height, written by app.js and kept current by a
+     ResizeObserver, so a row that wraps to a fourth line does not put the box under the row it
+     belongs to. */
   .gapsmenu {
     position: fixed;
     top: var(--hh);
@@ -2491,8 +2514,9 @@ body.hide-ghosts .ghost { display: none; }
    this (only the week, clean)". A filtered drawing is now the tiles that are in the window and
    the lines between them, and nothing else at all.
 
-   THE COUNT DID NOT GO WITH THEM. It is in the header, on the window control, under `.wn-off` and
-   `.wn-lane` above: the drawing shows the window and the header says what the window excludes.
+   THE COUNT DID NOT GO WITH THEM. It is in the header, on the term strip's own title since issue
+   137 and in the window menu before that: the drawing shows the window and the header says what
+   the window excludes.
    The rules that painted a stub, its label, its folded line, its arrowhead, its chip and the
    caption line are all deleted rather than kept against classes nothing sets, and the classes
    themselves are gone from render.js in the same commit. */
