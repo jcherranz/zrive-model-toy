@@ -576,6 +576,11 @@
     // moves every time the reader presses a chip. showView() restates the control right after it
     // redraws, which is where the repaint comes from.
     drawnScope: function () { return router ? router.scope() : VIEWS; },
+    // Issue 138. WHERE CLOSING THE SHEET PUTS THE READER. The sheet is drawn over a drawing and
+    // the address of that drawing is the scope and the altitude, both of which are router.js's,
+    // so this is the same handover `drawnScope` is and is guarded the same way: `router` is built
+    // after this and answering null before it exists is what leaves the sheet its own fallback.
+    backRoute: function () { return router ? router.scopeRoute(router.scope()) : null; },
     // Issue 111. The count that used to be a stub tile on every filtered lane is a sentence on
     // the window control now, and the numbers in it are render.js's. Handed over as a question
     // rather than as a value: `render` is built after this, so an eager read would be a read of

@@ -232,11 +232,17 @@
   //               Issue 90. This module knows what a date means and render.js knows where a node
   //               is drawn, and neither learns the other's half: it hands out a question and the
   //               drawing answers it with a class.
+  // opts.backRoute asks for the address of the drawing this sheet is open over, which is where
+  //               close() puts the reader back. Issue 138. Asked rather than held, and asked of
+  //               router.js rather than built here, because the scope and the altitude are that
+  //               file's and an address spelled in a second place is an address that can be spelled
+  //               wrong; a copy taken when the sheet opened would be stale the moment a chip moved.
   ZM.term = function createTerm(opts) {
     var VIEWS = opts.views || [];
     var AGENDA = opts.agenda || null;
     var onRoute = opts.onRoute;
     var windowEffect = opts.windowEffect;
+    var backRoute = opts.backRoute;
 
     var sheet = document.getElementById('term');
     var titleEl = document.getElementById('termtitle');
@@ -2442,12 +2448,20 @@
     // Closing replaces the entry rather than pushing another, for the reason the student list
     // does: the entry being left is the sheet, so the back button goes to whatever the reader was
     // on before they opened it rather than back into what they just closed.
+    //
+    // AND WHAT IT REPLACES IT WITH IS THE DRAWING UNDERNEATH, ISSUE 138. It wrote `#/`, which meant
+    // nothing on a hashchange, so the drawing stayed where it was and the address stopped describing
+    // it. Now that `#/` is the union, the sheet closing on a reader who had narrowed to Z-SC would
+    // leave them holding an address that gives all seven the moment it is reloaded or sent to
+    // somebody. router.js is asked for the address instead; the fallback is `#/`, which is what this
+    // sheet can honestly say when nothing has told it what is behind it.
     function close() {
       if (readAddress(location.hash)) {
+        var back = (backRoute && backRoute()) || '#/';
         try {
-          history.replaceState(null, '', location.pathname + location.search + '#/');
+          history.replaceState(null, '', location.pathname + location.search + back);
         } catch (err) {
-          location.hash = '#/';     // a file:// URL, where replaceState throws
+          location.hash = back;     // a file:// URL, where replaceState throws
         }
       }
       show(null);
