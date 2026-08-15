@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-15T23:05:05Z",
+  "generated": "2026-08-15T23:06:30Z",
   "columns": [
     {
       "key": "raw",
@@ -53,13 +53,13 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/145"
         },
         {
-          "id": 147,
+          "id": 148,
           "title": "Make the format of this outlines more in line with the style…",
           "labels": [
             "bug",
             "feedback"
           ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/147"
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/148"
         }
       ]
     },
@@ -100,6 +100,16 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/142"
+        },
+        {
+          "id": 147,
+          "title": "Make the format of this outlines more in line with the style…",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/147"
         }
       ]
     },
