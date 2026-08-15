@@ -208,6 +208,13 @@
     // far enough apart in hue to be told from one another. Darker clears by more and costs that
     // separation, which is the trade the number sits in.
     var PGHUE = {};
+
+  // ---- the socket, issue 139 ---------------------------------------------------------------
+  // A ring of 2.1 units on a 34 unit tile, stepped 5.4 apart and set 5 in from the top edge. The
+  // step is 2.57 times the radius, which is the smallest spacing at which four of them read as
+  // four rather than as a dotted line at the sizes this drawing is ever framed at, and the inset
+  // clears the 16 unit glyph at the tile's centre by four units.
+  var SOCK_R = 2.1, SOCK_STEP = 5.4, SOCK_INSET = 5;
     (function () {
       var decls = [];
       opts.drawing.types.forEach(function (t) {
@@ -235,6 +242,10 @@
     // file. The seven drawings are laid out by one build with one tile, so a second reading per
     // drawing would be a second copy of a number that cannot differ.
     var TILE = opts.drawing.tile, R = TILE / 2;
+    // Issue 139's sockets. Four is the most any one object carries, a session template with its
+    // duration, its location, its delivery and its module all unrecorded, and four rings at this
+    // step span 24.6 of the tile's 34 units with the glyph below them untouched.
+
 
     // The classes that belong to exactly one programme and therefore can carry its hue. Issue 136.
     var HUE_TYPES = { CohortSession: 1, ModuleDelivery: 1, Cohort: 1 };
@@ -619,6 +630,42 @@
         if (HUE_TYPES[n.type] && n.pg && G.programmes && G.programmes.length > 1 && PGHUE[n.pg]) {
           el('rect', { class: 'pgbar', x: n.x - R + 4, y: n.y + R - 6, width: TILE - 8,
                        height: 3, rx: 1.5, fill: PGHUE[n.pg] }, g2);
+        }
+
+        // ---- the empty sockets, issue 139 --------------------------------------
+        // ONE RING PER MISSING VALUE, DRAWN ON THE OBJECT THAT IS MISSING IT. Until this card the
+        // page met an absence in two places and neither of them was the picture: a number in the
+        // header and a list behind a press. So a reader looking at the three weeks in front of
+        // them could be told that eleven sessions have nobody assigned to teach them and could not
+        // see WHICH. A ring is empty because the value is; there are as many of them as there are
+        // missing values, so the sockets on a tile count to the same number the tile's own
+        // property list does, and the sockets on the canvas count to the number on the control.
+        //
+        // TWO KINDS, NEVER ONE MARK AND NEVER ONE COLOUR. `sock-work` is a value a system holds a
+        // row for and has left empty, drawn solid in the warning hue, because somebody can fill it
+        // in. `sock-unrec` is a fact no system records, drawn in the ghost grey with the ghosts'
+        // own dashes, because it is the same finding as a ghost tile met one grain down. The two
+        // are switched by their own switch and by nothing else, in app.css, off a class on the
+        // body, which is the mechanism `ghosts` has used since it was written.
+        //
+        // WHICH SIDE EACH ROW IS ON IS NOT DECIDED HERE. app.js reads the registry once, at the
+        // join, and every node arrives carrying `absW` and `absU`. This file paints what it is
+        // told, which is the split that keeps the count and the picture from being two opinions.
+        //
+        // THE GEOMETRY IS THE TILE'S AND NOTHING THE BUILD WROTE MOVES. The rings sit inside the
+        // top edge, clear of the glyph at the centre and of the programme bar at the foot, and no
+        // coordinate of any tile, line or label changes: the fourteen drawing digests are digests
+        // of the build's artefacts and this card touched none of them.
+        if (n.absW || n.absU) {
+          var socks = [];
+          var si;
+          for (si = 0; si < (n.absW || 0); si++) socks.push('sock sock-work');
+          for (si = 0; si < (n.absU || 0); si++) socks.push('sock sock-unrec');
+          var span = (socks.length - 1) * SOCK_STEP;
+          socks.forEach(function (cls, k) {
+            el('circle', { class: cls, cx: n.x - span / 2 + k * SOCK_STEP,
+                           cy: n.y - R + SOCK_INSET, r: SOCK_R }, g2);
+          });
         }
 
         var mark;

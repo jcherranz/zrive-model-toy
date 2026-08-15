@@ -279,12 +279,12 @@ const PHASES = {
   'the sample':           { count: 6, when: 'behavioural' },
   'the empty window':     { count: 6, when: 'behavioural' },
   'the review':           { count: 7, when: 'behavioural' },
-  'the worklist':         { count: 9, when: 'behavioural' },
+  'the worklist':         { count: 7, when: 'behavioural' },
   'the cut':              { count: 8, when: 'behavioural' },
   'the modified drag':    { count: 6, when: 'behavioural' },
   'the brush':            { count: 8, when: 'behavioural' },
-  'header':               { count: 8, when: 'behavioural' },
-  'the readout':          { count: 7, when: 'behavioural' },
+  'absence':              { count: 10, when: 'behavioural' },
+  'the view selector':    { count: 6, when: 'behavioural' },
   'the control panel':    { count: 9, when: 'behavioural' },
   'the plate':            { count: 6, when: 'behavioural' },
   'the outline':          { count: 6, when: 'behavioural' },
@@ -556,7 +556,7 @@ const PHASES = {
 // cannot, which is the one place this card could not follow the design's sketch and says so; and
 // that widening the band to the whole term over all seven meets the budget's own printed refusal
 // rather than a broken drawing, which is the release valve the budget's argument rests on.
-const EXPECTED_ASSERTIONS = 286;
+const EXPECTED_ASSERTIONS = 285;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -4237,8 +4237,10 @@ const HEADING_READ = `(function () {
   return JSON.stringify({
     chips: chips,
     heading: h ? h.textContent : null,
-    gaps: box(document.getElementById('gapsval')),
-    plate: box(document.getElementById('hstate'))
+    // Issue 139 deleted the readout plate, so the box the fractions used to be measured against
+    // is the absence control, which is the one instrument left in this header that carries counts.
+    absence: box(document.getElementById('abs')),
+    nav: box(document.querySelector('.hnav'))
   });
 })()`;
 
@@ -4304,20 +4306,25 @@ async function checkSample(page) {
 
   // THREE. AND THEY ARE WHERE THE NUMBERS ARE. The card's sentence is that the distinction must be
   // at the count and not two clicks away in a band caption, so every fraction is required to be
-  // painted, to have width, and to sit on the same line as the readout's own value with the plate
-  // to its right. A fraction moved into a tooltip, into the footer or onto a second row would pass
-  // every string above and fail here.
+  // painted, to have width, and to sit on the same line as the other counts in this header with
+  // those counts to its right. A fraction moved into a tooltip, into the footer or onto a second
+  // row would pass every string above and fail here.
+  //
+  // MEASURED AGAINST THE ABSENCE CONTROL SINCE ISSUE 139, which deleted the readout plate the
+  // earlier form of this measured against. The relationship is the same one and is what the card
+  // decided: the two fractions this page shows, each programme's own population and what is
+  // missing from what is drawn, are one line, in one grammar, with the subject first.
   const last = said[said.length - 1];
   const withN = rail.filter(c => c.text !== null);
-  const onLine = last.gaps && last.plate && withN.length === 7 &&
+  const onLine = !!last.absence && !!last.nav && withN.length === 7 &&
     withN.every(c => c.box && c.box.w > 0 && c.box.h > 0 &&
-                     Math.abs(c.box.mid - last.gaps.mid) <= 2 &&
-                     c.box.x < last.plate.x);
+                     Math.abs(c.box.mid - last.absence.mid) <= 2 &&
+                     c.box.x < last.absence.x);
   assert('and they are on the header\'s own line, beside the counts they are the subject of',
     onLine === true,
-    'all seven fractions painted, on the readout value\'s own line, to the left of the plate',
+    'all seven fractions painted, on the absence control\'s own line and to the left of it',
     JSON.stringify({ chips: withN.map(c => [c.code, c.box && c.box.w, c.box && c.box.mid]),
-                     gaps: last.gaps, plate: last.plate }));
+                     absence: last.absence, nav: last.nav }));
 
   // FOUR. BOTH READINGS OF THE TERM SAY IT TOO, in the heading and in the sentence, because the
   // sheet is the one place on this page where the count of eighty three is printed as a number a
@@ -4836,29 +4843,6 @@ const GAP_SPLIT = `(function (viewKey, from, to) {
            why: (window.GI.routes.vocab.read || {})['no-source'] || '' };
 })`;
 
-// The menu as a reader meets it: the children in the order they are painted, what each one is, the
-// field it names, the number beside it and the box it offers a finger. Nothing here is a figure the
-// page computed about itself.
-const GAP_MENU = `(function () {
-  var m = document.getElementById('gapsmenu');
-  return JSON.stringify({
-    open: !m.hidden,
-    val: (document.getElementById('gapsval') || {}).textContent || '',
-    kids: Array.prototype.map.call(m.children, function (el) {
-      var r = el.getBoundingClientRect();
-      var code = el.querySelector ? el.querySelector('code') : null;
-      var num = el.querySelector ? el.querySelector('.gaps-n') : null;
-      return { tag: el.tagName, cls: el.className, text: el.textContent,
-               field: code ? code.textContent : null,
-               n: num ? Number(num.textContent) : null,
-               w: Math.round(r.width * 10) / 10, h: Math.round(r.height * 10) / 10 };
-    }),
-    // The third place the same finding is named, read here so an assertion can require the page to
-    // have one wording for it and not two.
-    ghostTitle: (document.getElementById('ghtoggle') || {}).title || ''
-  });
-})()`;
-
 // The group rows the review prints that are not bands: the sentence a worklist with nothing on it
 // leaves behind. REVIEW_READ reads the bands and the absent block; this reads what is left.
 const TERM_GROUPS = `(function () {
@@ -4890,23 +4874,6 @@ function sessionCount(page, viewKey, from, to) {
   })()`);
 }
 
-// Press the row of the gaps menu that names one field, by the field it names and not by its
-// position, so a reordering of the menu moves the press with it.
-async function pressGapRow(page, field) {
-  const ok = await page.evaluate(`(function () {
-    var rows = Array.prototype.slice.call(document.querySelectorAll('#gapsmenu .gaps-go'));
-    for (var i = 0; i < rows.length; i++) {
-      var c = rows[i].querySelector('code');
-      if (c && c.textContent === ${JSON.stringify(field)}) { rows[i].click(); return true; }
-    }
-    return false;
-  })()`);
-  if (!ok) throw new Error(`no pressable gap row naming ${field}`);
-  await page.waitFor(`window.ZT.term().open === true &&
-                      window.ZT.term().gap === ${JSON.stringify(field)}`,
-    `the worklist the ${field} row named`);
-}
-
 async function checkWorklist(page, base) {
   // ONE. THE SPLIT, SUMMED OVER THE SEVEN DRAWINGS AND RECOMPUTED AGAINST THE REGISTRY. The
   // control counts what one view is showing, so the whole of the 95 is only visible as a walk, and
@@ -4917,101 +4884,76 @@ async function checkWorklist(page, base) {
   const all = JSON.parse(await page.evaluate(`JSON.stringify(${GAP_SPLIT}(null, null, null))`));
   const views = JSON.parse(await page.evaluate(
     `JSON.stringify(window.GI.views.map(function (v) { return { key: v.key, route: v.route }; }))`));
-  let work = 0, settled = 0, ofAll = null;
+  let work = 0, settled = 0, ofWork = null, ofUnrec = null;
   const wrongSide = [];
   for (const v of views) {
     await page.evaluate(`location.hash = ${JSON.stringify(v.route)}`);
     await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(v.key)}`,
       `the ${v.key} drawing`);
-    const g = await page.evaluate('window.ZT.gaps()');
+    const g = await page.evaluate('window.ZT.absence()');
     work += g.work;
-    settled += g.settled;
-    ofAll = g.of;
+    settled += g.unrecorded;
+    ofWork = g.ofWork;
+    ofUnrec = g.ofUnrecorded;
     const mine = JSON.parse(await page.evaluate(
       `JSON.stringify(${GAP_SPLIT}(${JSON.stringify(v.key)}, null, null))`));
-    if (mine.rows.length !== g.rows.length) wrongSide.push(`${v.key} has ${g.rows.length} rows`);
-    for (const r of g.rows) {
-      const m = mine.rows.find(q => q.cls === r.cls && q.field === r.field);
-      if (!m || m.system !== r.system || m.n !== r.n ||
-          m.ids.slice().sort().join(',') !== r.ids.slice().sort().join(',')) {
-        wrongSide.push(`${v.key} ${r.cls} ${r.field}`);
-      }
+    if (mine.work !== g.work || mine.settled !== g.unrecorded) {
+      wrongSide.push(`${v.key} said ${g.work} and ${g.unrecorded} for ${mine.work} and ${mine.settled}`);
     }
   }
-  assert('the 95 are two kinds of thing, and which kind a row is comes off the registry rather than out of a list in the page',
-    work === all.work && settled === all.settled && work + settled === ofAll &&
-      work + settled === all.total && work > 0 && settled > 0 && wrongSide.length === 0,
+  // AND THE TWO NUMBERS ARE NEVER ADDED, WHICH IS THE POINT OF ISSUE 139 AND IS ASSERTED HERE
+  // RATHER THAN INFERRED. `ofWork + ofUnrecorded` is 95, this driver computes it and the page is
+  // required NOT to publish it: window.ZT.absence() answers with two denominators and no total,
+  // and there is no key on it whose value is their sum.
+  const sums = await page.evaluate(`(function () {
+    var a = window.ZT.absence(), k, out = [];
+    for (k in a) if (a[k] === ${all.total}) out.push(k);
+    return JSON.stringify(out);
+  })()`);
+  assert('the 95 are two kinds of thing, which kind a row is comes off the registry, and nothing adds them',
+    work === all.work && settled === all.settled && ofWork === all.work &&
+      ofUnrec === all.settled && work > 0 && settled > 0 && wrongSide.length === 0 &&
+      JSON.parse(sums).length === 0,
     `${all.work} rows a system holds with a field empty and ${all.settled} whose class no system ` +
-      `holds, ${all.total} in all, every one on the side routes.classes gives it`,
+      `holds, each on the side routes.classes gives it, and no field of the page's own object ` +
+      `holding their sum of ${all.total}`,
     `${work} and ${settled} summed over the seven drawings against ${all.work} and ${all.settled} ` +
-      `recomputed here, the readout naming ${ofAll}, ${wrongSide.length} rows on the wrong side ` +
-      `or over the wrong objects ${JSON.stringify(wrongSide.slice(0, 3))}`,
-    `${all.work} work and ${all.settled} settled of ${all.total}, ${ofAll} on the readout`);
+      `recomputed here, denominators ${ofWork} and ${ofUnrec}, ${wrongSide.length} drawings on ` +
+      `the wrong side ${JSON.stringify(wrongSide.slice(0, 3))}, fields equal to the sum ${sums}`,
+    `${all.work} work and ${all.settled} unrecorded, and no cell anywhere holding ${all.total}`);
 
-  // TWO. AND THE HEADINGS OVER THEM ARE THE MODEL'S OWN WORDS. Z-SC is the drawing that carries
-  // both sides, so it is where the pair can be read at once. The second heading is the thing this
-  // card was told to reduce: the page said `gaps`, said `ghosts`, and the registry said of the same
-  // classes that nothing holds a row for them, which is one finding under three words. It is read
-  // from the ghost type's own label and from the registry's own sentence, and the toggle in the
-  // header that switches those tiles is required to be naming the same thing in the same words, so
-  // a noun typed into app.js fails here rather than quietly becoming a fourth.
-  await page.evaluate(`location.hash = '#/p/ZSC'`);
-  await page.waitFor(`window.ZT.programme().key === 'ZSC'`, 'the Z-SC drawing');
-  await gapsMenu(page, true);
-  const menu = JSON.parse(await page.evaluate(GAP_MENU));
-  const zsc = JSON.parse(await page.evaluate(`JSON.stringify(${GAP_SPLIT}('ZSC', null, null))`));
-  const heads = menu.kids.filter(k => k.cls === 'gaps-head');
-  const whys = menu.kids.filter(k => k.cls === 'gaps-why');
-  const headAt = menu.kids.indexOf(heads[1]);
-  assert('the two sides are under two headings, work first, and the second is read from the model rather than typed into the page',
-    heads.length === 2 && whys.length === 1 &&
-      heads[0].text === `A system holds the row and the field is empty · ${zsc.work}` &&
-      heads[1].text === `The class ${zsc.ghostLabel} · ${zsc.settled}` &&
-      whys[0].text === zsc.why && zsc.ghostLabel !== '' && zsc.why !== '' &&
-      menu.kids[0].cls === 'gaps-scope' && menu.kids[1] === heads[0] &&
-      menu.kids[headAt + 1] === whys[0] &&
-      menu.kids[menu.kids.length - 1].cls === 'gaps-foot' &&
-      menu.ghostTitle.indexOf('exist in any system') !== -1,
-    `"A system holds the row and the field is empty · ${zsc.work}" first and then "The class ` +
-      `${zsc.ghostLabel} · ${zsc.settled}" with the registry's own reason under it, the same ` +
-      'words the toggle for those tiles uses',
-    `${heads.length} headings ${JSON.stringify(heads.map(h => h.text))}, reason ` +
-      `${JSON.stringify(whys.map(w => w.text))}, toggle ${JSON.stringify(menu.ghostTitle)}`,
-    `${JSON.stringify(heads.map(h => h.text))}`);
-
-  // THREE. ONLY THE ROWS THE PAGE CAN ANSWER FOR ARE CONTROLS. A row of work whose objects the page
-  // lists somewhere is a button and everything else is text, and the difference is visible before
-  // the press rather than after it. The expectation is computed from the registry join and from the
-  // ids each row is over, not read off the markup, so a page that made every row pressable and one
-  // that made none fail in opposite directions. #77's floor is on each of them, because an element
-  // that is a button for the first time does not get it by construction.
-  const rowKids = menu.kids.filter(k => /(^| )gaps-row( |$)/.test(k.cls));
-  const wantGo = zsc.rows.filter(r => r.system && (r.type === 'CohortSession' || r.ids.length === 1))
-    .map(r => r.field).sort();
-  const gotGo = rowKids.filter(k => k.tag === 'BUTTON').map(k => k.field).sort();
-  const undersized = rowKids.filter(k => k.tag === 'BUTTON' && Math.min(k.w, k.h) < 26);
-  assert('only the rows the page can take a reader to are controls, and each of those is a target of at least 26 by 26',
-    gotGo.length > 0 && rowKids.length > gotGo.length &&
-      gotGo.join(',') === wantGo.join(',') && undersized.length === 0 &&
-      rowKids.length === zsc.rows.length,
-    `${wantGo.length} of the ${zsc.rows.length} rows pressable, ${wantGo.join(', ')}, none of ` +
-      'them under 26 by 26',
-    `${gotGo.length} pressable ${JSON.stringify(gotGo)}, ${rowKids.length} rows in all, ` +
-      `${undersized.length} under the floor ${JSON.stringify(undersized.map(k => k.w + 'x' + k.h))}`,
-    `${gotGo.length} of ${rowKids.length} pressable`);
+  // WHAT TWO ASSERTIONS ABOUT THE MENU USED TO STAND HERE, AND WHY THEY ARE GONE RATHER THAN
+  // WEAKENED. Issue 125 put the 95 behind a press as two groups under two headings, with the rows
+  // the page could take a reader to drawn as buttons and the rest as text. Issue 139 deletes that
+  // menu: `gaps N of 95` was the last place on the page that summed the 22 and the 73, and a list
+  // of ninety five items under one control is the thermometer this redesign exists to take off the
+  // header. The two claims those assertions made are not lost. That which side a row is on comes
+  // off the registry is asserted above, on the control that replaced the menu; and that the page
+  // can take a reader to exactly the objects a count is over is asserted below, on the worklist
+  // address itself, which is what the pressable rows led to and is the thing worth keeping.
+  //
+  // THE WAY IN IS THE READING AND NOT THE HEADER, which is the cost this card accepted and which
+  // is recorded here rather than in a commit message. The review at #/calendar ranks the unstaffed
+  // sessions first and marks each of them, so the list form survives where a reader wants text;
+  // what is gone is a second copy of it hanging off the diagram.
 
   // FOUR. AND PRESSING ONE LANDS ON EXACTLY THE OBJECTS IT COUNTED. This is the claim the card is
   // about and the one an assertion reading the page's own bookkeeping could not make: the number on
   // the row and the ids in the table are compared against one set this driver built, and the set is
   // required to be smaller than the sessions the programme holds, so a filter that did nothing
   // cannot pass on a day the two happened to agree.
+  await page.evaluate(`location.hash = '#/p/ZSC'`);
+  await page.waitFor(`window.ZT.programme().key === 'ZSC'`, 'the Z-SC drawing');
+  const zsc = JSON.parse(await page.evaluate(`JSON.stringify(${GAP_SPLIT}('ZSC', null, null))`));
   const zscSessions = await sessionCount(page, 'ZSC', null, null);
   const zscWant = zsc.rows.find(r => r.field === 'teacher_assigned');
-  await pressGapRow(page, 'teacher_assigned');
+  await page.evaluate(`location.hash = '#/calendar/ZSC?gap=teacher_assigned'`);
+  await page.waitFor(`window.ZT.term().open === true &&
+                      window.ZT.term().gap === 'teacher_assigned'`, 'the Z-SC worklist');
   const zscHash = await page.evaluate('location.hash');
   const zscRead = await page.evaluate(REVIEW_READ);
   const zscIds = zscRead.rows.map(r => r.id).slice().sort().join(',');
-  assert('pressing a row lands on exactly the objects it counted, recomputed from window.GI',
+  assert('a worklist holds exactly the objects the count is over, recomputed from window.GI',
     zscHash === '#/calendar/ZSC?gap=teacher_assigned' &&
       zscIds === zscWant.ids.slice().sort().join(',') &&
       zscRead.rows.length === zscWant.n && zscWant.n > 0 && zscWant.n < zscSessions &&
@@ -5049,8 +4991,9 @@ async function checkWorklist(page, base) {
   await page.waitFor(DIAGRAM_READY, 'the Z-DS drawing, cold');
   const dsWant = JSON.parse(await page.evaluate(`JSON.stringify(${GAP_SPLIT}('ZDS', null, null))`))
     .rows.find(r => r.field === 'teacher_assigned');
-  await gapsMenu(page, true);
-  await pressGapRow(page, 'teacher_assigned');
+  await page.evaluate(`location.hash = '#/calendar/ZDS?gap=teacher_assigned'`);
+  await page.waitFor(`window.ZT.term().open === true &&
+                      window.ZT.term().gap === 'teacher_assigned'`, 'the Z-DS worklist');
   const dsTerm = await page.evaluate('window.ZT.term()');
   const dsRead = await page.evaluate(REVIEW_READ);
 
@@ -5087,8 +5030,9 @@ async function checkWorklist(page, base) {
     `JSON.stringify(${GAP_SPLIT}(null, ${JSON.stringify(w.from)}, ${JSON.stringify(w.to)}))`));
   const winWant = inWin.rows.find(r => r.field === 'teacher_assigned');
   const winAll = await sessionCount(page, null, w.from, w.to);
-  await gapsMenu(page, true);
-  await pressGapRow(page, 'teacher_assigned');
+  await page.evaluate(`location.hash = '#/calendar?gap=teacher_assigned'`);
+  await page.waitFor(`window.ZT.term().gap === 'teacher_assigned'`,
+    'the worklist, entered from the review that was already open on three weeks');
   const winTerm = await page.evaluate('window.ZT.term()');
   const winRead = await page.evaluate(REVIEW_READ);
   assert('a worklist keeps the window that was in force rather than arming the review\'s own default',
@@ -5241,21 +5185,28 @@ async function checkWorklist(page, base) {
 // other. This is the same shape as the term phase counting its rows rather than trusting the
 // subtitle over them, and as the reflow check in the drawing.
 const GAPS_FROM_MODEL = `(function () {
-  var out = { value: 0, route: 0, ghost: 0, byView: {}, byType: {} };
+  var cls = (window.GI.routes && window.GI.routes.classes) || {};
+  var out = { value: 0, route: 0, ghost: 0, work: 0, unrec: 0,
+              byView: {}, byViewWork: {}, byViewUnrec: {}, byType: {} };
   window.GI.views.forEach(function (v) {
-    var n = 0;
+    var n = 0, w = 0, u = 0;
     v.nodes.forEach(function (node) {
       var first = node.route || 0;
+      var e = cls[node['class']];
+      var held = !!(e && e.system);
       (node.props || []).forEach(function (p, i) {
         if (p.f !== 'absent') return;
         if (i < first) { out.route++; return; }
         if (node.ghost) { out.ghost++; return; }
         n++; out.value++;
+        if (held) { w++; out.work++; } else { u++; out.unrec++; }
         var k = node.type + '.' + p.k;
         out.byType[k] = (out.byType[k] || 0) + 1;
       });
     });
     out.byView[v.key] = n;
+    out.byViewWork[v.key] = w;
+    out.byViewUnrec[v.key] = u;
   });
   return JSON.stringify(out);
 })()`;
@@ -5264,40 +5215,24 @@ const GAPS_FROM_MODEL = `(function () {
 // window.ZT.filtered().shown, which is render.js's own record of what the window left, so a count
 // that agreed with the model but not with the picture would fail here.
 const GAPS_ON_SHOWN = `(function () {
-  var shown = {}, n = 0, key = window.ZT.programme().key;
+  var cls = (window.GI.routes && window.GI.routes.classes) || {};
+  var shown = {}, w = 0, u = 0, key = window.ZT.programme().key;
   window.ZT.filtered().shown.forEach(function (id) { shown[id] = true; });
   window.GI.views.forEach(function (v) {
     if (v.key !== key) return;
     v.nodes.forEach(function (node) {
       if (!shown[node.id] || node.ghost) return;
       var first = node.route || 0;
-      (node.props || []).forEach(function (p, i) { if (p.f === 'absent' && i >= first) n++; });
+      var e = cls[node['class']];
+      var held = !!(e && e.system);
+      (node.props || []).forEach(function (p, i) {
+        if (p.f !== 'absent' || i < first) return;
+        if (held) w++; else u++;
+      });
     });
   });
-  return n;
+  return JSON.stringify({ work: w, unrec: u });
 })()`;
-
-const GAPS_MENU_READ = `(function () {
-  var rows = Array.prototype.slice.call(document.querySelectorAll('#gapsmenu .gaps-row'));
-  return JSON.stringify({
-    open: !document.getElementById('gapsmenu').hidden,
-    expanded: document.getElementById('gapsbtn').getAttribute('aria-expanded'),
-    text: document.getElementById('gapsbtn').textContent,
-    sum: rows.reduce(function (n, r) {
-      return n + Number(r.querySelector('.gaps-n').textContent);
-    }, 0),
-    rows: rows.length,
-    scope: (document.querySelector('#gapsmenu .gaps-scope') || {}).textContent || '',
-    fields: rows.map(function (r) { return r.querySelector('code').textContent; })
-  });
-})()`;
-
-async function gapsMenu(page, want) {
-  const open = await page.evaluate(`!document.getElementById('gapsmenu').hidden`);
-  if (open !== want) await page.evaluate(`document.getElementById('gapsbtn').click()`);
-  await page.waitFor(`(!document.getElementById('gapsmenu').hidden) === ${want ? 'true' : 'false'}`,
-    `the gap list to ${want ? 'open' : 'close'}`);
-}
 
 // ---- the cut, issue 128 -------------------------------------------------------------------------
 // THE OWNER: "the page is still too verbose on the control center etc. remove a lot of text". A
@@ -5312,10 +5247,11 @@ async function gapsMenu(page, want) {
 // from the window state and the driver's own date formatter, and the captions are read off
 // window.GL. Nothing here asks the page whether it thinks it is short.
 const CUT_MENU_PARAS = `(function () {
-  // Every paragraph in the four menus of the header's readout and its nav, and only the ones that
-  // are prose: a row of buttons is a control and not a sentence.
+  // Every paragraph in the menus this header still opens, and only the ones that are prose: a row
+  // of buttons is a control and not a sentence. Two of the four are gone with issue 139, the gap
+  // list and the theme box, so what is left is the altitude's and the scope's.
   var out = [];
-  ['#grmenu', '#gapsmenu', '#thmenu'].forEach(function (sel) {
+  ['#grmenu', '#pgmenu'].forEach(function (sel) {
     var m = document.querySelector(sel);
     if (!m || m.hidden) return;
     Array.prototype.forEach.call(m.querySelectorAll('p'), function (p) {
@@ -5412,7 +5348,7 @@ async function checkCut(page, base) {
     await page.evaluate(`location.hash = ${JSON.stringify(at)}`);
     await page.waitFor(`window.ZT.term().open === false`, `the drawing at ${at}`);
     await sleep(120);
-    for (const id of ['grbtn', 'gapsbtn', 'thtoggle']) {
+    for (const id of ['grbtn']) {
       await page.evaluate(`document.getElementById(${JSON.stringify(id)}).click()`);
       await sleep(90);
       const got = JSON.parse(await page.evaluate(CUT_MENU_PARAS));
@@ -5422,10 +5358,10 @@ async function checkCut(page, base) {
     }
   }
   const overLong = paras.filter(p => p.n > 200);
-  assert('every paragraph in the header\'s four menus is a figure and not an argument, at both altitudes',
-    paras.length >= 8 && overLong.length === 0,
-    `${paras.length} paragraphs across the four menus on two altitudes, the longest at most 200 ` +
-      'characters',
+  assert('every paragraph in the header\'s menus is a figure and not an argument, at both altitudes',
+    paras.length >= 2 && overLong.length === 0,
+    `${paras.length} paragraphs across the menus this header opens, on two altitudes, the ` +
+      'longest at most 200 characters',
     `${paras.length} paragraphs, ${overLong.length} over 200: ` +
       JSON.stringify(overLong.slice(0, 3).map(p => p.where + ' ' + p.n + ' ' + p.text)));
 
@@ -6096,6 +6032,62 @@ async function checkEmptyWindow(page) {
   await viewSettled(page);
 }
 
+// The same split again, restricted to one node type and one scope, which is what the two readings
+// of the term list. A second implementation of what absScope() does in the page, written here and
+// shared with nothing.
+const ABS_OF_TYPE = `(function (key, type) {
+  var cls = (window.GI.routes && window.GI.routes.classes) || {};
+  var w = 0, u = 0;
+  window.GI.views.forEach(function (v) {
+    if (key && v.key !== key) return;
+    v.nodes.forEach(function (n) {
+      if (n.ghost || (type && n.type !== type)) return;
+      var e = cls[n['class']], held = !!(e && e.system), props = n.props || [];
+      for (var i = (n.route || 0); i < props.length; i++) {
+        if (props[i].f !== 'absent') continue;
+        if (held) w++; else u++;
+      }
+    });
+  });
+  return { work: w, unrec: u };
+})`;
+
+// The rings on the canvas, told apart by their class and counted by whether they have a box, so a
+// switch that is off is a switch whose rings are not painted rather than a switch whose rings are
+// still there in a colour nobody can see.
+const SOCKETS = `(function () {
+  function count(sel) {
+    var all = document.querySelectorAll('#graph ' + sel), on = 0, i;
+    for (i = 0; i < all.length; i++) if (all[i].getBoundingClientRect().width > 0) on++;
+    return { drawn: all.length, painted: on };
+  }
+  return JSON.stringify({ work: count('.sock-work'), unrec: count('.sock-unrec'),
+                          ghosts: count('.node.ghost') });
+})()`;
+
+async function absSwitch(page, which, want) {
+  const id = which === 'work' ? 'abswork' : 'absunrec';
+  const cls = which === 'work' ? 'hide-work' : 'hide-unrecorded';
+  const on = await page.evaluate(`document.getElementById('${id}').getAttribute('aria-pressed') === 'true'`);
+  if (on !== want) await page.evaluate(`document.getElementById('${id}').click()`);
+  // The wait is on the state settling and NOT on the assertion, which is what #137 paid for: a
+  // wait that encodes its own claim can only ever time out and takes the assertion with it.
+  await page.waitFor(`document.body.classList.contains('${cls}') === ${want ? 'false' : 'true'}`,
+    `the ${which} switch to go ${want ? 'on' : 'off'}`);
+}
+
+// ---- absence is one idea with two numbers that never add, issue 139 -----------------------------
+// TEN ASSERTIONS ON THE ONE CONTROL THIS CARD SHIPPED, and none of them reads the count and asserts
+// the count. Every figure is recomputed here, in this file, by a second implementation over
+// window.GI, and the control's own answer is checked against it; the windowed pair is recomputed a
+// third way, over render.js's own record of which tiles the window left, so a count that agreed
+// with the model but not with the picture fails.
+//
+// AND THE THING THIS CARD IS ABOUT IS ASSERTED AS AN ABSENCE. `gaps N of 95` was the last place on
+// the page that summed the 22 and the 73; what replaced it is two numbers with a middle dot between
+// them, each naming its own population. So one of these ten looks for the sum, in every field the
+// page publishes about this control and in the visible text of the header on every address, and
+// requires it not to be there.
 async function checkHeader(page) {
   await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor('window.ZT.term().open === false', 'the diagram to be on screen');
@@ -6105,161 +6097,255 @@ async function checkHeader(page) {
   const startedOn = await page.evaluate('window.ZT.programme().key');
   const model = JSON.parse(await page.evaluate(GAPS_FROM_MODEL));
 
-  // ONE. The denominator is every value the model records as missing, anywhere in it, and it is
-  // the model's own arithmetic rather than a number this file or that one holds. The two other
-  // populations are printed beside it because they are the boundary this card drew: the route rows
-  // that say how a class gets filled at all, which are the same fact on every tile of that class,
-  // and the ghost rows, where the tile is already the finding.
-  const all = await page.evaluate('window.ZT.gaps()');
-  assert('the header counts against every value the model records as missing, recomputed from the document',
-    all.of === model.value && model.value > 0 && model.route > 0 && model.ghost > 0,
-    `${model.value}, counted off window.GI in this driver`,
-    `the page says ${all.of}`,
-    `${model.value} value rows, against ${model.route} route rows and ${model.ghost} on ghosts, ` +
-      `${model.value + model.route + model.ghost} absent rows in all`);
+  // ONE. THE TWO DENOMINATORS ARE THE MODEL'S OWN ARITHMETIC, SPLIT BY THE REGISTRY, AND NOTHING
+  // ON THE PAGE ADDS THEM. The two other populations are printed beside them because they are the
+  // boundary #98 drew: the route rows that say how a class gets filled at all, which are the same
+  // fact on every tile of that class, and the ghost rows, where the tile is already the finding.
+  // The sum is looked for in the header's own visible text as well as in the object the page
+  // publishes, because a label is where it would come back.
+  const all = await page.evaluate('window.ZT.absence()');
+  const sumInText = await page.evaluate(`(function () {
+    var t = document.querySelector('header').innerText.replace(/\\s+/g, ' ');
+    return t.indexOf(${JSON.stringify(String(model.value))}) === -1 ? '' : t;
+  })()`);
+  assert('the two denominators are the model\'s own arithmetic, and nothing on the page adds them',
+    all.ofWork === model.work && all.ofUnrecorded === model.unrec &&
+      model.work > 0 && model.unrec > 0 && model.work + model.unrec === model.value &&
+      model.route > 0 && model.ghost > 0 && sumInText === '',
+    `${model.work} a system holds a row for and ${model.unrec} no system records, counted off ` +
+      `window.GI in this driver, and no ${model.value} anywhere in the header's own words`,
+    `the page says ${all.ofWork} and ${all.ofUnrecorded}, header text ` +
+      `${JSON.stringify(sumInText.slice(0, 90))}`,
+    `${model.work} and ${model.unrec}, against ${model.route} route rows and ${model.ghost} on ` +
+      'ghosts');
 
-  // TWO. Every one of the seven drawings answers with its own arithmetic. Asserted across all
-  // seven rather than on one, because a scope bug that returned the same set whatever the address
-  // would pass on any single view, and because the seven differ by an order of magnitude.
+  // TWO. Every one of the seven drawings answers with its own two numbers, and says them on the
+  // two switches. Asserted across all seven rather than on one, because a scope bug that returned
+  // the same set whatever the address would pass on any single view, and because the seven differ
+  // by an order of magnitude.
   const perView = [];
   for (const key of Object.keys(model.byView)) {
     await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(key)}`);
     await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(key)}`, `the ${key} drawing`);
-    const g = await page.evaluate('window.ZT.gaps()');
-    const txt = await page.evaluate(`document.getElementById('gapsbtn').textContent`);
-    perView.push({ key, said: g.total, wanted: model.byView[key], txt });
+    const g = await page.evaluate('window.ZT.absence()');
+    const txt = JSON.parse(await page.evaluate(`JSON.stringify({
+      work: document.getElementById('abswork').textContent,
+      unrec: document.getElementById('absunrec').textContent })`));
+    perView.push({ key, work: g.work, unrec: g.unrecorded,
+                   wantWork: model.byViewWork[key], wantUnrec: model.byViewUnrec[key], txt });
   }
-  // `gaps 8 of 95` and not `gaps: 8 of 95` since issue 120, for the reason the window control's
-  // text lost its colon: the control is a reading on the header's readout now and the label is
-  // markup. The arithmetic this assertion is about is untouched.
-  const wrong = perView.filter(v => v.said !== v.wanted ||
-    v.txt !== `gaps ${v.wanted} of ${model.value}`);
-  assert('and each of the seven drawings says its own number, in the control and in the object',
+  const wrong = perView.filter(v => v.work !== v.wantWork || v.unrec !== v.wantUnrec ||
+    v.txt.work !== `work ${v.wantWork}/${model.work}` ||
+    v.txt.unrec !== `unrecorded ${v.wantUnrec}/${model.unrec}`);
+  assert('and each of the seven drawings says its own two numbers, on the two switches',
     wrong.length === 0 && perView.length === 7 &&
-      new Set(perView.map(v => v.said)).size > 1,
-    'every drawing counting the gaps on its own tiles',
-    wrong.length ? wrong.map(v => `${v.key} said ${v.said} for ${v.wanted}, text ${JSON.stringify(v.txt)}`).join(', ')
-                 : perView.map(v => `${v.key} ${v.said}`).join(', '));
+      new Set(perView.map(v => v.work)).size > 1,
+    'every drawing counting both kinds over its own tiles, in the fraction grammar the chips use',
+    wrong.length
+      ? wrong.map(v => `${v.key} said ${v.work}/${v.unrec} for ${v.wantWork}/${v.wantUnrec}, ` +
+          `text ${JSON.stringify(v.txt)}`).join(', ')
+      : perView.map(v => `${v.key} ${v.work} and ${v.unrec}`).join(', '));
 
-  // THREE. THE COMPOSITION THIS CARD IS FOR. A window filters the drawing, so it moves the count,
-  // and it has to move it to the gaps that are still on the page rather than to some other number
-  // that also went down. Both halves are asserted: the count falls, and it equals the arithmetic
-  // taken over render.js's own record of which tiles the window left.
-  const heavy = perView.slice().sort((a, b) => b.wanted - a.wanted)[0];
+  // THREE. THE COMPOSITION THIS CONTROL IS FOR. A window filters the drawing, so it moves both
+  // counts, and it has to move them to what is still on the page rather than to some other pair
+  // that also went down. Both halves are asserted: at least one falls, and each equals the
+  // arithmetic taken over render.js's own record of which tiles the window left.
+  const heavy = perView.slice().sort((a, b) => (b.wantWork + b.wantUnrec) - (a.wantWork + a.wantUnrec))[0];
   await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(heavy.key)}`);
   await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(heavy.key)}`,
     `the ${heavy.key} drawing`);
   await setWindow(page, 3);
   await page.waitFor('window.ZT.term().window.weeks === 3', 'a three week window');
-  const windowed = await page.evaluate('window.ZT.gaps()');
-  const onShown = await page.evaluate(GAPS_ON_SHOWN);
-  assert('a window moves the count, and moves it to the gaps left on the drawing',
-    windowed.total === onShown && windowed.total < heavy.wanted && windowed.total >= 0,
-    `fewer than ${heavy.key}'s ${heavy.wanted}, and equal to the ${onShown} on the tiles the ` +
-      'window left',
-    `the page says ${windowed.total}, the tiles on screen carry ${onShown}`,
-    `${heavy.key} ${heavy.wanted} over the whole term, ${windowed.total} over three weeks`);
-
-  // FOUR. The list is the count. #83 and #100 both turned on an aggregate that lost its own
-  // number, so the rows under the control are added up and checked against the headline rather
-  // than merely counted.
-  await gapsMenu(page, true);
-  const menu = JSON.parse(await page.evaluate(GAPS_MENU_READ));
-  assert('the list under the control adds up to the number on it',
-    menu.open && menu.expanded === 'true' && menu.sum === windowed.total &&
-      menu.rows === windowed.rows.length && menu.rows > 0 &&
-      menu.scope.indexOf(String(windowed.total)) === 0,
-    `${menu.rows} rows summing to ${windowed.total}, under a sentence that opens with it`,
-    `${menu.rows} rows summing to ${menu.sum}, control ${JSON.stringify(menu.text)}, ` +
-      `sentence ${JSON.stringify(menu.scope.slice(0, 80))}`);
-  await gapsMenu(page, false);
+  const windowed = await page.evaluate('window.ZT.absence()');
+  const onShown = JSON.parse(await page.evaluate(GAPS_ON_SHOWN));
+  assert('a window moves both counts, and moves them to what is left on the drawing',
+    windowed.work === onShown.work && windowed.unrecorded === onShown.unrec &&
+      windowed.work + windowed.unrecorded < heavy.wantWork + heavy.wantUnrec &&
+      windowed.work >= 0 && windowed.unrecorded >= 0,
+    `fewer than ${heavy.key}'s ${heavy.wantWork} and ${heavy.wantUnrec}, and equal to the ` +
+      `${onShown.work} and ${onShown.unrec} on the tiles the window left`,
+    `the page says ${windowed.work} and ${windowed.unrecorded}, the tiles on screen carry ` +
+      `${onShown.work} and ${onShown.unrec}`,
+    `${heavy.key} ${heavy.wantWork} and ${heavy.wantUnrec} over the whole term, ` +
+      `${windowed.work} and ${windowed.unrecorded} over three weeks`);
   await setWindow(page, 0);
   await page.waitFor('window.ZT.term().window.on === false', 'the window to come off');
 
-  // FIVE. Each reading answers about the rows it lists and not about the model behind it. The
-  // calendar's one row is the number the sheet has carried since issues 80 and 82 under another
-  // name, so the header and the sheet cannot come to say different things about the same eleven
-  // sessions; the outline's rows are all templates. Both are asserted, because a scope that
-  // returned every node on every route would satisfy neither and a scope that returned nothing
-  // would satisfy the first half of each.
+  // FOUR. THE SOCKETS ON THE CANVAS ARE THE NUMBERS. This is what makes the control a control
+  // rather than a second thermometer, and it is the one claim `gaps N of 95` could never make: a
+  // reader looking at three weeks was told that eleven sessions have nobody assigned to teach them
+  // and could not see WHICH. One ring per missing value, on the object that is missing it, so the
+  // rings on the canvas count to the number on the control. Walked over all seven, because a
+  // renderer that drew one ring per NODE rather than one per value would agree on most drawings.
+  const socketed = [];
+  for (const key of Object.keys(model.byView)) {
+    await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(key)}`);
+    await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(key)}`, `the ${key} drawing`);
+    const sk = JSON.parse(await page.evaluate(SOCKETS));
+    socketed.push({ key, sk, work: model.byViewWork[key], unrec: model.byViewUnrec[key] });
+  }
+  const mismatched = socketed.filter(x => x.sk.work.painted !== x.work ||
+                                          x.sk.unrec.painted !== x.unrec);
+  assert('the empty sockets on the canvas are the two numbers, one ring per missing value',
+    mismatched.length === 0 && socketed.length === 7 &&
+      socketed.some(x => x.work > 0) && socketed.some(x => x.unrec > 0),
+    'every drawing painting as many work rings and as many unrecorded rings as its own two counts',
+    mismatched.length
+      ? mismatched.map(x => `${x.key} painted ${x.sk.work.painted}/${x.sk.unrec.painted} for ` +
+          `${x.work}/${x.unrec}`).join(', ')
+      : socketed.map(x => `${x.key} ${x.sk.work.painted} and ${x.sk.unrec.painted}`).join(', '));
+
+  // FIVE. EACH SWITCH TAKES ITS OWN KIND OFF THE PICTURE AND LEAVES THE OTHER WHERE IT IS. Both
+  // directions on both switches, on the drawing that carries both kinds, because a page that
+  // hid everything and a page that hid nothing would each pass half of this. The numbers on the
+  // faces are required NOT to move: what is missing does not stop being missing because a reader
+  // stopped drawing it, which is the same rule the tile count broke before it was deleted.
+  const both = socketed.filter(x => x.work > 0 && x.unrec > 0)
+    .sort((a, b) => (b.work + b.unrec) - (a.work + a.unrec))[0];
+  if (!both) {
+    throw new Error('no drawing carries both a work absence and an unrecorded one, so no press ' +
+                    'below could show one switch leaving the other alone.');
+  }
+  await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(both.key)}`);
+  await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(both.key)}`,
+    `the ${both.key} drawing`);
+  await absSwitch(page, 'work', false);
+  const workOff = JSON.parse(await page.evaluate(SOCKETS));
+  const numbersWorkOff = await page.evaluate('window.ZT.absence()');
+  await absSwitch(page, 'work', true);
+  await absSwitch(page, 'unrecorded', false);
+  const unrecOff = JSON.parse(await page.evaluate(SOCKETS));
+  await absSwitch(page, 'unrecorded', true);
+  const backOn = JSON.parse(await page.evaluate(SOCKETS));
+  assert('each switch takes its own kind off the picture and leaves the other where it is',
+    workOff.work.painted === 0 && workOff.unrec.painted === both.unrec &&
+      unrecOff.unrec.painted === 0 && unrecOff.work.painted === both.work &&
+      backOn.work.painted === both.work && backOn.unrec.painted === both.unrec &&
+      numbersWorkOff.work === both.work,
+    `${both.key}'s ${both.work} work rings gone with the other ${both.unrec} still drawn, then ` +
+      'the reverse, then both back, and the number on the face unmoved throughout',
+    `work off ${JSON.stringify(workOff)}, unrecorded off ${JSON.stringify(unrecOff)}, back ` +
+      `${JSON.stringify(backOn)}, the work count reading ${numbersWorkOff.work} with its own ` +
+      'switch off');
+
+  // SIX. AND `unrecorded` IS THE CONTROL THIS PAGE CALLED `ghosts`, WHICH IS THE MERGE. The tiles
+  // no system holds and the fields no system records are one finding at two grains, and the switch
+  // governs both: the ghost tiles go with the rings and come back with them. Asserted in both
+  // directions and against the number of ghosts window.GI records, so a switch that took the rings
+  // and left the tiles passes nothing.
+  const ghostsIn = await page.evaluate(`(function () {
+    var n = 0;
+    window.GI.views.forEach(function (v) {
+      if (v.key !== ${JSON.stringify(both.key)}) return;
+      v.nodes.forEach(function (x) { if (x.ghost) n++; });
+    });
+    return n;
+  })()`);
+  await absSwitch(page, 'unrecorded', false);
+  const ghostOff = JSON.parse(await page.evaluate(SOCKETS));
+  await absSwitch(page, 'unrecorded', true);
+  const ghostBack = JSON.parse(await page.evaluate(SOCKETS));
+  assert('the unrecorded switch governs the ghost tiles too, which is what it used to be called',
+    ghostsIn > 0 && ghostBack.ghosts.painted === ghostsIn && ghostOff.ghosts.painted === 0,
+    `the ${ghostsIn} ghost tiles window.GI records on ${both.key} going with the rings and ` +
+      'coming back with them',
+    `${ghostBack.ghosts.painted} drawn with the switch on, ${ghostOff.ghosts.painted} with it off`);
+
+  // SEVEN. Each reading counts the rows it lists and not the model behind it. The calendar's own
+  // work count is the number the sheet has carried since issues 80 and 82 under another name, so
+  // the header and the sheet cannot come to say different things about the same eleven sessions;
+  // the outline's rows are all templates and carry the other kind. Both are asserted, because a
+  // scope that returned every node on every route would satisfy neither and a scope that returned
+  // nothing would satisfy the first half of each.
   await page.evaluate(`location.hash = '#/calendar'`);
   await page.waitFor(`window.ZT.term().reading === 'calendar'`, 'the calendar');
-  const cal = await page.evaluate('window.ZT.gaps()');
+  const cal = await page.evaluate('window.ZT.absence()');
   const term = await page.evaluate('window.ZT.term()');
+  const calWant = await page.evaluate(`${ABS_OF_TYPE}(null, 'CohortSession')`);
   await page.evaluate(`location.hash = '#/outline'`);
   await page.waitFor(`window.ZT.term().reading === 'outline'`, 'the outline');
-  const out = await page.evaluate('window.ZT.gaps()');
-  const calRow = cal.rows.find(r => r.field === 'teacher_assigned');
+  const out = await page.evaluate('window.ZT.absence()');
+  const outWant = await page.evaluate(`${ABS_OF_TYPE}(null, 'SessionTemplate')`);
   assert('each reading counts the rows it lists, and the calendar agrees with the sheet\'s own count',
-    !!calRow && calRow.n === term.noInstructor &&
-      cal.rows.every(r => r.type === 'CohortSession') &&
-      out.rows.every(r => r.type === 'SessionTemplate') &&
-      out.total !== cal.total && out.total > 0 && cal.total > 0,
+    cal.work === calWant.work && cal.unrecorded === calWant.unrec &&
+      out.work === outWant.work && out.unrecorded === outWant.unrec &&
+      cal.work === term.noInstructor && cal.work > 0 && out.unrecorded > 0 &&
+      out.unrecorded !== cal.unrecorded,
     `the calendar on cohort sessions with ${term.noInstructor} of them lacking an instructor, ` +
-      'the outline on session templates',
-    `calendar ${cal.total} ${JSON.stringify(cal.rows.map(r => r.type + '.' + r.field))}, ` +
-      `outline ${out.total} ${JSON.stringify(out.rows.map(r => r.type + '.' + r.field))}`);
+      'the outline on session templates, both recomputed off window.GI',
+    `calendar ${cal.work} and ${cal.unrecorded} against ${calWant.work} and ${calWant.unrec}, ` +
+      `outline ${out.work} and ${out.unrecorded} against ${outWant.work} and ${outWant.unrec}`);
 
-  // SIX. The window applies to the calendar and not to the outline, and that split is #90's rather
-  // than this card's: a window is a slice of dates and an outline is a syllabus in curriculum
-  // order. Asserted in both directions on one press of one control, so a window that reached
-  // everything and a window that reached nothing both fail.
+  // EIGHT. The window applies to the calendar and not to the outline, and that split is #90's
+  // rather than this card's: a window is a slice of dates and an outline is a syllabus in
+  // curriculum order. Asserted in both directions on one press of one control, so a window that
+  // reached everything and a window that reached nothing both fail.
   await setWindow(page, 3);
   await page.waitFor('window.ZT.term().window.weeks === 3', 'a three week window');
-  const outWin = await page.evaluate('window.ZT.gaps()');
+  const outWin = await page.evaluate('window.ZT.absence()');
   await page.evaluate(`location.hash = '#/calendar'`);
   await page.waitFor(`window.ZT.term().reading === 'calendar'`, 'the calendar again');
-  const calWin = await page.evaluate('window.ZT.gaps()');
+  const calWin = await page.evaluate('window.ZT.absence()');
   assert('the window reaches the calendar\'s count and leaves the outline\'s alone',
-    outWin.total === out.total && calWin.total < cal.total && calWin.total >= 0,
-    `the outline still ${out.total} and the calendar under its ${cal.total}`,
-    `outline ${outWin.total}, calendar ${calWin.total}`);
+    outWin.unrecorded === out.unrecorded && outWin.work === out.work &&
+      calWin.work < cal.work && calWin.work >= 0,
+    `the outline still ${out.work} and ${out.unrecorded}, and the calendar under its ${cal.work}`,
+    `outline ${outWin.work} and ${outWin.unrecorded}, calendar ${calWin.work}`);
   await setWindow(page, 0);
   await page.waitFor('window.ZT.term().window.on === false', 'the window to come off');
 
-  // SEVEN. Withdrawn where the term strip is withdrawn, and the object says `null` rather than
-  // zero, because "no gaps here" and "this question does not apply to this view" are different
-  // answers and a control reading `gaps: 0 of 95` over the board would be giving the wrong one.
-  // Both directions again: back on the diagram it is present, visible and answering.
+  // NINE. Withdrawn where the term strip is withdrawn, and the object says `null` rather than
+  // zero, because "nothing is missing here" and "this question does not apply to this view" are
+  // different answers and a control reading `work 0/22` over the board would be giving the wrong
+  // one. Both directions again: back on the diagram it is present, visible and answering.
   const off = [];
   for (const at of ['#/board', '#/students']) {
     await page.evaluate(`location.hash = ${JSON.stringify(at)}`);
     await page.waitFor(at === '#/board' ? `document.body.classList.contains('board')`
                                         : 'window.ZT.roster() === true', `the view at ${at}`);
-    const m = JSON.parse(await page.evaluate(headerProbe(['gapsbtn'])));
-    off.push({ at, visible: m.gapsbtn.visible, total: (await page.evaluate('window.ZT.gaps()')).total });
+    const m = JSON.parse(await page.evaluate(headerProbe(['abswork', 'absunrec'])));
+    const a = await page.evaluate('window.ZT.absence()');
+    off.push({ at, visible: m.abswork.visible || m.absunrec.visible,
+               work: a.work, unrec: a.unrecorded });
   }
   await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor('window.ZT.roster() === false', 'the diagram to come back');
-  const back = JSON.parse(await page.evaluate(headerProbe(['gapsbtn'])));
-  const backGaps = await page.evaluate('window.ZT.gaps()');
+  const back = JSON.parse(await page.evaluate(headerProbe(['abswork', 'absunrec'])));
+  const backAbs = await page.evaluate('window.ZT.absence()');
   assert('withdrawn on the board and the student list, and saying null there rather than zero',
-    off.every(o => !o.visible && o.total === null) && back.gapsbtn.visible &&
-      back.gapsbtn.reaches && typeof backGaps.total === 'number',
-    'gone on both, null on both, and back on the diagram answering with a number',
-    off.map(o => `${o.at} visible ${o.visible} total ${JSON.stringify(o.total)}`).join(', ') +
-      `, diagram visible ${back.gapsbtn.visible} total ${JSON.stringify(backGaps.total)}`);
+    off.every(o => !o.visible && o.work === null && o.unrec === null) &&
+      back.abswork.visible && back.abswork.reaches && back.absunrec.visible &&
+      back.absunrec.reaches && typeof backAbs.work === 'number' &&
+      typeof backAbs.unrecorded === 'number',
+    'gone on both, null on both, and back on the diagram answering with two numbers',
+    off.map(o => `${o.at} visible ${o.visible} work ${JSON.stringify(o.work)} unrecorded ` +
+      `${JSON.stringify(o.unrec)}`).join(', ') +
+      `, diagram ${backAbs.work} and ${backAbs.unrecorded}`);
 
-  // EIGHT. #86 and #77 together, on the newest control in the row. It is live over every address
-  // that opens a sheet, it answers elementFromPoint at its own centre there, and it clears the
-  // target size the whole row was taken to. A count a reader can see and cannot press over the
-  // view it is counting would be this card shipping the defect #86 was filed for.
+  // TEN. #86 and #77 together, on the control this card shipped. Both switches are live over every
+  // address that opens a reading of the term, both answer elementFromPoint at their own centre
+  // there, and both clear the target size the whole row was taken to. A count a reader can see and
+  // cannot press over the view it is counting would be this card shipping the defect #86 was filed
+  // for.
   const sheetAddresses = JSON.parse(await page.evaluate(`JSON.stringify(window.ZT.termRoutes())`));
   const bad = [];
   let smallest = Infinity;
   for (const at of sheetAddresses) {
     await page.evaluate(`location.hash = ${JSON.stringify(at)}`);
     await page.waitFor(`!!document.querySelector('.sheet:not([hidden])')`, `the sheet at ${at}`);
-    const m = JSON.parse(await page.evaluate(headerProbe(['gapsbtn']))).gapsbtn;
-    smallest = Math.min(smallest, m.w, m.h);
-    if (!m.visible || !m.reaches || Math.min(m.w, m.h) < 24) {
-      bad.push(`${at} ${m.w}x${m.h} found ${m.found}`);
+    const m = JSON.parse(await page.evaluate(headerProbe(['abswork', 'absunrec'])));
+    for (const id of ['abswork', 'absunrec']) {
+      smallest = Math.min(smallest, m[id].w, m[id].h);
+      if (!m[id].visible || !m[id].reaches || Math.min(m[id].w, m[id].h) < 24) {
+        bad.push(`${at} ${id} ${m[id].w}x${m[id].h} found ${m[id].found}`);
+      }
     }
   }
-  assert('the gap count is reachable and at least 24 by 24 on every address that opens a sheet',
+  assert('both switches are reachable and at least 24 by 24 on every address that opens a sheet',
     bad.length === 0 && sheetAddresses.length > 1,
-    `all ${sheetAddresses.length} of them answering at their own centre, 24 by 24 or better`,
-    bad.length ? bad.join(', ') : `all ${sheetAddresses.length} reached it, smallest side ${smallest}`);
+    `both of them answering at their own centre on all ${sheetAddresses.length} of them, 24 by ` +
+      '24 or better',
+    bad.length ? bad.join(', ') : `all ${sheetAddresses.length} reached both, smallest side ${smallest}`);
 
   await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(startedOn)}`);
   await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(startedOn)}`,
@@ -6267,7 +6353,6 @@ async function checkHeader(page) {
   await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor('window.ZT.term().open === false', 'the diagram to come back');
 }
-
 // ---- the term strip and its brush, issue 137 ----------------------------------------------------
 // EIGHT ASSERTIONS AND EVERY ONE OF THEM IS A DECISION THIS CARD TOOK. The owner singled the weeks
 // control out: "the weeks filter is crucial, but is this the best we can do?" The answer this card
@@ -6649,279 +6734,211 @@ async function checkBrush(page, base) {
   await viewSettled(page);
 }
 
-// ---- the readout, issue 120 ---------------------------------------------------------------------
-// SIX ASSERTIONS AND EVERY ONE OF THEM IS A DECISION THAT CARD TOOK, which is the standard the
-// header phase above was written to and the reason it is worth writing twice. He asked for a
-// header thought of as a control dashboard rather than as a web page, after three cards, #89, #90
-// and #98, that had each answered a card like it by adding a control to one row. By the fourth the
-// row held nine, four of them carrying a value and five carrying a verb, every one of them the
-// same blue .linkbtn at the same size, and nothing anywhere saying which kind any of them was.
+// WHICH SCHEME THE PAGE IS PAINTING IN, DRIVEN THROUGH THE MACHINE. Issue 139 deleted the theme
+// control: the page follows the operating system, which is what #55 shipped and what #57 added an
+// override to. So the way to put the page in a scheme is to tell the browser what the operating
+// system says, which is what a reader's machine does and is now the only thing that decides.
 //
-// SO THE THING TO ASSERT IS THE SPLIT AND NOT THE STYLING. A rearrangement that looked like a
-// dashboard and left a reading in the nav, or drew the plate and painted the readings in the link
-// colour, would satisfy a driver that measured boxes. The first two below are the split itself,
-// read as placement and as paint; the middle three are the reading this card added, which is the
-// number the rest of the header moves and is therefore the one thing here that can be shipped
-// looking right and being wrong; the last is the control this card took OFF the row.
-//
-// NOTHING HERE READS THE TILE COUNT AND ASSERTS THE TILE COUNT. Every figure is recomputed, off
-// window.GI in this file for the ghosts and off render.js's own record of the window for the rest,
-// and the control's answer is checked against it.
-// The three actions read here are the three that carry no state of their own. `ghosts` and
-// `feedback` are deliberately left out and it is not a convenience: both were painting their own
-// state before this card, the ghost toggle in the body colour with a weight while it is pressed
-// and the capture toggle in the muted one, so a claim that every action shares one colour would be
-// false about the page as it already was and would have to be made true by changing two controls
-// this card has no business changing.
-const PAINT_READ = `(function () {
-  function col(sel) { var e = document.querySelector(sel); return e ? getComputedStyle(e).color : null; }
-  var st = document.getElementById('hstate'), hd = document.querySelector('header');
-  return JSON.stringify({
-    readings: ['#grval', '#tilesval', '#gapsval'].map(col),
-    labels: ['.grpick .rd-k', '#tilesrd .rd-k', '.gapspick .rd-k'].map(col),
-    links: ['#navstudents', '#navview', '#thtoggle'].map(col),
-    plate: st ? getComputedStyle(st).backgroundColor : null,
-    header: hd ? getComputedStyle(hd).backgroundColor : null
+// AND IT IS WAITED ON THROUGH THE PAGE'S OWN ANSWER rather than through a sleep. The used value of
+// color-scheme resolves to "light dark" when nothing pins it, so window.ZT.theme() reports the
+// media query's answer, which is exactly what this just changed. The wait is satisfied by either
+// value the page could give, which is what a wait has to be: the assertion is what the scheme is,
+// and it is made by the caller.
+async function setScheme(page, choice) {
+  await page.send('Emulation.setEmulatedMedia', {
+    features: [{ name: 'prefers-color-scheme', value: choice }]
   });
-})()`;
-
-const PLACE_READ = `(function () {
-  var st = document.getElementById('hstate'), nav = document.querySelector('.hnav');
-  function where(id) {
-    var e = document.getElementById(id);
-    return { there: !!e, plate: !!(e && st && st.contains(e)), nav: !!(e && nav && nav.contains(e)) };
-  }
-  var kids = st ? Array.prototype.slice.call(st.children) : [];
-  var r = st ? st.getBoundingClientRect() : null;
-  var tops = kids.map(function (k) { return +k.getBoundingClientRect().top.toFixed(2); });
-  var hs = kids.map(function (k) { return +k.getBoundingClientRect().height.toFixed(2); });
-  return JSON.stringify({
-    readings: ['grbtn', 'tilesrd', 'gapsbtn'].map(where),
-    actions: ['ghtoggle', 'fbtoggle', 'navstudents', 'navview', 'thtoggle'].map(where),
-    plateH: r ? +r.height.toFixed(2) : null,
-    tallest: hs.length ? Math.max.apply(null, hs) : null,
-    oneLine: tops.length > 1 && tops.every(function (t) { return t === tops[0]; })
-  });
-})()`;
-
-const TILES_STATE = `(function () {
-  var f = window.ZT.filtered();
-  return JSON.stringify({ text: document.getElementById('tilesval').textContent,
-                          shown: f.shown.length, canon: f.canonNodes, on: f.on });
-})()`;
-
-const THEME_READ = `(function () {
-  var menu = document.getElementById('thmenu');
-  var items = Array.prototype.slice.call(document.querySelectorAll('#thmenu .thitem'));
-  return JSON.stringify({
-    face: document.getElementById('thtoggle').textContent.trim(),
-    expanded: document.getElementById('thtoggle').getAttribute('aria-expanded'),
-    open: !!menu && !menu.hidden,
-    items: items.map(function (b) { return b.textContent.trim(); }),
-    marked: items.filter(function (b) { return b.getAttribute('aria-current') === 'true'; })
-                 .map(function (b) { return b.textContent.trim(); }),
-    theme: window.ZT.theme()
-  });
-})()`;
-
-async function thMenu(page, want) {
-  const open = await page.evaluate(`!document.getElementById('thmenu').hidden`);
-  if (open !== want) await page.evaluate(`document.getElementById('thtoggle').click()`);
-  await page.waitFor(`(!document.getElementById('thmenu').hidden) === ${want ? 'true' : 'false'}`,
-    `the theme box to ${want ? 'open' : 'close'}`);
+  await page.waitFor(`window.ZT.theme().resolved === ${JSON.stringify(choice)}`,
+    `the machine to say ${choice} and the page to follow it`);
 }
 
+// The view selector as a reader meets it: what each segment says, where it goes, which one is
+// marked, and the box each offers a finger. Nothing here is a figure the page computed about
+// itself.
+const VSEL_READ = `(function () {
+  return JSON.stringify(Array.prototype.map.call(
+    document.querySelectorAll('#vsel .vseg'), function (a) {
+      var r = a.getBoundingClientRect();
+      return { text: a.textContent.trim(), href: a.getAttribute('href'),
+               current: a.getAttribute('aria-current'),
+               w: +r.width.toFixed(2), h: +r.height.toFixed(2),
+               visible: r.width > 0 && r.height > 0 };
+    }));
+})()`;
+
+// Everything issue 139 deleted, looked for by the ids and the classes it deleted them under, plus
+// the two names the page's own object published about them. A deletion card is the one kind whose
+// work the next card silently undoes, so what is gone is asserted as gone.
+const DELETED = `(function () {
+  var ids = ['gapsbtn', 'gapsmenu', 'gapspick', 'ghtoggle', 'thtoggle', 'thmenu', 'thpick',
+             'tilesrd', 'tilesval', 'hstate', 'navstudents', 'navview'];
+  return JSON.stringify({
+    ids: ids.filter(function (id) { return !!document.getElementById(id); }),
+    classes: ['.rd', '.rd-static', '.gaps-row', '.thitem'].filter(function (sel) {
+      return !!document.querySelector('header ' + sel);
+    }),
+    published: ['gaps', 'tiles'].filter(function (k) { return typeof window.ZT[k] === 'function'; }),
+    storage: (function () {
+      try { return localStorage.getItem('zmt.theme'); } catch (e) { return 'unreadable'; }
+    })()
+  });
+})()`;
+
+// ---- the diagram is a peer view, issue 139 ------------------------------------------------------
+// SIX ASSERTIONS ON WHAT THE ROW LOOKS LIKE AFTER THE CARD, and the first of them is the one the
+// page could never make before: what the views ARE. What stood in this nav was `students` and one
+// link whose word and whose target both swapped with the route, so at any moment the page named
+// the view you were not on and said nothing about the one you were.
+//
+// AND THE REST ARE THE DELETIONS, HELD AS DELETIONS. `gaps`, `tiles`, `ghosts` and `theme` are
+// gone; a deletion is the one kind of work the next card undoes without anybody noticing, because
+// a control is one line to put back and nothing breaks when it comes back. So each is asserted
+// absent by the name it was deleted under, and the two things it would have taken with it, the
+// page's own published readings and the stored theme, are asserted absent too.
 async function checkReadout(page) {
-  // Which drawing this phase started on, for the reason the header phase records it: this one
+  // Which drawing this phase started on, for the reason the absence phase records it: this one
   // walks off the default drawing on purpose and `#/` is not a way back, so the address it leaves
   // behind would be the address every phase after it runs on.
   const startedOn = await page.evaluate('window.ZT.programme().key');
-  // The drawing with the most tiles on it, chosen off the model rather than named here, for the
-  // reason no route in this file is typed: a key written into a driver is a key that is right
-  // until the build draws a different set.
-  const big = JSON.parse(await page.evaluate(`(function () {
-    var best = null;
-    window.GI.views.forEach(function (v) {
-      var g = 0;
-      v.nodes.forEach(function (x) { if (x.ghost) g++; });
-      if (!best || v.nodes.length > best.nodes) best = { key: v.key, nodes: v.nodes.length, ghosts: g };
-    });
-    return JSON.stringify(best);
+
+  // ONE. BOTH VIEWS ARE ON SCREEN AT BOTH OF THEM, AND THE ONE YOU ARE ON IS MARKED. Asserted on
+  // the diagram and on the board, so a selector that marked nothing and one that marked everything
+  // both fail, and each segment is required to clear #77's floor, which a link that has just
+  // become a segment does not get by construction.
+  await page.evaluate(`location.hash = '#/'`);
+  await page.waitFor(`!document.body.classList.contains('board')`, 'the diagram');
+  const onDiagram = JSON.parse(await page.evaluate(VSEL_READ));
+  await page.evaluate(`location.hash = '#/board'`);
+  await page.waitFor(`document.body.classList.contains('board')`, 'the board');
+  const onBoard = JSON.parse(await page.evaluate(VSEL_READ));
+  const undersized = onDiagram.concat(onBoard).filter(v => Math.min(v.w, v.h) < 24);
+  assert('the view selector says what the views are, with the one on screen marked, on both of them',
+    onDiagram.length === 2 && onBoard.length === 2 &&
+      onDiagram.every(v => v.visible) && onBoard.every(v => v.visible) &&
+      onDiagram.map(v => v.text).join('|') === 'diagram|board' &&
+      onBoard.map(v => v.text).join('|') === 'diagram|board' &&
+      onDiagram.map(v => v.href).join('|') === '#/|#/board' &&
+      onBoard.map(v => v.href).join('|') === '#/|#/board' &&
+      onDiagram[0].current === 'page' && onDiagram[1].current === null &&
+      onBoard[1].current === 'page' && onBoard[0].current === null &&
+      undersized.length === 0,
+    'two segments reading diagram and board at both addresses, each pointing at its own, the ' +
+      'current one marked and the other not, none of them under 24 by 24',
+    `on the diagram ${JSON.stringify(onDiagram)}, on the board ${JSON.stringify(onBoard)}`);
+
+  // TWO. AND PRESSING THE ONE YOU ARE ON GOES NOWHERE. That is the difference between a selector
+  // and the link this replaces: the old one always led somewhere because it always named the other
+  // place. Driven as two real presses from the board, the segment for the board and then the one
+  // for the diagram, and the address is read after each.
+  await page.evaluate(`document.getElementById('navboard').click()`);
+  await sleep(120);
+  const stayed = await page.evaluate('location.hash');
+  await page.evaluate(`document.getElementById('navdiagram').click()`);
+  await page.waitFor(`!document.body.classList.contains('board')`, 'the diagram, through the selector');
+  const wentTo = await page.evaluate('location.hash');
+  assert('pressing the segment you are on goes nowhere and pressing the other one goes there',
+    stayed === '#/board' && wentTo === '#/',
+    'the board still at #/board after pressing its own segment, and at #/ after pressing the other',
+    `stayed at ${JSON.stringify(stayed)}, then moved to ${JSON.stringify(wentTo)}`);
+
+  // THREE. `students` IS NOT ONE OF THE VIEWS AND ITS ADDRESS STILL ANSWERS. The roster is one
+  // cohort's list, and since #136 the scope is a SET: a header link to it opened the roster of
+  // whichever programme happened to be first in scope and named none of them, which is #121's
+  // defect with the numbers the other way round. So the link is deleted and the way in is the
+  // cohort tile's own panel, where it names the cohort it is about. Both halves are driven: the
+  // panel link is pressed and the roster is required to open on it.
+  await page.evaluate('location.hash = ' + JSON.stringify(ONE));
+  await page.waitFor(`window.ZT.programme().key === 'ZIB'`, 'the drawing the roster belongs to');
+  const card = await page.evaluate(`(function () {
+    var owner = null;
+    var d = window.GI.views.filter(function (v) {
+      return v.key === window.ZT.programme().key; })[0];
+    d.edges.forEach(function (e) { if (e.v === 'member of') owner = e.t; });
+    return owner;
+  })()`);
+  if (!card) throw new Error('no node at the far end of a `member of` edge, so the panel link ' +
+                             'this asserts has nothing to hang off.');
+  await clickNode(page, card);
+  await page.waitFor(`window.ZT.selected() && window.ZT.selected().id === ${JSON.stringify(card)}`,
+    'the cohort card to be selected');
+  const wayIn = JSON.parse(await page.evaluate(`(function () {
+    var a = document.querySelector('#pmore .pmore-link');
+    return JSON.stringify({ text: a ? a.textContent : null,
+                            href: a ? a.getAttribute('href') : null,
+                            inHeader: !!document.querySelector('header a[href="#/students"]') });
   })()`));
-  await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(big.key)}`);
-  await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(big.key)}`,
-    `the ${big.key} drawing`);
+  await page.evaluate(`document.querySelector('#pmore .pmore-link').click()`);
+  await page.waitFor('window.ZT.roster() === true', 'the roster, opened from the cohort\'s own panel');
+  const rosterAt = await page.evaluate('location.hash');
+  await page.evaluate(`location.hash = '#/'`);
+  await page.waitFor('window.ZT.roster() === false', 'the roster to close');
+  await clearSelectionIfAny(page);
+  assert('the roster is not one of the views, its address still answers, and the way in names its own cohort',
+    wayIn.href === '#/students' && rosterAt === '#/students' &&
+      wayIn.inHeader === false && /students/.test(String(wayIn.text)),
+    'no #/students link anywhere in the header, and the cohort card\'s own panel opening it',
+    `panel link ${JSON.stringify(wayIn)}, roster opened at ${JSON.stringify(rosterAt)}`);
 
-  // ONE. THE SPLIT, AS PLACEMENT. Every reading is on the plate and no reading is in the nav;
-  // every action is in the nav and no action is on the plate; and the plate is one line high with
-  // its readings on one top edge, because a group whose whole argument is that the four readings
-  // are one statement cannot be two lines of chips at the width this phase runs at. Asserted in
-  // both directions on both sets, so a rearrangement that moved one reading back into the nav, or
-  // one action onto the plate, fails rather than passing on a count.
-  const place = JSON.parse(await page.evaluate(PLACE_READ));
-  const strayReading = place.readings.filter(r => !r.there || !r.plate || r.nav);
-  const strayAction = place.actions.filter(a => !a.there || !a.nav || a.plate);
-  assert('every reading is on the plate and every action is in the nav',
-    strayReading.length === 0 && strayAction.length === 0 &&
-      place.plateH !== null && place.plateH === place.tallest && place.oneLine,
-    'three readings inside the readout, five actions inside the nav, and the plate one line high',
-    `${strayReading.length} readings out of place, ${strayAction.length} actions out of place, ` +
-      `plate ${place.plateH} against its tallest reading ${place.tallest}, ` +
-      `one line ${place.oneLine}`);
+  // FOUR. THE THEME CONTROL IS GONE AND THE PAGE FOLLOWS THE MACHINE. #55 made the page follow
+  // prefers-color-scheme, #57 added an override for the reader whose laptop turns over at sunset,
+  // and #139 deleted it: a control that does not show its own state, is touched a handful of times
+  // a year and governs nothing about the data is inertia by the owner's own definition. What has
+  // to survive is the thing #55 shipped, so both schemes are driven through the machine and the
+  // page is required to answer with the one the machine says, in the used value of `color-scheme`
+  // and in the ground it actually paints.
+  const schemes = {};
+  for (const choice of ['dark', 'light']) {
+    await setScheme(page, choice);
+    schemes[choice] = JSON.parse(await page.evaluate(`JSON.stringify({
+      theme: window.ZT.theme(),
+      ground: getComputedStyle(document.body).backgroundColor,
+      attr: document.documentElement.getAttribute('data-theme')
+    })`));
+  }
+  assert('the theme control is gone and the page follows the machine in both schemes',
+    schemes.dark.theme.resolved === 'dark' && schemes.light.theme.resolved === 'light' &&
+      schemes.dark.theme.system === 'dark' && schemes.light.theme.system === 'light' &&
+      schemes.dark.ground !== schemes.light.ground &&
+      schemes.dark.attr === null && schemes.light.attr === null,
+    'the page resolving to whatever the machine says, with no attribute pinning it and two ' +
+      'different grounds under it',
+    `dark ${JSON.stringify(schemes.dark)}, light ${JSON.stringify(schemes.light)}`);
 
-  // TWO. THE SPLIT, AS PAINT, AND IT IS A SEPARATE CLAIM FROM THE ONE ABOVE. The row already had
-  // the two kinds in two places before this card, at #98 and at #89: what it did not have was any
-  // way to tell them apart by looking, every one of the nine being a .linkbtn in the link colour
-  // unless it had a state of its own. So the values take the body colour, their labels the muted
-  // one, and the plate under them a ground the header does not paint, while the three
-  // actions that carry no state of their own keep the link colour they always had. A readout
-  // painted in the link colour is the defect this card was filed about with a box drawn around it,
-  // and it is exactly what this would catch.
-  const paint = JSON.parse(await page.evaluate(PAINT_READ));
-  const one = xs => xs.length > 0 && xs.every(x => x && x === xs[0]);
-  assert('a reading is painted as a reading and an action as an action',
-    one(paint.readings) && one(paint.labels) && one(paint.links) &&
-      paint.readings[0] !== paint.links[0] && paint.labels[0] !== paint.links[0] &&
-      paint.labels[0] !== paint.readings[0] &&
-      !!paint.plate && !!paint.header && paint.plate !== paint.header,
-    'one colour for the values, another for their labels, neither of them the link colour the ' +
-      'plain actions keep, and a plate the header does not paint',
-    `values ${JSON.stringify(paint.readings)}, labels ${JSON.stringify(paint.labels)}, ` +
-      `links ${JSON.stringify(paint.links)}, plate ${JSON.stringify(paint.plate)} on a ` +
-      `header of ${JSON.stringify(paint.header)}`);
+  // FIVE. AND EVERY CONTROL THIS CARD DELETED IS GONE BY NAME. The four are the gap menu, the
+  // standalone ghosts toggle, the theme and the tile reading, and the readout plate they sat on
+  // goes with them. Read as ids and as classes in the header rather than as a count of what is
+  // left, because a control that came back under its old id is the regression this is for; and the
+  // page's own object is read too, since a reading nobody can see but a driver can still ask for
+  // is a reading that will come back.
+  const gone = JSON.parse(await page.evaluate(DELETED));
+  assert('every control this card deleted is gone by name, and so is what the page published about them',
+    gone.ids.length === 0 && gone.classes.length === 0 && gone.published.length === 0 &&
+      gone.storage === null,
+    'none of the twelve ids, none of the four classes, neither published reading, and nothing ' +
+      'written under the theme key',
+    `ids ${JSON.stringify(gone.ids)}, classes ${JSON.stringify(gone.classes)}, published ` +
+      `${JSON.stringify(gone.published)}, storage ${JSON.stringify(gone.storage)}`);
 
-  // THREE. THE TILE READING IS THE DRAWING AND THE DENOMINATOR APPEARS ONLY WHEN SOMETHING IS
-  // TAKING TILES OFF IT. Both directions on one control: with the whole term drawn it is the tile
-  // count and nothing else, and with a window on it is the two numbers, the first of them equal to
-  // render.js's own record of what the window left. A reading that always printed `N of N` would
-  // pass half of this and a reading that never printed the denominator would pass the other half.
-  const whole = JSON.parse(await page.evaluate(TILES_STATE));
-  await setWindow(page, 3);
-  await page.waitFor('window.ZT.term().window.weeks === 3', 'a three week window');
-  const windowed = JSON.parse(await page.evaluate(TILES_STATE));
-  assert('the tile reading is the drawing, and names a denominator only when one is being filtered',
-    whole.on === false && whole.text === String(whole.canon) && whole.shown === whole.canon &&
-      windowed.on === true && windowed.shown < windowed.canon &&
-      windowed.text === windowed.shown + ' of ' + windowed.canon &&
-      windowed.canon === whole.canon,
-    `"${whole.canon}" over the whole term and "${windowed.shown} of ${windowed.canon}" under a ` +
-      'three week window',
-    `whole term ${JSON.stringify(whole)}, windowed ${JSON.stringify(windowed)}`);
-  await setWindow(page, 0);
-  await page.waitFor('window.ZT.term().window.on === false', 'the window to come off');
-
-  // FOUR. AND IT FOLLOWS THE GHOST TOGGLE, BY THE NUMBER OF GHOSTS THE MODEL RECORDS. This is the
-  // claim that makes the reading a count of what is painted rather than a count of what was built:
-  // `ghosts` takes tiles off the canvas with a class and no drawing is rebuilt, so a reading taken
-  // off the artefact alone stays where it was and looks entirely correct. The delta is recomputed
-  // from window.GI in this file. Driven back on afterwards and asserted there too, because a
-  // reading that fell and never came back would pass the first half.
-  const ghostsOn = JSON.parse(await page.evaluate(TILES_STATE));
-  await page.evaluate(`document.getElementById('ghtoggle').click()`);
-  await page.waitFor(`document.body.classList.contains('hide-ghosts')`, 'the ghosts to go');
-  const ghostsOff = JSON.parse(await page.evaluate(TILES_STATE));
-  await page.evaluate(`document.getElementById('ghtoggle').click()`);
-  await page.waitFor(`!document.body.classList.contains('hide-ghosts')`, 'the ghosts to come back');
-  const ghostsBack = JSON.parse(await page.evaluate(TILES_STATE));
-  assert('the tile reading counts what is painted, so the ghost toggle moves it',
-    big.ghosts > 0 && Number(ghostsOn.text) === ghostsOn.canon &&
-      Number(ghostsOn.text) - Number(ghostsOff.text) === big.ghosts &&
-      ghostsBack.text === ghostsOn.text,
-    `a fall of exactly the ${big.ghosts} ghost tiles window.GI records on ${big.key}, and back`,
-    `${ghostsOn.text} with them, ${ghostsOff.text} without, ${ghostsBack.text} back`);
-
-  // FIVE. AND IT FOLLOWS THE ALTITUDE, driven through the page's own menu rather than through an
-  // address, because the claim is that the reading is restated wherever the drawing changes and a
-  // reload would restate it whatever the code did.
-  await page.evaluate(`document.getElementById('grbtn').click()`);
-  await page.waitFor(`!document.getElementById('grmenu').hidden`, 'the altitude box');
-  await pressByText(page, '#grmenu .gritem', 'modules');
-  await page.waitFor(`window.ZT.grain().grain === 'modules'`, 'the collapsed drawing');
-  const collapsed = JSON.parse(await page.evaluate(TILES_STATE));
-  assert('and the altitude moves it, to the tile count of the drawing the altitude names',
-    collapsed.text === String(collapsed.canon) && collapsed.canon < whole.canon &&
-      collapsed.canon > 0,
-    `fewer than ${whole.canon} tiles at the modules grain, and the reading saying so`,
-    `${JSON.stringify(collapsed)} against ${whole.canon} at the sessions grain`);
-  await page.evaluate(`document.getElementById('grbtn').click()`);
-  await page.waitFor(`!document.getElementById('grmenu').hidden`, 'the altitude box again');
-  await pressByText(page, '#grmenu .gritem', 'sessions');
-  await page.waitFor(`window.ZT.grain().grain === 'sessions'`, 'the expanded drawing');
-
-  // SIX. THE CONTROL THIS CARD TOOK OFF THE ROW. `theme: system` spent the row's first position on
-  // a value the page is already showing the reader, and it is behind a press now: nothing on its
-  // face but the word, three choices in the box, exactly one of them marked, and the mark and the
-  // page moving together when one is pressed. #57's finding is the reason the box has three items
-  // and not two, and the reason this asserts the mark rather than the label: what a reader could
-  // not tell was which of the three was on.
-  await thMenu(page, true);
-  const opened = JSON.parse(await page.evaluate(THEME_READ));
-  await pressByText(page, '#thmenu .thitem', 'dark');
-  await page.waitFor(`window.ZT.theme().attr === 'dark'`, 'the page to go dark');
-  await thMenu(page, true);
-  const dark = JSON.parse(await page.evaluate(THEME_READ));
-  await pressByText(page, '#thmenu .thitem', 'system');
-  await page.waitFor(`window.ZT.theme().attr === null`, 'the page to follow the machine again');
-  const back = JSON.parse(await page.evaluate(THEME_READ));
-  assert('the theme is behind a press, with its three states in the box and the one that is on marked',
-    opened.face === 'theme' && opened.open && opened.expanded === 'true' &&
-      opened.items.length === 3 && opened.marked.length === 1 &&
-      opened.marked[0] === opened.theme.choice && opened.theme.choice === 'system' &&
-      dark.marked.length === 1 && dark.marked[0] === 'dark' && dark.theme.attr === 'dark' &&
-      back.theme.choice === 'system' && back.open === false && back.face === 'theme',
-    'a control reading "theme", three choices, the current one marked, and the mark following ' +
-      'the page',
-    `opened ${JSON.stringify(opened.items)} marked ${JSON.stringify(opened.marked)}, ` +
-      `after dark ${JSON.stringify(dark.marked)} attr ${JSON.stringify(dark.theme.attr)}, ` +
-      `back ${JSON.stringify(back.theme.choice)}`);
-
-  // SEVEN. AND IT FOLLOWS A CHANGE OF PROGRAMME MADE FROM INSIDE THE READING, which is issue 121
-  // and is the one route into this control that nothing had ever driven. Every other caller
-  // reaches the readout through a class on the body: the observer over `document.body` answers
-  // students, board, and the sheet opening and closing, and app.js calls the readout directly
-  // where the programme or the window moves the count without moving a class. Moving from one
-  // programme's calendar to another's was neither. term.js's show() ends in
-  // `classList.toggle('calendar', true)` on a body already carrying `calendar`, and a toggle to
-  // the value a class already has writes no attribute, so the MutationObserver never fired; and
-  // show()'s only callback, onRoute, was wired to measureHeader() alone. The address changed, the
-  // rows changed, the heading changed, and the number over them did not: on this instance the
-  // unscoped calendar reads 11 of 95 and every scoped calendar kept reading 11 of 95.
+  // SIX. AND THE COUNTS FOLLOW A CHANGE OF PROGRAMME MADE FROM INSIDE THE READING, which is issue
+  // 121 and is the one route into this control that nothing had ever driven. Every other caller
+  // reaches it through a class on the body: the observer over `document.body` answers students,
+  // board, and the sheet opening and closing, and app.js calls the readout directly where the
+  // programme or the window moves the count without moving a class. Moving from one programme's
+  // calendar to another's was neither, and the number over the rows did not move.
   //
   // DRIVEN THROUGH THE SCOPE BAR, which is the control a reader presses, and not through a hash
   // this file wrote: the address is the same code path either way, and a driver that typed one
-  // would be proving the router rather than proving the page a reader uses.
-  //
-  // THE PROGRAMME IS CHOSEN BY MEASUREMENT AND BOTH FIGURES ARE RECOMPUTED HERE, off window.GI
-  // and by a second implementation of what gapScope() does: the calendar lists cohort sessions,
-  // so the count is the absent props of the cohort sessions in scope. A programme named in this
-  // file would be a programme that stops being the interesting one the first time the build
-  // moves, and reading the page's own answer twice would agree with a page that never restated.
-  const gapsInScope = `(function (key, type) {
-    var total = 0;
-    window.GI.views.forEach(function (v) {
-      if (key && v.key !== key) return;
-      v.nodes.forEach(function (n) {
-        if (n.ghost || (type && n.type !== type)) return;
-        var props = n.props || [];
-        for (var i = (n.route || 0); i < props.length; i++) if (props[i].f === 'absent') total++;
-      });
-    });
-    return total;
-  })`;
-  const wantAll = await page.evaluate(`${gapsInScope}(null, 'CohortSession')`);
-  // The denominator, which is every absent value in the model and belongs to no route. Recomputed
-  // here too, because a control that moved its numerator and its denominator together would be a
-  // control that had not moved at all.
-  const wantOf = await page.evaluate(`${gapsInScope}(null, null)`);
-  // The first programme whose own count differs from the unscoped one, so the two readings this
-  // asserts cannot be equal by accident. A page that never restated would pass on one that matched.
+  // would be proving the router rather than proving the page a reader uses. Both figures are
+  // recomputed here, off window.GI, by a second implementation of what absScope() does.
+  const wantAll = await page.evaluate(`${ABS_OF_TYPE}(null, 'CohortSession')`);
+  const wantOf = await page.evaluate(`${ABS_OF_TYPE}(null, null)`);
   const moved = await page.evaluate(`(function () {
-    var all = ${gapsInScope}(null, 'CohortSession');
+    var all = ${ABS_OF_TYPE}(null, 'CohortSession').work;
     var hit = null;
     window.GI.views.forEach(function (v) {
       if (hit) return;
-      var n = ${gapsInScope}(v.key, 'CohortSession');
-      if (n !== all) hit = { key: v.key, code: v.code, gaps: n };
+      var n = ${ABS_OF_TYPE}(v.key, 'CohortSession').work;
+      if (n !== all) hit = { key: v.key, code: v.code, work: n };
     });
     return hit;
   })()`);
@@ -6933,23 +6950,20 @@ async function checkReadout(page) {
   await page.evaluate(`location.hash = '#/calendar'`);
   await page.waitFor(`window.ZT.term().reading === 'calendar' && window.ZT.term().scope === null`,
     'the unscoped calendar');
-  const readAll = JSON.parse(await page.evaluate(`JSON.stringify(window.ZT.gaps())`));
+  const readAll = JSON.parse(await page.evaluate(`JSON.stringify(window.ZT.absence())`));
   await pressByText(page, '#termnotice .term-scope a', moved.code);
   await page.waitFor(`window.ZT.term().scope === ${JSON.stringify(moved.key)}`,
     `the ${moved.code} calendar, reached from inside the unscoped one`);
-  const readOne = JSON.parse(await page.evaluate(`JSON.stringify(window.ZT.gaps())`));
-  assertEqual('and it follows a change of programme made from inside the reading',
-    { unscoped: readAll.total, scoped: readOne.total, of: readOne.of,
-      andTheyDiffer: readAll.total !== readOne.total },
-    { unscoped: wantAll, scoped: moved.gaps, of: wantOf, andTheyDiffer: true },
+  const readOne = JSON.parse(await page.evaluate(`JSON.stringify(window.ZT.absence())`));
+  assertEqual('and the counts follow a change of programme made from inside the reading',
+    { unscoped: readAll.work, scoped: readOne.work, ofWork: readOne.ofWork,
+      andTheyDiffer: readAll.work !== readOne.work },
+    { unscoped: wantAll.work, scoped: moved.work, ofWork: wantOf.work,
+      andTheyDiffer: true },
     `${moved.code} pressed on the scope bar of the unscoped calendar, both counts recomputed ` +
       'off window.GI');
 
-  // The drawing this phase started on, and nothing selected on it. Collapsing and expanding leaves
-  // the reader looking at the counterpart of what they were reading, which is issue 89's anchor
-  // and is the right behaviour: it also means this phase can hand the next one a page with the
-  // detail panel open over a third of the canvas, which is how the canvas phase came to report a
-  // box of 1216 by 757 for a window of 1536.
+  // The drawing this phase started on, and nothing selected on it.
   await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(startedOn)}`);
   await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(startedOn)}`,
     'the drawing this phase started on');
@@ -6992,10 +7006,15 @@ const PANEL_GEO = `(function () {
              h: +r.height.toFixed(2), r: +(r.x + r.width).toFixed(2),
              b: +(r.y + r.height).toFixed(2) };
   }
-  var st = document.getElementById('hstate');
-  var readings = Array.prototype.map.call(document.querySelectorAll('#hstate .rd'), function (e) {
-    return { id: e.id, box: box(e) };
-  });
+  // Issue 139. The readout plate is deleted, so the box that must not fold, must not be painted
+  // over by the rail and must not move when the drawing does is the absence control, which is the
+  // one instrument left in this header. The three things whose boxes carry a value are the two
+  // absence switches and the altitude.
+  var st = document.getElementById('abs');
+  var readings = ['grbtn', 'abswork', 'absunrec'].map(function (id) {
+    var e = document.getElementById(id);
+    return { id: id, box: box(e) };
+  }).filter(function (r) { return !!r.box; });
   var controls = {};
   Array.prototype.forEach.call(document.querySelectorAll('header button, header a'), function (e) {
     var r = e.getBoundingClientRect();
@@ -7009,9 +7028,12 @@ const PANEL_GEO = `(function () {
     h1: box(document.querySelector('h1')),
     plate: box(st),
     nav: box(document.querySelector('.hnav')),
+    // Issue 139. The view selector is the box at the fixed end of the row now, so it is what the
+    // "nothing moves when the drawing does" assertion measures against.
+    vsel: box(document.getElementById('vsel')),
     // Issue 136. The picker is gone and the rail is what sits where it sat, so "pg" is the rail's
-    // own box: the thing that must never be painted under the plate is the scope control and it
-    // has been since #131, whatever the control happens to be. "tail" was the heading's elided
+    // own box: the thing that must never be painted under the instrument is the scope control and
+    // it has been since #131, whatever the control happens to be. "tail" was the heading's elided
     // clause, and the sentence it was part of went with the picker; what takes the slack now is
     // the rail, and what it does with it is scroll rather than elide, so the box measured for the
     // second assertion is the rail's scroller and the claim about it is that it fits.
@@ -7027,7 +7049,7 @@ const PANEL_GEO = `(function () {
     // something else is exactly what the topmost element hides. The plural returns the stack, and
     // a chip anywhere in it is a chip the plate is sitting on.
     atPlateEdge: (function () {
-      var st2 = document.getElementById('hstate');
+      var st2 = document.getElementById('abs');
       if (!st2 || !document.elementsFromPoint) return null;
       var r = st2.getBoundingClientRect();
       var stack = document.elementsFromPoint(r.x + 1, r.y + r.height / 2);
@@ -7062,11 +7084,14 @@ const PANEL_MARKS = `(function () {
     var a = getComputedStyle(e, '::after');
     if (a.content !== 'none' && parseFloat(a.borderTopWidth) > 0) out.marked.push(id);
   });
-  // The one reading that is not a control at all, read separately: it is a span, so the walk
-  // above cannot see it, and it is the reading a mark must never appear on.
-  var tiles = document.getElementById('tilesrd');
-  var ta = tiles ? getComputedStyle(tiles, '::after') : null;
-  out.staticMarked = !!(ta && ta.content !== 'none' && parseFloat(ta.borderTopWidth) > 0);
+  // The separator between the two absence switches, read separately and for the reason the static
+  // reading was read separately before issue 139 deleted it: it is a span, so the walk above
+  // cannot see it, and the one thing that must never appear near it is an operator. What it must
+  // be is the middle dot and nothing else, because the whole of this card is that the two numbers
+  // beside it are never added.
+  var sep = document.getElementById('abs') ?
+    document.querySelector('#abs .abs-sep') : null;
+  out.separator = sep ? sep.textContent.trim() : null;
   // And the term strip, read the same way and for a sharper reason. Issue 137. It is a control and
   // it is not a button or a link, so the walk above cannot see it either; it opens nothing, so a
   // mark on it would be an affordance promising a panel that does not exist. That is the mistake
@@ -7100,7 +7125,7 @@ const PANEL_RING = `(function () {
   var w = parseFloat(c.outlineWidth) || 0;
   var off = parseFloat(c.outlineOffset) || 0;
   var r = e.getBoundingClientRect();
-  var st = document.getElementById('hstate').getBoundingClientRect();
+  var st = document.getElementById('vsel').getBoundingClientRect();
   return JSON.stringify({
     focused: e.id,
     width: w,
@@ -7115,8 +7140,7 @@ const PANEL_RING = `(function () {
 
 // Every box any control in this header opens, measured against the viewport it opened into.
 async function panelBoxes(page) {
-  const pairs = [['pgbtn', 'pgmenu'], ['grbtn', 'grmenu'],
-                 ['gapsbtn', 'gapsmenu'], ['thtoggle', 'thmenu']];
+  const pairs = [['pgbtn', 'pgmenu'], ['grbtn', 'grmenu']];
   const out = [];
   for (const [btn, menu] of pairs) {
     const there = await page.evaluate(`!!document.getElementById('${btn}') &&
@@ -7161,12 +7185,13 @@ async function checkPanel(page) {
   await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor('window.ZT.term().open === false', 'the diagram to be on screen');
 
-  // ONE. THE READOUT IS ONE LINE AT EVERY WIDTH A READER HAS, AND THE PLATE IS THE HEIGHT OF ITS
-  // READINGS. This is the defect that cost the most and the one no viewport in this suite could
-  // see: measured before the card, at 1183 all four readings were 44 CSS px tall and at 919 the
-  // gap reading was 62 and `3 of 95` was painted on two lines. The claim is read off the four
-  // boxes rather than off the plate's own height, which would pass on a plate that had grown with
-  // them, and the four are found by class in the document rather than named here.
+  // ONE. EVERY COUNT IN THIS HEADER IS ONE LINE AT EVERY WIDTH A READER HAS. This is the defect
+  // that cost the most and the one no viewport in this suite could see: measured before #131, at
+  // 1183 all four readings on the plate were 44 CSS px tall and at 919 the gap reading was 62 and
+  // `3 of 95` was painted on two lines. A number painted away from its own base is the one thing
+  // this repository has decided over and over must not happen, and it does not stop being that
+  // when the plate around it is deleted. The three boxes are the altitude and the two absence
+  // switches, and the absence control is required to be the height of the switches in it.
   const swept = await atWidths(page, PANEL_WIDTHS,
     async () => JSON.parse(await page.evaluate(PANEL_GEO)));
   const folded = swept.filter(s => {
@@ -7176,9 +7201,9 @@ async function checkPanel(page) {
            hs[0] !== 26 || s.plate.h !== hs[0];
   });
   const scrolls = swept.filter(s => s.scrollWidth !== s.clientWidth);
-  assert('every reading in the readout is one line at every width, and the plate is their height',
+  assert('every count in this header is one line at every width, and the absence control is their height',
     folded.length === 0 && scrolls.length === 0 && swept.length === PANEL_WIDTHS.length,
-    `three readings 26px tall on one top edge at all ${PANEL_WIDTHS.length} widths from ` +
+    `three counts 26px tall on one top edge at all ${PANEL_WIDTHS.length} widths from ` +
       `${PANEL_WIDTHS[0]} down to ${PANEL_WIDTHS[PANEL_WIDTHS.length - 1]}, and no sideways scroll`,
     folded.length
       ? folded.map(s => `${s.vw}: heights ${JSON.stringify(s.readings.map(r => r.box.h))} ` +
@@ -7209,10 +7234,10 @@ async function checkPanel(page) {
   const overlapping = swept.filter(s => s.atPlateEdge && /chip|pgrail/.test(s.atPlateEdge));
   const railed = swept.filter(s => s.pg && s.pg.w > 0 && s.railScroll &&
                                    s.railScroll.w <= s.vw);
-  assert('and the scope control is never painted under the readout at any width',
+  assert('and the scope control is never painted under the absence control at any width',
     under.length === 0 && overlapping.length === 0 && railed.length === swept.length,
-    'the rail\'s right edge left of the plate\'s left edge wherever the two share a line, no ' +
-      'chip on the pixel just inside that edge, and the rail inside the viewport at every width',
+    'the rail\'s right edge left of the instrument\'s left edge wherever the two share a line, ' +
+      'no chip on the pixel just inside that edge, and the rail inside the viewport at every width',
     under.length
       ? under.map(s => `${s.vw}: rail ends ${s.pg.r}, plate starts ${s.plate.x}`)
              .slice(0, 4).join('; ')
@@ -7235,19 +7260,30 @@ async function checkPanel(page) {
     await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(key)}`);
     await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(key)}`, `the ${key} drawing`);
     const g = JSON.parse(await page.evaluate(PANEL_GEO));
-    perView.push({ key, plateR: g.plate.r, navX: g.nav.x, pgW: g.pg.w, plateW: g.plate.w });
+    perView.push({ key, plateR: g.plate.r, vselX: g.vsel.x, pgW: g.pg.w, plateW: g.plate.w });
   }
   const plateRights = new Set(perView.map(v => v.plateR));
-  const navLefts = new Set(perView.map(v => v.navX));
+  const vselLefts = new Set(perView.map(v => v.vselX));
   const names = new Set(perView.map(v => v.pgW));
-  assert('the readout and the nav hold their place while the drawing under them changes',
-    perView.length === 7 && plateRights.size === 1 && navLefts.size === 1 && names.size > 1,
-    'one right edge for the plate and one left edge for the nav across all seven drawings, ' +
-      'whose headings are of different widths',
-    `plate right edges ${JSON.stringify([...plateRights])}, nav left edges ` +
-      `${JSON.stringify([...navLefts])}, ${names.size} distinct heading widths`,
-    `plate right ${[...plateRights][0]}, nav left ${[...navLefts][0]}, over ${names.size} ` +
-      'heading widths');
+  const widths = new Set(perView.map(v => v.plateW));
+  // #131's finding restated on the instrument this card left in the row: `space-between` over
+  // three items put the middle one where the FIRST one's width left it, and the first one names
+  // the programme, so the one box on this page whose job is to be read jumped 43px sideways every
+  // time the reader changed what it was reporting on. The heading takes the slack and gives it
+  // back first, so the fixed end of the row is fixed. Asserted on the absence control's RIGHT edge
+  // and on the view selector's left, which are the two edges anchoring holds still: the
+  // instrument's own width genuinely moves, because `work 2/22` and `work 11/22` are different
+  // numbers, and a card that had frozen that would have frozen the count.
+  assert('the absence control and the view selector hold their place while the drawing under them changes',
+    perView.length === 7 && plateRights.size === 1 && vselLefts.size === 1 && names.size > 1 &&
+      widths.size > 1,
+    'one right edge for the absence control and one left edge for the view selector across all ' +
+      'seven drawings, whose headings and whose counts are of different widths',
+    `absence right edges ${JSON.stringify([...plateRights])}, view selector left edges ` +
+      `${JSON.stringify([...vselLefts])}, ${names.size} distinct heading widths, ` +
+      `${widths.size} distinct instrument widths`,
+    `absence right ${[...plateRights][0]}, view selector left ${[...vselLefts][0]}, over ` +
+      `${names.size} heading widths and ${widths.size} instrument widths`);
   await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor('window.ZT.term().open === false', 'the diagram again');
 
@@ -7271,13 +7307,15 @@ async function checkPanel(page) {
   const marks = JSON.parse(await page.evaluate(PANEL_MARKS));
   const missing = marks.ought.filter(id => marks.marked.indexOf(id) === -1);
   const spurious = marks.marked.filter(id => marks.ought.indexOf(id) === -1);
-  assert('exactly the controls that open a box carry the mark that says so',
-    marks.ought.length === 3 && missing.length === 0 && spurious.length === 0 &&
-      marks.staticMarked === false && marks.all.length === 15 && marks.brushMarked === false,
-    'three marks on the three controls declaring aria-controls, none on the twelve that declare ' +
-      'none, none on the reading that is not a control, and none on the strip, which opens nothing',
+  assert('exactly the controls that open a box carry the mark that says so, and the two numbers are never added',
+    marks.ought.length === 1 && missing.length === 0 && spurious.length === 0 &&
+      marks.all.length === 14 && marks.brushMarked === false &&
+      marks.separator === '\u00b7',
+    'one mark on the one control declaring aria-controls, none on the thirteen that declare ' +
+      'none, none on the strip, which opens nothing, and a middle dot between the two counts',
     `ought ${JSON.stringify(marks.ought)}, marked ${JSON.stringify(marks.marked)}, ` +
-      `the static reading marked ${marks.staticMarked}, ${marks.all.length} controls in the row`);
+      `${marks.all.length} controls in the row, separator ${JSON.stringify(marks.separator)}`,
+    `${marks.all.length} controls, ${marks.ought.length} opening a box`);
 
   // FIVE. REST, HOVER AND OPEN ARE THREE PAINTS. `--tint-hover` and `--tint-neutral` are declared
   // to the same value in both themes and this file spent that one value on three meanings, so a
@@ -7294,9 +7332,9 @@ async function checkPanel(page) {
   const hover = JSON.parse(await page.evaluate(panelPaint('grbtn')));
   await mouse(page, 'mouseMoved', away.x, away.y, 0);
   // MEASURED ON `grain` SINCE ISSUE 137 AND IT IS THE SAME CLAIM. It was `weeks`, which was the
-  // first reading on the plate and is deleted; `grain` is the first reading on the plate now, it
-  // is a .linkbtn with a box behind it exactly as that one was, and every rule this assertion is
-  // about is written against `.hstate .linkbtn` rather than against an id.
+  // first reading on the plate and is deleted; `grain` took its place, and issue 139 deleted the
+  // plate under both of them. The rules moved with the control and the claim did not: three
+  // states, three paints, none of them the one value spent twice that #131 was filed about.
   await page.evaluate(`document.getElementById('grbtn').click()`);
   await page.waitFor('window.ZT.grain().menu === true', 'the altitude box to open');
   const open = JSON.parse(await page.evaluate(panelPaint('grbtn')));
@@ -7311,41 +7349,58 @@ async function checkPanel(page) {
     `rest ${rest.bg} ${rest.shadow}; hover ${hover.bg} ${hover.shadow}; ` +
       `open ${open.bg} ${open.shadow}; mark ${rest.mark} to ${open.mark}`);
 
-  // SIX. AND HOVERING THE GHOST TOGGLE WHILE IT IS OFF DOES NOT SHOW THE READER THE PAINT THAT
-  // MEANS ON. That is the same one value spent twice, met from the other side and worse, because
-  // this control's whole job is to say whether the dashed tiles are on the drawing. All four
-  // states are driven: on at rest, on under the pointer, off at rest, off under the pointer.
-  const gh = await stableRect(page, '#ghtoggle');
-  const ghAt = async () => {
-    await mouse(page, 'mouseMoved', Math.round(gh.cx), Math.round(gh.cy), 0);
+  // SIX. THE TWO ABSENCE SWITCHES SAY WHICH IS ON WITHOUT SAYING IT IN THE SAME PAINT, AND THEY DO
+  // NOT SHARE A COLOUR. Two claims about the same two controls, and both are #131's finding
+  // carried onto the pair that replaced the control it was found on. `--tint-hover` and
+  // `--tint-neutral` are declared to the same value, so a switch that is OFF and under the pointer
+  // was shown the reader in exactly the fill that means ON; and this card's own rule is that the
+  // two numbers never share a colour, which is what stops a reader adding them. All four states of
+  // one switch are driven, and the two switches' pressed accents are compared.
+  const wRect = await stableRect(page, '#abswork');
+  const at = async (id, rect) => {
+    await mouse(page, 'mouseMoved', Math.round(rect.cx), Math.round(rect.cy), 0);
     await sleep(150);
-    const on = JSON.parse(await page.evaluate(panelPaint('ghtoggle')));
+    const hovered = JSON.parse(await page.evaluate(panelPaint(id)));
     await mouse(page, 'mouseMoved', away.x, away.y, 0);
     await sleep(120);
-    const off = JSON.parse(await page.evaluate(panelPaint('ghtoggle')));
-    return { hovered: on, rest: off };
+    const resting = JSON.parse(await page.evaluate(panelPaint(id)));
+    return { hovered, rest: resting };
   };
-  const ghOn = await ghAt();
-  await page.evaluate(`document.getElementById('ghtoggle').click()`);
-  await page.waitFor(`document.body.classList.contains('hide-ghosts')`, 'the ghosts to go');
-  const ghOff = await ghAt();
-  await page.evaluate(`document.getElementById('ghtoggle').click()`);
-  await page.waitFor(`!document.body.classList.contains('hide-ghosts')`, 'the ghosts to come back');
-  assert('and hovering the ghost toggle while it is off is not the paint that means it is on',
-    ghOff.hovered.bg === ghOff.rest.bg && ghOn.rest.bg !== ghOff.rest.bg &&
-      ghOn.rest.bg === ghOn.hovered.bg && ghOff.hovered.border !== ghOff.rest.border &&
-      ghOff.hovered.color !== ghOff.rest.color,
-    'the fill belonging to the state and the hover saying something else',
-    `on ${ghOn.rest.bg} hovered ${ghOn.hovered.bg}; off ${ghOff.rest.bg} hovered ` +
-      `${ghOff.hovered.bg}, border ${ghOff.rest.border} to ${ghOff.hovered.border}`);
+  const wOn = await at('abswork', wRect);
+  await page.evaluate(`document.getElementById('abswork').click()`);
+  await page.waitFor(`document.body.classList.contains('hide-work')`, 'the work sockets to go');
+  const wOff = await at('abswork', wRect);
+  await page.evaluate(`document.getElementById('abswork').click()`);
+  await page.waitFor(`!document.body.classList.contains('hide-work')`,
+    'the work sockets to come back');
+  // The two values' own colours, which is the claim that they are never one instrument's two
+  // halves: read off the rendered spans rather than off a declaration.
+  const hues = JSON.parse(await page.evaluate(`(function () {
+    function c(sel) { var e = document.querySelector(sel); return e ? getComputedStyle(e).color : null; }
+    return JSON.stringify({ work: c('#abswork .ctl-v'), unrec: c('#absunrec .ctl-v'),
+                            workAccent: getComputedStyle(document.getElementById('abswork')).boxShadow,
+                            unrecAccent: getComputedStyle(document.getElementById('absunrec')).boxShadow });
+  })()`));
+  assert('hovering a switch that is off is not the paint that means it is on, and the two never share a colour',
+    wOff.hovered.bg === wOff.rest.bg && wOn.rest.bg !== wOff.rest.bg &&
+      wOn.rest.bg === wOn.hovered.bg &&
+      wOff.hovered.border !== wOff.rest.border && wOff.hovered.color !== wOff.rest.color &&
+      !!hues.work && !!hues.unrec && hues.work !== hues.unrec &&
+      hues.workAccent !== hues.unrecAccent,
+    'the fill belonging to the state, the hover saying something else, and one colour for each ' +
+      'of the two numbers',
+    `on ${wOn.rest.bg} hovered ${wOn.hovered.bg}; off ${wOff.rest.bg} hovered ` +
+      `${wOff.hovered.bg}; work ${hues.work} against unrecorded ${hues.unrec}`);
 
   // SEVEN. THE KEYBOARD'S RING IS INSIDE THE CELL IT BELONGS TO. At the offset every control on
-  // this page shares, a ring around a reading is 30 CSS px tall inside a 26px plate: it breaks
-  // out over the plate's top and bottom edges, draws square corners across the plate's rounded
-  // ones and covers the rules of both neighbours. Asserted as the rectangle the ring is painted
-  // in, computed here from the box and the resolved width and offset, against the plate's own
-  // rectangle, and the ring is required to exist at all so that removing it fails too.
-  await page.evaluate(`document.getElementById('grbtn').focus()`);
+  // this page shares, a ring around a segment of a ruled group is 30 CSS px tall inside a 26px
+  // box: it breaks out over the group's top and bottom edges, draws square corners across its
+  // rounded ones and covers the rules of both neighbours. #131 measured it on the readout plate
+  // and issue 139 deleted that plate; the view selector is the ruled group in this header now and
+  // the measurement moved with it. Asserted as the rectangle the ring is painted in, computed here
+  // from the box and the resolved width and offset, against the group's own rectangle, and the
+  // ring is required to exist at all so that removing it fails too.
+  await page.evaluate(`document.getElementById('navdiagram').focus()`);
   await page.send('Input.dispatchKeyEvent',
     { type: 'rawKeyDown', windowsVirtualKeyCode: 9, key: 'Tab', code: 'Tab' });
   await page.send('Input.dispatchKeyEvent',
@@ -7355,9 +7410,9 @@ async function checkPanel(page) {
   const inside = ring.focused && ring.ring.x >= ring.plate.x - 0.01 &&
     ring.ring.y >= ring.plate.y - 0.01 && ring.ring.r <= ring.plate.r + 0.01 &&
     ring.ring.b <= ring.plate.b + 0.01;
-  assert('the focus ring on a reading is drawn inside the plate rather than over it',
+  assert('the focus ring on a view segment is drawn inside its group rather than over it',
     !!inside && ring.width >= 2 && ring.style !== 'none',
-    'a ring of at least 2px whose painted rectangle is inside the plate\'s own',
+    'a ring of at least 2px whose painted rectangle is inside the selector group\'s own',
     ring.focused
       ? `${ring.focused}: ring ${JSON.stringify(ring.ring)} against plate ` +
         `${JSON.stringify(ring.plate)}, ${ring.width}px ${ring.style} ${ring.colour}`
@@ -7370,14 +7425,17 @@ async function checkPanel(page) {
   // viewport and no scrollbar anywhere that could reach them, because overflow to the left of the
   // origin creates none. Every box this header still opens is opened at each of a set of widths
   // spanning the one row layout, the two row layout and the phone, and both edges are asserted.
-  // Three of them since issue 137: the window's was the widest of the four and it is deleted, the
-  // brush having no box at all.
+  // Three of them after issue 137, which deleted the window's, the widest of the four, the brush
+  // having no box at all. ONE after issue 139, which deleted the gap list and the theme box with
+  // the controls that opened them. The assertion is unchanged and the arithmetic under it moved:
+  // what it asserts is that every box this header opens is inside the viewport, and a card that
+  // adds a second one is covered without anybody coming back here.
   const boxWidths = [1536, 1200, 1024, 900, 800, 761, 700, 500, 390];
   const boxes = await atWidths(page, boxWidths, async () => panelBoxes(page));
   const flat = boxes.reduce((a, b) => a.concat(b), []);
   const escaped = flat.filter(b => b.left < -0.01 || b.right > b.vw + 0.01 || b.w <= 0);
   assert('every box a control in this header opens is inside the viewport, at every width',
-    escaped.length === 0 && flat.length >= boxWidths.length * 3,
+    escaped.length === 0 && flat.length >= boxWidths.length,
     `all of them between 0 and the viewport's own width at ${boxWidths.length} widths`,
     escaped.length
       ? escaped.map(b => `${b.menu} at ${b.vw}: left ${b.left}, right ${b.right}`)
@@ -7385,25 +7443,27 @@ async function checkPanel(page) {
       : `${flat.length} openings across ${boxWidths.length} widths, closest edge ` +
         `${Math.min.apply(null, flat.map(b => Math.min(b.left, b.vw - b.right))).toFixed(2)}px in`);
 
-  // NINE. THE NAV'S SPACING SAYS WHICH CONTROLS BELONG TOGETHER. Five controls at one gap read as
-  // one undifferentiated row, and they are three kinds: two toggles that change what the page is
-  // doing, two links that go somewhere, and one control that opens a chooser. Measured as the gaps
-  // between the rendered boxes, in document order, so it is a claim about what a reader sees and
-  // not about which declaration produced it; and the two gaps between groups are required to be
-  // strictly larger than the two inside them rather than to be any particular number.
+  // NINE. THE SPACING SAYS THAT THE TWO SWITCHES ARE ONE CONTROL. #131's rule was a smaller gap
+  // inside a group than between groups, found on a nav of five loose items that read as one
+  // undifferentiated strip. Issue 139 left four things in this row and one of them is a group with
+  // two presses in it, which is exactly the case the rule exists for: `work 3/22` and
+  // `unrecorded 9/73` have to read as two halves of one instrument and not as two more controls,
+  // because a reader who reads them as two controls is a reader who may add their numbers.
+  // Measured as the gaps between the rendered boxes, in document order, so it is a claim about
+  // what a reader sees and not about which declaration produced it.
   const geo = JSON.parse(await page.evaluate(PANEL_GEO));
-  const order = ['ghtoggle', 'fbtoggle', 'navstudents', 'navview', 'thtoggle'];
+  const order = ['grbtn', 'abswork', 'absunrec', 'fbtoggle'];
   const gaps = [];
   for (let i = 1; i < order.length; i++) {
     const a = geo.controls[order[i - 1]], b = geo.controls[order[i]];
     gaps.push(a && b ? +(b.x - a.r).toFixed(2) : null);
   }
-  assert('the nav is spaced as three groups rather than as five equal things',
-    gaps.every(g => g !== null) && gaps[0] === gaps[2] && gaps[1] === gaps[3] &&
-      gaps[1] > gaps[0] && gaps[0] > 0,
-    'a smaller gap inside each group than between them',
+  assert('the two absence switches are spaced as one control and not as two more of them',
+    gaps.every(g => g !== null) && gaps[0] === gaps[2] && gaps[1] < gaps[0] && gaps[1] > 0,
+    'a smaller gap between the two switches than between the control they make and either ' +
+      'of its neighbours',
     `gaps in document order ${JSON.stringify(gaps)} over ${JSON.stringify(order)}`,
-    `${gaps[0]}px inside a group, ${gaps[1]}px between them`);
+    `${gaps[1]}px inside the absence control, ${gaps[0]}px between it and its neighbours`);
 
   await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(startedOn)}`);
   await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(startedOn)}`,
@@ -7469,7 +7529,12 @@ const PLATE_READ = `(function () {
   var lbl = document.querySelector('#graph .node:not(.ghost) text.lbl');
   var glb = document.querySelector('#graph .node.ghost text.lbl');
   return JSON.stringify({
-    scheme: getComputedStyle(document.documentElement).colorScheme,
+    // Issue 139. The used value of color-scheme resolves to "light dark" whenever nothing pins it,
+    // and after this card nothing ever does: the override is deleted and the machine is what
+    // decides. So the name of the scheme comes from the page's own resolution of the media query,
+    // which is the one thing that moved, rather than from a used value that now reads the same in
+    // both.
+    scheme: window.ZT.theme().resolved,
     keys: keys,
     types: types,
     app: app,
@@ -7551,22 +7616,15 @@ async function checkPlate(page) {
   await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor(DIAGRAM_READY, 'the diagram, for the lane plates');
 
-  // Both schemes, driven through the page's own control rather than through an emulated media
-  // query, because the control is what a reader has and `light-dark()` reads the used value of
-  // `color-scheme` whichever of the two moved it.
+  // Both schemes, driven through the machine, because after issue 139 the machine is the only
+  // thing that decides: the in-page override is deleted and `light-dark()` reads the used value of
+  // `color-scheme`, which the media query is what sets.
   const seen = [];
   for (const choice of ['light', 'dark']) {
-    await thMenu(page, true);
-    await pressByText(page, '#thmenu .thitem', choice);
-    await page.waitFor(`window.ZT.theme().attr === ${JSON.stringify(choice)}`,
-      `the page to go ${choice}`);
-    await thMenu(page, false);
+    await setScheme(page, choice);
     seen.push(JSON.parse(await page.evaluate(PLATE_READ)));
   }
-  await thMenu(page, true);
-  await pressByText(page, '#thmenu .thitem', 'system');
-  await page.waitFor(`window.ZT.theme().attr === null`, 'the page to follow the machine again');
-  await thMenu(page, false);
+  await setScheme(page, 'light');
 
   const measured = seen.map(raw => {
     const alphas = raw.bandAlpha.map(Number);
@@ -7766,11 +7824,7 @@ function railRatioOn(shadow, groundText) {
 async function checkOutline(page, base) {
   const seen = {};
   for (const choice of ['light', 'dark']) {
-    await thMenu(page, true);
-    await pressByText(page, '#thmenu .thitem', choice);
-    await page.waitFor(`window.ZT.theme().attr === ${JSON.stringify(choice)}`,
-      `the page to go ${choice}`);
-    await thMenu(page, false);
+    await setScheme(page, choice);
     // The scoped outline the card was filed from, with the row he had open, loaded cold so the
     // agenda is drawn by the address rather than by a click this phase made.
     await page.navigate(new URL('#/outline/ZBL?open=bl_st6', base).toString());
@@ -7787,10 +7841,7 @@ async function checkOutline(page, base) {
   await page.waitFor(`!!document.querySelector('.sheet table tbody tr')`, 'the calendar rows');
   const cal = JSON.parse(await page.evaluate(OUTLINE_READ));
 
-  await thMenu(page, true);
-  await pressByText(page, '#thmenu .thitem', 'system');
-  await page.waitFor(`window.ZT.theme().attr === null`, 'the page to follow the machine again');
-  await thMenu(page, false);
+  await setScheme(page, 'light');
 
   const L = seen.light, D = seen.dark;
 
@@ -8219,11 +8270,22 @@ async function checkItCanFile(page, base) {
 // first wastes the report as well as the reader's time. So the capture is driven from inside a
 // scoped sheet, through the header control, onto a row of the table, and what the popover says it
 // captured is read back.
-const OVER_A_SHEET = ['fbtoggle', 'thtoggle', 'navstudents', 'navview', 'ghtoggle'];
+// Issue 139 changed this list without changing the rule it encodes. `theme` and `students` are
+// deleted controls; `ghosts` is the absence control's second switch and no longer has an id of its
+// own; and the one link that swapped its word for the route is a two segment view selector. What
+// the phase asserts is unchanged: which of these a sheet may not swallow, and which one is
+// deliberately withdrawn instead.
+const OVER_A_SHEET = ['fbtoggle', 'navdiagram', 'navboard', 'abswork', 'absunrec', 'grbtn'];
 
-// The four the page keeps live over a sheet: the two page level controls and the two that are the
-// way out of the place a sheet is. `ghosts` is the fifth and is deliberately not among them.
-const KEPT_LIVE = ['fbtoggle', 'thtoggle', 'navstudents', 'navview'];
+// The three the page keeps live over EVERY sheet, the roster included: the one page level control
+// and the two segments of the view selector, which are the way out of the place a sheet is.
+const KEPT_LIVE = ['fbtoggle', 'navdiagram', 'navboard'];
+
+// And the two that are live over a READING of the term and withdrawn over the roster, which is the
+// split app.css draws and issue 139 inherited from `gaps` word for word: a reading of the term is a
+// reading of the model, so a control about what the model is showing belongs there; the roster is a
+// list of people carrying no property flag on any row and no altitude at all.
+const VIEW_LEVEL = ['abswork', 'absunrec', 'grbtn'];
 
 function headerProbe(ids) {
   return `(function () {
@@ -8255,9 +8317,10 @@ async function checkCaptureOverASheet(page) {
   // href and the other sixteen from the function that publishes them, for the reason issue 84's
   // assertions do it: `#/p/Z-ZIB` against `#/p/ZIB` cost this repository half an hour of false
   // alarm, and the rule it left is to construct no address you can ask for.
+  // Issue 139 deleted the header's `students` link, so the roster's address comes off the panel
+  // link that is now the way in, which is read the same way and for the same reason.
   const addresses = JSON.parse(await page.evaluate(`(function () {
-    var s = document.getElementById('navstudents');
-    return JSON.stringify([s.getAttribute('href')].concat(window.ZT.termRoutes()));
+    return JSON.stringify([window.ZT.rosterRoute].concat(window.ZT.termRoutes()));
   })()`));
 
   const seen = [];
@@ -8298,30 +8361,38 @@ async function checkCaptureOverASheet(page) {
       : `all ${seen.length} reached it`);
 
   const others = seen.filter(s => KEPT_LIVE.some(id => id !== 'fbtoggle' && !s.m[id].reaches));
-  assert('and so are theme, students and board, which is the rest of what a sheet may not swallow',
+  assert('and so are the view selector and the absence control, which is the rest of what a sheet may not swallow',
     others.length === 0,
-    'the theme control and both navigation links reachable over every sheet',
+    'both view segments and both absence switches reachable over every sheet',
     others.length
       ? others.map(s => `${s.at}: ` + KEPT_LIVE.filter(id => !s.m[id].reaches)
           .map(id => `${id} found ${s.m[id].found}`).join(' and ')).join(' | ')
-      : `all ${seen.length} addresses left all four live`);
+      : `all ${seen.length} addresses left all three live`);
 
-  // THE ONE THAT IS DELIBERATELY NOT REACHABLE, and it is asserted in both directions, because a
-  // control that is missing everywhere would satisfy half of this. `ghosts` marks the drawing, and
-  // over a sheet the drawing is behind an opaque box, so it goes the way it already goes on the
-  // board rather than staying in the row doing nothing a reader can see.
+  // THE TWO THAT ARE DELIBERATELY NOT REACHABLE ON ONE OF THESE ADDRESSES, asserted in both
+  // directions, because a control that is missing everywhere would satisfy half of this. The
+  // absence control counts what the view is showing and the altitude changes which drawing is on
+  // the canvas; the roster is a list of people, so neither has anything to say over it and both go
+  // the way they already go on the board. Over a READING of the term both are live, hit-testable
+  // and countable, which is the other direction and is what `gaps` bought at #86.
+  const roster = seen.find(x => x.at === '#/students');
+  const readings = seen.filter(x => x.at !== '#/students');
+  const leftOnRoster = VIEW_LEVEL.filter(id => roster && roster.m[id].visible);
+  const goneOnReading = readings.filter(x => VIEW_LEVEL.some(id => !x.m[id].reaches));
+  assert('the absence control and the altitude are withdrawn over the roster and live over every reading of the term',
+    !!roster && readings.length > 1 && leftOnRoster.length === 0 && goneOnReading.length === 0,
+    `none of ${VIEW_LEVEL.join(', ')} on #/students, and all three reachable on each of the ` +
+      `${readings.length} addresses the sheet publishes`,
+    leftOnRoster.length
+      ? `still shown on the roster: ${leftOnRoster.join(', ')}`
+      : goneOnReading.length
+        ? goneOnReading.map(x => `${x.at}: ` + VIEW_LEVEL.filter(id => !x.m[id].reaches)
+            .map(id => `${id} found ${x.m[id].found}`).join(' and ')).join(' | ')
+        : `withdrawn on the roster, live on all ${readings.length} readings`);
+
   await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor(`window.ZT.term().open === false && window.ZT.roster() === false`,
     'the sheet to close again');
-  const onDiagram = JSON.parse(await page.evaluate(headerProbe(['ghtoggle'])));
-  const ghostLeftOver = seen.filter(s => s.m.ghtoggle.visible);
-  assert('the ghost toggle is withdrawn over a sheet rather than left there acting on a hidden drawing',
-    ghostLeftOver.length === 0 && onDiagram.ghtoggle.visible && onDiagram.ghtoggle.reaches,
-    'no #ghtoggle on any sheet address, and a reachable one back on the diagram',
-    ghostLeftOver.length
-      ? `still shown on ${ghostLeftOver.map(s => s.at).join(', ')}`
-      : `withdrawn on all ${seen.length}, and on the diagram it is ` +
-        `${onDiagram.ghtoggle.w}x${onDiagram.ghtoggle.h} and ${onDiagram.ghtoggle.found}`);
 
   // #77 TOOK THIS ROW TO 26 BY 26 FROM ELEVEN OF ELEVEN FAILING SC 2.5.8, and a control that was
   // unreachable was never measured over a sheet. Anything this card makes reachable is held to
@@ -8587,16 +8658,43 @@ const FRAME_READ = `(function () {
                           canvas: [c.width, c.height] });
 })()`;
 
-// The static reading in the header's readout, issue 120. `visible` is read off the box rather
-// than off a class, because app.css withdraws it with `display: none` and a rule that stopped
-// matching would leave a class in place and a reading on the page.
-const TILES_READ = `(function () {
-  var el = document.getElementById('tilesrd');
-  if (!el) return JSON.stringify({ there: false });
-  var r = el.getBoundingClientRect();
-  return JSON.stringify({ there: true, visible: !!(r.width || r.height),
-                          h: +r.height.toFixed(2), w: +r.width.toFixed(2),
-                          text: el.textContent.trim() });
+// HOW MANY THINGS ARE IN THIS HEADER, COUNTED THE TWO WAYS THAT DISAGREE. Issue 139, and the
+// disagreement is the point rather than an inconvenience. `header button, header a` is the query
+// this suite and both watchdogs have always used, and #137 proved it cannot see the term strip:
+// the strip is neither a button nor an anchor, it is one focus stop with one keyboard the way a
+// scrollbar is, and its parts are told apart by where the pointer landed. So a card that reported
+// a falling count off that query alone would be reporting a number that stopped seeing a control.
+// Both are taken here, the second by widening the selector to every widget role and every focus
+// stop and then dropping any element that merely CONTAINS another of them, so a wrapper is never
+// counted beside the things it wraps.
+//
+// AND THE READOUT PLATE IS GONE, which is the other half of what this card did to this row. The
+// three readings on it were `grain`, `tiles` and `gaps`; `tiles` and `gaps` are deleted, `grain`
+// is an action in the nav, and nothing in this header is a label beside a value that answers no
+// press. Read as the absence of the plate's own classes rather than as a count of what is left,
+// because a plate with one reading on it is the thing this asserts against.
+const HEADER_COUNT = `(function () {
+  var q = [];
+  document.querySelectorAll('header button, header a').forEach(function (el) {
+    var r = el.getBoundingClientRect();
+    if (r.width && r.height) q.push(el.id || el.className);
+  });
+  var sel = 'header button, header a, header input, header select, header [role="slider"],' +
+            'header [role="switch"], header [role="radio"], header [role="tab"],' +
+            'header [tabindex]:not([tabindex="-1"])';
+  var all = [];
+  document.querySelectorAll(sel).forEach(function (el) {
+    var r = el.getBoundingClientRect();
+    if (r.width && r.height) all.push(el);
+  });
+  var press = all.filter(function (el) {
+    return !all.some(function (o) { return o !== el && el.contains(o); });
+  }).map(function (el) { return el.id || el.className; });
+  return JSON.stringify({
+    query: q, press: press,
+    unseen: press.filter(function (x) { return q.indexOf(x) === -1; }),
+    plate: !!document.querySelector('header .rd, header .rd-static, header #hstate')
+  });
 })()`;
 
 async function checkWidth(page, base) {
@@ -8616,8 +8714,6 @@ async function checkWidth(page, base) {
   // the box that is or is not framed is a different box at each of them.
   const framedAt = JSON.parse(await page.evaluate(FRAME_READ));
   let framedOff = null;
-  // Issue 120, read where this phase already is rather than in a route walk of its own.
-  let tilesOff = null;
 
   const routes = [['#/', 'the diagram'], ['#/board', 'the board'], ['#/students', 'the student list']];
   for (const [hash, what] of routes) {
@@ -8625,7 +8721,6 @@ async function checkWidth(page, base) {
     if (hash === '#/board') {
       await page.waitFor(`document.querySelectorAll('#bbody .bcol').length === 4`, 'the board to draw');
       framedOff = JSON.parse(await page.evaluate(FRAME_READ));
-      tilesOff = JSON.parse(await page.evaluate(TILES_READ));
     } else if (hash === '#/students') {
       await page.waitFor('window.ZT.roster() === true', 'the student list to open');
     } else {
@@ -8688,21 +8783,28 @@ async function checkWidth(page, base) {
     // without planting a failure to see the number.
     `${row.length} controls at ${heights.join('/')}px`);
 
-  // AND THE ONE READING THAT IS NOT A CONTROL SITS ON THAT SAME LINE. Issue 120 put a static
-  // reading inside the readout, and a span is exactly the thing the assertion above cannot see:
-  // it is not a button and not a link, so it could render at any height it liked, inside a plate
-  // whose whole argument is that the four readings on it are one statement. Asserted against the
-  // controls' own height rather than against 26, so it stays true if the row is ever resized, and
-  // in both directions: present and on the line on the diagram, and gone where app.css withdraws
-  // it. The withdrawal is read on #/board, which this phase has already visited.
-  const rd = JSON.parse(await page.evaluate(TILES_READ));
-  assert('the reading that is not a control sits on the row\'s own line',
-    rd.there && rd.visible && heights.length === 1 && rd.h === heights[0] && rd.w > 24 &&
-      /^tiles \d+( of \d+)?$/.test(rd.text) &&
-      tilesOff !== null && tilesOff.there && !tilesOff.visible,
-    `a static reading of the form "tiles N" or "tiles N of M", ${heights[0]}px tall like the ` +
-      'controls beside it, and withdrawn on the board',
-    `on the diagram ${JSON.stringify(rd)}, on the board ${JSON.stringify(tilesOff)}`);
+  // AND THE TWO WAYS OF COUNTING THIS ROW DIFFER BY EXACTLY THE STRIP, WITH NO READING LEFT ON IT.
+  // Issue 139. The count that governs this redesign is elements, and #136's own report had to
+  // record that the suite's query and the committee's control groups are two different numbers;
+  // #137 then found a third problem, that the query cannot see the strip at all and therefore
+  // undercounts by one. So both counts are taken and the DIFFERENCE is asserted: everything that
+  // answers a press is the query's set plus the term strip and nothing else, which is a claim that
+  // goes red the day another control the query cannot see is added to this header. The plate is
+  // asserted absent in the same breath, because a reading is the other way a thing gets into this
+  // row without being counted as a control.
+  //
+  // At every width, because the row wraps at the narrow one and a control that has fallen off the
+  // end of a wrapped row has no box and would leave both counts agreeing about a smaller header.
+  const count = JSON.parse(await page.evaluate(HEADER_COUNT));
+  assert('the two ways of counting this header differ by the strip alone, and no reading is left on it',
+    count.press.length === count.query.length + 1 &&
+      count.unseen.length === 1 && count.unseen[0] === 'brush' &&
+      count.plate === false && count.query.length >= 9,
+    'every pressable thing in the header is a button or an anchor except the term strip, and ' +
+      'nothing in it is a label beside a value that answers no press',
+    `${count.query.length} by the query, ${count.press.length} answering a press, the ` +
+      `difference being ${JSON.stringify(count.unseen)}, plate ${count.plate}`,
+    `${count.query.length} by the query and ${count.press.length} answering a press`);
 }
 
 // ---- the gutter, at the width where it is declared a second time --------------------------------
@@ -9524,11 +9626,11 @@ async function runGrain(chrome, base) {
     // ---- the two controls compose -----------------------------------------
     await group('composing', async () => {
       await goto(base + '#/p/ZBL/modules');
-      const before = await ev('return window.ZT.gaps();');
+      const before = await ev('return window.ZT.absence();');
       await setWindow(page, 1);
       await sleep(200);
       const after = await ev(`
-        return { gaps: window.ZT.gaps(), f: window.ZT.filtered(), g: window.ZT.grain() };`);
+        return { abs: window.ZT.absence(), f: window.ZT.filtered(), g: window.ZT.grain() };`);
       assert('a window filters the collapsed drawing as well as the expanded one',
         after.f.on && after.f.hidden.length > 0,
         'tiles taken off the collapsed picture by the window',
@@ -9537,10 +9639,12 @@ async function runGrain(chrome, base) {
         after.f.hidden.some(id => /mdel_/.test(id)),
         'at least one module delivery outside a one week window',
         after.f.hidden.join(' '));
-      assert('the gap count moves with the window at the modules grain',
-        after.gaps.total !== null && after.gaps.total <= before.total,
-        'no more gaps in one week than in the whole term',
-        `${before.total} then ${after.gaps.total}`);
+      assert('both absence counts move with the window at the modules grain',
+        after.abs.work !== null && after.abs.unrecorded !== null &&
+          after.abs.work <= before.work && after.abs.unrecorded <= before.unrecorded,
+        'no more of either kind in one week than in the whole term',
+        `${before.work} and ${before.unrecorded}, then ${after.abs.work} and ` +
+          `${after.abs.unrecorded}`);
       assert('the altitude is unchanged by the window',
         after.g.grain === 'modules', 'modules', after.g.grain);
     });
@@ -9548,9 +9652,8 @@ async function runGrain(chrome, base) {
     // ---- the header -------------------------------------------------------
     await group('the header', async () => {
       await goto(base + '#/p/ZBL/modules');
-      // The header and not the nav, since issue 120 split the row into a readout and an action
-      // bar: a selector naming `.hnav` would measure five of the nine and would not reach the
-      // grain control this phase is about at all.
+      // The header and not the nav: a selector naming `.hnav` would not reach the scope rail in
+      // the heading or the view selector after it, and both are controls in this row.
       const row = await ev(`
         var out = [];
         document.querySelectorAll('header button, header a').forEach(function (el) {
@@ -9565,13 +9668,14 @@ async function runGrain(chrome, base) {
         '9 or more controls on one height, none under 24 by 24',
         JSON.stringify({ n: row.row.length, heights: hs,
                          small: row.row.filter(c => Math.min(c.w, c.h) < 24) }));
-      // `grain modules` and not `grain: modules` since issue 120. The claim is unchanged: the
+      // `modules` and not `grain modules` since issue 139, which took the readout plate's grammar
+      // off a control that left the plate: a nav item states what it is set to and lets the
+      // disclosure mark say that pressing it offers something else. The claim is unchanged: the
       // control is in the header and its own text says which altitude is drawn.
       assert('the grain control is in the row and reads its own state',
         row.row.some(c => c.id === 'grbtn') &&
-        (await ev(`return document.getElementById('grbtn').textContent;`)) ===
-          'grain modules',
-        'a control reading "grain modules"',
+        (await ev(`return document.getElementById('grbtn').textContent;`)) === 'modules',
+        'a control reading "modules"',
         await ev(`return document.getElementById('grbtn').textContent;`));
     });
 
@@ -9732,8 +9836,8 @@ async function runViewport(chrome, viewport, base, full, narrow) {
       // programmes of its own choosing, drags the band about, and hands the page back on the
       // address this suite drives with the window off. Issue 137.
       await group('the brush', () => checkBrush(page, base));
-      await group('header', () => checkHeader(page));
-      await group('the readout', () => checkReadout(page));
+      await group('absence', () => checkHeader(page));
+      await group('the view selector', () => checkReadout(page));
       // After `the readout`, which leaves the page on the diagram with nothing selected, and
       // before `canvas`, which refits the drawing: this one drives the viewport to twenty five
       // widths, walks all seven programmes and puts the real window and the address back.

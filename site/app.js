@@ -64,6 +64,37 @@
   // sessions gathered into the modules the syllabus declares. They are separate lists rather than
   // one of fourteen because `views` means "the seven programmes" to every reader of these bytes,
   // and the same join runs over both: same order, same length, checked by id on every node.
+  // ---- which kind of absence each node carries, issue 139 -------------------
+  // THE ONE READER OF THE `absent` FLAG AND OF THE REGISTRY, and it runs here so that the drawing
+  // carries its own answer. Two things have to agree about the 22 and the 73: the numbers on the
+  // absence control and the empty sockets on the tiles. Deciding it twice, once for a count and
+  // once for a paint, is exactly the shape in which those two come to disagree, so it is decided
+  // once, at the join, and both of them add up what the nodes already say.
+  //
+  // THE BOUNDARY IS THE MODEL'S OWN `route` COUNT and not a list of field names kept here, so a
+  // class that gains a property lands on the right side of it without this file being edited.
+  // Every node's property list opens with `n.route` rows answering how a class gets filled at all,
+  // and those are facts about the class rather than about the object.
+  //
+  // AND THE SPLIT IS READ OFF `routes.classes[<class>].system`, so a class that gains a system
+  // moves from one side to the other without this file being edited either. Keyed on the CLASS and
+  // never on the type, which is #125's repair: two classes share the type Company, the employer
+  // and the empresa colaboradora, and one of them has a system and the other does not.
+  function absKind(gi, n) {
+    var cls = (gi && gi.routes && gi.routes.classes) || {};
+    var out = { w: 0, u: 0 };
+    // A ghost is the absence rather than a hole in something present, and its whole tile is
+    // already the finding. Its rows are counted on neither side.
+    if (n.ghost) return out;
+    var e = cls[n['class']], held = !!(e && e.system);
+    var props = n.props || [], i;
+    for (i = (n.route || 0); i < props.length; i++) {
+      if (props[i].f !== 'absent') continue;
+      if (held) out.w++; else out.u++;
+    }
+    return out;
+  }
+
   function joinList(gi, iviews, lviews, what) {
     if (iviews.length !== lviews.length) {
       throw new Error('instance.js has ' + iviews.length + ' ' + what +
@@ -89,6 +120,11 @@
           out.x = g.x;
           out.y = g.y;
           out.lines = unwrap(n.label, g.wrap);
+          // Issue 139. How many of the 22 and how many of the 73 this object carries, so that the
+          // count in the header and the sockets on the tile are one answer read twice.
+          var ab = absKind(gi, n);
+          out.absW = ab.w;
+          out.absU = ab.u;
           return out;
         }),
         edges: iv.edges.map(function (e, i) {
@@ -654,13 +690,11 @@
     // sit over it, and a digit typed into either is not an instruction to move a drawing the
     // reader cannot see.
     busy: function () {
-      return router.rosterOpen() || router.pgMenuOpen() || term.isOpen() ||
-             gapsMenuOpen() || grainMenuOpen() ||
-             // Issue 120. The theme grew a box of its own when it went behind a press, and a box
-             // over the canvas is a box a digit typed into it must not reach past. It is in this
-             // list for the reason the other four are and not because anything about the theme
-             // changed.
-             themeMenuOpen();
+      // Issue 139 took two boxes off this list with the controls that opened them: the gap menu
+      // and the theme menu. What is left is every box this page can put over the canvas, which is
+      // the whole of the rule: a digit typed into one of them is not an instruction to move a
+      // drawing the reader cannot see.
+      return router.rosterOpen() || router.pgMenuOpen() || term.isOpen() || grainMenuOpen();
     },
     // Issue 84's counter-scale. The lane headings are controls and a control keeps its size on
     // screen, so the drawing is told the scale on every change of it.
@@ -668,204 +702,49 @@
   });
   viewport.init();
 
-  // ---- the theme, and the reader's right to disagree with the machine --------
-  // #55 made the page follow prefers-color-scheme, which is the correct default and stays the
-  // default here. What it could not do is let a reader disagree with a laptop that turns over at
-  // sunset, so this is the override, and the only honest set of states is three: system, light,
-  // dark. A two-state switch has nowhere to put "whatever the machine says", and a reader who
-  // has flipped it once can never get back to following the machine.
+  // ---- absence is one idea with two numbers that never add, issue 139 -------
+  // THE CARD IN ONE PARAGRAPH. Every property in the model carries a provenance flag and 482 of
+  // them read `absent`, which is not a weaker kind of dummy: a dummy value stands in for something
+  // a system holds and an absent one says no system holds it. #98 put a count of them in the
+  // header, #125 split that count in two behind a menu, and #139 deletes the menu, deletes the
+  // ghosts toggle beside it, and puts the two numbers un-summed on the face of one control with a
+  // switch under each.
   //
-  // ALL OF THE CASCADE IS IN app.css AND NONE OF IT IS HERE. This function sets one attribute on
-  // the root element and reads one key out of localStorage. It picks no colour, reads no media
-  // query and listens for no change: `color-scheme` is `light dark` when the attribute is
-  // absent, so the operating system keeps answering by itself, and the attribute pins it when
-  // the reader has said otherwise. The thirteen type colours in the stylesheet render.js
-  // generates are on the same property, so the tiles and the chrome turn together.
+  // 482 IS NOT THE NUMBER, AND THAT IS A DECISION RATHER THAN A ROUNDING. Every node's property
+  // list opens with `n.route` rows answering how a class gets filled at all, and 303 of the 482
+  // are in there: `route_system` on the programme is "no registry, four lists disagree", which is
+  // a fact about the business's systems and is the same fact on every tile of that class. A fourth
+  // of what is left, 84 rows, is on ghost tiles, where the class itself does not exist in any
+  // system and the whole tile is already the finding. What is left is 95 rows across the seven
+  // programmes, each one a value a real object should have and does not.
   //
-  // IT IS IN THE WIRING FILE BECAUSE IT BELONGS TO THE PAGE AND NOT TO A VIEW. The theme is the
-  // one control here that is true of the board, the student list and all seven drawings at once,
-  // so it has no other module to sit in. It has been edited alone twice, #55 and #57, and would
-  // earn a file of its own the moment it grows a third state or a second mechanism.
+  // AND 95 IS THE NUMBER THIS CARD EXISTS TO STOP THE PAGE PRINTING. The registry the model ships
+  // answers, per class, which system holds a row of it, and `system: null` means none does. Joined
+  // against the 95 that answer splits them into two populations that are not the same kind of
+  // thing and do not belong under one heading:
   //
-  // The attribute is set twice on a load, and that is on purpose rather than an oversight: the
-  // four lines inline in index.html set it before the first paint, because this file is at the
-  // foot of the body and a reader who chose dark on a light machine would otherwise watch a
-  // white page turn over on every load. Those four lines know one thing, the two attribute
-  // values; everything else about the choice is here, so there is one place to change and not
-  // two. Issue 57.
-  var THEME_KEY = 'zmt.theme';        // namespaced as feedback.js namespaces zmt.gh.token
-  var THEMES = ['system', 'light', 'dark'];
-  // What the control says about the state it is in, and what pressing it will do next. The
-  // hint matters more here than on a two-state toggle: the reader cannot see the third state
-  // from the second one.
+  //   22 A SYSTEM HOLDS THE ROW AND THE FIELD IS EMPTY. Somebody can open that row this week and
+  //      fill it in. Eleven cohort sessions with nobody assigned to teach them, six sponsor links
+  //      absent, five instructors with no employer named. This is work.
+  //   73 NO SYSTEM ANYWHERE RECORDS THE FACT. No effort inside the tooling that exists closes
+  //      them; they are process decisions and they will still be true in a year. Duration 38,
+  //      location 13, module 8, cohort identity 7, delivery 6, and the programme's own module
+  //      list. This is not work, and calling it work is how a backlog comes to have ninety five
+  //      items in it that nobody can ever burn down.
   //
-  // IT IS BEHIND A PRESS SINCE ISSUE 120, AND #57's FINDING IS WHY IT IS A MENU RATHER THAN A
-  // HIDDEN CYCLE. That card put the choice on the face of the control because three states cannot
-  // be read off a two state switch. The finding is right and the conclusion has moved: what a
-  // reader could not tell was which of the three was on, and a list of three with the current one
-  // marked answers that better than a label does, because it also says what the other two are
-  // without anybody having to press twice to find out. What went with the label is a permanent
-  // 97 CSS px of the row's anchor position, spent on a choice made about once and on a value the
-  // page is already showing the reader: a light page is the theme saying light.
-  var THEME_STATE = {
-    system: 'the theme follows the operating system',
-    light: 'the theme is light, whatever the operating system says',
-    dark: 'the theme is dark, whatever the operating system says'
-  };
-  // What each choice does, said in the box rather than in a tooltip. `system` is the one a reader
-  // cannot infer from the page in front of them, which is #57's whole finding, so it is the one
-  // the sentence is about.
-  // #128. Each of the three said its state and then said what the three buttons underneath it
-  // do, which is what a button labelled `system` beside one labelled `light` says by existing.
-  // The state is what is left.
-  var THEME_WORDS = {
-    system: 'This page is following the operating system.',
-    light: 'This page is on light, whatever the operating system says.',
-    dark: 'This page is on dark, whatever the operating system says.'
-  };
-  var thBtn = document.getElementById('thtoggle');
-  var thMenu = document.getElementById('thmenu');
-  var theme = 'system';
-
-  function themeMenuOpen() { return !!thMenu && !thMenu.hidden; }
-
-  function showThemeMenu(on) {
-    if (!thMenu || themeMenuOpen() === on) return;
-    if (on) buildThemeMenu();
-    thMenu.hidden = !on;
-    if (thBtn) thBtn.setAttribute('aria-expanded', on ? 'true' : 'false');
-  }
-
-  function themeItem(choice) {
-    var b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'thitem';
-    b.textContent = choice;
-    // The mark is an attribute and not a weight alone, for the scope chip's reason: which one is on has
-    // to survive a forced-colours mode and a reader who cannot see the difference.
-    if (choice === theme) b.setAttribute('aria-current', 'true');
-    b.addEventListener('click', function (e) {
-      e.stopPropagation();
-      applyTheme(choice);
-      // `system` is written out rather than removed, because "I chose to follow the machine" and
-      // "I have never chosen" are different facts even though they draw the same page. An
-      // unreadable or absent key still means system, so clearing storage falls back correctly.
-      try { localStorage.setItem(THEME_KEY, theme); } catch (e2) { /* nothing persists, page turns */ }
-      showThemeMenu(false);
-      if (thBtn && thBtn.focus) thBtn.focus();
-    });
-    return b;
-  }
-
-  function buildThemeMenu() {
-    if (!thMenu) return;
-    thMenu.textContent = '';
-    var head = document.createElement('p');
-    head.className = 'th-scope';
-    head.textContent = THEME_WORDS[theme];
-    thMenu.appendChild(head);
-    var row = document.createElement('p');
-    row.className = 'th-row';
-    THEMES.forEach(function (c) { row.appendChild(themeItem(c)); });
-    thMenu.appendChild(row);
-  }
-
-  function applyTheme(choice) {
-    theme = THEMES.indexOf(choice) === -1 ? 'system' : choice;
-    // Absent for system, so the media half of app.css's switch is what answers, which is the
-    // page exactly as it behaved before this control existed.
-    if (theme === 'system') document.documentElement.removeAttribute('data-theme');
-    else document.documentElement.setAttribute('data-theme', theme);
-    // The state is in the title now instead of on the face, and the box under it is where a
-    // reader is shown it. The text of the control is the word `theme` and never changes, so it
-    // is in index.html with the other labels that do not.
-    if (thBtn) thBtn.title = 'colour theme: ' + THEME_STATE[theme] + '. Press to choose';
-    if (themeMenuOpen()) buildThemeMenu();
-  }
-
-  if (thBtn) {
-    var stored = null;
-    try { stored = localStorage.getItem(THEME_KEY); } catch (e) { stored = null; }
-    applyTheme(stored);
-  }
-
-  // The same three listeners the altitude and the gap count have, in the same shapes and for the
-  // same reasons. Issue 120.
-  if (thBtn && thMenu) {
-    thBtn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      showThemeMenu(!themeMenuOpen());
-    });
-    document.addEventListener('click', function (e) {
-      var t = e.target;
-      if (t && t.closest && t.closest('#thpick')) return;
-      showThemeMenu(false);
-    });
-    document.addEventListener('focusin', function (e) {
-      var t = e.target;
-      if (t && t.closest && t.closest('#thpick')) return;
-      showThemeMenu(false);
-    });
-    document.addEventListener('keydown', function (e) {
-      if (e.key !== 'Escape' || !themeMenuOpen()) return;
-      if (document.body.classList.contains('fb-mode')) return;
-      e.preventDefault();
-      e.stopPropagation();
-      showThemeMenu(false);
-      if (thBtn.focus) thBtn.focus();
-    }, true);
-  }
-
-  // ---- ghosts on or off ----------------------------------------------------
-  // Shown by default. The absences are the finding, so the reader meets them first, and the
-  // toggle is there for the times the question is only about what the systems do hold. Page-wide
-  // like the theme, and one class on the body, so the stylesheet does the work; the one thing it
-  // has to ask the selection is whether the node it is about to hide is the node the panel is
-  // describing.
-  var ghBtn = document.getElementById('ghtoggle');
-  if (ghBtn) {
-    ghBtn.addEventListener('click', function () {
-      var next = ghBtn.getAttribute('aria-pressed') !== 'true';
-      ghBtn.setAttribute('aria-pressed', next ? 'true' : 'false');
-      document.body.classList.toggle('hide-ghosts', !next);
-      var n = selection.node();
-      if (!next && n && n.ghost) selection.clear();
-      // Issue 120. The tile reading counts what is on the canvas and this control takes tiles off
-      // it, so the reading moves with it. Told directly rather than left to the class observer,
-      // for the reason the window and the programme are told directly: the observer is the answer
-      // where there is one, and the fallback below it is a hashchange listener, which a toggle
-      // that changes no address never reaches.
-      describeTiles();
-    });
-  }
-
-  // ---- what needs attention, issue 98 --------------------------------------
-  // THE CARD IN ONE PARAGRAPH. A management tool answers three questions: where am I, what needs
-  // attention, what can I do. The header answered the first in the heading and the third in the
-  // nav, and answered the second nowhere, on a page whose model already knows the answer. Every
-  // property carries a provenance flag and 482 of them read `absent`, which is not a weaker kind
-  // of dummy: a dummy value stands in for something a system holds and an absent one says no
-  // system holds it. Until this control the only way to meet one was to click a tile and read the
-  // list, so the model knew eleven sessions have nobody assigned to teach them and no view said
-  // it. That sentence is one count away and it is the most useful sentence this page can show.
+  // THE TWO ARE NEVER ADJACENT TO A PLUS SIGN AND NEVER SHARE A COLOUR. They sit on one control
+  // separated by a middle dot, each in its own hue, each carrying its own denominator in the same
+  // fraction grammar the chips in the heading use: the left number is what falls inside what is
+  // currently drawn and the right is the term total. There is no cell anywhere in this page where
+  // 95 could be rendered, and this comment is the only place in the tree the two are added up.
   //
-  // IT COMPOSES WITH THE WINDOW, WHICH IS WHY IT IS IN THIS ROW AND NOT IN A SHEET. #100 made the
-  // time window filter the drawing rather than dim it, so the drawing on screen IS the answer to
-  // "these three weeks". Counting what is missing in what is drawn therefore costs nothing and
-  // answers the question a reader brings to a Monday meeting, which is not "what is missing" but
-  // "what is missing in the next three weeks". Two controls side by side and one sentence between
-  // them.
-  //
-  // 482 IS NOT THE NUMBER THIS SHOWS, AND THAT IS A DECISION RATHER THAN A ROUNDING. Every node's
-  // property list opens with `n.route` rows answering how a class gets filled at all, and 303 of
-  // the 482 are in there: `route_system` on the programme is "no registry, four lists disagree",
-  // which is a fact about the business's systems and is the same fact on every tile of that class.
-  // A fourth of what is left, 84 rows, is on ghost tiles, where the class itself does not exist in
-  // any system and the whole tile is already the finding, drawn dashed and switchable. What is
-  // left is 95 rows across the seven programmes, each one a value a real object should have and
-  // does not, and those are the ones a person can do something about. The boundary is the model's
-  // own `route` count and not a list of field names kept here, so a class that gains a property
-  // lands on the right side of it without this file being edited.
+  // EACH SWITCH DRAWS ITS OWN KIND ON THE CANVAS WHERE IT IS MISSING. That is what makes this a
+  // control rather than a second thermometer, and it is the whole of what the reader gets that
+  // `gaps N of 95` could not give: `work` on puts an empty socket on every node carrying one of
+  // the 22, so the eleven unstaffed sessions are on the picture rather than in a list beside it.
+  // `unrecorded` is the control this page called `ghosts`, unchanged in what it does to the tiles
+  // no system holds, and it now marks the 73 in that same ghost treatment, because a class no
+  // system holds is one finding met at two grains: a dashed tile, or a socket on a solid one.
   //
   // THE COUNT IS OVER WHAT THE VIEW IS SHOWING, one rule, and every route follows from it. On the
   // diagram it is the tiles on the canvas, which the window has already filtered and whose cascade
@@ -873,36 +752,22 @@
   // session. On #/calendar it is the sessions that reading lists and on #/outline the templates,
   // scoped to one programme when the address is, and the window applies to the calendar and not to
   // the outline because that is the split #90 shipped and #100 kept. On #/board and #/students it
-  // is withdrawn, in app.css beside the window control's own rule and for the same reason: the
-  // board is issues and not the model, the roster carries no flag on any row, and a count of the
-  // drawing behind an opaque box is `ghosts`'s defect with a number on it.
+  // is withdrawn, in app.css beside the strip's own rule and for the same reason: the board is
+  // issues and not the model, the roster carries no flag on any row, and a count of the drawing
+  // behind an opaque box is `ghosts`'s old defect with a number on it.
   //
-  // THE DENOMINATOR IS THE WHOLE MODEL AND IS CONSTANT. `weeks: 3 of 24` is the idiom and this is
-  // the same one: the numerator moves with the view and the denominator is every such value in the
-  // documents. It is counted here, once, off all seven, so a drawing that gains a programme moves
-  // it without anybody editing a number.
+  // THE DENOMINATORS ARE THE WHOLE MODEL AND ARE CONSTANT. `weeks: 3 of 24` is the idiom and this
+  // is the same one twice: each numerator moves with the view and each denominator is every such
+  // value in the documents. They are counted here, once, off all seven, so a drawing that gains a
+  // programme moves them without anybody editing a number.
   //
-  // AND IT IS NOT HOW MUCH OF THE BUSINESS THE VIEW IS, WHICH IS WHAT THIS COMMENT USED TO CLAIM.
-  // Issue 122. Five of the seven documents hold a sample of their programme, so 95 is the count
-  // over eighty three of the two hundred and sixty sessions the model declares and is a property
-  // of what was drawn. Nothing here can say otherwise, because an undrawn row carries no property
-  // and therefore no flag: a denominator over the term is not a number this page holds. What the
-  // page can say is how much of the term the rows under this count are, and it says it in the
-  // heading immediately to the left of this control and in both of the sheet's own sentences,
-  // which is where issue 122 put it rather than adding a fifth reading to a row #120 had just
-  // finished cutting down.
-  //
-  // IN THE WIRING FILE FOR THE REASON `ghosts` IS. The count needs all seven views, which only
+  // IN THE WIRING FILE FOR THE REASON `ghosts` WAS. The count needs all seven views, which only
   // this file holds; the window, which term.js holds; the drawing on screen, which render.js
-  // holds; and the address, which four modules write onto the body between them. Any other home
-  // would have to be handed three of the four.
-  var gapsBtn = document.getElementById('gapsbtn');
-  var gapsMenu = document.getElementById('gapsmenu');
-  // Issue 120. The control is a reading now, so it is a label the page never rewrites and a value
-  // the page rewrites constantly, and only the second of the two is here. The label is in
-  // index.html beside the other three, where a reader of the markup can see the four together and
-  // see that they are one instrument.
-  var gapsVal = document.getElementById('gapsval');
+  // holds; and the address, which four modules write onto the body between them.
+  var absWorkBtn = document.getElementById('abswork');
+  var absUnrecBtn = document.getElementById('absunrec');
+  var absWorkVal = document.getElementById('absworkv');
+  var absUnrecVal = document.getElementById('absunrecv');
 
   // The type's own name, from the drawing's type table, pluralised. A noun typed here would be a
   // second name for a class that already has one, which is the mistake the footer's counts exist
@@ -917,75 +782,26 @@
     return plural(String(render.typeLabel(type) || type).toLowerCase(), n);
   }
 
-  // One pass over a set of nodes. The two exclusions are argued above: the route rows, which are
-  // about the class rather than about the object, and the ghosts, which are the absence rather
-  // than a hole in something present. It used to exclude `n.outside` as well, #100's per lane
-  // count tile, which was drawn by render.js and was in no model at all; #111 took those tiles off
-  // the drawing, so nothing reaching this function is anything but a node of the model.
-  // ---- the split, issue 125 -------------------------------------------------
-  // TWO KINDS OF THING UNDER ONE NUMBER, AND THAT IS THE WHOLE OF THIS CARD. The registry the
-  // model ships answers, per class, which system holds a row of it, and `system: null` means none
-  // does. Joined against the 95 that answer decides whether the row is work:
-  //
-  //   22 have a system. A row exists in Notion or in the finance tool and one of its fields is
-  //      empty, so somebody can open that row this week and fill it in.
-  //   73 have none. No system anywhere records the fact, so no effort inside the tooling that
-  //      exists closes them; they are process decisions and they will still be true in a year.
-  //
-  // A MENU THAT SHOWS THEM AS ONE LIST OF 95 IS A THERMOMETER. It says how bad things are and
-  // gives a reader no way to tell the four rows they could act on from the ninety one they could
-  // not. The split is read off `routes.classes[<class>].system` and off nothing kept here, so a
-  // class that gains a system moves to the other side of it without this file being edited.
-  var ROUTE_CLASSES = (GI && GI.routes && GI.routes.classes) || {};
-
-  function heldBySystem(n) {
-    var e = ROUTE_CLASSES[n && n['class']];
-    return !!(e && e.system);
-  }
-
-  // Keyed on the CLASS and not on the type, which is a repair this card had to make before it
-  // could group by anything: two classes share the type Company, the employer and the empresa
-  // colaboradora, and one of them has a system and the other does not. Grouping by type would put
-  // rows from both sides of the split under one heading the moment a field name collided.
-  function gapsOf(nodes) {
-    var by = {}, keys = [], total = 0;
+  // One pass over a set of nodes, counting each side. absKind() is the single reader of the
+  // registry and of the `absent` flag, and it runs at join time so that the drawing carries its
+  // own answer: this function adds up what the nodes already say rather than deciding it a second
+  // time, which is what keeps the number on the control and the sockets on the canvas from ever
+  // being two opinions. Ghost tiles are excluded, here as in absKind(), because a class that does
+  // not exist is the absence rather than a hole in something present.
+  function absOf(nodes) {
+    var w = 0, u = 0;
     (nodes || []).forEach(function (n) {
       if (n.ghost) return;
-      var props = n.props || [], first = n.route || 0, i, p, k;
-      for (i = first; i < props.length; i++) {
-        p = props[i];
-        if (p.f !== 'absent') continue;
-        k = n['class'] + ' ' + p.k;
-        if (!by[k]) {
-          by[k] = { type: n.type, cls: n['class'], field: p.k, n: 0,
-                    system: heldBySystem(n), ids: [] };
-          keys.push(k);
-        }
-        by[k].n++;
-        // The objects themselves, because a row that can be pressed has to be able to say which
-        // things it would take the reader to, and because a driver checking that the number and
-        // the destination are the same set needs the set.
-        by[k].ids.push(n.id);
-        total++;
-      }
+      w += n.absW || 0;
+      u += n.absU || 0;
     });
-    return {
-      total: total,
-      rows: keys.map(function (k) { return by[k]; }).sort(function (a, b) {
-        // The work first, which is the ordering the split exists to make. Inside each side it is
-        // the ordering this menu has had since #98, biggest count first.
-        if (a.system !== b.system) return a.system ? -1 : 1;
-        if (b.n !== a.n) return b.n - a.n;
-        if (a.type !== b.type) return a.type < b.type ? -1 : 1;
-        return a.field < b.field ? -1 : 1;
-      })
-    };
+    return { work: w, unrec: u };
   }
 
-  var GAPS_ALL = (function () {
+  var ABS_ALL = (function () {
     var all = [];
     VIEWS.forEach(function (v) { all = all.concat(v.drawing.nodes); });
-    return gapsOf(all).total;
+    return absOf(all);
   })();
 
   // The window in the words the window's own control uses, so the two cannot come to describe the
@@ -995,9 +811,19 @@
     return spec ? spec.text : 'the whole term';
   }
 
+  // Whether one node carries this field flagged absent, on the same boundary absKind() draws: the
+  // route rows are about the class and everything after them is about the object.
+  function isAbsent(n, field) {
+    var props = n.props || [], i;
+    for (i = (n.route || 0); i < props.length; i++) {
+      if (props[i].k === field) return props[i].f === 'absent';
+    }
+    return false;
+  }
+
   // Which nodes this view is showing, and how to say so. null means the control does not belong
   // on this route at all, which app.css has already acted on.
-  function gapScope() {
+  function absScope() {
     var cls = document.body.classList;
     if (cls.contains('board') || cls.contains('students')) return null;
     var rows = term.readingRows();
@@ -1015,15 +841,13 @@
           // Issue 125. A worklist is a third thing taking rows off the reading, so it takes them
           // off this count too. The rule this control has run on since #98 is that the count is
           // over what the view is SHOWING, and a reading filtered to eleven rows is showing
-          // eleven: `95` over that screen would be the same wrongness #121 was filed about with
-          // the numbers the other way round.
+          // eleven.
           if (rows.gap && !isAbsent(n, rows.gap)) return;
           nodes.push(n);
         });
       });
       return {
         nodes: nodes,
-        view: views.length === 1 ? views[0] : null,
         subject: 'the ' + typeWords(rows.type, 2) + ' this reading lists',
         where: (views.length === 1 ? (views[0].label || views[0].code)
                                    : 'all ' + VIEWS.length + ' programmes') +
@@ -1034,13 +858,9 @@
     // several programmes a sentence reading `Z-IB, the whole term` over a count taken across all
     // seven names one seventh of its own population, which is the exact defect #121 was filed
     // about with the numbers the other way round. A scope of one reads as it always read.
-    // `view` is what a row of work is taken to, and a row that spans programmes has no single
-    // programme to be taken to, so it is null and destinationFor() falls back to the unscoped
-    // review, which is the reading that holds all seven.
     var sc = router.scope();
     return {
       nodes: render.drawing().nodes,
-      view: sc.length === 1 ? sc[0] : null,
       subject: 'the tiles on this drawing',
       where: scopeWords(sc) + ', ' + windowWords()
     };
@@ -1054,217 +874,72 @@
     return sc.length + ' programmes, ' + sc.map(function (v) { return v.code || v.key; }).join(', ');
   }
 
-  // Whether one node carries this field flagged absent, on the same boundary gapsOf() draws: the
-  // route rows are about the class and everything after them is about the object.
-  function isAbsent(n, field) {
-    var props = n.props || [], i;
-    for (i = (n.route || 0); i < props.length; i++) {
-      if (props[i].k === field) return props[i].f === 'absent';
+  // What the two switches do to the canvas, and it is one class on the body each, so the
+  // stylesheet does the work. The one thing either has to ask the selection is whether the node it
+  // is about to hide is the node the panel is describing. `unrecorded` is `ghosts` under a better
+  // name: shown by default, because the absences are the finding and the reader meets them first.
+  function setWork(on) {
+    absWorkBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    document.body.classList.toggle('hide-work', !on);
+  }
+
+  function setUnrec(on) {
+    absUnrecBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    document.body.classList.toggle('hide-unrecorded', !on);
+    var n = selection.node();
+    if (!on && n && n.ghost) selection.clear();
+  }
+
+  if (absWorkBtn) {
+    absWorkBtn.addEventListener('click', function () {
+      setWork(absWorkBtn.getAttribute('aria-pressed') !== 'true');
+    });
+  }
+  if (absUnrecBtn) {
+    absUnrecBtn.addEventListener('click', function () {
+      setUnrec(absUnrecBtn.getAttribute('aria-pressed') !== 'true');
+    });
+  }
+
+  // Everything the control says, rewritten from the model on every change of view. The two
+  // sentences are built here and used twice each, on the value and in the title of the switch that
+  // governs that value, because a second copy of either is a second thing to keep true.
+  var absNow = { work: null, unrec: null, ofWork: ABS_ALL.work, ofUnrec: ABS_ALL.unrec,
+                 scope: null };
+
+  // The rings on the canvas, counted twice: how many are drawn and how many of those are painted.
+  // A ring a switch has taken off is `display: none`, so it has no box, which is the same test the
+  // page's own `hide-ghosts` rule has always been checked by.
+  function socketCount() {
+    function count(sel) {
+      var all = document.querySelectorAll('#graph ' + sel), on = 0, i;
+      for (i = 0; i < all.length; i++) if (all[i].getBoundingClientRect().width > 0) on++;
+      return { drawn: all.length, painted: on };
     }
-    return false;
+    return { work: count('.sock-work'), unrecorded: count('.sock-unrec') };
   }
 
-  function gapsMenuOpen() { return !!gapsMenu && !gapsMenu.hidden; }
-
-  function showGapsMenu(on) {
-    if (!gapsMenu || gapsMenuOpen() === on) return;
-    gapsMenu.hidden = !on;
-    if (gapsBtn) gapsBtn.setAttribute('aria-expanded', on ? 'true' : 'false');
-  }
-
-  // ---- the words, and after this card there is one set of them, issue 125 ----
-  // THREE WORDS FOR TWO FINDINGS IS WHAT THE PAGE HAD. `gaps` counts values a real object should
-  // carry and does not, `ghosts` switches the classes that exist in no system at all, and the
-  // registry says of those same classes that nothing holds a row for them. The critic's reading
-  // is that two of the three are one finding at two grains: a class no system holds, met either
-  // as a dashed tile or as the reason a field on a solid tile can never be filled. So the second
-  // heading below is not written here. It is READ, from the ghost type's own label and from the
-  // registry's own vocabulary, and the page says one thing in one wording wherever it comes up.
-  // The third word is a word for something else and stays: 22 of the 95 are a row that exists
-  // with an empty field in it, which is neither a ghost nor a class with no system.
-  function noSystemWords() {
-    return String((render.typeLabel && render.typeLabel('Ghost')) || '');
-  }
-
-  function noSystemWhy() {
-    var v = GI && GI.routes && GI.routes.vocab && GI.routes.vocab.read;
-    return (v && v['no-source']) || '';
-  }
-
-  function sideTotal(rows, system) {
-    var n = 0;
-    rows.forEach(function (r) { if (r.system === system) n += r.n; });
-    return n;
-  }
-
-  // The heading over one side of the split, and the sentence under the second one. A fragment
-  // rather than an element because the no-system side is a heading AND the registry's own reason,
-  // and a reader who is told these are not work is owed the reason in the same breath.
-  function groupHead(system, rows) {
-    var frag = document.createDocumentFragment();
-    var p = document.createElement('p');
-    p.className = 'gaps-head';
-    p.textContent = (system ? 'A system holds the row and the field is empty'
-                            : 'The class ' + noSystemWords()) +
-                    ' · ' + sideTotal(rows, system);
-    frag.appendChild(p);
-    if (!system) {
-      var why = document.createElement('p');
-      why.className = 'gaps-why';
-      why.textContent = noSystemWhy();
-      frag.appendChild(why);
-    }
-    return frag;
-  }
-
-  // ---- and where a row of work goes, issue 125 -------------------------------
-  // THE ANSWER IS WHEREVER THE PAGE ALREADY LISTS EXACTLY THOSE OBJECTS, which is why this card
-  // adds no address and no view. There are two such places. The review that #124 built lists
-  // cohort sessions, ranked and windowed, and takes a worklist on its own address; and the
-  // drawing lists everything one programme holds, where the way to one object is to select it.
-  // A row this page cannot answer for is left as text rather than given a control that would
-  // guess: a button that lands somewhere approximate is worse than a number.
-  function destinationFor(r, sc) {
-    if (r.type === 'CohortSession') {
-      var href = term.gapAddress(r.field, sc.view);
-      if (href.indexOf('?gap=') === -1) return null;
-      return {
-        title: 'the ' + r.n + ' of them, in the review, at this same window',
-        go: function () { location.hash = href; }
-      };
-    }
-    // One object and one place to put it. The count is per drawing here, so this is the row on
-    // the picture the reader is looking at; a row naming several is not offered, because there is
-    // no address that is those several and inventing one is what this card was told not to do.
-    if (r.ids.length !== 1 || term.isOpen()) return null;
-    var id = r.ids[0], on = false;
-    render.drawing().nodes.forEach(function (n) { if (n.id === id) on = true; });
-    if (!on) return null;
-    return {
-      title: 'the one it is, on this drawing, with its properties open',
-      go: function () {
-        var cur = selection.selected();
-        if (!cur || cur.id !== id) selection.select(id);
-      }
-    };
-  }
-
-  // One row of the menu. A control where the page can take the reader to the objects and a plain
-  // row where it cannot, and the difference is visible before the press rather than after it.
-  function gapRow(r, sc) {
-    var dest = r.system ? destinationFor(r, sc) : null;
-    var row = document.createElement(dest ? 'button' : 'div');
-    row.className = 'gaps-row' + (dest ? ' gaps-go' : '');
-    if (dest) {
-      row.type = 'button';
-      row.title = dest.title;
-      row.addEventListener('click', function (e) {
-        e.stopPropagation();
-        showGapsMenu(false);
-        dest.go();
-      });
-    }
-    var n = document.createElement('span');
-    n.className = 'gaps-n';
-    n.textContent = r.n;
-    var what = document.createElement('span');
-    what.className = 'gaps-what';
-    // The leading space is for the reader of the TEXT and not for the reader of the page. The
-    // 8px between the two boxes is the flex gap, and leading whitespace inside a flex item is
-    // collapsed away, so this changes no pixel; what it changes is what a capture quotes, which
-    // read `28session templates` before it. Issue 99 established that a report quotes the text
-    // a reader can see, and two boxes side by side are two words in that reading.
-    what.appendChild(document.createTextNode(' ' + typeWords(r.type, r.n) + ' with no '));
-    var code = document.createElement('code');
-    code.textContent = r.field;
-    what.appendChild(code);
-    row.appendChild(n);
-    row.appendChild(what);
-    return row;
-  }
-
-  // Everything the control says, rewritten from the model on every change of view. The sentence
-  // is built first and used three times: in the box, in the control's title, and nowhere else,
-  // because a second copy of it is a second thing to keep true.
-  var gapsNow = { total: 0, of: GAPS_ALL, rows: [], scope: null };
-
-  function describeGaps() {
-    if (!gapsBtn) return;
-    var sc = gapScope();
+  function describeAbsence() {
+    if (!absWorkBtn || !absUnrecBtn) return;
+    var sc = absScope();
     if (!sc) {
-      showGapsMenu(false);
-      gapsNow = { total: null, of: GAPS_ALL, rows: [], scope: null };
+      absNow = { work: null, unrec: null, ofWork: ABS_ALL.work, ofUnrec: ABS_ALL.unrec,
+                 scope: null };
       return;
     }
-    var g = gapsOf(sc.nodes);
-    gapsNow = { total: g.total, of: GAPS_ALL, rows: g.rows, scope: sc.subject + ': ' + sc.where };
-    if (gapsVal) gapsVal.textContent = g.total + ' of ' + GAPS_ALL;
-    // #128 shortened it and kept both figures and the subject. `values the model records as
-    // missing` is the definition of the word on the control this sentence is under, said again
-    // one line below it.
-    var sentence = (g.total
-      ? g.total + ' of the ' + GAPS_ALL + ' missing values are in '
-      : 'None of the ' + GAPS_ALL + ' missing values is in ') +
-      sc.subject + ': ' + sc.where + '.';
-    gapsBtn.title = sentence + ' Press for what they are';
-    if (!gapsMenu) return;
-    gapsMenu.textContent = '';
-    var head = document.createElement('p');
-    head.className = 'gaps-scope';
-    head.textContent = sentence;
-    gapsMenu.appendChild(head);
-    // ISSUE 125. THE ROWS UNDER TWO HEADINGS, AND A HEADING IS PRINTED ONLY WHERE IT HAS ROWS.
-    // Every route has both kinds on some drawings and one kind on others, and a heading over
-    // nothing is a reader being told to look for something that is not there.
-    var side = 0;
-    g.rows.forEach(function (r) {
-      var want = r.system ? 1 : 2;
-      if (side !== want) {
-        side = want;
-        gapsMenu.appendChild(groupHead(r.system, g.rows));
-      }
-      gapsMenu.appendChild(gapRow(r, sc));
-    });
-    var foot = document.createElement('p');
-    foot.className = 'gaps-foot';
-    // WHAT THIS SENTENCE USED TO SAY AND WHY IT DOES NOT. It opened with the definition that
-    // separates the two flags, because the count is over one of them and not the other. That half
-    // is gone under the owner's instruction of 12 August, issue 110, and what is left is the
-    // claim a reader can hold this control to: the number over the list is recomputed rather than
-    // written down. #128 cut that claim to its own words and kept the paragraph, which the
-    // menu's shape is asserted on.
-    foot.textContent = 'Counted off the model, not written down.';
-    gapsMenu.appendChild(foot);
-  }
-
-  // The three listeners the programme picker and the window control already have, in the same
-  // shapes and for the same reasons: the press stops at the control so the document listener does
-  // not close what it just opened, anything else closes it, and Escape closes it in the capture
-  // phase ahead of the bubble listener in selection.js that clears the selection. Capture mode is
-  // left alone, because while it is on Escape is how a reader gets out of it.
-  if (gapsBtn && gapsMenu) {
-    gapsBtn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      showGapsMenu(!gapsMenuOpen());
-    });
-    document.addEventListener('click', function (e) {
-      var t = e.target;
-      if (t && t.closest && t.closest('#gapspick')) return;
-      showGapsMenu(false);
-    });
-    document.addEventListener('focusin', function (e) {
-      var t = e.target;
-      if (t && t.closest && t.closest('#gapspick')) return;
-      showGapsMenu(false);
-    });
-    document.addEventListener('keydown', function (e) {
-      if (e.key !== 'Escape' || !gapsMenuOpen()) return;
-      if (document.body.classList.contains('fb-mode')) return;
-      e.preventDefault();
-      e.stopPropagation();
-      showGapsMenu(false);
-      if (gapsBtn.focus) gapsBtn.focus();
-    }, true);
+    var a = absOf(sc.nodes);
+    absNow = { work: a.work, unrec: a.unrec, ofWork: ABS_ALL.work, ofUnrec: ABS_ALL.unrec,
+               scope: sc.subject + ': ' + sc.where };
+    if (absWorkVal) absWorkVal.textContent = a.work + '/' + ABS_ALL.work;
+    if (absUnrecVal) absUnrecVal.textContent = a.unrec + '/' + ABS_ALL.unrec;
+    // Two sentences, and neither of them ever names the other's number. Each says what its own
+    // population is, how much of it is in front of the reader, and what pressing does.
+    absWorkBtn.title = a.work + ' of the ' + ABS_ALL.work + ' values a system holds a row for and ' +
+      'has left empty are in ' + sc.subject + ': ' + sc.where +
+      '. Press to draw them as empty sockets, or to take them off';
+    absUnrecBtn.title = a.unrec + ' of the ' + ABS_ALL.unrec + ' facts no system records are in ' +
+      sc.subject + ': ' + sc.where +
+      '. Press to draw them, and the classes no system holds, or to take them off';
   }
 
   // ---- the altitude, issue 89 ----------------------------------------------
@@ -1433,59 +1108,17 @@
     }
   }
 
-  // ---- how much is on the drawing, issue 120 -------------------------------
-  // THE READING EVERY OTHER CONTROL IN THIS HEADER MOVES, and the only thing that card adds to
-  // the page. It is not a control: it holds no state, opens nothing and answers no press. What
-  // earns it a place in the row is that it is the number the three readings beside it compose
-  // into. The window takes tiles off the drawing, the altitude folds tiles into one another, the
-  // programme replaces the whole set and `ghosts` withdraws the tiles no system holds. Each of
-  // those is a sentence somewhere in this file and not one of them was ever a number on the page.
+  // Issue 139. The three readings this row carried are gone: `weeks` with #137's strip, and
+  // `tiles` and `gaps` with this card. What is left of the readout is one function, restating the
+  // one control whose numbers are arithmetic over what the view is showing.
   //
-  // THE PAGE ALREADY HELD IT AND SAID IT IN A TOOLTIP. #111 took #100's stub tiles off the canvas
-  // and moved their count into the window control's title, which is where a number goes when the
-  // row it belongs in has no shape to hold it. This row has one now.
-  //
-  // THE DENOMINATOR APPEARS WHEN THERE IS A DIFFERENCE TO REPORT AND NOT BEFORE. `62` is the
-  // drawing. `27 of 62` is the drawing with something taking tiles off it. A reading that wrote
-  // `62 of 62` on arrival would spend its width saying nothing on the route a reader is on most
-  // of the time, and would make the one state worth noticing look like the ordinary one.
-  //
-  // GHOSTS COUNT WHEN THEY ARE DRAWN AND NOT WHEN THEY ARE NOT, on both sides of the `of`. That
-  // is the whole rule and it is the only rule: this counts what is painted. A tile count that
-  // included tiles the reader has just switched off would be a dashboard reading about a picture
-  // nobody is looking at.
-  var tilesVal = document.getElementById('tilesval');
-  var tilesRd = document.getElementById('tilesrd');
-
-  function paintedTiles(g) {
-    var hide = document.body.classList.contains('hide-ghosts'), n = 0;
-    ((g && g.nodes) || []).forEach(function (x) { if (!(hide && x.ghost)) n++; });
-    return n;
-  }
-
-  function describeTiles() {
-    if (!tilesVal || !render) return;
-    // render.drawing() is what is painted, which a window has already filtered; render.canonical()
-    // is the artefact the build wrote for this programme at this altitude. The two are the same
-    // object whenever no window is on, which is what makes the equality below the honest test of
-    // "is anything taking tiles off this" rather than a second copy of the window's own state.
-    var shown = paintedTiles(render.drawing());
-    var of = paintedTiles(render.canonical() || render.drawing());
-    tilesVal.textContent = shown === of ? String(of) : shown + ' of ' + of;
-    if (tilesRd) {
-      tilesRd.title = (shown === of
-        ? of + ' tiles are drawn'
-        : shown + ' of the ' + of + ' tiles of this drawing are on screen') +
-        ', at the ' + router.grain() + ' grain';
-    }
-  }
-
-  // Issue 120. The two readings that are arithmetic over what the view is showing, restated
-  // together, because every reason to restate one is a reason to restate the other and a pair
-  // that has to be remembered separately is a pair that comes apart.
+  // `tiles` WENT BECAUSE THE PICTURE IS THE READING. It said how many tiles are drawn and how many
+  // the drawing holds, over a canvas the reader is looking at, in a row this redesign exists to
+  // empty; the window's own strip says what the window took, the chips say what each programme's
+  // fraction is, and the lane captions on the canvas say the rest. A detached total over a corpus
+  // that is five-sampled and two-complete is precisely the aggregation the constraints forbid.
   function describeReadout() {
-    describeGaps();
-    describeTiles();
+    describeAbsence();
   }
 
   // The same three listeners the gaps control has, in the same shapes and for the same reasons.
@@ -1680,25 +1313,26 @@
           })
       };
     },
-    // The theme, for the same reason view() is here: which of the three the reader is on, what
-    // the machine is saying underneath it, and what the page actually resolved to are three
-    // different claims, and a driver checking an override should be able to read all three off
-    // the running page rather than infer them from a screenshot. `resolved` is taken from the
-    // used value of color-scheme, which is the one property the whole cascade turns on.
+    // WHICH SCHEME THE PAGE RESOLVED TO, AND THERE IS NOTHING ELSE LEFT TO SAY ABOUT IT. Issue
+    // 139 deleted the in-page override: the page follows the operating system, which is what #55
+    // shipped and what #57 added a control to disagree with. The control did not show its own
+    // state, was touched a handful of times a year, and governed nothing about the data, which is
+    // inertia by the owner's own definition. What a driver still needs is the scheme it is looking
+    // at, so this stays and reports it, taken from the used value of `color-scheme` and from the
+    // media query under it rather than from any state this file keeps.
     theme: function () {
-      var attr = document.documentElement.getAttribute('data-theme');
       var used = getComputedStyle(document.documentElement).colorScheme;
-      return {
-        choice: theme,
-        attr: attr,
-        system: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
-        resolved: used === 'light dark'
-          ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-          : used
-      };
+      var sys = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      return { system: sys, resolved: used === 'light dark' ? sys : used };
     },
     veiled: function () { return selection.veiledState(); },
     roster: function () { return router.rosterOpen(); },
+    // The roster's address, published rather than typed by anybody who needs it. It came off the
+    // header's `students` link until issue 139 deleted that link, and a driver enumerating the
+    // addresses that open a sheet had to construct it instead: `#/p/Z-ZIB` against `#/p/ZIB` cost
+    // this repository half an hour of false alarm once and the rule it left is to construct no
+    // address you can ask for.
+    rosterRoute: router.rosterRoute,
     // The term sheet, for the reason the roster and the view are here: whether a table holds the
     // rows it says it holds, and whether the sample it declares is the sample it drew, are claims
     // that should be read off the running page rather than inferred from a screenshot of 83 rows.
@@ -1746,21 +1380,26 @@
                sessionTiles: f.sessionTiles, moduleTiles: f.moduleTiles,
                folded: f.folded, inside: f.inside, menu: grainMenuOpen() };
     },
-    gaps: function () {
-      return { total: gapsNow.total, of: gapsNow.of, scope: gapsNow.scope,
-               rows: gapsNow.rows.map(function (r) {
-                 // Issue 125. The class, whether a system holds it and which objects the row is
-                 // about, beside the count. A driver checking that the number the reader pressed
-                 // and the rows they landed on are the same set needs the set, and a driver
-                 // checking the split needs the side each row is on.
-                 return { type: r.type, cls: r.cls, field: r.field, n: r.n,
-                          system: r.system, ids: r.ids.slice() };
-               }),
-               // The two sides as totals, so an assertion about the split does not have to sum a
-               // list the page also printed: 22 that are work and 73 that are not, over all seven.
-               work: sideTotal(gapsNow.rows, true),
-               settled: sideTotal(gapsNow.rows, false),
-               menu: gapsMenuOpen() };
+    // Issue 139. THE TWO NUMBERS, SEPARATELY, AND NOTHING THAT ADDS THEM. Each side carries what
+    // falls inside what is currently drawn and the term total it is over; `work` and `unrecorded`
+    // are the two switches' own states. Both numerators are null on the two routes where the
+    // control is withdrawn, which is a different answer from zero and is the one thing a driver
+    // could not otherwise tell apart. There is deliberately no `total` and no `of`: a driver that
+    // could read one would be a driver the page had handed the sum to.
+    absence: function () {
+      return { work: absNow.work, ofWork: absNow.ofWork,
+               unrecorded: absNow.unrec, ofUnrecorded: absNow.ofUnrec,
+               scope: absNow.scope,
+               workOn: absWorkBtn.getAttribute('aria-pressed') === 'true',
+               unrecordedOn: absUnrecBtn.getAttribute('aria-pressed') === 'true',
+               // What is ON THE CANVAS, counted off the canvas rather than off the model, so an
+               // assertion that the sockets and the number are the same set is an assertion about
+               // the picture. Issue 98's lesson with a second implementation on the other side.
+               // `drawn` is how many rings the drawing holds and `painted` is how many of them the
+               // two switches are showing, which are different questions: a switch that is off
+               // takes the rings off the picture and does not change what is missing, exactly as
+               // the number on its face does not change either.
+               sockets: socketCount() };
     }
   };
 })();

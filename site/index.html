@@ -6,22 +6,6 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Zrive operating model, toy instance diagram</title>
 <link rel="stylesheet" href="app.css">
-<!-- The reader's stored theme, applied before the first paint, and the only script in this file.
-     It has to be here and it has to be inline: app.js is at the foot of the body, so a reader who
-     chose dark on a machine set to light would meet a white page and watch it turn over, on every
-     load. Four lines, and deliberately no more than four: it sets the attribute app.css answers
-     and nothing else. app.js owns the control, the storage and the meaning of the three choices,
-     and re-derives all of it from the same key. `system` is the default and writes no attribute,
-     so a browser with no storage, or a reader who has never chosen, gets exactly the operating
-     system's own answer. Issue 57. -->
-<script>
-(function () {
-  try {
-    var t = localStorage.getItem('zmt.theme');
-    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
-  } catch (e) { /* storage unavailable: the page follows the operating system, as it always did */ }
-})();
-</script>
 </head>
 <body>
 
@@ -110,106 +94,6 @@
       <span class="h-calendar">The term, in date order</span>
       <span class="h-outline">The outline, in curriculum order</span>
     </h1>
-    <!-- WHAT IS ON SCREEN, AS ONE INSTRUMENT. Issue 120, and it is the fourth card pushing this
-         header in one direction after #89, #90 and #98. Each of those three ADDED a control to a
-         single row, and by the time the fourth arrived the row carried nine: four of them holding
-         a value the reader needs to know and five of them holding a verb the reader performs,
-         every one a .linkbtn, every one the same blue, at the same size, in the same line, with
-         nothing anywhere saying which kind it was. That is a nav bar that grew values into it one
-         card at a time, and it is the whole reason the features worked and the row did not read
-         as a dashboard.
-
-         SO THE ROW IS SPLIT RATHER THAN EXTENDED, WHICH IS THE ONE THING THE THREE CARDS BEFORE
-         IT DID NOT DO. What the page is telling the reader is in this box. What the reader does
-         to the page is in the nav after it. The two are told apart by treatment and not by
-         position alone, because position alone is what they already had: a reading is a muted
-         label beside a value in the body's own colour, on a recessed plate with a rule around it;
-         an action is a blue word on the header's own ground with no plate at all. Still one row,
-         so #32 and #57 are untouched and nothing here needs their argument.
-
-         NOTHING IN THIS BOX IS A NEW CONTROL. `weeks`, `grain` and `gaps` are the same three
-         buttons, with the same ids, the same menus, the same withdrawal rules and the same
-         behaviour they had in the nav. What changed is that each carries a label span and a value
-         span instead of a colon, because "weeks: all 24" is what a nav bar writes and a label
-         beside its value is what an instrument writes, and the difference is the whole of what
-         he asked for.
-
-         THE READINGS ARE THREE SINCE ISSUE 137, AND `weeks` IS THE ONE THAT WENT. The window is
-         not a value the page reports at somebody any more, it is an interval on the strip before
-         this box, so the reading and the menu behind it are both deleted rather than moved. What
-         is left composes as it did: at what altitude, how many tiles that leaves, and how many of
-         the values the model records as missing are among those tiles. The programme is not in
-         this box either: it is the subject of the sentence to the left, it has been the control
-         that switches drawings since #66, and taking it out of the heading would leave that
-         heading saying "cohort 1Q26, as instances" about no cohort in particular. The heading
-         says which drawing, the strip says which weeks, and the box says what is on it. -->
-    <div class="hstate" id="hstate" role="group" aria-label="what is on this drawing">
-      <!-- AT WHAT ALTITUDE. Issue 89, and it is the first control on this page that is about
-           working with the model rather than reading it. The syllabus groups its sessions into
-           modules, the vault has carried that grouping since before this repository existed, and
-           two of the seven drawings are 2578 and 2470 units tall because they draw every row of
-           it; the modules grain draws the same programme with those rows gathered into the
-           modules the syllabus declares, which takes Z-BL from 28 tiles in each syllabus lane to
-           5 and Z-SC from 25 to 6.
-
-           BOTH DRAWINGS ARE BUILT AT BUILD TIME, one per grain per view, each with its own
-           drawing digest that check_build.sh reproduces byte for byte. The control switches
-           between two artefacts; it lays nothing out. That is what separates it from the time
-           window beside it, which is a run-time transform because a window over 24 weeks is a
-           continuous parameter and a grain is two states.
-
-           It is view level, like `ghosts`, the term strip and `gaps`, and app.css withdraws it
-           on the board and the student list. Every word and every number under it is written by app.js
-           off the model, never typed here. -->
-      <span class="grpick" id="grpick"><button id="grbtn" class="linkbtn rd" type="button"
-              aria-expanded="false" aria-controls="grmenu"
-              title="the altitude this drawing is drawn at"><span class="rd-k">grain</span> <span
-              class="rd-v" id="grval">sessions</span></button><span class="grmenu"
-              id="grmenu" hidden></span></span>
-      <!-- HOW MUCH IS ON THE DRAWING. Issue 120, and it is the only thing this card adds. It is
-           not a tenth control: it cannot be pressed, it opens nothing and it has no state of its
-           own. It is the number that every other control in this header moves, which is what
-           makes the readings beside it compose into a picture rather than into an argument in a
-           comment: the window takes tiles off it, the altitude folds tiles into it, the
-           programme replaces them and `ghosts` withdraws the ones no system holds.
-
-           THE PAGE ALREADY KNEW IT AND SAID IT IN A TOOLTIP. #111 took #100's stub tiles off the
-           canvas and put the count in the window control's title, which is where a number goes
-           when the row it belongs in has no shape to hold it. This is that shape. It says
-           `27 of 62` while something is filtering the drawing and `62` when nothing is, so the
-           denominator appears exactly when there is a difference to report.
-
-           IT IS A COUNT AND IT SAYS NOTHING ABOUT WHAT IT COUNTS. #101 and #110 withdrew every
-           reader-facing statement about the standing of the content, and a status line in a
-           dashboard is the first place such a statement creeps back in. This one is arithmetic
-           over the drawing on screen and carries no adjective.
-
-           It withdraws wherever `ghosts` withdraws, and for that control's own reason: a count of
-           a drawing that is behind an opaque box is a number about something the reader cannot
-           see. -->
-      <span class="rd rd-static" id="tilesrd"><span class="rd-k">tiles</span> <span
-            class="rd-v" id="tilesval"></span></span>
-      <!-- WHAT NEEDS ATTENTION. Issue 98. The model carries a provenance flag on every property
-           and 482 of them say `absent`, which is not a weaker kind of dummy: a dummy value stands
-           in for something a system holds and an absent one says no system holds it. Until that
-           card the only way to meet one was to click a tile and read its property list, so the
-           page knew that eleven sessions have nobody assigned to teach them and no view said it.
-
-           IT IS BESIDE THE TERM STRIP BECAUSE THE TWO COMPOSE, and that composition is the
-           reason both are here rather than in a sheet. #100 made the window filter the drawing, so
-           "what is missing in the next three weeks" is one reading beside the brush that sets those
-           three weeks, and it is the question a reader actually brings to a Monday meeting.
-
-           It is view level, like `ghosts` and the strip, and app.css withdraws it on exactly the
-           two routes the brush leaves. The count and every word in the list under it are
-           written by app.js off the model, never typed here, for the reason the cohort in the
-           heading is: a number typed into this file is right on one of seven. -->
-      <span class="gapspick" id="gapspick"><button id="gapsbtn" class="linkbtn rd" type="button"
-              aria-expanded="false" aria-controls="gapsmenu"
-              title="what this view is showing that the model records as missing"><span
-              class="rd-k">gaps</span> <span class="rd-v" id="gapsval">0</span></button><span
-              class="gapsmenu" id="gapsmenu" hidden></span></span>
-    </div>
     <!-- TIME IS AN INTERVAL YOU DRAG AND NOT A NAME YOU PICK. Issue 137. What stood in the box
          after this was `weeks`, a reading whose value was a menu of four presets, and the owner
          singled it out: "the weeks filter is crucial, but is this the best we can do?" It is not,
@@ -253,63 +137,108 @@
     <div class="brush" id="brush" role="slider" tabindex="0"
          aria-valuemin="1" aria-valuemax="1" aria-valuenow="1"></div>
     <nav class="hnav">
-      <!-- WHAT THE READER DOES, DECIDED IN ISSUE 57 AND ENFORCED IN ISSUE 86. Two of these belong
-           to the page and the rest belong to a view of it, and until #86 nothing acted on the
-           difference: a sheet backdrop starting at y=0 covered all five, so a reader inside
-           #/outline could not reach `feedback`, and the card asking for it had to be filed from
-           outside the subpage it was about.
+      <!-- WHAT THE READER DOES, AND AFTER ISSUE 139 THERE ARE FOUR THINGS IN IT. #120 split this
+           row into a readout plate and a nav; this card deletes the plate, because two of the
+           three readings on it were the same finding counted twice and the third was arithmetic
+           over a picture the reader is looking at. `grain` was never a reading: it changes the
+           address and it changes every mark on the canvas, which is what an action is, and it was
+           on the plate only because #120 gathered the three "what am I looking at" controls
+           together. It is here now, unchanged in id, menu and behaviour, wearing the nav's paint
+           instead of the plate's.
 
            Page level, and reachable over anything the page ever puts on top of itself:
              feedback   how anything on this page gets reported at all, which is why it is the
                         one control that must never be behind something
-             theme      the artefact's own presentation, on every route including the board
 
            View level, and free to go when the view does:
-             ghosts     a mark on the drawing, so app.css withdraws it on the board and on the
-                        five sheet addresses, where the drawing is behind an opaque box
-             students   navigation, and a sheet is a place, so these two stay reachable rather
-             board      than covered: they are the visible way out of the place, and a reader who
-                        wants the board from inside the outline should not have to find Escape
-                        first. Neither acts on what the sheet is showing, so neither is dead.
-           The programme picker is view level too and needs no rule, because it lives in the
-           heading, which is already swapped out on every route that opens a sheet.
+             grain      the altitude the drawing is drawn at, withdrawn on the board and the
+                        student list, where there is no drawing to have an altitude
+             absence    what is missing from what is drawn, withdrawn where the drawing is
+             view       navigation, and a sheet is a place, so this stays reachable rather than
+                        covered: it is the visible way out of the place, and a reader who wants
+                        the board from inside the outline should not have to find Escape first.
+           The scope rail is view level too and needs no rule, because it lives in the heading,
+           which is already swapped out on every route that opens a sheet. -->
+      <!-- AT WHAT ALTITUDE. Issue 89. The syllabus groups its sessions into modules, the vault has
+           carried that grouping since before this repository existed, and two of the seven
+           drawings are 2578 and 2470 units tall because they draw every row of it; the modules
+           grain draws the same programme with those rows gathered into the modules the syllabus
+           declares, which takes Z-BL from 28 tiles in each syllabus lane to 5 and Z-SC from 25 to
+           6. Both drawings are built at build time, one per grain per view, each with its own
+           drawing digest that check_build.sh reproduces byte for byte: the control switches
+           between two artefacts and lays nothing out. Every word and every number under it is
+           written by app.js off the model, never typed here. -->
+      <!-- AND IT SAYS ITS VALUE AND NOT ITS KEY, which is issue 139 taking the plate's grammar off
+           a control that left the plate. `grain sessions` is a label beside a value, which is what
+           an instrument writes about itself; a nav item states the thing it is set to and lets the
+           disclosure mark say that pressing it offers something else, which is what the scope
+           chips beside it and the view segments after it already do. The word cost five visible
+           characters on every one of the 35 addresses this page answers, and the two altitudes
+           name themselves: `sessions` and `modules` are not a value that needs a noun in front of
+           it. The sentence is in the title and at the head of the box. -->
+      <span class="grpick" id="grpick"><button id="grbtn" class="linkbtn" type="button"
+              aria-expanded="false" aria-controls="grmenu"
+              title="the altitude this drawing is drawn at"><span
+              class="ctl-v" id="grval">sessions</span></button><span class="grmenu"
+              id="grmenu" hidden></span></span>
+      <!-- ABSENCE IS ONE IDEA WITH TWO NUMBERS THAT NEVER ADD. Issue 139, and it is the whole of
+           this card. The model flags 95 property rows `absent`, and until now the page carried
+           them under one heading, `gaps N of 95`, with a menu behind it that listed them in two
+           groups. The registry says of each class whether any system holds a row of it, and that
+           answer splits the 95 into two populations that have nothing to do with each other:
 
-           WHAT LEFT THIS ROW AT ISSUE 120. The three value controls went into the readout before
-           it, where they were always going: they answer "what am I looking at" and everything
-           left here answers "what can I do". Nothing was deleted and no behaviour changed with
-           the move. -->
-      <button id="ghtoggle" class="linkbtn" type="button" aria-pressed="true"
-              title="show or hide the classes that do not exist in any system">ghosts</button>
+             22 a system holds the row and the field in it is empty, so somebody can open that
+                row this week and fill it in. Eleven sessions with nobody assigned to teach them,
+                six sponsor links absent, five instructors with no employer named.
+             73 no system anywhere records the fact, so no effort inside the tooling that exists
+                closes them. Duration 38, location 13, module 8, cohort identity 7, delivery 6,
+                and the programme's own module list.
+
+           95 IS THE SUM OF TWO THINGS THAT ARE NOT THE SAME KIND OF THING, and a reader who sees
+           it reads a backlog of ninety five items. There is no cell anywhere in this page for it
+           now: the two numbers sit side by side on one control, separated by a middle dot and
+           never by a plus, each in its own colour, each naming the population it is over in the
+           same fraction grammar the chips in the heading use. The left number is what falls
+           inside what is currently drawn and the right is the term total.
+
+           AND EACH SWITCH DRAWS ITS OWN KIND WHERE IT IS MISSING, which is what makes this a
+           control rather than a second thermometer. `work` on puts an empty socket on every node
+           carrying one of the 22, so the eleven unstaffed sessions are visible on the picture the
+           reader is already looking at rather than in a list beside it. `unrecorded` on is the
+           control that used to be called `ghosts`, unchanged in what it does to the tiles no
+           system holds, and it now also marks the 73 in that same ghost treatment: a class no
+           system holds, met either as a dashed tile or as a socket on a solid one.
+
+           Every number and every socket is written by app.js off the model, never typed here. -->
+      <span class="abs" id="abs" role="group"
+            aria-label="what is missing from what is drawn"><button id="abswork"
+              class="linkbtn abs-btn abs-work" type="button" aria-pressed="true"
+              title="the values a system holds a row for and has left empty"><span
+              class="ctl-k">work</span> <span class="ctl-v"
+              id="absworkv">0/22</span></button><span class="abs-sep"
+              aria-hidden="true">&middot;</span><button id="absunrec"
+              class="linkbtn abs-btn abs-unrec" type="button" aria-pressed="true"
+              title="the facts no system records, and the classes no system holds"><span
+              class="ctl-k">unrecorded</span> <span class="ctl-v"
+              id="absunrecv">0/73</span></button></span>
+      <!-- THE DIAGRAM IS A PEER VIEW AND NOT A HOME THE OTHERS DEPART FROM. Issue 139. What stood
+           here was two loose links, `students` and one link whose word and target swapped with the
+           route, so the page had no element anywhere that said what the views ARE. A segmented
+           selector says it by existing: both are always on screen, the current one is filled, and
+           pressing the one you are on does nothing rather than taking you somewhere.
+
+           `students` IS NOT ONE OF THEM, AND THAT IS A REPAIR RATHER THAN A DELETION. The roster
+           is one cohort's list, and since #136 the scope is a SET: a header link to it opened the
+           roster of whichever programme happened to be first in scope and named none of them,
+           which is the defect #121 and #136 were both filed about with the numbers the other way
+           round. `#/students` is unchanged and still answers; the way in is the cohort tile's own
+           panel, where `see all 34 students` names the cohort it is about. -->
       <button id="fbtoggle" class="linkbtn" type="button" aria-pressed="false"
               title="visual feedback mode: click any element to capture it with what was on screen">feedback</button>
-      <!-- The cohort in full, as its own route, beside the board's. The drawing shows four of
-           the thirty four students because it is a model diagram and not a register; this is
-           where the whole list lives, and it is a first class view rather than a way out of a
-           limitation. -->
-      <a id="navstudents" class="linkbtn" href="#/students">students</a>
-      <a id="navview" class="linkbtn" href="#/board">board</a>
-      <!-- THE THEME IS BEHIND A PRESS NOW, WHICH IS ISSUE 120's OTHER HALF. It used to be first
-           in this row and 97 CSS px wide, spending the row's anchor position on a choice a reader
-           makes about once and on a value the page is already showing them: a light page is the
-           theme saying light. It is last now, because it is the least frequent thing anybody does
-           here, and its value is inside it rather than on its face.
-
-           WHAT WAS WORTH KEEPING FROM #57 IS KEPT AND IS BETTER SERVED. That card's finding was
-           that three states cannot be told apart from a two state switch, which is why the choice
-           was written on the button. A menu of three with the current one marked says the same
-           thing and says it without a reader having to press twice to find out what pressing does:
-           system, light and dark are all visible at once, and the mark survives a forced-colours
-           mode the way the programme menu's does.
-
-           IT KEEPS ITS ID, so it is the same control to the gates that hold it live and hit
-           testable over every sheet, which is #86 and is not a thing to re-argue here. app.js
-           writes the menu, owns the stored choice and is still the only file that knows what the
-           three mean. -->
-      <span class="thpick" id="thpick"><button id="thtoggle" class="linkbtn" type="button"
-              aria-expanded="false" aria-controls="thmenu"
-              title="colour theme: follow the operating system, or choose light or dark"
-              >theme</button><span class="thmenu" id="thmenu" hidden></span></span>
     </nav>
+    <span class="vsel" id="vsel" role="group" aria-label="which view"><a id="navdiagram"
+            class="linkbtn vseg" href="#/">diagram</a><a id="navboard" class="linkbtn vseg"
+            href="#/board">board</a></span>
   </div>
 </header>
 <!-- EVERY CONTROL IN THIS ROW IS THE SAME BOX, and that is issue 77's first two findings, which
