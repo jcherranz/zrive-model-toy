@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-15T16:13:48Z",
+  "generated": "2026-08-15T17:30:29Z",
   "columns": [
     {
       "key": "raw",
@@ -54,14 +54,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
-        },
-        {
-          "id": 139,
-          "title": "Absence is one idea with two numbers that never add",
-          "labels": [
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/139"
         }
       ]
     },
@@ -69,6 +61,14 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 139,
+          "title": "Absence is one idea with two numbers that never add",
+          "labels": [
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/139"
+        },
         {
           "id": 137,
           "title": "Time is an interval you drag, not a name you pick",
@@ -130,19 +130,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/130"
-        },
-        {
-          "id": 129,
-          "title": "I still don't like the current header control panel, and I think…",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/129"
         }
       ],
-      "hidden": 114,
+      "hidden": 115,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
