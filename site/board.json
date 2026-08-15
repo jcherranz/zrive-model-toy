@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-15T17:40:10Z",
+  "generated": "2026-08-15T18:22:23Z",
   "columns": [
     {
       "key": "raw",
@@ -45,14 +45,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
-        },
-        {
-          "id": 138,
-          "title": "A hashchange to the bare address leaves the scope where it was",
-          "labels": [
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/138"
         }
       ]
     },
@@ -67,6 +59,14 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/139"
+        },
+        {
+          "id": 138,
+          "title": "A hashchange to the bare address leaves the scope where it was",
+          "labels": [
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/138"
         },
         {
           "id": 137,
@@ -121,17 +121,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/131"
-        },
-        {
-          "id": 130,
-          "title": "THE DESK: the twenty-two fixable gaps are a screen, beside the current page",
-          "labels": [
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/130"
         }
       ],
-      "hidden": 115,
+      "hidden": 116,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
