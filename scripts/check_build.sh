@@ -923,14 +923,33 @@ PY
 # `reserve()` at build/build_layout.py:427-432 and the two lines that widen its result for a mark
 # and for a tail, and until this section existed nothing anywhere read what came out of them.
 #
-# ONE TOKEN, AND EVERY OTHER GATE GREEN. `max` to `min` inside reserve() returns the regular
-# width of a label the stylesheet paints bold the moment a reader clicks it, which is #203's harm
-# arriving from the build side. Check 3 stays green because every line is still asked for in both
-# faces, so its census is unchanged in shape. Check 1 stays green in the only workflow a builder
-# edit has, because it compares the rebuild against the INDEX and any builder change is rebuilt
-# and staged before the gates are read. The digest census stays green because it recomputes the
-# fourteen from the bytes in front of it and asserts they are distinct, which a regenerated
-# document satisfies by construction.
+# ONE TOKEN, AND EVERY GATE ON THIS SIDE GREEN. `max` to `min` inside reserve() returns the
+# regular width of a label the stylesheet paints bold the moment a reader clicks it, which is
+# #203's harm arriving from the build side. Check 3 stays green because every line is still asked
+# for in both faces, so its census is unchanged in shape. Check 1 stays green in the only workflow
+# a builder edit has, because it compares the rebuild against the INDEX and any builder change is
+# rebuilt and staged before the gates are read. The digest census stays green because it
+# recomputes the fourteen from the bytes in front of it and asserts they are distinct, which a
+# regenerated document satisfies by construction.
+#
+# AND ONE GATE OFF THIS SIDE DOES CATCH IT, WHICH THE FIRST DRAFT OF THIS HEADER CLAIMED
+# OTHERWISE AND WAS WRONG ABOUT. scripts/smoke.mjs's placer oracle reimplements reserve() in the
+# driver at smoke.mjs:13843-13866, max over the two label faces of every drawn line and then max
+# with the mark and the tail at 9/400, and blocks the chip search with it. So an under reserved
+# box moves which candidate is cheapest and the chips stand somewhere the oracle can beat.
+# Measured, not argued: the mutation was applied to a copy of the tree, the site rebuilt from it
+# and the real browser suite run against it, and `and no candidate its own line offers is cheaper
+# than the one it stands on` fires with 93 of the 740 chips beaten, the four it names beaten by up
+# to 168.10 against CHIP_COST_TOL of 1.0. 354 assertions, 353 passed, 1 failed, VERDICT: the page
+# has regressed.
+#
+# THAT MAKES THIS CHECK'S CLAIM NARROWER AND MORE USEFUL THAN "NOTHING SEES IT". Nothing on the
+# BUILD side sees it, and the build side is where a builder edit is read: check_build.sh is what
+# .github/workflows/build.yml runs and what a contributor runs before pushing, and it would have
+# said clean while the smoke workflow said the page had regressed, with no gate anywhere naming
+# the reserve. It is also the narrower claim in the other direction: smoke catches this mutation
+# through the chip placement and is blind to a reserve that is wrong on a node whose chips do not
+# crowd it, which is measured below under WHAT IT DOES NOT SAY.
 #
 # AND THE LANE GATE INSIDE layout() CANNOT SEE IT, WHICH IS THE LOAD BEARING POINT AND IS
 # ARITHMETIC RATHER THAN OPINION. `lane_slack()` is `min(x - lw/2 - x0, x1 - x - lw/2)`, so `lw`
@@ -961,10 +980,19 @@ PY
 #   the WIDTHS come out of build/label_widths.json, read as JSON from this file rather than
 #   through build_layout.py's own lookup. #195 settled that this is admissible and why: the
 #   width table is an INPUT to the placement, and an oracle that reads the input and never reads
-#   the output is not circular. It is stronger than that here, because the table is not taken on
-#   trust either. Check 2 holds it against the job that writes it, and scripts/smoke.mjs's own
-#   phase holds the painted page against it. The table's correctness is those two checks' claim
-#   and this one inherits it;
+#   the output is not circular. THIS CHECK IS THEREFORE HONEST ABOUT THE ARITHMETIC AND CIRCULAR
+#   ABOUT THE WIDTHS, and the second half of that sentence is a limit rather than a defect but it
+#   has to be said in the sharp form, because the first draft of this header said the table's
+#   correctness was inherited from check 2 and from scripts/smoke.mjs and that claim does not
+#   reach. Check 2 is a MEMBERSHIP test: it asks whether every declared (context, string) pair is
+#   present, never whether the number under it is right. smoke.mjs's own phase holds the FACE a
+#   string is measured in against the cascade and reads neither a width nor a coordinate on either
+#   side, which it says in its own header, and the only place it holds a measured NUMBER against a
+#   painted one is the two captions in the 9px row. So nothing anywhere holds a 10/400, a 10/600,
+#   a 10/400i or a 10/600i number against a browser, and those bound 454 of the 570 nodes here. A
+#   width in the table that is wrong by twenty units moves the builder and this check together and
+#   both stay silent. That is the same limit smoke.mjs's placer oracle states about itself, in the
+#   same words, and it is one card and not this one;
 #
 #   the FACES come out of site/app.css through measure_labels.css_rule(), composed from what
 #   `.node .lbl`, `.node.sel .lbl` and `.lbl-ghost` declare, exactly as check 3's assertion E
@@ -979,13 +1007,23 @@ PY
 #   WRAPPING moves this expectation with it and is not what this section is about.
 #
 # TWO DIRECTIONS, AND THEY ARE NOT WORTH THE SAME. The under direction is the card: a reserve
-# short of the widest face is a label box the page paints outside, and nothing else in this
-# repository looks that way. The over direction is a reserve nothing can name a string for, and
+# short of the widest face is a label box the page paints outside, and nothing on this side of
+# the build looks that way. The over direction is a reserve nothing can name a string for, and
 # the lane gate does eventually catch it, but only once the box has left its lane; before that it
-# is silent and it still moves geometry, because build/build_layout.py:604 blocks the chip placer
+# is silent and it still moves geometry, because build/build_layout.py:611 blocks the chip placer
 # with `n["lw"] + 6` and a box that grew pushes chips onto different candidates. Both are
 # asserted and the headroom in both is printed on the PASS, so a corpus drifting towards the
 # tolerance is visible before it crosses it rather than after.
+#
+# AND A THIRD ASSERTION, WHICH IS THE CARD'S OWN SENTENCE ONE LAYER IN AND WAS FOUND BY AN
+# ADVERSARIAL READ OF THE FIRST DRAFT OF THIS CHECK. The two above hold the reserve the builder
+# ARRIVED AT. `build/build_layout.py:611` is the only line where that number becomes a
+# coordinate, and holding only the published one left it free: `n["lw"] + 6` changed to
+# `n["lw"] - 24` was green here, every chip on the page blocked by a box thirty units narrower
+# than the label in it, which is precisely "nothing proves a reserved width was used". So the
+# builder records the box READ BACK OUT of the list it went into, the way text_w()'s two lists
+# sit on its return path rather than beside it, and this check holds it against the reserve plus
+# a restated pad.
 #
 # WHAT IT DOES NOT SAY. It is about the arithmetic and not about the face a mark is measured in.
 # The mark and the tail are held against every context the committed table measures them in at
@@ -994,6 +1032,29 @@ PY
 # at `.node .lbl.lbl-missing`, and when it lands and the table gains the italic entries this
 # bound tightens on its own and goes red until build/build_layout.py:463 follows it. Composing
 # that context from the stylesheet TODAY would go red on another card's defect.
+#
+# AND THREE MORE HOLES, EACH FOUND BY RUNNING THE MUTATION RATHER THAN BY READING FOR IT.
+#
+#   THE REGULAR TERM INSIDE reserve() IS INERT AND THIS CHECK CANNOT SEE IT GO. Both sides take
+#   the maximum over the two label faces, and on this table the selected face is strictly wider on
+#   all 667 drawn lines, so `text_w(ln, FONT, 400, it)` cannot decide any reserve. Changing that
+#   400 to a 600 leaves site/layout.js byte identical and is green here. It is not invisible
+#   everywhere: check 3 still catches it, because wrap() goes on asking for 10/400 and the census
+#   would notice the context emptying only if it emptied, which is why the two checks are both
+#   worth running. What this check does instead is PRINT which face actually bounds each node, so
+#   a reader sees that three of the five faces in its own summary line bound nothing at all.
+#
+#   THE WRAPPING IS NOT A SUBJECT HERE. The lines come out of the wrap counts the builder just
+#   wrote, so a mutation that changes where a label breaks moves this expectation with it. That is
+#   check 3's stated limit as well and it is the same limit for the same reason: where a label
+#   breaks is the builder's own decision and there is nowhere else to read it from.
+#
+#   THE TWO GATES THIS SECTION'S ARGUMENT LEANS ON ARE THEMSELVES UNTESTED. `lane_slack()`'s
+#   refusal and `caption_overflow()`'s comparison both feed only a `sys.exit`, so their verdicts
+#   leave no trace an outside reader can check, and a two token edit to either disarms it with
+#   every byte identical. Named in #220's own body as the same class and deliberately left there:
+#   the instrument for a disarmed guard is a self-test probe against a mutated builder, which is a
+#   different shape from this check and belongs beside the caption machinery.
 #
 # The builder to run is the first argument, the number of drawings it must lay out the second,
 # both for the reasons check 3 gives. The third is a nudge in units applied to ONE recorded
@@ -1028,6 +1089,12 @@ from model import doc_views  # noqa: E402
 # not a tolerance for disagreement. The clean corpus sits at 0.0 in both directions and the
 # number is printed on the PASS so that is checkable rather than asserted here.
 TOL = 1e-6
+# THE PAD BETWEEN THE RESERVE AND THE BOX THE CHIP PLACER IS BLOCKED WITH, restated here and not
+# imported, which is the same thing scripts/smoke.mjs does with the whole placer specification and
+# for the same reason. It is a terminator like EXPECTED_DRAWINGS: a pad legitimately changed in
+# build/build_layout.py has to be changed here in the same commit, and until it is this check goes
+# red and names the number.
+LABEL_BOX_PAD = 6.0
 BAD = 0
 
 
@@ -1079,11 +1146,12 @@ with tempfile.TemporaryDirectory() as td:
 
 try:
     record = [(str(tag), str(nid), float(lw)) for tag, nid, lw in built["_reserved"]]
+    boxes = [(str(tag), str(nid), float(w)) for tag, nid, w in built["_blocked_lab"]]
 except (KeyError, TypeError, ValueError) as exc:
-    print(f"::error::build/build_layout.py no longer keeps the record of what it reserved "
-          f"({type(exc).__name__}). The reserve is a local inside layout() and reaches neither "
-          f"document, so without that list this check cannot look, and a check that cannot look "
-          f"must not report clean")
+    print(f"::error::build/build_layout.py no longer keeps the record of what it reserved or of "
+          f"the box it blocked the chip placer with ({type(exc).__name__}). Both are locals "
+          f"inside layout() and reach neither document, so without those lists this check cannot "
+          f"look, and a check that cannot look must not report clean")
     sys.exit(1)
 
 # THE TABLE THE BUILDER READ AND THE TABLE THIS CHECK READS ARE THE SAME FILE, asserted rather
@@ -1158,10 +1226,10 @@ if missing_face or not small:
 # that laid out a different number of drawings than this check intends, and a record whose nodes
 # are not the nodes the documents carry.
 views_i, views_l = doc_views(inst), doc_views(lay)
-if not record:
-    print("::error::the builder reserved a box for nothing over the whole run. Either the record "
-          "is not being kept or the build laid nothing out; either way this check looked at "
-          "nothing and will not call it clean")
+if not record or not boxes:
+    print("::error::the builder reserved a box for nothing over the whole run, or blocked the "
+          "chip placer with nothing. Either the record is not being kept or the build laid "
+          "nothing out; either way this check looked at nothing and will not call it clean")
     sys.exit(1)
 if not views_i or len(views_i) != len(views_l):
     print(f"::error::the builder wrote {len(views_i)} drawing(s) of data and {len(views_l)} of "
@@ -1175,16 +1243,22 @@ if len(views_l) != want_drawings:
           f"in which case EXPECTED_DRAWINGS in scripts/check_build.sh belongs in the same commit")
     sys.exit(1)
 
-reserved = {}
+reserved, blocked_w = {}, {}
 dupes = []
-for tag, nid, lw in record:
-    if (tag, nid) in reserved:
-        dupes.append(f"{tag} {nid}")
-    reserved[(tag, nid)] = lw
+for target, rows in ((reserved, record), (blocked_w, boxes)):
+    for tag, nid, v in rows:
+        if (tag, nid) in target:
+            dupes.append(f"{tag} {nid}")
+        target[(tag, nid)] = v
 if dupes:
     print(f"::error::{len(dupes)} node(s) were recorded twice, so a reserve read by id is not "
           f"the reserve a particular node got: " + ", ".join(sorted(set(dupes))[:8]))
     sys.exit(1)
+
+# BOTH LISTS ARE HELD AGAINST THE DOCUMENTS AND NOT AGAINST EACH OTHER, which is one comparison
+# rather than two and is the stronger of the two shapes. Two records that agree with the drawings
+# agree with each other by construction; two records that agree with each other and not with the
+# drawings would pass a comparison between themselves and say nothing.
 
 # THE NUDGE, and it lands on one entry rather than on all of them. See the header: the over
 # direction has no mutation of the builder that survives the lane gate, so it is proved on a
@@ -1252,22 +1326,59 @@ if unmeasured:
     show([f"{c:<12} {s!r}" for c, s in uniq], "pairs")
     sys.exit(1)
 
-only_recorded = sorted(set(reserved) - set(expected))
-only_painted = sorted(set(expected) - set(reserved))
-if only_recorded or only_painted:
-    print(f"::error::the builder recorded {len(reserved)} reserve(s) and the two documents it "
-          f"wrote carry {len(expected)} node(s). A reserve this check never sees is a box "
-          f"nothing holds, and a node with no reserve recorded is a node this check silently "
-          f"passed over")
-    show([f"recorded, not painted: {t} {i}" for t, i in only_recorded]
-         + [f"painted, not recorded: {t} {i}" for t, i in only_painted], "nodes")
-    sys.exit(1)
+for what, got in (("reserve", reserved), ("chip placer box", blocked_w)):
+    only_recorded = sorted(set(got) - set(expected))
+    only_painted = sorted(set(expected) - set(got))
+    if only_recorded or only_painted:
+        print(f"::error::the builder recorded the {what} for {len(got)} node(s) and the two "
+              f"documents it wrote carry {len(expected)}. A {what} this check never sees is a "
+              f"number nothing holds, and a node with no {what} recorded is a node this check "
+              f"silently passed over")
+        show([f"recorded, not painted: {t} {i}" for t, i in only_recorded]
+             + [f"painted, not recorded: {t} {i}" for t, i in only_painted], "nodes")
+        sys.exit(1)
 
 for k, need in expected.items():
     weighed.update((c, s) for c, s, _w in need)
+
+# WHICH FACE ACTUALLY DECIDES, WHICH IS THE POPULATION THE VERDICT IS READ OFF and not the one it
+# is weighed against. Naming five faces in a summary line says nothing about whether five of them
+# can move an outcome: measured on this tree, `10/600` bounds 398 nodes, `9/400` bounds 116 and
+# `10/600i` bounds 56, while `10/400`, `10/400i` and `9/400i` bound NONE, because the selected face
+# is strictly wider than the resting one on every drawn line. So the regular term inside reserve()
+# is inert, a mutation that deletes it moves no reserve and no painted byte, and this check cannot
+# see it. That is a limit of this instrument and it is printed rather than left to be discovered.
+argmax = {}
+for key, need in expected.items():
+    best = max(w for _c, _s, w in need)
+    for c in sorted({c for c, _s, w in need if w == best}):
+        argmax[c] = argmax.get(c, 0) + 1
+# AND THE PREMISE OF THE WHOLE COMPARISON, asserted rather than assumed. If the table ever said a
+# selected label is no wider than a resting one, reserve()'s bold term would be reserving nothing,
+# #203 would not be a defect and this check would be weighing every node against a number it would
+# have got either way. A count of zero here is a vacuous gate, not a clean one.
+widened = 0
+for data, geo in zip(views_i, views_l):
+    placed = {n["id"]: n for n in geo["drawing"]["nodes"]}
+    for n in data["nodes"]:
+        rest, sel_ctx = faces[bool(n.get("ghost"))]
+        words = n["label"].split()
+        for count in placed[n["id"]]["wrap"]:
+            line = " ".join(words[:count])
+            words = words[count:]
+            widened += TBL[sel_ctx][line] > TBL[rest][line]
+if not widened:
+    print(f"::error::not one drawn label line is wider at {faces[False][1]} than at "
+          f"{faces[False][0]} in {widths_path.name}. reserve() takes the wider of the two faces "
+          f"and on this table the two are the same, so nothing it does can be wrong in the "
+          f"direction this check looks and a pass here would mean nothing")
+    sys.exit(1)
+
 print(f"    {len(expected)} node(s) over {len(views_l)} drawings, weighed against "
       f"{len(weighed)} measured (face, string) pair(s) in "
       f"{', '.join(sorted({c for c, _s in weighed}))}")
+print("    bounded by " + ", ".join(f"{n} at {c}" for c, n in sorted(argmax.items()))
+      + f"; {widened} drawn line(s) are wider selected than at rest")
 
 # ---- A. the reserve holds every line in the face a click paints it in -------
 short, wide = [], []
@@ -1303,6 +1414,31 @@ if wide:
     show([f"{t} {i:<10} reserved {g:.2f} for {b:.2f} of {c} {s!r}"
           for (t, i), c, s, b, g in wide], "nodes")
 
+# ---- C. and the number that becomes a coordinate is that reserve --------------
+# THE DIFFERENCE BETWEEN THE WIDTH A RESERVE ARRIVED AT AND THE WIDTH THAT WAS USED, which is this
+# card's own sentence one layer in and was found by an adversarial read of the first draft of this
+# check. build/build_layout.py:611 is the only line where `lw` becomes a coordinate: it blocks the
+# chip placer with a box `LABEL_BOX_PAD` wider than the reserve, and a chip placed on a box that
+# is not the label's is a chip on top of the label. Holding only the published number left that
+# line free to change with every gate on this side green.
+loose = []
+worst_box = 0.0
+for key in sorted(expected):
+    want_box = reserved[key] + LABEL_BOX_PAD
+    got_box = blocked_w[key]
+    if abs(got_box - want_box) > TOL:
+        loose.append((key, reserved[key], want_box, got_box))
+        worst_box = max(worst_box, abs(got_box - want_box))
+if loose:
+    fail(f"{len(loose)} of the {len(expected)} node(s) blocked the chip placer with a box that is "
+         f"not their own reserve plus the {LABEL_BOX_PAD:g} unit pad, by up to {worst_box:.2f}px. "
+         f"A box narrower than the label inside it is a box the placer is entitled to put a verb "
+         f"chip on top of, and a box wider than it pushes chips off positions they could have "
+         f"had. If the pad itself changed on purpose, LABEL_BOX_PAD in scripts/check_build.sh "
+         f"belongs in the same commit")
+    show([f"{t} {i:<10} reserved {lw:.2f}, expected a {wb:.2f} box, blocked with {gb:.2f}"
+          for (t, i), lw, wb, gb in loose], "nodes")
+
 if BAD:
     print()
     print("  THE FIX IS IN THE ARITHMETIC AND NOT AT THE CALL SITE. Check 3 above says which "
@@ -1313,8 +1449,9 @@ if BAD:
           "again. One of those four is not holding.")
     sys.exit(1)
 
-print(f"    every reserve is the widest measured line the node paints, headroom 0.00px short "
-      f"and {worst_wide:.2f}px wide against a tolerance of {TOL:g}")
+print(f"    every reserve is the widest measured line the node paints and every chip placer box "
+      f"is that reserve plus {LABEL_BOX_PAD:g}, headroom {abs(worst_short):.2f}px short and "
+      f"{worst_wide:.2f}px wide against a tolerance of {TOL:g}")
 PY
 }
 
@@ -1936,7 +2073,7 @@ verdict() {  # clean|bad ; reads BASELINE_ORIGIN, CENSUS_UNVERIFIED and CENSUS_N
 # probe at a time prints a clean ratio all the way down to 0/0. A count taken from the run cannot
 # notice a probe that did not run. A short run exits 2, "the suite could not answer"; a run that
 # also recorded a failure reports it and exits 1.
-EXPECTED_PROBES=159
+EXPECTED_PROBES=163
 PASS=0
 TOTAL=0
 probe() {
@@ -2526,6 +2663,21 @@ PY
         reserved_with_mutation 'n["lw"] = max(n["lw"], text_w(n["mark"], 9.0))' \
                                'n["lw"] = min(n["lw"], text_w(n["mark"], 9.0))'
 
+  # AND THE THIRD ASSERTION, WHICH IS THE ONE AN ADVERSARIAL READ OF THE FIRST DRAFT ASKED FOR.
+  # build/build_layout.py:611 is the only line where the reserve becomes a coordinate. Both edits
+  # below leave every reserve correct and every earlier assertion satisfied, and the first of them
+  # was GREEN under this check until the builder started recording the box as well as the number
+  # it was built from.
+  probe 1 "a chip placer blocked with a box narrower than its own label was refused" \
+        reserved_with_mutation 'n["lw"] + 6, lab_h + 2))' 'n["lw"] - 24, lab_h + 2))'
+  probe_says "not their own reserve plus the 6 unit pad" \
+        "and the refusal named the pad the box is supposed to carry" \
+        reserved_with_mutation 'n["lw"] + 6, lab_h + 2))' 'n["lw"] - 24, lab_h + 2))'
+  # And the floor of that assertion, which is the pad itself: dropping it entirely is six units on
+  # every one of the 570 boxes and is refused, so the smallest thing it can see is one unit.
+  probe 1 "a chip placer blocked with the label and no pad at all was refused" \
+        reserved_with_mutation 'n["lw"] + 6, lab_h + 2))' 'n["lw"] + 0, lab_h + 2))'
+
   # BOTH DIRECTIONS OF THE COMPARISON, PROVED ON A PLANT IN THE READING. There is no mutation of
   # the builder that over reserves and still builds: the tightest label already has 0.0px of lane
   # to spare, so anything wider is refused by the lane gate before this check is reached. One
@@ -2566,6 +2718,12 @@ PY
         "and the refusal named the nodes it would otherwise have passed over in silence" \
         reserved_with_mutation '_reserved.append((tag, nid, n["lw"]))' \
                                'if not n.get("mark"): _reserved.append((tag, nid, n["lw"]))'
+  # THE SAME LOOP'S SECOND PASS, over the other list. The population is asserted for each record
+  # against the documents rather than for the two records against each other, and this is the
+  # probe that proves the second half of that loop runs at all.
+  probe 1 "a chip placer box recorded for only some of the nodes drawn was refused" \
+        reserved_with_mutation '_blocked_lab.append((tag, nid, blocked[-1][2]))' \
+                               'if not n.get("mark"): _blocked_lab.append((tag, nid, blocked[-1][2]))'
   # And the state in which the two sides of the comparison are not about the same numbers at all.
   # `$bad` is the doctored table the width section above built, one string short; the builder
   # honours ZRIVE_LABEL_WIDTHS and this check does not, so the run would be judged against a table

@@ -157,6 +157,13 @@ _errors = []     # (measured - estimated, context, string) for every lookup that
 # on this list: it is appended to and never read here, and site/layout.js is byte-identical with
 # it and without it.
 _reserved = []
+# (tag, node id, the width of the label box the chip placer is blocked with) for every node, read
+# back out of `blocked` after the box has gone in. Issue 220, second half, and the reason it is a
+# second list rather than a wider first one is that the two are recorded at two different points
+# and say two different things: `_reserved` is the number the reserve ARRIVED AT and this is the
+# number that BECOMES A COORDINATE. Holding only the first leaves the one line where `lw` reaches
+# geometry, build/build_layout.py:611, free to change without a gate anywhere noticing.
+_blocked_lab = []
 
 
 def estimate_w(s, size, caps=False):
@@ -597,11 +604,16 @@ def layout(view, tag, bands, col_of, types):
                       "ghost": bool(me.get("ghost"))})
 
     blocked = []
-    for n in nodes.values():
+    for nid, n in nodes.items():
         blocked.append((n["x"], tile_y(n), TILE + 6, TILE + 6))
         lab_h = LINE_H * n["nlines"]
         blocked.append((n["x"], tile_y(n) + TILE / 2 + GAP_LABEL + lab_h / 2,
                         n["lw"] + 6, lab_h + 2))
+        # READ BACK OUT OF THE LIST, not recomputed beside it. Issue 220: the record has to sit on
+        # the join the way text_w()'s two lists sit on its return path, or it is a second opinion
+        # about what the box should be rather than a copy of what it is. `.items()` for the id and
+        # `.values()` before it iterate a dict identically, so the drawing is unchanged.
+        _blocked_lab.append((tag, nid, blocked[-1][2]))
     # ONE LIST THAT GROWS RATHER THAN TWO JOINED ON EVERY CANDIDATE. Issue 171, and the same
     # repair site/render.js took on issue 145 for the same reason: `blocked + chips` stood in the
     # innermost loop below, which runs once per perpendicular step per slide per edge, and built a
