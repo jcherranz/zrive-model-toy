@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T10:45:36Z",
+  "generated": "2026-08-16T10:56:51Z",
   "columns": [
     {
       "key": "raw",
@@ -33,14 +33,6 @@
             "idea"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
-        },
-        {
-          "id": 187,
-          "title": "The redesign's headline number is the one number not pinned: a new header button ships green",
-          "labels": [
-            "bug"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/187"
         }
       ]
     },
@@ -48,14 +40,6 @@
       "key": "backlog",
       "title": "Backlog",
       "cards": [
-        {
-          "id": 168,
-          "title": "Two planted defects shipped green through the whole suite and both content gates",
-          "labels": [
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/168"
-        },
         {
           "id": 170,
           "title": "A keyboard user cannot see where they are and a phone user cannot hit what they see",
@@ -89,12 +73,29 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/157"
         },
         {
+          "id": 168,
+          "title": "Two planted defects shipped green through the whole suite and both content gates",
+          "labels": [
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/168"
+        },
+        {
           "id": 186,
           "title": "The sheet caps content at 1238px, and the week grid is the first surface that wants the width",
           "labels": [
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/186"
+        },
+        {
+          "id": 187,
+          "title": "The redesign's headline number is the one number not pinned: a new header button ships green",
+          "labels": [
+            "bug",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/187"
         }
       ]
     },
