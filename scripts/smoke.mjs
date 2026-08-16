@@ -382,6 +382,16 @@ const PHASES = {
   // had been failing since they were written; and that none is painted wider than its own reserved
   // line, which is the only place the slant the card was filed about can be answered.
   'the captions under a label': { count: 3, when: 'grain' },
+  // Issue 206, which is the class the row above turned out to be one instance of. Four, and they
+  // fail on four different things: that the population is the whole of the text the fourteen
+  // drawings paint, read in both states and pinned per face, without which the two containments
+  // below are vacuously true; that every painted class is one this phase has a row for, in both
+  // directions, which is what stops those containments from being about a shrinking part of the
+  // drawing; that every string is measured in the face the cascade paints it in, which is the claim
+  // no gate in this repository could make and which issue 203 could only make for two captions; and
+  // that every face the table measured is a face the drawings paint in, which is the reverse defect
+  // the coverage gate reports as dead weight and never as a wrong context.
+  'the face a width was reserved in': { count: 4, when: 'grain' },
   'the header':           { count: 3, when: 'grain' }
 };
 
@@ -793,7 +803,14 @@ const PHASES = {
 // through the CSSOM, which the page's `style-src-attr 'none'` does not reach where a `style`
 // attribute is dropped outright, and a width of zero over a string with characters in it is
 // counted by render.js and refused here, in a state this phase drives rather than waits for.
-const EXPECTED_ASSERTIONS = 350;
+// 350 until issue 206, which adds four and is the class issue 203 above turned out to be one
+// instance of. Nothing held the face a RESERVED width was measured in against the rule that paints
+// the string: `collect()` assigns every string to a context by hand and `check_widths_cover` only
+// asks whether the pair is measured, while the placer oracle reads the same table the placer reads.
+// The four are the population, the class census in both directions, the containment that says every
+// painted string is measured in the face the cascade paints it in, and its reverse, that every face
+// the table measured is one the drawings paint in.
+const EXPECTED_ASSERTIONS = 354;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -13478,6 +13495,183 @@ const CAPTION_READ = `
   return { rows: rows, muted: chip ? getComputedStyle(chip).fill : null };
 `;
 
+// =================================================================================================
+// THE FACE A RESERVED WIDTH WAS MEASURED IN. Issue 206, and issue 203 is one string of it.
+//
+// WHAT NOTHING HELD UNTIL THIS PHASE. `build/measure_labels.py`'s `collect()` puts every string the
+// layout measures into a CONTEXT by hand, in Python, from a `css_rule()` read of three selectors,
+// and `build/build_layout.py`'s `text_w()` composes the same key from arguments typed at each call
+// site. The key IS a face: `9/400` is nine pixels at the regular weight, `10/600i` is ten at the
+// bold weight in italic, `9/600+caps` is the band captions' spaced upper case. Every reserved
+// coordinate in `site/layout.js` is a width measured in one of those faces. Nothing anywhere read
+// the rule that dresses the element the string ends up in, so nothing could say whether the face a
+// width was measured in is the face the cascade paints that string in.
+//
+// WHY THE TWO GATES THAT LOOK LIKE THEY COVER IT DO NOT. `check_build.sh`'s `check_widths_cover`
+// asks whether every `(context, string)` pair the job declares is MEASURED, and answers it well; it
+// never asks whether the context is the right one. The placer oracle above says in its own header
+// that it reads the same table the placer reads, so it agrees with the placer wherever the table is
+// the wrong answer to the right question. Neither can see a cascade, and the defect IS the cascade:
+// at issue 203 the two captions under a label declared nine pixels each and were painted at the
+// label's ten, because `.node .lbl` is two class selectors against their one and won every property
+// both rules declared. The reserved line was 82.49 against a painted 91.65, and 103.58 with the card
+// selected, and every gate in the repository was green.
+//
+// WHAT THIS PHASE COMPARES, AND WHICH SIDE IS WHICH. The SUBJECT is the table's own assignment: a
+// context in `build/label_widths.json` is a face, and the strings under it are the strings
+// `collect()` put in that face. The ORACLE is the painted page: for every `text` the drawing paints,
+// the computed size, weight, slant, letter spacing and text transform that the cascade actually
+// resolved. Neither a width nor a coordinate is read on either side, which is the ground issue 195's
+// review was rejected on and the ground the placer oracle cannot stand on. The claim is a set
+// containment in each direction: every string the page paints is measured in the face the page
+// paints it in, and every face the table measured is a face the page paints something in.
+//
+// WHAT IT DOES NOT COVER, STATED RATHER THAN LEFT TO BE DISCOVERED. It holds the paint against the
+// table's assignment, and `check_widths_cover` holds the table against `collect()`. What no gate
+// yet holds is `build_layout.py`'s own call sites: `text_w(n["mark"], 9.0)` composes `9/400` from
+// numbers typed there, and a table that grew a context those call sites never ask for would satisfy
+// this phase without moving a single reserve. The consequence of that gap is covered for the two
+// captions by the third assertion of `the captions under a label`, which holds a painted width
+// against the number `9/400` reserves, and is covered for nothing else.
+//
+// A NOTE ON WHY THIS IS NOT THE PHASE ISSUE 207 SHIPPED. `ZM.probeFaces()` publishes the face
+// site/render.js's own run-time probe resolved, and `the measuring probe` holds those against
+// site/app.css. That is the RUN-TIME half: whether the browser's own measurement stands inside the
+// cascade it measures for. This is the BUILD-time half: whether the face a committed width was
+// measured in is the face the page paints. The two share a subject and neither answers the other,
+// and reading `probeFaces()` here would replace the painted page with a second measurement taken
+// by the code under test.
+
+// The classes the fade sets, dropped from the class key below. `.veil` declares a transition and
+// `.veil.veil-hidden` opacity, visibility and pointer events; the tail carries one or both of them
+// depending on where the reveal had got to when the page was read, so a census keyed on the raw
+// attribute would be a coin toss between two spellings of the same element. Dropping them costs
+// nothing, because every face in this phase is read off the element's OWN computed style: a fade
+// rule that grew a font property would move the face and the comparison would fail on it there.
+const FACE_IGNORE = ['veil', 'veil-hidden'];
+
+// Every distinct class a `text` under `#graph` carries on the fourteen drawings, with the tokens
+// above dropped and the rest sorted, split by whether build/label_widths.json reserves a width for
+// what it holds. Both halves are asserted against the page in both directions, which is what keeps
+// the split from being a hand wave: a new painted text, or a renamed class, lands in neither list
+// and the census fails naming it, rather than quietly leaving a string nothing compares.
+//
+// THE UNRESERVED HALF IS ONE ELEMENT AND IT IS UNRESERVED FOR A REASON THAT CAN BE STATED: the
+// numeral a count tile carries is drawn INSIDE the tile, centred on it, sized by presentation
+// attributes on the element rather than by any rule, and the layout reserves it no line of its own
+// because it takes none. `.win-empty`, the sentence a window that left nothing paints, is the other
+// text this drawing can hold and it is absent from these fourteen addresses, which carry no window.
+const FACE_RESERVED = ['band-cap', 'chip-tx', 'ghost lbl lbl-missing', 'lbl', 'lbl lbl-ghost',
+                       'lbl lbl-tail'];
+const FACE_UNRESERVED = ['(no class)'];
+
+// How many readings each painted face produced, named by the context of the table that declares
+// that face. Pinned rather than `> 0` for the reason `the captions under a label` pins its two: a
+// page that lost nine tenths of its text would satisfy `> 0` and hand both comparisons below the
+// tenth that was left, which they would pass, cleanly, over almost nothing. Every one of these
+// moves with the corpus, so a card that changes what the model records changes them, and the
+// failure says which face moved and by how much.
+//
+// The four ten-pixel rows are read twice, once at rest and once with the card selected, because
+// `.node.sel .lbl` turns a label bold and the bold width is the one the build reserves; the nine
+// pixel rows are read once, because nothing a click does reaches them. `9/400` is 684 verb chips
+// and 148 readings of the 74 count captions; `9/400i` is 56 ghost chips and 414 readings of the
+// missing-key caption.
+const FACE_CENSUS = {
+  '10/400': 611, '10/400i': 56, '10/600': 611, '10/600i': 56,
+  '9/400': 832, '9/400i': 470, '9/600+caps': 121
+};
+const FACE_UNRESERVED_READINGS = 0;
+
+// Every card on the fourteen drawings is pressed and read again in the state the press leaves it
+// in. A card the page declined to select is counted and refused rather than read twice in the same
+// state, which is how issue 203's reader came to report a hole instead of a wrong answer.
+const FACE_CARDS = 570;
+
+// THE ONE DISAGREEMENT THIS TREE SHIPS, DECLARED HERE RATHER THAN TOLERATED BY A LOOSER TEST.
+//
+// The missing-key caption is painted `9px` in ITALIC, by `.node .lbl.lbl-missing`, and the build
+// reserves its line at `text_w(n["mark"], 9.0)`, which is the UPRIGHT `9/400`. So the width under it
+// was measured in a face the page does not paint it in, which is the defect this whole phase is
+// about, in the one place the tree still has it. Issue 203 saw it and argued it: measured against
+// the envelope this tree's own build/measure_labels.py shapes, the string is 82.49 upright and 82.49
+// italic, because every family carrying a real italic shapes it narrower and the family that sets
+// the maximum has no italic file and is obliqued by shear, which does not move an advance. That
+// argument is a fact about the fonts on the measuring machine and not about this repository, which
+// is why it is declared here and not built into the comparison.
+//
+// IT IS PINNED IN EVERY DIRECTION IT COULD MOVE. The string has to be painted at exactly this face,
+// it has to be ABSENT from the italic context, it has to be PRESENT in the upright one that reserves
+// it, and there have to be exactly this many readings of it. A second string joining it fails. This
+// one being repaired fails too, which is deliberate: the repair belongs to a card of its own,
+// because it needs `collect()` to measure the mark italic, `build_layout.py` to reserve it italic
+// and `build/label_widths.json` regenerated in a browser, and the card that does that has to come
+// back here and take this row out.
+//
+// The consequence is not unwatched in the meantime: the third assertion of `the captions under a
+// label` holds this caption's PAINTED italic width against the number `9/400` reserves, on whatever
+// machine is running, and goes red the day the two stop coinciding there.
+const FACE_KNOWN = [
+  { s: 'no system holds it', painted: '9/400i', reserved: '9/400', readings: 414 }
+];
+
+// A face, from the five properties a width depends on, as one comparable string. Sizes and letter
+// spacing are normalised to numbers because the two sides spell them differently: the stylesheet
+// writes `.07em` and the browser resolves it to `0.63px`, and an em is a fraction of the element's
+// own size, so the conversion is arithmetic on the context's own declaration rather than a second
+// reading of anything.
+function faceKey(size, weight, style, spacing, transform) {
+  const n = v => String(Math.round(parseFloat(v) * 1000) / 1000);
+  const sp = (spacing === 'normal' || spacing === '' || spacing === undefined) ? 'normal' : n(spacing);
+  return `${n(size)}px/${weight}/${style}/${sp}/${transform}`;
+}
+
+// The face a context of build/label_widths.json declares. A property the context does not name is
+// the initial value, which is what the browser will have resolved for it too: upright, weight 400,
+// no letter spacing and no transform.
+function faceOfContext(css) {
+  let sp = css['letter-spacing'] || 'normal';
+  if (/em$/.test(sp)) sp = `${parseFloat(sp) * parseFloat(css['font-size'])}px`;
+  return faceKey(css['font-size'], css['font-weight'] || '400', css['font-style'] || 'normal',
+                 sp, css['text-transform'] || 'none');
+}
+
+// Every `text` the drawing paints, its class, its string and the face the cascade resolved for it,
+// at rest and then again with each card selected in turn. No width is read and no coordinate is
+// read; `getComputedTextLength()` appears only as the proof that a reading was laid out at all,
+// which is a state `body.hide-unrecorded .ghost` can produce and issue 207 found the hard way.
+const FACE_READ = `
+  function faceOf(t) {
+    var c = getComputedStyle(t);
+    return { size: c.fontSize, weight: String(c.fontWeight), style: c.fontStyle,
+             spacing: c.letterSpacing, transform: c.textTransform,
+             w: t.getComputedTextLength() };
+  }
+  var svg = document.getElementById('graph');
+  var rows = [];
+  function push(state, t) {
+    var f = faceOf(t);
+    rows.push({ state: state, cls: t.getAttribute('class'), s: t.textContent,
+                size: f.size, weight: f.weight, style: f.style, spacing: f.spacing,
+                transform: f.transform, w: f.w });
+  }
+  svg.querySelectorAll('text').forEach(function (t) { push('at rest', t); });
+  var cards = 0, selected = 0, refused = [];
+  svg.querySelectorAll('g[data-node], g[data-outside]').forEach(function (g) {
+    cards++;
+    var tile = g.querySelector('rect.tile-bg');
+    var id = g.getAttribute('data-node') || g.getAttribute('data-outside');
+    if (!tile) { refused.push(id + ' (no tile to press)'); return; }
+    tile.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    // Only a card the page agreed to select is read again. A press that selected nothing must
+    // leave a hole this driver reports, not a second copy of the resting reading.
+    if (!g.classList.contains('sel')) { refused.push(id + ' (the press did not select it)'); return; }
+    selected++;
+    g.querySelectorAll('text').forEach(function (t) { push('selected', t); });
+  });
+  return { rows: rows, cards: cards, selected: selected, refused: refused };
+`;
+
 // The curve, flattened the way the placer flattens it. Nothing is shared with build_layout.py but
 // the chord count and the numbers in the `d` attribute the page painted.
 function chipArc(p, n) {
@@ -13953,6 +14147,142 @@ async function runGrain(chrome, base) {
           (overrun.length ? `: ${overrun.slice(0, 4).join('; ')}` : ''),
         `narrowest headroom between a painted caption and its reserved line, over ` +
           `${rows.length} readings in two states: ${worstFill === Infinity ? 'none' : worstFill.toFixed(2)} units`);
+    });
+
+    // ---- the face a width was reserved in, issue 206 -----------------------
+    await group('the face a width was reserved in', async () => {
+      const table = chipWidths();
+      const rows = [];
+      let cards = 0, selected = 0;
+      const refused = [];
+      for (const g of ['sessions', 'modules']) {
+        for (const k of KEYS) {
+          await goto(base + '#/p/' + k + (g === 'modules' ? '/modules' : ''));
+          const r = await ev(FACE_READ);
+          cards += r.cards;
+          selected += r.selected;
+          refused.push(...r.refused.map(x => k + '/' + g + ' ' + x));
+          rows.push(...r.rows.map(x => Object.assign({ where: k + '/' + g }, x)));
+        }
+      }
+
+      // The contexts of the table, as a face each, and the face of every reading, as the same
+      // string. A face no context declares is named `(no context)` and is the census's business
+      // below rather than the comparison's: the count numeral inside a tile is one.
+      const raw = table ? JSON.parse(fs.readFileSync(CHIP_WIDTHS_PATH, 'utf8')) : null;
+      const ctxs = raw && raw.contexts ? raw.contexts : null;
+      const byFace = {};
+      if (ctxs) for (const k of Object.keys(ctxs)) byFace[faceOfContext(ctxs[k].css)] = k;
+      const named = r => byFace[faceKey(r.size, r.weight, r.style, r.spacing, r.transform)] ||
+                         '(no context)';
+      const clsKey = r => {
+        const t = String(r.cls || '').split(/\s+/).filter(x => x && FACE_IGNORE.indexOf(x) < 0);
+        return t.length ? t.sort().join(' ') : '(no class)';
+      };
+      for (const r of rows) { r.ctx = named(r); r.k = clsKey(r); }
+      const kept = rows.filter(r => FACE_RESERVED.indexOf(r.k) >= 0);
+
+      // ONE. THAT THERE WAS ANYTHING TO READ, AND THAT IT IS WHAT THIS FILE THINKS IT IS. Both
+      // comparisons below are set containments, and a set containment over an empty set is
+      // vacuously true and prints green, which is the one shape of dead instrument this repository
+      // keeps finding. So the population is asserted before it is used: the reading count per
+      // painted face, pinned; every card pressed and every press answered; and no reading laid out
+      // at zero, which `getComputedTextLength()` answers for a `display: none` text and which
+      // issue 207 found a live route to.
+      const census = {};
+      for (const r of kept) census[r.ctx] = (census[r.ctx] || 0) + 1;
+      const ordered = {};
+      for (const k of Object.keys(FACE_CENSUS).concat(Object.keys(census)).sort()) {
+        if (census[k] !== undefined || FACE_CENSUS[k] !== undefined) ordered[k] = census[k] || 0;
+      }
+      const zeros = kept.filter(r => r.s !== '' && !(r.w > 0));
+      assert('every string the fourteen drawings paint was read, in both states, with a face of its own',
+        JSON.stringify(ordered) === JSON.stringify(FACE_CENSUS) &&
+          cards === FACE_CARDS && selected === FACE_CARDS && refused.length === 0 &&
+          zeros.length === 0,
+        `${Object.values(FACE_CENSUS).reduce((a, b) => a + b, 0)} readings over the faces ` +
+          `${JSON.stringify(FACE_CENSUS)}, from ${FACE_CARDS} cards each pressed once and each ` +
+          `answering the press, none of them laid out at zero`,
+        `${kept.length} readings over ${JSON.stringify(ordered)}, ${cards} cards, ` +
+          `${selected} selected` +
+          (refused.length ? `, ${refused.length} refused: ${refused.slice(0, 3).join('; ')}` : '') +
+          (zeros.length ? `, ${zeros.length} laid out at zero: ` +
+            zeros.slice(0, 3).map(r => `${r.where} ${JSON.stringify(r.s)}`).join('; ') : ''),
+        `${kept.length} readings, ${cards} cards, ${Object.keys(census).length} faces`);
+
+      // TWO. THE CENSUS OF CLASSES, IN BOTH DIRECTIONS, which is what stops the two comparisons
+      // from being about a shrinking part of the drawing. A text this phase has no row for is a
+      // string whose face nothing here judges, and a row with nothing under it is an element that
+      // has gone somewhere this phase cannot see. The split is what says which of the two lists a
+      // class belongs in, and it is the only hand-written thing in this phase.
+      const seenRes = [...new Set(rows.map(r => r.k))].filter(k => FACE_RESERVED.indexOf(k) >= 0).sort();
+      const seenOther = [...new Set(rows.map(r => r.k))].filter(k => FACE_RESERVED.indexOf(k) < 0).sort();
+      assertEqual('and every painted text is one of the classes this phase has a row for',
+        { reserved: seenRes, unreserved: seenOther,
+          unreservedReadings: rows.length - kept.length },
+        { reserved: FACE_RESERVED.slice().sort(), unreserved: FACE_UNRESERVED.slice().sort(),
+          unreservedReadings: FACE_UNRESERVED_READINGS },
+        'the classes site/render.js paints under #graph, split by whether the width table ' +
+        'reserves a line for what they hold');
+
+      // THREE. THE CLAIM THE CARD EXISTS FOR: every string the page paints is measured in the face
+      // the page paints it in. The table is the subject and the page is the oracle, and the one
+      // pair this tree ships in disagreement is declared above rather than let through by a looser
+      // comparison. A repair that took that pair away fails here too, on purpose.
+      const missed = {};
+      for (const r of kept) {
+        if (r.ctx === '(no context)' || !table || !table[r.ctx] ||
+            table[r.ctx][r.s] === undefined) {
+          const key = r.ctx + ' ' + r.s;
+          if (!missed[key]) missed[key] = { s: r.s, painted: r.ctx, n: 0, where: r.where };
+          missed[key].n++;
+        }
+      }
+      const known = {};
+      for (const d of FACE_KNOWN) known[d.painted + ' ' + d.s] = d;
+      const surprise = Object.keys(missed).filter(k => !known[k])
+        .map(k => `${missed[k].where} ${JSON.stringify(missed[k].s)} is painted ` +
+                  `${missed[k].painted} and no context of that face holds it ` +
+                  `(${missed[k].n} readings)`);
+      const changed = [];
+      for (const d of FACE_KNOWN) {
+        const got = missed[d.painted + ' ' + d.s];
+        if (!got) {
+          changed.push(`${JSON.stringify(d.s)} no longer disagrees; take its row out of FACE_KNOWN`);
+        } else if (got.n !== d.readings) {
+          changed.push(`${JSON.stringify(d.s)} was read ${got.n} times and FACE_KNOWN says ${d.readings}`);
+        }
+        if (table && table[d.reserved] && table[d.reserved][d.s] === undefined) {
+          changed.push(`${JSON.stringify(d.s)} is not in ${d.reserved}, which is the context ` +
+                       'FACE_KNOWN says reserves it');
+        }
+      }
+      assert('every string is measured in the face the page paints it in, bar the one declared pair',
+        kept.length > 0 && surprise.length === 0 && changed.length === 0,
+        `all ${kept.length} readings looked up in a context whose declared size, weight, slant, ` +
+          `letter spacing and text transform are the ones the cascade resolved, except ` +
+          FACE_KNOWN.map(d => `${JSON.stringify(d.s)} painted ${d.painted} and reserved ${d.reserved}`).join('; '),
+        (surprise.length ? `${surprise.length} painted in a face nothing measured them in: ` +
+          surprise.slice(0, 4).join('; ') : 'none undeclared') +
+          (changed.length ? `; ${changed.join('; ')}` : ''),
+        `${kept.length} readings, ${Object.keys(missed).length} declared disagreement(s)`);
+
+      // FOUR. THE REVERSE, which the coverage gate reports as dead weight and never as a wrong
+      // context: a face the table measured for strings nothing paints in it. A context with no
+      // witness is a set of widths reserved for a face the drawing does not have, and the strings
+      // under it are being looked up by a build that will paint them in some other face.
+      const witness = {};
+      for (const r of kept) {
+        if (r.ctx !== '(no context)' && table && table[r.ctx] && table[r.ctx][r.s] !== undefined) {
+          witness[r.ctx] = (witness[r.ctx] || 0) + 1;
+        }
+      }
+      const orphan = ctxs ? Object.keys(ctxs).filter(k => !witness[k]).sort() : [];
+      assertEqual('and every face the table measured is a face the fourteen drawings paint in',
+        { contexts: ctxs ? Object.keys(ctxs).length : 0, unwitnessed: orphan },
+        { contexts: Object.keys(FACE_CENSUS).length, unwitnessed: [] },
+        'each witnessed by at least one string of its own, painted in its own face: ' +
+        JSON.stringify(witness));
     });
 
     // ---- the count --------------------------------------------------------
