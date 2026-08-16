@@ -588,6 +588,35 @@
       return e;
     }
 
+    // ---- the rail saying that it does not fit, issue 170 ------------------------
+    // The stylesheet carries the argument for the fade and the measurement that made it necessary.
+    // This is the half that decides WHEN: a rail that fits says nothing, a rail with chips off one
+    // end fades that end, and a rail with chips off both fades both. Written from the three
+    // numbers the element already knows rather than from a width the page would have to be told,
+    // so it is right at 2560, at 390 and at whatever a reader's window actually is.
+    //
+    // ONE PIXEL OF SLACK. `scrollWidth` and `clientWidth` are integers rounded off subpixel
+    // layout, and a rail that fits exactly has reported a one pixel overflow on this page before,
+    // which would paint a fade over a chip with nothing past it.
+    var RAIL_SLACK = 1;
+
+    function railFit() {
+      if (!pgRail) return;
+      var max = pgRail.scrollWidth - pgRail.clientWidth;
+      var at = pgRail.scrollLeft;
+      pgRail.classList.toggle('rail-more-l', at > RAIL_SLACK);
+      pgRail.classList.toggle('rail-more-r', max - at > RAIL_SLACK);
+    }
+
+    if (pgRail) {
+      // Three occasions, and each is one the other two cannot see. A scroll is the reader moving
+      // the rail. A resize is the row rewrapping under them, which changes clientWidth and nothing
+      // else. And describeRail() below is the chips being rewritten, which changes scrollWidth:
+      // the rail is rebuilt when the grain changes and the fractions on it change with it.
+      pgRail.addEventListener('scroll', railFit, { passive: true });
+      window.addEventListener('resize', railFit);
+    }
+
     // Every chip's address and every chip's state, rewritten on every change of scope and of
     // grain, because both are in the address the chip links to.
     function describeRail() {
@@ -603,6 +632,7 @@
               ? 'all ' + VIEWS.length + ' programmes are drawn'
               : 'draw all ' + VIEWS.length + ' programmes');
       });
+      railFit();
     }
 
     // ---- how much of the programme the drawing is, issue 122 --------------------

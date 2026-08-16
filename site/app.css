@@ -834,11 +834,61 @@ h1 {
   overflow-x: auto;
   overflow-y: hidden;
   /* The scrollbar is a phone affordance and a desktop distraction, and at every width the rail
-     either fits or is the one box on this row a thumb is expected to push. */
+     either fits or is the one box on this row a thumb is expected to push.
+
+     THE SECOND HALF OF THAT SENTENCE IS FALSE AT 390 AND THE RULE BELOW IS WHY IT IS NOW TRUE.
+     Issue 170. Measured at 390 by 844 on `#/`: the rail holds 426 px of chips in a 256 px box, so
+     it neither fits nor is a box anything tells a thumb to push. `All IB SC BL PE` are on the
+     screen and `HR`, `DS` and `CFA` are not, at rest, with no scrollbar because of the two
+     declarations here, no arrow, and no chip cut in half at the edge to suggest one: the rail's
+     right edge falls at 268.4 and the last painted chip ends at 265.1, so the row reads as a
+     complete row of five programmes out of a set the page has seven of. Three programmes were
+     unreachable to a reader who did not already know the row moves.
+
+     A SCROLLER EARNS CLIPPING, AND ONLY IF IT SAYS IT IS A SCROLLER, which is the line this card
+     drew and argued on #170. #168's hit test scrolls each control into its scroller before it
+     tests, on the reasoning that a control a reader can scroll to is a control a reader can press,
+     and that is right about pressing and says nothing about knowing. Nothing here is COVERED: the
+     rail ends twelve pixels before the view selector begins and `overflow-x` clips what is past
+     it, so the audit's reading of these chips as sitting under `#navdiagram` is what
+     `elementFromPoint` reports about a clipped child's unclipped rect and not what is painted. */
   scrollbar-width: none;
 }
 
 .pgrail::-webkit-scrollbar { display: none; }
+
+/* WHAT SAYS SO IS THE CONTENT GOING, AND NOT A CONTROL. The two alternatives were measured and
+   both spend something this card was told not to spend. A scrollbar under the row is 11 px of a
+   844 px screen and, on the phone this is actually for, iOS draws an overlay scrollbar that
+   appears while a finger is moving and is therefore not a rest state affordance at all. Letting
+   the rail wrap to a second line is the header's own phone sketch one row taller: 32 px, which
+   takes the chrome from 0.1268 of the viewport to 0.1647 against the 0.1730 this file holds itself
+   to, and #142 already spent that line on the term strip. A mask costs no layout at all and it is
+   what a reader already reads as "there is more this way".
+
+   ON THE SIDE THAT HAS MORE, AND ONLY WHILE IT HAS. router.js writes the two classes from
+   scrollLeft, scrollWidth and clientWidth, so a rail that fits carries neither and a rail scrolled
+   to its end drops the one behind it. A fade painted at an edge with nothing past it would be the
+   page saying there is more when there is not, which is the same defect as saying nothing.
+
+   A MASK AND NOT A PANEL OVER THE EDGE, which is not a preference. A gradient painted on top would
+   be an element covering the rail, and covering a control is exactly what the line above says a
+   scroller never earns; the assertion this card adds would have to exempt it. `mask-image` takes
+   the chips' own pixels down instead, so nothing is added to the page for `elementFromPoint` to
+   find and the chip under the fade is still the thing at that point. Baseline Chrome 120, Safari
+   15.4, Firefox 53, earlier than the `light-dark()` this file already requires. */
+.pgrail.rail-more-r {
+  mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
+}
+
+.pgrail.rail-more-l {
+  mask-image: linear-gradient(to left, #000 calc(100% - 22px), transparent);
+}
+
+.pgrail.rail-more-l.rail-more-r {
+  mask-image: linear-gradient(to right, transparent, #000 22px,
+                              #000 calc(100% - 22px), transparent);
+}
 
 /* A chip is the nav's own control box with a second value inside it, so it inherits the height,
    the radius and the focus ring from nothing typed twice: the numbers here are the ones .linkbtn
@@ -1697,7 +1747,7 @@ body.fb-mode #canvas { cursor: crosshair; }
    USER unit, and #graph carries the canvas matrix, so what a reader gets is one unit times the
    scale. Measured at 1536 by 839 at the fit the page opens on, `getScreenCTM().a` is 0.1721 and
    the ring painted at 0.1721 CSS px. That is not a faint ring, it is an antialiased tint: read off
-   a 1x screenshot it moved 85 of 960 pixels from rgb(249,251,252) to rgb(241,245,250), a contrast
+   a 1x screenshot it moved 85 of 960 pixels from #f9fbfc to #f1f5fa, a contrast
    of 1.05 to 1 against the plate. Six presses of zoom in reach 0.87px. Every node in the drawing
    is focusable, so this was the whole of the keyboard's evidence of where it was, on 186 of the
    206 focus stops a 390px screen has.
@@ -1711,7 +1761,7 @@ body.fb-mode #canvas { cursor: crosshair; }
    the unit a reader's eye is in. Two of them rather than one, which is WCAG 2.2 SC 2.4.13's own
    floor for a focus indicator and is what `.capbtn:focus` on this same drawing already uses. And
    an OPAQUE token: `--rule-select` is `rgba(45, 114, 210, 0.45)`, which composites over the lane
-   plate to rgb(158, 189, 233) and 1.8535 to 1, under the 3 to 1 SC 1.4.11 asks of a non-text
+   plate to #9ebde9 and 1.8535 to 1, under the 3 to 1 SC 1.4.11 asks of a non-text
    indicator and under the 3.0000 this repository's own plate gate holds a surface to.
    `--i-primary` is the same hue with nothing taken off it: 4.5558 to 1 on the light plate and
    4.8112 to 1 on the dark one, and it is the colour every other focus ring in this stylesheet is
