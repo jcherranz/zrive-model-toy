@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T21:40:25Z",
+  "generated": "2026-08-16T22:20:33Z",
   "columns": [
     {
       "key": "raw",
@@ -42,6 +42,14 @@
             "idea"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
+        },
+        {
+          "id": 220,
+          "title": "Nothing proves a reserved width was USED, only that it was asked for",
+          "labels": [
+            "limitation"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/220"
         }
       ]
     },
