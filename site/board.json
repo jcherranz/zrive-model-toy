@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T14:24:55Z",
+  "generated": "2026-08-16T14:47:07Z",
   "columns": [
     {
       "key": "raw",
@@ -65,14 +65,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/195"
         },
         {
-          "id": 196,
-          "title": "The two count gates return early with the vault absent, so the denominator of every fraction is unchecked on every CI run",
-          "labels": [
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/196"
-        },
-        {
           "id": 199,
           "title": "Capture mode is mouse-only on the drawing, and three reach measurements that #170 left standing",
           "labels": [
@@ -86,6 +78,14 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 196,
+          "title": "The two count gates return early with the vault absent, so the denominator of every fraction is unchecked on every CI run",
+          "labels": [
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/196"
+        },
         {
           "id": 187,
           "title": "The redesign's headline number is the one number not pinned: a new header button ships green",
@@ -143,17 +143,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/169"
-        },
-        {
-          "id": 168,
-          "title": "Two planted defects shipped green through the whole suite and both content gates",
-          "labels": [
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/168"
         }
       ],
-      "hidden": 146,
+      "hidden": 147,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
