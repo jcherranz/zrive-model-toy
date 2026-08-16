@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T07:48:36Z",
+  "generated": "2026-08-16T07:57:46Z",
   "columns": [
     {
       "key": "raw",
@@ -33,6 +33,14 @@
             "idea"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
+        },
+        {
+          "id": 187,
+          "title": "The redesign's headline number is the one number not pinned: a new header button ships green",
+          "labels": [
+            "bug"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/187"
         }
       ]
     },
