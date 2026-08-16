@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T22:35:56Z",
+  "generated": "2026-08-16T23:59:32Z",
   "columns": [
     {
       "key": "raw",
@@ -92,15 +92,6 @@
       "title": "In progress",
       "cards": [
         {
-          "id": 216,
-          "title": "A stylesheet that never loaded is reported as twelve assertions about the page, and the run says the page has regressed",
-          "labels": [
-            "limitation",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/216"
-        },
-        {
           "id": 220,
           "title": "Nothing proves a reserved width was USED, only that it was asked for",
           "labels": [
@@ -123,6 +114,15 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/217"
+        },
+        {
+          "id": 216,
+          "title": "A stylesheet that never loaded is reported as twelve assertions about the page, and the run says the page has regressed",
+          "labels": [
+            "limitation",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/216"
         },
         {
           "id": 213,
@@ -176,17 +176,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/203"
-        },
-        {
-          "id": 199,
-          "title": "Capture mode is mouse-only on the drawing, and three reach measurements that #170 left standing",
-          "labels": [
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/199"
         }
       ],
-      "hidden": 156,
+      "hidden": 157,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
