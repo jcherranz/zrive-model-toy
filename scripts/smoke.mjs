@@ -10723,7 +10723,17 @@ async function runGrain(chrome, base) {
       // the whole family of dead instrument this repository has found nine of.
       const unjudged = judged.filter(([, j]) => j.why);
       const TIP_TOL = 1e-3;       // the tip is ON the end point, not near it
-      const ANG_TOL = 0.1;        // render.js rounds the rotation to a tenth; this is that rounding
+      // HALF A DEGREE, AND IT IS A TOLERANCE RATHER THAN A MEASUREMENT OF THIS MACHINE. Two things
+      // it has to cover and neither of them is the page being wrong: render.js rounds the rotation
+      // to a tenth of a degree, which is worth up to a twentieth on its own, and the browser's
+      // getPointAtLength flattens the curve to its own tolerance while the walk above flattens it to
+      // this file's. Locally the worst of 740 heads came out at eight hundredths of a degree. Issue 149 turned
+      // its own new assertion red by fitting a pixel constant to one machine's rendering and meeting
+      // a different font metric on the CI runner, so this is set an order of magnitude clear of what
+      // was measured rather than just above it. The defect it exists to catch is 18.1 degrees on the
+      // edge the card was filed on and 27.5 on the worst in that drawing, so half a degree is still
+      // thirty six times smaller than the smallest thing it has to see.
+      const ANG_TOL = 0.5;
       const offTip = judged.filter(([, j]) => !j.why && !(j.tipOff <= TIP_TOL));
       const offAng = judged.filter(([, j]) => !j.why && !(j.angleOff <= ANG_TOL));
       const worstAng = judged.reduce((a, [, j]) => j.why ? a : Math.max(a, j.angleOff), 0);
