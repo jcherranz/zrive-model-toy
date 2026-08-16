@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T09:07:28Z",
+  "generated": "2026-08-16T10:42:46Z",
   "columns": [
     {
       "key": "raw",
@@ -49,14 +49,6 @@
       "title": "Backlog",
       "cards": [
         {
-          "id": 157,
-          "title": "A person on the drawing is someone you can reach, and the route is a fact on the object",
-          "labels": [
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/157"
-        },
-        {
           "id": 168,
           "title": "Two planted defects shipped green through the whole suite and both content gates",
           "labels": [
@@ -87,6 +79,14 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
+        },
+        {
+          "id": 157,
+          "title": "A person on the drawing is someone you can reach, and the route is a fact on the object",
+          "labels": [
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/157"
         },
         {
           "id": 171,
