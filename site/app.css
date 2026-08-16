@@ -315,7 +315,7 @@ body.board #view-board { display: flex; }
    router.js where the list is opened, beside the aria-current it already sets on the nav link.
    The ghost toggle describes the drawing, so on the board it is not dimmed or reworded, it is
    gone. Issue 77. */
-.h-board, .h-students, .h-calendar { display: none; }
+.h-board, .h-students { display: none; }
 body.board .h-diagram { display: none; }
 body.board .h-board { display: inline; }
 body.students .h-diagram { display: none; }
@@ -325,7 +325,6 @@ body.students .h-students { display: inline; }
    this page owns a line. Written the same way as the two above and set by the module that opens
    the view, term.js, beside the aria-current it already puts on the reading it is showing. */
 body.calendar .h-diagram { display: none; }
-body.calendar .h-calendar { display: inline; }
 body.outline .h-diagram { display: none; }
 
 /* ---- and the outline has no heading of its own any more, issue 152 --------------
@@ -344,8 +343,16 @@ body.outline .h-diagram { display: none; }
    to ship than the redundant sentence it replaced. `visibility: hidden` keeps the box, so the row
    is laid out exactly as it was, and takes the element out of the accessibility tree, so there is
    no empty heading in the document. What names this route to a screen reader is the sheet, which
-   is `role="dialog"` labelled by its own h2. */
-body.outline h1 { visibility: hidden; }
+   is `role="dialog"` labelled by its own h2.
+
+   AND THE CALENDAR JOINED IT AT ISSUE 153, for a harder reason than redundancy. Its typed heading
+   read "The term, in date order" while the sheet's own h2 at the same address read "The term, 11
+   of 83 sessions, unstaffed first": measured on the running page, not two ways of saying one thing
+   but a contradiction, and the typed line is the half that is wrong, because #124 made the order a
+   property of the SHAPE and a line in index.html cannot be right on all four of them. Both
+   readings of the term now carry no page heading and are named by the sheet they open. */
+body.outline h1,
+body.calendar h1 { visibility: hidden; }
 /* THE ABSENCE CONTROL IS WITHDRAWN WHEREVER THE DRAWING IS NOT ON SCREEN, and it inherits that
    rule from the two controls it replaces rather than inventing one. Issue 139.
 
