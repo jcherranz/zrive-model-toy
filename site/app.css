@@ -2776,7 +2776,43 @@ body.hide-unrecorded .sock-unrec { display: none; }
    between, a notice that says what the rows are and what they are not, and a table with group
    rows in it. Everything else, the backdrop, the box, the head, the scroll and the phone layout,
    is the sheet's and is not repeated here. */
-.term .sheet-box { width: min(1100px, 100%); }
+/* ---- how wide the sheet is, issue 149 ------------------------------------------
+   "There is a gap to the left of this header blocks which looks bad", filed at 2560 by 1317,
+   which is a width nothing in this layout had been measured at until issues 142, 143 and this
+   one. The card's own triage carried a hypothesis and said to confirm it by driving the page:
+   that at 2560 the table stretches and a leading column carrying little or nothing becomes a wide
+   empty band before the first heading, which would show up as the thead and the tbody disagreeing
+   about where the columns are.
+
+   THE HYPOTHESIS IS FALSE AND THE MEASUREMENT SAYS SO. Driven at 2560 by 1317 on the real page,
+   the nine column boxes in the thead and the nine in a tbody row are identical to the pixel:
+   syllabus at x 737 and 74.47 wide in both, template at 811.47 and 76.02 in both, and so on
+   through `drawn as`. Nothing about the columns disagrees at that width, so nothing about the
+   columns is what he is looking at.
+
+   WHAT IS ACTUALLY WRONG AT 2560, AND IT IS THE SAME FAMILY. This box was `min(1100px, 100%)`,
+   so from 1132 upwards it is 1100 CSS px whatever the viewport is. Measured across every one of
+   the sheet's addresses, with every block open and with none, the widest table this sheet can be
+   asked to draw is the unscoped outline at 1145.98 px; the box gives it 1098. So at 2560 the
+   last column is clipped and the whole outline scrolls sideways inside a sheet that is using 1100
+   of a 2560 screen, with the rest of the width empty on both sides of it. A reader at his
+   viewport meets a table that stops before its final column with half the screen unused, which
+   is a gap to the left of the block and one to the right of it at the same time.
+
+   THE CEILING IS DERIVED AND NOT NUDGED. 1180 is above the 1145.98 the widest reading demands and
+   above the sheet's own border and gutter on top of it, and it is not larger, because every pixel
+   past what the table demands is distributed by the table into its own auto columns as slack:
+   growing this box to fill 2560 would buy exactly the wide empty bands INSIDE the table that the
+   triage predicted outside it. What is either side of the sheet is the drawing it is open over,
+   which is the artefact rather than dead space.
+
+   AND THE NUMBER IS HELD BY AN ASSERTION RATHER THAN BY THIS COMMENT. A ceiling typed here is
+   right for one term and one type ramp, which is #142's objection to a measured value written
+   into a stylesheet. The suite drives every address of this sheet at 2560 and requires the widest
+   of them to fit without a sideways scroll, so a term that outgrows this number turns the run red
+   rather than quietly clipping a column again. Below the ceiling the box is the viewport's, which
+   is what it always was, and 390 is untouched. */
+.term .sheet-box { width: min(1180px, 100%); }
 
 .term-switch {
   flex: none;
