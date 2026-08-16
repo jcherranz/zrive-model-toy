@@ -305,11 +305,15 @@ const PHASES = {
   // 56 until issues 146, 158 and 160, which add eight to this phase and to no other and replace
   // one of its own: the two grids and the scope set are all read here, where the sheet's phase already
   // drives them, and the week grid's old assertion went with the shape it was written against.
-  // 63 until issue 168 R4(b), which adds one: that every clause of the sheet sentence names the
+  'term':                 { count: 63, when: 'behavioural' },
+  // 6 until issue 168 R4(b), which adds one: that every clause of the sheet sentence names the
   // population its figures were counted over, on every route the sheet has, against a closed list
-  // of clause shapes. The old claim of that name read two figures on two routes.
-  'term':                 { count: 64, when: 'behavioural' },
-  'the sample':           { count: 6, when: 'behavioural' },
+  // of clause shapes. The old claim of that name read two figures on two routes, and it lives in
+  // this phase rather than in `term` because the sample is what a denominator is a denominator of.
+  // Written here after the run said so: the assertion was declared under `term` on the reading
+  // that the sheet is the term's, and the per-phase count refused the pair before any of it was
+  // believed, which is the terminator doing the job it is there for.
+  'the sample':           { count: 7, when: 'behavioural' },
   // 6 until issue 167, which adds three: that the sentence over a window with nothing in it says
   // which KIND of nothing, in the words the review's own absence row uses, that over a scope of
   // two it counts the two together, and that it follows the drawing under it when the scope moves
