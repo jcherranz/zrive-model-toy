@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T05:07:56Z",
+  "generated": "2026-08-16T07:10:45Z",
   "columns": [
     {
       "key": "raw",
@@ -33,6 +33,14 @@
             "idea"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
+        },
+        {
+          "id": 184,
+          "title": "The only file in the repository that grep cannot read is a source file, and a grep that skips it reports clean",
+          "labels": [
+            "bug"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/184"
         }
       ]
     },
@@ -41,28 +49,12 @@
       "title": "Backlog",
       "cards": [
         {
-          "id": 146,
-          "title": "The calendar is two honest shapes and two that are not, and it never got the scope set",
-          "labels": [
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/146"
-        },
-        {
           "id": 157,
           "title": "A person on the drawing is someone you can reach, and the route is a fact on the object",
           "labels": [
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/157"
-        },
-        {
-          "id": 158,
-          "title": "The week grid compares nothing and the month grid draws some days twice",
-          "labels": [
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/158"
         },
         {
           "id": 159,
@@ -119,14 +111,6 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/171"
-        },
-        {
-          "id": 172,
-          "title": "No CSP on a public origin holding a PAT, and the last-line gate runs after the deploy",
-          "labels": [
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/172"
         }
       ]
     },
@@ -145,6 +129,14 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
         },
         {
+          "id": 146,
+          "title": "The calendar is two honest shapes and two that are not, and it never got the scope set",
+          "labels": [
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/146"
+        },
+        {
           "id": 155,
           "title": "is alignment ok here?",
           "labels": [
@@ -155,14 +147,12 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/155"
         },
         {
-          "id": 156,
-          "title": "check arrow vs line alignment",
+          "id": 158,
+          "title": "The week grid compares nothing and the month grid draws some days twice",
           "labels": [
-            "bug",
-            "feedback",
             "status:in-progress"
           ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/156"
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/158"
         },
         {
           "id": 160,
@@ -173,6 +163,14 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/160"
+        },
+        {
+          "id": 172,
+          "title": "No CSP on a public origin holding a PAT, and the last-line gate runs after the deploy",
+          "labels": [
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/172"
         }
       ]
     },
@@ -207,6 +205,16 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/161"
+        },
+        {
+          "id": 156,
+          "title": "check arrow vs line alignment",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/156"
         },
         {
           "id": 154,
@@ -247,19 +255,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/151"
-        },
-        {
-          "id": 149,
-          "title": "There is a gap to the left of this header blocks whicch looks bad",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/149"
         }
       ],
-      "hidden": 129,
+      "hidden": 130,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]

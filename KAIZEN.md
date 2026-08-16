@@ -586,3 +586,22 @@ build on a cited slug that resolves to nothing.
   so the failure points at the caller's setup instead of at the runner. Silently accepting no
   change would have been worse than the timeout: a helper that says it set a window and did not is
   a phase's whole premise being false.
+- `kaizen-a-tangent-is-not-a-direction-a-reader-can-see` &middot; **Three exact measurements can
+  all say the picture is right while the reader is right that it is wrong, and when that happens
+  the measurements are answering a question nobody asked.** The arrowhead on issue 156 sat on its
+  line's end point to four decimals, on the target tile's edge to every decimal measured, and
+  rotated to the curve's exact tangent there. All three true, and the head still read as detached,
+  because a tangent is an instantaneous fact and a reader sees a stretch of line. **An ornament
+  attached to a curve is aimed over its own length, not by the derivative at the point it is
+  attached at.** Measured over the head's own six and a half units, the line had turned away by up
+  to 27.5 degrees; over two of them, by 41.5. **The general form: when a shape terminates another
+  shape, the direction that matters is the chord across the terminating shape's own extent.** It
+  applies to any tick, cap, label or marker sitting on a curve, and the check that catches it is
+  the one that measures over the ornament's extent rather than at its anchor.
+- `kaizen-take-the-shape-off-the-thing-you-are-aiming` &middot; **A rotation cannot be written
+  without knowing how long the thing being rotated is, so a size typed into a path string and known
+  nowhere else is a change waiting to become a third copy.** `M0 0 L-6.5 2.6 L-6.5 -2.6 Z` carried
+  the head's length twice and no name; the repair named it once and built the string from it, and
+  the assertion reads the length back out of the `d` the page painted rather than knowing it, so a
+  card that changes the triangle and forgets the rotation fails instead of quietly moving what the
+  check is measured against.

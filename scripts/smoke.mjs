@@ -295,10 +295,10 @@ const PHASES = {
   'capture':              { count: 15, when: 'behavioural' },
   'board':                { count: 13, when: 'behavioural' },
   'the gutter on a phone': { count: 2, when: 'narrow' },
-  'console and requests': { count: 2, when: 'every' },
+  'console and requests': { count: 3, when: 'every' },
   'two artefacts':        { count: 4, when: 'grain' },
   'the count':            { count: 3, when: 'grain' },
-  'well formed':          { count: 6, when: 'grain' },
+  'well formed':          { count: 8, when: 'grain' },
   'the fold':             { count: 3, when: 'grain' },
   'reflow':               { count: 8, when: 'grain' },
   'the address':          { count: 3, when: 'grain' },
@@ -568,22 +568,37 @@ const PHASES = {
 // assertion is repaired in the same commit rather than counted again: its three arrivals were
 // fragment navigations that built no document, so the union it called `read cold` was the scope the
 // page had been constructed with, and it reloads now.
-// 298 until issues 146, 158 and 160, which add eight, replace one and delete nothing, so the
-// total moves by seven. Issue 160's is the last of them: that all four shapes of the calendar are
-// spaced off the rule above them by the box they scroll in rather than by whatever each reading
-// happens to begin with, which was 0 on both grids at every width before the repair. The one replaced is the week grid's, which asserted one panel per week that holds
-// a session and is the shape the owner asked to be turned over; what stands in its place asserts
-// the shape he asked for and is two claims rather than one. Two of the seven are #158's own
-// defects,
-// that no day is drawn twice anywhere in the month grid and that the week grid is one grid with
-// the days down its side and a column per week of the term, read off the painted axes rather than
-// off document order. One is that grid's scroller, which may overflow while the page may not.
-// Three are #146's: that the grid says which kind of nothing an empty cell is, that the calendar
-// answers for a set of programmes in the drawing's own spelling while its enumerated routes stay
-// at sixteen, and that the header's absence count is over that whole set. The seventh is the one
-// that makes the window one instrument rather than two, that the columns the week grid lights are
-// exactly the columns the strip has brushed.
-const EXPECTED_ASSERTIONS = 305;
+// 298 until issue 156, which adds two to `well formed` and changes no other count. Both are about
+// the arrowhead against the line it terminates, and the reason they are two rather than one is that
+// they fail on different things: the first says the head is on its line's end point and turned the
+// way the line runs over the head's own length, rebuilt in this file from the line's `d` by a
+// second implementation of the walk; the second says it is attached to the end nearest the tile
+// the relationship names, aimed inside that tile's box, and carried on a line longer than the head
+// itself, which is what makes the clamp in render.js's headAngle() arithmetic rather than a branch
+// no run has ever entered.
+// Issue 172 added one assertion to `console and requests`, which is an `every` phase, so it runs
+// at each of the three viewports and the total moves by three rather than by one. It is the policy
+// check: that index.html carries an enforcing meta CSP ahead of every loader in the head, that the
+// directives the page relies on are still in it, and that the page violated it nowhere at that
+// width. The credential feedback.js keeps in localStorage is what the policy is there for.
+// 303 until issues 146, 158 and 160, which add eight to `term`, replace one of its own and delete
+// nothing, so the total moves by seven and this phase from 56 to 63. The replaced one asserted the
+// week grid's old shape, one panel per week that holds a session, which is the shape the owner
+// asked to be turned over; what stands in its place asserts the shape he asked for and is two
+// claims rather than one. Two of the eight are #158's own defects, that no day is drawn twice
+// anywhere in the month grid and that the week grid is one grid with the days down its side and a
+// column per week of the term, read off the painted axes rather than off document order. One is
+// that grid's scroller, which may overflow while the page may not, driven to a width where it
+// actually does. Three are #146's: that the grid says which kind of nothing an empty cell is, that
+// the calendar answers for a set of programmes in the drawing's own spelling while its enumerated
+// routes stay at sixteen, and that the header's absence count is over that whole set. One is the
+// window being one instrument rather than two, that the columns the week grid lights are exactly
+// the columns the strip has brushed. The eighth is #160's, that all four shapes are spaced off the
+// rule above them by the box they scroll in rather than by whatever each reading begins with.
+// Three cards landed between this file being read and this commit being merged onto them, and
+// every increment is kept: issue 156 owns the two in `well formed`, issue 172 the three in
+// `console and requests`, and these three the seven in `term`.
+const EXPECTED_ASSERTIONS = 310;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -1050,6 +1065,19 @@ function describeArg(a) {
 const STUB_SOURCE = `(function () {
   var rec = { calls: [], opens: [] };
   Object.defineProperty(window, '__smoke', { value: rec, writable: false, configurable: false });
+  // Issue 172. Registered here rather than in the phase that reads it, because this runs before
+  // the parser has reached the head and the policy is enforced from the tag onwards: a listener
+  // installed by the page, or by an evaluate after load, would be deaf to every violation the
+  // document committed on its way up. window.__csp missing is therefore not "clean", it is
+  // "nobody was listening", and checkCsp below fails on that reading rather than passing on it.
+  var csp = [];
+  Object.defineProperty(window, '__csp', { value: csp, writable: false, configurable: false });
+  document.addEventListener('securitypolicyviolation', function (e) {
+    csp.push({ directive: String(e.violatedDirective || e.effectiveDirective || ''),
+               blocked: String(e.blockedURI || '').slice(0, 120),
+               at: (String(e.sourceFile || '').split('/').pop() || '') +
+                   (e.lineNumber ? ':' + e.lineNumber : '') });
+  });
   var realFetch = window.fetch;
   function note(url, method) { rec.calls.push({ url: String(url), method: String(method).toUpperCase() }); }
   window.fetch = function (input, init) {
@@ -10463,6 +10491,222 @@ function checkRequests(page, base) {
 }
 
 // =================================================================================================
+// THE POLICY, AND WHETHER THE BROWSER IS KEEPING IT. Issue 172.
+//
+// WHAT THIS IS GUARDING. feedback.js holds a fine grained GitHub token in localStorage on a public
+// origin. index.html now carries a meta policy whose load bearing line is `script-src 'self'`,
+// which is what stands between an injected script and that token. A policy is not a thing anybody
+// can see working, so without an assertion it is a comment.
+//
+// AND WHY FINDING THE TAG IS NOT ENOUGH, which is the whole shape of this check. A meta tag with a
+// misspelled http-equiv, a policy the browser parsed and dropped, or a directive list somebody
+// widened to `script-src 'self' 'unsafe-inline'` while fixing something else, all leave a tag in
+// the document that a presence check reports as clean. So four things are asserted together and
+// the failure names which of them gave way:
+//
+//   1. THE TAG IS THERE AND IS FIRST. A meta policy binds from the point the parser reads it, so
+//      it has to precede every script and every stylesheet link in the head or part of the
+//      document loads unprotected. The position is read out of head.children rather than assumed.
+//   2. IT STILL CARRIES WHAT THIS PAGE RELIES ON. Each directive is matched whole, and script-src
+//      is additionally required NOT to carry 'unsafe-inline' or 'unsafe-eval', because a policy
+//      that has been given those back is syntactically present and semantically empty.
+//   3. THE BROWSER IS ENFORCING IT, proved by making it refuse something. A style attribute is
+//      written through setAttribute, which `style-src-attr 'none'` must refuse, and the refusal is
+//      read three independent ways: the declarations did not apply, the violation event fired, and
+//      the browser logged it. Nothing about the page depends on that attribute, so the control
+//      costs the page nothing and cannot be satisfied by a policy that is merely present.
+//   4. THE PAGE ITSELF VIOLATED NOTHING, over everything the suite drove at this width, READ TWO
+//      WAYS BECAUSE ONE OF THEM HAS A HOLE. The listener is installed in STUB_SOURCE, before the
+//      parser reaches the tag, so a violation committed while a document was coming up is caught
+//      rather than missed. But window.__csp belongs to the document that raised it and this suite
+//      reloads and navigates dozens of times, so the record read at the end is the LAST document's
+//      only. That was not a theory: the first run of this check reported zero while feedback.js
+//      was breaking the policy on every capture, and only the browser's own log said so. So the
+//      second reading is page.console, which the harness accumulates for the whole browser
+//      session and no navigation clears, filtered to the security channel. The two disagree
+//      exactly when a violation happened on a document that has since been replaced, which is the
+//      case that matters, and the assertion takes the union.
+//
+// THREE STATES AND NOT TWO. window.__csp missing means the recorder never installed and this check
+// was blind; it fails saying so, rather than reading an absent record as an empty one. That is the
+// distinction nine dead instruments on this run could not make.
+//
+// IT RUNS AFTER checkConsole, AND THAT ORDER IS LOAD BEARING. The control's refusal is logged by
+// the browser on the error channel, and checkConsole allows nothing there but the favicon. Firing
+// the control first would make this check plant the failure of another. The dependence is not
+// silent: reordering the two turns checkConsole red, which is the right way round for a coupling
+// nobody can see from the call site.
+//
+// WHAT IT CANNOT DETECT, stated because a check whose blind spots are unwritten gets trusted past
+// them. It reads the policy the DOM holds, so it says nothing about a response header, and Pages
+// sends none. It cannot see a violation the page commits on a route this suite never drives, nor
+// one in a window this suite never opens. ONE DIRECTIVE IS PROVED ENFORCING AND THE OTHER EIGHT
+// ARE INFERRED: the control exercises `style-src-attr` only, and what carries the rest is that the
+// policy text is asserted whole and the browser demonstrably parsed and applied that text. A
+// directive Chrome dropped as unknown while keeping its neighbours would still pass here, which is
+// why the fallback `style-src` is written out beside the two granular ones rather than relied on.
+// And it is a statement about Chrome: no other engine runs in this suite, so the fallback's whole
+// purpose, the engines that do not implement `style-src-elem` and `style-src-attr`, is argued in
+// site/index.html and tested by nothing.
+// =================================================================================================
+// THE WHOLE POLICY AND NOT A LIST OF DIRECTIVES IT MUST MENTION, for two reasons that a review
+// found and a measurement then confirmed.
+//
+// THE FIRST IS THAT A DUPLICATE DIRECTIVE IS DECIDED BY THE ONE IN FRONT. Chrome keeps the first
+// occurrence of a directive name in a policy and ignores every later one, saying so on the console.
+// Measured against this page: `script-src 'unsafe-inline' 'self'; script-src 'self'` executed an
+// injected inline script, and the same pair in the other order refused it. A check that asked only
+// whether the text contains `script-src 'self'` reads the second of those as clean while the first
+// is what the browser is enforcing, so the policy is parsed here and a repeated name is a failure.
+//
+// THE SECOND IS THAT A DIRECTIVE NOBODY CHECKS IS A DIRECTIVE ANYBODY CAN WIDEN. `img-src`,
+// `style-src` and `style-src-elem` were not in the old list, and widening any of them would have
+// passed here on a page that never exercises the widened path. So the comparison is an equality
+// against the whole expected policy. That makes this list something a future card has to edit on
+// purpose, which is the point: a security policy should not be able to drift quietly, and the
+// argument for every line of it is in site/index.html beside the tag.
+const CSP_EXPECTED = [
+  ['default-src', "'none'"],
+  ['script-src', "'self'"],
+  ['style-src', "'self' 'unsafe-inline'"],
+  ['style-src-elem', "'self' 'unsafe-inline'"],
+  ['style-src-attr', "'none'"],
+  ['img-src', "'self'"],
+  ['connect-src', "'self' https://api.github.com"],
+  ['base-uri', "'none'"],
+  ['form-action', "'none'"]
+];
+
+// name -> value, in order, whitespace normalised. Returns the names as well as the pairs, because
+// a repeated name has to be visible after the map that would have swallowed it.
+function parsePolicy(text) {
+  const parts = String(text).split(';').map(p => p.trim()).filter(Boolean);
+  const names = [], pairs = [];
+  for (const p of parts) {
+    const bits = p.split(/\s+/);
+    const name = bits.shift().toLowerCase();
+    names.push(name);
+    pairs.push(name + ' ' + bits.join(' '));
+  }
+  return { names, pairs };
+}
+
+// A violation the browser logged, told from any other error on that channel. The text is Chrome's
+// and is matched on the phrase every one of them carries rather than on a directive name, so a
+// directive this file does not mention still counts as the page breaking its own policy.
+const CSP_LOGGED = /violates the following Content Security Policy directive/i;
+
+async function checkCsp(page) {
+  const consoleBefore = page.console.length;
+  // Everything the browser said before this check touched anything, which is every document this
+  // viewport drove and not only the one on screen.
+  const earlier = page.console.slice(0, consoleBefore)
+    .filter(e => CSP_LOGGED.test(e.text))
+    .map(e => e.text.replace(/\s+/g, ' ').slice(0, 150));
+  const read = await page.evaluate(`(function () {
+    var kids = Array.prototype.slice.call(document.head.children);
+    var meta = kids.filter(function (el) {
+      return el.tagName === 'META' &&
+        String(el.getAttribute('http-equiv') || '').toLowerCase() === 'content-security-policy';
+    });
+    var firstLoader = kids.findIndex(function (el) {
+      return el.tagName === 'SCRIPT' || (el.tagName === 'LINK' &&
+        /stylesheet/i.test(String(el.getAttribute('rel') || '')));
+    });
+    var out = {
+      tags: meta.length,
+      content: meta.length ? String(meta[0].getAttribute('content') || '') : '',
+      metaAt: meta.length ? kids.indexOf(meta[0]) : -1,
+      firstLoaderAt: firstLoader,
+      listener: typeof window.__csp,
+      before: (window.__csp || []).length
+    };
+    if (typeof window.__csp === 'object') {
+      // The control. Two declarations, neither of which any element on this page could arrive at
+      // on its own, so "it was refused" is read off the element and not off the absence of a thing.
+      var d = document.createElement('div');
+      d.setAttribute('style', 'width:55px;outline-style:dotted');
+      document.body.appendChild(d);
+      var cs = getComputedStyle(d);
+      out.controlWidth = cs.width;
+      out.controlOutline = cs.outlineStyle;
+      document.body.removeChild(d);
+    }
+    return JSON.stringify(out);
+  })()`);
+  const r = JSON.parse(read);
+
+  // The wait, and every answer the page could give ends it: the record grows, which is the control
+  // being refused, or the deadline passes, which is the control being allowed. Neither is waited on
+  // as though it were the only one, so a policy that is not enforced fails here in a second and a
+  // half rather than hanging until the suite's timeout and being read as a harness problem.
+  let after = [];
+  if (r.listener === 'object') {
+    const deadline = Date.now() + 1500;
+    for (;;) {
+      after = JSON.parse(await page.evaluate('JSON.stringify(window.__csp)'));
+      if (after.length > r.before || Date.now() > deadline) break;
+      await sleep(25);
+    }
+  }
+  const fired = after.slice(r.before);
+  const logged = page.console.slice(consoleBefore)
+    .filter(e => CSP_LOGGED.test(e.text) && /style-src-attr/.test(e.text));
+  const got = parsePolicy(r.content);
+  const want = CSP_EXPECTED.map(([n, v]) => n + ' ' + v);
+  const repeated = got.names.filter((n, i) => got.names.indexOf(n) !== i);
+  const missing = want.filter(w => got.pairs.indexOf(w) === -1);
+  const extra = got.pairs.filter(p => want.indexOf(p) === -1);
+  // Kept beside the equality rather than replaced by it, and deliberately so: the equality is a
+  // statement about a list somebody can edit, and this is a statement about what the two keywords
+  // mean. An edit that widens script-src and updates CSP_EXPECTED to match still fails here.
+  const loose = /(?:^|;)\s*script-src[^;]*'unsafe-(?:inline|eval)'/.test(r.content);
+  // The control has to have RUN for its refusal to mean anything: if the reading above never
+  // fired it, `undefined !== '55px'` is true and a check with no control would read as a control
+  // that was refused, which is the same mistake as reading an absent record as an empty one.
+  const ran = typeof r.controlWidth === 'string' && typeof r.controlOutline === 'string';
+  const refused = ran && r.controlWidth !== '55px' && r.controlOutline !== 'dotted';
+
+  const why = [];
+  if (r.listener !== 'object') why.push(`BLIND: window.__csp is ${r.listener}, nothing was listening`);
+  if (r.tags !== 1) why.push(`${r.tags} meta policy tag(s) in the head`);
+  if (r.tags === 1 && r.firstLoaderAt !== -1 && r.metaAt > r.firstLoaderAt) {
+    why.push(`the policy sits at head child ${r.metaAt}, after a loader at ${r.firstLoaderAt}`);
+  }
+  if (repeated.length) {
+    why.push(`the policy repeats ${repeated.join(' and ')}, and a browser keeps the FIRST of a ` +
+      'repeated directive, so the one read here is not the one being enforced');
+  }
+  if (missing.length) why.push(`the policy no longer carries ${missing.join(' and ')}`);
+  if (extra.length) why.push(`the policy carries ${extra.join(' and ')}, which nothing here argues for`);
+  if (loose) why.push("script-src has been given 'unsafe-inline' or 'unsafe-eval' back");
+  if (!ran) why.push('the control never ran, so nothing here proved the browser refuses anything');
+  else if (!refused) why.push(`the control was ALLOWED: width ${r.controlWidth}, outline ${r.controlOutline}`);
+  if (fired.length !== 1 || !/style-src-attr/.test(fired[0] ? fired[0].directive : '')) {
+    why.push(`the control raised ${fired.length} violation(s): ${JSON.stringify(fired)}`);
+  }
+  if (!logged.length) why.push('the browser logged no refusal for the control');
+  if (r.before) {
+    why.push(`the document on screen violated the policy ${r.before} time(s): ` +
+      JSON.stringify(after.slice(0, r.before)));
+  }
+  if (earlier.length) {
+    why.push(`the browser logged ${earlier.length} refusal(s) against this page before this ` +
+      `check ran: ${earlier.join(' | ')}`);
+  }
+
+  assert('the page carries an enforcing policy, it is first in the head, it still names what this ' +
+         'page relies on, and the page broke it nowhere',
+    why.length === 0,
+    `one meta policy ahead of every loader, whose ${CSP_EXPECTED.length} directives are exactly ` +
+      `${want.join('; ')}, with no name repeated, refusing a style attribute, and no violation ` +
+      'by the page itself on any document this viewport drove',
+    why.length === 0 ? 'none' : why.join(' | '),
+    `${got.pairs.length} directives, all ${want.length} as expected, none repeated, ` +
+      `control refused, ${r.before + earlier.length} violation(s) by the page`);
+}
+
+// =================================================================================================
 // THE FILTERED DRAWING, RECOMPUTED HERE. Issue 115, findings F9, F11, F18 and F21.
 // =================================================================================================
 // WHAT WAS COVERED AND WHAT WAS NOT. `window.ZT.reflow()` is `faithful(CANON)`, and `CANON` is
@@ -10751,19 +10995,33 @@ const GRAIN_READ = `
   }
   var svg = document.getElementById('graph');
   var tiles = [], chips = [], ids = {}, edges = [], folds = 0, foldSum = 0;
+  var tileAt = {}, heads = [];
   svg.querySelectorAll('g[data-node], g[data-outside]').forEach(function (g) {
-    ids[g.getAttribute('data-node') || g.getAttribute('data-outside')] = true;
+    var id = g.getAttribute('data-node') || g.getAttribute('data-outside');
+    ids[id] = true;
     var r = g.querySelector('rect.tile-bg');
-    if (r) tiles.push(box(r));
+    if (r) { tiles.push(box(r)); tileAt[id] = box(r); }
   });
   svg.querySelectorAll('rect.chip-bg').forEach(function (r) { chips.push(box(r)); });
   svg.querySelectorAll('g[data-edge]').forEach(function (g) {
-    if (!g.querySelector('path.edge, path.edge-ghost, path.edge-outside')) return;
+    var line = g.querySelector('path.edge, path.edge-ghost, path.edge-outside');
+    if (!line) return;
     var k = g.getAttribute('data-edge');
     var t = g.querySelector('title');
     var m = t && /, (\\d+) relationships drawn as one line/.exec(t.textContent);
     if (m) { folds++; foldSum += +m[1]; }
     edges.push(k);
+    // Issue 156. The arrowhead as three raw strings and one measured length, carried out of the
+    // page unjudged: what it ought to be is rebuilt in the driver from the line's own d, so
+    // nothing here can agree with render.js by sharing its arithmetic.
+    var head = g.querySelector('path.arrow, path.arrow-ghost');
+    var tr = head && /translate\\(([-\\d.]+),([-\\d.]+)\\) rotate\\(([-\\d.]+)\\)/
+      .exec(head.getAttribute('transform'));
+    heads.push({ key: k, d: line.getAttribute('d'),
+                 len: +line.getTotalLength().toFixed(4),
+                 shape: head ? head.getAttribute('d') : null,
+                 ax: tr ? +tr[1] : null, ay: tr ? +tr[2] : null, aa: tr ? +tr[3] : null,
+                 target: tileAt[k.slice(k.indexOf('->') + 2)] || null });
   });
   var tileOverlap = 0, chipPile = 0, dangling = [];
   for (var i = 0; i < tiles.length; i++) {
@@ -10788,7 +11046,7 @@ const GRAIN_READ = `
   });
   return { tiles: tiles.length, chips: chips.length, edges: edges.length,
            tileOverlap: tileOverlap, chipPile: chipPile, chipWorst: chipWorst,
-           dangling: dangling,
+           dangling: dangling, heads: heads,
            folds: folds, foldSum: foldSum, tails: counted,
            // The DRAWING's extent, off the page's own report, and NOT the viewBox: the canvas is
            // a viewport onto a plane, so the viewBox is where the reader is looking and moves
@@ -10797,6 +11055,116 @@ const GRAIN_READ = `
            grain: window.ZT.grain(), reflow: window.ZT.reflow(),
            filtered: window.ZT.filtered(), digest: window.ZT.programme().digest };
 `;
+
+// =================================================================================================
+// THE ARROWHEAD, REBUILT HERE. Issue 156.
+//
+// He filed `check arrow vs line alignment` on `bl_students->bl_cohort` and the measurement before
+// anything was touched said the tip was on the line's end point to 0.0000 units, on the target
+// tile's box edge to every decimal measured, and rotated to the curve's exact tangent there. All
+// three right, and
+// the picture still wrong: over the arrowhead's own length, which is the only stretch of line
+// anybody compares the head against, the line had turned away from the head by 18.1 degrees on the
+// edge he filed and by 27.5 on the worst of the ninety eight in that drawing.
+//
+// SO WHAT IS ASSERTED IS THE THING A READER SEES, and it is rebuilt from the line's own `d` by a
+// second implementation rather than read back off render.js's answer. render.js asks the browser
+// for the point one head length back along the path; this walks the cubic itself in ten thousand
+// steps, accumulates the polyline length, and interpolates. Two different arithmetics, so an
+// agreement between them is evidence and not an echo.
+//
+// THE SHAPE IS READ RATHER THAN KNOWN. The head's length is taken out of the `d` attribute the page
+// painted, so a card that changed the triangle without changing the rotation would fail here
+// instead of quietly moving what this checks against.
+const HEAD_STEPS = 10000;
+
+function parseCubic(d) {
+  const m = /^M\s*(-?[\d.]+)\s+(-?[\d.]+)\s+C\s*(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s*$/
+    .exec(String(d).trim());
+  if (!m) return null;
+  const n = m.slice(1).map(Number);
+  if (n.some(v => !Number.isFinite(v))) return null;
+  return [[n[0], n[1]], [n[2], n[3]], [n[4], n[5]], [n[6], n[7]]];
+}
+
+// `M0 0 L-6.5 2.6 L-6.5 -2.6 Z`: tip at the origin, base one length behind it, half a width either
+// side. Returns null on anything else, and the assertion below reports that rather than skipping.
+function parseHead(shape) {
+  const m = /^M0 0 L(-?[\d.]+) (-?[\d.]+) L(-?[\d.]+) (-?[\d.]+) Z$/.exec(String(shape).trim());
+  if (!m) return null;
+  const back = Number(m[1]), half = Number(m[2]), back2 = Number(m[3]), half2 = Number(m[4]);
+  if (!(back < 0) || !(half > 0) || back2 !== back || half2 !== -half) return null;
+  return { len: -back, half: half };
+}
+
+function bezAtT(p, t) {
+  const u = 1 - t;
+  return [u * u * u * p[0][0] + 3 * u * u * t * p[1][0] + 3 * u * t * t * p[2][0] + t * t * t * p[3][0],
+          u * u * u * p[0][1] + 3 * u * u * t * p[1][1] + 3 * u * t * t * p[2][1] + t * t * t * p[3][1]];
+}
+
+// The point `want` units back along the curve from the end named by `fromEnd`, and the curve's own
+// length, both from a polyline this file builds. Nothing is shared with render.js but the numbers
+// in the `d` attribute.
+function walkBack(p, fromEnd, want) {
+  const pts = [];
+  for (let i = 0; i <= HEAD_STEPS; i++) pts.push(bezAtT(p, i / HEAD_STEPS));
+  if (fromEnd) pts.reverse();
+  let run = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const seg = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+    if (run + seg >= want) {
+      const f = seg === 0 ? 0 : (want - run) / seg;
+      return { pt: [pts[i - 1][0] + f * (pts[i][0] - pts[i - 1][0]),
+                    pts[i - 1][1] + f * (pts[i][1] - pts[i - 1][1])],
+               len: null };
+    }
+    run += seg;
+  }
+  return { pt: pts[pts.length - 1], len: run };
+}
+
+function totalLen(p) {
+  let run = 0, prev = bezAtT(p, 0);
+  for (let i = 1; i <= HEAD_STEPS; i++) {
+    const q = bezAtT(p, i / HEAD_STEPS);
+    run += Math.hypot(q[0] - prev[0], q[1] - prev[1]);
+    prev = q;
+  }
+  return run;
+}
+
+function normDeg(a) { while (a > 180) a -= 360; while (a <= -180) a += 360; return a; }
+
+// One head, judged. Returns the four numbers the two assertions read, or a reason it could not be
+// judged at all, which is never treated as a pass.
+function judgeHead(h) {
+  const p = parseCubic(h.d);
+  if (!p) return { why: `${h.key}: its line is not a single cubic (${String(h.d).slice(0, 40)})` };
+  const shape = parseHead(h.shape);
+  if (!shape) return { why: `${h.key}: its head is not the triangle this checks (${h.shape})` };
+  if (h.ax === null || h.aa === null) return { why: `${h.key}: no translate and rotate on the head` };
+  const ends = [p[0], p[3]];
+  const dist = ends.map(e => Math.hypot(h.ax - e[0], h.ay - e[1]));
+  const fromEnd = dist[1] <= dist[0];
+  const len = totalLen(p);
+  const base = walkBack(p, fromEnd, shape.len).pt;
+  const want = Math.atan2(h.ay - base[1], h.ax - base[0]) * 180 / Math.PI;
+  // Does the head point into the tile the relationship names? The ray from the tip along the
+  // rotation, sampled to the far side of a tile, has to be inside that tile's box at some point.
+  let intoTarget = null;
+  if (h.target) {
+    const t = h.target;
+    const rad = h.aa * Math.PI / 180;
+    intoTarget = false;
+    for (let s = 0.5; s <= t.w + t.h; s += 0.5) {
+      const x = h.ax + s * Math.cos(rad), y = h.ay + s * Math.sin(rad);
+      if (x >= t.x && x <= t.x + t.w && y >= t.y && y <= t.y + t.h) { intoTarget = true; break; }
+    }
+  }
+  return { key: h.key, aa: h.aa, tipOff: Math.min(...dist), angleOff: Math.abs(normDeg(h.aa - want)),
+           len: len, headLen: shape.len, intoTarget: intoTarget };
+}
 
 // The nine phases, in one function so that the values one phase measures are the values the next
 // one reasons about, which is how build/check_grain.mjs was written and is why the assertions
@@ -10983,6 +11351,67 @@ async function runGrain(chrome, base) {
           KEYS.map(k => `${k} ${per[k + '/' + g].chipPile} pair(s), worst ` +
                         `${per[k + '/' + g].chipWorst.toFixed(2)}`).join('; '));
       }
+
+      // ---- the arrowhead sits on its line, issue 156 --------------------------
+      // OVER ALL FOURTEEN DRAWINGS AT ONCE rather than once per grain, because the claim is about
+      // the shape of a line and not about an altitude, and two copies of one claim would say the
+      // suite covers more than it does.
+      const judged = [];
+      for (const g of ['sessions', 'modules']) {
+        for (const k of KEYS) {
+          (per[k + '/' + g].heads || []).forEach(h => judged.push([k + '/' + g, judgeHead(h)]));
+        }
+      }
+      // A head this file could not judge is reported as a failure and never as a silence, which is
+      // the whole family of dead instrument this repository has found nine of.
+      const unjudged = judged.filter(([, j]) => j.why);
+      const TIP_TOL = 1e-3;       // the tip is ON the end point, not near it
+      // HALF A DEGREE, AND IT IS A TOLERANCE RATHER THAN A MEASUREMENT OF THIS MACHINE. Two things
+      // it has to cover and neither of them is the page being wrong: render.js rounds the rotation
+      // to a tenth of a degree, which is worth up to a twentieth on its own, and the browser's
+      // getPointAtLength flattens the curve to its own tolerance while the walk above flattens it to
+      // this file's. Locally the worst of 740 heads came out at eight hundredths of a degree. Issue 149 turned
+      // its own new assertion red by fitting a pixel constant to one machine's rendering and meeting
+      // a different font metric on the CI runner, so this is set an order of magnitude clear of what
+      // was measured rather than just above it. The defect it exists to catch is 18.1 degrees on the
+      // edge the card was filed on and 27.5 on the worst in that drawing, so half a degree is still
+      // thirty six times smaller than the smallest thing it has to see.
+      const ANG_TOL = 0.5;
+      const offTip = judged.filter(([, j]) => !j.why && !(j.tipOff <= TIP_TOL));
+      const offAng = judged.filter(([, j]) => !j.why && !(j.angleOff <= ANG_TOL));
+      const worstAng = judged.reduce((a, [, j]) => j.why ? a : Math.max(a, j.angleOff), 0);
+      assert('every arrowhead sits on its own line: on its end point, and turned the way the line ' +
+             'runs over the head\'s own length',
+        judged.length > 0 && unjudged.length === 0 && offTip.length === 0 && offAng.length === 0,
+        `all ${judged.length} heads on all fourteen drawings within ${TIP_TOL} units of the end ` +
+          `point and ${ANG_TOL} of a degree of the chord this file rebuilt from the line's own d`,
+        unjudged.length
+          ? `${unjudged.length} could not be judged: ${unjudged.slice(0, 3).map(([w, j]) => w + ' ' + j.why).join('; ')}`
+          : `${offTip.length} off the end point (${offTip.slice(0, 3).map(([w, j]) => `${w} ${j.key} ${j.tipOff.toFixed(3)}`).join(', ')}), ` +
+            `${offAng.length} off the chord (${offAng.slice(0, 3).map(([w, j]) => `${w} ${j.key} ${j.angleOff.toFixed(2)} deg`).join(', ')})`,
+        `worst angle ${worstAng.toFixed(3)} of a degree over ${judged.length} heads`);
+
+      // AND IT IS ATTACHED TO THE RIGHT END AND AIMED AT THE RIGHT TILE. The first half is what
+      // makes render.js's clamp arithmetic rather than a branch nobody has watched run: it takes
+      // the whole line as the chord when the line is shorter than the head, and no line in any of
+      // the fourteen is. The second is the direction the verb means, and the two together are what
+      // a rotation free to be anything has to be held to.
+      const short = judged.filter(([, j]) => !j.why && !(j.len > j.headLen));
+      const away = judged.filter(([, j]) => !j.why && j.intoTarget === false);
+      const noTarget = judged.filter(([, j]) => !j.why && j.intoTarget === null);
+      const shortest = judged.reduce((a, [, j]) => j.why ? a : Math.min(a, j.len), Infinity);
+      assert('and it points into the tile the relationship names, on a line longer than itself',
+        judged.length > 0 && unjudged.length === 0 && short.length === 0 && away.length === 0 &&
+          noTarget.length === 0,
+        `every head aimed inside its target's box, and the shortest line on any of the fourteen ` +
+          `longer than the head it carries`,
+        `${short.length} lines no longer than their head ` +
+          `(${short.slice(0, 3).map(([w, j]) => `${w} ${j.key} ${j.len.toFixed(2)}`).join(', ')}), ` +
+          `${away.length} heads aimed off their target ` +
+          `(${away.slice(0, 3).map(([w, j]) => `${w} ${j.key} ${j.aa}`).join(', ')}), ` +
+          `${noTarget.length} with no target tile to aim at`,
+        `shortest line ${shortest === Infinity ? 'none' : shortest.toFixed(2)} units against a ` +
+          `head of ${judged.length ? (judged.find(([, j]) => !j.why) || [, {}])[1].headLen : '?'}`);
     });
 
     // ---- the fold ---------------------------------------------------------
@@ -11443,6 +11872,9 @@ async function runViewport(chrome, viewport, base, full, narrow) {
     if (!phaseIsSkipped('console and requests')) {
       checkConsole(page);
       checkRequests(page, base);
+      // LAST, and checkCsp's own header says why: its control makes the browser refuse something
+      // and the browser writes that refusal to the error channel checkConsole has just read.
+      await checkCsp(page);
     }
     setPhase('-');
   } finally {

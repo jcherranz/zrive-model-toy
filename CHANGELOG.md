@@ -48,6 +48,39 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- **THE ARROWHEAD WAS AIMED ALONG A TANGENT NOBODY CAN SEE, #156.** He filed `check arrow vs line
+  alignment` on `[data-edge="bl_students->bl_cohort"]` at 2560 by 1317. **Measured before any
+  constant was touched**, at 2560, 1536 and 390, over all seven drawings, both grains and the union
+  of Z-SC and Z-BL under the eight week window the card was filed from: the tip is on its line's own
+  end point to 0.0000 units on every one of the 190 heads; the tip is on the target tile's box edge
+  to every decimal measured; the rotation is the curve's tangent at that point to 0.7 of a degree,
+  which is the driver's own finite difference; and the head is in the drawing's units inside the
+  scaled group, so its size against the drawing is identical at all three widths. **All three
+  candidates on the card are false.** What is wrong is that a tangent is not a direction a reader
+  can see: these lines are cubics with their control points set horizontally off each end, so over
+  the arrowhead's own length, the only stretch of line anybody compares the head against, the line
+  had already turned away from the head by 18.1 degrees on the edge he filed and by 27.5 on the
+  worst of the ninety eight. The head is now aimed along the chord from its own base to its own tip,
+  the base being one head length back along the path the browser drew, read off the path element so
+  there is no second implementation of arc length to drift. **After: worst skew 0.05 of a degree
+  over 190 heads at all three widths.** The head's length was typed into its `d` string twice and
+  known nowhere; it is `HEAD_LEN` and `HEAD_HALF` now and the shape is built from them.
+  KAIZEN.md `kaizen-a-tangent-is-not-a-direction-a-reader-can-see`.
+- **No drawing digest moves.** The rotation is computed at paint from the path; `ax` and `ay` are
+  still the tip the build wrote and `aa` is still the tangent and still what `faithful()` holds
+  `edgeGeom()` to. The fourteen digests are digests of the build's artefacts.
+- **Two assertions, 298 to 300, both over all fourteen drawings.** The first says the head is on its
+  line's end point and turned the way the line runs over the head's own length; the second says it
+  is attached to the end nearest the tile the relationship names, aimed inside that tile's box, and
+  carried on a line longer than itself, which is what makes the clamp in `headAngle()` arithmetic
+  rather than a branch no run has entered. Both rebuild the answer in the driver from the line's own
+  `d` by a second implementation, a ten thousand step walk of the cubic, and a head the driver
+  cannot parse is a failure and never a silence. **The tolerance is half a degree and is not fitted
+  to this machine**: the worst measured is eight hundredths of a degree and the same figure came off the CI
+  runner, and issue 149 turned its own assertion red by setting a constant just above what one
+  machine rendered. Proved by planting four defects: the rotation put back to the build's tangent,
+  the tip moved four units off the line, the head turned a quarter turn, and one line drawn shorter
+  than the head it carries.
 - **THE DEPLOY GATE WAS AN ALARM AND IS NOW A LOCK, #172, SURFACED BY #164.** `pages.yml` ran the
   forbidden-content gate **after** `deploy-pages`, so by the time it could object the bytes were
   already public. It is now run twice, and the two runs answer two questions. **Before the
