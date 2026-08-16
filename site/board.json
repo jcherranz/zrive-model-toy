@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T07:42:58Z",
+  "generated": "2026-08-16T07:44:28Z",
   "columns": [
     {
       "key": "raw",
@@ -105,24 +105,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
         },
         {
-          "id": 146,
-          "title": "The calendar is two honest shapes and two that are not, and it never got the scope set",
-          "labels": [
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/146"
-        },
-        {
-          "id": 160,
-          "title": "check space frame above, do a general review",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/160"
-        },
-        {
           "id": 166,
           "title": "A page that failed to load says gaps 0 and shows no error",
           "labels": [
@@ -190,6 +172,16 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/161"
         },
         {
+          "id": 160,
+          "title": "check space frame above, do a general review",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/160"
+        },
+        {
           "id": 158,
           "title": "The week grid compares nothing and the month grid draws some days twice",
           "labels": [
@@ -216,19 +208,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/155"
-        },
-        {
-          "id": 154,
-          "title": "Is this what a professional webapp footer looks like?",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/154"
         }
       ],
-      "hidden": 133,
+      "hidden": 135,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
