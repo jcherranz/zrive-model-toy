@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T18:16:36Z",
+  "generated": "2026-08-16T18:49:47Z",
   "columns": [
     {
       "key": "raw",
@@ -89,15 +89,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/207"
-        },
-        {
-          "id": 208,
-          "title": "verify.sh step 9 aborts on any clone older than the last board sync, and the board syncs every quarter hour",
-          "labels": [
-            "bug",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/208"
         }
       ]
     },
@@ -105,6 +96,15 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 208,
+          "title": "verify.sh step 9 aborts on any clone older than the last board sync, and the board syncs every quarter hour",
+          "labels": [
+            "bug",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/208"
+        },
         {
           "id": 203,
           "title": "The missing-instructor mark is reserved upright and painted italic, so its label box is the wrong width and nobody measured by how much",
@@ -165,17 +165,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/184"
-        },
-        {
-          "id": 172,
-          "title": "No CSP on a public origin holding a PAT, and the last-line gate runs after the deploy",
-          "labels": [
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/172"
         }
       ],
-      "hidden": 150,
+      "hidden": 151,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
