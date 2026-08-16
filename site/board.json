@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T05:07:56Z",
+  "generated": "2026-08-16T06:09:02Z",
   "columns": [
     {
       "key": "raw",
@@ -41,28 +41,12 @@
       "title": "Backlog",
       "cards": [
         {
-          "id": 146,
-          "title": "The calendar is two honest shapes and two that are not, and it never got the scope set",
-          "labels": [
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/146"
-        },
-        {
           "id": 157,
           "title": "A person on the drawing is someone you can reach, and the route is a fact on the object",
           "labels": [
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/157"
-        },
-        {
-          "id": 158,
-          "title": "The week grid compares nothing and the month grid draws some days twice",
-          "labels": [
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/158"
         },
         {
           "id": 159,
@@ -145,6 +129,14 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
         },
         {
+          "id": 146,
+          "title": "The calendar is two honest shapes and two that are not, and it never got the scope set",
+          "labels": [
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/146"
+        },
+        {
           "id": 155,
           "title": "is alignment ok here?",
           "labels": [
@@ -163,6 +155,14 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/156"
+        },
+        {
+          "id": 158,
+          "title": "The week grid compares nothing and the month grid draws some days twice",
+          "labels": [
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/158"
         },
         {
           "id": 160,
