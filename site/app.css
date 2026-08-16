@@ -1772,11 +1772,35 @@ body.fb-mode #canvas { cursor: crosshair; }
   padding: 16px 18px 24px;
   overflow-y: auto;
   transform: translateX(100%);
-  transition: transform 160ms cubic-bezier(0.4, 1, 0.75, 0.9);
+  transition: transform 160ms cubic-bezier(0.4, 1, 0.75, 0.9),
+              visibility 0s linear 160ms;
   z-index: var(--z-panel);
+  /* A CLOSED PANEL WAS A TAB STOP AND A LIVE REGION, AND IT WAS MOVED BY TRANSFORM ALONE. Issue
+     170. `translateX(100%)` puts this off the right edge and nothing else: measured at 1536 by
+     839 with no node selected, `#close` sat at x 1818 and was reached five tabs after the last
+     node in the drawing, so a keyboard reader walking the page fell off the end of it into a
+     button belonging to a panel that is not on the screen. The element also carries
+     `aria-live="polite"` and holds whatever the last selected node's properties were, so a
+     screen reader had a shut panel's stale contents in the tree behind everything.
+
+     `visibility: hidden` is what a transform cannot do: it takes the subtree out of the tab order
+     and out of the accessibility tree in the same word, and it is the one hiding property that
+     still animates, because `visibility` is discrete and can be DELAYED. So the slide out is
+     unchanged and the panel goes invisible at the end of it rather than at the start, and the
+     slide in makes it visible at once. Nothing about the 160ms a reader sees has moved.
+
+     NOT `display: none`, which is what the closed state would otherwise want: display cannot be
+     transitioned, so the panel would vanish instead of sliding, and the rule one block down
+     already uses display for the routes where the panel is not on the page at all. */
+  visibility: hidden;
 }
 
-#panel.open { transform: none; }
+#panel.open {
+  transform: none;
+  visibility: visible;
+  transition: transform 160ms cubic-bezier(0.4, 1, 0.75, 0.9),
+              visibility 0s;
+}
 
 body.panel-open #canvas { margin-right: 320px; }
 

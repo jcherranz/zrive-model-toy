@@ -543,11 +543,36 @@
   // knows which textarea belongs to this box, so every close goes through here: the button,
   // the 3 shortcut, the Escape that leaves capture mode, and the close that precedes opening
   // the next popover.
-  function closePopover() {
+  // AND CLOSING PUTS FOCUS BACK, ISSUE 170. This box is `role="dialog"`, it takes focus on open
+  // and it took focus nowhere on close: the element is removed from the document, so a keyboard
+  // reader who filed a note and pressed `3` was left on `<body>` and the next Tab started the
+  // whole page again from the top. router.js's `showRoster` has done the right thing here since
+  // #77 and this is that pattern, not a new one.
+  //
+  // IT IS A RESTORE AND DELIBERATELY NOT A TRAP, which is the one difference from the two sheets.
+  // The page is in capture mode while this box is up and the next thing a reader does is click
+  // ANOTHER element on the page to file about it. Making the rest of the page inert would take
+  // the mode's own loop away, so what is contained here is nothing and what is repaired is where
+  // focus lands.
+  //
+  // `keep` IS PASSED BY THE ONE CALLER THAT IS NOT A CLOSE. openPopover() calls this first to take
+  // down the previous box, and there the reader is going straight into a new one; restoring to the
+  // last opener on the way would be a focus move nobody asked for and, on a long page, a scroll
+  // with it.
+  //
+  // AND IT ONLY MOVES FOCUS THAT IS STILL IN THE BOX. A reader who has already tabbed out to the
+  // header has said where they are, and a close that hauled them back would be the same defect
+  // pointing the other way.
+  function closePopover(keep) {
     if (popoverEl) {
       if (popoverEl._saveDraft) { try { popoverEl._saveDraft(); } catch (e) { /* never block */ } }
+      var back = popoverEl._return;
+      var wasIn = popoverEl.contains(document.activeElement);
       popoverEl.remove();
       popoverEl = null;
+      if (!keep && wasIn && back && back.focus && document.contains(back)) {
+        try { back.focus(); } catch (e) { /* an element that will not take focus */ }
+      }
     }
   }
 
@@ -667,7 +692,11 @@
   }
 
   function openPopover(el, x, y) {
-    closePopover();
+    // Read before the previous box is taken down, so that a second capture in the same session
+    // returns to where the reader was before the FIRST box rather than to the box that is going.
+    var cameFrom = document.activeElement;
+    if (popoverEl && popoverEl.contains(cameFrom)) cameFrom = popoverEl._return;
+    closePopover(true);
     var descriptor = describe(el);
     var context = safeContext();
 
@@ -724,6 +753,9 @@
     // Focus the box itself rather than the note, so 1/2/3/4 work immediately. Clicking into
     // the note types a note normally, digits included, and the shortcuts stand down there.
     box.setAttribute('tabindex', '-1');
+    // Where closePopover puts it back. Held on the box rather than in a module variable so that
+    // it cannot outlive the box it belongs to. Issue 170.
+    box._return = cameFrom;
     box.focus();
 
     // Anything that changes the box's height has to re-clamp it, or the clamp is computed

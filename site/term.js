@@ -3031,10 +3031,13 @@
         openRows = {};
         sheet.hidden = true;
         document.body.classList.remove('calendar', 'outline');
-        if (returnTo && returnTo.focus && document.contains(returnTo) &&
-            returnTo.getAttribute && returnTo.getAttribute('tabindex') !== null) {
-          returnTo.focus();
-        }
+        // BEFORE the restore below. Issue 170, and the reason is written where the function is:
+        // what focus goes back to is usually inside #view-diagram, and an inert element cannot
+        // take it.
+        if (window.ZM && window.ZM.contain) window.ZM.contain();
+        // The same tabindex guess the student list carried, and the same repair: focus it and ask
+        // where focus is. Issue 170.
+        if (window.ZM && window.ZM.refocus) window.ZM.refocus(returnTo);
         returnTo = null;
         // And the strip comes back to life when the reading it was inert on is closed, issue 151.
         paintBrush();
@@ -3109,6 +3112,9 @@
       if (!wasOpen) {
         returnTo = document.activeElement;
         sheet.hidden = false;
+        // Issue 170. Before the close button takes focus, so the two live regions while this
+        // sheet is up are the header and this sheet.
+        if (window.ZM && window.ZM.contain) window.ZM.contain();
         var close = document.getElementById('termclose');
         if (close && close.focus) close.focus();
       }
