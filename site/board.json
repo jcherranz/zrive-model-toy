@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T16:25:02Z",
+  "generated": "2026-08-16T17:31:17Z",
   "columns": [
     {
       "key": "raw",
@@ -33,6 +33,12 @@
             "idea"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
+        },
+        {
+          "id": 206,
+          "title": "No gate holds a reserved width against the style rule that actually paints the string",
+          "labels": [],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/206"
         }
       ]
     },
