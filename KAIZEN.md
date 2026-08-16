@@ -426,6 +426,17 @@ build on a cited slug that resolves to nothing.
   `kaizen-a-wait-must-be-weaker-than-the-claim` from the other end: that lesson is about a wait so
   strong it can never be satisfied, and this is about one so weak it is satisfied by a page that was
   never asked the question.
+- `kaizen-a-deploy-landing-mid-run-reads-as-a-page-regression` &middot; **A run driving the public
+  origin is driving bytes somebody else can replace under it, and when they do it reads as a
+  regression in whatever phase happened to be loading.** `scripts/verify.sh` against the origin went
+  red on one group of one phase, `window.ZT never appeared`, while every behavioural phase against
+  the same origin passed and the same suite was green against a local server over the same `site/`.
+  The cause was a board sync deploying two minutes into the run: `pages.yml` had replaced the
+  origin's files while the browser was loading one of them. Re-run once the deploy had settled: 291
+  of 291. This is `kaizen-a-generator-must-not-run-beside-a-server-of-its-output` at the other end of
+  the wire, and the reading is the same. **A single group throwing `window.ZT never appeared` while
+  the rest of the run is green is a question about the bytes before it is a question about the
+  code**, and the cheap check is the deploy history for the minutes the run covered.
 - `kaizen-a-generator-must-not-run-beside-a-server-of-its-output` &middot; **A gate that regenerates
   the bytes another process is serving will be blamed on the change under test.** `check_build.sh`
   rebuilds `site/instance.js` and `site/layout.js` in place; run while a smoke suite was serving that
