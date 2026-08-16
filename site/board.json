@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T04:34:36Z",
+  "generated": "2026-08-16T05:07:56Z",
   "columns": [
     {
       "key": "raw",
@@ -145,16 +145,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
         },
         {
-          "id": 154,
-          "title": "Is this what a professional webapp footer looks like?",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/154"
-        },
-        {
           "id": 155,
           "title": "is alignment ok here?",
           "labels": [
@@ -219,6 +209,16 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/161"
         },
         {
+          "id": 154,
+          "title": "Is this what a professional webapp footer looks like?",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/154"
+        },
+        {
           "id": 153,
           "title": "what value does \"4 rows here\" add?",
           "labels": [
@@ -257,19 +257,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/149"
-        },
-        {
-          "id": 148,
-          "title": "Make the format of this outlines more in line with the style…",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/148"
         }
       ],
-      "hidden": 128,
+      "hidden": 129,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
