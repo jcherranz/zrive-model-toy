@@ -702,10 +702,18 @@
           '>copy all (<span class="fb-count">' + items.length + '</span>)</button>' +
         '<button type="button" class="linkbtn fb-close">close</button>' +
       '</div>' +
-      '<div class="fb-file-result" style="display:none"></div>' +
+      '<div class="fb-file-result"></div>' +
       '<div class="fb-hint"><span>4 / Shift+Enter file · 1 copy · 2 copy all · ' +
         '3 close</span>' +
       '<a class="fb-board" href="' + BOARD_HREF + '">board ↗</a></div>';
+
+    // HIDDEN FROM HERE AND NOT FROM A style ATTRIBUTE IN THE MARKUP ABOVE. Issue 172. The page
+    // now carries a policy whose style-src-attr is 'none', so a style attribute arriving through
+    // innerHTML is refused and this pane came up visible and empty inside the box a reader files
+    // from. A property written through the CSSOM is not governed by that directive at all, and it
+    // is what showResultIn already uses to put the pane back on, so the two halves of the same
+    // switch are now thrown the same way.
+    box.querySelector('.fb-file-result').style.display = 'none';
 
     document.body.appendChild(box);
     box._at = { x: x, y: y };
@@ -840,7 +848,9 @@
         '<button type="button" class="linkbtn err-report">report</button>' +
         '<button type="button" class="linkbtn err-dismiss">dismiss</button>' +
       '</div>' +
-      '<div class="err-notice-result" style="display:none"></div>';
+      '<div class="err-notice-result"></div>';
+    // The same switch as the popover's, thrown the same way and for the reason written there.
+    box.querySelector('.err-notice-result').style.display = 'none';
     document.body.appendChild(box);
     errorNoticeEl = box;
 

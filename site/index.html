@@ -2,6 +2,49 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- THE POLICY, AND IT IS HERE BECAUSE A READER'S CREDENTIAL IS. Issue 172.
+     feedback.js keeps a fine grained GitHub token in this browser's localStorage, at
+     zmt.gh.token, and this origin is public. The XSS surface was traced and is clean: every
+     innerHTML sink was read, escapeHtml encodes, an issue title goes through textContent. That
+     is a statement about today's code and not about tomorrow's, and the whole point of a policy
+     is that it holds when the next sink is written by somebody who did not read that audit.
+     Pages serves no response headers of its own, so a meta tag is the only place this can live,
+     and it sits on the second line of the head because a meta policy is enforced from the point
+     the parser reads it: below the stylesheet link or below a script tag, part of this document
+     would load unprotected and the tag would be a claim rather than a lock.
+
+     WHY EACH DIRECTIVE. `default-src 'none'` is the floor, so anything not named below is
+     refused: this page loads no font, no image, no media, no plugin, no worker and no frame, and
+     app.css contains no url() at all, which was counted rather than assumed. `script-src 'self'`
+     is the one that carries the credential: all eleven scripts are external and same origin,
+     there is not one inline script, one style attribute or one on-something handler in this
+     file, so an injected script is refused and that is the path from an XSS to a stolen token.
+     `connect-src` names the two places this page really talks to, its own origin for board.json
+     and api.github.com for the board's live poll and for filing a card. `img-src 'self'` is
+     there for the favicon this site does not ship and every browser asks for anyway.
+     `base-uri` and `form-action` do not fall back to default-src and so are written out.
+
+     AND `style-src` IS THE ONE PLACE THIS IS NOT STRICT, WHICH IS WORTH SAYING PLAINLY.
+     render.js builds the type and programme palette as a style element it appends to the head,
+     because those colours are generated from the model and cannot be typed into app.css. Under a
+     bare `style-src 'self'` that element is refused, which was measured and not guessed: the
+     drawing came up with every tile the same near black. A hash would work only until the model
+     gained a type or a programme, and then the palette would die silently, which is a worse
+     failure than this one. So style elements are allowed inline and style ATTRIBUTES are refused
+     outright, which is the half of style-src worth keeping and which now costs nothing: every
+     style this page writes goes through the CSSOM, and a CSSOM write is not governed by style-src
+     at all. It cost two lines to become true. feedback.js built two panes with a style attribute
+     inside an innerHTML string, which no search for setAttribute could see and which the smoke
+     suite found by driving the page rather than by reading it; both are CSSOM writes now, thrown
+     the same way as the write that puts those panes back on. `style-src` is repeated whole for
+     browsers that do not implement the two granular directives, since an unknown directive is
+     ignored and would drop those browsers back onto default-src with no stylesheet at all.
+
+     frame-ancestors IS DELIBERATELY ABSENT AND IS NOT A THING THIS TAG COULD DO. It is ignored
+     in a meta policy by specification, so writing it would state a protection nobody has. Pages
+     cannot set it either. Whether this page should be frameable is the owner's, along with the
+     larger question this issue leaves him: whether a credential belongs in a browser at all. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; style-src-elem 'self' 'unsafe-inline'; style-src-attr 'none'; img-src 'self'; connect-src 'self' https://api.github.com; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Zrive operating model, toy instance diagram</title>

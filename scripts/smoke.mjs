@@ -292,7 +292,7 @@ const PHASES = {
   'capture':              { count: 15, when: 'behavioural' },
   'board':                { count: 13, when: 'behavioural' },
   'the gutter on a phone': { count: 2, when: 'narrow' },
-  'console and requests': { count: 2, when: 'every' },
+  'console and requests': { count: 3, when: 'every' },
   'two artefacts':        { count: 4, when: 'grain' },
   'the count':            { count: 3, when: 'grain' },
   'well formed':          { count: 8, when: 'grain' },
@@ -573,7 +573,15 @@ const PHASES = {
 // the relationship names, aimed inside that tile's box, and carried on a line longer than the head
 // itself, which is what makes the clamp in render.js's headAngle() arithmetic rather than a branch
 // no run has ever entered.
-const EXPECTED_ASSERTIONS = 300;
+// Issue 172 added one assertion to `console and requests`, which is an `every` phase, so it runs
+// at each of the three viewports and the total moves by three rather than by one. It is the policy
+// check: that index.html carries an enforcing meta CSP ahead of every loader in the head, that the
+// directives the page relies on are still in it, and that the page violated it nowhere at that
+// width. The credential feedback.js keeps in localStorage is what the policy is there for.
+// 300 plus the three above. Two cards landed between this file being read and this
+// commit being rebased onto them, and both increments are kept: issue 156 owns the two
+// in `well formed` and issue 172 owns the three in `console and requests`.
+const EXPECTED_ASSERTIONS = 303;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -1040,6 +1048,19 @@ function describeArg(a) {
 const STUB_SOURCE = `(function () {
   var rec = { calls: [], opens: [] };
   Object.defineProperty(window, '__smoke', { value: rec, writable: false, configurable: false });
+  // Issue 172. Registered here rather than in the phase that reads it, because this runs before
+  // the parser has reached the head and the policy is enforced from the tag onwards: a listener
+  // installed by the page, or by an evaluate after load, would be deaf to every violation the
+  // document committed on its way up. window.__csp missing is therefore not "clean", it is
+  // "nobody was listening", and checkCsp below fails on that reading rather than passing on it.
+  var csp = [];
+  Object.defineProperty(window, '__csp', { value: csp, writable: false, configurable: false });
+  document.addEventListener('securitypolicyviolation', function (e) {
+    csp.push({ directive: String(e.violatedDirective || e.effectiveDirective || ''),
+               blocked: String(e.blockedURI || '').slice(0, 120),
+               at: (String(e.sourceFile || '').split('/').pop() || '') +
+                   (e.lineNumber ? ':' + e.lineNumber : '') });
+  });
   var realFetch = window.fetch;
   function note(url, method) { rec.calls.push({ url: String(url), method: String(method).toUpperCase() }); }
   window.fetch = function (input, init) {
@@ -10064,6 +10085,174 @@ function checkRequests(page, base) {
 }
 
 // =================================================================================================
+// THE POLICY, AND WHETHER THE BROWSER IS KEEPING IT. Issue 172.
+//
+// WHAT THIS IS GUARDING. feedback.js holds a fine grained GitHub token in localStorage on a public
+// origin. index.html now carries a meta policy whose load bearing line is `script-src 'self'`,
+// which is what stands between an injected script and that token. A policy is not a thing anybody
+// can see working, so without an assertion it is a comment.
+//
+// AND WHY FINDING THE TAG IS NOT ENOUGH, which is the whole shape of this check. A meta tag with a
+// misspelled http-equiv, a policy the browser parsed and dropped, or a directive list somebody
+// widened to `script-src 'self' 'unsafe-inline'` while fixing something else, all leave a tag in
+// the document that a presence check reports as clean. So four things are asserted together and
+// the failure names which of them gave way:
+//
+//   1. THE TAG IS THERE AND IS FIRST. A meta policy binds from the point the parser reads it, so
+//      it has to precede every script and every stylesheet link in the head or part of the
+//      document loads unprotected. The position is read out of head.children rather than assumed.
+//   2. IT STILL CARRIES WHAT THIS PAGE RELIES ON. Each directive is matched whole, and script-src
+//      is additionally required NOT to carry 'unsafe-inline' or 'unsafe-eval', because a policy
+//      that has been given those back is syntactically present and semantically empty.
+//   3. THE BROWSER IS ENFORCING IT, proved by making it refuse something. A style attribute is
+//      written through setAttribute, which `style-src-attr 'none'` must refuse, and the refusal is
+//      read three independent ways: the declarations did not apply, the violation event fired, and
+//      the browser logged it. Nothing about the page depends on that attribute, so the control
+//      costs the page nothing and cannot be satisfied by a policy that is merely present.
+//   4. THE PAGE ITSELF VIOLATED NOTHING, over everything the suite drove at this width, READ TWO
+//      WAYS BECAUSE ONE OF THEM HAS A HOLE. The listener is installed in STUB_SOURCE, before the
+//      parser reaches the tag, so a violation committed while a document was coming up is caught
+//      rather than missed. But window.__csp belongs to the document that raised it and this suite
+//      reloads and navigates dozens of times, so the record read at the end is the LAST document's
+//      only. That was not a theory: the first run of this check reported zero while feedback.js
+//      was breaking the policy on every capture, and only the browser's own log said so. So the
+//      second reading is page.console, which the harness accumulates for the whole browser
+//      session and no navigation clears, filtered to the security channel. The two disagree
+//      exactly when a violation happened on a document that has since been replaced, which is the
+//      case that matters, and the assertion takes the union.
+//
+// THREE STATES AND NOT TWO. window.__csp missing means the recorder never installed and this check
+// was blind; it fails saying so, rather than reading an absent record as an empty one. That is the
+// distinction nine dead instruments on this run could not make.
+//
+// IT RUNS AFTER checkConsole, AND THAT ORDER IS LOAD BEARING. The control's refusal is logged by
+// the browser on the error channel, and checkConsole allows nothing there but the favicon. Firing
+// the control first would make this check plant the failure of another. The dependence is not
+// silent: reordering the two turns checkConsole red, which is the right way round for a coupling
+// nobody can see from the call site.
+//
+// WHAT IT CANNOT DETECT, stated because a check whose blind spots are unwritten gets trusted past
+// them. It reads the policy the DOM holds, so it says nothing about a response header, and Pages
+// sends none. It cannot see a violation the page commits on a route this suite never drives, nor
+// one in a window this suite never opens. It proves `style-src-attr` is enforced and infers from
+// the browser's own parse that the rest of the same tag is; a directive that Chrome silently
+// dropped as unknown while keeping the others would pass here, which is why the fallback
+// `style-src` is written out whole beside the two granular ones rather than relied on. And it is
+// a statement about Chrome: no other engine runs in this suite.
+// =================================================================================================
+const CSP_MUST_CARRY = [
+  /(?:^|;)\s*default-src\s+'none'\s*(?:;|$)/,
+  /(?:^|;)\s*script-src\s+'self'\s*(?:;|$)/,
+  /(?:^|;)\s*connect-src\s+'self'\s+https:\/\/api\.github\.com\s*(?:;|$)/,
+  /(?:^|;)\s*style-src-attr\s+'none'\s*(?:;|$)/,
+  /(?:^|;)\s*base-uri\s+'none'\s*(?:;|$)/,
+  /(?:^|;)\s*form-action\s+'none'\s*(?:;|$)/
+];
+
+// A violation the browser logged, told from any other error on that channel. The text is Chrome's
+// and is matched on the phrase every one of them carries rather than on a directive name, so a
+// directive this file does not mention still counts as the page breaking its own policy.
+const CSP_LOGGED = /violates the following Content Security Policy directive/i;
+
+async function checkCsp(page) {
+  const consoleBefore = page.console.length;
+  // Everything the browser said before this check touched anything, which is every document this
+  // viewport drove and not only the one on screen.
+  const earlier = page.console.slice(0, consoleBefore)
+    .filter(e => CSP_LOGGED.test(e.text))
+    .map(e => e.text.replace(/\s+/g, ' ').slice(0, 150));
+  const read = await page.evaluate(`(function () {
+    var kids = Array.prototype.slice.call(document.head.children);
+    var meta = kids.filter(function (el) {
+      return el.tagName === 'META' &&
+        String(el.getAttribute('http-equiv') || '').toLowerCase() === 'content-security-policy';
+    });
+    var firstLoader = kids.findIndex(function (el) {
+      return el.tagName === 'SCRIPT' || (el.tagName === 'LINK' &&
+        /stylesheet/i.test(String(el.getAttribute('rel') || '')));
+    });
+    var out = {
+      tags: meta.length,
+      content: meta.length ? String(meta[0].getAttribute('content') || '') : '',
+      metaAt: meta.length ? kids.indexOf(meta[0]) : -1,
+      firstLoaderAt: firstLoader,
+      listener: typeof window.__csp,
+      before: (window.__csp || []).length
+    };
+    if (typeof window.__csp === 'object') {
+      // The control. Two declarations, neither of which any element on this page could arrive at
+      // on its own, so "it was refused" is read off the element and not off the absence of a thing.
+      var d = document.createElement('div');
+      d.setAttribute('style', 'width:55px;outline-style:dotted');
+      document.body.appendChild(d);
+      var cs = getComputedStyle(d);
+      out.controlWidth = cs.width;
+      out.controlOutline = cs.outlineStyle;
+      document.body.removeChild(d);
+    }
+    return JSON.stringify(out);
+  })()`);
+  const r = JSON.parse(read);
+
+  // The wait, and every answer the page could give ends it: the record grows, which is the control
+  // being refused, or the deadline passes, which is the control being allowed. Neither is waited on
+  // as though it were the only one, so a policy that is not enforced fails here in a second and a
+  // half rather than hanging until the suite's timeout and being read as a harness problem.
+  let after = [];
+  if (r.listener === 'object') {
+    const deadline = Date.now() + 1500;
+    for (;;) {
+      after = JSON.parse(await page.evaluate('JSON.stringify(window.__csp)'));
+      if (after.length > r.before || Date.now() > deadline) break;
+      await sleep(25);
+    }
+  }
+  const fired = after.slice(r.before);
+  const logged = page.console.slice(consoleBefore)
+    .filter(e => CSP_LOGGED.test(e.text) && /style-src-attr/.test(e.text));
+  const missing = CSP_MUST_CARRY.filter(re => !re.test(r.content)).map(re => String(re));
+  const loose = /(?:^|;)\s*script-src[^;]*'unsafe-(?:inline|eval)'/.test(r.content);
+  // The control has to have RUN for its refusal to mean anything: if the reading above never
+  // fired it, `undefined !== '55px'` is true and a check with no control would read as a control
+  // that was refused, which is the same mistake as reading an absent record as an empty one.
+  const ran = typeof r.controlWidth === 'string' && typeof r.controlOutline === 'string';
+  const refused = ran && r.controlWidth !== '55px' && r.controlOutline !== 'dotted';
+
+  const why = [];
+  if (r.listener !== 'object') why.push(`BLIND: window.__csp is ${r.listener}, nothing was listening`);
+  if (r.tags !== 1) why.push(`${r.tags} meta policy tag(s) in the head`);
+  if (r.tags === 1 && r.firstLoaderAt !== -1 && r.metaAt > r.firstLoaderAt) {
+    why.push(`the policy sits at head child ${r.metaAt}, after a loader at ${r.firstLoaderAt}`);
+  }
+  if (missing.length) why.push(`the policy no longer carries ${missing.join(' and ')}`);
+  if (loose) why.push("script-src has been given 'unsafe-inline' or 'unsafe-eval' back");
+  if (!ran) why.push('the control never ran, so nothing here proved the browser refuses anything');
+  else if (!refused) why.push(`the control was ALLOWED: width ${r.controlWidth}, outline ${r.controlOutline}`);
+  if (fired.length !== 1 || !/style-src-attr/.test(fired[0] ? fired[0].directive : '')) {
+    why.push(`the control raised ${fired.length} violation(s): ${JSON.stringify(fired)}`);
+  }
+  if (!logged.length) why.push('the browser logged no refusal for the control');
+  if (r.before) {
+    why.push(`the document on screen violated the policy ${r.before} time(s): ` +
+      JSON.stringify(after.slice(0, r.before)));
+  }
+  if (earlier.length) {
+    why.push(`the browser logged ${earlier.length} refusal(s) against this page before this ` +
+      `check ran: ${earlier.join(' | ')}`);
+  }
+
+  assert('the page carries an enforcing policy, it is first in the head, it still names what this ' +
+         'page relies on, and the page broke it nowhere',
+    why.length === 0,
+    'one meta policy ahead of every loader, carrying default-src, script-src, connect-src, ' +
+      'style-src-attr, base-uri and form-action, refusing a style attribute, and no violation ' +
+      'by the page itself on any document this viewport drove',
+    why.length === 0 ? 'none' : why.join(' | '),
+    `${r.content.split(';').length} directives, control refused, ` +
+      `${r.before + earlier.length} violation(s) by the page`);
+}
+
+// =================================================================================================
 // THE FILTERED DRAWING, RECOMPUTED HERE. Issue 115, findings F9, F11, F18 and F21.
 // =================================================================================================
 // WHAT WAS COVERED AND WHAT WAS NOT. `window.ZT.reflow()` is `faithful(CANON)`, and `CANON` is
@@ -11229,6 +11418,9 @@ async function runViewport(chrome, viewport, base, full, narrow) {
     if (!phaseIsSkipped('console and requests')) {
       checkConsole(page);
       checkRequests(page, base);
+      // LAST, and checkCsp's own header says why: its control makes the browser refuse something
+      // and the browser writes that refusal to the error channel checkConsole has just read.
+      await checkCsp(page);
     }
     setPhase('-');
   } finally {
