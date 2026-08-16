@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T21:07:11Z",
+  "generated": "2026-08-16T21:12:46Z",
   "columns": [
     {
       "key": "raw",
@@ -42,6 +42,12 @@
             "idea"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
+        },
+        {
+          "id": 217,
+          "title": "Nothing holds build_layout.py's own text_w() call sites, and nothing re-measures the width table",
+          "labels": [],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/217"
         }
       ]
     },
