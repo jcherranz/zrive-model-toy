@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T17:31:17Z",
+  "generated": "2026-08-16T17:35:04Z",
   "columns": [
     {
       "key": "raw",
@@ -39,6 +39,12 @@
           "title": "No gate holds a reserved width against the style rule that actually paints the string",
           "labels": [],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/206"
+        },
+        {
+          "id": 207,
+          "title": "site/render.js reserves every node label and caption from a probe measured at 14px, because .node .lbl is a descendant selector and the probe is not inside a .node",
+          "labels": [],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/207"
         }
       ]
     },
