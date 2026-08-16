@@ -299,14 +299,16 @@ const PHASES = {
   // drawing and about the search over it, and about no width at all: the same union costs the
   // same at 2560 as at 390.
   'the placer':           { count: 2, when: 'behavioural' },
-  // Issue 207. Three, and they are three because they fail on three different things: that the
-  // set of contexts the placer measured in is the set this file knows, without which the two
-  // comparisons below are made over whatever the page happened to ask for; that each probe
-  // resolves the SIZE the stylesheet declares for the element it stands in for, which is the whole
-  // of the defect; and that each resolves the declared SLANT and WEIGHT, which is what a repair
-  // that fixed the size by hard-coding it would fail. Behavioural for the same reason the row
-  // above is: a resolved face is a fact about the cascade and about no width at all.
-  'the measuring probe':  { count: 3, when: 'behavioural' },
+  // Issue 207. Four, and they fail on four different things: that the set of contexts the placer
+  // measured in is the set this file knows, without which the comparisons below are made over
+  // whatever the page happened to ask for; that each probe resolves the SIZE the stylesheet
+  // declares for the element it stands in for, which is the whole of the defect; that each
+  // resolves the declared SLANT and WEIGHT, which is what a repair fixing the size by hard-coding
+  // it would fail; and that none of them measures a string with characters in it at zero, taken
+  // with both absence switches off, which is the one an ADVERSARIAL READ of the repair found and
+  // the author had not. Behavioural for the same reason the row above is: a resolved face is a
+  // fact about the cascade and about no width at all.
+  'the measuring probe':  { count: 4, when: 'behavioural' },
   'model and reveal':     { count: 14, when: 'behavioural' },
   'cold load':            { count: 4, when: 'behavioural' },
   'students':             { count: 11, when: 'behavioural' },
@@ -764,7 +766,7 @@ const PHASES = {
 // than left at `> 0`, which is the same vacuity one order of magnitude down; and a width of zero
 // counted as a hole, because `getComputedTextLength()` answers 0 on a `display: none` text and
 // this page has a switch that puts every mark in that state.
-// AND 349 SINCE ISSUE 207, which adds three in a behavioural phase of its own and replaces none.
+// AND 350 SINCE ISSUE 207, which adds four in a behavioural phase of its own and replaces none.
 // site/render.js measures every label and every caption the RUN-TIME placer packs against, and it
 // measured all of them at 14px on a page that paints them at 10 and at 9: its hidden probe stood
 // outside every `.node`, so `.node .lbl`, `.node .lbl.lbl-missing` and `.node .lbl.lbl-tail`, all
@@ -782,7 +784,16 @@ const PHASES = {
 // DECLARES for the element each probe stands in for, read out of the page's own stylesheet. So the
 // declaration is the oracle and the probe is the thing judged, and nothing the placer produced is
 // read at all.
-const EXPECTED_ASSERTIONS = 349;
+// THE FOURTH CAME FROM AN ADVERSARIAL READ OF THE REPAIR AND NOT FROM THE AUTHOR, and it is the
+// price of a class list faithful to the paint. The missing-key caption is painted carrying `ghost`
+// and `body.hide-unrecorded .ghost` is `display: none`, which is the absence control's second
+// switch: with it off the probe is not laid out, `getComputedTextLength()` answers 0, and
+// `widthOf` caches the 0 for the life of the page. Measured on this tree, 69.99 with the switch on
+// and 0.00 with it off, still 0.00 after putting it back. So the probe declares its own `display`
+// through the CSSOM, which the page's `style-src-attr 'none'` does not reach where a `style`
+// attribute is dropped outright, and a width of zero over a string with characters in it is
+// counted by render.js and refused here, in a state this phase drives rather than waits for.
+const EXPECTED_ASSERTIONS = 350;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -2842,6 +2853,14 @@ const PROBE_CONTEXTS = [
 // relationships. Measured, not assumed: at afb262f it records exactly those eight and no others.
 const PROBE_AT = '#/p/ALL';
 
+// The address the harsher half starts from, and it has to be one that composes NOTHING, because
+// `widthOf` caches every string it has already measured: a page that has drawn a union once will
+// answer the second reading out of that cache and never build a probe under the switches at all.
+// One programme is a built artefact, so the reload lands with the cache empty, the switches go off
+// on a page that has composed nothing, and the union that follows is the first composition there
+// has been.
+const PROBE_COLD_AT = '#/p/ZBL';
+
 const PROBE_READ = (wanted) => `(function () {
   if (!window.ZM || typeof window.ZM.probeFaces !== 'function') {
     return JSON.stringify({ why: 'site/render.js published no window.ZM.probeFaces' });
@@ -2870,6 +2889,7 @@ const PROBE_READ = (wanted) => `(function () {
     }
   }
   return JSON.stringify({ faces: window.ZM.probeFaces(), decl: decl,
+                          body: document.body.className,
                           composes: window.ZM.placerCost().composes });
 })()`;
 
@@ -2877,11 +2897,71 @@ async function checkMeasuringProbe(page, base) {
   const what = [
     'every context the run-time placer measured text in is one this file knows',
     'and each of them resolves the font size site/app.css declares for the element it stands in for',
-    'and the slant and the weight it declares as well'
+    'and the slant and the weight it declares as well',
+    'and none of them measures a string with characters in it at zero, with both absence switches off'
   ];
-  const cannot = (why) => what.forEach(w =>
+  // The first three are the stylesheet comparison and stand or fall together; the fourth is a
+  // different claim taken in a different state and reports its own inability separately, so a run
+  // that cannot make one of them still says which.
+  const cannot = (why) => what.slice(0, 3).forEach(w =>
     fail(w, 'a comparison against the page\'s own stylesheet', why));
 
+  // ---- the harsher state first, and it is first because the cache would otherwise eat it ------
+  // `body.hide-unrecorded .ghost` is `display: none`, the missing-key caption is painted carrying
+  // `ghost`, and an unrendered text answers `getComputedTextLength()` with 0. That zero goes into
+  // `widthOf`'s cache and stays there for the life of the page, so a reader who had the unrecorded
+  // finding switched off when a drawing first composed reserved that caption's line at nothing and
+  // kept reserving it at nothing after switching back. Measured on this tree before the repair:
+  // 69.99 with the switch on, 0.00 with it off, and 0.00 again after putting it back.
+  //
+  // NOTHING IS COMPARED HERE. The claim is that a string with characters in it did not measure
+  // zero, which needs no second measurement of that string and no opinion about what its width
+  // should be. site/render.js counts it as it happens, so the counter is armed on every
+  // composition anything ever drives; what this half adds is a drive that REACHES the state.
+  const zeroWhat = what[3];
+  const zerosCannot = (why) =>
+    fail(zeroWhat, 'a composition taken with both switches off', why);
+  await page.navigate(new URL(PROBE_COLD_AT, base).toString());
+  await page.reload();
+  await page.waitFor(DIAGRAM_READY, `the diagram to draw cold at ${PROBE_COLD_AT}`);
+  await absSwitch(page, 'work', false);
+  await absSwitch(page, 'unrecorded', false);
+  await page.evaluate(`location.hash = ${JSON.stringify(PROBE_AT)}`);
+  await page.waitFor(`window.ZT.scope().n === 7`, `the union at ${PROBE_AT} under both switches`);
+  await settled(page);
+  const dark = JSON.parse(await page.evaluate(PROBE_READ([])));
+  await absSwitch(page, 'work', true);
+  await absSwitch(page, 'unrecorded', true);
+  if (dark.why) {
+    zerosCannot(dark.why);
+  } else if (!/hide-work/.test(dark.body) || !/hide-unrecorded/.test(dark.body)) {
+    zerosCannot(`the two switches did not reach the page: body was ${JSON.stringify(dark.body)} ` +
+                'when the union composed, so this reading is of the ordinary state and says ' +
+                'nothing about the one the caption is hidden in');
+  } else if (!(dark.composes > 0) || !Object.keys(dark.faces).length) {
+    zerosCannot(`the placer composed ${dark.composes} time(s) with the switches off and recorded ` +
+                `${Object.keys(dark.faces).length} probe(s), so there is nothing here to refuse`);
+  } else {
+    const zeros = [], noCounter = [];
+    for (const key of Object.keys(dark.faces)) {
+      const f = dark.faces[key];
+      if (typeof f.zeros !== 'number') { noCounter.push(key); continue; }
+      if (f.zeros > 0) zeros.push(`${key} measured ${f.zeros} of them at zero`);
+    }
+    if (noCounter.length) {
+      zerosCannot(`site/render.js recorded no zero counter for ${noCounter.join(', ')}, so a ` +
+                  'measurement of zero would not be visible here at all');
+    } else {
+      assert(zeroWhat, zeros.length === 0,
+             'every probe laid out, whatever a reader has switched off',
+             zeros.length ? zeros.join('; ')
+                          : `all ${Object.keys(dark.faces).length} of them laid out under ` +
+                            JSON.stringify(dark.body),
+             `${Object.keys(dark.faces).length} contexts`);
+    }
+  }
+
+  // ---- and then the ordinary state, cold, which is where the three faces are answered ---------
   await page.navigate(new URL(PROBE_AT, base).toString());
   await page.reload();
   await page.waitFor(DIAGRAM_READY, `the diagram to draw cold at ${PROBE_AT}`);

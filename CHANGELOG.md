@@ -158,6 +158,14 @@ of what changed and when, and it is meant to be scannable.
   `.node.sel .lbl`, `.lbl-ghost`, `.node .lbl.lbl-missing` and `.ghost .chip-tx` rather than from
   attributes the caller sets, and a label line is now measured at **both** weights the way
   `build_layout.py`'s own `reserve()` does rather than at the bold alone.
+  **The SELECTED width is what a label reserved before this card and is what it reserves after it**,
+  which is said here because the rule changed and the answer did not: the old call passed
+  `font-weight: 600` by hand, so the bold state was always the one reserved, and the new pair takes
+  `max(regular, selected)` because that is what `reserve()` does. Measured over the 207 distinct
+  label lines at `#/p/ALL`, the selected width is the wider on 206, tied on one and never the
+  narrower, so the max costs **0.00** against the bold alone and only removes the assumption. That
+  is deliberate: a label that overflows its box the moment a reader clicks it is a real defect, and
+  the box has to hold the state a click enters.
   **No digest moves and no built artefact changes.** `compose()` runs only for a windowed, filtered
   or unioned drawing, none of which any build writes: all fourteen drawing digests and both
   document digests are byte-identical, and `site/layout.js` and `site/instance.js` are untouched.
@@ -168,14 +176,27 @@ of what changed and when, and it is meant to be scannable.
   records the computed size, slant, weight and family of each probe it builds, once per context;
   `scripts/smoke.mjs` holds them against what the page's own stylesheet **declares** for the element
   each stands in for, read out of `document.styleSheets`, so a run against a deployed origin
-  compares that origin's declarations with that origin's probes. Three assertions, 346 to **349**,
-  and each fails on something different: the eight contexts are the eight this file knows, each
-  resolves the declared size, and each resolves the declared slant and weight. **Proved in three
-  directions rather than argued**: the probe host stripped of its class puts the shipped defect back
-  and the size and face assertions name it, `14px where .node .lbl declares 10px` on four contexts
-  and `14px where .node .lbl.lbl-missing declares 9px` on a fifth; a call site handed the wrong
-  class list fails the context assertion alone; and the map withheld fails all three in its own
-  words rather than passing over an empty list.
+  compares that origin's declarations with that origin's probes. Four assertions, 346 to **350**.
+  **A class list faithful to the paint drags along one rule that is not about a face at all, and an
+  adversarial read of the repair found it before it shipped.** The missing-key caption is painted
+  `class="lbl lbl-missing ghost"` and `body.hide-unrecorded .ghost` is `display: none`, which is the
+  absence control's second switch. An unrendered text answers `getComputedTextLength()` with 0, and
+  `widthOf` caches it: **measured, 69.99 with the switch on, 0.00 with it off, and 0.00 again after
+  putting it back**, so a reader who had the unrecorded finding switched off when a drawing first
+  composed reserved that caption's line at nothing for the life of the page. Only the caption is
+  reachable this way; a `ghost` on an ancestor leaves the advance alone. The probe now declares its
+  own `display`, **through the CSSOM and not as a `style` attribute**, because `site/index.html`
+  carries `style-src-attr 'none'` and the attribute is dropped outright: written that way first, the
+  declaration read back empty and the probe still answered 0.00. The reserve must not follow a
+  switch, since `build_layout.py` reserves that line whether or not anything is painted in it.
+  **Proved in five directions rather than argued**: the probe host stripped of its class puts the
+  shipped defect back and the size and face assertions name it, `14px where .node .lbl declares
+  10px` on four contexts and `14px where .node .lbl.lbl-missing declares 9px` on a fifth; a call
+  site handed the wrong class list fails the context assertion alone; the map withheld fails the
+  three stylesheet assertions in its own words rather than passing over an empty list; the probe's
+  own `display` removed fails the fourth alone, naming the caption; and the drive that turns the two
+  switches off removed makes the fourth report that it could not answer rather than passing
+  vacuously.
 - **BOTH CAPTIONS UNDER A NODE LABEL WERE OUTRANKED BY THE LABEL'S OWN RULE AND PAINTED IN ITS
   FACE, #203.** The card was filed as a slant: the missing-key mark is reserved at the upright
   `9/400` width and `.lbl-missing` paints it italic, and nobody had measured the gap. Measured with

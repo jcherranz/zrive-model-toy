@@ -164,6 +164,14 @@
   // anything against a width this probe produced, or against a coordinate the placer produced
   // from one, would be the check reading its own subject, which is the ground issue 195's review
   // was rejected on.
+  //
+  // `zeros` IS THE ONE FIELD HERE THAT IS ABOUT A WIDTH, AND IT IS NOT A COMPARISON. A string with
+  // characters in it has a positive advance in every face there is, so a measurement of zero is a
+  // probe that was never laid out, whatever put it in that state, and nothing has to be measured a
+  // second time to know it. It counts rather than asserts, so it is armed on every composition
+  // anything ever drives. It is here because `body.hide-unrecorded .ghost` is `display: none` and
+  // the missing-key caption is painted carrying `ghost`: a reader with the unrecorded switch off
+  // zeroed that caption's probe, and widthOf's cache kept the zero for the life of the page.
   var PROBE = {};
   ZM.probeFaces = function () {
     var out = {}, k;
@@ -1254,6 +1262,38 @@
     // FACE, against what the stylesheet declares for the element the probe stands in for, and that
     // reads nothing the placer produced. `PROBE` is keyed on the two class lists and holds the
     // computed size, style, weight and family of the last probe built in that context.
+    //
+    // AND A CLASS LIST FAITHFUL TO THE PAINT DRAGS ONE RULE ALONG THAT IS NOT ABOUT A FACE AT ALL,
+    // WHICH AN ADVERSARIAL READ OF THIS REPAIR FOUND. The missing-key caption is painted
+    // `class="lbl lbl-missing ghost"`, and `body.hide-unrecorded .ghost` is `display: none`: it is
+    // the absence control's second switch, and a reader who turns the unrecorded finding off puts
+    // every element carrying `ghost` in that state, this probe included. MEASURED, on this tree,
+    // at `#/p/ZBL`, over `no system holds it`: with the switch on the probe answers 69.99, with it
+    // off it answers 0.00, and BECAUSE THE ANSWER IS CACHED it still answers 0.00 after the switch
+    // goes back on. A caption's line reserved at zero is a line the verb-chip placer is entitled to
+    // put a chip through, and the poisoning survives for the life of the page. Only the caption is
+    // reachable this way: a `ghost` on an ANCESTOR of the probe text, which is what the ghost tile
+    // and the ghost chip carry, leaves the advance alone (77.77 and 69.99 in both states), and it
+    // is the text element itself being unrendered that answers zero.
+    //
+    // SO THE PROBE DECLARES ITS OWN DISPLAY AND NOTHING ELSE. The argument is not that the switch
+    // is wrong: it is that the line the caption sits on is reserved by `build_layout.py` WHETHER
+    // OR NOT ANYTHING IS PAINTED IN IT, which is the whole point of reserving it, so a geometry
+    // that moved when a reader flipped a switch would be a second drawing. `visibility: hidden`
+    // stays, because visibility is what keeps the probe off the screen while leaving it laid out,
+    // and `display` is the one property that must not follow the page.
+    //
+    // AND IT IS SET THROUGH `.style`, NOT AS A `style` ATTRIBUTE, WHICH IS NOT A STYLE CHOICE. The
+    // page's own Content-Security-Policy in site/index.html carries `style-src-attr 'none'`, so a
+    // `style` attribute is DROPPED: written that way first, the attribute read back off the element
+    // and the declaration was empty, computed display stayed `none` and the probe still answered
+    // 0.00. CSP governs the attribute and not the CSSOM, so the property assignment lands. A reader
+    // tidying this into `el(...)`'s attribute bag would put the zero straight back, silently, on
+    // one switch state of one caption.
+    //
+    // A WIDTH OF ZERO FOR A STRING THAT HAS CHARACTERS IN IT IS COUNTED EITHER WAY and
+    // scripts/smoke.mjs refuses it. This is the second time a text measurement on this page has
+    // been zeroed by a rule nobody was thinking about, and the first time nothing caught it.
     var TW = {};
 
     function widthOf(s, hostCls, cls) {
@@ -1263,13 +1303,16 @@
         var host = el('g', { class: hostCls || null,
                              visibility: 'hidden', 'aria-hidden': 'true' }, svg);
         var t = el('text', { class: cls }, host);
+        host.style.display = 'inline';
+        t.style.display = 'inline';
         t.textContent = s;
         TW[k] = t.getComputedTextLength();
         if (PROBE[ctx] === undefined) {
           var cs = window.getComputedStyle(t);
           PROBE[ctx] = { host: hostCls, cls: cls, size: cs.fontSize, style: cs.fontStyle,
-                         weight: String(cs.fontWeight), family: cs.fontFamily };
+                         weight: String(cs.fontWeight), family: cs.fontFamily, zeros: 0 };
         }
+        if (s !== '' && !(TW[k] > 0)) PROBE[ctx].zeros++;
         svg.removeChild(host);
       }
       return TW[k];
