@@ -2588,13 +2588,50 @@ body.hide-unrecorded .sock-unrec { display: none; }
   stroke-dasharray: 3 2.4;
 }
 
-.lbl-missing {
+/* `.node .lbl.lbl-missing` AND NOT `.lbl-missing`, WHICH IS ISSUE 203 AND IS THE WHOLE OF THE
+   REPAIR. This rule declared 9px and the muted fill and got neither. The element it dresses is
+   `class="lbl lbl-missing ghost"` inside `g.node`, so `.node .lbl` at line 1789 matches it too,
+   and `.node .lbl` is two class selectors against this rule's one. It won every property both
+   declare: the caption painted at the label's 10px in the label's `--fg-body`, measured on the
+   page at 10px and rgb(28, 33, 39) against the chip's rgb(95, 107, 124). The only thing that
+   survived was the slant, because `.node .lbl` declares no `font-style`, and the slant is the
+   one property this defect was first reported as being about.
+
+   WHAT IT COST, IN THE UNITS THE PLACER WORKS IN. build/build_layout.py:454 and the placer oracle
+   in scripts/smoke.mjs both reserve the mark's line at the 9px chip size, which is what this rule
+   always said it was. site/render.js is not in that list and its own reserve is issue 207: it
+   shapes a hidden `text class="lbl"` outside any `.node`, so the probe matches this rule and
+   `.node .lbl` alike not at all and inherits the page's 14px. The envelope width of `no system holds it` is 82.49 at
+   9px and 91.65 at 10px, so the blocked box the verb-chip placer is handed was 9.16 units, an
+   eighth, narrower than the text inside it, and 21.09 narrower while the node is selected and
+   `.node.sel .lbl` turns the caption bold as well. A label box narrower than its own text is a
+   box the placer is allowed to put a verb chip on top of.
+
+   THE SLANT ITSELF IS WORTH 0.00 AND THAT IS MEASURED, NOT ASSUMED. Every family in the
+   measurement envelope that carries a real italic shapes this string NARROWER than upright
+   (Ubuntu 72.66 to 70.38), and the family that sets the envelope maximum has no italic file, so
+   Blink obliques it by shear and the advances do not move. 82.49 at 9/400 and 82.49 at 9/400i.
+   So no reserve changes here and no coordinate moves: the paint comes back to the size three
+   implementations already reserve, rather than three implementations moving to the paint.
+
+   THE SPECIFICITY IS RAISED RATHER THAN THE RULE REORDERED. `.node .lbl-missing` would tie
+   `.node .lbl` and win on source order alone, which is the same defect one edit away from
+   returning. Three class selectors beat two wherever the rule sits. */
+.node .lbl.lbl-missing {
   font-size: 9px;
   fill: var(--fg-muted);
   font-style: italic;
   text-anchor: middle;
   font-family: var(--font-ui);
 }
+
+/* Selecting a card turns its label bold, and this caption is not part of the label: it is a
+   sentence about what the drawing could not find. The same rule and the same argument as
+   `.node.sel .lbl.lbl-tail` below, which has been there since the tail was written and was
+   never given to the mark. Without it the caption is bold while the group is selected and
+   regular while a member is, and the 82.49 reserved for it is 11.13 short of the 93.22 the bold
+   face takes at its own size. */
+.node.sel .lbl.lbl-missing { font-weight: 400; }
 
 /* A third flag beside dummy and estimated. A dummy value stands in for something a system
    holds; an absent one says no system holds it. */
@@ -2656,8 +2693,15 @@ body.hide-unrecorded .sock-unrec { display: none; }
 /* The line under a card that stands for many, saying how many of them the drawing did not draw.
    Set like the missing-key caption under the cohort and upright rather than italic, because
    italic in this drawing means a ghost and nothing here is absent: the thirty are on the page at
-   #/students. It fades in with the tiles it is counting. */
-.lbl-tail {
+   #/students. It fades in with the tiles it is counting.
+
+   AND IT IS `.node .lbl.lbl-tail` FOR THE REASON ISSUE 203 GIVES ABOVE, which cost this caption
+   more than it cost the mark. `.node .lbl` outranked this rule on both properties it declares,
+   so the tail was painted at the label's 10px in the label's `--fg-body`: same size, same
+   colour, upright, sitting directly under the label. Not one of the four things written here to
+   set it apart from the label reached the page. The widest tail is reserved at 115.94, the 9px
+   width of `1 of 10 session templates`, and was painting at 128.82. */
+.node .lbl.lbl-tail {
   font-size: 9px;
   fill: var(--fg-muted);
   text-anchor: middle;
@@ -2667,8 +2711,13 @@ body.hide-unrecorded .sock-unrec { display: none; }
 /* Selecting a card turns its label bold, and the marker under it is not part of the label: it
    is a sentence about the picture. Without this it would be bold while the group is selected
    and regular while one of the members is, which is a weight that changes for no reason a
-   reader could name. */
-.node.sel .lbl-tail { font-weight: 400; }
+   reader could name.
+
+   FOUR CLASS SELECTORS AND NOT THREE, issue 203. This rule tied `.node.sel .lbl` and has been
+   winning on source order since it was written, which is the same collision the two rules above
+   lost outright and is one reordering away from losing too. Every tail carries both classes, so
+   the set of elements it dresses does not change. */
+.node.sel .lbl.lbl-tail { font-weight: 400; }
 
 /* ---- the way from a card that stands for many to the list of them ------------ */
 .pmore {

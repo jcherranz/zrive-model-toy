@@ -365,6 +365,13 @@ const PHASES = {
   // no candidate that line offers is cheaper than the one it stands on, which is the claim the
   // doubled prune breaks and every other instrument in this file slept through.
   'the placer oracle':    { count: 3, when: 'grain' },
+  // Issue 203. Three, and they are three for the same reason the row above is: that both captions
+  // were found at all and answered in both states, without which the two comparisons below are
+  // vacuously true over an empty list; that each is painted in the size and weight its width was
+  // reserved in, which is the claim no gate in this repository could make and which both captions
+  // had been failing since they were written; and that none is painted wider than its own reserved
+  // line, which is the only place the slant the card was filed about can be answered.
+  'the captions under a label': { count: 3, when: 'grain' },
   'the header':           { count: 3, when: 'grain' }
 };
 
@@ -730,7 +737,26 @@ const PHASES = {
 // as aggressive as the one issue 171 argued for moves a seventh of every chip box this suite
 // drives and every assertion here passed over it. The three run a second implementation of the
 // placement in the driver, pruning nothing, and hold it against what the page painted.
-const EXPECTED_ASSERTIONS = 343;
+// AND 346 SINCE ISSUE 203, which adds three to a grain phase of its own and replaces none. The
+// card was filed as a reserved width taken from the upright context of a string the stylesheet
+// paints italic, and the slant turned out to be worth 0.00: every family in the measurement
+// envelope that carries a real italic shapes the string narrower, and the family that sets the
+// maximum has no italic file and is obliqued by shear. What the measurement found instead is that
+// `.node .lbl` is two class selectors against `.lbl-missing`'s and `.lbl-tail`'s one, so both
+// caption rules lost every property they declared and both captions painted at the label's 10px
+// in the label's colour, on a line reserved at 9px. Nothing here could see it: the placer oracle
+// reads the same table the placer does and says so, and check_build.sh's width coverage asks
+// whether every string HAS a measured width in the contexts the build asks for, never whether the
+// build asks for the context the stylesheet paints. The three run that comparison for the two
+// captions, at rest and with the card selected, and hold the painted width against the reserved
+// one on the machine doing the reading, which is the only place the slant can be answered at all.
+// THREE THINGS IN THEM CAME FROM AN ADVERSARIAL READ AND NOT FROM THE AUTHOR: the fill, which the
+// repair restores and which nothing was holding, so a rule that took the captions back to the
+// label's colour and kept 9px would have passed; the caption counts, pinned at 207 and 74 rather
+// than left at `> 0`, which is the same vacuity one order of magnitude down; and a width of zero
+// counted as a hole, because `getComputedTextLength()` answers 0 on a `display: none` text and
+// this page has a switch that puts every mark in that state.
+const EXPECTED_ASSERTIONS = 346;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -13055,6 +13081,124 @@ const VERB_CHIP_READ = `
            digest: window.ZT.programme().digest };
 `;
 
+// =================================================================================================
+// The two captions under a label, issue 203.
+//
+// A node can carry two lines under its label that are not part of the label: a missing-key mark
+// saying what the drawing could not find, and a count saying how many of the things a card stands
+// for were not drawn. `build/build_layout.py:454` reserves both at the chip size and the regular
+// weight, and the placer oracle above reads the same `9/400` for both. What neither could see is
+// the face the stylesheet actually paints them in, and for the whole life of both captions it was
+// not that one: `.node .lbl` is two class selectors against `.lbl-missing`'s and `.lbl-tail`'s one,
+// so it won every property both rules declared and the captions painted at the label's 10px in the
+// label's colour. The reserved line was an eighth narrower than the text on it, and a quarter
+// narrower while the card was selected.
+//
+// SITE/RENDER.JS IS DELIBERATELY NOT IN THAT LIST, and the reason is issue 207. Its own reserve
+// goes through `widthOf(n.mark, 'lbl', null, false)`, which shapes a hidden `text class="lbl"` in a
+// `g` appended straight to the svg. `.node .lbl` is a DESCENDANT selector and that probe has no
+// `.node` over it, so the probe matches no rule at all and inherits the page's own 14px: measured
+// here, 112.86 for the string this page paints at 77.85. Naming it as a third implementation
+// reserving at the chip size would be a comment this repository could not support.
+//
+// WHY THE FACE AND THE WIDTH ARE TWO ASSERTIONS AND NOT ONE. The face is a fact about this
+// repository: a size, a weight and a fill this tree declares and can be checked anywhere, and it
+// goes red the moment a stylesheet edit takes the paint away from the reserve again. The width is a
+// fact about the machine the page is read on, because whether an italic face is wider than the
+// upright face the table measured depends on which fonts are installed; it is the only one of the
+// two that can answer the slant, and it can only answer it here.
+const CAPTION_FACE = {
+  // `9/400` for both, and for the mark that is deliberate rather than an oversight repeated.
+  // `.node .lbl.lbl-missing` paints italic and the table's italic context does not hold this
+  // string, so there is nothing to look it up in; measured against the envelope this tree's own
+  // build/measure_labels.py shapes, the string is 82.49 upright and 82.49 italic, because every
+  // family carrying a real italic shapes it narrower and the family that sets the maximum has no
+  // italic file and is obliqued by shear, which does not move an advance. The upright number is
+  // therefore the safe one to hold the paint against, and the third assertion holds the PAINTED
+  // italic width against it on whatever machine is running, which is a stronger statement about
+  // the slant than renaming the context would have been.
+  'lbl-missing': { ctx: '9/400', size: '9px', weight: '400', style: 'italic' },
+  'lbl-tail': { ctx: '9/400', size: '9px', weight: '400', style: 'normal' }
+};
+
+// How many of each there are over the fourteen drawings, and it is a pinned count rather than a
+// `> 0` because `> 0` is what lets a page that lost nine tenths of its captions pass the two
+// comparisons over the tenth that is left. Both rise and fall with the corpus, so a card that
+// changes what the model records changes these, and the failure says which way.
+const CAPTION_MARKS = 207;
+const CAPTION_TAILS = 74;
+
+// The fill both caption rules declare, read off the page rather than written down here, because
+// `--fg-muted` resolves to two different values in the two themes and this suite runs in whichever
+// one the machine prefers. A verb chip is painted from the same token, so the chips on the drawing
+// under the caption ARE the expected value, and the comparison stays a comparison of the
+// stylesheet against itself. Checked because it is the other half of what `.node .lbl` took: with
+// only the size and the weight held, a rule that painted the captions in the label's `--fg-body`
+// again and kept 9px would pass every assertion here.
+const CAPTION_FILL_FROM = 'text.chip-tx';
+
+// Sub-pixel, and it is a shaping tolerance rather than a budget. `getComputedTextLength()` answers
+// in the drawing's own units at whatever subpixel positioning the renderer chose; the table rounds
+// every width UP to two decimals. A caption over its reserved line by more than this is over it
+// because of the face it is in, which is the thing being checked.
+const CAPTION_W_TOL = 0.05;
+
+// The states one caption was read in, skipping any the page declined to produce. A hole is the
+// FIRST assertion's business and it fails on it there; the two that follow must not throw over it,
+// because a group that throws reports one failure where it intended three and the run comes out
+// short of its own count with no reader able to say which claim went unmade.
+const STATES = (r) => [['at rest', r.rest], ['selected', r.sel]].filter(x => x[1]);
+
+// Both states in one visit. The click goes on the tile and not on the group, because that is where
+// a reader puts it, and site/render.js's own handler stops it propagating to the background clear.
+//
+// ONE PRESS PER CARD AND NOT ONE PER CAPTION, which is a repair to this reader and not to the page.
+// A card can carry both captions at once, a module tile in the collapsed grain being the ordinary
+// case: it says how many session templates it holds and, if nothing records who teaches them, that
+// no system holds it. Pressing per caption pressed those cards twice, and site/selection.js reads
+// a second press on the card already selected as the way to clear the selection, so the second
+// caption on every such card was read in a state the driver had just undone. Thirty of them, and
+// the reading came back as a hole rather than as a wrong answer, which is the only reason it was
+// not a silent pass.
+const CAPTION_READ = `
+  function faceOf(t) {
+    var c = getComputedStyle(t);
+    return { size: c.fontSize, weight: c.fontWeight, style: c.fontStyle, fill: c.fill,
+             w: t.getComputedTextLength() };
+  }
+  var svg = document.getElementById('graph');
+  var cards = [], rows = [];
+  svg.querySelectorAll('g[data-node], g[data-outside]').forEach(function (g) {
+    var mine = [];
+    ['lbl-missing', 'lbl-tail'].forEach(function (cls) {
+      var t = g.querySelector('text.' + cls);
+      if (t) mine.push({ kind: cls, t: t, s: t.textContent, rest: faceOf(t), sel: null });
+    });
+    if (!mine.length) return;
+    cards.push({ id: g.getAttribute('data-node') || g.getAttribute('data-outside'),
+                 g: g, caps: mine });
+  });
+  cards.forEach(function (card) {
+    var tile = card.g.querySelector('rect.tile-bg');
+    if (!tile) return;
+    tile.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    // Only a card the page agreed to select is read in the selected state. A press that selected
+    // nothing must leave a hole the driver reports, not a second copy of the resting reading.
+    if (!card.g.classList.contains('sel')) return;
+    card.caps.forEach(function (c) { c.sel = faceOf(c.t); });
+  });
+  cards.forEach(function (card) {
+    card.caps.forEach(function (c) {
+      rows.push({ id: card.id, kind: c.kind, s: c.s, rest: c.rest, sel: c.sel });
+    });
+  });
+  // The muted fill as this theme resolves it, taken off a verb chip on the drawing under the
+  // captions rather than written into the driver. Null if the drawing has no chip, which the
+  // driver reports rather than treating as agreement.
+  var chip = svg.querySelector('${CAPTION_FILL_FROM}');
+  return { rows: rows, muted: chip ? getComputedStyle(chip).fill : null };
+`;
+
 // The curve, flattened the way the placer flattens it. Nothing is shared with build_layout.py but
 // the chord count and the numbers in the `d` attribute the page painted.
 function chipArc(p, n) {
@@ -13421,6 +13565,115 @@ async function runGrain(chrome, base) {
                 `(${o.moved.toFixed(1)} units away)`).join(', ')}`
             : ''),
         `worst any candidate beat a placed chip by, over ${chips} chips: ${worstBeat.toFixed(4)}`);
+    });
+
+    // ---- the two captions under a label, issue 203 -------------------------
+    await group('the captions under a label', async () => {
+      const table = chipWidths();
+      const rows = [];
+      for (const g of ['sessions', 'modules']) {
+        for (const k of KEYS) {
+          await goto(base + '#/p/' + k + (g === 'modules' ? '/modules' : ''));
+          const r = await ev(CAPTION_READ);
+          rows.push(...r.rows.map(x => Object.assign({ where: k + '/' + g, muted: r.muted }, x)));
+        }
+      }
+
+      // FIRST, THAT THERE WAS ANYTHING TO READ, and it is an assertion because the two selectors
+      // below are the whole of this phase's grip on the page. A rename of either class, or a
+      // reveal that stopped painting the caption, would leave every list here empty and every
+      // comparison below vacuously true, which is the one shape of dead instrument this repository
+      // keeps finding.
+      //
+      // AND IT IS A PINNED COUNT AND NOT A `> 0`, which is the same defect one order of magnitude
+      // down: a page that lost nine captions in ten would satisfy `> 0` and hand the two
+      // comparisons below the tenth that was left, which they would pass, cleanly, over almost
+      // nothing. A ZERO-WIDTH READING IS A HOLE TOO, for the same reason: `getComputedTextLength()`
+      // answers 0 on a `display: none` text, and `body.hide-unrecorded .ghost` is a switch on this
+      // page that can put every mark in that state, which would make the third assertion below
+      // true of nothing at all while reporting a number.
+      const marks = rows.filter(r => r.kind === 'lbl-missing');
+      const tails = rows.filter(r => r.kind === 'lbl-tail');
+      const mute = rows.filter(r => !r.rest || !r.sel || !(r.rest.w > 0) || !(r.sel && r.sel.w > 0));
+      const unmuted = rows.filter(r => !r.muted);
+      assert('both captions under a label were found on the fourteen drawings, in both states',
+        marks.length === CAPTION_MARKS && tails.length === CAPTION_TAILS &&
+          mute.length === 0 && unmuted.length === 0,
+        `${CAPTION_MARKS} missing-key and ${CAPTION_TAILS} count captions, each read with a width ` +
+          `of its own at rest and again with its own card selected, on a drawing carrying a verb ` +
+          `chip to take the muted fill from`,
+        `${marks.length} missing-key and ${tails.length} count captions, ` +
+          `${mute.length} that could not be read in both states` +
+          (mute.length ? `: ${mute.slice(0, 3).map(r => r.where + ' ' + r.id).join(', ')}` : '') +
+          (unmuted.length ? `, ${unmuted.length} on a drawing with no verb chip` : ''),
+        `${marks.length} missing-key and ${tails.length} count captions over ${rows.length} readings`);
+
+      // SECOND, THE FACE. This is the assertion issue 203 exists for and the one no gate in this
+      // repository could make. A reserved width is a measurement of one string in one face, and
+      // nothing held the face the page paints against the face the width was measured in: the
+      // build asks build/label_widths.json for `9/400` and the placer oracle above reads `9/400`
+      // for both captions, while `.node .lbl` quietly outranked both caption rules and painted
+      // them at the label's 10px in the label's colour. Weight is here for the same reason and is
+      // not decoration: `.node.sel .lbl` turns a selected card's label bold, and a caption dragged
+      // bold with it is a caption wider than the 400-weight width anything reserved for it.
+      //
+      // AND THE FILL IS HERE THOUGH NO WIDTH DEPENDS ON IT, because it is the other half of what
+      // `.node .lbl` took and the half a reader sees first. A caption the same size as the label
+      // above it and the same colour is not a caption; both rules say `--fg-muted` and neither got
+      // it. With only the size and the weight held, a rule that took the fill back would pass.
+      const wrongFace = [];
+      for (const r of rows) {
+        const want = CAPTION_FACE[r.kind];
+        for (const [state, f] of STATES(r)) {
+          if (f.size !== want.size || f.weight !== want.weight || f.style !== want.style) {
+            wrongFace.push(`${r.where} ${r.id} ${r.kind} ${state}: ` +
+                           `${f.size}/${f.weight}${f.style === 'italic' ? 'i' : ''} ` +
+                           `and not ${want.size}/${want.weight}${want.style === 'italic' ? 'i' : ''}`);
+          }
+          if (r.muted && f.fill !== r.muted) {
+            wrongFace.push(`${r.where} ${r.id} ${r.kind} ${state}: painted ${f.fill} and not the ` +
+                           `${r.muted} this theme paints a verb chip in`);
+          }
+        }
+      }
+      assert('every caption is painted in the face its width was reserved in',
+        rows.length > 0 && wrongFace.length === 0,
+        `all ${rows.length} readings at ${CAPTION_FACE['lbl-missing'].size} and weight ` +
+          `${CAPTION_FACE['lbl-missing'].weight}, the size and weight build/build_layout.py and ` +
+          `the placer oracle above both reserve them at, and in the muted fill their own rules ` +
+          `declare`,
+        `${wrongFace.length} painted in another face` +
+          (wrongFace.length ? `: ${wrongFace.slice(0, 4).join('; ')}` : ''),
+        `${rows.length} readings, both states, all in the reserved face`);
+
+      // THIRD, THE WIDTH ITSELF, which is the half the face cannot cover and the half that
+      // answers the question issue 203 actually asked. The slant is the one property `.node .lbl`
+      // does not declare, so it survived, and whether an italic face is wider than the upright
+      // one the table measured is a fact about the machine the page is being read on rather than
+      // about this repository. So it is read off the page and held against the number the build
+      // reserved. A caption wider than its own reserved line is a label box narrower than the
+      // text in it, which is a box the verb-chip placer above is entitled to put a chip on.
+      const overrun = [];
+      let worstFill = Infinity;
+      for (const r of rows) {
+        const w = table ? chipWidthOf(table, CAPTION_FACE[r.kind].ctx, r.s) : null;
+        if (w === null) { overrun.push(`${r.where} ${r.id}: no reserved width for ${JSON.stringify(r.s)}`); continue; }
+        for (const [state, f] of STATES(r)) {
+          worstFill = Math.min(worstFill, w - f.w);
+          if (f.w > w + CAPTION_W_TOL) {
+            overrun.push(`${r.where} ${r.id} ${r.kind} ${state}: painted ${f.w.toFixed(2)} ` +
+                         `against ${w} reserved, over by ${(f.w - w).toFixed(2)}`);
+          }
+        }
+      }
+      assert('no caption is painted wider than the line reserved for it',
+        rows.length > 0 && overrun.length === 0,
+        `every caption inside the ${CAPTION_FACE['lbl-missing'].ctx} width build/label_widths.json ` +
+          `holds for its own string`,
+        `${overrun.length} wider than their reserved line` +
+          (overrun.length ? `: ${overrun.slice(0, 4).join('; ')}` : ''),
+        `narrowest headroom between a painted caption and its reserved line, over ` +
+          `${rows.length} readings in two states: ${worstFill === Infinity ? 'none' : worstFill.toFixed(2)} units`);
     });
 
     // ---- the count --------------------------------------------------------
