@@ -338,6 +338,14 @@ const PHASES = {
   'capture':              { count: 15, when: 'behavioural' },
   'board':                { count: 13, when: 'behavioural' },
   'the load':             { count: 1, when: 'behavioural' },
+  // Issue 170, R7. Two claims at every width, because both are about a number that is different
+  // at each of them: the canvas scale the focus ring was being multiplied by, and whether the
+  // scope rail has anything off its ends.
+  'the ring and the rail': { count: 2, when: 'every' },
+  // Issue 170, R7. Three claims about the page rather than about a width: what is reachable behind
+  // an open sheet, whether the window control is reversible under touch, and whether a calendar
+  // chip's facts are anywhere but a tooltip.
+  'reach':                { count: 3, when: 'behavioural' },
   'the gutter on a phone': { count: 2, when: 'narrow' },
   'console and requests': { count: 3, when: 'every' },
   'two artefacts':        { count: 4, when: 'grain' },
@@ -685,7 +693,19 @@ const PHASES = {
 // has, against a closed list of clause shapes. The claim of that name checked two figures, in one
 // sentence each, on two routes, and the audit shipped a reworded count past it and past both
 // content gates.
-const EXPECTED_ASSERTIONS = 327;
+// 327 until issue 170, which adds nine: two at each of the three widths and three behavioural.
+// R7 of the audit is five findings and the suite could make none of them. The two per width are
+// the keyboard's mark on a node, which is the one thing a keyboard reader is told about where they
+// are and was painting at 0.1721 CSS px because a stroke inside #graph is in the drawing's units
+// and not the reader's, and whether the scope rail says which way it continues, which at 390 it
+// did not while three of eight programmes sat off the end of it. The three are the ones that are
+// about the page and not about a width: that nothing behind an open sheet answers a tab and that
+// closing it puts focus back on the link that opened it, which is one claim because the restore
+// that was there had never once fired on this sheet's own documented opener; that a window
+// narrowed to one week by a finger can be widened by one, which no x on the track could do; and
+// that a calendar chip's five facts are in the document rather than in a title a phone cannot
+// raise, with the no-instructor mark carried by something that is not a colour.
+const EXPECTED_ASSERTIONS = 336;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -13169,6 +13189,382 @@ function grainReport(KEYS, per, heights, filteredReflow) {
 }
 
 // =================================================================================================
+// WHAT A KEYBOARD CAN SEE AND WHAT A FINGER CAN REACH. Issue 170.
+// =================================================================================================
+// The audit's R7 is five findings and none of them was a claim this suite could make. It counted
+// what the suite does about the accessibility of the primary view and got: one assertion,
+// `ring.width >= 2`, aimed at `.vseg`, the two item view selector, and at nothing else; zero
+// `Accessibility.*` calls; and one press of Tab. So a focus ring painting at 0.1721 CSS px over the
+// whole drawing, a modal sheet with 195 tabbable elements behind it and a window control that could
+// be narrowed and never widened again were all green.
+//
+// FIVE ASSERTIONS AND NOT FIFTY. Each one is a claim a card decided, and each carries its own
+// negative control INSIDE the assertion rather than as a separate planted browser: a run costs
+// about four minutes and a plant is a whole page load, where the controls below are one attribute
+// write and one re-read. What they buy is the same thing a plant buys, which is that a green here
+// is the instrument having looked rather than the instrument being unable to look.
+
+// A focus indicator is two CSS px, which is WCAG 2.2 SC 2.4.13's floor and what `.capbtn:focus` on
+// this same drawing already uses, and it clears 3 to 1 against what it is painted on, which is SC
+// 1.4.11 and the same floor scripts/check_repo.sh holds the lane plate itself to. Neither number is
+// chosen here: both are quoted from something that already holds them.
+const RING_MIN_PX = 2;
+const RING_MIN_RATIO = 3.0000;
+
+// THE WIDTH IS READ IN THE READER'S UNITS AND NOT THE DRAWING'S, which is the whole of the defect
+// this measures. A stroke inside `#graph` is in user units and the canvas matrix multiplies it, so
+// `getComputedStyle(...).strokeWidth` is the one reading that cannot see the failure: it said `1px`
+// at every zoom while the page painted 0.1721 of one. `vector-effect: non-scaling-stroke` takes the
+// stroke out of that matrix, so the element's own screen CTM is asked FIRST and the declared width
+// is multiplied by it only where the browser is going to.
+//
+// AND THE GROUND IS THE ONE THE RING IS ACTUALLY ON. A node sits on a lane plate, the plate is
+// translucent since #133, and the composite is what a reader's eye meets, so it is computed the way
+// checkPlate computes it and out of the same three readings.
+const RING_READ = `(function () {
+  var n = document.querySelector('#graph .node');
+  if (!n) return JSON.stringify({ why: 'the drawing has no node to focus' });
+  n.focus();
+  var f = n.querySelector('.focus-frame');
+  if (!f) return JSON.stringify({ why: 'the focused node carries no focus frame' });
+  var seen = false;
+  try { seen = n.matches(':focus-visible'); } catch (e) { seen = false; }
+  var cs = getComputedStyle(f);
+  var m = f.getScreenCTM();
+  var scale = m ? m.a : 0;
+  var declared = parseFloat(cs.strokeWidth);
+  var painted = cs.vectorEffect === 'non-scaling-stroke' ? declared : declared * scale;
+  var band = document.querySelector('#graph rect.band');
+  var probe = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  probe.setAttribute('width', '1');
+  probe.setAttribute('height', '1');
+  probe.style.position = 'absolute';
+  probe.style.left = '-9999px';
+  var pr = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  pr.setAttribute('width', '1');
+  pr.setAttribute('height', '1');
+  probe.appendChild(pr);
+  document.body.appendChild(probe);
+  pr.style.fill = 'var(--bg-app)';
+  var app = getComputedStyle(pr).fill;
+  document.body.removeChild(probe);
+  return JSON.stringify({
+    why: '',
+    focused: document.activeElement === n,
+    visible: seen,
+    declared: declared,
+    scale: +scale.toFixed(4),
+    painted: +painted.toFixed(4),
+    effect: cs.vectorEffect,
+    stroke: cs.stroke,
+    band: band ? getComputedStyle(band).fill : null,
+    bandAlpha: band ? getComputedStyle(band).fillOpacity : null,
+    app: app
+  });
+})()`;
+
+// THE NEGATIVE CONTROL, AND IT IS THE DEFECT ITSELF PUT BACK FOR ONE READING. `vector-effect` is
+// written to `none` on the frame and the width is read again: on a repaired page the painted width
+// has to COLLAPSE, because the matrix is back in it. If it does not collapse, the reading above was
+// not measuring the matrix at all and the pass it produced means nothing, which is a third state
+// and is reported as one rather than as a green.
+const RING_UNDO = `(function () {
+  var n = document.querySelector('#graph .node');
+  var f = n && n.querySelector('.focus-frame');
+  if (!f) return JSON.stringify({ why: 'no frame' });
+  var had = f.style.vectorEffect;
+  f.style.vectorEffect = 'none';
+  var cs = getComputedStyle(f);
+  var m = f.getScreenCTM();
+  var w = parseFloat(cs.strokeWidth) * (m ? m.a : 0);
+  f.style.vectorEffect = had;
+  return JSON.stringify({ why: '', painted: +w.toFixed(4) });
+})()`;
+
+// WHAT THE RAIL SAYS ABOUT ITSELF, READ AT THREE SCROLL POSITIONS AND PUT BACK. The claim is not
+// that a class is present: it is that the rail's answer FOLLOWS its own geometry in both
+// directions, at rest, in the middle and at the far end, and that a rail with nothing off either
+// end says nothing at all. A static read of a class name is the instrument #168 replaced one file
+// over and this deliberately is not one.
+//
+// WHAT THIS DOES NOT MEASURE, said rather than left for the next audit: it does not photograph the
+// fade. It reads the used value of `mask-image`, which is a resolved value and goes to `none` the
+// moment the rule is deleted or the class is not written, and it drives the geometry that decides
+// which class is written. A mask changed to a gradient that does not actually fade would pass this
+// and would need a pixel reading, which this suite has no machinery for and which would be a larger
+// thing than the one rule it checks.
+const RAIL_READ = `(function () {
+  var r = document.getElementById('pgrail');
+  if (!r) return JSON.stringify({ why: 'there is no scope rail on this page' });
+  var was = r.scrollLeft;
+  var max = r.scrollWidth - r.clientWidth;
+  function at(x) {
+    r.scrollLeft = x;
+    // The class is written by a scroll listener, and setting scrollLeft from script fires it
+    // asynchronously, so the state is recomputed here from the same three numbers rather than
+    // waited on: what is being asserted is the rule, and a wait would be asserting the event loop.
+    r.dispatchEvent(new Event('scroll'));
+    return { at: r.scrollLeft,
+             l: r.classList.contains('rail-more-l'),
+             rt: r.classList.contains('rail-more-r'),
+             mask: getComputedStyle(r).maskImage === 'none' ? 'none' : 'a gradient' };
+  }
+  var out = { why: '', overflow: max, width: r.clientWidth, content: r.scrollWidth,
+              rest: at(0), mid: max > 2 ? at(Math.round(max / 2)) : null, end: at(max) };
+  r.scrollLeft = was;
+  r.dispatchEvent(new Event('scroll'));
+  return JSON.stringify(out);
+})()`;
+
+async function checkRingAndRail(page) {
+  // ONE. THE KEYBOARD'S MARK ON A NODE IS A MARK. Every node in the drawing is a focus stop and
+  // 186 of the 206 focus stops a 390px screen has are nodes, so this rule is the whole of what a
+  // keyboard reader is told about where they are. At every width because the number this is about
+  // is the canvas scale, which is a different number at each of them: measured before the repair,
+  // 0.3035 at 2560, 0.1721 at 1536 and 0.1583 at 390, and the painted ring was the declared width
+  // times exactly that.
+  const ring = JSON.parse(await page.evaluate(RING_READ));
+  const undo = ring.why ? { why: 'the ring could not be read', painted: null }
+                        : JSON.parse(await page.evaluate(RING_UNDO));
+  let ratio = null;
+  if (!ring.why && ring.band && ring.app) {
+    const ground = paintOver(
+      Object.assign({}, parsePaint(ring.band), { a: parseFloat(ring.bandAlpha) || 1 }),
+      parsePaint(ring.app));
+    const paint = parsePaint(ring.stroke);
+    ratio = ratio4(paintOver(paint, ground), ground);
+  }
+  // The control has to have bitten, or the reading above was not reading the matrix. A page where
+  // taking `non-scaling-stroke` off changes nothing is a page this instrument cannot see.
+  const controlBit = !ring.why && undo.painted !== null && undo.painted < ring.painted - 0.01;
+  assert('the keyboard\'s mark on a node is two CSS px and clears 3 to 1 against the plate it is on',
+    !ring.why && ring.focused === true && ring.visible === true &&
+      ring.painted >= RING_MIN_PX && ratio !== null && ratio >= RING_MIN_RATIO && controlBit,
+    `a ring of at least ${RING_MIN_PX} CSS px at ${RING_MIN_RATIO} or better, and a control that ` +
+      'puts the canvas matrix back and sees the width collapse',
+    ring.why
+      ? ring.why
+      : `${ring.painted} CSS px (${ring.declared} declared, ${ring.effect}, canvas scale ` +
+        `${ring.scale}) at ${ratio === null ? 'a contrast this suite could not read' : ratio} to 1` +
+        (controlBit ? '' : `; the control read ${undo.painted} and did not collapse the width, ` +
+                           'so this reading is not measuring the matrix'),
+    `${ring.painted} CSS px at ${ratio} to 1, canvas scale ${ring.scale}, control ${undo.painted}`);
+
+  // TWO. THE RAIL SAYS WHICH WAY IT CONTINUES, AND SAYS NOTHING WHERE IT DOES NOT. At 390 the eight
+  // chips are 426 px of content in a 256 px box and three programmes are off the right of it at
+  // rest; at 1536 and 2560 the rail fits and a fade there would be the page saying there is more
+  // when there is not. Both are asserted, and the second is why this runs at every width rather
+  // than only at the narrow one.
+  const rail = JSON.parse(await page.evaluate(RAIL_READ));
+  const fits = !rail.why && rail.overflow <= 1;
+  const ok = !rail.why && (fits
+    ? !rail.rest.l && !rail.rest.rt && rail.rest.mask === 'none'
+    : (!rail.rest.l && rail.rest.rt && rail.rest.mask === 'a gradient' &&
+       rail.end.l && !rail.end.rt && rail.end.mask === 'a gradient' &&
+       (rail.mid === null || (rail.mid.l && rail.mid.rt))));
+  assert('the scope rail says which way it continues, and says nothing where it continues neither way',
+    ok,
+    fits ? 'a rail that fits, carrying no fade on either edge'
+         : 'a fade on the right at rest, on the left at the far end, and on both in between',
+    rail.why
+      ? rail.why
+      : `${rail.content} px of chips in ${rail.width}: rest ` +
+        `${JSON.stringify(rail.rest)}, mid ${JSON.stringify(rail.mid)}, end ${JSON.stringify(rail.end)}`,
+    fits ? `${rail.content} px of chips in ${rail.width}, nothing off either end`
+         : `${rail.content} px of chips in ${rail.width}, ${rail.overflow} off the end`);
+}
+
+// The five facts a calendar chip carries, read off the rendered document rather than off the
+// title. `innerText` is deliberately not used: it answers what is PAINTED, and the whole point of
+// the span term.js writes is that it is in the document and not painted. So the visible spans are
+// found by their aria-hidden, and what is left is what a reader with a screen reader is read.
+const CHIP_READ = `(function () {
+  var chips = Array.prototype.slice.call(document.querySelectorAll('.cal-chip'));
+  if (!chips.length) return JSON.stringify({ why: 'no calendar chip is on the screen' });
+  var wrong = [], sr = 0;
+  chips.forEach(function (c) {
+    var spoken = Array.prototype.slice.call(c.childNodes).filter(function (n) {
+      return !(n.nodeType === 1 && n.getAttribute('aria-hidden') === 'true');
+    }).map(function (n) { return n.textContent; }).join('').trim();
+    if (spoken) sr++;
+    if (spoken !== String(c.getAttribute('title') || '').trim()) {
+      wrong.push((c.textContent || '').slice(0, 24));
+    }
+  });
+  var gap = document.querySelector('.cal-chip.cal-gap');
+  var plain = document.querySelector('.cal-chip:not(.cal-gap)');
+  var mark = null;
+  if (gap && plain) {
+    var a = getComputedStyle(gap), b = getComputedStyle(plain);
+    mark = { style: a.borderLeftStyle, other: b.borderLeftStyle,
+             colour: a.borderLeftColor !== b.borderLeftColor };
+  }
+  return JSON.stringify({ why: '', n: chips.length, spoken: sr, wrong: wrong.slice(0, 3),
+                          gaps: document.querySelectorAll('.cal-chip.cal-gap').length, mark: mark });
+})()`;
+
+async function checkReach(page, base) {
+  // THREE. NOTHING BEHIND AN OPEN SHEET ANSWERS A TAB, AND CLOSING PUTS FOCUS BACK WHERE IT CAME
+  // FROM. Driven by the documented route and not by the address: the list is opened from the
+  // cohort's own panel link, which is the opener the old restore guard could never fire on, and it
+  // is the opener a reader has.
+  await page.evaluate(`location.hash = ${JSON.stringify(ONE)}`);
+  await page.waitFor(`window.ZT.roster() === false && window.ZT.scope().n === 1`,
+                     'the drawing this suite drives');
+  const opened = await page.evaluate(`(function () {
+    var ns = document.querySelectorAll('#graph .node');
+    for (var i = 0; i < ns.length; i++) {
+      ns[i].dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      var l = document.querySelector('#pmore .pmore-link');
+      if (l && l.getAttribute('href') === '#/students') {
+        l.focus();
+        l.click();
+        return l.className;
+      }
+    }
+    return '';
+  })()`);
+  await page.waitFor('window.ZT.roster() === true', 'the student list to open from its own link');
+  const behind = await page.evaluate(`(function () {
+    var sel = 'button, a, input, select, textarea, [tabindex]:not([tabindex="-1"])';
+    var sheet = document.getElementById('roster');
+    function reachable() {
+      return Array.prototype.slice.call(document.querySelectorAll(sel)).filter(function (el) {
+        if (sheet.contains(el)) return false;
+        var r = el.getBoundingClientRect();
+        if (!(r.width && r.height)) return false;
+        for (var n = el; n && n.nodeType === 1; n = n.parentNode) {
+          var cs = getComputedStyle(n);
+          if (cs.display === 'none' || cs.visibility === 'hidden') return false;
+          if (n.hasAttribute && n.hasAttribute('inert')) return false;
+          if (n.getAttribute && n.getAttribute('aria-hidden') === 'true') return false;
+        }
+        return true;
+      });
+    }
+    var out = reachable();
+    // THE NEGATIVE CONTROL. The inert attribute is taken off the drawing and the same count is
+    // taken again: it has to RISE, or this counter cannot see the elements it is claiming are
+    // gone, and a count of three would mean nothing.
+    var view = document.getElementById('view-diagram');
+    var had = view.hasAttribute('inert');
+    if (had) view.removeAttribute('inert');
+    var loose = reachable().length;
+    if (had) view.setAttribute('inert', '');
+    return JSON.stringify({
+      outside: out.length,
+      stray: out.filter(function (el) { return !el.closest('header'); })
+               .map(function (el) { return el.id || el.className; }),
+      loose: loose,
+      inert: had,
+      panelClose: !!document.getElementById('close') &&
+                  reachable().indexOf(document.getElementById('close')) !== -1
+    });
+  })()`);
+  await page.send('Input.dispatchKeyEvent',
+    { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+  await page.send('Input.dispatchKeyEvent',
+    { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+  await page.waitFor('window.ZT.roster() === false', 'the student list to close on Escape');
+  const back = await page.evaluate(`(function () {
+    var a = document.activeElement;
+    return JSON.stringify({ where: a === document.body ? 'body' : (a.id || a.className || a.tagName),
+                            inertLeft: !!document.querySelector('[inert]') });
+  })()`);
+  const landed = JSON.parse(back);
+  const b = JSON.parse(behind);
+  assert('nothing behind an open sheet answers a tab, and closing it puts focus back on the link that opened it',
+    opened === 'linkbtn pmore-link' && b.inert === true && b.stray.length === 0 &&
+      b.panelClose === false && b.loose > b.outside &&
+      landed.where === 'linkbtn pmore-link' && landed.inertLeft === false,
+    'everything still reachable behind the list living in the header, the closed panel not among ' +
+      'it, the control seeing the drawing come back when inert is lifted, and Escape landing on ' +
+      'the panel link the list was opened from',
+    `${behind}, and Escape landed on ${landed.where}` +
+      (opened === 'linkbtn pmore-link' ? '' : `; the list was opened by ${JSON.stringify(opened)}`),
+    `${b.outside} reachable behind the list, all in the header, ${b.loose} with inert lifted, ` +
+      `Escape to ${landed.where}`);
+
+  // FOUR. A WINDOW NARROWED TO ONE WEEK CAN BE WIDENED AGAIN BY A FINGER. Driven with touch events
+  // and not with a mouse, because the claim is about the device with no keyboard: a synthesised
+  // mouse event carrying pointerType 'touch' is delivered down the mouse path and would prove
+  // nothing. The narrowing is done the same way, so what this asserts is that the control is
+  // reversible by the input that got it there.
+  // Every coordinate is rounded once, here, and the same integer is used to measure and to
+  // dispatch: px() in this file refuses a fractional point, and the reason it refuses is that the
+  // browser floors what it is given, so a driver that measures at 923.97 and dispatches at 923 is
+  // measuring its own rounding.
+  let narrow = JSON.parse(await page.evaluate('JSON.stringify(window.ZT.brush())'));
+  const midY = Math.round(narrow.band.y + narrow.band.h / 2);
+  for (let i = 0; i < 6 && narrow.span > 1; i++) {
+    const from = Math.round(narrow.band.r) - 2;
+    await touchDragBy(page, from, midY, Math.round(narrow.band.x) + 1 - from, 0, 6);
+    await sleep(180);
+    narrow = JSON.parse(await page.evaluate('JSON.stringify(window.ZT.brush())'));
+  }
+  const at1 = narrow.span;
+  await touchDragBy(page, Math.round(narrow.band.r) + 3, midY, 90, 0, 8);
+  await sleep(220);
+  const wide = JSON.parse(await page.evaluate('JSON.stringify(window.ZT.brush())'));
+  assert('a window narrowed to one week by a finger can be widened again by one',
+    at1 === 1 && wide.span > at1,
+    'the band down to one week and then back out under touch alone',
+    at1 === 1
+      ? `one week of ${narrow.termWeeks} at a ${narrow.week}px week, and a drag out of its right ` +
+        `end left it at ${wide.span}`
+      : `the band would not narrow under touch: it sat at ${at1} of ${narrow.termWeeks}`,
+    `one week at ${narrow.week}px, widened to ${wide.span}`);
+  // Put the term back, which is what every phase after this reads. Through the page's own
+  // keyboard, which is the route setWindowAt already takes for every other phase.
+  await setWindowAt(page, 0);
+  await page.evaluate(`document.activeElement && document.activeElement.blur()`);
+
+  // FIVE. A CALENDAR CHIP'S FACTS ARE IN THE DOCUMENT AND A GAP IS MARKED OTHERWISE THAN BY COLOUR.
+  // 83 chips carried five facts in a `title`, which is a hover: a phone has none, and on a `div`
+  // with no role it is not reliably announced either, so two of the three ways of reading this page
+  // could not get at them. And the one fact an operator opens this grid for, that a session has
+  // nobody to teach it, was the hue of a 2px rule and the hue of a time and nothing else.
+  await page.evaluate(`location.hash = '#/calendar'`);
+  await page.waitFor(`!document.getElementById('term').hidden`, 'the term sheet to open');
+  await page.evaluate(`(function () {
+    var b = Array.prototype.slice.call(document.querySelectorAll('.shape-btn'))
+      .filter(function (x) { return x.textContent === 'month'; })[0];
+    if (b) b.click();
+  })()`);
+  await page.waitFor(`document.querySelectorAll('.cal-chip').length > 0`, 'the month grid to draw');
+  const chip = JSON.parse(await page.evaluate(CHIP_READ));
+  assert('every calendar chip says its five facts in the document, and a gap is marked otherwise than by colour',
+    !chip.why && chip.n > 0 && chip.spoken === chip.n && chip.wrong.length === 0 &&
+      chip.gaps > 0 && !!chip.mark && chip.mark.style !== chip.mark.other && chip.mark.colour,
+    'every chip carrying its whole row as text that is not aria-hidden, and the no-instructor ' +
+      'chips differing from the rest in something that is not a colour',
+    chip.why
+      ? chip.why
+      : `${chip.spoken} of ${chip.n} chips speak, ${chip.wrong.length} disagree with their own ` +
+        `title${chip.wrong.length ? ' (' + chip.wrong.join(', ') + ')' : ''}, ` +
+        `${chip.gaps} gaps marked ${JSON.stringify(chip.mark)}`,
+    `${chip.n} chips, ${chip.gaps} of them gaps, marked ${chip.mark && chip.mark.style} against ` +
+      `${chip.mark && chip.mark.other}`);
+  // AND THE SHAPE GOES BACK, WHICH IS NOT TIDINESS AND WAS FOUND BY BREAKING THREE PHASES WITH IT.
+  // `shape` is term.js's own state and it outlives the sheet: closing the sheet does not reset it.
+  // Left on `month`, the phases after this one opened #/calendar and waited twenty seconds for a
+  // table that the month grid does not draw, and the capture phase hit tested a node and reached a
+  // `.cal-pad` cell. The address is not enough; the press has to be undone by the same control.
+  await page.evaluate(`(function () {
+    var b = Array.prototype.slice.call(document.querySelectorAll('.shape-btn'))
+      .filter(function (x) { return x.textContent === 'review'; })[0];
+    if (b) b.click();
+  })()`);
+  await page.waitFor(`document.querySelectorAll('.cal-chip').length === 0`,
+                     'the sheet back on the shape it opens on');
+  await page.evaluate(`location.hash = ${JSON.stringify(ONE)}`);
+  await page.waitFor(`document.getElementById('term').hidden`, 'the term sheet to close');
+  // The node this phase clicked to reach the panel link is still selected, and every phase after
+  // this one reads a page with nothing selected.
+  await clearSelection(page);
+}
+
+// =================================================================================================
 // The run
 // =================================================================================================
 async function runViewport(chrome, viewport, base, full, narrow) {
@@ -13204,6 +13600,14 @@ async function runViewport(chrome, viewport, base, full, narrow) {
     setPhase('-');
 
     await group('every width', () => checkWidth(page, base));
+
+  // AT EVERY WIDTH, AND BEFORE THE BEHAVIOURAL BLOCK MOVES THE ADDRESS. Both readings are taken on
+  // the drawing the page opens on, and neither leaves anything behind: the ring phase focuses a
+  // node and blurs it, and the rail phase puts its own scroll position back. Issue 170.
+  await group('the ring and the rail', async () => {
+    await checkRingAndRail(page);
+    await page.evaluate(`document.activeElement && document.activeElement.blur()`);
+  });
 
     if (full) {
       // THE SCOPE FIRST, BECAUSE IT IS THE ONE PHASE THAT IS ABOUT THE RESTING STATE. `#/` draws
@@ -13252,6 +13656,12 @@ async function runViewport(chrome, viewport, base, full, narrow) {
       // programmes of its own choosing, drags the band about, and hands the page back on the
       // address this suite drives with the window off. Issue 137.
       await group('the brush', () => checkBrush(page, base));
+      // After `the brush`, which hands the page back on the address this suite drives with the
+      // window off, and before the phases that walk the seven programmes. This one opens the
+      // student list from the cohort's own panel link, narrows the window to one week with a
+      // finger and puts it back over the whole term, opens the month grid and closes it, and
+      // clears the node it selected on the way to the link. Issue 170.
+      await group('reach', () => checkReach(page, base));
       await group('absence', () => checkHeader(page));
       await group('the view selector', () => checkReadout(page));
       // After `the readout`, which leaves the page on the diagram with nothing selected, and
