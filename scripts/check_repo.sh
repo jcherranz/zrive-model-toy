@@ -50,6 +50,26 @@
 
 set -euo pipefail
 
+# NO GIT CALL IN THIS FILE MAY SIT AT A CREDENTIAL PROMPT. Issue 211.
+#
+# scan_snapshots runs `git cat-file -p` on an index blob and on a HEAD blob. In a partial clone
+# made with `--filter=blob:none` those blobs are absent and that line fetches them from the
+# promisor remote, so a remote that wants credentials would block a safety gate at a prompt
+# nobody unattended is going to answer. No workflow here makes a partial clone, so this has never
+# fired in CI; a reader who clones this repository by hand with a filter is the exposure.
+#
+# Exported once rather than written on the call, because a per-call guard is a guard on the calls
+# somebody remembered: issue 208 put one on a single fetch in scripts/check_forbidden.sh and left
+# the call that fed it bare. SET rather than defaulted, so an inherited GIT_TERMINAL_PROMPT=1
+# cannot put a safety gate back in front of a prompt. It disables git's own terminal prompt and
+# nothing else: a credential helper or a GIT_ASKPASS program can still block, and neither is
+# configured or invoked anywhere in this repository.
+#
+# scripts/check_forbidden.sh proves the mechanism against a real partial clone and a remote that
+# demands credentials; the self-test below proves the line is present, and present before the
+# first git call, in every gate script that makes one.
+export GIT_TERMINAL_PROMPT=0
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/forbidden_lib.sh
 . "$ROOT/scripts/forbidden_lib.sh"

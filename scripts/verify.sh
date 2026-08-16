@@ -95,6 +95,15 @@
 
 set -uo pipefail
 
+# NO GIT CALL IN THIS FILE MAY SIT AT A CREDENTIAL PROMPT. Issue 211. The two git calls here,
+# `git ls-files --others` and `git config --get`, read local state and reach no network today, so
+# unlike the three gates this is a guard against what gets added rather than against anything
+# measured. It is one line, it is the same line, and the alternative is the thing this card is
+# about: the next git call written into a gate script inherits the guard instead of needing
+# somebody to remember it. The reasoning and the limits of what this variable covers are in the
+# same block in scripts/check_repo.sh.
+export GIT_TERMINAL_PROMPT=0
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 

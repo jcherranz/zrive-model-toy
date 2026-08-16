@@ -90,6 +90,28 @@
 
 set -euo pipefail
 
+# EVERY GIT CALL THIS FILE MAKES, NOT ONE OF THEM. Issue 211.
+#
+# Issue 208 put GIT_TERMINAL_PROMPT=0 on the fetch in fetch_named_commit and nowhere else, and
+# the call that can actually block is the one that produces the list the whole gate then checks.
+# In a partial clone (`--filter=blob:none` or `--filter=tree:0`) the trees `git ls-tree` walks in
+# deployed_paths are absent, so that line fetches them from the promisor remote; a remote that
+# wants credentials stops a safety gate at a prompt nobody unattended is going to answer, and the
+# run hangs rather than failing. No workflow here makes a partial clone, so this was never a live
+# failure; a reader who clones this repository by hand with a filter is the exposure.
+#
+# An export at the top covers every git call in this file, including ones added later, which is
+# exactly how the residue being fixed here was created: a per-call guard is a guard on the calls
+# somebody remembered. It is SET rather than defaulted, so a caller handing this gate
+# GIT_TERMINAL_PROMPT=1 does not get to sit a safety gate at a prompt.
+#
+# WHAT IT DOES NOT COVER, said here rather than left to be assumed. It disables git's own terminal
+# prompt and nothing else. A credential helper or a GIT_ASKPASS program can block on its own and
+# neither is affected by this variable. Neither is configured or invoked anywhere in this
+# repository, so there is nothing further to disable; if one is ever added, this line does not
+# cover it.
+export GIT_TERMINAL_PROMPT=0
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/forbidden_lib.sh
 . "$ROOT/scripts/forbidden_lib.sh"
@@ -265,9 +287,10 @@ fetch_named_commit() {
     return 1
   }
   echo "  it is not in this clone. Asking $remote for that one commit, by hash."
-  # GIT_TERMINAL_PROMPT=0 so a remote that wants credentials fails in a second rather than
-  # blocking a safety gate on a prompt nobody unattended is going to answer.
-  out="$(GIT_TERMINAL_PROMPT=0 git -C "$ROOT" fetch --quiet --no-tags "$remote" \
+  # The GIT_TERMINAL_PROMPT=0 this call used to carry itself is exported at the top of the file
+  # now, where it also covers the ls-tree in deployed_paths, which is the call this one exists to
+  # feed. Issue 211: one owner for the fact, and a guard nobody has to remember to repeat.
+  out="$(git -C "$ROOT" fetch --quiet --no-tags "$remote" \
          "+${sha}:${DEPLOYED_REF}" 2>&1)" || rc=$?
   if git -C "$ROOT" cat-file -e "${sha}^{commit}" 2>/dev/null && commit_reachable "$sha"; then
     echo "  fetched it, and parked it on ${DEPLOYED_REF}."
@@ -554,7 +577,7 @@ fetch_deployed() {
 #
 # A short run exits 2, which is "the suite could not answer for itself" and not "the gate is
 # broken"; a run that also recorded a MISS reports the MISS and exits 1.
-EXPECTED_PROBES=27
+EXPECTED_PROBES=28
 
 self_test() {
   local tmp fake_hashes whole_hashes rc pass=0 total=0
@@ -1011,6 +1034,166 @@ s.close()' 2>/dev/null)" || return 1
         pass=$((pass + 1))
       else
         echo "  [MISS] the reachability assertion is wrong (on no ref exit $rc_unreach, on a ref exit $rc_reach)"
+      fi
+    fi
+  fi
+
+  # 9. AND NO GIT CALL IN THIS FILE WAITS FOR A PERSON. Issue 211. What is under test is the
+  #    `export GIT_TERMINAL_PROMPT=0` at the top of this file, inherited by this probe exactly as
+  #    every git call above inherits it, and not a value written on any one call.
+  #
+  #    WHY IT RUNS ON A PSEUDO-TERMINAL, which is the whole difficulty. Git can only prompt if it
+  #    can open a terminal, so with CI's stdin both directions fail in about ten milliseconds and
+  #    are separated by nothing but the wording of the error. Measured while writing this probe:
+  #    with the export deleted the unguarded call still exited 128 at once, so a probe that
+  #    asserted "it did not hang" under this shell's own stdin would have been dead on arrival.
+  #    The call is therefore run on a pty whose input side never delivers a byte and never
+  #    closes, which is a developer's shell, and a developer's shell is where the card's exposure
+  #    lives: no workflow in this repository makes a partial clone.
+  #
+  #    THE FIXTURE IS THE CARD'S OWN CASE rather than a stand-in. A clone with `--filter=tree:0`
+  #    holds the commit and none of its trees, its remote is a server that answers every request
+  #    with a Basic challenge, and the command is the shape deployed_paths runs. Git resolves the
+  #    missing trees from the promisor remote at that line, which is where the network call this
+  #    card is about actually happens.
+  #
+  #    BOTH DIRECTIONS, and the second is what keeps the first honest: the same call with the
+  #    variable removed from the environment must be killed at the deadline. A fixture that
+  #    reached no network, or a clone that came out complete, would fail fast in both directions
+  #    and this probe would pass while proving nothing.
+  total=$((total + 1))
+  local ptyrun="$tmp/ptyrun.py" denysrv="$tmp/deny.py"
+  # NOT NAMED pty.py. A file of that name in the working directory shadows the standard library
+  # module it imports, and the failure reads as a missing attribute rather than as a name clash.
+  cat > "$ptyrun" <<'PYEOF'
+import os, pty, select, signal, sys, time
+# Run argv[1:] on a pseudo-terminal whose input side never delivers a byte and never reaches end
+# of file, so a program that decides to ask a person for something waits as it would in a shell.
+# Exit 124, the code timeout(1) uses, if the deadline passes with the command still waiting.
+deadline = time.time() + float(os.environ.get("PTY_TIMEOUT", "5"))
+pid, fd = pty.fork()
+if pid == 0:
+    try:
+        os.execvp(sys.argv[1], sys.argv[1:])
+    finally:
+        os._exit(127)
+out = []
+while True:
+    left = deadline - time.time()
+    if left <= 0:
+        try:
+            os.killpg(pid, signal.SIGKILL)
+        except OSError:
+            os.kill(pid, signal.SIGKILL)
+        os.waitpid(pid, 0)
+        sys.stderr.write("".join(out))
+        sys.exit(124)
+    if select.select([fd], [], [], min(left, 0.2))[0]:
+        try:
+            chunk = os.read(fd, 4096)
+        except OSError:
+            chunk = b""
+        if chunk:
+            out.append(chunk.decode("utf-8", "replace"))
+            continue
+    done, status = os.waitpid(pid, os.WNOHANG)
+    if done == pid:
+        sys.stderr.write("".join(out))
+        sys.exit(os.waitstatus_to_exitcode(status))
+PYEOF
+  cat > "$denysrv" <<'PYEOF'
+import http.server, socketserver, sys
+# Every request gets a credential challenge and nothing else. Enough to make git ask, which is
+# the only behaviour this fixture needs; it never has to be a git server.
+class H(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(401)
+        self.send_header("WWW-Authenticate", 'Basic realm="probe"')
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+    do_POST = do_GET
+    def log_message(self, *a):
+        pass
+socketserver.TCPServer.allow_reuse_address = True
+with socketserver.TCPServer(("127.0.0.1", int(sys.argv[1])), H) as srv:
+    srv.serve_forever()
+PYEOF
+  local pup="$tmp/promisor-up" pdown="$tmp/promisor-down" dport="" dpid="" i
+  rc=0
+  (
+    set -e
+    mkdir -p "$pup/$SITE_DIR"
+    git -C "$pup" init -q
+    local at='@'
+    git -C "$pup" config user.email "probe${at}example.invalid"
+    git -C "$pup" config user.name probe
+    # Without this a file:// upstream refuses the filter and the clone comes out complete, which
+    # is the shape that would make this probe pass for the wrong reason. The fixture assertion
+    # below reads the result rather than trusting this line.
+    git -C "$pup" config uploadpack.allowFilter true
+    echo one > "$pup/$SITE_DIR/index.html"
+    git -C "$pup" add -A && git -C "$pup" commit -qm one
+    git clone -q --filter=tree:0 --no-checkout "file://$pup" "$pdown"
+  ) >/dev/null 2>&1 || rc=9
+  if [ "$rc" -ne 0 ]; then
+    echo "  [MISS] the credential-prompt probe could not build its partial clone, so it proved nothing"
+  else
+    dport="$(python3 -c 'import socket
+s = socket.socket()
+s.bind(("127.0.0.1", 0))
+print(s.getsockname()[1])
+s.close()' 2>/dev/null || true)"
+    if [ -z "$dport" ]; then
+      echo "  [MISS] the credential-prompt probe could not pick a port, so it proved nothing"
+    else
+      python3 "$denysrv" "$dport" >/dev/null 2>&1 &
+      dpid=$!
+      local up401=0 code
+      for i in $(seq 1 40); do
+        code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 3 \
+                "http://127.0.0.1:$dport/x.git/info/refs" 2>/dev/null || echo 000)"
+        [ "$code" = "401" ] && { up401=1; break; }
+        kill -0 "$dpid" 2>/dev/null || break
+        sleep 0.25
+      done
+      git -C "$pdown" config remote.origin.url "http://127.0.0.1:$dport/x.git" 2>/dev/null || true
+      local is_promisor is_filtered
+      is_promisor="$(git -C "$pdown" config --get remote.origin.promisor 2>/dev/null || true)"
+      is_filtered="$(git -C "$pdown" config --get remote.origin.partialclonefilter 2>/dev/null || true)"
+      if [ "$up401" -ne 1 ]; then
+        echo "  [MISS] the credential-prompt probe's server never answered 401, so it proved nothing"
+      elif [ "$is_promisor" != "true" ] || [ "$is_filtered" != "tree:0" ]; then
+        echo "  [MISS] the credential-prompt probe's clone is not a partial clone" \
+             "(promisor '$is_promisor', filter '$is_filtered'), so nothing would be fetched"
+      else
+        local rc_guard=0 rc_bare=0 guard_msg=""
+        # The guarded direction takes the environment exactly as this file leaves it. Nothing is
+        # set here: if the export at the top of this file goes, so does this.
+        guard_msg="$( PTY_TIMEOUT=5 python3 "$ptyrun" \
+                      git -C "$pdown" ls-tree -r --name-only HEAD -- "$SITE_DIR" 2>&1 >/dev/null )" \
+                      || rc_guard=$?
+        rc_bare=0
+        ( PTY_TIMEOUT=5 env -u GIT_TERMINAL_PROMPT python3 "$ptyrun" \
+          git -C "$pdown" ls-tree -r --name-only HEAD -- "$SITE_DIR" ) >/dev/null 2>&1 || rc_bare=$?
+        local said=0
+        # ANCHORED ON THE SENTENCE ONLY THE GUARD PRODUCES. Git says "terminal prompts disabled"
+        # when the variable forbids the prompt and "No such device or address" when there is no
+        # terminal to prompt on, and the second is what a probe with no pty would have been
+        # reading. A test for "it failed" cannot tell the two apart; this one can.
+        if printf '%s\n' "$guard_msg" | grep -q 'terminal prompts disabled'; then said=1; fi
+        if [ "$rc_guard" -ne 0 ] && [ "$rc_guard" -ne 124 ] && [ "$said" = 1 ] \
+           && [ "$rc_bare" -eq 124 ]; then
+          echo "  [OK]   a lazy fetch from a remote demanding credentials failed at once under the"
+          echo "         guard this file exports, and waited to be killed without it"
+          pass=$((pass + 1))
+        else
+          echo "  [MISS] the credential-prompt guard is wrong (guarded exit $rc_guard, said so" \
+               "$said, unguarded exit $rc_bare; 124 is the deadline)"
+        fi
+      fi
+      if [ -n "$dpid" ]; then
+        kill "$dpid" 2>/dev/null || true
+        wait "$dpid" 2>/dev/null || true
       fi
     fi
   fi
