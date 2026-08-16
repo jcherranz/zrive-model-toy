@@ -55,7 +55,20 @@
 #      A string in the table that no context asks for is reported and is not a failure: it is
 #      dead weight rather than a wrong coordinate, and clearing it costs a browser run.
 #
-#   3. THE MODEL IS WELL FORMED, AND THE GATE THAT SAYS SO IS PROVED ARMED. Issue 102, and this
+#   3. AND THE BUILDER ASKS THAT TABLE FOR THE FACES THE PAGE PAINTS IN. Issue 217. Check 2 holds
+#      the table against the job that writes it and scripts/smoke.mjs holds the painted page
+#      against the table. The arguments typed into build/build_layout.py's own text_w() calls
+#      were on neither side of either comparison, and four one-line edits to them were traced
+#      through the code and found green everywhere: every label box reserved at the regular
+#      width while the stylesheet paints a selected label bold, 56 italic chips reserved from
+#      the upright row, and two call sites composing a key for a context that does not exist, at
+#      which point the width is estimated and the build says so on stderr and exits 0. So the
+#      builder is run over the fourteen drawings, every (context, string) its text_w() was asked
+#      for is recorded, and that set is held against measure_labels.collect() and against the
+#      strings the two documents it just wrote actually paint. The section itself carries the
+#      argument for each of the five things it asserts and for the one it does not.
+#
+#   4. THE MODEL IS WELL FORMED, AND THE GATE THAT SAYS SO IS PROVED ARMED. Issue 102, and this
 #      is the check whose absence made the whole of check 1 above worth less than it read. A
 #      duplicate node id was injected into build/model.py, the real build was run, and this file
 #      printed "VERDICT: clean. The committed drawing is the build's own output." That verdict
@@ -512,7 +525,379 @@ PY
 }
 
 # ---------------------------------------------------------------------------------------------
-# 3. The model is well formed.
+# 3. The widths the builder ASKS FOR are the widths the job declares. Issue 217.
+# ---------------------------------------------------------------------------------------------
+# Check 2 above holds the table against the job. scripts/smoke.mjs holds the painted page against
+# the table. Between them sat the arguments: `text_w()` composes its context key at
+# build/build_layout.py:165 out of a size, a weight, an italic flag and a caps flag TYPED AT THE
+# CALL SITE, and those arguments were on neither side of either comparison. Four one-line edits
+# to them were traced through the code and every one was green, in the only workflow a builder
+# edit has: change it, rebuild, commit the documents with the change:
+#
+#   drop the bold term from reserve() and every label box is reserved at the regular width while
+#   the stylesheet paints a selected label bold, which is #203's harm reintroduced from the
+#   build side; pass False for a ghost chip's italic flag and 56 painted italic chips are
+#   reserved from the upright row; ask a mark at weight 600 and the key names a context that
+#   does not exist, so all 207 marks fall back to the hand written estimate; drop the caps flag
+#   from the caption check and the lane overflow gate measures captions without the uppercase
+#   and the .07em the stylesheet adds. The last two are INVISIBLE rather than merely unchecked,
+#   because the fallback at build/build_layout.py:1074-1085 is a print with no exit code.
+#
+# WHAT THIS RUNS. The real builder, over the real fourteen drawings, into a throwaway directory,
+# with every `(context, string)` its text_w() was actually asked for read back off the two lists
+# the function already keeps: `_errors` for a lookup that hit the table and `_fellback` for one
+# that missed. Every call appends to exactly one of them before returning, so together they are
+# the complete record of what was asked, and reading them costs the builder nothing. Nothing
+# tracked is written: --out points at a temporary directory and the builder's own log is
+# swallowed, because the subject here is the lookups and not the build.
+#
+# THE OTHER SIDE OF THE COMPARISON IS NOT build_layout.py, and that is the whole discipline of
+# this check. #206 records why an oracle that reads the same table its subject reads agrees with
+# the defect wherever the table is the wrong answer. So the expectation comes from two places
+# that know nothing of the call sites. measure_labels.collect(), which reads the sizes, the
+# weights and the letter-spacing out of site/app.css and the strings out of build/model.py. And
+# ALL_VIEWS, which is the model itself, for the three kinds of string the builder neither chooses
+# nor changes: a mark, a tail and an edge verb. Only where nothing else can answer, which is
+# where a label breaks and which of a lane's alternate captions is painted, does the expectation
+# come off the documents the builder has just written; that limit is written where it is used.
+#
+#   A. NOTHING FELL BACK. A lookup that missed the table is estimated and the build proceeds
+#      green. Here it is a refusal.
+#   B. EVERY CONTEXT ASKED FOR IS ONE THE JOB DECLARES, and every (context, string) with it. A
+#      key the job never declares is a face nothing measured.
+#   C. EVERY CONTEXT THE JOB DECLARES IS ASKED FOR, with a population, and this is the one that
+#      catches a whole term going missing. A gate that only counted mismatches would report zero
+#      of them over a call site that had stopped being made.
+#   D. EVERY STRING THE FOURTEEN DRAWINGS CARRY WAS MEASURED, and the fourteen is
+#      EXPECTED_DRAWINGS held against what the run actually laid out rather than a word in this
+#      sentence. Counted by kind, which is the population and not a total: marks, tails and verbs
+#      from the model, label lines and caption lines from the documents. This is the population
+#      assertion and it is also what keeps the census honest: a text_w() that stopped recording
+#      would take it red.
+#      It is deliberately about the STRING and not the context it was asked in, because #215 is
+#      open on exactly that question for marks and tails, which the stylesheet paints at 9px
+#      italic (.node .lbl.lbl-missing) and the builder still measures upright. Making D
+#      context-precise today would go red on a defect that is another card's to fix.
+#   E. EVERY DRAWN LABEL LINE WAS MEASURED IN BOTH FACES THE PAGE PAINTS IT IN, the one at rest
+#      and the one a click gives it. Here the stylesheet is unambiguous and says so in two
+#      rules, `.node .lbl` and `.node.sel .lbl`, so the keys are composed from what those rules
+#      declare and then checked against the job's own context list. This is the sharp form of
+#      the reserve() case: dropping the bold term takes C red, and reserving the bold width of
+#      only the first line takes E red.
+#
+# WHAT IT DOES NOT SAY, AND THE FIRST DRAFT OF THIS PARAGRAPH GOT THE REASON BACKWARDS. It is
+# about the arguments and not the arithmetic: `reserve()` with its `max` changed to a `min`, or
+# `caption_overflow()` comparing against the lane plus a gap, asks for every width this check
+# wants asked, in every face, and passes. The draft said the reserved box is held anyway by the
+# lane gate inside layout(). IT IS NOT, IN THE DIRECTION THAT MATTERS. `lane_slack()` is
+# `min(x - lw/2 - x0, x1 - x - lw/2)`, so a SMALLER `lw` makes the slack LARGER and the gate
+# quieter; it can only catch a box that grew. Under-reserving is the whole of #203 and the whole
+# of this card, and against it the lane gate is structurally blind. Measured rather than argued:
+# that `min` takes the tightest label from 0.0px of lane to 5.6px, stops the issue 43 re-break
+# firing on two labels, and puts `pe_st4` and `sc_st14` 0.6 and 2.2 units outside their lane the
+# moment a reader clicks them, with this gate and that one both green. What does catch it is
+# check 1, because it moves `site/layout.js` and the rebuilt bytes stop matching git; what does
+# not is a workflow that rebuilds and stages before running the gates, and the caption case moves
+# no byte at all, because `caption_overflow()`'s answer only ever feeds a `sys.exit`. So: this
+# check proves the question was put to the table. Nothing proves the answer was used. That is a
+# card rather than a line, because the reserve is a local inside layout() and reaches neither
+# document, and it is filed as issue 220.
+#
+# The builder to run is an argument, defaulting to the real one, which is what lets the
+# self-test point it at a copy carrying one mutated line without going near build/. The number of
+# drawings it must lay out is the second, defaulting to the same terminator the digest census
+# reads, and it is an argument for the same reason: a pin nothing can be shown to fail on is a
+# pin nobody has proved is armed.
+check_widths_asked() {
+  ZRIVE_ROOT="$ROOT" ZRIVE_LAYOUT_PY="${1:-$ROOT/build/build_layout.py}" \
+  ZRIVE_DRAWINGS="${2:-$EXPECTED_DRAWINGS}" python3 - <<'PY'
+import contextlib
+import io
+import json
+import os
+import pathlib
+import runpy
+import sys
+import tempfile
+
+root = pathlib.Path(os.environ["ZRIVE_ROOT"])
+layout_py = pathlib.Path(os.environ["ZRIVE_LAYOUT_PY"])
+sys.path.insert(0, str(root / "build"))
+import measure_labels as ml  # noqa: E402
+from model import ALL_VIEWS, doc_views, edge_parts  # noqa: E402
+
+BAD = 0
+
+
+def fail(msg):
+    global BAD
+    BAD = 1
+    print(f"::error::{msg}")
+
+
+def show(rows, head, n=12):
+    for row in rows[:n]:
+        print(f"      {row}")
+    if len(rows) > n:
+        print(f"      ... and {len(rows) - n} more {head}")
+
+
+def unwrap(path, prefix):
+    text = path.read_text(encoding="utf-8")
+    return json.loads(text[len(prefix):-len(";\n")])
+
+
+if not layout_py.is_file():
+    print(f"::error::no builder at {layout_py}. Nothing was run, so nothing here is evidence")
+    sys.exit(1)
+
+# ---- run the builder and keep only what it looked up ------------------------
+with tempfile.TemporaryDirectory() as td:
+    saved_argv = sys.argv
+    sys.argv = [str(layout_py), "--out", td]
+    log = io.StringIO()
+    # BaseException AND NOT SystemExit ALONE. A builder that refuses says so with sys.exit and
+    # was the only case the first draft caught; one that raises anything else would have come out
+    # of here as a bare traceback, which is fail-closed but says nothing about what was and was
+    # not established. Both are the same sentence to a reader: the build did not finish, so
+    # nothing below was looked at.
+    try:
+        with contextlib.redirect_stdout(log), contextlib.redirect_stderr(log):
+            built = runpy.run_path(str(layout_py), run_name="__main__")
+    except BaseException as exc:  # noqa: BLE001
+        why = exc.code if isinstance(exc, SystemExit) else f"{type(exc).__name__}: {exc}"
+        print(f"::error::{layout_py} did not finish ({why}). Nothing was measured, so nothing "
+              f"here is evidence. Its last words:")
+        show([ln for ln in log.getvalue().splitlines() if ln.strip()][-8:], "lines", 8)
+        sys.exit(1)
+    finally:
+        sys.argv = saved_argv
+    try:
+        inst = unwrap(pathlib.Path(td) / "instance.js", "window.GI=")
+        lay = unwrap(pathlib.Path(td) / "layout.js", "window.GL=")
+    except (OSError, ValueError) as exc:
+        print(f"::error::the builder wrote no readable documents ({type(exc).__name__}), so the "
+              f"strings the drawings paint cannot be enumerated and nothing here is evidence")
+        sys.exit(1)
+
+try:
+    errors, fellback = built["_errors"], built["_fellback"]
+    census = {(row[1], row[2]) for row in errors} | {(c, s) for c, s in fellback}
+except (KeyError, IndexError, TypeError, ValueError) as exc:
+    print(f"::error::build/build_layout.py no longer keeps the record of what its text_w() was "
+          f"asked for ({type(exc).__name__}). Without it this check cannot look, and a check "
+          f"that cannot look must not report clean")
+    sys.exit(1)
+
+job = ml.collect()
+declared = {(ctx, s) for ctx, v in job.items() for s in v["strings"]}
+asked_ctx, declared_ctx = {c for c, _s in census}, set(job)
+per_ctx = {}
+for ctx, s in census:
+    per_ctx.setdefault(ctx, set()).add(s)
+
+# ---- the population, asserted before any verdict is read off it -------------
+# An empty input is the loudest lie a gate can tell, and this one has four inputs. A census of
+# nothing reports no mismatch in every direction; a job of nothing declares every key the
+# builder asks for undeclared and then finds no key unasked; a document with no drawings paints
+# no string that could go unmeasured.
+views_i, views_l = doc_views(inst), doc_views(lay)
+if not job:
+    print("::error::measure_labels.collect() declared no contexts; refusing to judge the "
+          "builder's arguments against nothing")
+    sys.exit(1)
+if not census:
+    print("::error::the builder asked text_w() for nothing over the whole run. Either the "
+          "record is not being kept or the build laid nothing out; either way this check "
+          "looked at nothing and will not call it clean")
+    sys.exit(1)
+if not views_i or len(views_i) != len(views_l):
+    print(f"::error::the builder wrote {len(views_i)} drawing(s) of data and {len(views_l)} of "
+          f"geometry. The painted strings cannot be read off a pair that does not match")
+    sys.exit(1)
+# PINNED AND NOT COUNTED, the same terminator the digest census uses and for the same reason: a
+# census over one drawing reports every containment below satisfied, and `> 0` cannot tell that
+# from a census over fourteen. This is the run's own reading of reality held against a written
+# number, so a real fifteenth drawing is loud here on its first run rather than absorbed.
+want = int(os.environ["ZRIVE_DRAWINGS"])
+if len(views_l) != want:
+    print(f"::error::the builder laid out {len(views_l)} drawing(s) and this check intends "
+          f"{want}. Either the run was short, in which case nothing below is a statement about "
+          f"the drawings that did not happen, or there is genuinely a new one, in which case "
+          f"EXPECTED_DRAWINGS in scripts/check_build.sh belongs in the same commit")
+    sys.exit(1)
+
+# ---- what the drawings paint, and WHERE EACH KIND OF IT COMES FROM -----------
+# THE THREE KINDS THAT CAN COME FROM THE MODEL DO, and that is the point of splitting this in
+# two. A mark, a tail and an edge verb are strings build/model.py declares; the builder neither
+# chooses them nor changes them, so holding its lookups against ALL_VIEWS is a comparison with
+# something that has never heard of build_layout.py, and it also catches a builder that dropped
+# one from the document it wrote rather than only one that forgot to measure it.
+painted = {"mark": {n["mark"] for v in ALL_VIEWS for n in v["nodes"] if n.get("mark")},
+           "tail": {n["tail"] for v in ALL_VIEWS for n in v["nodes"] if n.get("tail")},
+           "verb": {edge_parts(e)[2] for v in ALL_VIEWS for e in v["edges"]},
+           "label line": set(), "caption line": set()}
+
+# THE OTHER TWO CANNOT, AND THAT LIMIT IS REAL RATHER THAN AN OVERSIGHT. Where a label breaks is
+# the builder's own decision and there is nowhere else to read it from; which of a lane's
+# alternate captions is painted is the builder's own choice among the lines bands.py declares. So
+# for these two the claim is narrower and is worth stating in the narrow form: WHATEVER LINES IT
+# DECIDED TO DRAW, IT MEASURED THEM. A defect that changes the breaks moves this expectation with
+# it, and the reserve arithmetic named under WHAT IT DOES NOT SAY above, issue 220, is exactly
+# such a defect.
+# The lines are rebuilt by the same arithmetic site/app.js does at unwrap(): the label's words,
+# taken in the counts the geometry carries. A count that did not add up is a refusal here as it
+# is there.
+for data, geo in zip(views_i, views_l):
+    if data["key"] != geo["key"] or data.get("grain") != geo.get("grain"):
+        print(f"::error::the instance document's {data['key']}/{data.get('grain')} drawing is "
+              f"paired with the layout's {geo['key']}/{geo.get('grain')}; the two documents are "
+              f"not in the same order and nothing can be read across them")
+        sys.exit(1)
+    placed = {n["id"]: n for n in geo["drawing"]["nodes"]}
+    for n in data["nodes"]:
+        words = n["label"].split()
+        for count in placed[n["id"]]["wrap"]:
+            painted["label line"].add(" ".join(words[:count]))
+            words = words[count:]
+        if words:
+            print(f"::error::{n['id']} on {data['key']} carries wrap counts that leave "
+                  f"{words} over. The lines the page paints cannot be rebuilt")
+            sys.exit(1)
+    for band in geo["drawing"]["bands"]:
+        painted["caption line"].update(band["lines"])
+
+empty = sorted(k for k, v in painted.items() if not v)
+if empty:
+    print(f"::error::the model declares or the drawings paint no {', '.join(empty)} at all. That "
+          f"is not a population this check can hold anything against")
+    sys.exit(1)
+
+flat = {s for v in painted.values() for s in v}
+# The two counts are not meant to meet. collect() declares every contiguous run of words in every
+# label, because greedy wrapping can ask for any of them and the table has to hold whichever the
+# wrap width lands on; the builder asks for the runs it actually walked. Declared is an envelope
+# over asked by construction, so the containment below is one-directional on purpose.
+print(f"    {len(census)} (context, string) lookups over {len(views_l)} drawings in "
+      f"{len(asked_ctx)} context(s), inside the {len(declared)} the job declares in "
+      f"{len(declared_ctx)}")
+print("    to measure: " + ", ".join(f"{len(v)} {k}{'' if len(v) == 1 else 's'}"
+                                      for k, v in sorted(painted.items()))
+      + f", {len(flat)} distinct strings")
+
+# ---- A. nothing fell back ---------------------------------------------------
+if fellback:
+    uniq = sorted({(c, s) for c, s in fellback})
+    fail(f"{len(fellback)} lookup(s) missed the width table, {len(uniq)} of them distinct. Every "
+         f"one is laid out from the hand written per character estimate, which undershoots by up "
+         f"to a fifth, and build/build_layout.py reports it on stderr without failing")
+    show([f"{c:<12} {s!r}" for c, s in uniq], "strings")
+
+# ---- B. every context asked for is one the job declares ---------------------
+stray_ctx = sorted(asked_ctx - declared_ctx)
+if stray_ctx:
+    fail(f"the builder asked for {len(stray_ctx)} context(s) build/measure_labels.py declares "
+         f"nothing for. A key no context declares is a face nothing measured, so every string "
+         f"asked under it is estimated")
+    for c in stray_ctx:
+        fail_ex = sorted(per_ctx[c])[:3]
+        print(f"      {c:<12} {len(per_ctx[c])} string(s), for instance {fail_ex}")
+    print("      The declared contexts, read out of site/app.css by collect(): "
+          + ", ".join(sorted(declared_ctx)))
+
+stray = sorted(census - declared)
+if stray and not stray_ctx:
+    fail(f"the builder asked for {len(stray)} (context, string) pair(s) the job does not "
+         f"declare, in contexts it does. collect() is what writes the table, so a pair it never "
+         f"declares is one the table will never hold")
+    show([f"{c:<12} {s!r}" for c, s in stray], "pairs")
+
+# ---- C. every context the job declares is asked for, with a population ------
+never = sorted(c for c in declared_ctx if not per_ctx.get(c))
+if never:
+    fail(f"{len(never)} context(s) are measured, committed and never asked for: "
+         + ", ".join(never))
+    print("      A context nothing asks for is a call site that has stopped composing that key. "
+          "The reserve for a selected label, the italic face of a ghost chip and the uppercased "
+          "band caption each live behind exactly one argument at exactly one call site in "
+          "build/build_layout.py. Two of the three move no painted byte when they go: measured "
+          "on this tree, dropping the ghost chip's italic flag and dropping the caption's caps "
+          "flag each leave site/layout.js identical, so check 1 never sees them.")
+    for c in never:
+        print(f"      {c:<12} {len(job[c]['strings'])} string(s) measured for it: "
+              f"{job[c]['note']}")
+
+# ---- D. every string the drawings paint was measured ------------------------
+seen = {s for _c, s in census}
+for kind in sorted(painted):
+    unmeasured = sorted(s for s in painted[kind] if s not in seen)
+    if unmeasured:
+        fail(f"{len(unmeasured)} of the {len(painted[kind])} {kind}s the drawings carry were "
+             f"never measured at all. The box under them was reserved from the estimate, or from "
+             f"nothing")
+        show([repr(s) for s in unmeasured], f"{kind}s")
+
+# ---- E. a drawn label line was measured in both faces the page paints it in --
+# The two rules, and the italic the ghost class adds. Composed from what the stylesheet
+# declares rather than from the literals at the call site, so #215 moving a call site to a
+# different context moves this expectation with it instead of fighting it.
+lbl = ml.css_rule(".node .lbl")
+sel = ml.css_rule(".node.sel .lbl")
+ghost_rule = ml.css_rule(".lbl-ghost")
+if "font-weight" not in sel:
+    print("::error::site/app.css's .node.sel .lbl no longer declares a font-weight, so what a "
+          "click paints is not readable from the stylesheet and this check will not guess it")
+    sys.exit(1)
+slant = "i" if ghost_rule.get("font-style") == "italic" else ""
+size = ml.px(lbl["font-size"])
+rest_w = f"{float(lbl.get('font-weight', '400')):g}"
+sel_w = f"{float(sel['font-weight']):g}"
+faces = {False: (f"{size}/{rest_w}", f"{size}/{sel_w}"),
+         True: (f"{size}/{rest_w}{slant}", f"{size}/{sel_w}{slant}")}
+undeclared = sorted({c for pair in faces.values() for c in pair} - declared_ctx)
+if undeclared:
+    print(f"::error::site/app.css paints node labels in {undeclared}, which "
+          f"build/measure_labels.py declares no context for. The stylesheet and the measuring "
+          f"job disagree about the faces a label is drawn in, and until they agree neither can "
+          f"be the expectation for the other")
+    sys.exit(1)
+
+wrong_face = []
+for data, geo in zip(views_i, views_l):
+    placed = {n["id"]: n for n in geo["drawing"]["nodes"]}
+    for n in data["nodes"]:
+        words = n["label"].split()
+        for count in placed[n["id"]]["wrap"]:
+            line = " ".join(words[:count])
+            words = words[count:]
+            for ctx in faces[bool(n.get("ghost"))]:
+                if (ctx, line) not in census:
+                    wrong_face.append((ctx, line))
+if wrong_face:
+    uniq = sorted(set(wrong_face))
+    fail(f"{len(uniq)} drawn label line(s) were never measured in a face site/app.css paints "
+         f"them in. A label is painted at {faces[False][0]} at rest and at {faces[False][1]} "
+         f"while its card is selected, and a box reserved from only one of the two is about a "
+         f"fifth short of the other")
+    show([f"{c:<12} {s!r}" for c, s in uniq], "lines")
+
+if BAD:
+    print()
+    print("  THE FIX STARTS AT THE CALL SITE. build/build_layout.py composes its context key "
+          "from the arguments typed into each text_w() call, and the key it composes has to be "
+          "the one site/app.css paints that string in. Where the repair MOVES a string to a face "
+          "the job does not measure it in, which is #215's case for the marks, the rest of it is "
+          "collect() in build/measure_labels.py and a table regenerated in a browser. This check "
+          "stays red until all three agree, and that is the state it is for.")
+    sys.exit(1)
+
+print(f"    every context the job declares was asked for, every context asked for is declared, "
+      f"and all {len(flat)} of those strings were measured")
+PY
+}
+
+# ---------------------------------------------------------------------------------------------
+# 4. The model is well formed.
 # ---------------------------------------------------------------------------------------------
 # stderr is KEPT and not discarded, which is the whole reason these are two lines rather than
 # one. A refusal from check_structure() is a SystemExit and its message is on stderr, so a
@@ -531,7 +916,7 @@ check_structure_live() { _model_says --structure; }
 check_structure_armed() { _model_says --structure-self-test; }
 
 # ---------------------------------------------------------------------------------------------
-# 4. The digest census. Issue 116.
+# 5. The digest census. Issue 116.
 # ---------------------------------------------------------------------------------------------
 # Before this card `drawingDigest` occurred zero times in every gate this repository runs. The
 # value was correct, nothing read it, and the audit changed one glyph in build/model.py, rebuilt
@@ -697,7 +1082,7 @@ PY
 }
 
 # ---------------------------------------------------------------------------------------------
-# 5. The census of what could look. Issue 168 R4(a).
+# 6. The census of what could look. Issue 168 R4(a).
 # ---------------------------------------------------------------------------------------------
 # THE NOTICES ARE THE EVIDENCE AND THE CORPUS IS THE CROSS-CHECK, in that order and not the other
 # way round. Each gate says on its own face whether it verified or declined, and one of them can
@@ -1129,7 +1514,7 @@ verdict() {  # clean|bad ; reads BASELINE_ORIGIN, CENSUS_UNVERIFIED and CENSUS_N
 # probe at a time prints a clean ratio all the way down to 0/0. A count taken from the run cannot
 # notice a probe that did not run. A short run exits 2, "the suite could not answer"; a run that
 # also recorded a failure reports it and exits 1.
-EXPECTED_PROBES=119
+EXPECTED_PROBES=138
 PASS=0
 TOTAL=0
 probe() {
@@ -1430,6 +1815,57 @@ pathlib.Path(os.environ["ZRIVE_DEST"]).write_text(
 PY
 }
 
+# A copy of the builder carrying one changed line, with the rest of the tree standing behind it.
+# Issue 217. build/build_layout.py finds bands and model in its own directory and site/app.css in
+# its parent's, and build/model.py resolves every path it holds through .resolve(), which follows
+# a symlink back to the real file. So an overlay of symlinks with a single real file in it is the
+# whole fixture: the mutated builder runs against the real bands, the real model, the real
+# stylesheet and the real width table, and nothing under build/ is written to or moved.
+#
+# TWO THINGS ABOUT THE OVERLAY A LATER READER WILL WANT. `$ROOT/*` does not glob dotfiles, so
+# `.git` and `.github` are not behind it; checked rather than assumed, neither build_layout.py nor
+# model.py reads either. And `$d/site` is a symlink to the REAL site/, which is safe only while
+# every caller passes `--out`: the builder's own default output directory is SITE, so a fixture
+# run without it would write the mutated build straight into the tracked tree. check_widths_asked
+# always passes `--out` at a temporary directory and is the only caller.
+#
+# AN EDIT THAT MATCHED NOTHING IS NOT A MUTATION, and that is why doctor_text's insistence on
+# exactly one occurrence is load-bearing here rather than tidy. A probe whose search string had
+# gone stale would copy the builder unchanged, the check would pass, and a probe asserting a
+# refusal would read that pass as its own failure only by luck of the exit code. The fixture
+# answers 9 for "I could not make the mutation", which no probe expects, so a stale probe goes
+# red as a broken probe instead of silently testing nothing.
+overlay_builder() {  # dir old new
+  local d="$1" f base
+  mkdir -p "$d/build" || return 1
+  for f in "$ROOT"/*; do
+    base="$(basename "$f")"
+    [ "$base" = build ] || ln -sfn "$f" "$d/$base" || return 1
+  done
+  for f in "$ROOT"/build/*; do
+    base="$(basename "$f")"
+    [ "$base" = build_layout.py ] || ln -sfn "$f" "$d/build/$base" || return 1
+  done
+  if [ -z "$2" ]; then
+    cp "$ROOT/build/build_layout.py" "$d/build/build_layout.py" || return 1
+  else
+    doctor_text "$ROOT/build/build_layout.py" "$d/build/build_layout.py" "$2" "$3" || return 1
+  fi
+}
+
+asked_with_mutation() {  # old new
+  local d rc
+  d="$(mktemp -d)" || return 9
+  if ! overlay_builder "$d" "$1" "$2"; then
+    rm -rf "$d"
+    return 9
+  fi
+  check_widths_asked "$d/build/build_layout.py"
+  rc=$?
+  rm -rf "$d"
+  return "$rc"
+}
+
 self_test() {
   local dir a b
   dir="$(mktemp -d)"
@@ -1517,6 +1953,87 @@ PY
 
   probe 1 "an unreadable table aborted instead of reporting clean" \
         check_widths_cover "$dir/not-a-file.json"
+
+  echo
+  echo "self-test: the faces the builder asks that table for"
+  # Issue 217. Every case below is ONE TOKEN of one argument at one call site in
+  # build/build_layout.py, run against the real bands, the real model, the real stylesheet and
+  # the real table through an overlay of symlinks. All six were traced through the code, and the
+  # first four were green under every gate this repository ran before this section existed.
+  #
+  # THE CONTROLS COME FIRST AND THERE ARE TWO OF THEM, because this suite is proving that a
+  # refusal came from the mutation. The unchanged copy proves the fixture is not what makes the
+  # mutants red; the edit that matches nothing proves the fixture cannot quietly test nothing.
+  probe 0 "the builder as it stands asks for the faces the page paints in" \
+        check_widths_asked
+  probe 0 "control: the same builder copied through the fixture unchanged still passes" \
+        asked_with_mutation '' ''
+  probe 9 "control: an edit matching no line was a broken probe rather than a refusal" \
+        asked_with_mutation 'text_w(what_nobody_wrote)' 'text_w(x)'
+
+  # #203's harm from the build side. Both terms of the reserve become the regular width, the
+  # stylesheet goes on painting a selected label bold, and no painted byte and no measured width
+  # changes. What changes is that two committed contexts stop being asked for at all.
+  probe 1 "reserving the regular width for a label the page paints bold was refused" \
+        asked_with_mutation 'max(text_w(ln, FONT, 600, it) for ln in lines))' \
+                            'max(text_w(ln, FONT, 400, it) for ln in lines))'
+  probe_says "measured, committed and never asked for" \
+        "and the refusal named the contexts that had stopped being asked for" \
+        asked_with_mutation 'max(text_w(ln, FONT, 600, it) for ln in lines))' \
+                            'max(text_w(ln, FONT, 400, it) for ln in lines))'
+  # The same call site one step subtler, and the case the count of contexts cannot see: the bold
+  # width is still asked for, so both contexts stay populated, but only for the first line of a
+  # label that takes two.
+  probe 1 "reserving the bold width of only the first line of a wrapped label was refused" \
+        asked_with_mutation 'max(text_w(ln, FONT, 600, it) for ln in lines))' \
+                            'text_w(lines[0], FONT, 600, it))'
+
+  probe 1 "reserving a ghost's italic chip from the upright row was refused" \
+        asked_with_mutation 'text_w(e["v"], 9.0, 400, e["ghost"])' \
+                            'text_w(e["v"], 9.0, 400, False)'
+  # A weight the stylesheet paints nowhere. The key names a context that does not exist, every
+  # mark falls through to the hand written estimate, and build/build_layout.py says so on stderr
+  # and exits 0.
+  probe 1 "asking for a mark at a weight nothing declares was refused" \
+        asked_with_mutation 'text_w(n["mark"], 9.0)' 'text_w(n["mark"], 9.0, 600)'
+  probe_says "missed the width table" "and the refusal said the lookups had fallen back" \
+        asked_with_mutation 'text_w(n["mark"], 9.0)' 'text_w(n["mark"], 9.0, 600)'
+  probe 1 "measuring a band caption without the uppercase the stylesheet adds was refused" \
+        asked_with_mutation 'text_w(line, 9.0, 600, False, True)' \
+                            'text_w(line, 9.0, 600, False)'
+  # The fifth, which the card does not list and which none of the four directions above would
+  # catch on its own: the tail shares its context with the verbs and the marks, so dropping it
+  # empties no context and strays into none. It is caught by the population, which is read off
+  # the documents the builder just wrote rather than off its arguments.
+  probe 1 "a tail the drawings paint and nothing measures was refused" \
+        asked_with_mutation 'n["lw"] = max(n["lw"], text_w(n["tail"], 9.0))' 'pass'
+  probe_says "never measured at all" "and the refusal said the painted string went unmeasured" \
+        asked_with_mutation 'n["lw"] = max(n["lw"], text_w(n["tail"], 9.0))' 'pass'
+  # And the population pin itself, proved armed rather than asserted. A census over one drawing
+  # satisfies every containment above; the count is what separates that from a census over
+  # fourteen, so it is shown to refuse a number the run does not produce.
+  probe 1 "a run laying out other than the intended number of drawings was refused" \
+        check_widths_asked "" 15
+  probe_says "EXPECTED_DRAWINGS" "and the refusal named the constant a fifteenth would change" \
+        check_widths_asked "" 15
+  # AND THE PATHS THAT SAY "I COULD NOT LOOK", which were written and unproved. Each of them is
+  # the state this repository has shipped seventeen instruments unable to tell from a clean one.
+  probe 1 "a builder that is not there was refused rather than reported clean" \
+        check_widths_asked "$dir/no-such-build_layout.py"
+  probe_says "nothing here is evidence" "and said so in those words" \
+        check_widths_asked "$dir/no-such-build_layout.py"
+  probe 1 "a builder that refuses to build was refused rather than reported clean" \
+        asked_with_mutation 'if _inst["views"][0]["key"] != "ZIB":' \
+                            'if _inst["views"][0]["key"] != "NOT-A-VIEW-KEY":'
+  # `_errors.append(...)` to `pass` and not a rename of the list, deliberately: a rename crashes
+  # the builder and would prove the refusal above a second time instead of this one. This leaves
+  # a builder that runs, lays out all fourteen drawings and writes both documents, and simply
+  # stops saying what it asked the table for.
+  probe 1 "a builder that stopped recording what it looked up was refused" \
+        asked_with_mutation '_errors.append((tbl[s] - est, ctx, s, est, tbl[s]))' 'pass'
+  probe_says "looked at nothing and will not call it clean" \
+        "and refused to read a census of nothing as a census with no mismatches" \
+        asked_with_mutation '_errors.append((tbl[s] - est, ctx, s, est, tbl[s]))' 'pass'
 
   echo
   echo "self-test: the model is well formed"
@@ -1962,6 +2479,10 @@ fi
 echo
 echo "== the width table covers every string the layout measures"
 check_widths_cover || bad=1
+
+echo
+echo "== and the builder asks it for the faces the page paints in"
+check_widths_asked || bad=1
 
 echo
 echo "== the model is a graph a drawing can be made of"
