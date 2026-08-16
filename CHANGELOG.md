@@ -108,6 +108,29 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- **BOTH CAPTIONS UNDER A NODE LABEL WERE OUTRANKED BY THE LABEL'S OWN RULE AND PAINTED IN ITS
+  FACE, #203.** The card was filed as a slant: the missing-key mark is reserved at the upright
+  `9/400` width and `.lbl-missing` paints it italic, and nobody had measured the gap. Measured with
+  this tree's own `build/measure_labels.py` over the same eighteen-family envelope, **the slant is
+  worth 0.00**: `no system holds it` is 82.49 upright and 82.49 italic, because every family that
+  carries a real italic shapes it narrower (Ubuntu 72.66 to 70.38) and the family that sets the
+  envelope maximum has no italic file and is obliqued by shear, which does not move an advance.
+  **The gap is the SIZE, and it was never the slant.** `.node .lbl` is two class selectors against
+  `.lbl-missing`'s and `.lbl-tail`'s one, so it won every property both caption rules declare: read
+  off the page, both captions painted at the label's `10px` in the label's `rgb(28, 33, 39)`, not
+  at the `9px` and the `--fg-muted` `rgb(95, 107, 124)` written for them. The only thing that
+  survived was the slant, which is the one property `.node .lbl` does not declare. **In the units
+  the placer works in:** the mark's line is reserved at 82.49 and its 10px envelope width is 91.65,
+  an eighth over, and 103.58 while `.node.sel .lbl` also drags it bold, a quarter over; the widest
+  count caption is reserved at 115.94 and painted at 128.82. A label box narrower than the text in
+  it is a box the verb-chip placer is entitled to put a chip on top of.
+  **The repair is three class selectors instead of two**, so the declared rule outranks
+  `.node .lbl` wherever it sits rather than tying it and winning on source order, plus the
+  `.node.sel` weight pin the count caption has always had and the mark never did. **Nothing is
+  reserved differently and no coordinate moves:** the paint comes back to the size three
+  implementations already reserve, so all fourteen drawing digests, both document digests and all
+  twelve geometry fields of every drawing are byte-identical, and `site/layout.js` and
+  `site/instance.js` are untouched.
 - **CAPTURE MODE WAS MOUSE ONLY ON THE DRAWING, WHICH IS THE PAGE'S WHOLE PRIMARY VIEW, #199.**
   `site/feedback.js` bound capture to `click`, in the capture phase. An HTML button synthesises a
   click from Enter, so the header, the toggle and the footer were always capturable from the
