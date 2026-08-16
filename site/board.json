@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T07:10:45Z",
+  "generated": "2026-08-16T07:21:57Z",
   "columns": [
     {
       "key": "raw",
@@ -163,14 +163,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/160"
-        },
-        {
-          "id": 172,
-          "title": "No CSP on a public origin holding a PAT, and the last-line gate runs after the deploy",
-          "labels": [
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/172"
         }
       ]
     },
@@ -178,6 +170,14 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 172,
+          "title": "No CSP on a public origin holding a PAT, and the last-line gate runs after the deploy",
+          "labels": [
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/172"
+        },
         {
           "id": 164,
           "title": "The salt is printed in the file it protects and 87 people are recoverable in under a second",
@@ -245,19 +245,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/152"
-        },
-        {
-          "id": 151,
-          "title": "Remove",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/151"
         }
       ],
-      "hidden": 130,
+      "hidden": 131,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
