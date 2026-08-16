@@ -10519,7 +10519,7 @@ function judgeHead(h) {
       if (x >= t.x && x <= t.x + t.w && y >= t.y && y <= t.y + t.h) { intoTarget = true; break; }
     }
   }
-  return { key: h.key, tipOff: Math.min(...dist), angleOff: Math.abs(normDeg(h.aa - want)),
+  return { key: h.key, aa: h.aa, tipOff: Math.min(...dist), angleOff: Math.abs(normDeg(h.aa - want)),
            len: len, headLen: shape.len, intoTarget: intoTarget };
 }
 
