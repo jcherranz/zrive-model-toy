@@ -310,7 +310,10 @@ const PHASES = {
   // reach an object is handed to the reader, so it is where the claim about it belongs.
   'the control panel':    { count: 13, when: 'behavioural' },
   'the plate':            { count: 6, when: 'behavioural' },
-  'the outline':          { count: 9, when: 'behavioural' },
+  // 9 until issue 186, which adds the other half of issue 149's ceiling to the phase that
+  // already holds it: that the one reading of this sheet which is a grid and not a table takes
+  // the screen at 2560, and that the month grid beside it is still at the ceiling.
+  'the outline':          { count: 10, when: 'behavioural' },
   'canvas':               { count: 7, when: 'behavioural' },
   'capture':              { count: 15, when: 'behavioural' },
   'board':                { count: 13, when: 'behavioural' },
@@ -636,10 +639,10 @@ const PHASES = {
 // and that it follows the drawing under it when the scope moves and the window does not, and one
 // in `the scope`, that the address the sheet's close leaves draws that drawing on a document built
 // from it.
-// AND 318 SINCE ISSUE 171, which adds two and replaces none: one budget on the chip placer at
+// 318 since issue 171, which adds two and replaces none: one budget on the chip placer at
 // the seven programme union and one at two programmes, both counted in box comparisons because a
 // millisecond on a shared runner is a fact about the runner.
-// 322 SINCE ISSUE 157, which adds four to `the control panel` and replaces none. They are the four
+// 322 since issue 157, which adds four to `the control panel` and replaces none. They are the four
 // different ways a way to reach an object can be wrong and no one of them implies another: that
 // the right objects carry one, which is a question about the document; that no address anywhere in
 // it could ever resolve, which is a question about all 192 rows and not about the one a panel
@@ -647,7 +650,13 @@ const PHASES = {
 // which is a question about the rendered list; and that a reader tells a person they can reach
 // from one they cannot WITHOUT opening anything, which is a question about the rings on two tiles
 // and the only one of the four a screenshot can answer.
-const EXPECTED_ASSERTIONS = 322;
+// AND 323 SINCE ISSUE 186, which adds one to `the outline`, the phase that already holds issue
+// 149's ceiling. The sweep there presses no shape control and met a table on every surface it
+// visited, so it never met the week grid, which was a pixel off its own 46px floor at 2560 inside
+// a box using 1240 of a 2560 screen. The one assertion carries both halves of the repair, because
+// the opt-out is only right while it stays an opt-out: the week reading follows the viewport AND
+// the month grid on the same sheet is the same box at two widths.
+const EXPECTED_ASSERTIONS = 323;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -10259,6 +10268,61 @@ async function checkOutline(page, base) {
         `${columnsDisagree.length} disagreeing ${JSON.stringify(columnsDisagree.slice(0, 1))}`
       : `${sheetAt2560.length} surfaces visited, widest table ${widest}, none clipped`,
     `${sheetAt2560.length} surfaces measured at 2560, widest table ${widest}px`);
+
+  // ---- 10. and the one reading of it that is not a table takes the screen -------------
+  // ISSUE 186, WHICH IS THE SAME FAMILY AND THE OTHER HALF OF THE CEILING ABOVE. The sweep before
+  // this one visits every address of the sheet at the shape #/calendar opens on, which is the
+  // review, so it never meets the week grid at all. Measured before the card at 2560 by 1317, the
+  // box was 1240 and the twenty four week columns were 47.14px each against their own floor of 46:
+  // the grid was a pixel off its minimum with 660px of screen empty on each side of the sheet.
+  //
+  // BOTH HALVES ARE ASSERTED, because the opt-out is only right if it stays an opt-out. A rule
+  // that widened the sheet rather than the week reading would satisfy the first clause here and
+  // hand the outline's content-sized columns the slack issue 149 measured, so the month grid is
+  // driven on the same sheet in the same breath and required to still be at the ceiling.
+  //
+  // NO PIXEL IS TYPED THAT IS NOT DERIVED, which is issue 149's lesson in the language of the
+  // thing it broke: that card's ceiling went red on the runner because it was fitted to one
+  // machine's font metrics. The box is asked to be the viewport's, less the sheet's own padding
+  // and a scrollbar's worth of slack, and the column is asked to be clear of twice the 46px floor
+  // term.js declares. Both follow from the declarations rather than from this machine.
+  const WEEK_FLOOR = 46;
+  const shapesAt2560 = [];
+  await atWidths(page, [2560], async () => {
+    for (const shape of ['week', 'month']) {
+      await page.evaluate(`location.hash = '#/calendar'`);
+      await page.waitFor(`!!document.getElementById('termnotice')`, 'the calendar notice');
+      await sleep(140);
+      await pressByText(page, '#termnotice .shape-btn', shape);
+      await sleep(200);
+      shapesAt2560.push(JSON.parse(await page.evaluate(`JSON.stringify((function () {
+        var b = document.querySelector('.term .sheet-box');
+        var g = document.querySelector('#termrows .cal-weekgrid');
+        var wk = g ? g.querySelector('.cal-wk') : null;
+        var rows = document.getElementById('termrows');
+        return { vw: window.innerWidth,
+                 box: b ? +b.getBoundingClientRect().width.toFixed(2) : null,
+                 col: wk ? +wk.getBoundingClientRect().width.toFixed(2) : null,
+                 weeks: g ? g.querySelectorAll('.cal-wk').length : 0,
+                 over: rows ? rows.scrollWidth - rows.clientWidth : null,
+                 doc: document.scrollingElement.scrollWidth -
+                      document.scrollingElement.clientWidth };
+      })())`)));
+    }
+  });
+  const wk = shapesAt2560[0], mo = shapesAt2560[1];
+  assert('at 2560 the week grid takes the screen and the month grid beside it does not',
+    wk && mo && wk.weeks > 7 && mo.weeks === 0 &&
+      wk.box >= wk.vw - 48 && mo.box < wk.box && mo.box <= 1240 &&
+      wk.col >= 2 * WEEK_FLOOR && wk.over === 0 && mo.over === 0 &&
+      wk.doc === 0 && mo.doc === 0,
+    'the week reading a box within a scrollbar of the viewport with columns clear of twice their ' +
+      `own ${WEEK_FLOOR}px floor, the month reading of the same sheet still at the table ceiling, ` +
+      'and neither of them scrolling the rows box or the page sideways',
+    `week box ${wk && wk.box} col ${wk && wk.col} over ${wk && wk.over}, ` +
+      `month box ${mo && mo.box} over ${mo && mo.over}, viewport ${wk && wk.vw}`,
+    `week ${wk && wk.weeks} columns of ${wk && wk.col}px in a ${wk && wk.box}px box, ` +
+      `month still ${mo && mo.box}px`);
 
   // Back on the address this suite drives, by name. This read `page.navigate` to `#/`, which is two
   // wrongs that cancelled: a url differing from the one on screen only in its fragment is a
