@@ -1398,10 +1398,35 @@
     // a move. Anywhere else on the track centres the window on the week pressed and then moves
     // with the pointer, so a press and a press-and-drag are the same gesture at two lengths.
     //
-    // A BAND TOO NARROW TO HOLD TWO HANDLES IS ALL MOVE. Below three handle widths the two resize
-    // zones would meet in the middle and a reader aiming at the band would resize it instead. The
-    // way to widen a narrow band is then the keyboard or an end of a wider one, and the caps and
-    // the arrows are unaffected either way.
+    // A BAND TOO NARROW TO HOLD TWO HANDLES WAS ALL MOVE, AND THAT MADE THIS CONTROL A RATCHET ON
+    // TOUCH. Issue 170. The paragraph that stood here read: "Below three handle widths the two
+    // resize zones would meet in the middle and a reader aiming at the band would resize it
+    // instead. The way to widen a narrow band is then the keyboard or an end of a wider one." The
+    // first sentence is a real constraint. The second is circular on the device the second half of
+    // this line matters on: a phone has no keyboard here, and "an end of a wider one" is an end of
+    // the band the reader is trying to get back. Measured, the gate was never once open on a
+    // narrow band: the strip's week is 11.5 CSS px at 390 and 12.83 at 1536, so a one week band is
+    // 11.5 and 12.83 against a floor of 24, and no x anywhere on the track mapped to a resize.
+    // Narrow to one week on a phone and the whole term view needed a page reload.
+    //
+    // THE HIT ZONE IS NOT THE PAINTED BAND, WHICH IS `.capbtn-hit`'s IDEA ON A SECOND CONTROL.
+    // render.js draws a lane heading and gives it a transparent rect held at 26px however small
+    // the caption is; the same split works here. The band stays exactly the width the window is,
+    // because it is a reading of the window and a band drawn wider would be a lie about it. What
+    // is held at a floor is where a press LANDS: the two resize zones are measured against a
+    // virtual band of at least three handle widths, centred on the painted one.
+    //
+    // BYTE FOR BYTE THE SAME GESTURE AT 24px AND ABOVE, which is the property that makes this
+    // safe: `hw` is `bw` and `hx` is `bx` for every band the old gate admitted, so nothing a
+    // desktop reader does with a three week window has moved.
+    //
+    // WHAT IT COSTS, MEASURED RATHER THAN GLOSSED. At a one week band on a 11.5px week the virtual
+    // half width puts each resize zone about 10.25px outside the painted band, against the 4px a
+    // wide band's handle already bleeds. So a press on most of the week immediately beside a one
+    // week band resizes it rather than re-centring the window there. That is the trade, and it is
+    // taken because re-centring is reachable from the rest of a 276px track and from both caps,
+    // and widening was reachable from nowhere at all. The move zone is still the painted band and
+    // is still checked after the two resize zones, so the grips keep meaning what they draw.
     var HANDLE = 8;
     var drag = null;
 
@@ -1429,9 +1454,12 @@
       if (x < g.x) { stepAnchor(-1); return; }
       if (x > g.x + g.w) { stepAnchor(1); return; }
       var bx = g.x + start * g.cw, bw = span * g.cw;
+      // The virtual band the two resize zones are measured against, which is the painted one at
+      // every width the old gate admitted and a centred 24px stand-in below that. Issue 170.
+      var hw = Math.max(bw, HANDLE * 3), hx = bx - (hw - bw) / 2;
       var mode;
-      if (bw >= HANDLE * 3 && x >= bx - HANDLE / 2 && x <= bx + HANDLE) mode = 'left';
-      else if (bw >= HANDLE * 3 && x >= bx + bw - HANDLE && x <= bx + bw + HANDLE / 2) mode = 'right';
+      if (x >= hx - HANDLE / 2 && x <= hx + HANDLE) mode = 'left';
+      else if (x >= hx + hw - HANDLE && x <= hx + hw + HANDLE / 2) mode = 'right';
       else if (x >= bx && x <= bx + bw) mode = 'move';
       else {
         setBand(centreOn(weekAtX(x), span), span);
