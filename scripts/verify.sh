@@ -217,7 +217,10 @@ step() {
     STEP_STATE+=("OK"); STEP_NOTE+=("")
     echo "-- [OK] $name"
   elif [ "$rc" -eq 2 ]; then
-    STEP_STATE+=("FAIL")
+    # ABORT and not FAIL, and the summary renders it as [FAIL] all the same. Issue 216. The state
+    # is what the headline needs in order to say which of the two kinds of red this was; the
+    # rendering is unchanged because a gate that aborted is not ready to push on either.
+    STEP_STATE+=("ABORT")
     STEP_NOTE+=("exit 2: it ABORTED. It did not scan what it was asked to, so nothing here is evidence")
     echo "-- [FAIL] $name (exit 2: the gate aborted rather than answering. It scanned nothing.)"
   else
@@ -295,7 +298,10 @@ step_three_state() {
     STEP_NOTE+=("exit 3: the gate ran and named sub-check(s) that could not look at their corpus. Read its INCOMPLETE verdict above; what those gates cover was not established by this run")
     echo "-- [SKIP] $name (exit 3: sub-check(s) could not look. It is not an OK and this line says so.)"
   elif [ "$rc" -eq 2 ]; then
-    STEP_STATE+=("FAIL")
+    # ABORT and not FAIL, and the summary renders it as [FAIL] all the same. Issue 216. The state
+    # is what the headline needs in order to say which of the two kinds of red this was; the
+    # rendering is unchanged because a gate that aborted is not ready to push on either.
+    STEP_STATE+=("ABORT")
     STEP_NOTE+=("exit 2: it ABORTED. It did not scan what it was asked to, so nothing here is evidence")
     echo "-- [FAIL] $name (exit 2: the gate aborted rather than answering. It scanned nothing.)"
   else
@@ -832,11 +838,21 @@ echo "== summary"
 echo "=============================================================================="
 fails=0
 skips=0
+# AN ABORT IS COUNTED AS WELL AS FAILED, AND IT IS RENDERED IDENTICALLY. Issue 216. The two
+# wrappers above already tell an abort from a refusal: a step exiting 2 gets its own note saying
+# `it ABORTED. It did not scan what it was asked to, so nothing here is evidence`, which is the
+# right sentence and the reason nothing about the step lines changes here. What was thrown away
+# was the arithmetic: every abort was added to `fails` and nothing downstream could tell a run
+# whose gates all refused the tree from a run whose gates could not read it. So ABORT prints the
+# same [FAIL] line, counts into the same `fails`, and is counted once more on its own.
+aborts=0
 for i in "${!STEP_NAMES[@]}"; do
   case "${STEP_STATE[$i]}" in
-    OK)   printf '  [OK]   %s\n' "${STEP_NAMES[$i]}" ;;
-    SKIP) printf '  [SKIP] %s\n         %s\n' "${STEP_NAMES[$i]}" "${STEP_NOTE[$i]}"; skips=$((skips + 1)) ;;
-    *)    printf '  [FAIL] %s  (%s)\n' "${STEP_NAMES[$i]}" "${STEP_NOTE[$i]}"; fails=$((fails + 1)) ;;
+    OK)    printf '  [OK]   %s\n' "${STEP_NAMES[$i]}" ;;
+    SKIP)  printf '  [SKIP] %s\n         %s\n' "${STEP_NAMES[$i]}" "${STEP_NOTE[$i]}"; skips=$((skips + 1)) ;;
+    ABORT) printf '  [FAIL] %s  (%s)\n' "${STEP_NAMES[$i]}" "${STEP_NOTE[$i]}"
+           fails=$((fails + 1)); aborts=$((aborts + 1)) ;;
+    *)     printf '  [FAIL] %s  (%s)\n' "${STEP_NAMES[$i]}" "${STEP_NOTE[$i]}"; fails=$((fails + 1)) ;;
   esac
 done
 echo
@@ -870,8 +886,36 @@ else
   echo "      for, because nothing is published. $TARGET_HOW."
 fi
 
+# AND THE HEADLINE NAMES ITS SUBJECT WHEN IT CAN. Issue 216.
+#
+# That card is about a suite that reported a stylesheet which never arrived as twelve assertions
+# about the page and said `VERDICT: the page has regressed`. The suite now refuses instead, at
+# exit 2, naming the resource. The two wrappers above already render that correctly at step level:
+# `[FAIL] ... exit 2: it ABORTED. It did not scan what it was asked to, so nothing here is
+# evidence`. This line did not. Every red became `something is wrong. Nothing is ready to push.`,
+# which names no subject at all, so a reader still could not tell "a gate says the tree is bad"
+# from "no gate could look at the tree" without reading down into the summary. That is the same
+# defect one layer up, in a milder form, and the fact needed to fix it was already being computed
+# and thrown away.
+#
+# NOTHING HERE GOES GREEN AND NOTHING HERE STOPS BEING RED. An abort is still a failure, it is
+# still counted in `fails`, it still prints [FAIL], and the exit code is 1 in both branches. The
+# only difference is which sentence a reader quotes. A run with even one ordinary failure gets the
+# original sentence, because a real red outranks a run that could not look, which is the same
+# ordering scripts/smoke.mjs applies between a failed assertion and a harness finding.
+#
+# AND IT IS NOT step_may_decline, WHICH WAS THE OBVIOUS AND WRONG REPAIR. That wrapper turns exit 2
+# into a [SKIP] and its own comment says nothing outside this file may be run through it. Routing
+# the smoke steps through it would reclassify a gate that scanned nothing as a gate that politely
+# declined, which is exactly the composition issue 103 spent a night removing.
 if [ "$fails" -gt 0 ]; then
-  echo "VERDICT: something is wrong. Nothing is ready to push."
+  if [ "$aborts" -eq "$fails" ]; then
+    echo "VERDICT: nothing here could look. $aborts step(s) aborted and none of the rest failed,"
+    echo "         so this run is not evidence that anything is wrong and not evidence that"
+    echo "         nothing is. Nothing is ready to push. The summary names each one and why."
+  else
+    echo "VERDICT: something is wrong. Nothing is ready to push."
+  fi
   exit 1
 fi
 if [ "$TARGET_KIND" = remote ]; then

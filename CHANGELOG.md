@@ -58,14 +58,25 @@ of what changed and when, and it is meant to be scannable.
   numbers. Measured at `c86d1a5`: **237 of 287 assertions, 83 per cent, ran before the load was ever
   questioned.**
 - **`scripts/smoke.mjs` refuses before reporting.** It records `Network.loadingFailed` and every
-  `Network.responseReceived` carrying a status of 400 or more, keyed on **the browser's own resource
-  type** rather than on a count of console errors, so a `Document`, a `Stylesheet` or a `Script` that
-  did not arrive whole stops the run while the favicon this site does not ship and the `github.com`
-  requests the network layer refuses on purpose stay out by being an `Other` and an `XHR`. The
-  question is asked at the load event of every navigation and every reload, inside the grain
-  runner's own poll, and once more before the console is judged. It is the doctrine the placer
-  oracle already applies to its own input: a document that arrived without its stylesheet is not
-  something the phases below can be evidence about, so they do not run.
+  `Network.responseReceived` carrying a status of 400 or more, keyed on **the failed resource**
+  rather than on a count of console errors: a `Document`, a `Stylesheet` or a `Script` that did not
+  arrive whole, or a `Fetch` or `XHR` that did not arrive **from the page's own origin**. The
+  favicon this site does not ship stays out by being an `Other`, and `api.github.com` stays out by
+  being somebody else's origin. The question is asked at the load event of every navigation and
+  every reload, **at every read of the page**, inside the grain runner's own poll, and once more
+  before the console is judged. It is the doctrine the placer oracle already applies to its own
+  input: a document that arrived without its stylesheet is not something the phases below can be
+  evidence about, so they do not run.
+- **Two holes an adversarial read found in the first version of that repair, both reproduced before
+  being fixed.** `site/board.json` is fetched by `site/board.js` after the load event and Chrome
+  types it `Fetch`, so removing it from the tree reproduced this card **verbatim**: twelve reds,
+  `a paint this suite cannot read: "none"` among them, the cause reported as the console assertion
+  below its own consequences, and a line printed four times saying every resource had been
+  delivered. That is why the fetched types are in and why the refusal is asked at every read rather
+  than only at each load. Separately, a navigation the browser refused outright raised a plain
+  `Error` before the refusal could be reached, so an origin with nothing listening exited 1 under
+  `VERDICT: the page has regressed` while the grain phases in the same run refused correctly. It
+  is a `HarnessFailure` now: the document's own bytes are the case the first version missed.
 - **It exits 2 and names the resource, and it is neither a skip nor a wait.** Not `VERDICT: the page
   has regressed`, because a run that could not fetch the page's own bytes has no evidence about the
   page in either direction. Not a silent skip: `harnessFail` prints every failed resource with the
@@ -80,7 +91,21 @@ of what changed and when, and it is meant to be scannable.
   removed, and the twelve assertions are unchanged: 354 of 354 on a healthy page, before and after.
 - **A `HarnessFailure` raised inside a `group()` is no longer recorded as a failed assertion.** It
   is the suite saying it has nothing to report, which is the one thing the two lists are kept apart
-  to keep straight, and recording it put the page back on the wrong side of the ledger.
+  to keep straight, and recording it put the page back on the wrong side of the ledger. It reaches
+  one throw site besides the refusal, stated rather than left to be found: a renderer that stops
+  answering the DevTools protocol inside a group now ends that viewport at exit 2 instead of
+  recording one failed group and asserting twenty more things against a browser that has stopped
+  answering.
+- **`scripts/verify.sh`'s headline names an abort as its own state.** The step wrappers already told
+  the two kinds of red apart, with `exit 2: it ABORTED. It did not scan what it was asked to, so
+  nothing here is evidence`, and the headline threw that away: every red read
+  `something is wrong. Nothing is ready to push.`, which names no subject and is this card's own
+  complaint one layer up. A run whose **only** failures are aborts now says so. Nothing goes green
+  and nothing stops being red: an abort is still counted in `fails`, still prints `[FAIL]`, the
+  exit code is 1 in both branches, and a single ordinary failure restores the original sentence,
+  because a real red outranks a run that could not look. It is **not** routed through
+  `step_may_decline`, whose own comment forbids it and which would reclassify a gate that scanned
+  nothing as a gate that politely declined.
 
 - **NOTHING HELD `build/build_layout.py`'S OWN `text_w()` CALL SITES AGAINST ANYTHING, #217.**
   A reserve comes out of a row of `build/label_widths.json`, and which row is decided by a key

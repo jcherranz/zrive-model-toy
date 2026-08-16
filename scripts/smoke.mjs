@@ -909,6 +909,16 @@ function phaseIsSkipped(name) {
 // `VERDICT: the page has regressed` over a page nobody could read, which is the defect the card
 // this comment cites was filed on. It goes up to runViewport and out to main, which already has
 // the right words for it.
+//
+// AND IT REACHES ONE THROW SITE BESIDES THE REFUSAL, WHICH IS STATED RATHER THAN LEFT TO BE
+// DISCOVERED. Three places raise a HarnessFailure: launchWithRetry, which is outside every group;
+// the load refusal; and Cdp.send's own deadline, which every page.evaluate goes through. So a
+// renderer that stops answering the protocol inside a group used to be one named failed assertion
+// with the remaining groups still running, and is now the end of that viewport at exit 2. That is
+// the right way round on the evidence: the deadline's own message says nothing after that point
+// is evidence about the page, and carrying on to assert twenty more things against a browser that
+// has stopped answering is the same mistake in a different costume. The count audit reports the
+// loss either way.
 async function group(name, fn) {
   setPhase(name);
   try {
@@ -1308,17 +1318,37 @@ const PAGE_PREDICATES = `
 // reads a record the browser has already written and answers immediately, whatever that record
 // says, which is also why the healthy path prints a line rather than staying silent.
 //
-// WHICH RESOURCES. The three types that make the document what it is. A Document that did not
-// arrive is no page; a Stylesheet that did not arrive is the case this card was filed on; a
-// Script that did not arrive takes app.js, boot.js or the two data documents with it. Everything
-// else the browser types differently: the favicon this site does not ship is an Other, and the
-// github.com requests the network layer refuses on purpose are XHR and Fetch. So the deliberate
-// refusals stay out by their type rather than by being matched on their names, which is what the
-// card asks for when it says to key on the failed resource.
+// WHICH RESOURCES, AND THE TYPE ALONE IS NOT THE ANSWER. Three types make the document what it
+// is whatever their origin: a Document that did not arrive is no page, a Stylesheet that did not
+// arrive is the case this card was filed on, and a Script that did not arrive takes app.js,
+// boot.js or the two data documents with it. The favicon this site does not ship is an Other and
+// stays out by being one, which is the type doing the work the card asks for.
+//
+// AND A FOURTH KIND, WHICH THE FIRST VERSION OF THIS RULE MISSED AND AN ADVERSARIAL READ FOUND.
+// site/board.js fetches `board.json` off this page's own origin, and Chrome types a fetch()
+// `Fetch`, not `Script`. Removing that one file from the tree and running the suite reproduced
+// this card verbatim: twelve red assertions, `a paint this suite cannot read: "none"` among them,
+// the cause reported as the console assertion below its own consequences, `VERDICT: the page has
+// regressed`, and a line four times over saying every resource had been delivered. A document the
+// page fetches to draw itself from is as load bearing as one it links, and the type does not say
+// so.
+//
+// SO THE FETCHED TYPES ARE IN, AND THEY ARE IN BY ORIGIN. That is the discrimination the type
+// cannot make: api.github.com is a `Fetch` too, and this suite refuses it on purpose in two
+// places, the stub inside the page and Network.setBlockedURLs under it. Both of those are somebody
+// else's origin and this page's own documents are not, so the question asked of a Fetch or an XHR
+// is whether it came from the origin serving the page. Still keyed on the failed resource and
+// never on a count of console errors, which is what the card requires; the key is now what the
+// resource IS and where it came FROM, because one of those alone gets board.json wrong.
 const LOAD_BEARING_TYPES = new Set(['Document', 'Stylesheet', 'Script']);
+const FETCHED_TYPES = new Set(['Fetch', 'XHR']);
 
 function missingBytes(page) {
-  return page.bytes.filter(b => LOAD_BEARING_TYPES.has(b.type));
+  return page.bytes.filter(b => {
+    if (LOAD_BEARING_TYPES.has(b.type)) return true;
+    if (!FETCHED_TYPES.has(b.type) || !page.origin) return false;
+    try { return new URL(b.url).origin === page.origin; } catch { return false; }
+  });
 }
 
 // The refusal itself. A no-op on every healthy load, which is every load this suite has ever made
@@ -1337,10 +1367,13 @@ function refuseUnlessTheDocumentArrived(page, what) {
       'face, a height or a scroll width taken from it is a true measurement of the wrong document.'
     : kinds.includes('Document')
       ? 'A document that did not arrive is not a page, and there is nothing here to read.'
-      : 'A page missing one of its scripts is a page that stopped part way through building itself,\n' +
-        'so everything below it is a reading of a document that was never finished.';
+      : kinds.includes('Script')
+        ? 'A page missing one of its scripts is a page that stopped part way through building\n' +
+          'itself, so everything below it is a reading of a document that was never finished.'
+        : 'A page whose own origin would not give it a document it asked for is a page drawn from\n' +
+          'part of itself, and what is missing from the drawing is not visible in the drawing.';
   throw new HarnessFailure(
-    `the document at ${what} arrived without ${missing.length === 1 ? 'one of' : missing.length + ' of'} ` +
+    `${what} arrived without ${missing.length === 1 ? 'one of' : missing.length + ' of'} ` +
     'its own resources, so nothing here can be measured against it',
     'The browser was asked for these and did not get them whole:\n' + named + '\n\n' +
     consequence + '\n' +
@@ -1385,8 +1418,13 @@ async function openPage(cdp, viewport) {
   const console_ = [];      // console errors and page exceptions
   const requests = [];      // every request the page attempted
   const bytes = [];         // every resource the browser was asked for and did not deliver whole
-  const arrived = [];       // and every document, stylesheet and script that did
+  // Every load-bearing response that came back under 400. It is a count of responses and not a
+  // proof of delivery: a truncated body answers 200 and then raises a loadingFailed, so it lands
+  // in both lists. That is why the line printing it is printed only after a refusal has just
+  // looked at `bytes` and found nothing, and never on its own.
+  const arrived = [];
   const began = new Map();  // requestId to url and resource type, so a failure can be named
+  let origin = '';          // the origin this page was actually served from
   cdp.on('Runtime.consoleAPICalled', p => {
     if (p.type === 'error') {
       console_.push({ kind: 'console.error', text: (p.args || []).map(describeArg).join(' '), url: '' });
@@ -1408,6 +1446,16 @@ async function openPage(cdp, viewport) {
   cdp.on('Network.requestWillBeSent', p => {
     requests.push({ url: p.request.url, method: p.request.method });
     began.set(p.requestId, { url: p.request.url, type: p.type || '' });
+    // The page's own origin, learned from the document request rather than passed in, so that it
+    // is the origin the browser actually went to and not the one a caller believes it asked for.
+    // Guarded on the scheme because openPage's first navigation is about:blank, whose origin is
+    // the string "null" and would make every same-origin test below answer wrongly.
+    if (p.type === 'Document') {
+      try {
+        const u = new URL(p.request.url);
+        if (u.protocol === 'http:' || u.protocol === 'https:') origin = u.origin;
+      } catch { /* not a url with an origin, so it tells us nothing */ }
+    }
   });
 
   // THE DOCUMENT'S OWN BYTES, RECORDED WHERE THE BROWSER REPORTS THEM. Issue 216, and the whole
@@ -1467,13 +1515,32 @@ async function openPage(cdp, viewport) {
     requests,
     bytes,
     arrived,
+    get origin() { return origin; },
     viewport,
     actual: null,
     mechanism: null,
 
     send: (method, params) => cdp.send(method, params, sessionId),
 
+    // EVERY READING OF THIS PAGE PASSES THROUGH HERE, WHICH IS WHY THE REFUSAL IS ASKED HERE TOO.
+    // Issue 216, and this is the placement the first version of that repair got wrong. Asking at
+    // the load event catches a stylesheet or a script, because the load event is the browser's
+    // statement that those have resolved. It does not catch a document the page fetches for
+    // itself afterwards: site/board.js asks for board.json when the board first polls, which is
+    // long after the load event, and removing that file from a deployment reproduced this card
+    // verbatim even with the refusal in place at every navigation. Twelve reds, the console
+    // assertion naming the cause eleventh, and `VERDICT: the page has regressed`.
+    //
+    // A phase cannot be stopped before its own first read, so its own first read is where it is
+    // stopped. checkWidth's wait for the board polls this function every twenty milliseconds, so
+    // the refusal lands within one poll of the browser reporting the failure, in place of a
+    // twenty second timeout reported as a group that threw.
+    //
+    // IT IS A QUESTION AND NOT A CONDITION ON ANYTHING. Nothing here waits, nothing here retries,
+    // and no wait anywhere in this file gained a clause: the record is already written when this
+    // reads it, and on a healthy page it is empty and this costs a filter over an empty array.
     async evaluate(expression) {
+      refuseUnlessTheDocumentArrived(page, 'the document this reading would be taken from');
       const r = await cdp.send('Runtime.evaluate',
         { expression, returnByValue: true, awaitPromise: true }, sessionId);
       if (r.exceptionDetails) {
@@ -1527,17 +1594,31 @@ async function openPage(cdp, viewport) {
         cdp.on('Page.loadEventFired', off);
       });
       const res = await cdp.send('Page.navigate', { url }, sessionId);
+      // A NAVIGATION THE BROWSER REFUSED IS THE DOCUMENT ITSELF FAILING TO ARRIVE, AND IT IS NOT
+      // A FINDING ABOUT THE PAGE. Issue 216, and this line was a plain Error until an adversarial
+      // read of that card's repair pointed at it. runViewport's first navigate is outside any
+      // group(), so a plain Error from here landed in main's catch as `the 1536x839 run (it threw
+      // before it finished)` and the run exited 1 under `VERDICT: the page has regressed`. Against
+      // an origin with nothing listening, that is three assertions recorded as evidence about a
+      // page that was never served. runGrain refused the same fault correctly in the same run,
+      // because its own goto reads the byte record, so the two halves of one suite gave opposite
+      // verdicts on one fault. This is the card's own ERR_CERT_VERIFIER_CHANGED one level up: the
+      // same reconfiguration that took app.css takes index.html if it lands a moment earlier.
       if (res && res.errorText) {
-        throw new Error(`navigating to ${url} was refused by the browser: ${res.errorText}`);
+        throw new HarnessFailure(
+          `the browser could not fetch ${url} at all: ${res.errorText}`,
+          'The navigation was refused before a document existed, so there is no page here to be\n' +
+          'right or wrong about. As with a missing stylesheet, this suite cannot tell a deployment\n' +
+          'that is gone from a network that moved under the request, and it does not guess.');
       }
       // A fragment change fetched nothing, so there is nothing new to ask about; the document it
       // is a fragment of was asked about when it loaded.
       if (!res || !res.loaderId) return;
       await orThrow(loaded, `the load event after navigating to ${url}`).catch(err => {
-        refuseUnlessTheDocumentArrived(page, url);   // the same rule as in reload() above
+        refuseUnlessTheDocumentArrived(page, `the document at ${url}`);   // the same rule as in reload()
         throw err;
       });
-      refuseUnlessTheDocumentArrived(page, url);
+      refuseUnlessTheDocumentArrived(page, `the document at ${url}`);
     },
 
     // Wait on a condition the page answers. Returns nothing and throws with the last reason the
@@ -14191,17 +14272,26 @@ async function runGrain(chrome, base) {
   // that says it is ready, and every answer it could give still satisfies it. What is added is a
   // separate question, asked of a record the browser has already written, that has an answer
   // immediately on every turn.
-  let saidBytes = false;
+  // KEYED ON THE PAGE AND NOT ON A FLAG, because runGrain opens two of them in two browsers, the
+  // desk one below and the phone one the last phases run in, and a plain boolean would report the
+  // first and go quiet for the second. A browser whose bytes are never spoken for is the state
+  // this line exists to make impossible.
+  let saidBytesFor = null;
   const goto = async url => {
     await page.send('Page.navigate', { url });
     for (let i = 0; i < 200; i++) {
-      refuseUnlessTheDocumentArrived(page, url);
-      const ready = await ev('return !!window.ZT;').catch(() => false);
+      refuseUnlessTheDocumentArrived(page, `the document at ${url}`);
+      // The only catch in this file that swallows an evaluate, and it must not swallow the one
+      // thing an evaluate now raises that is not about the page. A document mid-navigation
+      // legitimately answers nothing, which is what this catch is for; a document that arrived
+      // without its own resources is not the same fact and is not turned into `not ready yet`.
+      const ready = await ev('return !!window.ZT;')
+        .catch(e => { if (e instanceof HarnessFailure) throw e; return false; });
       if (ready) {
         await sleep(120);
-        refuseUnlessTheDocumentArrived(page, url);
-        if (!saidBytes) {
-          saidBytes = true;
+        refuseUnlessTheDocumentArrived(page, `the document at ${url}`);
+        if (saidBytesFor !== page) {
+          saidBytesFor = page;
           console.log(`  bytes:     ${page.arrived.length} document, stylesheet and script ` +
                       'response(s), every one of them delivered');
         }
@@ -14209,7 +14299,7 @@ async function runGrain(chrome, base) {
       }
       await sleep(50);
     }
-    refuseUnlessTheDocumentArrived(page, url);
+    refuseUnlessTheDocumentArrived(page, `the document at ${url}`);
     throw new Error('window.ZT never appeared at ' + url);
   };
 
@@ -15603,6 +15693,14 @@ async function runViewport(chrome, viewport, base, full, narrow) {
     // Printed beside the other three lines this viewport already states about what the harness
     // got, and counted rather than asserted as a word, so a run that loaded four of thirteen
     // scripts and somehow got this far would say four.
+    //
+    // AND ASKED AGAIN IMMEDIATELY BEFORE THE WORDS, not left to the navigate two lines up. The
+    // wait between them is DIAGRAM_READY, which is the page building itself, and today nothing it
+    // does fetches anything: all twelve scripts in site/index.html are classic and parser
+    // blocking. The day one of them is marked async, a failure landing in that gap would be
+    // printed over as delivered, and the sentence has to be true at the moment it is written
+    // rather than true when the check before it last ran.
+    refuseUnlessTheDocumentArrived(page, `the page at ${label}, before the first measurement,`);
     console.log(`  bytes:     ${page.arrived.length} document, stylesheet and script response(s), ` +
                 'every one of them delivered');
 
@@ -15713,7 +15811,7 @@ async function runViewport(chrome, viewport, base, full, narrow) {
     // which is the exact list the card was filed on. Asked here instead, the answer arrives as a
     // refusal naming the resource. It costs nothing on a clean run: it reads a record that is
     // already written and, having found it empty at every load, finds it empty again.
-    refuseUnlessTheDocumentArrived(page, `this run at ${label}`);
+    refuseUnlessTheDocumentArrived(page, `the page this run at ${label} was reading`);
 
     setPhase('console and requests');
     if (!phaseIsSkipped('console and requests')) {
