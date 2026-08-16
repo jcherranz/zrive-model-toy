@@ -901,8 +901,15 @@
     if (rows) {
       var st = term.state();
       var spec = rows.window ? term.windowSpec() : null;
-      var views = st.scope
-        ? VIEWS.filter(function (v) { return v.key === st.scope; })
+      // Issue 146. THE SHEET'S SCOPE IS A SET, SO THIS READS THE SET AND NOT THE STRING. It
+      // compared `v.key === st.scope`, which is true of exactly one programme and of no programme
+      // at all once that field can read `ZIB+ZSC`: the control would have counted over nothing and
+      // printed a confident 0 the moment a reader put two programmes in one calendar. The list is
+      // published beside the string for this reader, so nothing here splits on a separator this
+      // file does not own.
+      var keys = st.scopeKeys || (st.scope ? [st.scope] : []);
+      var views = keys.length
+        ? VIEWS.filter(function (v) { return keys.indexOf(v.key) !== -1; })
         : VIEWS;
       var nodes = [];
       views.forEach(function (v) {
@@ -920,9 +927,12 @@
       return {
         nodes: nodes,
         subject: 'the ' + typeWords(rows.type, 2) + ' this reading lists',
-        where: (views.length === 1 ? (views[0].label || views[0].code)
-                                   : 'all ' + VIEWS.length + ' programmes') +
-               ', ' + (rows.window ? windowWords() : 'the whole term')
+        // Issue 146. THE SAME THREE FORMS THE DRAWING'S OWN SUBJECT USES, and for the reason the
+        // line below says: the subject of a count is the scope it was taken over. This branch had
+        // two forms, one programme or "all 7 programmes", which was every scope the sheet could
+        // hold until this card and is a false sentence over the two it holds now. `scopeWords` is
+        // one function away and already says two programmes as two programmes.
+        where: scopeWords(views) + ', ' + (rows.window ? windowWords() : 'the whole term')
       };
     }
     // Issue 136. THE SUBJECT OF THE COUNT IS THE SCOPE AND NOT THE FIRST OF IT. On a drawing of

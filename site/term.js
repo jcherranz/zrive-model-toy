@@ -102,6 +102,24 @@
   // matched against a list of built strings, so a code this page does not know falls through to
   // the unscoped reading rather than to nothing.
   var ADDRESS = /^#\/(calendar|outline)(?:\/([^/?#]*))?/;
+  // ---- ISSUE 146. THE SCOPE IS A SET HERE TOO, IN THE SPELLING #136 ALREADY SETTLED ----------
+  // The drawing has taken a set since #136: `#/p/ZIB+ZSC` is two programmes, `#/p/ALL` is every
+  // one the document holds, and the chips in the header add and take away. This sheet went on
+  // answering for one programme or for all seven and nothing in between, so "these three
+  // programmes, this fortnight" could be asked of the picture and not of the calendar, which is
+  // the one surface where the answer is a list a meeting can read.
+  //
+  // THE SEPARATOR AND THE WORD ARE ROUTER.JS'S AND NOT A SECOND VOCABULARY. `+` joins codes and
+  // `ALL` means every programme the document holds, spelled the same way on both surfaces so a
+  // reader who has learned one address has learned the other. `ALL` resolves to every view, which
+  // IS the unscoped reading, so it is an input spelling of an address this page already answers
+  // rather than a new one: the writer below never produces it, and the enumerated address count
+  // does not move. A set of two or more is CONSTRUCTED from what the reader pressed, exactly as
+  // `#/p/ZIB+ZSC` is, and for the same reason it is not enumerated anywhere: an address built out
+  // of a set is not an address anybody maintains, and counting the 119 of them would make the
+  // page's address count a fact about arithmetic.
+  var JOIN = '+';
+  var ALL_WORD = 'ALL';
   // Issue 112. WHICH ROWS ARE OPEN, ON THE ADDRESS, because every other view here puts its state
   // there and a row a reader has opened is a thing they should be able to send someone. A QUERY
   // and not a fourth path segment, deliberately: `routes` below is the list of addresses this
@@ -253,7 +271,12 @@
     var outBtn = document.getElementById('termout');
 
     var reading = null;         // 'calendar', 'outline', or null when the sheet is shut
-    var scope = null;           // one view, or null for all seven
+    // Issue 146. THE SCOPE IS A LIST OF VIEWS AND IT IS NEVER EMPTY, which is the shape router.js
+    // holds the drawing's scope in and is the reason nothing below has to ask "one or all". A list
+    // as long as VIEWS is the unscoped reading, and that equality is the only place "all seven" is
+    // spelled: an empty list would be a third state meaning the same thing as the full one, and
+    // two spellings of one state is how the two readings of this sheet came apart before.
+    var scope = [];
     var built = null;           // which reading AND which scope the rows on screen are
     var returnTo = null;        // what had focus when the sheet was opened
     // Issue 112. WHICH ROWS HAVE THEIR OUTLINE OPEN, by template id, and it replaces the single
@@ -385,14 +408,44 @@
     // Issue 84. One function, called with a scope of null or with one view, so the unscoped and
     // the scoped readings cannot come to count differently: there is one arithmetic and the
     // scope is an argument to it, not a second copy of it under an if.
+    //
+    // ISSUE 146 WIDENED WHAT THAT ARGUMENT CAN BE AND CHANGED NEITHER SENTENCE. A scope is a set
+    // now, so every one of these takes null, one view, or a list of them, and answers the same
+    // arithmetic over whichever it was handed. Read through one converter rather than three
+    // branches, because the callers are ten and half of them legitimately hold a single view: a
+    // lane caption is about one programme, an absence row is about one programme, and neither
+    // should have to learn a set to ask a question about it.
+    function scopeList(sc) {
+      if (!sc) return [];
+      return Array.isArray(sc) ? sc : [sc];
+    }
+
+    // Whether a scope is the whole document, which is the one place "all seven" is a comparison
+    // rather than a spelling.
+    function isAll(sc) {
+      var list = scopeList(sc);
+      return !list.length || list.length >= VIEWS.length;
+    }
+
+    // The set as the address writes it, which is also the key `built` and `show` compare on: two
+    // lists holding the same views in the build's order are the same scope, and a scope that has
+    // not moved must not rebuild the rows.
+    function scopeKey(sc) {
+      if (isAll(sc)) return '';
+      return scopeList(sc).map(function (v) { return v.key; }).join(JOIN);
+    }
+
     function groupsFor(sc) {
-      if (!sc) return byProgramme;
-      return byProgramme.filter(function (g) { return g.view === sc; });
+      var list = scopeList(sc);
+      if (!list.length) return byProgramme;
+      return byProgramme.filter(function (g) { return list.indexOf(g.view) !== -1; });
     }
 
     function sessionsFor(sc) {
-      if (!sc) return sessions;
-      return sessions.filter(function (s) { return s.code === sc.code; });
+      var list = scopeList(sc), on = {};
+      if (!list.length) return sessions;
+      list.forEach(function (v) { on[v.code] = true; });
+      return sessions.filter(function (s) { return !!on[s.code]; });
     }
 
     function templatesFor(sc) {
@@ -598,6 +651,28 @@
     // sites, and it is read by listsWindow() below, which is the one question the sentence turns
     // on. #90 made that split for the list; the review is the same kind of reading and takes it.
     var SHAPE_FILTERS = { review: true, list: true, month: false, week: false };
+
+    // ===========================================================================================
+    // ISSUES 146 AND 158. THE TWO GRIDS ARE HELD TO THE SAME RULE AS THE TWO LISTS.
+    // ===========================================================================================
+    // THIS FLAG IS ABOUT FILTERING AND IT WAS BEING READ AS IF IT WERE ABOUT HONESTY. The sentence
+    // above says a shape either filters to the window or keeps the term and marks the band, and
+    // that split is untouched: a grid still draws every session and marks. What had quietly
+    // attached itself to the same flag is the sampling-honest absence sentence, which the review
+    // and the list print and the two grids did not, so the two shapes that a screenshot is most
+    // likely to be believed from were the two that said nothing about which kind of nothing an
+    // empty cell is. The grids carry it now, under the grid, in gridNotes() below, and it is built
+    // out of the review's own functions rather than written a second time.
+    //
+    // AND THE GRIDS DRAW THE TERM'S OWN MONTHS AND WEEKS, not the ones the drawn rows happen to
+    // fall in, which is where the dishonest absence was actually coming from: a month with nothing
+    // drawn in it had no panel at all, so a document holding six sessions of thirty six ended the
+    // term in February with no sentence anywhere saying so.
+    //
+    // ISSUE 158 TURNED THE WEEK GRID OVER, days down and weeks across, which is the owner's own
+    // instruction and is also what makes the grid and the header's strip one instrument: both are
+    // one column per week of the term, so the interval a reader brushes is the interval the grid
+    // lights, column for column.
 
     // How many weeks the review opens on. "The next one to three weeks" names the range and three
     // is the top of it, which is the reading a Monday meeting is over: a window a reader can then
@@ -856,7 +931,7 @@
     // The chips carry the drawn-against-declared fraction; this carries the shape of what is
     // drawn. Two honest readings rather than one dishonest one.
     function stripScope() {
-      if (isOpen() && scope) return [scope];
+      if (isOpen() && !isAll(scope)) return scope;
       var sc = opts.drawnScope ? opts.drawnScope() : null;
       return (sc && sc.length) ? sc : VIEWS;
     }
@@ -1418,9 +1493,15 @@
     // on `#/p/Z-ZIB` cost half an hour to learn: a route constructed in a second place is a route
     // that can be constructed wrong. `routes` below is produced by this same function, so a
     // driver enumerating the addresses is enumerating what the page will actually answer.
+    // ISSUE 146. A SET IS WRITTEN THE WAY ROUTER.JS WRITES ONE AND A SCOPE OF ONE IS WRITTEN THE
+    // WAY IT ALWAYS WAS, byte for byte: `#/calendar/ZSC` is the address it has been since #84, so
+    // every bookmark, every panel link and every one of the sixteen routes this module answers
+    // resolves to what it resolved to before this card. Only a set of two or more is new, and it
+    // is spelled `#/calendar/ZIB+ZSC`, which is `#/p/ZIB+ZSC` with the sheet's own prefix.
     function addressFor(rd, sc) {
       var base = rd === 'calendar' ? CAL_ROUTE : OUT_ROUTE;
-      return sc ? base + '/' + sc.key : base;
+      var k = scopeKey(sc);
+      return k ? base + '/' + k : base;
     }
 
     // Issue 125. The calendar's address with a worklist on it, built by the one function above
@@ -1441,6 +1522,49 @@
       return null;
     }
 
+    // ISSUE 146. THE SEGMENT READ AS A SET, in the build's own order and never in the order the
+    // address happened to write it, which is router.js's rule word for word: `#/calendar/ZSC+ZIB`
+    // and `#/calendar/ZIB+ZSC` are one reading of one set rather than two readings that agree.
+    // A code this page does not know contributes nothing rather than emptying the sheet, which is
+    // the answer the single-code parser has given since #84; a segment that names none of them
+    // falls back to every programme, which is the same answer for the same reason.
+    function scopeByCodes(seg) {
+      var s = String(seg || '');
+      if (!s) return VIEWS.slice();
+      if (normCode(s) === ALL_WORD) return VIEWS.slice();
+      var got = [], out = [];
+      s.split(JOIN).forEach(function (p) {
+        var v = viewByCode(p);
+        if (v && got.indexOf(v) === -1) got.push(v);
+      });
+      VIEWS.forEach(function (v) { if (got.indexOf(v) !== -1) out.push(v); });
+      return out.length ? out : VIEWS.slice();
+    }
+
+    // The scope a press on one programme leaves behind: add it if it is out, take it out if it is
+    // in, and refuse to empty the set, because a calendar of no programmes is a screen with
+    // nothing on it and no way back. That is router.js's `toggled` with the same three cases in
+    // the same order.
+    //
+    // AND THE UNSCOPED READING IS THE ONE CASE WHERE THIS SHEET AND THAT RAIL DIFFER, WHICH IS A
+    // DECISION AND NOT AN OVERSIGHT. On the rail, all seven is a set with seven members chosen and
+    // a press takes one out. Here, `#/calendar` is not seven chips that happen to be on: it is THE
+    // TERM, the one reading of these seven documents that exists in no system, which is the
+    // argument this whole file opens with. A reader looking at the term and pressing a code is
+    // choosing a subject, which is what that press has done since #84, so it narrows to that one
+    // programme; from there the codes are a set and add and take away. Nothing is hidden by the
+    // difference: each link's own title says which of the two it will do before it is pressed.
+    function toggledScope(v) {
+      if (isAll(scope)) return [v];
+      if (scope.indexOf(v) === -1) {
+        var next = [];
+        VIEWS.forEach(function (w) { if (w === v || scope.indexOf(w) !== -1) next.push(w); });
+        return next;
+      }
+      if (scope.length === 1) return scope.slice();
+      return scope.filter(function (w) { return w !== v; });
+    }
+
     // null means "not one of this module's addresses at all", which the sheet answers by shutting
     // and is not the same answer as an address naming a programme nobody has.
     //
@@ -1459,7 +1583,7 @@
       // accident. An unknown field falls back the same way, which GAP_FIELDS decides.
       var gq = m[1] === 'calendar' ? GAP_Q.exec(String(h || '')) : null;
       var gf = gq ? decodeURIComponent(gq[1]) : null;
-      return { reading: m[1], scope: viewByCode(m[2] || ''),
+      return { reading: m[1], scope: scopeByCodes(m[2] || ''),
                open: q ? decodeURIComponent(q[1]) : null,
                gap: (gf && GAP_FIELDS[gf]) ? gf : null };
     }
@@ -1548,7 +1672,20 @@
 
     // The programme, in the words the drawing already uses for it, so a reader arriving from a
     // tile reads the same name here that was over the tile.
-    function scopeName() { return scope ? (scope.label || scope.code) : ''; }
+    //
+    // ISSUE 146. AND A SET IN THE WORDS THE DRAWING ALREADY USES FOR ONE, which is `scopeWords` in
+    // app.js: one programme is its own label, two or more are counted and then named, and the
+    // codes are the ones on the chips. The two are the same three forms in the same order, so a
+    // reader moving between the picture and the calendar meets one vocabulary; the sheet has its
+    // own copy because a module that reads across all seven owns no other module's private
+    // function, which is the split this file has kept since #80.
+    function scopeName() {
+      if (isAll(scope)) return 'all ' + VIEWS.length + ' programmes';
+      if (scope.length === 1) return scope[0].label || scope[0].code;
+      return scope.length + ' programmes, ' + scope.map(function (v) {
+        return v.code || v.key;
+      }).join(', ');
+    }
 
     // ---- the per session outline, issues 85 and 108 -----------------------------
     // OFF UNTIL IT IS ASKED FOR. Everything else in this sheet is a value read off the drawing
@@ -1776,8 +1913,7 @@
     function describe() {
       var windowed = listsWindow();
       var st = stats(scope, windowed, !!gapField);
-      var over = scope ? scopeName()
-                       : st.programmes + ' programmes';
+      var over = isAll(scope) ? st.programmes + ' programmes' : scopeName();
       if (reading === 'calendar') {
         // The programmes the rows came from rather than the programmes the scope names, for the
         // reason stats() carries both: unscoped and windowed, "across 7 programmes" is a claim
@@ -1818,14 +1954,14 @@
         // what the meeting acts on and says that instead. A heading that still read "in date
         // order" over a screen whose first band is every session with nobody to teach it would be
         // the same kind of wrong as the sentence #121 was filed about, one line further up.
-        titleEl.textContent = (scope ? scopeName() : 'The term') + ', ' +
+        titleEl.textContent = (isAll(scope) ? 'The term' : scopeName()) + ', ' +
           counted + (gapField ? ', the ones with no ' + gapField : SHAPE_ORDER[shape]);
         // BUILT AS PARTS AND JOINED, because a window can leave the list with nothing in it and a
         // date span, a state tally and a separator printed over an empty set are three marks a
         // reader has to decide are not zeros. #119 put that state in the data's reach; this is the
         // sentence meeting it.
         var bits = [
-          listed + many + ' across ' + (windowed && !scope ? spread : over)
+          listed + many + ' across ' + (windowed && isAll(scope) ? spread : over)
         ];
         // AND THE SAMPLE AS A CLAUSE OF ITS OWN, issue 122, where it used to be a tail on the
         // clause above. It is its own bit because it is its own fact: the first clause is how many
@@ -1869,7 +2005,9 @@
         var countedT = sampT.complete ? 'all ' + nT + ' session templates'
                      : sampT.total ? nT + ' of the ' + sampT.total + ' session templates'
                      : nT + ' session templates';
-        titleEl.textContent = (scope ? 'The ' + scopeName() + ' outline' : 'The outline') +
+        titleEl.textContent = (isAll(scope) ? 'The outline'
+                               : scope.length === 1 ? 'The ' + scopeName() + ' outline'
+                               : 'The outline of ' + scopeName()) +
           ', ' + countedT + ' in curriculum order';
         var tbits = [nT + ' templates across ' + over];
         var sampTSaid = sampleWords(sampT, 'session template');
@@ -1922,13 +2060,14 @@
 
     // ---- the three shapes, issue 88 ---------------------------------------------
     var SHAPE_NAME = { review: 'as a review, unstaffed first', month: 'as a month grid',
-                       week: 'as a week grid', list: 'as a list' };
+                       week: 'as a week grid, one column per week', list: 'as a list' };
 
     var SHAPE_TITLE = {
       review: 'the window across every programme, the sessions with nobody to teach them first ' +
               'and the programmes with nothing in it named underneath. What this address opens on',
-      month: 'one panel per month, seven weekday columns',
-      week: 'one panel per week that holds a session',
+      month: 'one panel per month of the term, seven weekday columns, every day drawn once',
+      week: 'one grid: Monday to Sunday down the side, one column per week of the term, so the ' +
+            'weeks can be compared and the window is the same interval the strip brushes',
       list: 'one row per session, the reading this sheet opened with before issue 88'
     };
 
@@ -1945,18 +2084,11 @@
       return MONTHS[Number(ym.slice(5, 7)) - 1] + ' ' + ym.slice(0, 4);
     }
 
-    function groupBy(sc, keyOf) {
-      var out = [], byKey = {};
-      sessionsFor(sc).forEach(function (s) {
-        var k = keyOf(s);
-        if (!byKey[k]) { byKey[k] = { key: k, rows: [] }; out.push(byKey[k]); }
-        byKey[k].rows.push(s);
-      });
-      return out;
-    }
-
-    function monthsOf(sc) { return groupBy(sc, function (s) { return s.date.slice(0, 7); }); }
-    function weeksOf(sc) { return groupBy(sc, function (s) { return mondayOf(s.date); }); }
+    // `groupBy`, `monthsOf` and `weeksOf` stood here and are gone with issue 146. They grouped the
+    // DRAWN rows into the panels the two grids were built out of, which is exactly the arithmetic
+    // that made a grid's panels a property of what these documents happened to draw rather than of
+    // the term. The grids read termMonths() and the term's own weeks now, and nothing else in this
+    // file ever called these three.
 
     // Issue 88 wrote a paragraph per shape above the rows, saying what that shape was for and
     // what it made visible about this term. Issues 91 and 93 took the paragraphs off the screen
@@ -2027,16 +2159,76 @@
       return c;
     }
 
-    // The days a month panel draws, which is the Monday on or before the first of the month to
-    // the Sunday on or after the last of it, so every panel is whole weeks and the columns line
-    // up down the sheet.
-    function monthCells(ym) {
+    // ---- WHAT A GRID IS OVER, ISSUE 146: THE TERM AND NOT THE ROWS IT HAPPENS TO HOLD --------
+    // `monthsOf(scope)` and `weeksOf(scope)` group the DRAWN rows, so a panel existed only where a
+    // session had been drawn. On Z-PE, whose document holds 6 of the 36 sessions the model counts
+    // and whose last drawn one is 19 February, the month grid drew January and February and the
+    // term ended there; four months of it were shown as no months at all. That is an absence
+    // produced by which rows these documents drew, printed as though it were the shape of the
+    // business, which is the one thing this file's own rule says it may never do. Both grids draw
+    // the term now, every month of it and every week of it, so an empty month is on the screen as
+    // an empty month and the note under the grid says which kind of nothing it is.
+    //
+    // The two groupers are still used by nothing else and are gone with the panels they built.
+    function termMonths() {
+      var out = [], ym, y, m;
+      if (!TERM) return out;
+      ym = TERM.first.slice(0, 7);
+      while (ym <= TERM.last.slice(0, 7)) {
+        out.push(ym);
+        y = Number(ym.slice(0, 4));
+        m = Number(ym.slice(5, 7));
+        ym = m === 12 ? (y + 1) + '-01' : y + '-' + pad2(m + 1);
+      }
+      return out;
+    }
+
+    // ISSUE 158. THE DAYS OF ONE MONTH AND NOT A DAY MORE. This returned the Monday on or before
+    // the first of the month to the Sunday on or after the last of it, so consecutive panels
+    // overlapped: measured on this term, six panels of whole weeks are 217 cells over 189 days, so
+    // 28 of them draw a day some other panel has already drawn. He asked for that to stop. The
+    // alignment those whole weeks bought is kept by the pads below, which are blanks and not days:
+    // a day is now drawn exactly once anywhere in the grid, and the columns still line up.
+    function monthDays(ym) {
       var y = Number(ym.slice(0, 4)), m = Number(ym.slice(5, 7));
       var lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
-      var end = addDays(mondayOf(ym + '-' + pad2(lastDay)), 6);
-      var out = [], d = mondayOf(ym + '-01');
-      while (d <= end) { out.push(d); d = addDays(d, 1); }
+      var out = [], i;
+      for (i = 1; i <= lastDay; i++) out.push(ym + '-' + pad2(i));
       return out;
+    }
+
+    // A BLANK AND NOT A DAY, which is the whole of the repair: it holds the place of a weekday
+    // before the first of the month or after the last of it, carries no date, no number and no
+    // chip, and is out of the accessibility tree because there is nothing in it to read.
+    function padCell() {
+      var c = el('div', 'cal-cell cal-pad');
+      c.setAttribute('aria-hidden', 'true');
+      return c;
+    }
+
+    // One cell, one day, and both grids build theirs here so a day cannot come to mean two things
+    // on the two shapes. The cell's own day is on the cell, because a grid is the one view here
+    // where WHICH day a thing landed on is the claim being made: a driver can check the painted
+    // position against the date without being handed the model.
+    function dayCell(d, byDate) {
+      var cls = 'cal-cell cal-day';
+      if (windowOn()) cls += inWindow(d) ? ' cal-inwin' : ' cal-outwin';
+      var cell = el('div', cls);
+      cell.setAttribute('data-date', d);
+      cell.appendChild(el('span', 'cal-dnum', String(Number(d.slice(8, 10)))));
+      (byDate[d] || []).forEach(function (s) { cell.appendChild(chip(s)); });
+      return cell;
+    }
+
+    // WHAT A PANEL'S COUNT SAYS WHEN IT IS ZERO, AND THAT IS THE ONLY PLACE THE NOUN MOVES.
+    // `16 sessions` over sixteen chips needs no qualification; the reader is looking at them. Zero
+    // is a different kind of sentence, because an empty April is either a month with no class in
+    // it or a month these documents did not draw, and those are the two the review tells apart.
+    // So the empty case takes the review's own noun and the note under the grid carries the
+    // fraction. Nowhere else on a grid is a count of nothing printed.
+    function countWords(n, samp) {
+      if (n) return n + (n === 1 ? ' session' : ' sessions');
+      return samp.complete ? 'no session' : 'no drawn session';
     }
 
     // ONE PANEL. Issue 88 put a warning on the face of every one of them, on the argument that a
@@ -2045,72 +2237,209 @@
     // the footer already carries once, and the reader who is looking at the page is the reader
     // the count was hurting. The chip's own title still carries the line, so the value a reader
     // hovers still says what it is.
-    function calPanel(headText, rows, days, inMonth) {
-      var sec = el('section', 'cal-panel');
+    function panelHead(sec, headText, n, samp) {
       var h = el('h3', 'cal-head');
       h.appendChild(el('span', 'cal-headname', headText));
-      h.appendChild(el('span', 'cal-headn', rows.length +
-        (rows.length === 1 ? ' session' : ' sessions')));
+      h.appendChild(el('span', 'cal-headn', countWords(n, samp)));
       sec.appendChild(h);
+    }
 
-      var grid = el('div', 'cal-grid');
+    function monthPanel(ym, byDate, n, samp) {
+      var sec = el('section', 'cal-panel');
+      panelHead(sec, monthName(ym), n, samp);
+      var grid = el('div', 'cal-grid cal-monthgrid');
       DAYS.forEach(function (d) { grid.appendChild(el('div', 'cal-dow', d)); });
-      var byDate = {};
-      rows.forEach(function (s) { (byDate[s.date] || (byDate[s.date] = [])).push(s); });
-      days.forEach(function (d) {
-        var cls = 'cal-day';
-        if (inMonth && d.slice(0, 7) !== inMonth) cls += ' cal-offmonth';
-        if (windowOn()) cls += inWindow(d) ? ' cal-inwin' : ' cal-outwin';
-        var cell = el('div', cls);
-        // The cell's own day, on the cell, because a grid is the one view here where WHICH day a
-        // thing landed on is the claim being made and the only thing painted in the cell is the
-        // number. A driver can check the column against the date without being handed the model,
-        // and two panels that overlap at a month boundary can be told apart by a reader of the
-        // markup rather than by arithmetic over positions.
-        cell.setAttribute('data-date', d);
-        cell.appendChild(el('span', 'cal-dnum', String(Number(d.slice(8, 10)))));
-        (byDate[d] || []).forEach(function (s) { cell.appendChild(chip(s)); });
-        grid.appendChild(cell);
-      });
+      var days = monthDays(ym), i;
+      for (i = 0; i < dowMon0(days[0]); i++) grid.appendChild(padCell());
+      days.forEach(function (d) { grid.appendChild(dayCell(d, byDate)); });
+      for (i = dowMon0(days[days.length - 1]) + 1; i < 7; i++) grid.appendChild(padCell());
       sec.appendChild(grid);
       return sec;
     }
 
-    // The grids had a sticky banner of their own over the panels, deleted by issues 91 and 93
-    // along with the four other copies in this sheet.
-    function buildGrid(kind) {
-      var wrap = el('div', 'cal cal-' + kind);
-      var groups = kind === 'month' ? monthsOf(scope) : weeksOf(scope);
-      groups.forEach(function (g) {
-        if (kind === 'month') {
-          wrap.appendChild(calPanel(monthName(g.key), g.rows, monthCells(g.key), g.key));
-        } else {
-          var days = [], i;
-          for (i = 0; i < 7; i++) days.push(addDays(g.key, i));
-          wrap.appendChild(calPanel('Week of ' + longDate(g.key), g.rows, days, null));
+    // ---- THE WEEK GRID, TURNED ON ITS SIDE, ISSUE 158 --------------------------------
+    // "In calendar view 'week' please make monday to sunday vertical and weeks horizontal so it is
+    // a grid that adds value." What stood here was one panel per week that held a session, each of
+    // them seven columns, stacked down the sheet: twenty four pictures of one week each, which is
+    // a list with lines drawn on it. A reader could see a week and could not compare two.
+    //
+    // ONE GRID, DAYS DOWN, WEEKS ACROSS. A week is a column now and the columns sit side by side,
+    // so the question the shape answers is the one a manager asks: which week is busy, which is
+    // empty, which day of the week the term actually runs on.
+    //
+    // AND THE COLUMNS ARE THE TERM'S WEEKS, ALL OF THEM, WHICH IS WHAT MAKES IT ONE INSTRUMENT
+    // WITH THE STRIP. The brush in the header is one column per week of the term and it selects an
+    // interval of them; this grid is one column per week of the term and it marks that interval.
+    // The two are the same axis at two scales, so a window a reader brushed maps onto this grid one
+    // to one and moving between the picture and the calendar preserves the window rather than
+    // re-establishing it. Columns of only the weeks that hold a session would have broken that
+    // correspondence and hidden the empty weeks, which are a reading in their own right: they are
+    // where the term's April and May gaps are.
+    function weekGrid(byDate, n, samp) {
+      var sec = el('section', 'cal-panel cal-weekpanel');
+      panelHead(sec, longDate(TERM.first) + ' to ' + longDate(TERM.last), n, samp);
+      // The scroller is here and not on the sheet, because twenty four columns is wider than a
+      // phone and the page itself may never scroll sideways: `.sheet-rows` is the scroll box the
+      // outline's own table already uses at every width.
+      var wrap = el('div', 'cal-weekwrap');
+      var grid = el('div', 'cal-grid cal-weekgrid');
+      grid.style.gridTemplateColumns = 'auto repeat(' + TERM.weeks + ', minmax(46px, 1fr))';
+      grid.appendChild(el('div', 'cal-corner'));
+      var i;
+      for (i = 0; i < TERM.weeks; i++) {
+        var monday = mondayAt(i);
+        var head = el('div', 'cal-wk' + (windowOn()
+          ? (inWindow(monday) ? ' cal-inwin' : ' cal-outwin') : ''), shortDate(monday));
+        head.setAttribute('data-monday', monday);
+        head.title = 'the week of ' + longDate(monday);
+        grid.appendChild(head);
+      }
+      DAYS.forEach(function (name, di) {
+        grid.appendChild(el('div', 'cal-dow', name));
+        for (i = 0; i < TERM.weeks; i++) {
+          grid.appendChild(dayCell(addDays(mondayAt(i), di), byDate));
         }
       });
-      if (!groups.length) {
-        wrap.appendChild(el('p', 'cal-empty', 'No session in this scope.'));
+      wrap.appendChild(grid);
+      sec.appendChild(wrap);
+      return sec;
+    }
+
+    // ---- WHAT A GRID CANNOT SHOW, AND IT SAYS SO, ISSUE 146 --------------------------
+    // THE REVIEW AND THE LIST SAID WHICH KIND OF NOTHING THEY WERE SHOWING AND THE TWO GRIDS DID
+    // NOT. An empty day cell cannot tell a reader whether that day held no session or whether the
+    // session it held is one of the ones these documents did not draw, and this file's own rule is
+    // that it may never print the second as though it were the first. The review answers it in
+    // words under its rows; a grid has no rows to put a sentence under, so the sentence goes under
+    // the grid and is built out of the review's own functions rather than written a second time.
+    //
+    // THREE CLAIMS AND NO MORE, in this order:
+    //   the population   how many of the sessions the model counts carry no date at all, which is
+    //                    the fact a day grid cannot show by construction: there is no cell for a
+    //                    session with no day. Counted in SESSIONS and named as sessions the model
+    //                    counts, so it is never the same number as the absences the header counts
+    //                    over properties and can never be added to them.
+    //   the window       which programmes have nothing in the window, in the review's own two
+    //                    sentences, taken from reviewAbsent() and absentWords() unchanged.
+    //   the sample       which programmes are drawn as a part of themselves, with the fraction and
+    //                    the span these documents actually drew, so an empty cell on Z-IB after 14
+    //                    March is read as a document that stops there rather than as a term that
+    //                    does.
+    // A programme takes at most one row: where it is absent from the window the review's sentence
+    // already carries its fraction, and a second line repeating it is the failure issues 91 and 93
+    // spent a card taking off this sheet. The sample line is left out on a scope of one, where the
+    // population line above it is the same fraction over the same one programme.
+    function gridUndatedWords(samp) {
+      if (!samp.total) return 'The model counts no session in this scope.';
+      var missing = samp.total - samp.drawn;
+      if (missing <= 0) {
+        return 'Every session in this scope has a day: ' + sampleWords(samp, 'session') + '.';
       }
+      return missing + ' of the ' + samp.total + ' sessions the model counts carry no date, so ' +
+        'no cell here can hold one: this grid draws the ' + samp.drawn + ' that do.';
+    }
+
+    function sampledWords(v, s) {
+      var ds = sessionsFor(v);
+      return sampleWords(s, 'session') + ', so ' + (s.total - s.drawn) + ' are not drawn here' +
+        (ds.length ? ' · drawn from ' + longDate(ds[0].date) + ' to ' +
+                     longDate(ds[ds.length - 1].date) : '');
+    }
+
+    function gridNotes() {
+      var box = el('div', 'cal-notes');
+      var samp = sampleOf(scope, 'CohortSession');
+      var lead = el('p', 'cal-note cal-note-lead');
+      lead.appendChild(el('span', 'term-scope-lead', 'Not on this grid. '));
+      lead.appendChild(document.createTextNode(gridUndatedWords(samp)));
+      box.appendChild(lead);
+      var groups = groupsFor(scope), absentBy = {};
+      if (windowOn()) {
+        reviewAbsent(true).forEach(function (a) { absentBy[a.view.key] = a; });
+      }
+      groups.forEach(function (g) {
+        var a = absentBy[g.view.key];
+        var s = sampleOf(g.view, 'CohortSession');
+        var said = a ? absentWords(a)
+                 : (!s.complete && groups.length > 1) ? sampledWords(g.view, s)
+                 : null;
+        if (!said) return;
+        var p = el('p', 'cal-note');
+        p.appendChild(progLink(g.view.code, g.view.label, g.view.route));
+        p.appendChild(document.createTextNode(' · ' + said));
+        box.appendChild(p);
+      });
+      return box;
+    }
+
+    // The grids had a sticky banner of their own over the panels, deleted by issues 91 and 93
+    // along with the four other copies in this sheet.
+    //
+    // AND THE ONE SENTENCE THEY HAD LEFT WAS THE ONE THIS CARD FORBIDS. A grid with no rows in it
+    // printed "No session in this scope.", which is a statement about the business made out of
+    // what these documents drew. It is gone rather than reworded: the grid draws the term's own
+    // months and weeks whatever the scope holds, so the empty state is a term of empty cells, and
+    // the note under it says how many sessions the model counts and how many of them have a day.
+    function buildGrid(kind) {
+      var wrap = el('div', 'cal cal-' + kind);
+      var rows = sessionsFor(scope), byDate = {};
+      var samp = sampleOf(scope, 'CohortSession');
+      rows.forEach(function (s) { (byDate[s.date] || (byDate[s.date] = [])).push(s); });
+      if (TERM && kind === 'month') {
+        termMonths().forEach(function (ym) {
+          var n = 0;
+          rows.forEach(function (s) { if (s.date.slice(0, 7) === ym) n++; });
+          wrap.appendChild(monthPanel(ym, byDate, n, samp));
+        });
+      } else if (TERM) {
+        wrap.appendChild(weekGrid(byDate, rows.length, samp));
+      }
+      wrap.appendChild(gridNotes());
       return wrap;
     }
 
     // ---- moving between the scopes ----------------------------------------------
+    // ISSUE 146 MADE THIS A MULTI-SELECT AND KEPT BOTH SENTENCES IT ALREADY PRINTED. It offered
+    // six links to six other programmes and no way to hold two at once, so the reading that the
+    // drawing has answered since #136, three programmes over one fortnight, stopped at the sheet's
+    // edge. Every programme is a link now and its address is the scope this press would leave
+    // behind: the ones in the scope are marked and take themselves out, the ones outside it put
+    // themselves in, and the set is what the address carries.
+    //
+    // EVERY PART OF IT IS A READING OF THE STATE IT IS IN, which is the rule the header's controls
+    // run on. The lead says how many of the seven are in; the mark on a code says whether that one
+    // is; the title on it says what a press would do and refuses to promise the one thing it will
+    // not do, which is empty the set. The way back to all seven stays a link of its own, because a
+    // reader who arrived at one programme from a tile has no other way out of it.
     function scopeBar() {
       var bar = el('p', 'term-scope');
-      bar.appendChild(el('span', 'term-scope-lead', scope
-        ? 'One programme. '
-        : 'All ' + VIEWS.length + ' programmes. '));
-      if (scope) {
+      var n = isAll(scope) ? VIEWS.length : scope.length;
+      bar.appendChild(el('span', 'term-scope-lead',
+        n >= VIEWS.length ? 'All ' + VIEWS.length + ' programmes. '
+        : n === 1 ? 'One programme. '
+        : n + ' of ' + VIEWS.length + ' programmes. '));
+      if (n < VIEWS.length) {
         var all = el('a', 'linkbtn', 'all ' + VIEWS.length + ' programmes');
         all.href = addressFor(reading, null);
+        all.title = 'every programme this document draws';
         bar.appendChild(all);
       }
       VIEWS.forEach(function (v) {
-        if (scope === v) return;
+        // MARKED WHERE THE MARK MEANS SOMETHING, which is where the reader has narrowed. On the
+        // unscoped reading every programme is in the rows and none is marked, because the mark
+        // there would be seven of seven and would promise the gesture the note over toggledScope()
+        // explains this sheet does not make.
+        var narrowed = !isAll(scope);
+        var inScope = narrowed && scope.indexOf(v) !== -1;
+        var only = inScope && scope.length === 1;
         var a = el('a', 'linkbtn', v.code);
-        a.href = addressFor(reading, v);
+        a.href = addressFor(reading, toggledScope(v));
+        if (inScope) a.setAttribute('aria-current', 'true');
+        a.title = (v.label || v.code) + '. ' +
+          (!narrowed ? 'Press to read this programme on its own'
+           : !inScope ? 'Press to add it to the scope'
+           : only ? 'It is the whole scope'
+           : 'Press to take it out of the scope');
         bar.appendChild(a);
       });
       return bar;
@@ -2237,7 +2566,15 @@
     // and none of them carries the gap. The second reads as good news and on five of the seven
     // drawings it is a property of a document that drew six sessions of seventy nine, so it is
     // counted over the DRAWN rows, says the word `drawn`, and carries the fraction beside it.
-    function reviewAbsent() {
+    //
+    // ISSUE 146 GAVE IT AN ARGUMENT AND THE GRIDS ARE WHY. A grid draws every session in the scope
+    // and marks the window; it never filters, and since #125 it cannot carry a worklist at all. So
+    // when the note under a grid asks this function which programmes have nothing to show, the
+    // question is about the window and about nothing else, and a row worded "all three of its
+    // sessions in this window record a teacher" would be describing a filter those cells do not
+    // obey. `plain` travels with the row rather than being read off `gapField` at the other end,
+    // because the two callers are asking two different questions and the answer must say which.
+    function reviewAbsent(ignoreGap) {
       var r = winRange();
       var out = [];
       groupsFor(scope).forEach(function (g) {
@@ -2246,7 +2583,7 @@
         for (i = 0; i < rs.length; i++) {
           if (inWindow(rs[i].date)) {
             held++;
-            if (gapMatch(rs[i])) hit++;
+            if (ignoreGap || gapMatch(rs[i])) hit++;
             continue;
           }
           if (!r) continue;
@@ -2255,7 +2592,8 @@
         }
         if (hit) return;                                    // it is on the screen, so not absent
         out.push({ view: g.view, samp: sampleOf(g.view, 'CohortSession'),
-                   before: before, after: after, drawn: rs.length, held: held });
+                   before: before, after: after, drawn: rs.length, held: held,
+                   plain: !!ignoreGap });
       });
       return out;
     }
@@ -2275,7 +2613,9 @@
     function absentWords(a) {
       var noun = a.samp.complete ? 'session' : 'drawn session';
       var bits = [];
-      if (gapField && a.held) {
+      // `a.plain` is issue 146's: a row built for a grid answers about the window and never about
+      // a worklist, whether or not one is set anywhere else on the sheet.
+      if (gapField && !a.plain && a.held) {
         bits.push(a.held === 1
           ? 'its one ' + noun + ' in this window records a ' + gapField
           : 'all ' + a.held + ' of its ' + noun + 's in this window record a ' + gapField);
@@ -2288,7 +2628,7 @@
         bits.push(a.samp.complete ? sw
                 : sw + ', so ' + (a.samp.total - a.samp.drawn) + ' are not drawn here');
       }
-      if (!(gapField && a.held)) {
+      if (!(gapField && !a.plain && a.held)) {
         bits.push(a.before ? 'last ' + noun + ' ' + longDate(a.before)
                 : a.after ? 'next ' + noun + ' ' + longDate(a.after)
                 : 'no ' + noun + ' anywhere in the term');
@@ -2604,7 +2944,7 @@
       // Issues 88 and 90 added two more terms to it, for the same reason the agenda is in it: the
       // shape decides which markup the rows are, and the window decides which of them are there
       // at all on the list and which are marked on the grids.
-      var key = reading + '/' + (scope ? scope.key : '') + '/' + (openParam() || '') + '/' +
+      var key = reading + '/' + scopeKey(scope) + '/' + (openParam() || '') + '/' +
                 shape + '/' + (win.weeks ? win.weeks + '@' + win.anchor : '-') + '/' +
                 (gapField || '-');
       if (built === key) return;
@@ -2625,7 +2965,7 @@
       if (!next) {
         if (!wasOpen) return;
         reading = null;
-        scope = null;
+        scope = [];
         // Issue 125. The sheet is shut, so no worklist is on. Left standing it would narrow the
         // hints the panel writes about the whole reading, which is the one place stats() is asked
         // its question without the filter.
@@ -2649,10 +2989,14 @@
       // state is on the address now, so an address that names the same reading and the same
       // programme and a different set of open rows, or a different worklist, is a different
       // address and the early return may not swallow it.
-      if (reading === next && scope === (nextScope || null) &&
+      if (reading === next && scopeKey(scope) === scopeKey(nextScope) &&
           openParam() === (openTo || null) && gapField === (gapTo || null)) return;
       reading = next;
-      scope = nextScope || null;
+      // Issue 146. The set is compared on its key above and held as the list here, because two
+      // lists holding the same views are the same scope and a scope that has not moved must not
+      // rebuild the rows: `scope === nextScope` was an identity test on one object and a set
+      // arrives as a new array on every hashchange.
+      scope = scopeList(nextScope);
       gapField = gapTo || null;
       applyOpenParam(openTo);
       // ISSUE 124. THE REVIEW OPENS ON THREE WEEKS, and this is where "opens" is: an address the
@@ -2683,6 +3027,18 @@
       // arrival by itself. The defect this rule exists against needs both lines gone, and that is
       // the plant `the worklist` fires its window assertion with.
       if (gapField) winTouched = true;
+      // ISSUE 146. AND A WORKLIST ADDRESS PUTS THE SHEET ON THE SHAPE THAT DRAWS A WORKLIST, which
+      // is #125's own rule arriving by the door it left open. That card wrote that leaving the
+      // review leaves the worklist, because the grids keep every session and mark the window and a
+      // filter on top of one of them would be a state the sheet held and did not draw, and it took
+      // the filter off at the press of a shape button. An ADDRESS could still put one on: a reader
+      // sitting on the month grid who pressed a row of the header's gaps menu arrived at
+      // `#/calendar?gap=` with the grid still up, so the sheet carried a filter that its own
+      // picture ignored. Issue 146 met it from the other side, because the note under a grid is
+      // built out of the review's absence sentences and those sentences would have described a
+      // filter the cells do not obey. The reader asked for the worklist; the review is the
+      // worklist, and it is one press back to any other shape.
+      if (gapField && reading === 'calendar' && shape !== 'review') shape = 'review';
       var armed = reading === 'calendar' && shape === 'review' && !gapField && armReview();
       buildRows();
       describe();
@@ -2867,7 +3223,15 @@
         return {
           open: isOpen(),
           reading: reading,
-          scope: scope ? scope.key : null,
+          // Issue 146. The set as the address spells it, and null where the address names none:
+          // `ZSC` on one programme, which is what this field has said since #84 and what every
+          // assertion written against it reads, and `ZIB+ZSC` on a set of two.
+          scope: scopeKey(scope) || null,
+          // AND THE SAME ANSWER AS A LIST, because a driver that has to split a string on a
+          // separator is a driver keeping a second copy of this module's spelling rules. Every
+          // programme the reading is over, in the build's order, all seven of them included where
+          // the address names none.
+          scopeKeys: (isAll(scope) ? VIEWS : scope).map(function (v) { return v.key; }),
           // Issue 125. Which worklist the rows are, off the running page, so a driver can check
           // that the number the header's menu offered and the rows this sheet drew are the same
           // set instead of taking the sheet's word for both.

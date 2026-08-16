@@ -275,7 +275,10 @@ const PHASES = {
   'model and reveal':     { count: 14, when: 'behavioural' },
   'cold load':            { count: 4, when: 'behavioural' },
   'students':             { count: 11, when: 'behavioural' },
-  'term':                 { count: 56, when: 'behavioural' },
+  // 56 until issues 146, 158 and 160, which add eight to this phase and to no other and replace
+  // one of its own: the two grids and the scope set are all read here, where the sheet's phase already
+  // drives them, and the week grid's old assertion went with the shape it was written against.
+  'term':                 { count: 63, when: 'behavioural' },
   'the sample':           { count: 6, when: 'behavioural' },
   'the empty window':     { count: 6, when: 'behavioural' },
   'the review':           { count: 7, when: 'behavioural' },
@@ -565,7 +568,22 @@ const PHASES = {
 // assertion is repaired in the same commit rather than counted again: its three arrivals were
 // fragment navigations that built no document, so the union it called `read cold` was the scope the
 // page had been constructed with, and it reloads now.
-const EXPECTED_ASSERTIONS = 298;
+// 298 until issues 146, 158 and 160, which add eight, replace one and delete nothing, so the
+// total moves by seven. Issue 160's is the last of them: that all four shapes of the calendar are
+// spaced off the rule above them by the box they scroll in rather than by whatever each reading
+// happens to begin with, which was 0 on both grids at every width before the repair. The one replaced is the week grid's, which asserted one panel per week that holds
+// a session and is the shape the owner asked to be turned over; what stands in its place asserts
+// the shape he asked for and is two claims rather than one. Two of the seven are #158's own
+// defects,
+// that no day is drawn twice anywhere in the month grid and that the week grid is one grid with
+// the days down its side and a column per week of the term, read off the painted axes rather than
+// off document order. One is that grid's scroller, which may overflow while the page may not.
+// Three are #146's: that the grid says which kind of nothing an empty cell is, that the calendar
+// answers for a set of programmes in the drawing's own spelling while its enumerated routes stay
+// at sixteen, and that the header's absence count is over that whole set. The seventh is the one
+// that makes the window one instrument rather than two, that the columns the week grid lights are
+// exactly the columns the strip has brushed.
+const EXPECTED_ASSERTIONS = 305;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -2717,17 +2735,24 @@ const TERM_READ = `(function () {
       }),
     chips: document.querySelectorAll('#termrows .cal-chip').length,
     gapChips: document.querySelectorAll('#termrows .cal-chip.cal-gap').length,
+    // ISSUE 158. THE MONTH GRID'S CELLS, AND THE BLANKS ARE READ AS BLANKS. A panel used to run
+    // from the Monday on or before the first of the month to the Sunday on or after the last of
+    // it, so consecutive panels drew the same day twice and this reader had no way to say so. The
+    // days a panel does not own are pads now: no date, no number, no chip. They are read here
+    // rather than skipped, because "every day is drawn once" and "the columns still line up" are
+    // two claims and the second one is about where the blanks are. No backtick anywhere in this
+    // comment: the reader around it is a template literal and one would end the string.
     cells: (function () {
       var out = [];
-      Array.prototype.slice.call(document.querySelectorAll('#termrows .cal-grid'))
+      Array.prototype.slice.call(document.querySelectorAll('#termrows .cal-monthgrid'))
         .forEach(function (grid) {
-          Array.prototype.slice.call(grid.querySelectorAll('.cal-day')).forEach(function (c, j) {
+          Array.prototype.slice.call(grid.querySelectorAll('.cal-cell')).forEach(function (c, j) {
             out.push({
               col: j % 7,
+              pad: c.classList.contains('cal-pad'),
               date: c.getAttribute('data-date'),
               inwin: c.classList.contains('cal-inwin'),
               outwin: c.classList.contains('cal-outwin'),
-              off: c.classList.contains('cal-offmonth'),
               dates: Array.prototype.slice.call(c.querySelectorAll('.cal-chip')).map(function (p) {
                 return String(p.getAttribute('title') || '').split(' ')[0];
               })
@@ -2736,6 +2761,68 @@ const TERM_READ = `(function () {
         });
       return out;
     })(),
+    // ISSUE 158. THE WEEK GRID, READ OFF ITS PAINTED AXES AND NOT OFF THE ORDER ITS ELEMENTS ARE
+    // IN. The month grid can be read by counting seven at a time because its columns ARE its
+    // document order; the week grid is one grid with days down the side and weeks across the top,
+    // and the whole claim of the card is that a cell is under the week it belongs to and beside
+    // the day it belongs to. So each cell is reported with the centre of the box it actually
+    // occupies, and each axis label with the band it actually spans, and the assertion asks which
+    // label the cell landed in. A reader of the data attributes would be asking the code whether
+    // it agrees with itself.
+    week: (function () {
+      var g = document.querySelector('#termrows .cal-weekgrid');
+      if (!g) return null;
+      function box(e) {
+        var r = e.getBoundingClientRect();
+        return { x: (r.left + r.right) / 2, y: (r.top + r.bottom) / 2,
+                 left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+      }
+      return {
+        days: Array.prototype.slice.call(g.querySelectorAll('.cal-dow')).map(function (d) {
+          var b = box(d);
+          return { name: d.textContent.trim(), top: b.top, bottom: b.bottom };
+        }),
+        weeks: Array.prototype.slice.call(g.querySelectorAll('.cal-wk')).map(function (h) {
+          var b = box(h);
+          return { monday: h.getAttribute('data-monday'), text: h.textContent.trim(),
+                   left: b.left, right: b.right,
+                   inwin: h.classList.contains('cal-inwin'),
+                   outwin: h.classList.contains('cal-outwin') };
+        }),
+        cells: Array.prototype.slice.call(g.querySelectorAll('.cal-day')).map(function (c) {
+          var b = box(c);
+          return { date: c.getAttribute('data-date'), x: b.x, y: b.y,
+                   inwin: c.classList.contains('cal-inwin'),
+                   outwin: c.classList.contains('cal-outwin'),
+                   dates: Array.prototype.slice.call(c.querySelectorAll('.cal-chip'))
+                     .map(function (p) {
+                       return String(p.getAttribute('title') || '').split(' ')[0];
+                     }) };
+        }),
+        // The grid may be wider than the sheet, which is what a term of twenty four weeks is at
+        // 390 CSS px, and the scroller it is in is its own. Both are read so the assertion can
+        // require that the PAGE never scrolls sideways while the grid does.
+        gridWidth: g.getBoundingClientRect().width,
+        wrapWidth: (function () {
+          var w = document.querySelector('#termrows .cal-weekwrap');
+          return w ? w.getBoundingClientRect().width : null;
+        })(),
+        // Whether the wrapper is actually scrolling, which is a different claim from the grid
+        // being wider than it: a wrapper that overflowed without scrolling would clip the term.
+        wrapScroll: (function () {
+          var w = document.querySelector('#termrows .cal-weekwrap');
+          return w ? { scroll: w.scrollWidth, client: w.clientWidth } : null;
+        })(),
+        docOverflow: document.scrollingElement.scrollWidth -
+                     document.scrollingElement.clientWidth
+      };
+    })(),
+    // ISSUE 146. WHAT THE GRID SAYS IT CANNOT SHOW, read as text, so the assertion can rebuild
+    // every number in it from the model rather than trusting the sentence to be arithmetic.
+    calNotes: Array.prototype.slice.call(
+      document.querySelectorAll('#termrows .cal-note')).map(function (p) {
+        return p.textContent.replace(/\\s+/g, ' ').trim();
+      }),
     shapeBtns: Array.prototype.slice.call(
       document.querySelectorAll('#termnotice .shape-btn')).map(function (b) {
         var r = b.getBoundingClientRect();
@@ -3273,6 +3360,7 @@ async function checkTerm(page) {
   // against the model behind them.
   const calMonth = await page.evaluate(TERM_READ);
   const monthState = await page.evaluate('window.ZT.term()');
+  const monthDayCells = calMonth.cells.filter(c => !c.pad);
   const chipDates = calMonth.cells.reduce((a, c) => a.concat(c.dates), []);
   const monthKeys = new Set(chipDates.map(d => d.slice(0, 7)));
   assert('the month grid draws one panel per month the term touches',
@@ -3284,6 +3372,44 @@ async function checkTerm(page) {
       'sessions as chips',
     `shape ${monthState.shape}, ${calMonth.panels} panels, ${calMonth.chips} chips, ` +
       `columns ${JSON.stringify(calMonth.dows)}`);
+
+  // ---- ISSUE 158. NO DAY IS DRAWN TWICE ANYWHERE IN THE GRID ---------------------
+  // "In months view do not duplicate days in two month grids." A panel ran from the Monday on or
+  // before the first of the month to the Sunday on or after the last of it, so two adjacent
+  // panels shared the week they straddle: measured on this term, 217 cells over 189 distinct
+  // days, 28 of them a repeat. The repair is that a panel draws its own month and holds the
+  // weekdays before and after it with blanks, so the columns still line up and a date appears
+  // exactly once.
+  //
+  // THE DAYS ARE REBUILT HERE, from the calendar arithmetic of the months the panels claim to be,
+  // rather than compared against the page's own list: a check that asked the page for the days it
+  // drew and then asserted they were the days it drew would pass on any set of them. The blanks
+  // are checked in the same breath and in both directions, that each holds no date and no chip
+  // and that there are exactly as many as the two ends of the months need, because a repair that
+  // dropped the pads would put every month back at column one and look tidy doing it.
+  const panelMonths = calMonth.panelHeads.map(h => h.text);
+  const monthsSeen = [...new Set(monthDayCells.map(c => c.date.slice(0, 7)))].sort();
+  const wantDays = monthsSeen.reduce((a, ym) => {
+    const y = Number(ym.slice(0, 4)), m = Number(ym.slice(5, 7));
+    return a + new Date(Date.UTC(y, m, 0)).getUTCDate();
+  }, 0);
+  const wantPads = monthsSeen.reduce((a, ym) => {
+    const y = Number(ym.slice(0, 4)), m = Number(ym.slice(5, 7));
+    const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    return a + dowMon0(`${ym}-01`) + (6 - dowMon0(`${ym}-${String(last).padStart(2, '0')}`));
+  }, 0);
+  const dayDates = new Set(monthDayCells.map(c => c.date));
+  const padsWithSomething = calMonth.cells.filter(c => c.pad && (c.date || c.dates.length)).length;
+  assert('and no day is drawn twice: a panel holds its own month and blanks at the two ends',
+    monthsSeen.length === calMonth.panels && dayDates.size === monthDayCells.length &&
+      monthDayCells.length === wantDays && wantDays > 0 &&
+      calMonth.cells.filter(c => c.pad).length === wantPads && wantPads > 0 &&
+      padsWithSomething === 0,
+    `${wantDays} day cells over ${calMonth.panels} panels, every date once, and ${wantPads} ` +
+      'blanks holding the weekdays the months do not reach',
+    `${monthDayCells.length} day cells, ${dayDates.size} distinct dates, ` +
+      `${calMonth.cells.filter(c => c.pad).length} blanks of which ${padsWithSomething} carry ` +
+      `something, over ${JSON.stringify(panelMonths.slice(0, 3))}`);
 
   // ISSUES 91 AND 93 REVERSED THIS ASSERTION AND IT IS THE SAME CLAIM READ THE OTHER WAY. It used
   // to say every month panel carried the invented warning on its own face, so that a crop of one
@@ -3302,7 +3428,7 @@ async function checkTerm(page) {
   // THE WEEKDAY SHAPE IS THE THING A GRID SHOWS AND A LIST CANNOT, weekend sessions included, so
   // the assertion is that every chip is in the column its own date falls in and that the two
   // weekend columns are not empty.
-  const misplaced = calMonth.cells.filter(
+  const misplaced = monthDayCells.filter(
     c => dowMon0(c.date) !== c.col || c.dates.some(d => d !== c.date)).length;
   const weekend = chipDates.filter(d => dowMon0(d) > 4).length;
   assert('every session sits in the weekday column its date falls on, weekends included',
@@ -3317,20 +3443,121 @@ async function checkTerm(page) {
     calMonth.gapChips === state.noInstructor && state.noInstructor > 0,
     `${state.noInstructor} chips marked`, `${calMonth.gapChips} chips marked`);
 
-  // ---- the week grid, built because it was asked for and kept honest ------------
+  // ---- ISSUE 146. THE GRID SAYS WHICH KIND OF NOTHING AN EMPTY CELL IS -----------------------
+  // The review and the list carried the sampling-honest absence sentence and the two grids did
+  // not, so the two shapes a screenshot is most likely to be believed from were the two that said
+  // nothing. A grid has no rows to hang a sentence off, so it goes under the grid, and it makes
+  // exactly two kinds of claim: how many of the sessions the model counts have no date at all,
+  // which is why a day grid cannot hold them, and which programmes are drawn as a part of
+  // themselves, with the fraction and the span these documents actually drew.
+  //
+  // EVERY NUMBER IN IT IS REBUILT FROM window.GI HERE, and the two directions are asserted
+  // together: the sampled programmes are all named and the complete ones are named by nothing, so
+  // a page that printed the line under every programme fails as surely as one that dropped it. The
+  // count is in SESSIONS and says so, which is what keeps it out of reach of the header's two
+  // absence populations: those are counted over properties and neither of them is a session.
+  const declared = JSON.parse(await page.evaluate(`(function () {
+    var out = { drawn: 0, total: 0, per: [] };
+    window.GI.views.forEach(function (v) {
+      var b = (v.counts || {}).CohortSession || { drawn: 0, total: 0 };
+      out.drawn += b.drawn; out.total += b.total;
+      out.per.push({ code: v.code, drawn: b.drawn, total: b.total });
+    });
+    return JSON.stringify(out);
+  })()`));
+  const wantLead = 'Not on this grid. ' + (declared.total - declared.drawn) + ' of the ' +
+    declared.total + ' sessions the model counts carry no date, so no cell here can hold one: ' +
+    'this grid draws the ' + declared.drawn + ' that do.';
+  const sampledCodes = declared.per.filter(p => p.drawn < p.total).map(p => p.code);
+  const completeCodes = declared.per.filter(p => p.drawn >= p.total).map(p => p.code);
+  const noteRows = calMonth.calNotes.slice(1);
+  const namedBy = c => noteRows.filter(t => t.indexOf(c + ' · ') === 0);
+  const missingSampled = sampledCodes.filter(c => {
+    const rows = namedBy(c);
+    const p = declared.per.filter(x => x.code === c)[0];
+    return rows.length !== 1 ||
+      rows[0].indexOf(p.drawn + ' of the ' + p.total + ' sessions the model counts') === -1 ||
+      rows[0].indexOf('so ' + (p.total - p.drawn) + ' are not drawn here') === -1;
+  });
+  const wronglyNamed = completeCodes.filter(c => namedBy(c).length > 0);
+  assert('and the grid says what it cannot show: the undated sessions, and which programmes are a part of themselves',
+    calMonth.calNotes.length === 1 + sampledCodes.length &&
+      calMonth.calNotes[0] === wantLead &&
+      missingSampled.length === 0 && wronglyNamed.length === 0 &&
+      sampledCodes.length > 0 && completeCodes.length > 0,
+    `"${wantLead}" and one line each for ${sampledCodes.join(', ')}, with nothing said about ` +
+      `${completeCodes.join(', ')}, all of it rebuilt here from the document's own counts`,
+    `${calMonth.calNotes.length} lines: ${JSON.stringify(calMonth.calNotes.slice(0, 2))}, ` +
+      `${missingSampled.length} sampled programmes without their fraction ` +
+      `${JSON.stringify(missingSampled)}, ${wronglyNamed.length} complete ones named ` +
+      JSON.stringify(wronglyNamed));
+
+  // ---- the week grid, turned over by issue 158 -----------------------------------
+  // "Make monday to sunday vertical and weeks horizontal so it is a grid that adds value." It was
+  // one panel per week that held a session, seven columns each, stacked: twenty four pictures of
+  // one week, which compares nothing. It is one grid now, seven rows of days and one column per
+  // week of the TERM, so the empty weeks are columns too and the shape is the strip's.
+  //
+  // ASSERTED OFF THE PAINTED AXES AND NOT OFF DOCUMENT ORDER, which is the only reading that can
+  // tell a transposed grid from a grid whose markup was reordered and whose CSS was not: each
+  // cell's centre has to fall inside the vertical band of the day label whose name matches its own
+  // date and inside the horizontal band of the week heading whose Monday matches its own. Both
+  // halves are required, so a grid that got the rows right and the columns wrong fails.
   await pressByText(page, '#termnotice .shape-btn', 'week');
   await page.waitFor(`window.ZT.term().shape === 'week'`, 'the week grid');
   const calWeek = await page.evaluate(TERM_READ);
-  const weekChips = calWeek.cells.reduce((a, c) => a.concat(c.dates), []);
+  const wk = calWeek.week;
+  const weekChips = wk ? wk.cells.reduce((a, c) => a.concat(c.dates), []) : [];
   const weekKeys = new Set(weekChips.map(mondayOf));
-  assert('the week grid draws one panel per week that holds a session, and each is seven days',
-    calWeek.panels === weekKeys.size && calWeek.panels > 1 &&
-      calWeek.cells.length === calWeek.panels * 7 &&
-      calWeek.chips === state.sessions &&
-      calWeek.cells.filter(c => dowMon0(c.date) !== c.col ||
-                                c.dates.some(d => d !== c.date)).length === 0,
-    `${weekKeys.size} week panels of 7 days each, holding all ${state.sessions} sessions`,
-    `${calWeek.panels} panels, ${calWeek.cells.length} day cells, ${calWeek.chips} chips`);
+  const DAYNAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const offAxis = !wk ? -1 : wk.cells.filter(c => {
+    const row = wk.days.filter(d => c.y >= d.top && c.y <= d.bottom)[0];
+    const col = wk.weeks.filter(w => c.x >= w.left && c.x <= w.right)[0];
+    return !row || !col || row.name !== DAYNAMES[dowMon0(c.date)] ||
+           col.monday !== mondayOf(c.date) || c.dates.some(d => d !== c.date);
+  }).length;
+  const termWeeks = (await page.evaluate('window.ZT.term().window')).termWeeks;
+  assert('the week grid is one grid: Monday to Sunday down, one column per week of the term',
+    !!wk && calWeek.panels === 1 && wk.days.map(d => d.name).join(' ') === DAYNAMES.join(' ') &&
+      wk.weeks.length === termWeeks && termWeeks > 1 &&
+      wk.cells.length === termWeeks * 7 && calWeek.chips === state.sessions &&
+      offAxis === 0 && weekKeys.size > 1,
+    `7 day rows and ${termWeeks} week columns, ${termWeeks * 7} cells holding all ` +
+      `${state.sessions} sessions, every one of them painted in the row of its own weekday and ` +
+      'the column of its own week',
+    `${calWeek.panels} panels, ${wk ? wk.days.length : 0} day rows, ` +
+      `${wk ? wk.weeks.length : 0} week columns of ${termWeeks}, ${wk ? wk.cells.length : 0} ` +
+      `cells, ${calWeek.chips} chips, ${offAxis} of them off their own axis`);
+
+  // AND THE GRID MAY BE WIDER THAN THE SHEET WHILE THE PAGE IS NOT. Twenty four columns do not fit
+  // a phone and the answer is a scroller of the grid's own, which is what `.sheet-rows` already
+  // does for the outline's table.
+  //
+  // DRIVEN TO A WIDTH WHERE IT ACTUALLY OVERFLOWS, because at this phase's own 1536 the grid fits
+  // and every part of the claim is vacuously true: a check that read `the page does not scroll
+  // sideways` over a grid that never needed a scroller would be a check that could not tell a
+  // working scroller from a grid too small to need one. So the width is taken down to the phone's
+  // and the pair is asserted there: the grid is wider than its wrapper AND the wrapper is
+  // scrolling AND the document is not, with the cell count required to be the same as at the wide
+  // width, so a grid that answered the narrow viewport by dropping columns fails as well.
+  const narrowWeek = (await atWidths(page, [WINDOW_FLOOR_PX],
+    async () => await page.evaluate(TERM_READ)))[0];
+  // AND THE OVERFLOW IS READ OFF THE SCROLLER AND NOT OFF THE GRID'S BOX, which is the measurement
+  // correcting the first draft of this assertion: `getBoundingClientRect` on a grid inside an
+  // overflow container returns the visible border box, 465 at this width, and not the 1183 the
+  // content takes. The pair that says a scroller is doing its work is its own scrollWidth against
+  // its clientWidth.
+  const nw = narrowWeek.week;
+  assert('and the term is wider than the sheet only inside its own scroller',
+    !!wk && !!nw && wk.docOverflow === 0 && nw.docOverflow === 0 &&
+      nw.wrapScroll.scroll > nw.wrapScroll.client &&
+      nw.cells.length === wk.cells.length && nw.weeks.length === wk.weeks.length,
+    `at ${WINDOW_FLOOR_PX} the grid takes ${nw ? nw.wrapScroll.scroll : 0}px inside a ` +
+      `${nw ? nw.wrapScroll.client : 0}px scroller, all ${nw ? nw.cells.length : 0} cells still ` +
+      'there, and the page does not scroll sideways at either width',
+    `wrapper scroll ${nw && JSON.stringify(nw.wrapScroll)}, document overflow ` +
+      `${nw && nw.docOverflow} narrow and ${wk && wk.docOverflow} wide, ` +
+      `${nw && nw.cells.length} cells against ${wk && wk.cells.length}`);
 
   // WHAT EACH SHAPE IS FOR IS ON THE CONTROL AND NO LONGER IN A PARAGRAPH OVER THE ROWS. Issue 88
   // wrote one per shape, saying what that shape made visible about this term; issue 93 called the
@@ -3347,6 +3574,41 @@ async function checkTerm(page) {
     'four shape buttons carrying four different titles, over a strip with no prose in it',
     `titles ${JSON.stringify(calWeek.shapeBtns.map(b => b.title.slice(0, 24)))}, ` +
       `${calWeek.noticeProse.length} paragraphs left: ${JSON.stringify(calWeek.noticeProse)}`);
+
+  // ---- ISSUE 160. THE SHEET HAS A GUTTER ON THE SIDE IT IS READ FROM AS WELL ------------------
+  // He filed it from the month grid at 2560, pointing at the `January 2026` heading. Measured
+  // before the repair, the space between the rule under the controls and the first thing painted
+  // in the rows box was 0 on the month grid and 0 on the week grid at 2560, at 1536 and at 390,
+  // and 0 on both tables at 390 where the phone layout hides their column headings. It is issue
+  // 113's defect on the fourth side of the same box.
+  //
+  // ASSERTED OVER ALL FOUR SHAPES AND AGAINST THE BOX'S OWN PADDING, so the claim is that the
+  // space comes from the container rather than from whatever each reading happens to begin with:
+  // a table that got its air from a column heading and a grid that got none is exactly the state
+  // this repairs. The gap is required to be the padding, not merely more than zero, so a reading
+  // that grew a margin of its own would fail as well.
+  const topGaps = [];
+  for (const sh of ['review', 'month', 'week', 'list']) {
+    await pressByText(page, '#termnotice .shape-btn', sh);
+    await page.waitFor(`window.ZT.term().shape === '${sh}'`, `the ${sh} shape for the top gutter`);
+    topGaps.push(JSON.parse(await page.evaluate(`(function () {
+      var rows = document.getElementById('termrows');
+      var notice = document.getElementById('termnotice');
+      var f = rows.querySelector('.cal-headname, thead th, tbody tr th, tbody tr td');
+      return JSON.stringify({
+        shape: window.ZT.term().shape,
+        pad: Math.round(parseFloat(getComputedStyle(rows).paddingTop)),
+        gap: f ? Math.round(f.getBoundingClientRect().top -
+                            notice.getBoundingClientRect().bottom) : null,
+        what: f ? f.nodeName.toLowerCase() + '.' + String(f.className || '').split(' ')[0] : null });
+    })()`)));
+  }
+  const flush = topGaps.filter(t => t.gap === null || t.pad < 1 || t.gap !== t.pad);
+  assert('every shape of the calendar is spaced off the rule above it by the box and not by itself',
+    topGaps.length === 4 && flush.length === 0,
+    `${topGaps[0].pad}px above the first thing painted on all four shapes, which is the rows ` +
+      'box\'s own padding: ' + JSON.stringify(topGaps.map(t => t.shape + ' ' + t.what)),
+    JSON.stringify(topGaps));
 
   // ---- the list, which is the shape every assertion below was written against ----
   await pressByText(page, '#termnotice .shape-btn', 'list');
@@ -3638,19 +3900,61 @@ async function checkTerm(page) {
   const gridWin = await page.evaluate(TERM_READ);
   // AND A GRID MARKS INSTEAD OF FILTERING, which is the other half of the same decision: a grid
   // exists to show the shape of the whole term and a grid with holes cut in it shows nothing.
-  // Counted over DISTINCT days, because two adjacent month panels overlap at the boundary by
-  // construction: a panel is whole weeks, so the same date can be drawn twice and a raw cell
-  // count would report more than the twenty one days a three week window has.
-  const litDays = new Set(gridWin.cells.filter(c => c.inwin).map(c => c.date));
-  const wrongMark = gridWin.cells.filter(
+  //
+  // ISSUE 158 TOOK THE `Set` OFF THIS READING AND THAT IS A REPAIR RATHER THAN A LOOSENING. It
+  // counted DISTINCT days because two adjacent panels overlapped at the boundary by construction,
+  // so a raw cell count reported more than the twenty one days a three week window has. The
+  // overlap is gone: a day is drawn once, so the lit CELLS and the lit DAYS are the same number
+  // and both are asserted. A repeat coming back would now fail here as well as on the assertion
+  // written for it, which is what a regression net is for. The blanks are excluded by name: they
+  // carry no date, so a window has nothing to say about them.
+  const gridDayCells = gridWin.cells.filter(c => !c.pad);
+  const litCells = gridDayCells.filter(c => c.inwin);
+  const litDays = new Set(litCells.map(c => c.date));
+  const wrongMark = gridDayCells.filter(
     c => c.inwin !== (c.date >= w3.from && c.date <= w3.to) || c.inwin === c.outwin).length;
+  const markedPads = gridWin.cells.filter(c => c.pad && (c.inwin || c.outwin)).length;
   assert('and the month grid keeps every session and marks the band instead',
     gridWin.chips === state.sessions && gridWin.panels === calMonth.panels &&
-      litDays.size === 21 && wrongMark === 0,
+      litDays.size === 21 && litCells.length === 21 && wrongMark === 0 && markedPads === 0,
     `all ${state.sessions} chips still drawn over ${calMonth.panels} panels, with the 21 days ` +
-      `of ${w3.from} to ${w3.to} lit and every other day dimmed`,
-    `${gridWin.chips} chips, ${gridWin.panels} panels, ${litDays.size} distinct days lit, ` +
-      `${wrongMark} cells marked against their own date`);
+      `of ${w3.from} to ${w3.to} lit once each and every other day dimmed`,
+    `${gridWin.chips} chips, ${gridWin.panels} panels, ${litCells.length} lit cells over ` +
+      `${litDays.size} distinct days, ${wrongMark} cells marked against their own date, ` +
+      `${markedPads} blanks marked`);
+
+  // ---- ONE INSTRUMENT AND NOT TWO, ISSUES 146 AND 158 ---------------------------------------
+  // The fourth gap on #146 is that the drawing has a brush and the calendar had its own window
+  // handling, and that moving between the surfaces should preserve the window rather than
+  // re-establish it. The strip has been the one control since #137; what was still two instruments
+  // was the SHAPE of the two readings of it, because a strip of one column per week sat over a
+  // calendar of one panel per week stacked downwards, and no reader could put one on the other.
+  // Now they are the same axis, so the claim can be made as an identity rather than as a
+  // resemblance: the columns the week grid lights are exactly the columns the brush's band covers,
+  // in the same order, by their own Mondays.
+  //
+  // BOTH ENDS COME OFF THE PAINTED PAGE. The grid's columns are read from their headings and the
+  // band is read from term.js's own report of the strip, which is where a driver has read the band
+  // since #137. The second claim is that the band is not the whole term, without which this would
+  // pass on a page that lit every column.
+  await pressByText(page, '#termnotice .shape-btn', 'week');
+  await page.waitFor(`window.ZT.term().shape === 'week'`, 'the week grid under the window');
+  const weekWin = await page.evaluate(TERM_READ);
+  const brushWin = await page.evaluate('window.ZT.brush()');
+  const litCols = (weekWin.week ? weekWin.week.weeks : []).filter(w => w.inwin).map(w => w.monday);
+  const bandCols = brushWin
+    ? brushWin.columns.slice(brushWin.start, brushWin.start + brushWin.span).map(c => c.monday)
+    : [];
+  assert('the week grid lights exactly the columns the strip has brushed, week for week',
+    litCols.length > 0 && litCols.join('|') === bandCols.join('|') &&
+      bandCols.length === brushWin.span && brushWin.span < brushWin.termWeeks &&
+      weekWin.week.weeks.filter(w => w.inwin === w.outwin).length === 0,
+    `${bandCols.length} of the ${brushWin.termWeeks} columns lit, ${bandCols[0]} to ` +
+      `${bandCols[bandCols.length - 1]}, and the strip's band is the same interval`,
+    `grid lit ${JSON.stringify(litCols)}, strip band ${JSON.stringify(bandCols)}`);
+
+  await pressByText(page, '#termnotice .shape-btn', 'month');
+  await page.waitFor(`window.ZT.term().shape === 'month'`, 'the month grid back for the sentence');
 
   // ---- AND THE OTHER DIRECTION OF ISSUE 121, WHICH IS THE HALF A NAIVE FIX WOULD BREAK --------
   // THE RULE IS THAT THE SENTENCE DESCRIBES WHAT THE SHEET DREW, NOT THAT IT FOLLOWS THE WINDOW.
@@ -3737,6 +4041,109 @@ async function checkTerm(page) {
   await page.waitFor(`window.ZT.term().reading === 'calendar'`, 'the calendar back');
   await pressByText(page, '#termnotice .shape-btn', 'list');
   await page.waitFor(`window.ZT.term().shape === 'list'`, 'the list shape back');
+
+  // ---- ISSUE 146. THE CALENDAR TAKES THE SCOPE SET THE DRAWING HAS TAKEN SINCE #136 ----------
+  // `#/p/ZIB+ZSC` has drawn the union of two programmes since #136 and the calendar answered for
+  // one programme or for all seven, so "these two programmes, this fortnight" could be asked of
+  // the picture and not of the list. The sheet parses the same separator now and writes it back
+  // the same way.
+  //
+  // AND IT ADDS NO ENUMERATED ADDRESS, which is the constraint this repository has held since
+  // #120 and the reason that claim is re-read here rather than left to the phase that owns it: a
+  // spelled set is CONSTRUCTED from what the reader pressed, exactly as `#/p/ZIB+ZSC` is, and the
+  // sheet's own routes are the same sixteen. The assertion requires both halves at once, that the
+  // set address works and that it is not in the list.
+  //
+  // THE ROWS ARE RECOMPUTED FROM window.GI, and the second claim is that the union is neither of
+  // its parts: it has to hold more sessions than either programme alone, or a page that quietly
+  // narrowed to the first code would pass.
+  const unionKeys = ['ZIB', 'ZSC'];
+  const unionModel = JSON.parse(await page.evaluate(`(function () {
+    var want = ${JSON.stringify(unionKeys)}, out = { n: 0, per: {} };
+    window.GI.views.forEach(function (v) {
+      if (want.indexOf(v.key) === -1) return;
+      var n = 0;
+      v.nodes.forEach(function (node) { if (node.type === 'CohortSession') n++; });
+      out.per[v.key] = n; out.n += n;
+    });
+    return JSON.stringify(out);
+  })()`));
+  await page.evaluate(`location.hash = '#/calendar/' + ${JSON.stringify(unionKeys.join('+'))}`);
+  await page.waitFor(`window.ZT.term().scope === ${JSON.stringify(unionKeys.join('+'))}`,
+    'the calendar over two programmes');
+  const setRead = await page.evaluate(TERM_READ);
+  const setState = await page.evaluate('window.ZT.term()');
+  const setBar = JSON.parse(await page.evaluate(`JSON.stringify(
+    Array.prototype.slice.call(document.querySelectorAll('#termnotice .term-scope .linkbtn'))
+      .map(function (a) {
+        return { text: a.textContent.trim(), href: a.getAttribute('href'),
+                 on: a.getAttribute('aria-current') === 'true' };
+      }))`));
+  // The order the address is written in is the build's and not the reader's, which is router.js's
+  // rule for the drawing and is the reason the same set spelled backwards is the same reading.
+  await page.evaluate(`location.hash = '#/calendar/' + ` +
+    `${JSON.stringify(unionKeys.slice().reverse().join('+'))}`);
+  await page.waitFor(`window.ZT.term().open === true`, 'the same set spelled the other way round');
+  const reversedScope = await page.evaluate('window.ZT.term().scope');
+  const setRoutes = JSON.parse(await page.evaluate('JSON.stringify(window.ZT.termRoutes())'));
+  const marked = setBar.filter(a => a.on).map(a => a.text);
+  const adders = setBar.filter(a => !a.on && /^Z-/.test(a.text));
+  assert('the calendar answers for a set of programmes, in the spelling the drawing already uses',
+    setState.scope === unionKeys.join('+') &&
+      setState.scopeKeys.join('+') === unionKeys.join('+') &&
+      reversedScope === unionKeys.join('+') &&
+      setRead.rows === unionModel.n && unionModel.n > unionModel.per[unionKeys[0]] &&
+      unionModel.n > unionModel.per[unionKeys[1]] &&
+      marked.length === 2 &&
+      setBar.filter(a => a.on && a.href === '#/calendar/' + unionKeys[1]).length === 1 &&
+      adders.every(a => /^#\/calendar\/ZIB\+ZSC\+/.test(a.href)) &&
+      setRoutes.length === 16 &&
+      setRoutes.indexOf('#/calendar/' + unionKeys.join('+')) === -1,
+    `${unionModel.n} rows over ${unionKeys.join(' and ')}, both marked in the scope bar, each ` +
+      'able to take itself out and each of the other five able to put itself in, and the ' +
+      `sheet's enumerated routes still ${setRoutes.length}`,
+    `scope ${setState.scope}, spelled backwards ${reversedScope}, ${setRead.rows} rows against ` +
+      `${unionModel.n}, marked ${JSON.stringify(marked)}, ${setRoutes.length} routes`);
+
+  // AND THE HEADER'S ABSENCE COUNT IS OVER THE SET, which is where a scope that is a set and a
+  // reader that expects one programme go wrong silently. That control counts what the reading in
+  // front of the reader is SHOWING, matching views by key, and a key that reads `ZIB+ZSC` matches
+  // no view at all: it would have counted over nothing and printed a confident zero, which on a
+  // control whose whole subject is what is missing is the most flattering wrong number this page
+  // could produce.
+  //
+  // ASSERTED ON THE OUTLINE, and that is the measurement talking rather than the card. The window
+  // is not in effect on that reading, so nothing but the scope moves the number; on the calendar a
+  // three week window can legitimately leave a programme with nothing on screen, and a check that
+  // read zero there could not tell an unscoped control from an honest one. The two programmes are
+  // disjoint populations, so the set's count is the sum of the parts, and each part is required to
+  // be non-zero, without which a control stuck on zero would satisfy the arithmetic.
+  const ABS_KEYS = ['ZSC', 'ZBL'];
+  async function absAt(hash) {
+    await page.evaluate(`location.hash = ${JSON.stringify(hash)}`);
+    await page.waitFor(`window.ZT.term().open === true`, `the sheet at ${hash}`);
+    await sleep(120);
+    return JSON.parse(await page.evaluate(`JSON.stringify({
+      at: location.hash,
+      unrec: document.getElementById('absunrecv').textContent })`));
+  }
+  const absOne = await absAt('#/outline/' + ABS_KEYS[0]);
+  const absTwo = await absAt('#/outline/' + ABS_KEYS[1]);
+  const absBoth = await absAt('#/outline/' + ABS_KEYS.join('+'));
+  const shownOf = s => Number(String(s).split('/')[0]);
+  const wholeOf = s => Number(String(s).split('/')[1]);
+  assert('and the header counts its absences over the whole set rather than over no view at all',
+    shownOf(absBoth.unrec) === shownOf(absOne.unrec) + shownOf(absTwo.unrec) &&
+      shownOf(absOne.unrec) > 0 && shownOf(absTwo.unrec) > 0 &&
+      wholeOf(absBoth.unrec) === wholeOf(absOne.unrec),
+    `${absBoth.unrec} over ${ABS_KEYS.join(' and ')}, which is ${absOne.unrec} and ` +
+      `${absTwo.unrec} added, over the same population`,
+    `${absBoth.unrec} over the set, ${absOne.unrec} and ${absTwo.unrec} over its parts`);
+
+  await page.evaluate(`location.hash = '#/calendar'`);
+  await page.waitFor(`window.ZT.term().scope === null`, 'the unscoped calendar back');
+  await pressByText(page, '#termnotice .shape-btn', 'list');
+  await page.waitFor(`window.ZT.term().shape === 'list'`, 'the list shape again');
 
   // ---- the outline reading ----------------------------------------------------
   await page.evaluate(`location.hash = '#/outline'`);
