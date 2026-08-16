@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T06:53:56Z",
+  "generated": "2026-08-16T07:10:45Z",
   "columns": [
     {
       "key": "raw",
@@ -33,6 +33,14 @@
             "idea"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
+        },
+        {
+          "id": 184,
+          "title": "The only file in the repository that grep cannot read is a source file, and a grep that skips it reports clean",
+          "labels": [
+            "bug"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/184"
         }
       ]
     },
