@@ -9,10 +9,58 @@
 # public when the repository was private, so the only reading that settles anything is a reading
 # of the served bytes.
 #
-# WHAT IT CANNOT DO. GitHub Pages exposes no directory listing, so the file list comes from
-# the local site/ directory: the gate checks the files the repository believes it published.
-# A file served by the origin that the working tree does not know about is outside its reach.
-# Stated here rather than left for a reader to discover.
+# WHAT IT COULD NOT DO, AND WHAT WAS DONE ABOUT IT. Issue 6. GitHub Pages exposes no directory
+# listing, so this gate used to take its file list from the local site/ directory and could only
+# ever check the files the working tree already knew about. A file served by the origin that the
+# tree did not name was outside its reach: a stale artifact from an earlier deploy, or a path
+# added by hand. The card named two candidates, a deployed manifest and accepting the gap in
+# writing. Neither was taken as offered; the two blocks below are what replaced them.
+#
+# ONE: THE LIST COMES FROM THE COMMIT THE ORIGIN NAMES, NOT FROM THIS TREE. A manifest written at
+# deploy time and read by a later run is a record of THAT DEPLOY, and a stale artifact from an
+# EARLIER deploy is exactly the thing being hunted, so freshness is the whole problem and a
+# committed manifest is where it bites. The origin already answers the question itself:
+# site/version.js is written by .github/workflows/pages.yml at deploy time, names the commit whose
+# tree went into the artifact, and that step fails the deploy unless the origin serves it back.
+# So this gate reads version.js off the target, takes the sha, and lists that commit's site/ out
+# of git. The list then describes the deploy the origin says is live, however many commits behind
+# main that is, rather than the last thing anybody pushed. origin_freshness reads the same file
+# for the same reason.
+#
+# NOT AN ATOMIC READING OF THE ORIGIN, and an outside review was right to push on this. version.js
+# and the rest of the site are separate requests and can be answered by different edges, so a
+# fresh stamp beside a stale asset is possible for as long as propagation takes. What the stamp
+# buys is that the list is derived from a deploy that actually happened rather than from a tree
+# nobody published; it does not make the fetch that follows a single instant. The bytes are still
+# scanned as fetched, which is the claim that matters, and the ghost sweep below is where a path
+# that outlived its deploy gets found.
+#
+# Not from the Pages API, and that was measured rather than assumed. On 2026-08-16 the origin
+# served commit 48d1d17 and `GET /repos/{owner}/{repo}/pages/builds/latest` reported 3bb347a from
+# three days earlier, which is the head of the gh-pages branch from a spell when the site was
+# published by branch. The legacy builds endpoint does not track workflow deployments here. The
+# bytes the origin hands back do.
+#
+# TWO: THE GHOST SWEEP, which is the half that answers the card. Enumerating the origin is still
+# impossible. Enumerating what THIS REPOSITORY COULD EVER HAVE CAUSED THE ORIGIN TO SERVE is not:
+# under build_type workflow the only bytes that reach the origin come from an artifact built from
+# site/ at some commit, so every path any commit on any ref ever placed under site/ is a
+# candidate, as is every path on a branch that has itself been a Pages source. Subtract the list
+# above and probe what is left. A candidate the origin still serves is a ghost, and it is reported
+# whether or not its content is forbidden, because a path the live deployment does not account for
+# is a finding on its own.
+#
+# THE RESIDUE, because this is smaller than "the gate can now enumerate the origin". A path that
+# no commit on any ref ever held cannot be a candidate and is still invisible. Reaching the origin
+# at all means a deployment, and every deployment here is built by pages.yml from a checkout of
+# main, so getting bytes into that class means creating a Pages deployment outside this workflow.
+# That is the gap that remains, and it is narrower than the one the card described by exactly the
+# stale-artifact case, which was the case the card was about.
+#
+# The sweep is not a claim resting on an argument. On 2026-08-13 this site was published from the
+# gh-pages branch while Actions was billing-blocked, and that branch carries a .nojekyll the tree's
+# site/ has never held; site/desk.js and site/graph.js were deployed earlier in main's history and
+# deleted. All three are candidates the old list could not name, and all three are probed now.
 #
 # AND THE ONE IT COULD NOT SEE AT ALL. Only site/ is deployed, so this gate has never had an
 # opinion about any other file in the repository. A real surname sat in scripts/ for a day and
@@ -50,6 +98,20 @@ SITE_DIR="${SITE_DIR:-site}"
 FETCH_ATTEMPTS="${FETCH_ATTEMPTS:-3}"
 FETCH_WAIT="${FETCH_WAIT:-10}"
 HASHES="${FORBIDDEN_HASHES:-$ROOT/scripts/forbidden_names.sha256}"
+
+# Branches that have been, or could be, a Pages publication source in their own right. Their
+# paths sit at the root of the served site rather than under site/, so they are enumerated
+# separately. gh-pages is here because it really did serve this site, not as a precaution.
+PAGES_BRANCHES="${PAGES_BRANCHES:-gh-pages}"
+
+# Paths the origin is allowed to serve without any commit having placed them there. GitHub Pages
+# synthesises these; they are not artifacts of a deploy and finding one says nothing. Kept as a
+# named list rather than a silent skip, because every entry is a hole in the sweep.
+GHOST_ALLOW="${GHOST_ALLOW:-404.html}"
+
+# Seconds between the two readings that a ghost has to survive. Small, because the point is to
+# cross a propagation boundary and not to wait out a deploy.
+GHOST_CONFIRM_WAIT="${GHOST_CONFIRM_WAIT:-3}"
 
 # The rules themselves (banned words, the money pattern, the timestamp mask, the identifier
 # patterns, the allowed money figures) live in scripts/forbidden_lib.sh, sourced above, and
@@ -97,16 +159,237 @@ scan_dir() {
 }
 
 # ---------------------------------------------------------------------------------------
+# Which commit the origin says it is serving.
+#
+# site/version.js is written by the deploy job and names the tree that went into the artifact.
+# The deploy fails unless the origin serves that value back, so a version.js the origin returns
+# is a claim the deploy already had to make good on. Empty output means the target did not answer
+# with one, which is a fallback and not an error: the local server started by scripts/verify.sh
+# serves the tree's own copy, and the tree's copy deliberately names no commit.
+# ---------------------------------------------------------------------------------------
+origin_commit() {
+  local base="${1%/}" body
+  body="$(curl -sS -L --max-time 20 "$base/version.js" 2>/dev/null || true)"
+  # Two steps rather than one: the first anchors on the field name so a stray forty character
+  # run elsewhere in the file cannot be read as the deploy stamp, the second lifts the value.
+  printf '%s' "$body" \
+    | grep -oE 'commit: "[0-9a-f]{40}"' \
+    | head -1 \
+    | grep -oE '[0-9a-f]{40}' || true
+}
+
+ORIGIN_SHA=""
+LIST_SOURCE=""
+LIST_FROM_COMMIT=0
+
+# Decide where the list comes from, and say so. Separate from the function that emits it
+# because that one is called in a command substitution, which is a subshell, and a decision
+# recorded in a subshell is a decision the banner never sees.
+#
+# AGAINST A REMOTE ORIGIN THERE IS NO FALLBACK, and that is the half of this an outside review
+# argued for. Falling back to this tree when a remote origin will not say what it is serving
+# leaves a safety gate able to print "clean" about a published site whose contents it could not
+# establish, which is the vacuous green this repository keeps finding. A local server is
+# different in kind: the tree's own version.js names no commit by design, the server is serving
+# that tree, and a list taken from the tree is the true list for it.
+resolve_list_source() {
+  local kind="$1"
+  if [ -n "$ORIGIN_SHA" ] && git -C "$ROOT" cat-file -e "${ORIGIN_SHA}^{commit}" 2>/dev/null; then
+    LIST_FROM_COMMIT=1
+    LIST_SOURCE="the commit the origin names, ${ORIGIN_SHA:0:7}, read out of git."
+    return 0
+  fi
+  LIST_FROM_COMMIT=0
+  if [ "$kind" = remote ]; then
+    echo "ASSERTION FAILED: this is a remote origin and the live file list could not be" >&2
+    if [ -n "$ORIGIN_SHA" ]; then
+      echo "  established: it names commit $ORIGIN_SHA and this clone does not hold it." >&2
+      echo "  Fetch that commit, or check out with fetch-depth: 0." >&2
+    else
+      echo "  established: it served no version.js naming a commit." >&2
+      echo "  A deployment by .github/workflows/pages.yml always serves one, and that workflow" >&2
+      echo "  fails if the origin does not. Something else is serving this url." >&2
+    fi
+    echo "  Falling back to this tree here would let the gate print clean about a published" >&2
+    echo "  site whose contents it could not establish, so it stops instead." >&2
+    exit 2
+  fi
+  LIST_SOURCE="$SITE_DIR in this tree, which is what this local server is serving."
+  [ -d "$SITE_DIR" ] || { echo "ASSERTION FAILED: no $SITE_DIR directory to take the file list from" >&2; exit 2; }
+  return 0
+}
+
+# HIDDEN FILES ARE NOT IN THE ARTIFACT, so they are not in this list. Verified in the pinned
+# action rather than assumed: actions/upload-pages-artifact v5.0.0 tars site/ with
+# `--exclude=.git --exclude=.github` and, because include-hidden-files defaults to false,
+# `--exclude=.[^/]*`. A committed site/.something would therefore be in `git ls-tree` and absent
+# from the origin, and the fetch below would abort on a path that was never published.
+#
+# It stays a GHOST CANDIDATE, which is the direction that matters: excluded from the artifact
+# means the origin must not serve it, so an origin that does is exactly a ghost.
+artifact_excluded() {  # path -> 0 if the artifact would not carry it
+  case "/$1/" in */.*) return 0 ;; esac
+  return 1
+}
+
+# The file list, one path per line, relative to the root of the served site.
+deployed_paths() {
+  local p
+  if [ "$LIST_FROM_COMMIT" = 1 ]; then
+    git -C "$ROOT" ls-tree -r --name-only "$ORIGIN_SHA" -- "$SITE_DIR" \
+      | while IFS= read -r p; do
+          [ -n "$p" ] || continue
+          p="${p#"$SITE_DIR"/}"
+          artifact_excluded "$p" || printf '%s\n' "$p"
+        done
+    return 0
+  fi
+  (cd "$SITE_DIR" && find . -type f -printf '%P\n') \
+    | while IFS= read -r p; do
+        [ -n "$p" ] || continue
+        artifact_excluded "$p" || printf '%s\n' "$p"
+      done
+}
+
+# ---------------------------------------------------------------------------------------
+# The ghost sweep. Every path this repository could ever have caused the origin to serve.
+#
+# Not an enumeration of the origin, which is impossible, and the difference is stated in the
+# header. `git log --name-only` over a pathspec names a path in the commit that added it, in
+# every commit that changed it and in the commit that deleted it, so a file that lived under
+# site/ for one commit five hundred commits ago is in this list.
+# ---------------------------------------------------------------------------------------
+ghost_candidates() {
+  git -C "$ROOT" log --all --pretty=format: --name-only -- "$SITE_DIR" \
+    | while IFS= read -r p; do
+        [ -n "$p" ] || continue
+        printf '%s\n' "${p#"$SITE_DIR"/}"
+      done
+
+  # A Pages publication branch serves its own root, so its paths carry no site/ prefix and are
+  # not reachable from the pathspec above. Resolved through several ref spellings because a
+  # clone made by actions/checkout has the remote-tracking ref and not the local branch.
+  local b r
+  for b in $PAGES_BRANCHES; do
+    for r in "$b" "origin/$b" "refs/remotes/origin/$b"; do
+      if git -C "$ROOT" rev-parse --verify --quiet "$r" >/dev/null 2>&1; then
+        git -C "$ROOT" log --pretty=format: --name-only "$r" | sed '/^$/d'
+        break
+      fi
+    done
+  done
+}
+
+GHOSTS=0
+
+# Probe every candidate the live list does not account for. A 200 with a body is a ghost: it is
+# reported as a finding of its own AND written into the scan directory, so its content goes
+# through the same five rules as everything else.
+ghost_sweep() {
+  local base="${1%/}/" dest="$2" listfile="$3"
+  local candfile="$dest.candidates" sweepfile="$dest.sweep"
+
+  # Poka-yoke, and the one that matters most here. A shallow clone has no history to enumerate,
+  # so the candidate set collapses to the files that are already being fetched and the sweep
+  # probes nothing while reporting exactly as clean as a sweep that probed everything. That is
+  # the dead-gate shape this repository has found six times, so it aborts instead.
+  if [ "$(git -C "$ROOT" rev-parse --is-shallow-repository 2>/dev/null || echo unknown)" != "false" ]; then
+    echo "ASSERTION FAILED: this clone is shallow (or is not a git repository), so the paths" >&2
+    echo "  earlier deploys published cannot be enumerated and the sweep would probe nothing" >&2
+    echo "  while reporting clean. Check out with fetch-depth: 0." >&2
+    exit 2
+  fi
+
+  ghost_candidates | sed '/^$/d' | sort -u > "$candfile"
+  local n_cand n_deployed
+  n_cand="$(sort -u < "$candfile" | wc -l)"
+  n_deployed="$(sort -u < "$listfile" | wc -l)"
+  [ "$n_cand" -gt 0 ] || { echo "ASSERTION FAILED: no candidate paths could be enumerated from git history" >&2; exit 2; }
+
+  # Every path in the live list is a path some commit placed under site/, so the enumeration
+  # has to contain all of them. If it does not, it did not read the history it thinks it did.
+  local missing
+  missing="$(comm -23 <(sort -u < "$listfile") "$candfile" | head -5)"
+  if [ -n "$missing" ]; then
+    echo "ASSERTION FAILED: the candidate enumeration does not contain paths that are being" >&2
+    echo "  served right now, so it is not reading this repository's history:" >&2
+    printf '    %s\n' $missing >&2
+    exit 2
+  fi
+
+  # The sweep set: candidates the live deployment does not account for, less the paths Pages
+  # synthesises for itself.
+  comm -23 "$candfile" <(sort -u < "$listfile") \
+    | while IFS= read -r p; do
+        case " $GHOST_ALLOW " in *" $p "*) continue ;; esac
+        printf '%s\n' "$p"
+      done > "$sweepfile"
+
+  local n_sweep
+  n_sweep="$(wc -l < "$sweepfile")"
+  echo "ghost sweep: $n_cand path(s) this repository has ever published, $n_deployed accounted for"
+  echo "             by the live deployment, $n_sweep probed for a body the deployment does not explain"
+
+  if [ "$n_sweep" -eq 0 ]; then
+    echo "  nothing to probe: every path any ref ever published is in the live deployment."
+    return 0
+  fi
+
+  # A 200 IS CONFIRMED BEFORE IT IS CALLED A GHOST, and the transient is printed either way.
+  # This gate runs seconds after a deploy, and an edge that has not caught up can hand back a
+  # path the new artifact dropped. A single reading would make that a "FORBIDDEN CONTENT" class
+  # andon on an origin that is merely propagating, and TPS.md's Andon section is about exactly
+  # what that costs: a signal people learn to squint at is worse than a slower one.
+  #
+  # This is not the gate being softened. A stale artifact does not heal itself between two
+  # readings, so anything real survives the second one, and a candidate that answers 200 and then
+  # stops is REPORTED rather than dropped, on its own line, so no reading disappears. What the
+  # confirmation buys is that the loud verdict means the origin is still serving it now.
+  local p code size code2
+  while IFS= read -r p; do
+    [ -n "$p" ] || continue
+    mkdir -p "$dest/$(dirname "$p")"
+    # Saved under its OWN path, not a decorated one. scan_dir labels a finding by the name of
+    # the file it read, so a ghost written to "desk.js.ghost" would be reported at a path the
+    # origin does not serve, and the one thing a finding has to get right is where it is. There
+    # is no collision to decorate around: a ghost is by construction a path the deployed list
+    # does not contain, so nothing already fetched sits there.
+    code="$(curl -sS -L -o "$dest/$p" -w '%{http_code}' "$base$p" 2>/dev/null || echo 000)"
+    size=0
+    [ -f "$dest/$p" ] && size="$(stat -c%s "$dest/$p")"
+    if [ "$code" = "200" ] && [ "$size" -gt 0 ]; then
+      sleep "$GHOST_CONFIRM_WAIT"
+      code2="$(curl -sS -L -o /dev/null -w '%{http_code}' "$base$p" 2>/dev/null || echo 000)"
+      if [ "$code2" = "200" ]; then
+        GHOSTS=$((GHOSTS + 1))
+        echo "  [GHOST] $p: served HTTP 200, $size bytes, twice, and the live deployment does not include it"
+        # Left in place so scan_dir reads it. A ghost is a finding whatever it holds, and what it
+        # holds is a second, worse finding.
+      else
+        rm -f "$dest/$p"
+        echo "  [TRANSIENT] $p: answered 200 with $size bytes and then HTTP $code2. Not counted as a"
+        echo "              ghost, and not silent either: an origin mid-propagation looks like this,"
+        echo "              and so does a ghost that something removed while this was reading it."
+      fi
+    else
+      rm -f "$dest/$p"
+      printf '  gone    %-20s HTTP %s\n' "$p" "$code"
+    fi
+  done < "$sweepfile"
+}
+
+# ---------------------------------------------------------------------------------------
 # Live mode: fetch what was deployed.
 # ---------------------------------------------------------------------------------------
 fetch_deployed() {
-  local base="$1" dest="$2"
-
-  [ -d "$SITE_DIR" ] || { echo "ASSERTION FAILED: no $SITE_DIR directory to take the file list from" >&2; exit 2; }
+  local base="$1" dest="$2" listfile="$3"
 
   local paths
-  paths="$(cd "$SITE_DIR" && find . -type f -printf '%P\n' | sort)"
-  [ -n "$paths" ] || { echo "ASSERTION FAILED: $SITE_DIR holds no files" >&2; exit 2; }
+  paths="$(deployed_paths | sed '/^$/d' | sort)"
+  [ -n "$paths" ] || { echo "ASSERTION FAILED: the file list is empty ($LIST_SOURCE)" >&2; exit 2; }
+  printf '%s\n' "$paths" > "$listfile"
+  echo "  file list from: $LIST_SOURCE"
+  echo
 
   base="${base%/}/"
   local p attempt code ok
@@ -141,7 +424,7 @@ fetch_deployed() {
 #
 # A short run exits 2, which is "the suite could not answer for itself" and not "the gate is
 # broken"; a run that also recorded a MISS reports the MISS and exits 1.
-EXPECTED_PROBES=19
+EXPECTED_PROBES=25
 
 self_test() {
   local tmp fake_hashes whole_hashes rc pass=0 total=0
@@ -269,6 +552,221 @@ self_test() {
     echo "  [MISS] an empty payload did not abort (exit $rc)"
   fi
 
+  # -------------------------------------------------------------------------------------
+  # The ghost sweep, issue 6. Everything above proves a RULE fires against bytes already in
+  # hand. These prove the gate can be handed bytes it was never told to ask for, which is the
+  # thing the card is about, and they do it by planting one and serving it.
+  #
+  # Every probe here runs against a real server on a loopback port rather than against a stub,
+  # because the sweep's whole content is an HTTP question: does this path answer 200 with a
+  # body. A stubbed curl would prove the bookkeeping and not the gate.
+  # -------------------------------------------------------------------------------------
+  echo
+  echo "self-test: the ghost sweep (issue 6)"
+
+  # A server over a directory, on a free port. Echoes the base url; empty on failure.
+  local GHOST_SRV_PID=""
+  serve_dir() {
+    local dir="$1" port i code
+    port="$(python3 -c 'import socket
+s = socket.socket()
+s.bind(("127.0.0.1", 0))
+print(s.getsockname()[1])
+s.close()' 2>/dev/null)" || return 1
+    [ -n "$port" ] || return 1
+    python3 -m http.server "$port" --bind 127.0.0.1 --directory "$dir" >/dev/null 2>&1 &
+    GHOST_SRV_PID=$!
+    for i in $(seq 1 40); do
+      code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 3 \
+              "http://127.0.0.1:$port/index.html" 2>/dev/null || echo 000)"
+      [ "$code" = "200" ] && { printf 'http://127.0.0.1:%s/\n' "$port"; return 0; }
+      kill -0 "$GHOST_SRV_PID" 2>/dev/null || break
+      sleep 0.25
+    done
+    return 1
+  }
+  stop_srv() {
+    [ -n "$GHOST_SRV_PID" ] || return 0
+    kill "$GHOST_SRV_PID" 2>/dev/null
+    wait "$GHOST_SRV_PID" 2>/dev/null
+    GHOST_SRV_PID=""
+    return 0
+  }
+
+  # The served directory. index.html is the accounted-for file; the list names only it, so
+  # anything else this directory holds is by construction a path the deployment does not
+  # explain. `zz-leftover.js` stands in for a file an earlier deploy published and the live one
+  # does not, which is the case the card names.
+  local g="$tmp/ghostsite"; mkdir -p "$g"
+  printf '%s\n' '<!doctype html><title>probe</title>' > "$g/index.html"
+  local glist="$tmp/ghost.list"
+  printf '%s\n' 'index.html' > "$glist"
+
+  # The candidate enumeration is this repository's history in the live gate, and a probe that
+  # used it would be testing whichever files happen to have been deleted from site/ this month.
+  # Overriding it with a fixed pair keeps the probes about the SWEEP: one path that is served
+  # and one that is not, so the trip and the negative control differ in the planted file alone.
+  ghost_candidates() { printf '%s\n%s\n' 'index.html' 'zz-leftover.js'; }
+
+  # 1. NO GHOST. The negative control, and it runs first on purpose: if this one tripped, the
+  #    probe below would be passing for a reason that has nothing to do with the plant.
+  total=$((total + 1))
+  local gbase
+  rc=0
+  gbase="$(serve_dir "$g")" || rc=9
+  if [ "$rc" -ne 0 ]; then
+    echo "  [MISS] the ghost sweep control could not start a server, so it proved nothing"
+  else
+    local gdest="$tmp/gdest1"; mkdir -p "$gdest"
+    rc=0
+    ( GHOSTS=0; ghost_sweep "$gbase" "$gdest" "$glist" >/dev/null 2>&1; [ "$GHOSTS" -eq 0 ] ) || rc=$?
+    stop_srv
+    if [ "$rc" -eq 0 ]; then
+      echo "  [OK]   a candidate the server does not serve was not reported as a ghost"
+      pass=$((pass + 1))
+    else
+      echo "  [MISS] the sweep reported a ghost with nothing planted (exit $rc)"
+    fi
+  fi
+
+  # 2. THE PLANT. The same directory, the same list, the same candidate pair, plus the file.
+  printf '%s\n' 'window.ZZ = 1;' > "$g/zz-leftover.js"
+  total=$((total + 1))
+  rc=0
+  gbase="$(serve_dir "$g")" || rc=9
+  if [ "$rc" -ne 0 ]; then
+    echo "  [MISS] the ghost sweep probe could not start a server, so it proved nothing"
+  else
+    local gdest2="$tmp/gdest2"; mkdir -p "$gdest2"
+    rc=0
+    ( GHOSTS=0; ghost_sweep "$gbase" "$gdest2" "$glist" >/dev/null 2>&1; [ "$GHOSTS" -eq 0 ] ) || rc=$?
+    stop_srv
+    if [ "$rc" -ne 0 ]; then
+      echo "  [OK]   a path the file list does not name, served, was caught as a ghost"
+      pass=$((pass + 1))
+    else
+      echo "  [MISS] a served path outside the file list was NOT caught"
+    fi
+  fi
+
+  # 3. AND ITS BYTES GO THROUGH THE RULES. Catching the path is half of it. A ghost is pulled
+  #    into the scan directory so the five rules read it like any other file, and a ghost
+  #    carrying something forbidden has to produce a content finding as well as a [GHOST] line.
+  printf '%s\n' 'window.ZZ = "turnover of 1.138.000,00 EUR";' > "$g/zz-leftover.js"
+  total=$((total + 1))
+  rc=0
+  gbase="$(serve_dir "$g")" || rc=9
+  if [ "$rc" -ne 0 ]; then
+    echo "  [MISS] the ghost content probe could not start a server, so it proved nothing"
+  else
+    local gdest3="$tmp/gdest3"; mkdir -p "$gdest3"
+    # COUNT THE FINDINGS, DO NOT JUST TAKE A NON-ZERO EXIT. A sweep that fetched nothing leaves
+    # this directory empty, scan_dir's empty-input assertion then exits 2, and a probe reading
+    # "did something fail" would call that a pass: the gate would be dead and this probe green.
+    # Measured, not imagined. With ghost_sweep stubbed to return immediately, the first version
+    # of this probe reported [OK]. So the subshell prints the finding count and the probe
+    # requires at least one, which an aborted scan cannot produce because it never prints.
+    local found
+    found="$( ( GHOSTS=0; FAILURES=0
+                ghost_sweep "$gbase" "$gdest3" "$glist" >/dev/null 2>&1
+                scan_dir "$gdest3" "$fake_hashes" >/dev/null 2>&1
+                printf '%s' "$FAILURES" ) 2>/dev/null || true )"
+    stop_srv
+    if [ -n "$found" ] && [ "$found" -ge 1 ] 2>/dev/null; then
+      echo "  [OK]   the ghost's own bytes were scanned and the figure in them was found"
+      pass=$((pass + 1))
+    else
+      echo "  [MISS] a ghost carrying an undeclared figure was fetched and never read (findings: ${found:-none, the scan never completed})"
+    fi
+  fi
+
+  unset -f ghost_candidates
+
+  # 4. THE DEAD-GATE GUARD. A shallow clone has no history, so the candidate set collapses to
+  #    the files already being fetched and the sweep probes nothing while printing the same
+  #    clean line as a sweep that probed everything. That is the shape of every dead instrument
+  #    this repository has found, so it has to abort. Proved against a purpose-built two commit
+  #    repository rather than against this one, so the probe costs no clone of 500 commits.
+  total=$((total + 1))
+  local deep="$tmp/deep" shal="$tmp/shal"
+  rc=0
+  (
+    set -e
+    mkdir -p "$deep/$SITE_DIR"
+    git -C "$deep" init -q
+    # BUILT, NOT TYPED, for the reason the payload comments above give: git wants an identity to
+    # commit with, and a complete address written here is one the repository gate then finds in
+    # this file and somebody has to declare. It found this one, which is the gate working.
+    local at='@'
+    git -C "$deep" config user.email "probe${at}example.invalid"
+    git -C "$deep" config user.name probe
+    echo one > "$deep/$SITE_DIR/index.html"
+    git -C "$deep" add -A && git -C "$deep" commit -qm one
+    echo two > "$deep/$SITE_DIR/index.html"
+    git -C "$deep" add -A && git -C "$deep" commit -qm two
+    git clone -q --depth 1 "file://$deep" "$shal"
+  ) >/dev/null 2>&1 || rc=9
+  if [ "$rc" -ne 0 ]; then
+    echo "  [MISS] the shallow-clone probe could not build its fixture, so it proved nothing"
+  else
+    # Confirm the fixture is actually shallow. A probe whose fixture silently came out full
+    # would report the abort missing and blame the gate.
+    if [ "$(git -C "$shal" rev-parse --is-shallow-repository)" != "true" ]; then
+      echo "  [MISS] the shallow-clone probe built a fixture that is not shallow"
+    else
+      rc=0
+      ( ROOT="$shal"; ghost_sweep "http://127.0.0.1:1/" "$tmp/gdest4" "$glist" >/dev/null 2>&1 ) || rc=$?
+      if [ "$rc" -eq 2 ]; then
+        echo "  [OK]   a shallow clone aborted instead of sweeping nothing and reporting clean"
+        pass=$((pass + 1))
+      else
+        echo "  [MISS] a shallow clone did not abort (exit $rc); the sweep would be dead there"
+      fi
+    fi
+  fi
+
+  # 5. THE DEPLOY STAMP, which is what makes the file list a list of what is LIVE rather than of
+  #    what this tree holds. Both directions: a body carrying a stamp yields the sha, and a body
+  #    carrying none yields nothing, so the fallback is reachable and the banner can say so.
+  total=$((total + 1))
+  local stamped="$tmp/stamp"; mkdir -p "$stamped"
+  local want="0123456789abcdef0123456789abcdef01234567"
+  printf 'window.ZV = { commit: "%s", deployedAt: "2026-01-01T00:00:00Z" };\n' "$want" \
+    > "$stamped/version.js"
+  printf '%s\n' '<!doctype html><title>probe</title>' > "$stamped/index.html"
+  rc=0
+  gbase="$(serve_dir "$stamped")" || rc=9
+  if [ "$rc" -ne 0 ]; then
+    echo "  [MISS] the deploy stamp probe could not start a server, so it proved nothing"
+  else
+    local got_with got_without
+    got_with="$(origin_commit "$gbase")"
+    printf '%s\n' 'window.ZV = { commit: "no deploy stamp" };' > "$stamped/version.js"
+    got_without="$(origin_commit "$gbase")"
+    stop_srv
+    if [ "$got_with" = "$want" ] && [ -z "$got_without" ]; then
+      echo "  [OK]   the stamp was read off the server, and a body without one yielded nothing"
+      pass=$((pass + 1))
+    else
+      echo "  [MISS] the stamp reader returned '$got_with' and '$got_without'"
+    fi
+  fi
+
+  # 6. AND A REMOTE ORIGIN THAT WILL NOT SAY WHAT IT IS SERVING STOPS THE GATE. Both directions,
+  #    because the whole value of the refusal is that it is not the same answer as the local
+  #    case: against a server on this machine the tree IS what is being served and the tree's
+  #    list is the true one, so the same missing stamp must not abort there.
+  total=$((total + 1))
+  local rc_remote=0 rc_local=0
+  ( ORIGIN_SHA=""; resolve_list_source remote >/dev/null 2>&1 ) || rc_remote=$?
+  ( ORIGIN_SHA=""; resolve_list_source local  >/dev/null 2>&1 ) || rc_local=$?
+  if [ "$rc_remote" -eq 2 ] && [ "$rc_local" -eq 0 ]; then
+    echo "  [OK]   a remote origin with no deploy stamp aborted, and a local server did not"
+    pass=$((pass + 1))
+  else
+    echo "  [MISS] the no-stamp refusal is wrong (remote exit $rc_remote, local exit $rc_local)"
+  fi
+
   echo
   echo "self-test: $pass/$total, of $EXPECTED_PROBES intended"
   local short=0
@@ -320,16 +818,52 @@ main() {
     echo "  which is: a server on this machine. What it returns is what this tree WOULD publish."
     echo "            Nothing here is evidence about anything that is actually published."
   fi
-  echo "  file list from: $SITE_DIR"
+  # Ask the target which commit it is serving before anything else, because the answer decides
+  # what the file list is a list OF. A local server over site/ answers nothing, which is correct:
+  # the tree's copy of version.js names no commit, and a list taken from the tree is the honest
+  # list for a server that is serving the tree.
+  ORIGIN_SHA="$(origin_commit "$base")"
+  if [ -n "$ORIGIN_SHA" ]; then
+    echo "  it says it is serving: ${ORIGIN_SHA:0:7}  (from its own version.js)"
+  else
+    echo "  it says it is serving: nothing. It served no version.js naming a commit."
+  fi
+  resolve_list_source "$kind"
   echo
-  fetch_deployed "$base" "$tmp"
+  fetch_deployed "$base" "$tmp" "$tmp.list"
+  echo
+  ghost_sweep "$base" "$tmp" "$tmp.list"
   echo
   scan_dir "$tmp" "$HASHES"
 
   echo
+  # A ghost is reported apart from a content finding because the two are different sentences and
+  # a reader has to be able to tell them apart. "Something forbidden is public" is about what the
+  # bytes say. "The origin is serving a path the live deployment does not include" is about the
+  # origin holding something nobody deployed, and it is a finding even when the bytes are clean.
+  if [ "$GHOSTS" -gt 0 ]; then
+    if [ "$kind" = remote ]; then
+      echo "VERDICT: THE ORIGIN IS SERVING $GHOSTS PATH(S) THE LIVE DEPLOYMENT DOES NOT ACCOUNT FOR"
+      echo "Every one is listed above as [GHOST]. Its content was scanned with the rest and any"
+      echo "finding in it is in the list below; a clean ghost is still a ghost. Something has put"
+      echo "bytes at this origin outside the deploy that is live, so treat the origin as unknown"
+      echo "until it is redeployed and this comes back to zero."
+    else
+      echo "VERDICT: THIS SERVER IS SERVING $GHOSTS PATH(S) THE FILE LIST DOES NOT ACCOUNT FOR"
+      echo "Against a server on this machine that means the directory holds a file the list does"
+      echo "not, which is a finding about this tree and not about anything published."
+    fi
+    if [ "$FAILURES" -gt 0 ]; then
+      echo
+      echo "AND $FAILURES forbidden-content finding(s) as well."
+    fi
+    exit 1
+  fi
   if [ "$FAILURES" -eq 0 ]; then
     if [ "$kind" = remote ]; then
-      echo "VERDICT: clean. Nothing forbidden is being served by $base."
+      echo "VERDICT: clean. Nothing forbidden is being served by $base, and it serves nothing"
+      echo "         outside the deployment it says is live, of the paths this repository has"
+      echo "         ever published. It could still serve a path no commit here ever held."
     else
       echo "VERDICT: clean. Nothing forbidden is in the bytes $base served, which are this tree's."
       echo "         This says nothing about what is published, and nothing was published to ask."

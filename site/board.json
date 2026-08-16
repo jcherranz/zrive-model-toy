@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-15T22:50:56Z",
+  "generated": "2026-08-16T00:32:47Z",
   "columns": [
     {
       "key": "raw",
@@ -26,20 +26,53 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
         },
         {
-          "id": 143,
-          "title": "Make this bigger / taller maybe also include a right panel for other…",
+          "id": 144,
+          "title": "I LOVED this kind of implementations is the kind of things I need YOU…",
           "labels": [
-            "bug",
-            "feedback"
+            "feedback",
+            "idea"
           ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/143"
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
         }
       ]
     },
     {
       "key": "backlog",
       "title": "Backlog",
-      "cards": []
+      "cards": [
+        {
+          "id": 146,
+          "title": "The calendar is two honest shapes and two that are not, and it never got the scope set",
+          "labels": [
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/146"
+        },
+        {
+          "id": 157,
+          "title": "A person on the drawing is someone you can reach, and the route is a fact on the object",
+          "labels": [
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/157"
+        },
+        {
+          "id": 158,
+          "title": "The week grid compares nothing and the month grid draws some days twice",
+          "labels": [
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/158"
+        },
+        {
+          "id": 159,
+          "title": "Architecture and engineering audit, adversarial, before this is called professional",
+          "labels": [
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/159"
+        }
+      ]
     },
     {
       "key": "in_progress",
@@ -64,6 +97,124 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/142"
+        },
+        {
+          "id": 143,
+          "title": "Make this bigger / taller maybe also include a right panel for other…",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/143"
+        },
+        {
+          "id": 145,
+          "title": "The rendering of the diagram when I drag this controller is very…",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/145"
+        },
+        {
+          "id": 148,
+          "title": "Make the format of this outlines more in line with the style…",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/148"
+        },
+        {
+          "id": 149,
+          "title": "There is a gap to the left of this header blocks whicch looks bad",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/149"
+        },
+        {
+          "id": 151,
+          "title": "Remove",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/151"
+        },
+        {
+          "id": 152,
+          "title": "Why this here?",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/152"
+        },
+        {
+          "id": 153,
+          "title": "what value does \"4 rows here\" add?",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/153"
+        },
+        {
+          "id": 154,
+          "title": "Is this what a professional webapp footer looks like?",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/154"
+        },
+        {
+          "id": 155,
+          "title": "is alignment ok here?",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/155"
+        },
+        {
+          "id": 156,
+          "title": "check arrow vs line alignment",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/156"
+        },
+        {
+          "id": 160,
+          "title": "check space frame above, do a general review",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/160"
+        },
+        {
+          "id": 164,
+          "title": "The salt is printed in the file it protects and 87 people are recoverable in under a second",
+          "labels": [
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/164"
         }
       ]
     },
@@ -71,6 +222,36 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 162,
+          "title": "check space of frame below",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/162"
+        },
+        {
+          "id": 161,
+          "title": "this is what i mean by duplicate days",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/161"
+        },
+        {
+          "id": 147,
+          "title": "Make the format of this outlines more in line with the style…",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/147"
+        },
         {
           "id": 139,
           "title": "Absence is one idea with two numbers that never add",
@@ -112,37 +293,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/135"
-        },
-        {
-          "id": 134,
-          "title": "I like the idea behind this view",
-          "labels": [
-            "feedback",
-            "idea",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/134"
-        },
-        {
-          "id": 133,
-          "title": "Make this cards more transparent",
-          "labels": [
-            "feedback",
-            "layout",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/133"
-        },
-        {
-          "id": 131,
-          "title": "The desk comes off and the header control panel gets the craft pass he asked for",
-          "labels": [
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/131"
         }
       ],
-      "hidden": 116,
+      "hidden": 119,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
