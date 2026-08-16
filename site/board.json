@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T21:03:16Z",
+  "generated": "2026-08-16T21:07:11Z",
   "columns": [
     {
       "key": "raw",
@@ -42,12 +42,6 @@
             "idea"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
-        },
-        {
-          "id": 216,
-          "title": "A stylesheet that never loaded is reported as twelve assertions about the page, and the run says the page has regressed",
-          "labels": [],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/216"
         }
       ]
     },
@@ -81,6 +75,15 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/215"
+        },
+        {
+          "id": 216,
+          "title": "A stylesheet that never loaded is reported as twelve assertions about the page, and the run says the page has regressed",
+          "labels": [
+            "limitation",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/216"
         }
       ]
     },
