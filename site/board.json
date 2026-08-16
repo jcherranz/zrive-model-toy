@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T03:48:10Z",
+  "generated": "2026-08-16T04:04:29Z",
   "columns": [
     {
       "key": "raw",
@@ -145,16 +145,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
         },
         {
-          "id": 152,
-          "title": "Why this here?",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/152"
-        },
-        {
           "id": 153,
           "title": "what value does \"4 rows here\" add?",
           "labels": [
@@ -239,6 +229,16 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/161"
         },
         {
+          "id": 152,
+          "title": "Why this here?",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/152"
+        },
+        {
           "id": 151,
           "title": "Remove",
           "labels": [
@@ -277,19 +277,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/147"
-        },
-        {
-          "id": 145,
-          "title": "The rendering of the diagram when I drag this controller is very…",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/145"
         }
       ],
-      "hidden": 126,
+      "hidden": 127,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
