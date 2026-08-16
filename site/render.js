@@ -209,12 +209,41 @@
     // separation, which is the trade the number sits in.
     var PGHUE = {};
 
-  // ---- the socket, issue 139 ---------------------------------------------------------------
-  // A ring of 2.1 units on a 34 unit tile, stepped 5.4 apart and set 5 in from the top edge. The
-  // step is 2.57 times the radius, which is the smallest spacing at which four of them read as
-  // four rather than as a dotted line at the sizes this drawing is ever framed at, and the inset
-  // clears the 16 unit glyph at the tile's centre by four units.
-  var SOCK_R = 2.1, SOCK_STEP = 5.4, SOCK_INSET = 5;
+  // ---- the socket, issue 139, and the step is issue 155 --------------------------------------
+  // A ring of 2.1 units on a 34 unit tile, set 5 in from the top edge, stepped 6.4 apart.
+  //
+  // HE ASKED `is alignment ok here?` ON A RING ON `bl_co_col`, WHICH CARRIES ONE. Measured before
+  // any constant was touched, at 2560, 1536 and 390, over all seven drawings and over the union of
+  // ZSC and ZBL under the eight week window his card was filed from: the row's centre is on the
+  // tile's centre to 0.0000 units on every socketed node, at every width, for one ring, two and
+  // three alike, and the tile's screen box and the ring's screen box share a centre to the same
+  // figure. So the card's three candidates are all false. `span` cannot centre one differently from
+  // three, because the row's centre is `n.x` whatever the count is. The label is drawn BELOW the
+  // tile and the rings inside it, so a label wrapping to a second line has nothing to pull them
+  // off. And a circle's centre and the tile's box centre are the same point here rather than a
+  // radius apart, so there is no optics-against-arithmetic split to split.
+  //
+  // WHAT THE SAME MEASUREMENT DID FIND IS THE STEP, and it is the one thing on this feature a
+  // reader can actually see go wrong. app.css gives a ring a stroke of 1.1, which straddles the
+  // radius, so the ring a reader sees is 5.3 across and not 4.2. At the old step of 5.4 that left
+  // ONE TENTH OF A UNIT of daylight between adjacent rings: at every scale this drawing is ever
+  // framed at, from a touch over a quarter on the phone to 2.04 on Z-IB at 2560, a tenth of a
+  // unit is between a fortieth and a fifth of a CSS pixel, so the three rings on a Z-CFA session
+  // template painted as one smear. The count IS the feature, and a row that cannot be counted is
+  // the feature failing quietly.
+  //
+  // SO THE STEP IS THE PAINTED RING PLUS ONE STROKE OF DAYLIGHT: 2 * 2.1 + 1.1 = 5.3 across, plus
+  // 1.1 clear, is 6.4. Stated as arithmetic rather than trusted: scripts/smoke.mjs measures the gap
+  // off the rendered circles, derives what it must be from the stroke the browser resolved, and
+  // fails naming both. A stylesheet that changes the stroke turns that red instead of quietly
+  // closing this gap again.
+  //
+  // THE MOST ANY OBJECT IN THIS DOCUMENT CARRIES IS THREE, not the four this comment claimed: six
+  // Z-CFA session templates carry three, two Z-HR ones carry two, and the other 73 carry one. Three
+  // at this step span 18.1 painted units of the tile's 34 and four would span 24.5, so the headroom
+  // the claim was about is still there and is now stated against the ring that is painted rather
+  // than against the one that is specified.
+  var SOCK_R = 2.1, SOCK_STEP = 6.4, SOCK_INSET = 5;
 
   // ---- the arrowhead, issue 156 ------------------------------------------------------------
   // TWO NUMBERS AND ONE SHAPE BUILT FROM THEM. The head was a `d` string with 6.5 typed into it
@@ -251,9 +280,6 @@
     // file. The seven drawings are laid out by one build with one tile, so a second reading per
     // drawing would be a second copy of a number that cannot differ.
     var TILE = opts.drawing.tile, R = TILE / 2;
-    // Issue 139's sockets. Four is the most any one object carries, a session template with its
-    // duration, its location, its delivery and its module all unrecorded, and four rings at this
-    // step span 24.6 of the tile's 34 units with the glyph below them untouched.
 
 
     // The classes that belong to exactly one programme and therefore can carry its hue. Issue 136.
