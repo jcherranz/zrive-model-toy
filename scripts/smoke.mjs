@@ -299,6 +299,14 @@ const PHASES = {
   // drawing and about the search over it, and about no width at all: the same union costs the
   // same at 2560 as at 390.
   'the placer':           { count: 2, when: 'behavioural' },
+  // Issue 207. Three, and they are three because they fail on three different things: that the
+  // set of contexts the placer measured in is the set this file knows, without which the two
+  // comparisons below are made over whatever the page happened to ask for; that each probe
+  // resolves the SIZE the stylesheet declares for the element it stands in for, which is the whole
+  // of the defect; and that each resolves the declared SLANT and WEIGHT, which is what a repair
+  // that fixed the size by hard-coding it would fail. Behavioural for the same reason the row
+  // above is: a resolved face is a fact about the cascade and about no width at all.
+  'the measuring probe':  { count: 3, when: 'behavioural' },
   'model and reveal':     { count: 14, when: 'behavioural' },
   'cold load':            { count: 4, when: 'behavioural' },
   'students':             { count: 11, when: 'behavioural' },
@@ -756,7 +764,25 @@ const PHASES = {
 // than left at `> 0`, which is the same vacuity one order of magnitude down; and a width of zero
 // counted as a hole, because `getComputedTextLength()` answers 0 on a `display: none` text and
 // this page has a switch that puts every mark in that state.
-const EXPECTED_ASSERTIONS = 346;
+// AND 349 SINCE ISSUE 207, which adds three in a behavioural phase of its own and replaces none.
+// site/render.js measures every label and every caption the RUN-TIME placer packs against, and it
+// measured all of them at 14px on a page that paints them at 10 and at 9: its hidden probe stood
+// outside every `.node`, so `.node .lbl`, `.node .lbl.lbl-missing` and `.node .lbl.lbl-tail`, all
+// three of them descendant selectors, reached it not at all and it inherited `--fs-base`. Measured
+// here before the repair, the probe shaped the painted strings at 1.4740 of the width they are
+// painted at, worst case 1.6051 and 93.39 units on one string. Nothing in this repository could
+// see it: the fourteen digests are the BUILD's answers, the placer oracle judges the canonical
+// drawing and says so in its own header, and issue 203's caption assertions read the painted
+// elements, which this probe is not one of.
+// THE THREE ASSERT THE FACE AND NEVER A WIDTH, which is the only shape available here. A width is
+// a number and a number two fifths too large is indistinguishable from a longer string, so a check
+// written over widths would have to hold the probe against something that measured the same text,
+// and every candidate for that is either the paint the probe is supposed to predict or the placer's
+// own output. The face carries the defect whole, and what it is held against is what site/app.css
+// DECLARES for the element each probe stands in for, read out of the page's own stylesheet. So the
+// declaration is the oracle and the probe is the thing judged, and nothing the placer produced is
+// read at all.
+const EXPECTED_ASSERTIONS = 349;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -2750,6 +2776,179 @@ async function checkPlacer(page) {
     'the placer stays inside its budget on the seven programme union, counted in box comparisons');
   await budget('#/p/ZIB+ZSC', PLACER_BUDGET_PAIR,
     'and inside a tighter one on two programmes at the sessions altitude');
+}
+
+// =================================================================================================
+// WHAT FACE THE RUN-TIME PLACER MEASURED ITS TEXT IN. Issue 207.
+//
+// THE DEFECT, IN THE UNITS THE PLACER WORKS IN. `widthOf()` in site/render.js is the only text
+// measurement the run-time drawing has. It built its hidden probe as a `g` on the SVG root with a
+// `text class="lbl"` inside it, and every rule in site/app.css that sizes a label is a DESCENDANT
+// selector wanting a `.node` ancestor. The probe had none, matched none of them, and inherited the
+// page's own `--fs-base`: 14px, against the 10px `.node .lbl` declares for a label and the 9px
+// `.node .lbl.lbl-missing` and `.node .lbl.lbl-tail` declare for the two captions under it. Every
+// blocked box the run-time placer packs a windowed, filtered or unioned drawing against was built
+// out of those widths. The direction is over-reserving, so it never put a chip on a label; what it
+// did was pack the same picture differently from the way build_layout.py packs it.
+//
+// WHY THE ASSERTION IS THE FACE AND NOT THE WIDTH, WHICH IS THE WHOLE DESIGN OF THIS PHASE. A
+// width is a number, and a number two fifths too large looks exactly like a longer string. To
+// judge a width you need a second measurement of the same text, and on this page there are only
+// two: the paint, which is what the probe exists to predict, and the placer's own output, which is
+// computed FROM the probe. Reading either is the check reading its own subject, and this
+// repository has rejected a proposal on exactly that ground once already. The FACE carries the
+// defect whole and is answerable from a source that is neither: what site/app.css declares.
+//
+// SO THE STYLESHEET IS THE ORACLE. site/render.js records, once per context, the computed size,
+// slant, weight and family of the probe it built; this phase reads the page's own stylesheet out
+// of `document.styleSheets`, which is the served bytes and not the tree's, so a run pointed at a
+// deployed origin compares that origin's declarations against that origin's probes. The
+// declaration is the intent, the probe is the implementation that failed to read it, and no width
+// and no coordinate is read at all.
+//
+// THE THIRD STATE IS SPELLED OUT RATHER THAN COLLAPSED INTO A PASS. There are four ways this can
+// fail to be an answer: render.js publishes no probe map, the placer never composed so no probe
+// was ever built, the map is empty, or the stylesheet holds no declaration for something a probe
+// stood in for. Each is reported as a failure in its own words, because a comparison over an empty
+// list is vacuously true and would print green.
+//
+// THE WAIT IS DIAGRAM_READY AND NOTHING NARROWER, for the reason the budget above gives: a wait
+// that encoded the answer could only ever time out on a page that got the answer wrong, which is
+// a harness failure standing where a regression should be.
+
+// Every context the placer measures in, and where in the stylesheet each property of it is
+// declared. `null` means no rule declares it, so the initial value stands: upright, and 400.
+//
+// The keys are `hostClass|textClass` and both halves are copied from the paint: a node's group is
+// `node` or `node ghost` and gains `sel` on a click, its label lines are `lbl` or `lbl lbl-ghost`,
+// the missing-key caption is `lbl lbl-missing ghost`, the tail is `lbl lbl-tail`, and a verb chip
+// is a `chip-tx` inside a group carrying `ghost` or nothing. A call site that changes either half
+// produces a key that is not in this table, and the first assertion below fails on that rather
+// than on a comparison it could not make.
+const PROBE_CONTEXTS = [
+  { key: 'node|lbl',                     size: '.node .lbl',             style: null,                     weight: null },
+  { key: 'node sel|lbl',                 size: '.node .lbl',             style: null,                     weight: '.node.sel .lbl' },
+  { key: 'node ghost|lbl lbl-ghost',     size: '.node .lbl',             style: '.lbl-ghost',             weight: null },
+  { key: 'node ghost sel|lbl lbl-ghost', size: '.node .lbl',             style: '.lbl-ghost',             weight: '.node.sel .lbl' },
+  { key: 'node|lbl lbl-missing ghost',   size: '.node .lbl.lbl-missing', style: '.node .lbl.lbl-missing', weight: null },
+  { key: 'node|lbl lbl-tail',            size: '.node .lbl.lbl-tail',    style: null,                     weight: null },
+  { key: '|chip-tx',                     size: '.chip-tx',               style: null,                     weight: null },
+  { key: 'ghost|chip-tx',                size: '.chip-tx',               style: '.ghost .chip-tx',        weight: null }
+];
+
+// The address is the seven programme union, which is a run-time composition rather than a built
+// artefact, and it is the smallest drive that reaches all eight contexts above: it holds ghost
+// tiles, a cohort carrying the missing-key caption, the students card carrying the tail, and ghost
+// relationships. Measured, not assumed: at afb262f it records exactly those eight and no others.
+const PROBE_AT = '#/p/ALL';
+
+const PROBE_READ = (wanted) => `(function () {
+  if (!window.ZM || typeof window.ZM.probeFaces !== 'function') {
+    return JSON.stringify({ why: 'site/render.js published no window.ZM.probeFaces' });
+  }
+  if (typeof window.ZM.placerCost !== 'function') {
+    return JSON.stringify({ why: 'site/render.js published no window.ZM.placerCost' });
+  }
+  var want = ${JSON.stringify(wanted)}, decl = {}, i, j, ss, rules, r, p;
+  var props = ['font-size', 'font-style', 'font-weight'];
+  for (i = 0; i < document.styleSheets.length; i++) {
+    ss = document.styleSheets[i];
+    try { rules = ss.cssRules; } catch (e) { rules = null; }
+    if (!rules) {
+      return JSON.stringify({ why: 'a stylesheet on this page would not open its own rules, so ' +
+                                   'nothing here could be compared against a declaration' });
+    }
+    for (j = 0; j < rules.length; j++) {
+      r = rules[j];
+      if (!r.selectorText || !r.style) continue;
+      if (want.indexOf(r.selectorText) < 0) continue;
+      if (!decl[r.selectorText]) decl[r.selectorText] = {};
+      for (p = 0; p < props.length; p++) {
+        var v = r.style.getPropertyValue(props[p]);
+        if (v) decl[r.selectorText][props[p]] = String(v).trim();
+      }
+    }
+  }
+  return JSON.stringify({ faces: window.ZM.probeFaces(), decl: decl,
+                          composes: window.ZM.placerCost().composes });
+})()`;
+
+async function checkMeasuringProbe(page, base) {
+  const what = [
+    'every context the run-time placer measured text in is one this file knows',
+    'and each of them resolves the font size site/app.css declares for the element it stands in for',
+    'and the slant and the weight it declares as well'
+  ];
+  const cannot = (why) => what.forEach(w =>
+    fail(w, 'a comparison against the page\'s own stylesheet', why));
+
+  await page.navigate(new URL(PROBE_AT, base).toString());
+  await page.reload();
+  await page.waitFor(DIAGRAM_READY, `the diagram to draw cold at ${PROBE_AT}`);
+
+  const wanted = [];
+  for (const c of PROBE_CONTEXTS) {
+    for (const s of [c.size, c.style, c.weight]) if (s && wanted.indexOf(s) < 0) wanted.push(s);
+  }
+  const read = JSON.parse(await page.evaluate(PROBE_READ(wanted)));
+  if (read.why) { cannot(read.why); return; }
+  if (!(read.composes > 0)) {
+    cannot(`the placer composed nothing at ${PROBE_AT}, so no probe was built and the map below ` +
+           `is about no work: ${JSON.stringify(read.faces)}`);
+    return;
+  }
+  const keys = Object.keys(read.faces).sort();
+  if (!keys.length) {
+    cannot(`the placer composed ${read.composes} time(s) at ${PROBE_AT} and recorded no probe ` +
+           'at all, so there is nothing here to compare');
+    return;
+  }
+  for (const sel of wanted) {
+    if (!read.decl[sel]) {
+      cannot(`site/app.css, as this page serves it, holds no rule whose selector is exactly ` +
+             `${JSON.stringify(sel)}, so the face it declares cannot be read`);
+      return;
+    }
+  }
+
+  // ONE. The contexts, whole and in both directions. A call site that starts measuring in a
+  // context this table does not hold is a call site whose face nothing below judges, and a context
+  // that stops appearing is a measurement that has gone somewhere this phase cannot see.
+  assertEqual(what[0], keys, PROBE_CONTEXTS.map(c => c.key).sort(),
+              `the eight contexts site/render.js measures in, driven at ${PROBE_AT}`);
+
+  // TWO and THREE. Every recorded probe against the declaration, reported as the whole list of
+  // disagreements rather than as the first one: a size wrong in one context and a slant wrong in
+  // another are two repairs, and a check that names one of them costs the reader the second run.
+  const declared = (sel, prop, fallback) =>
+    (sel && read.decl[sel] && read.decl[sel][prop]) ? read.decl[sel][prop] : fallback;
+  const sizes = [], faces = [];
+  for (const c of PROBE_CONTEXTS) {
+    const got = read.faces[c.key];
+    if (!got) continue;                       // assertion one has already said so
+    const wantSize = declared(c.size, 'font-size', null);
+    if (got.size !== wantSize) {
+      sizes.push(`${c.key} resolved ${got.size} where ${c.size} declares ${wantSize}`);
+    }
+    const wantStyle = declared(c.style, 'font-style', 'normal');
+    const wantWeight = declared(c.weight, 'font-weight', '400');
+    if (got.style !== wantStyle) {
+      faces.push(`${c.key} resolved ${got.style} where ` +
+                 `${c.style || 'nothing'} declares ${wantStyle}`);
+    }
+    if (String(got.weight) !== wantWeight) {
+      faces.push(`${c.key} resolved weight ${got.weight} where ` +
+                 `${c.weight || 'nothing'} declares ${wantWeight}`);
+    }
+  }
+  assert(what[1], sizes.length === 0,
+         'every probe at the size its own element is painted at',
+         sizes.length ? sizes.join('; ') : `all ${keys.length} of them at the declared size`,
+         `${keys.length} contexts`);
+  assert(what[2], faces.length === 0,
+         'every probe at the slant and the weight its own element is painted in',
+         faces.length ? faces.join('; ') : `all ${keys.length} of them at the declared face`,
+         `${keys.length} contexts`);
 }
 
 async function checkColdLoad(page, base) {
@@ -14680,6 +14879,11 @@ async function runViewport(chrome, viewport, base, full, narrow) {
       // and leaves the page cold on the second of them, which those two lines then move off.
       // Issue 171.
       await group('the placer', () => checkPlacer(page));
+      // Immediately after `the placer`, which is the other phase that reads what the run-time
+      // placer did and which also leaves the page cold on an address of its own. This one loads
+      // the union cold, reads the faces the probe resolved while composing it, and hands the page
+      // back cold on that address, which the two lines below then move off. Issue 207.
+      await group('the measuring probe', () => checkMeasuringProbe(page, base));
       await page.evaluate('location.hash = ' + JSON.stringify(ONE));
       await page.waitFor(`window.ZT.scope().n === 1`, 'the scope of one this suite drives');
       await group('model and reveal', () => checkModelAndReveal(page));
