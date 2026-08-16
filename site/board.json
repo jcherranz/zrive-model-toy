@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T15:56:31Z",
+  "generated": "2026-08-16T15:59:55Z",
   "columns": [
     {
       "key": "raw",
@@ -33,6 +33,15 @@
             "idea"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
+        },
+        {
+          "id": 203,
+          "title": "The missing-instructor mark is reserved upright and painted italic, so its label box is the wrong width and nobody measured by how much",
+          "labels": [
+            "bug",
+            "layout"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/203"
         }
       ]
     },
