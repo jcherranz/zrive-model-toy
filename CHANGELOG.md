@@ -11,6 +11,84 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- **THE INSTRUMENT WAS WIDTH-BLIND ABOVE 980px, AND THAT IS #142, #143 AND #145 SEEN FROM THREE
+  DISTANCES.** He filed all three from a **2560 by 1317** viewport. `.brush` was `flex: 0 1 356px`
+  with a **grow of zero** and the highest breakpoint in `app.css` was `max-width: 980px`, so
+  **nothing in this header answered a screen wider than the 1536 it was drawn on**: measured on the
+  running page, the strip was **356 CSS px and the week 12.83 at 2560 and at 1536 alike**, and at
+  2560 the row is 2520 wide, its four items occupy 1252, and **1208 of it, 48 per cent, was space**.
+  One item in that row is an instrument that can use width and it was the one thing capped.
+- **THE WEEK IS 24 CSS px AND THAT IS A MEASUREMENT, NOT A ROUND FIGURE.** `term.js` maps a drag to
+  weeks as `Math.round(dx / cw)`, so the pointer travel that lands exactly one week runs from half a
+  week to one and a half: **the target for a one week slide is exactly one week wide**. At 12.83 that
+  target was half the **24 by 24 minimum this repository has held every control to since #77**, which
+  WCAG 2.2 SC 2.5.8 names. 24 is also, independently, the width at which `HANDLE * 3` stops
+  suppressing the two handles on a one week band, so below it the narrowest band the control can
+  express had no ends to grab. **Two arguments, one number.**
+- **AND THE WIDTH IS A LADDER OF MEASURED RUNGS AND NOT A SHARE OF THE FREE SPACE**, which is a
+  defect this card built and then measured. Growing beside the heading works and reintroduces what
+  #137 chose this slot to prevent: free space is what is left after everything else, so **anything
+  else in the row changing width changes the strip's**. The suite caught it at once, the value slot
+  moving **6.76 CSS px** between a one week window and a fourteen week one. Three `min-width` rules
+  instead, each under what the row can hold at the bottom of its band: **356 under 1500, 452 to
+  1699, 560 to 1899, 668 above**, giving **11.08, 15.08, 19.5 and 24.08 px per week**. The strip is
+  a function of the viewport and of nothing else.
+- **THE LABEL LEFT THE TRACK, AND ITS EXCEPTION WAS ITS RULE.** `9 Mar to 12 Apr` renders at 75.61
+  CSS px and the band is the window's share of the track, so at a 12.83 px week **the label fitted
+  inside the band from six weeks up, and nineteen of the twenty four window widths a reader can set
+  painted an opaque ground over about six columns** of the density the strip is worth its width for.
+  It is a slot after the right cap now, **the two dates stacked**, pinned once to the widest interval
+  the term can name. One behaviour, **no column covered at any width**, and **two visible characters
+  fewer**, since the word between the dates is gone while `aria-valuetext` and the title still carry
+  the whole phrase.
+- **A NUMBER THAT GAINS A DIGIT MUST NOT MOVE THE INSTRUMENT BESIDE IT.** Found while proving the
+  above and present since #139 deleted the readout plate: the nav is `flex: none`, so `work 5/22`
+  against `work 12/22` and `sessions` against `modules` changed its width and **carried the strip
+  6.76 px and then 0.84 px sideways**. Both values reserve the widest string they can ever hold,
+  measured once against the real font. The nav's width is now the same whatever the window is.
+- **DRAGGING THE STRIP WAS SLOW BECAUSE THE STRIP MEASURED, #145.** Before, at `#/p/ALL` on 2560, a
+  40 move drag of an eight week band crossed nine week boundaries and **rebuilt the drawing nine
+  times inside the pointer handler, 583.7ms of handler time over the drag and 96.5ms at worst**,
+  which is every one of those milliseconds a pointer event the browser could not deliver. Four
+  repairs, each measured with Chrome's own sampling profiler: **`placeLabel` deleted with the label,
+  289ms of 1470**; **the eager header measurement steps aside where a ResizeObserver is watching**,
+  459ms, since reading `offsetHeight` after the drawing is replaced forces a layout of a document
+  holding up to 2688 SVG elements; **the chip placer grows one array instead of joining two on every
+  candidate**; and **`windowChanged` is coalesced to one animation frame**, latest wins, trailing
+  guaranteed, synchronous where `requestAnimationFrame` is absent, with **the composed drawing
+  memoised on the canonical drawing's identity and the exact ordered list of kept ids**. After, over
+  four alternating runs: **pointer handler 583.7ms to 2.3ms and its worst move 96.5ms to 0.3ms**,
+  **cost per rebuild 64.8ms to 40.6ms on a first pass and 56.7ms to 28.4ms on a return**, where the
+  memo hits. A single programme at three weeks went 12.6ms to 10.4ms and 14.8ms to 8.5ms.
+- **NO SIDE REGION, AND THE CASE IS MADE WITH NUMBERS RATHER THAN REFUSED, #143.** He asked for a
+  right panel and flagged it himself as a loose idea. The header is **43 px of a 1317 px display**,
+  so making it taller takes from the drawing, which is the product. The horizontal surplus went to
+  the one thing in the row that is an instrument: **the strip took 312 of the 1208, and the row's
+  empty share fell from 47.7 to 35.3 per cent**. What is left is the space between the subject and
+  the instruments, which is #131's arrangement and is what keeps the nav a fixed distance from the
+  right edge while the subject changes under it. **A region may exist only if every part of it is a
+  reading of current state**; a panel of options is where deleted controls come back.
+- **Three assertions added to `the brush`, 288 to 291, each proved by planting the defect its name
+  describes.** That the value slot never moves and covers no column at five window widths from one
+  to twenty four; that the week reaches 24 at 2560 and differs from 1536, recomputed in the driver
+  off the rendered track rather than read off the page's own figure; that a drag rebuilds the
+  drawing **on a frame of its own and never inside the pointer handler**, read as the identity of the
+  svg's first child across the strip's own listener; and that **a window come back to is the same
+  composed drawing while a different one never is**, read as object identity in the page, which is
+  the trap Monetary Lab's audit log wrote down about a memo keyed on shape rather than values.
+- **Nothing else moves.** **Addresses 35** and this card adds none. **Control ELEMENTS 14 by the
+  suite's `header button, header a` query and 15 honest**, the difference being the strip, which
+  that query cannot see; the value slot is inside the strip and inside its one focus stop, so it
+  adds neither. **GROUPS 6, READINGS 0**, header **one row at 43px** at 1536 and at 2560, every
+  control **26 by 26**. **Phone chrome 107 of 844, share 0.1268**, against the ceiling of 0.1730 and
+  unmoved. **Visible characters 1825 to 1823.** **The fourteen drawing digests are untouched** and
+  nothing in `build/` was edited, which is what says the faster path draws the same picture.
+- **THE COST, SAID OUT LOUD.** Between about 1300 and 1499 the value slot costs the track 44 px and
+  **the week falls from 12.83 to 11.08**. The trade is the same one this card took everywhere: the
+  reader sees **24 of 24 columns at 11.08 px instead of about 17.6 at 12.83**, which is 266 px of
+  unobscured density against 226. On the phone it is 11.5 px against 13.25 by the same arithmetic,
+  274 against 233.
+
 - **AN ADDRESS THAT MEANS ONE THING COLD AND ANOTHER THING WARM IS NOT AN ADDRESS, #138.**
   `router.js` read the scope off the `#/p/` prefix and answered null to everything else, and the
   null became the union in a fallback that runs once, at construction. So **`#/` drew all seven to a

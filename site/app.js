@@ -842,6 +842,39 @@
     return absOf(all);
   })();
 
+  // A NUMBER THAT CHANGES DIGITS MUST NOT MOVE THE INSTRUMENT BESIDE IT. Issue 142, and it is a
+  // defect this card measured rather than one it built. #139 deleted the readout plate and put
+  // these two fractions in the nav, and the nav is `flex: none`, so its width is its content and
+  // the heading gives back the difference: everything between the heading and the nav shifts by
+  // whatever these two strings gain or lose. The term strip is what sits there. Measured on
+  // Z-BL, `unrecorded 5/73` for a five week window against `unrecorded 29/73` for fourteen weeks
+  // is 6.76 CSS px, so the one control on this page whose whole premise is that you point at a
+  // week and press it MOVED 6.76 px sideways when the reader widened the window, and every press
+  // after that landed half a week off where the last one did.
+  //
+  // SO EACH VALUE RESERVES THE WIDEST STRING IT CAN EVER HOLD, measured once against the real font
+  // in the element itself. The denominators are fixed and the numerators cannot exceed them, so
+  // the widest is the total over the total. Nothing is typed: the totals come from the model, and
+  // the width comes from the browser.
+  //
+  // THE RECT AND NOT `offsetWidth`, which is rounded to whole pixels: `22/22` renders at 30.48
+  // here and offsetWidth answers 30, and the two tenths left over came back as 0.97 px of the nav
+  // still moving. Measured that way and repaired that way.
+  function reserveWidest(el, words, align) {
+    if (!el || !words.length) return;
+    var was = el.textContent, w = 0, i;
+    for (i = 0; i < words.length; i++) {
+      el.textContent = words[i];
+      w = Math.max(w, el.getBoundingClientRect().width);
+    }
+    el.textContent = was;
+    el.style.display = 'inline-block';
+    el.style.minWidth = (Math.ceil(w * 100) / 100) + 'px';
+    el.style.textAlign = align;
+  }
+  reserveWidest(absWorkVal, [ABS_ALL.work + '/' + ABS_ALL.work], 'right');
+  reserveWidest(absUnrecVal, [ABS_ALL.unrec + '/' + ABS_ALL.unrec], 'right');
+
   // The window in the words the window's own control uses, so the two cannot come to describe the
   // same weeks differently. term.js writes the sentence; nothing here composes one.
   function windowWords() {
@@ -1000,6 +1033,14 @@
   var grMenu = document.getElementById('grmenu');
   // Issue 120, and the same split as the gap count's: the label is markup and the value is code.
   var grVal = document.getElementById('grval');
+  // AND THE ALTITUDE'S OWN VALUE, for the reason the two fractions above reserve theirs. Issue 142.
+  // The control states what it is set to, `sessions` or `modules`, and those are 48.0 and 47.16
+  // CSS px, so widening a window far enough to trip the node budget swaps the word, shortens the
+  // nav and carries the term strip 0.84 px to the right. Smaller than the 6.76 the fractions cost
+  // and the same defect: the instrument moved because a word beside it changed. The two words come
+  // from the same place the control's own text does, so a third altitude would be reserved for
+  // without anybody editing this.
+  reserveWidest(grVal, ['sessions', 'modules'], 'left');
 
   function grainMenuOpen() { return !!grMenu && !grMenu.hidden; }
 

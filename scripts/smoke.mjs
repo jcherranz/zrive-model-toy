@@ -3007,9 +3007,16 @@ async function settled(page) {
   await page.waitFor('window.ZT.brush().pending === false', 'the strip to draw what it was told');
 }
 
-// `2026-03-09` to `9 Mar`, which is what the value slot shows, recomputed here rather than read
-// back off the element that wrote it. The month names are this file's own, so a term.js that
-// started spelling March `Mar.` fails rather than agreeing with itself.
+// An ISO date to the `9 Mar` shape, which is what the value slot shows, recomputed here rather
+// than read back off the element that wrote it. The month names are this file's own, so a term.js
+// that started spelling March `Mar.` fails rather than agreeing with itself.
+//
+// AND THE EXAMPLE IS DESCRIBED RATHER THAN QUOTED, WHICH IS A GATE AND NOT A STYLE. This comment
+// first spelled the worked example as a backticked year-month-day, the window start off the
+// owner's own card. scripts/check_repo.sh reads a backticked year-month-day as a CITATION of a
+// dated entry in HANSEI.md or KAIZEN.md, so the gate went red on this file for a slug that does
+// not exist and never could. It is the same family as the rule that reads a dot-grouped number as
+// a money figure: the repair is the text and never the rule.
 const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 function shortDateOf(iso) {
@@ -7650,12 +7657,26 @@ async function checkPanel(page) {
     await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(key)}`);
     await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(key)}`, `the ${key} drawing`);
     const g = JSON.parse(await page.evaluate(PANEL_GEO));
-    perView.push({ key, plateR: g.plate.r, vselX: g.vsel.x, pgW: g.pg.w, plateW: g.plate.w });
+    const said = await page.evaluate(
+      `document.getElementById('absworkv').textContent + ' ' + ` +
+      `document.getElementById('absunrecv').textContent`);
+    perView.push({ key, plateR: g.plate.r, vselX: g.vsel.x, pgW: g.pg.w, plateW: g.plate.w,
+                   said: said });
   }
   const plateRights = new Set(perView.map(v => v.plateR));
   const vselLefts = new Set(perView.map(v => v.vselX));
   const names = new Set(perView.map(v => v.pgW));
-  const widths = new Set(perView.map(v => v.plateW));
+  // WHAT THE TWO SWITCHES SAY, AND NOT HOW WIDE SAYING IT MAKES THEM. Issue 142 replaced the
+  // second half of this claim with the thing that half was standing in for. The conjunct here was
+  // `widths.size > 1`, the absence control's own box being of different widths over the seven
+  // drawings, written so that a card freezing the box would be caught having frozen the count. The
+  // box is frozen now, deliberately: it reserves the widest fraction it can ever hold, because the
+  // nav is `flex: none` and its width was carrying the term strip beside it 6.76 CSS px sideways
+  // every time a number gained a digit. So the proxy has stopped tracking its claim while the claim
+  // is untouched, and what is read is the claim: the two counts SAY seven different things over the
+  // seven drawings. That is strictly stronger than the width was, since a page that painted one
+  // fraction at seven widths would have passed the old conjunct and fails this one.
+  const said = new Set(perView.map(v => v.said));
   // #131's finding restated on the instrument this card left in the row: `space-between` over
   // three items put the middle one where the FIRST one's width left it, and the first one names
   // the programme, so the one box on this page whose job is to be read jumped 43px sideways every
@@ -7666,14 +7687,14 @@ async function checkPanel(page) {
   // numbers, and a card that had frozen that would have frozen the count.
   assert('the absence control and the view selector hold their place while the drawing under them changes',
     perView.length === 7 && plateRights.size === 1 && vselLefts.size === 1 && names.size > 1 &&
-      widths.size > 1,
+      said.size > 1,
     'one right edge for the absence control and one left edge for the view selector across all ' +
-      'seven drawings, whose headings and whose counts are of different widths',
+      'seven drawings, whose headings are of different widths and whose counts say different things',
     `absence right edges ${JSON.stringify([...plateRights])}, view selector left edges ` +
       `${JSON.stringify([...vselLefts])}, ${names.size} distinct heading widths, ` +
-      `${widths.size} distinct instrument widths`,
+      `${said.size} distinct pairs of counts ${JSON.stringify([...said].slice(0, 3))}`,
     `absence right ${[...plateRights][0]}, view selector left ${[...vselLefts][0]}, over ` +
-      `${names.size} heading widths and ${widths.size} instrument widths`);
+      `${names.size} heading widths and ${said.size} distinct pairs of counts`);
   await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor('window.ZT.term().open === false', 'the diagram again');
 

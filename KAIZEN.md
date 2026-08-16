@@ -436,3 +436,42 @@ build on a cited slug that resolves to nothing.
   that fell over. Run the gates and the suite one after another, and read `no view`, `undefined` and
   a whole phase group failing at once as a question about the bytes before it is a question about the
   code.
+- `kaizen-an-instrument-sized-by-free-space-is-sized-by-everything-else` &middot; **A control given
+  `flex-grow` is a control whose width is whatever the row has left over, so every other item in
+  that row becomes an input to it.** Issue 142 widened the term strip by letting it share the row's
+  surplus with the heading, which works and quietly makes the strip's own scale a function of the
+  nav's text: `work 5/22` against `work 12/22` is 6.76 CSS px, `sessions` against `modules` is 0.84,
+  and both of them moved the track a reader was pointing at. That is the defect #137 chose this slot
+  in the row to prevent, met one level down and not visible in any diff. Two countermeasures, and
+  they are both cheap. **Size an instrument from the viewport rather than from the remainder**, with
+  breakpoints, so its width is a function of one thing a reader can see; and **reserve the width of
+  any value that states a count or a name beside it**, measured once against the real font from the
+  widest string it can ever hold, so a number gaining a digit does not move its neighbours.
+- `kaizen-the-later-rule-wins-so-a-breakpoint-belongs-after-what-it-raises` &middot; **A media query
+  raising one longhand loses to a shorthand declared later in the file at the same specificity, and
+  the page looks exactly as it did before.** The three `min-width` rungs that widen the strip were
+  first written beside the other breakpoints, above `.brush`, where `flex-basis: 452px` lost to
+  `flex: 0 1 356px` below it; the stylesheet said the strip grows, and the strip was 356 at 2560 and
+  at 1366 alike. Found by driving the real page and reading the rendered week, not by reading the
+  file. This is `kaizen-a-new-control-inherits-the-old-ones-defects-not-its-repairs` at the level of
+  ordering rather than of inheritance, and the same repair applies: put the block after the base
+  rules rather than reaching for a specificity hack.
+- `kaizen-the-ux-defect-and-the-performance-defect-were-the-same-line` &middot; **When a control is
+  both slow and awkward, measure before you split the work: the two complaints can have one cause.**
+  #142 said the term strip's implementation was not the best and #145 said dragging it rendered the
+  diagram very, very slowly, and they were dispatched as separate concerns. The single largest frame
+  in a sampling profile of three drags was `placeLabel`, at 289ms of 1470, which is the function that
+  decided whether the band's label sat on the band or beside it; it read four rendered widths on
+  every repaint and was wired to a ResizeObserver as well. **Deleting the label from the track fixed
+  the appearance defect and removed the largest cost of the gesture in the same edit.** The rule is
+  not that this always happens; it is that a performance card and a craft card pointed at the same
+  control should share one profile before they share a plan.
+- `kaizen-a-backticked-date-is-read-as-a-citation` &middot; **A year-month-day inside backticks in
+  any tracked file is read by `scripts/check_repo.sh` as a citation of a dated entry, and the gate
+  goes red for a slug that does not exist and never could.** It cost a red run on a comment in
+  `scripts/smoke.mjs` that used the window start off the owner's own card as a worked example of a
+  date format. `CITATION_USE_RE` matches a backticked year-month with an optional day followed by
+  lower-case words, so a bare date in prose is safe and a backticked one is not. This is the same
+  family as the rule that reads a comma or dot grouped number as a money figure, and the repair is
+  the same: **change the text, never the rule.** Describe the shape instead of quoting an instance,
+  or build the value from parts.
