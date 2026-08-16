@@ -155,6 +155,7 @@ jobs:
       # reason every other phase does: each is a group() that reports its own throw and does not
       # stop the run, and the grain phases get a browser of their own, so a viewport that never
       # opened costs them nothing.
+      # verify-step: smoke-local
       - name: The page behaves, at every width and at both altitudes
         run: |
           set +e

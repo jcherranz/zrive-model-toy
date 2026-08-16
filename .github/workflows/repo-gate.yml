@@ -50,10 +50,49 @@ jobs:
           FORBIDDEN_NAMES_SHA256: ${{ secrets.FORBIDDEN_NAMES_SHA256 }}
         run: bash scripts/ci_register.sh
 
+      # THE CHEAPEST CHECK IN THE REPOSITORY, AND UNTIL NOW THE ONE CI DID NOT RUN. Issue 168
+      # R4(e). `node --check` over the shipped scripts is step 1 of scripts/verify.sh and it was
+      # in no workflow at all, which matters more here than anywhere: site/ has no build step, so
+      # a syntax error in a shipped file is caught by nothing until a reader opens the page and
+      # it draws nothing. This repository has shipped a blank page once already
+      # (HANSEI.md `2026-08-09-screenshot-before-javascript`).
+      #
+      # It is here rather than in build.yml because it is about the tracked files and takes no
+      # Python, which is this workflow's whole shape. The runner image ships node.
+      # verify-step: syntax
+      - name: Every shipped script parses
+        run: |
+          set -euo pipefail
+          bad=0
+          for f in site/*.js scripts/*.mjs; do
+            if node --check "$f"; then
+              echo "  [OK]   $f"
+            else
+              echo "::error file=$f::$f does not parse"
+              bad=1
+            fi
+          done
+          exit $bad
+
+      # AND THE LIST THIS STEP BELONGS TO IS CHECKED AGAINST THE LIST OVER THERE. Issue 168
+      # R4(e). The step above closes one instance of a drift; this closes the structure that
+      # produced it, by joining every step scripts/verify.sh registers to the workflow step that
+      # claims it. It is static, it runs no browser and no build, and it belongs in the workflow
+      # that is already the fast one.
+      # verify-step: ci-drift-armed
+      - name: Prove the CI drift check fires
+        run: bash scripts/check_ci_drift.sh --self-test
+
+      # verify-step: ci-drift
+      - name: Every step scripts/verify.sh runs is run by a workflow
+        run: bash scripts/check_ci_drift.sh
+
       # Jidoka. Prove the gate is armed before believing it when it says clean. A gate that
       # cannot be shown to fire is not a gate.
+      # verify-step: repo-gate-armed
       - name: Prove the repository gate fires
         run: bash scripts/check_repo.sh --self-test
 
+      # verify-step: repo-gate
       - name: Repository gate, over every tracked file
         run: bash scripts/check_repo.sh
