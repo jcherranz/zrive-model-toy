@@ -13381,14 +13381,15 @@ async function checkRingAndRail(page) {
 const CHIP_READ = `(function () {
   var chips = Array.prototype.slice.call(document.querySelectorAll('.cal-chip'));
   if (!chips.length) return JSON.stringify({ why: 'no calendar chip is on the screen' });
-  var wrong = [], sr = 0;
+  var wrong = [], wrongN = 0, sr = 0;
   chips.forEach(function (c) {
     var spoken = Array.prototype.slice.call(c.childNodes).filter(function (n) {
       return !(n.nodeType === 1 && n.getAttribute('aria-hidden') === 'true');
     }).map(function (n) { return n.textContent; }).join('').trim();
     if (spoken) sr++;
     if (spoken !== String(c.getAttribute('title') || '').trim()) {
-      wrong.push((c.textContent || '').slice(0, 24));
+      wrongN++;
+      if (wrong.length < 3) wrong.push((c.textContent || '').slice(0, 24));
     }
   });
   var gap = document.querySelector('.cal-chip.cal-gap');
@@ -13399,7 +13400,7 @@ const CHIP_READ = `(function () {
     mark = { style: a.borderLeftStyle, other: b.borderLeftStyle,
              colour: a.borderLeftColor !== b.borderLeftColor };
   }
-  return JSON.stringify({ why: '', n: chips.length, spoken: sr, wrong: wrong.slice(0, 3),
+  return JSON.stringify({ why: '', n: chips.length, spoken: sr, wrongN: wrongN, wrong: wrong,
                           gaps: document.querySelectorAll('.cal-chip.cal-gap').length, mark: mark });
 })()`;
 
@@ -13453,8 +13454,14 @@ async function checkReach(page, base) {
     if (had) view.setAttribute('inert', '');
     return JSON.stringify({
       outside: out.length,
-      stray: out.filter(function (el) { return !el.closest('header'); })
-               .map(function (el) { return el.id || el.className; }),
+      // Named rather than printed as an object, which is the difference between a failure a
+      // reader can act on and one they cannot: className on an SVG element is an
+      // SVGAnimatedString and JSON.stringify writes it as an empty object.
+      stray: out.filter(function (el) { return !el.closest('header'); }).map(function (el) {
+        return el.id ||
+               (typeof el.className === 'string' ? el.className : el.getAttribute('class')) ||
+               el.tagName;
+      }),
       loose: loose,
       inert: had,
       panelClose: !!document.getElementById('close') &&
@@ -13534,14 +13541,14 @@ async function checkReach(page, base) {
   await page.waitFor(`document.querySelectorAll('.cal-chip').length > 0`, 'the month grid to draw');
   const chip = JSON.parse(await page.evaluate(CHIP_READ));
   assert('every calendar chip says its five facts in the document, and a gap is marked otherwise than by colour',
-    !chip.why && chip.n > 0 && chip.spoken === chip.n && chip.wrong.length === 0 &&
+    !chip.why && chip.n > 0 && chip.spoken === chip.n && chip.wrongN === 0 &&
       chip.gaps > 0 && !!chip.mark && chip.mark.style !== chip.mark.other && chip.mark.colour,
     'every chip carrying its whole row as text that is not aria-hidden, and the no-instructor ' +
       'chips differing from the rest in something that is not a colour',
     chip.why
       ? chip.why
-      : `${chip.spoken} of ${chip.n} chips speak, ${chip.wrong.length} disagree with their own ` +
-        `title${chip.wrong.length ? ' (' + chip.wrong.join(', ') + ')' : ''}, ` +
+      : `${chip.spoken} of ${chip.n} chips speak, ${chip.wrongN} disagree with their own ` +
+        `title${chip.wrong.length ? ' (first: ' + chip.wrong.join(', ') + ')' : ''}, ` +
         `${chip.gaps} gaps marked ${JSON.stringify(chip.mark)}`,
     `${chip.n} chips, ${chip.gaps} of them gaps, marked ${chip.mark && chip.mark.style} against ` +
       `${chip.mark && chip.mark.other}`);
