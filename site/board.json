@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T12:25:42Z",
+  "generated": "2026-08-16T13:08:02Z",
   "columns": [
     {
       "key": "raw",
@@ -39,17 +39,7 @@
     {
       "key": "backlog",
       "title": "Backlog",
-      "cards": [
-        {
-          "id": 195,
-          "title": "A prune twice as aggressive moves 10257 chip boxes and the suite passes 314 of 314 clean",
-          "labels": [
-            "bug",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/195"
-        }
-      ]
+      "cards": []
     },
     {
       "key": "in_progress",
@@ -72,6 +62,15 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/170"
+        },
+        {
+          "id": 195,
+          "title": "A prune twice as aggressive moves 10257 chip boxes and the suite passes 314 of 314 clean",
+          "labels": [
+            "bug",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/195"
         },
         {
           "id": 196,
