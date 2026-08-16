@@ -70,17 +70,38 @@ of what changed and when, and it is meant to be scannable.
   pairs `collect()` declares in the same 7. Five assertions: nothing fell back; every context
   asked for is one the job declares, and every pair with it; **every context the job declares is
   asked for, with a population**, which is the one that sees a whole term go missing; every string
-  the fourteen drawings paint was measured, counted by kind (**38 caption lines, 377 label lines,
-  1 mark, 39 tails, 17 verbs, 472 distinct strings**) and read off the two documents the builder
-  just wrote rather than off its arguments; and every drawn label line was measured in **both**
+  the drawings carry was measured, counted by kind (**38 caption lines, 377 label lines, 1 mark,
+  39 tails, 17 verbs, 472 distinct strings**); and every drawn label line was measured in **both**
   faces the page paints it in, at rest and selected, with the keys composed from `.node .lbl`,
-  `.node.sel .lbl` and `.lbl-ghost` rather than from the literals at the call site.
+  `.node.sel .lbl` and `.lbl-ghost` rather than from the literals at the call site. **The drawing
+  count is pinned to `EXPECTED_DRAWINGS`**, the same terminator the digest census reads, and shown
+  to refuse a number the run does not produce: a census over one drawing satisfies every
+  containment above and `> 0` cannot tell it from a census over fourteen.
+  **Where each population comes from is split, and the split is the correction an independent
+  adversarial read forced.** A mark, a tail and an edge verb are strings `build/model.py` declares,
+  so they are taken from `ALL_VIEWS` and the comparison is with something that has never heard of
+  `build_layout.py`. A label line and a painted caption line cannot come from anywhere but the
+  builder: where a label breaks and which alternate caption a lane gets are its own decisions. For
+  those two the claim is the narrow one and is written in the narrow form, **whatever lines it
+  decided to draw, it measured them**, because a defect that changes the breaks moves that
+  expectation with it.
   **The expectation is not derived from the subject**, which is the trap #206 records: the
   comparison's other side is `collect()`, which reads its sizes and weights out of `site/app.css`
-  and its strings out of `build/model.py`, and the documents the page loads. What it does **not**
-  say is stated in its own header: it holds the arguments and not the arithmetic, so a `reserve()`
-  returning half the maximum it computes would ask for everything this gate wants asked and pass.
-  **Six mutations proved red by making them, 119 probes to 131.** The four the card lists, plus two
+  and its strings out of `build/model.py`, and `ALL_VIEWS`.
+  **What it does not say, and the first draft got the reason backwards.** It holds the arguments
+  and not the arithmetic: `reserve()` with its `max` changed to a `min` asks for every width this
+  gate wants asked, in every face, and passes. The draft said the box is held anyway by the lane
+  gate inside `layout()`. **It is not, in the direction that matters.** `lane_slack()` is
+  `min(x - lw/2 - x0, x1 - x - lw/2)`, so a smaller reserve makes the slack larger and that gate
+  quieter; it can only catch a box that grew, and under-reserving is the whole of #203 and the
+  whole of this card. Measured: that `min` takes the tightest label from 0.0px of lane to 5.6px,
+  stops the issue 43 re-break firing on `pe_st4` and `sc_st14`, and puts both outside their lane
+  on a click, with every gate green. It is caught in the ordinary workflow only by check 1,
+  because it moves `site/layout.js`; a workflow that rebuilds and stages first loses that, and the
+  matching `caption_overflow()` case moves no byte at all because that function's answer only ever
+  feeds a `sys.exit`. **Nothing anywhere proves the answer was used**, which is a card and not a
+  line, because the reserve is a local inside `layout()` and reaches neither document.
+  **Six mutations proved red by making them, 119 probes to 138.** The four the card lists, plus two
   the card does not: the same `reserve()` asking the bold width of **only the first line** of a
   wrapped label, which leaves both contexts populated and is caught by the per-line assertion
   instead; and the tail term dropped from `:456`, which empties no context and strays into none,
@@ -89,7 +110,16 @@ of what changed and when, and it is meant to be scannable.
   table, so nothing under `build/` is written to. **Two controls, not one**: the same builder
   copied through the fixture unchanged still passes, and an edit whose search string matches no
   line answers 9, which no probe expects, so a probe gone stale goes red as a broken probe rather
-  than silently testing nothing.
+  than silently testing nothing. **And the five paths that say "I could not look" are proved armed
+  rather than merely written**: a builder that is not there, one that refuses to build, one that
+  runs and lays out all fourteen drawings but stops recording what it asked the table for, and a
+  run that laid out a number of drawings this check does not intend.
+  **Two sentences in the first draft were false and an independent adversarial read caught both.**
+  It said dropping any of the three call-site arguments "changes no painted byte"; measured, the
+  ghost chip's italic flag and the caption's caps flag leave `site/layout.js` identical but the
+  reserve's bold term and the mark's weight both move it. And the closing advice, "the fix is at
+  the call site and not in the table", is wrong in exactly #215's case, where half the fix is
+  `collect()` and a regenerated table. Both are corrected in the file.
   **Assertion D is about the string and not the context it was asked in, deliberately.** The
   stylesheet paints a mark at nine pixels **italic** and the builder still measures it upright;
   that is the disagreement #206 pinned in `FACE_KNOWN` and **#215** repairs. Making D
