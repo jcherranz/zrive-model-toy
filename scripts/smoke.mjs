@@ -280,7 +280,7 @@ const PHASES = {
   'the empty window':     { count: 6, when: 'behavioural' },
   'the review':           { count: 7, when: 'behavioural' },
   'the worklist':         { count: 7, when: 'behavioural' },
-  'the cut':              { count: 8, when: 'behavioural' },
+  'the cut':              { count: 9, when: 'behavioural' },
   'the modified drag':    { count: 6, when: 'behavioural' },
   'the brush':            { count: 14, when: 'behavioural' },
   'absence':              { count: 10, when: 'behavioural' },
@@ -565,7 +565,7 @@ const PHASES = {
 // assertion is repaired in the same commit rather than counted again: its three arrivals were
 // fragment navigations that built no document, so the union it called `read cold` was the scope the
 // page had been constructed with, and it reloads now.
-const EXPECTED_ASSERTIONS = 297;
+const EXPECTED_ASSERTIONS = 298;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -4033,30 +4033,36 @@ async function checkTerm(page) {
   // screen. Written as "no heading, and named exactly once elsewhere" rather than as "empty",
   // because an empty heading is a thing this page must not ship either: the h1 is out of the
   // accessibility tree on that route rather than sitting in it with no name.
-  const outlineNaming = JSON.parse(await page.evaluate(`JSON.stringify((function () {
+  const NAMING = `(function () {
     var h = document.querySelector('h1');
     var r = h.getBoundingClientRect();
-    return { text: h.innerText.trim(),
-             visibility: getComputedStyle(h).visibility,
-             boxKept: r.width > 0,
-             h2: (document.getElementById('termtitle') || {}).textContent || '',
-             switchCurrent: (function () {
-               var a = document.querySelector('.term-switch [aria-current="true"]');
-               return a ? a.textContent : null;
-             })() };
-  })())`));
-  const namedRoutes = [headingDiagram, cal.heading.trim()];
-  assert('each reading is named exactly once, and the one with no heading inherits nobody else\'s',
-    new Set(namedRoutes).size === 2 && namedRoutes.every(h => h.length > 0) &&
-      outlineNaming.text === '' &&
-      outlineNaming.visibility === 'hidden' && outlineNaming.boxKept === true &&
-      outlineNaming.switchCurrent === 'outline' &&
-      /outline/.test(outlineNaming.h2),
-    'the diagram and the calendar carrying two different headings, and the outline carrying no ' +
-      'heading at all, out of the accessibility tree, keeping its box, named by the reading ' +
-      'control and by the sheet\'s own title',
-    `${namedRoutes.map(h => JSON.stringify(h)).join(' | ')}; outline ` +
-      JSON.stringify(outlineNaming));
+    return JSON.stringify({ text: h.innerText.trim(),
+      visibility: getComputedStyle(h).visibility,
+      boxKept: r.width > 0,
+      h2: (document.getElementById('termtitle') || {}).textContent || '',
+      switchCurrent: (function () {
+        var a = document.querySelector('.term-switch [aria-current="true"]');
+        return a ? a.textContent : null;
+      })() });
+  })()`;
+  const naming = {};
+  for (const [at, key] of [['#/outline', 'outline'], ['#/calendar', 'calendar']]) {
+    await page.evaluate(`location.hash = ${JSON.stringify(at)}`);
+    await page.waitFor(`window.ZT.term().reading === ${JSON.stringify(key)}`, `the ${key}`);
+    await sleep(120);
+    naming[key] = JSON.parse(await page.evaluate(NAMING));
+  }
+  const named = k => naming[k].text === '' && naming[k].visibility === 'hidden' &&
+    naming[k].boxKept === true && naming[k].switchCurrent === k &&
+    naming[k].h2.indexOf(k === 'outline' ? 'outline' : 'term') !== -1;
+  assert('each reading is named exactly once, and neither inherits the heading before it',
+    headingDiagram.length > 0 && named('outline') && named('calendar'),
+    'the diagram keeping its own heading, and both readings of the term carrying no page ' +
+      'heading at all, out of the accessibility tree, keeping the box the row is laid out on, ' +
+      'each named by the reading control and by the sheet\'s own title',
+    `diagram ${JSON.stringify(headingDiagram)}; ${JSON.stringify(naming)}`);
+  await page.evaluate(`location.hash = '#/outline'`);
+  await page.waitFor(`window.ZT.term().reading === 'outline'`, 'the outline back');
 
   await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor('window.ZT.term().open === false', 'the term sheet to close');
@@ -5794,13 +5800,14 @@ async function checkCut(page, base) {
       return JSON.stringify({ head: h, lead: lead ? lead.textContent.trim() : null });
     })()`));
     const scoped = /^#\/(calendar|outline)\/(.+)$/.exec(at);
-    // ISSUE 152 SPLIT THIS BY READING AND THAT MAKES IT STRICTER RATHER THAN LOOSER. The outline's
-    // typed heading is deleted, because it named the view and explained its ordering and the page
-    // already said both; the calendar's is not. So a missing heading is a defect on one reading
-    // and the required state on the other, and this now says WHICH, instead of demanding one
-    // everywhere. Before the split a heading that vanished from the calendar would have been the
-    // same finding as one that vanished from the outline; now only the first is.
-    const wantsHeading = !/^#\/outline/.test(at);
+    // ISSUE 152 DELETED THE OUTLINE'S TYPED HEADING AND ISSUE 153'S SWEEP DELETED THE CALENDAR'S,
+    // so on a sheet address there is now no typed heading at all and the claim this assertion
+    // makes is the strongest form of the one it started with. It began as "the heading names no
+    // scope", which a heading naming nothing satisfies vacuously; it now requires that there is no
+    // heading to name anything WITH, on every one of the sixteen, while the scope goes on being
+    // stated below in the words each address earns. A heading that came back would be a heading
+    // typed into a file that cannot vary, printed over sixteen addresses that do.
+    const wantsHeading = false;
     if (!wantsHeading) {
       if (seen.head !== null) headBad.push(at + ' :: has a heading and should have none: ' + seen.head);
     } else if (!seen.head || /\d/.test(seen.head) || /\b(all|seven|every)\b/i.test(seen.head) ||
@@ -5813,10 +5820,137 @@ async function checkCut(page, base) {
   assert('the heading typed into the document names no scope, and the sheet under it names the one the address earns',
     sheetRoutes.length === 16 && headBad.length === 0 && scopeBad.length === 0,
     `over all ${sheetRoutes.length} sheet addresses: no count, no quantifier and no programme ` +
-      'code in the calendar\'s heading, no heading at all on the outline\'s, and the scope ' +
-      'stated below both in the words each address earns',
+      'code in any heading, because neither reading has one, and the scope stated below in the ' +
+      'words each address earns',
     `${headBad.length} headings claiming a scope ${JSON.stringify(headBad.slice(0, 3))}, ` +
       `${scopeBad.length} sheets stating the wrong one ${JSON.stringify(scopeBad.slice(0, 3))}`);
+
+  // ---- 3b. the sweep, issue 153, and it reports three states -----------------------------
+  // "what value does `4 rows here` add?", and the instruction with it: hunt for this kind of
+  // redundant text. The rule the sweep ran on, and the one this assertion holds:
+  //
+  //   A READING MUST TELL YOU SOMETHING THE PAGE IS NOT ALREADY SHOWING YOU. A count a reader
+  //   could obtain by counting what is on screen goes; a count over a population the screen does
+  //   not contain stays.
+  //
+  // WHAT IS ASSERTED IS THE DELETED CLASS AND THE KEPT ONE TOGETHER, because a sweep that only
+  // asserted absences would be satisfied by a page that had deleted the readings too, and this
+  // repository has already spent one card putting back a figure a deletion pass took with it.
+  //
+  // ---- AND IT REPORTS OK, NOTHING AND BLIND, WHICH ARE THREE STATES AND NOT TWO ---------------
+  // Every dead instrument this repository has found is one shape: a check that could not tell "I
+  // looked and found nothing" from "I could not look". A sweep is the most exposed thing there is
+  // to it, because a surface that failed to render holds no text, and no text is exactly what a
+  // clean surface looks like. So each surface ends in exactly one of three states, they are
+  // counted apart, and the assertion refuses a run with ANY surface it could not read as well as
+  // one with a finding on a surface it could. The counts are in the pass message, so a green run
+  // says how many surfaces it actually visited rather than implying it.
+  const swept = [];
+  const sweepRoutes = ['#/', '#/board', '#/students'].concat(sheetRoutes);
+  const sweepStops = [];
+  for (const r of sweepRoutes) {
+    sweepStops.push(r);
+    // A block that is not open is not in the document at all, so the outline is read both ways.
+    if (/^#\/outline/.test(r)) sweepStops.push(r + '?open=all');
+  }
+  const SWEEP_READ = `(function () {
+    function vis(el) {
+      var s = getComputedStyle(el);
+      return s.display !== 'none' && s.visibility !== 'hidden';
+    }
+    function own(el) {
+      var t = '';
+      for (var i = 0; i < el.childNodes.length; i++) {
+        var c = el.childNodes[i];
+        if (c.nodeType === 3) t += c.nodeValue;
+      }
+      return t.replace(/\\s+/g, ' ').trim();
+    }
+    var out = [], chars = 0;
+    (function walk(el) {
+      if (el.nodeType !== 1 || el.hidden) return;
+      if (el.namespaceURI !== 'http://www.w3.org/2000/svg' && !vis(el)) return;
+      var t = own(el);
+      if (t) {
+        chars += t.length;
+        var c = el.className;
+        if (c && typeof c === 'object') c = c.baseVal;
+        out.push({ at: el.nodeName.toLowerCase() +
+                       (c ? '.' + String(c).trim().split(/\\s+/)[0] : ''), t: t });
+      }
+      for (var i = 0; i < el.children.length; i++) walk(el.children[i]);
+    })(document.body);
+    return JSON.stringify({ chars: chars, items: out.length, text: out });
+  })()`;
+  for (const stop of sweepStops) {
+    const rec = { stop, state: 'BLIND', why: null, chars: 0, items: 0, text: [] };
+    try {
+      await page.evaluate(`location.hash = ${JSON.stringify(stop)}`);
+      // Satisfied by every answer the page could give, the wrong ones included: it waits on the
+      // address bar, which reads back what was typed into it whether the page redraws, redraws
+      // wrongly, or ignores the address entirely.
+      await page.waitFor(`location.hash === ${JSON.stringify(stop)}`,
+        `the address bar to read ${stop}`);
+      await sleep(150);
+      // And the page has to say it drew, rather than a hash change being taken for a render.
+      const drew = await page.evaluate(`!!(window.ZT && window.ZT.roster)`);
+      if (!drew) { rec.why = 'the page never published ZT'; swept.push(rec); continue; }
+      const r = JSON.parse(await page.evaluate(SWEEP_READ));
+      rec.chars = r.chars; rec.items = r.items; rec.text = r.text;
+      rec.state = r.items === 0 ? 'NOTHING' : 'OK';
+    } catch (e) {
+      rec.why = String(e && e.message ? e.message : e);
+    }
+    swept.push(rec);
+  }
+  const blind = swept.filter(s => s.state === 'BLIND');
+  const nothing = swept.filter(s => s.state === 'NOTHING');
+  // THE CLASS THAT WENT, named by its shape rather than by its words, so a page that reworded it
+  // is still caught: a module heading carrying a row count, and a programme heading carrying a
+  // delivery total, and either of the two typed page headings for a reading of the term.
+  const restated = [];
+  for (const s of swept) {
+    for (const it of s.text) {
+      if (/^th/.test(it.at) && /\brows? here\b/.test(it.t)) restated.push(s.stop + ' :: ' + it.t);
+      if (/^th/.test(it.at) && /\d+\s+deliver(y|ies)\b/.test(it.t)) {
+        restated.push(s.stop + ' :: ' + it.t);
+      }
+      if (/^span\.h-(calendar|outline)$/.test(it.at)) restated.push(s.stop + ' :: ' + it.t);
+    }
+  }
+  // AND THE CLASS THAT STAYED, on the same walk, because the sweep has to be checkable in both
+  // directions. Each of these is a count over a population the screen does not contain: how much
+  // of a programme's syllabus these documents drew, how much of the term a chip's drawing holds,
+  // and the two absence populations that never add.
+  const keptKinds = {
+    'the programme heading\'s module and syllabus clause':
+      swept.some(s => s.text.some(it => /modules over|no module structure recorded/.test(it.t))),
+    'a scope chip\'s own fraction':
+      swept.some(s => s.text.some(it => /^\d+\/\d+$/.test(it.t))),
+    'the two absence populations':
+      swept.some(s => s.text.some(it => /^\d+\/\d+$/.test(it.t))) &&
+      swept.some(s => s.text.some(it => it.t === 'unrecorded')),
+    'the sheet\'s own sample clause':
+      swept.some(s => s.text.some(it => /of the \d+ sessions? templates? the model counts/.test(it.t) ||
+                                        /of the \d+ sessions the model counts/.test(it.t)))
+  };
+  const lostKinds = Object.keys(keptKinds).filter(k => !keptKinds[k]);
+  assert('no count on any surface restates what the surface is already showing, and the readings stayed',
+    swept.length >= 27 && blind.length === 0 && nothing.length === 0 &&
+      restated.length === 0 && lostKinds.length === 0,
+    `every one of the ${sweepStops.length} surfaces read, none of them blind, no module row ` +
+      'count, no delivery total on a programme heading and no typed heading on either reading ' +
+      'of the term, and all four kinds of reading still on the page',
+    blind.length || nothing.length
+      ? `${blind.length} blind ${JSON.stringify(blind.slice(0, 3).map(b => [b.stop, b.why]))}, ` +
+        `${nothing.length} holding no text ${JSON.stringify(nothing.slice(0, 3).map(b => b.stop))}`
+      : restated.length || lostKinds.length
+        ? `${restated.length} restating ${JSON.stringify(restated.slice(0, 4))}, ` +
+          `${lostKinds.length} reading(s) lost ${JSON.stringify(lostKinds)}`
+        : `${swept.length} surfaces visited: ${swept.length} read, 0 empty, 0 blind`,
+    `${swept.length} surfaces visited, ${swept.filter(s => s.state === 'OK').length} read, ` +
+      `${nothing.length} empty, ${blind.length} blind, ` +
+      `${swept.reduce((a, s) => a + s.chars, 0)} visible characters over all of them`);
 
   // ---- 4. and the fraction the cut had to keep -------------------------------------
   // The students card's note lost three of its four sentences and kept the one figure in it: how

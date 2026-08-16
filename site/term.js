@@ -2492,9 +2492,30 @@
       // thing on this sheet and turns issue 113's alignment red. Inside it, the anchor's own left
       // edge is where it always was and the number is the first thing painted on the row, which
       // is where a heading number belongs anyway.
+      // ---- ISSUE 153, AND WHAT CAME OFF THESE TWO HEADINGS -------------------------
+      // "what value does `4 rows here` add?", and the instruction with it: hunt for this kind of
+      // redundant text. The rule the sweep ran on, which is measurable rather than a taste:
+      //
+      //   A READING MUST TELL YOU SOMETHING THE PAGE IS NOT ALREADY SHOWING YOU. A count a reader
+      //   could obtain by counting what is on screen goes; a count over a population the screen
+      //   does not contain stays.
+      //
+      // TWO THINGS WENT FROM HERE AND ONE STAYED, and the line between them is where the eye
+      // stops. `· 4 rows here` sat on a module heading directly over an uninterrupted run of four
+      // rows, which the reader takes in without counting; the absent-module heading's `· 2 rows`
+      // is the same failure with a shorter word. `, 6 deliveries` is the sum of a column that is
+      // on the screen, one number per row, which is #128's own named failure of arithmetic over a
+      // picture the reader is looking at.
+      //
+      // `· 25 templates` STAYS, and the reason is the same rule read carefully rather than an
+      // exception to it. A programme heading spans module headings and, on five of the seven, a
+      // scroll: counting the rows it holds is work rather than looking. The clause after it,
+      // `6 modules over all 25 sessions` and its variants, is the reading this heading exists for
+      // and could never be obtained from the screen at all: the outline draws 6 module headings of
+      // a syllabus that declares more, over a term of 25 sessions of which these documents drew a
+      // sample.
       groupsFor(scope).forEach(function (g, gi) {
         var gNo = String(gi + 1) + '.';
-        var deliveries = g.templates.reduce(function (n, t) { return n + t.deliveries.length; }, 0);
         groupRow(tb, cols.length, function (th) {
           // The way back to the drawing the row came from, one per programme rather than one per
           // row: seven controls at the size this page requires, instead of 83 of them squeezed
@@ -2505,7 +2526,7 @@
           a.href = g.view.route;
           th.appendChild(a);
           th.appendChild(document.createTextNode(' · ' + g.templates.length +
-            ' templates, ' + deliveries + (deliveries === 1 ? ' delivery' : ' deliveries') +
+            (g.templates.length === 1 ? ' template' : ' templates') +
             (g.modules ? ' · ' + g.modules : '')));
         });
         modulesOf(g).forEach(function (mod, mi) {
@@ -2515,15 +2536,13 @@
             // heading's indent on its first span, so it is painted exactly where the module name
             // used to start and issue 94's indent claim is unmoved. The name follows it.
             th.appendChild(el('span', 'term-no', mNo));
-            if (mod.absent) {
-              th.appendChild(el('span', 'term-nomodule', mod.name));
-              th.appendChild(document.createTextNode(' · ' + mod.rows.length +
-                (mod.rows.length === 1 ? ' row' : ' rows')));
-              return;
-            }
-            th.appendChild(el('span', 'term-modname', mod.name));
-            th.appendChild(document.createTextNode(' · ' + mod.rows.length +
-              (mod.rows.length === 1 ? ' row here' : ' rows here')));
+            // ISSUE 153. The row count that stood after each of these two names is gone: a module
+            // heading sits directly on top of the rows it holds, with nothing between, so the
+            // count restated what the reader was already looking at. The NAME is the whole of what
+            // a heading at this level has to say, and on the absent branch the name is itself the
+            // finding, that the syllabus records no module for these rows at all.
+            th.appendChild(mod.absent ? el('span', 'term-nomodule', mod.name)
+                                      : el('span', 'term-modname', mod.name));
           }, 'term-module');
           mod.rows.forEach(function (t, ri) {
             var tr = document.createElement('tr');
