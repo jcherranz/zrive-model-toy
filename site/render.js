@@ -151,6 +151,34 @@
     return { composes: PLACER.composes, calls: PLACER.calls, compares: PLACER.compares };
   };
 
+  // ---- what face each measuring probe resolved, issue 207 -----------------------------------
+  // The same idea as the counters above and for the same reason: the number widthOf() returns
+  // carries no evidence of the size it was taken at, so a probe measuring at 14px on a page that
+  // paints at 9 returns a width that looks exactly like a longer string. The face does carry it.
+  // One entry per (host class list, text class list) the placer ever measured in, written the
+  // first time that context is built and never again, so this costs one getComputedStyle per
+  // context and nothing per string.
+  //
+  // IT IS AN INPUT TO A CHECK AND NEVER AN ANSWER. What a reader of this map may assert is that
+  // the probe resolved the face site/app.css DECLARES for the element it stands in for. Asserting
+  // anything against a width this probe produced, or against a coordinate the placer produced
+  // from one, would be the check reading its own subject, which is the ground issue 195's review
+  // was rejected on.
+  //
+  // `zeros` IS THE ONE FIELD HERE THAT IS ABOUT A WIDTH, AND IT IS NOT A COMPARISON. A string with
+  // characters in it has a positive advance in every face there is, so a measurement of zero is a
+  // probe that was never laid out, whatever put it in that state, and nothing has to be measured a
+  // second time to know it. It counts rather than asserts, so it is armed on every composition
+  // anything ever drives. It is here because `body.hide-unrecorded .ghost` is `display: none` and
+  // the missing-key caption is painted carrying `ghost`: a reader with the unrecorded switch off
+  // zeroed that caption's probe, and widthOf's cache kept the zero for the life of the page.
+  var PROBE = {};
+  ZM.probeFaces = function () {
+    var out = {}, k;
+    for (k in PROBE) out[k] = PROBE[k];
+    return out;
+  };
+
   // opts.svg      the <svg> the drawing is painted into
   // opts.canvas   the box it sits in, which carries the drawing's width as a custom property
   // opts.drawing  the first drawing, read once for the type palette and the tile size
@@ -1188,16 +1216,103 @@
     // described was never taken. The array went rather than the comment being corrected, because
     // an unused generality reads as a used one and the next reader would have budgeted for a
     // batching that is not there. It is one function away if a caller ever wants it.
+    //
+    // AND IT MEASURED EVERY LABEL AND EVERY CAPTION AT 14px ON A PAGE THAT PAINTS THEM AT 10 AND
+    // AT 9. Issue 207, found by reading the painted page while measuring for issue 203 and by no
+    // gate. The probe was a hidden `g` appended to the SVG ROOT with a `text class="lbl"` inside
+    // it, and every rule in site/app.css that sizes a label is a DESCENDANT selector wanting a
+    // `.node` ancestor: `.node .lbl` at 10px, `.node.sel .lbl` for the bold a click turns it to,
+    // `.node .lbl.lbl-missing` and `.node .lbl.lbl-tail` at 9px. A probe standing outside every
+    // `.node` matched none of them and inherited the page's own `--fs-base`. Measured on the
+    // deployed page, `no system holds it` shaped 112.86 in the probe against 77.85 where it is
+    // painted. The verb chip on the line below was right the whole time, because `.chip-tx` is a
+    // BARE class rule and a detached probe resolves it, so one of the two probes in this function
+    // was correct and the other was out by four fifths of a size.
+    //
+    // WHERE IT LANDED, AND IT IS NOT AN OVERLAP. The direction is OVER-reserving, so no chip was
+    // ever placed on top of a label by this. What it did was worse to reason about: `compose()`
+    // below is the RUN-TIME placer, the one that packs a windowed or filtered or unioned drawing,
+    // and it was packing against label boxes about two fifths wider than build_layout.py packs the
+    // same nodes against. The same picture was composed differently depending on which of the two
+    // implementations drew it, and neither the fourteen digests nor the placer oracle in
+    // scripts/smoke.mjs can see that: the digests are the BUILD's answers and the oracle says in
+    // its own header that it judges the canonical drawing only.
+    //
+    // THE REPAIR IS TO PUT THE PROBE WHERE THE CASCADE CAN REACH IT, and it is the faithful one of
+    // the two the card named. The other was to give the label and caption rules bare-class forms
+    // so a detached probe resolves them, which is a second declaration surface added to the
+    // stylesheet for the sake of a measurement, and paint does not need it. So the caller now
+    // hands over BOTH class lists it is standing in for, the host group's and the text's, copied
+    // from the paint at the top of this file, and the probe is mounted inside a `g` carrying the
+    // host's. Issue 203 settled its own fork the other way, bringing the paint back to what three
+    // implementations already reserved; that was right there because a declaration was being
+    // outranked, and it is not this, where nothing is declared wrongly and the probe simply is not
+    // where the cascade can reach it.
+    //
+    // AND `w` AND `i` ARE GONE WITH IT. They set `font-weight` and `font-style` as ATTRIBUTES on
+    // the probe text, which is how a probe outside the cascade gets a slant and a weight at all.
+    // With the real classes in place the stylesheet answers both: `.lbl-ghost` and
+    // `.node .lbl.lbl-missing` carry the slant, `.ghost .chip-tx` carries the chip's, and
+    // `.node.sel .lbl` carries the bold. Keeping them would have been a second opinion about a
+    // face the cascade already has one about, and the two would drift the first time a rule moved.
+    //
+    // THE FACE EACH PROBE RESOLVED IS RECORDED, for the reason ZM.placerCost above is: a defect of
+    // this shape is invisible in the width it returns, since a width is just a number and a
+    // number two fifths too large looks exactly like a longer string. What can be checked is the
+    // FACE, against what the stylesheet declares for the element the probe stands in for, and that
+    // reads nothing the placer produced. `PROBE` is keyed on the two class lists and holds the
+    // computed size, style, weight and family of the last probe built in that context.
+    //
+    // AND A CLASS LIST FAITHFUL TO THE PAINT DRAGS ONE RULE ALONG THAT IS NOT ABOUT A FACE AT ALL,
+    // WHICH AN ADVERSARIAL READ OF THIS REPAIR FOUND. The missing-key caption is painted
+    // `class="lbl lbl-missing ghost"`, and `body.hide-unrecorded .ghost` is `display: none`: it is
+    // the absence control's second switch, and a reader who turns the unrecorded finding off puts
+    // every element carrying `ghost` in that state, this probe included. MEASURED, on this tree,
+    // at `#/p/ZBL`, over `no system holds it`: with the switch on the probe answers 69.99, with it
+    // off it answers 0.00, and BECAUSE THE ANSWER IS CACHED it still answers 0.00 after the switch
+    // goes back on. A caption's line reserved at zero is a line the verb-chip placer is entitled to
+    // put a chip through, and the poisoning survives for the life of the page. Only the caption is
+    // reachable this way: a `ghost` on an ANCESTOR of the probe text, which is what the ghost tile
+    // and the ghost chip carry, leaves the advance alone (77.77 and 69.99 in both states), and it
+    // is the text element itself being unrendered that answers zero.
+    //
+    // SO THE PROBE DECLARES ITS OWN DISPLAY AND NOTHING ELSE. The argument is not that the switch
+    // is wrong: it is that the line the caption sits on is reserved by `build_layout.py` WHETHER
+    // OR NOT ANYTHING IS PAINTED IN IT, which is the whole point of reserving it, so a geometry
+    // that moved when a reader flipped a switch would be a second drawing. `visibility: hidden`
+    // stays, because visibility is what keeps the probe off the screen while leaving it laid out,
+    // and `display` is the one property that must not follow the page.
+    //
+    // AND IT IS SET THROUGH `.style`, NOT AS A `style` ATTRIBUTE, WHICH IS NOT A STYLE CHOICE. The
+    // page's own Content-Security-Policy in site/index.html carries `style-src-attr 'none'`, so a
+    // `style` attribute is DROPPED: written that way first, the attribute read back off the element
+    // and the declaration was empty, computed display stayed `none` and the probe still answered
+    // 0.00. CSP governs the attribute and not the CSSOM, so the property assignment lands. A reader
+    // tidying this into `el(...)`'s attribute bag would put the zero straight back, silently, on
+    // one switch state of one caption.
+    //
+    // A WIDTH OF ZERO FOR A STRING THAT HAS CHARACTERS IN IT IS COUNTED EITHER WAY and
+    // scripts/smoke.mjs refuses it. This is the second time a text measurement on this page has
+    // been zeroed by a rule nobody was thinking about, and the first time nothing caught it.
     var TW = {};
 
-    function widthOf(s, cls, w, i) {
-      var k = cls + '|' + (w || '') + '|' + (i ? 'i' : '') + '|' + s;
+    function widthOf(s, hostCls, cls) {
+      var ctx = hostCls + '|' + cls;
+      var k = ctx + '|' + s;
       if (TW[k] === undefined) {
-        var host = el('g', { visibility: 'hidden', 'aria-hidden': 'true' }, svg);
-        var t = el('text', { class: cls, 'font-weight': w || null,
-                             'font-style': i ? 'italic' : null }, host);
+        var host = el('g', { class: hostCls || null,
+                             visibility: 'hidden', 'aria-hidden': 'true' }, svg);
+        var t = el('text', { class: cls }, host);
+        host.style.display = 'inline';
+        t.style.display = 'inline';
         t.textContent = s;
         TW[k] = t.getComputedTextLength();
+        if (PROBE[ctx] === undefined) {
+          var cs = window.getComputedStyle(t);
+          PROBE[ctx] = { host: hostCls, cls: cls, size: cs.fontSize, style: cs.fontStyle,
+                         weight: String(cs.fontWeight), family: cs.fontFamily, zeros: 0 };
+        }
+        if (s !== '' && !(TW[k] > 0)) PROBE[ctx].zeros++;
         svg.removeChild(host);
       }
       return TW[k];
@@ -1405,11 +1520,25 @@
       var blocked = [];
       nodes.forEach(function (n) {
         var h = boxH(g, n), lw = 0, y = pos[n.id].y;
+        // THE CLASS LISTS ARE THE PAINT'S, COPIED FROM THE THREE PLACES ABOVE THAT WRITE THEM.
+        // Issue 207. A node's group is `node` or `node ghost`; its label lines are `lbl` or
+        // `lbl lbl-ghost`; the missing-key caption is `lbl lbl-missing ghost` and the tail is
+        // `lbl lbl-tail`. Hand the probe anything else and it measures a face the page never
+        // paints, which is the whole of the defect this replaced.
+        var hostCls = n.ghost ? 'node ghost' : 'node';
+        var labCls = n.ghost ? 'lbl lbl-ghost' : 'lbl';
         n.lines.forEach(function (ln) {
-          lw = Math.max(lw, widthOf(ln, 'lbl', 600, !!n.ghost));
+          // BOTH WEIGHTS AND NOT ONLY THE BOLD, which is build_layout.py's own rule at its
+          // `reserve()`: `max(text_w(..400..), text_w(..600..))`. Clicking a node turns its label
+          // bold through `.node.sel .lbl`, so the box has to hold the state a click enters as well
+          // as the one the drawing opens in, and taking the bold alone assumes the bold is never
+          // the narrower of the two. It is not narrower in this corpus and that is a fact about
+          // this corpus, not a property of a font.
+          lw = Math.max(lw, widthOf(ln, hostCls, labCls),
+                            widthOf(ln, hostCls + ' sel', labCls));
         });
-        if (n.mark) lw = Math.max(lw, widthOf(n.mark, 'lbl', null, false));
-        if (n.tail) lw = Math.max(lw, widthOf(n.tail, 'lbl', null, false));
+        if (n.mark) lw = Math.max(lw, widthOf(n.mark, hostCls, 'lbl lbl-missing ghost'));
+        if (n.tail) lw = Math.max(lw, widthOf(n.tail, hostCls, 'lbl lbl-tail'));
         blocked.push([n.x, y, g.tile + 6, g.tile + 6]);
         var labH = h - g.tile - g.gapLabel;
         blocked.push([n.x, y + g.tile / 2 + g.gapLabel + labH / 2, lw + 6, labH + 2]);
@@ -1441,7 +1570,12 @@
                (a.s < b.s ? -1 : a.s > b.s ? 1 : 0) ||
                (a.t < b.t ? -1 : a.t > b.t ? 1 : 0);
       }).forEach(function (e) {
-        e.cw = r1(widthOf(e.v, 'chip-tx', null, !!e.ghost) + 2 * PADX);
+        // The chip's own group carries `ghost` or no class at all, which is what `.ghost .chip-tx`
+        // reads for the slant. This probe was never wrong: `.chip-tx` is a bare class rule, so it
+        // resolved at 9px wherever the probe stood, and only the slant came off the old `i`
+        // attribute. It is written the same way as the three above so there is one shape here and
+        // not two, and so the slant comes from the same stylesheet the paint reads.
+        e.cw = r1(widthOf(e.v, e.ghost ? 'ghost' : '', 'chip-tx') + 2 * PADX);
         var tab = arcTable(e.pts), L = tab.cum[tab.cum.length - 1];
         var reach = CHIP_SLIDE * L, best = null, bestCost = null, k = 1;
         var slides = [0];

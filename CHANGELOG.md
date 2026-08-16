@@ -127,6 +127,76 @@ of what changed and when, and it is meant to be scannable.
   `ghost_sweep` asks again at the point of use, where a second run in the same clone could have
   moved the ref. Two new self-test probes, 25 to 27, and each of their seven sub-checks was made
   to fail before it was trusted: two were dead when first written.
+- **THE RUN-TIME DRAWING MEASURED EVERY LABEL AND EVERY CAPTION AT 14px ON A PAGE THAT PAINTS THEM
+  AT 10 AND AT 9, #207.** `widthOf()` in `site/render.js` is the only text measurement the run-time
+  placer has, and it built its hidden probe as a `g` on the SVG root with a `text class="lbl"`
+  inside it. Every rule in `site/app.css` that sizes a label is a **descendant** selector wanting a
+  `.node` ancestor: `.node .lbl` at 10px, `.node.sel .lbl` for the bold a click turns it to, and,
+  since #203, `.node .lbl.lbl-missing` and `.node .lbl.lbl-tail` at 9px. The probe stood outside
+  every `.node`, matched none of them and inherited the page's own `--fs-base`. The verb chip on
+  the line below was right the whole time, because `.chip-tx` is a bare class rule that a detached
+  probe resolves, so one of the two probes in the same function was correct and the other was out
+  by four fifths of a size.
+  **Measured over 224 painted strings on three drawings**, before the repair the probe shaped them
+  at a mean **1.4740** of the width they are painted at, worst 1.6051 and 93.39 units on one
+  string; after, **1.0002**, worst 0.36 units, and the chip probe is unmoved at 0.9993 on both
+  sides. **Over 863 node reserves on 10 composed drawings, five unions and five windowed**, the
+  run-time reserve was **1.1856** of what `build_layout.py` reserves for the same nodes and is now
+  **0.8242** of it, with **863 of 863** over the build's figure before and **0 of 863** over it
+  after. The remaining gap is not the defect and is stated rather than closed: the build's table is
+  an **envelope**, the widest each string shapes under any family the measuring machine could
+  resolve, and a browser gives one face out of it. On the machine that took these readings, painted
+  over envelope is 0.8776, which is the whole of what is left.
+  **The repair mounts the probe where the cascade can reach it**, which is the faithful one of the
+  two the card named: the caller hands over both class lists it is standing in for, the host
+  group's and the text's, copied from the paint, and the probe is built inside a `g` carrying the
+  host's. The other candidate was to give the label and caption rules bare-class forms so a
+  detached probe resolves them, which adds a second declaration surface to the stylesheet for the
+  sake of a measurement. #203 settled its own fork the other way and was right to: there a
+  declaration was being outranked, and here nothing is declared wrongly. The `w` and `i` parameters
+  are **gone** with it, because a probe inside the cascade takes its weight and its slant from
+  `.node.sel .lbl`, `.lbl-ghost`, `.node .lbl.lbl-missing` and `.ghost .chip-tx` rather than from
+  attributes the caller sets, and a label line is now measured at **both** weights the way
+  `build_layout.py`'s own `reserve()` does rather than at the bold alone.
+  **The SELECTED width is what a label reserved before this card and is what it reserves after it**,
+  which is said here because the rule changed and the answer did not: the old call passed
+  `font-weight: 600` by hand, so the bold state was always the one reserved, and the new pair takes
+  `max(regular, selected)` because that is what `reserve()` does. Measured over the 207 distinct
+  label lines at `#/p/ALL`, the selected width is the wider on 206, tied on one and never the
+  narrower, so the max costs **0.00** against the bold alone and only removes the assumption. That
+  is deliberate: a label that overflows its box the moment a reader clicks it is a real defect, and
+  the box has to hold the state a click enters.
+  **No digest moves and no built artefact changes.** `compose()` runs only for a windowed, filtered
+  or unioned drawing, none of which any build writes: all fourteen drawing digests and both
+  document digests are byte-identical, and `site/layout.js` and `site/instance.js` are untouched.
+  **The instrument asserts the FACE and never a width**, which is the only shape available: a width
+  is a number, and a number two fifths too large is indistinguishable from a longer string, so
+  judging one needs a second measurement of the same text, and the only two on this page are the
+  paint the probe exists to predict and the placer's output computed from it. `site/render.js`
+  records the computed size, slant, weight and family of each probe it builds, once per context;
+  `scripts/smoke.mjs` holds them against what the page's own stylesheet **declares** for the element
+  each stands in for, read out of `document.styleSheets`, so a run against a deployed origin
+  compares that origin's declarations with that origin's probes. Four assertions, 346 to **350**.
+  **A class list faithful to the paint drags along one rule that is not about a face at all, and an
+  adversarial read of the repair found it before it shipped.** The missing-key caption is painted
+  `class="lbl lbl-missing ghost"` and `body.hide-unrecorded .ghost` is `display: none`, which is the
+  absence control's second switch. An unrendered text answers `getComputedTextLength()` with 0, and
+  `widthOf` caches it: **measured, 69.99 with the switch on, 0.00 with it off, and 0.00 again after
+  putting it back**, so a reader who had the unrecorded finding switched off when a drawing first
+  composed reserved that caption's line at nothing for the life of the page. Only the caption is
+  reachable this way; a `ghost` on an ancestor leaves the advance alone. The probe now declares its
+  own `display`, **through the CSSOM and not as a `style` attribute**, because `site/index.html`
+  carries `style-src-attr 'none'` and the attribute is dropped outright: written that way first, the
+  declaration read back empty and the probe still answered 0.00. The reserve must not follow a
+  switch, since `build_layout.py` reserves that line whether or not anything is painted in it.
+  **Proved in five directions rather than argued**: the probe host stripped of its class puts the
+  shipped defect back and the size and face assertions name it, `14px where .node .lbl declares
+  10px` on four contexts and `14px where .node .lbl.lbl-missing declares 9px` on a fifth; a call
+  site handed the wrong class list fails the context assertion alone; the map withheld fails the
+  three stylesheet assertions in its own words rather than passing over an empty list; the probe's
+  own `display` removed fails the fourth alone, naming the caption; and the drive that turns the two
+  switches off removed makes the fourth report that it could not answer rather than passing
+  vacuously.
 - **BOTH CAPTIONS UNDER A NODE LABEL WERE OUTRANKED BY THE LABEL'S OWN RULE AND PAINTED IN ITS
   FACE, #203.** The card was filed as a slant: the missing-key mark is reserved at the upright
   `9/400` width and `.lbl-missing` paints it italic, and nobody had measured the gap. Measured with
