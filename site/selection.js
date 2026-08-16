@@ -343,6 +343,11 @@
 
       var dl = document.getElementById('pprops');
       dl.textContent = '';
+      // Where the rows that hand the reader an act begin. Issue 157, and it is the model's own
+      // count read from the other end of the list, exactly as `n.route` is read from this one:
+      // the browser never learns that a key beginning `reach_` is special, so renaming one
+      // cannot silently move the line or turn a value into a link that was not meant to be one.
+      var reachAt = n.reach ? n.props.length - n.reach : -1;
       n.props.forEach(function (p, i) {
         var dt = document.createElement('dt');
         dt.textContent = p.k;
@@ -354,14 +359,72 @@
         // not this card's to change, and a rule set from here is one fewer file two people are
         // editing at once. It reads the same custom property the stylesheet's own rules read, so
         // it follows the theme rather than pinning a colour.
-        if (n.route && i === n.route) {
+        if ((n.route && i === n.route) || i === reachAt) {
           dt.style.borderTop = '1px solid var(--rule-muted)';
           dt.style.paddingTop = '11px';
         }
         var dd = document.createElement('dd');
-        var b = document.createElement('b');
+        // ---- the act, issue 157 -------------------------------------------------------------
+        // A ROW AND NOT A BUTTON. The owner asked to click a person and reach them; what he did
+        // NOT ask for, and what this page refuses to become, is a contacts panel. The address is
+        // a property of the object like every other property of the object, and the only thing
+        // this block changes is that the VALUE is the link. There is no row of buttons anywhere,
+        // and a reader who never opens a panel meets none of it, which is why the ABSENCE of a
+        // route is carried by the empty rings on the tile and not by a greyed control here.
+        //
+        // NOTHING IS WRITTEN ANYWHERE. `mailto:`, `tel:` and an https room are handed to the
+        // reader's own client by the browser. The page reads and does not write, which is the
+        // constraint every card on it has held to, and this one does not bend it.
+        //
+        // THE HREF IS THE VALUE AND NOT A SECOND COPY OF IT. The model ships the whole URI, so
+        // there is no scheme table here to drift from the one that wrote them, and what the
+        // reader sees is exactly what the click will do. The guard below is a guard and not a
+        // second rule: a reach row that is not a URI is drawn as text rather than as a link
+        // pointing nowhere.
+        //
+        // ---- AND THE BADGE, WHICH IS ISSUE 148'S AND NOT A REVERSAL OF ISSUE 110 -------------
+        // #110 took the flag chip off every row in this panel on the owner's instruction, and
+        // that instruction is untouched: the chip is on the reach rows and on nothing else.
+        // #148 is the governing precedent and it is the same hazard one degree sharper. There
+        // the risk was invented curriculum text indistinguishable from published titles; here it
+        // is an invented address on a tile carrying the name of a firm that exists, and the
+        // difference is that a reader ACTS on this one. A wrong address is a message sent to
+        // somebody. So the row carries its own standing, it prints the row's own `f` rather than
+        // the word `dummy`, and it survives a crop of the single line: there is no way to
+        // photograph, quote or click one of these without the badge in the frame.
+        var uri = i >= reachAt && reachAt >= 0 && p.f !== 'absent' &&
+                  /^(mailto:|tel:|https:)/.test(p.v);
+        var b = document.createElement(uri ? 'a' : 'b');
+        if (uri) {
+          b.href = p.v;
+          // `linkbtn` AND NOT A BARE ANCHOR, and the reason is measurement rather than taste. A
+          // bare anchor takes the engine's own link colour, which is a colour nothing in this
+          // repository has ever put on the panel's ground in either theme, and it takes no
+          // target size at all. `linkbtn` is this page's own link affordance: `--i-primary`,
+          // measured; a focus ring; and the 26px minimum issue 77 put on every control so that a
+          // control added later is right without anybody remembering to make it right.
+          //
+          // The horizontal padding is zeroed inline, which is what `.pmore-link` does in the
+          // stylesheet for the same reason: a value in this list starts at the list's own left
+          // edge, and eight pixels of indent on three rows of a panel reads as a defect. Inline
+          // and not a class for the reason the hairline above is inline, which is that
+          // site/app.css is not this card's to change.
+          b.className = 'linkbtn';
+          b.style.paddingLeft = '0';
+          b.style.paddingRight = '0';
+          // Its own tab for the room, and nothing for the two that hand off to a client: a
+          // mailto: or a tel: does not navigate this page anywhere, and a target on one is a
+          // blank tab left behind on some engines.
+          if (p.v.indexOf('https:') === 0) { b.target = '_blank'; b.rel = 'noopener noreferrer'; }
+        }
         b.textContent = p.v;
         dd.appendChild(b);
+        if (i >= reachAt && reachAt >= 0) {
+          var chip = document.createElement('span');
+          chip.className = 'flag ' + p.f;
+          chip.textContent = p.f;
+          dd.appendChild(chip);
+        }
         dl.appendChild(dt);
         dl.appendChild(dd);
       });
