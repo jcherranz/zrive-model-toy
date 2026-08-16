@@ -2899,12 +2899,21 @@ body.hide-unrecorded .sock-unrec { display: none; }
    drops the title because 46 does not hold one. One of them is out of room and the other is not,
    so one of them gets the opt-out and the other stays where the ceiling is right about it.
 
-   MEASURED ON THE PAGE, BEFORE. At 2560 by 1317 the box was 1240 at left 660, so 660px of screen
-   sat empty either side, and the twenty four columns were 47.14px each against their own floor of
-   46: the grid was 1.14px off its minimum on the widest screen this page is used at. At 1536 by
-   839 the column was 46.52, which is the same reading twice. AND AFTER: 2528 and 100.81 at 2560,
-   1504 and 57.52 at 1536, and 390 and 46 unchanged at 390, where the wrapper still scrolls the
-   grid inside a page that does not.
+   MEASURED ON THE PAGE, BEFORE. At 2560 by 1317, which is the viewport this card and issues 155
+   and 160 were all filed from, the box was 1240 at left 660, so 660px of screen sat empty either
+   side, and the twenty four week columns were 47.14px each against their own floor of 46: the grid
+   was 1.14px off its minimum on the widest screen this page is used at. At 1536 by 839 the column
+   was 46.52. The same 46.52 comes back at 2560 by 839, which the suite drives, because there the
+   rows box carries a vertical scrollbar as well. The grid was at its floor at every desktop
+   reading of it. AND AFTER: 2528 and 100.81 at 2560 by 1317, 2528 and 100.19 at 2560 by 839, 1504
+   at 1536, and 390 and 46 unchanged at 390, where the wrapper still scrolls the grid inside a page
+   that does not.
+
+   AND ON BOTH MACHINES, WHICH IS WHAT ISSUE 149 COST A RED RUN TO ESTABLISH. The column the suite
+   reads is 100.19 on the development machine and 100.22 on the GitHub runner, against the 1145.98
+   and 1160.69 the same table demanded of those two. The three hundredths are the point: a box
+   asked to be the viewport's carries no font metric, so unlike the ceiling above there is nothing
+   here for a second machine to disagree with.
 
    NO CEILING ON THE OPT-OUT, WHICH IS ISSUE 149'S OWN LESSON AND NOT AN OMISSION. The number this
    sits beside went red in CI for being fitted to one machine's font metrics. A second number here
@@ -2913,12 +2922,14 @@ body.hide-unrecorded .sock-unrec { display: none; }
    bounded by the sheet's own padding and by nothing else, and it carries no figure to outgrow.
 
    WHAT IT COSTS, SAID RATHER THAN GLOSSED. The box is centred, so pressing the week control moves
-   the sheet's left edge from 660 to 16 at 2560 and the whole head goes with it. The alternative
-   was driven and rejected: holding the head, the switch and the notice at the old measure inside a
-   full width box does keep the pressed control still, and it puts the sheet's title at 676 with
-   the grid's first cell at 26, which is exactly the disagreement issue 113 spent a card taking off
-   this sheet. A sheet that grows is one event a reader can read; a title and its rows disagreeing
-   about where the left edge is, is not.
+   the sheet's left edge from 660 to 16 at 2560 and the whole head goes with it. The alternative was
+   built and driven and rejected: holding the head, the switch and the notice at the old measure
+   inside a full width box does keep the pressed control still, and measured at 2560 it puts the
+   sheet's title at 660 with the panel heading and the first day label at 33, which is a 627px
+   version of exactly the disagreement issues 113 and 160 spent two cards taking off this sheet. On
+   what shipped the three read 33, 33 and 33 on the week grid and 677, 677 and 677 on the month
+   grid, so the sheet moves as one thing at both. A sheet that grows is an event a reader can read;
+   a title and its rows disagreeing about where the left edge is, is not.
 
    SCOPED BY WHAT IS ON THE SCREEN RATHER THAN BY A FLAG. `.cal-weekpanel` is the section term.js
    builds for this shape and for no other, so the sheet is wide exactly when the wide thing is in

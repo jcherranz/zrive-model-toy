@@ -10290,6 +10290,13 @@ async function checkOutline(page, base) {
   // both, which is what a ceiling is and is true of whatever the ceiling is retuned to. The one
   // literal left is the 46px floor term.js declares for a week track, and the column is asked to
   // be clear of twice it.
+  //
+  // AND IT WAS PROVED RED ON THE RUNNER AND NOT ONLY HERE, on a throwaway branch carrying the
+  // stylesheet without the rule, dispatched through this workflow and then deleted: 318 passed and
+  // this one failed, reading `week 1240 at 2560 and 1240 at 1536, column 46.55`. The local run of
+  // the same tree reads 46.52. Both machines were also driven with the rule in, at 100.19 here and
+  // 100.22 there, so the instrument moves by three hundredths of a pixel between two font stacks
+  // in both directions, and the failure it reports is the page rather than the machine.
   const WEEK_FLOOR = 46;
   const byShape = { week: {}, month: {} };
   await atWidths(page, [2560, 1536], async vw => {
