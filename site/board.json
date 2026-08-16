@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T10:42:46Z",
+  "generated": "2026-08-16T10:45:36Z",
   "columns": [
     {
       "key": "raw",
@@ -89,23 +89,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/157"
         },
         {
-          "id": 171,
-          "title": "The chip placer is near-cubic and there is a two-line fix proven output-identical",
-          "labels": [
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/171"
-        },
-        {
-          "id": 184,
-          "title": "The only file in the repository that grep cannot read is a source file, and a grep that skips it reports clean",
-          "labels": [
-            "bug",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/184"
-        },
-        {
           "id": 186,
           "title": "The sheet caps content at 1238px, and the week grid is the first surface that wants the width",
           "labels": [
@@ -120,12 +103,29 @@
       "title": "Done",
       "cards": [
         {
+          "id": 184,
+          "title": "The only file in the repository that grep cannot read is a source file, and a grep that skips it reports clean",
+          "labels": [
+            "bug",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/184"
+        },
+        {
           "id": 172,
           "title": "No CSP on a public origin holding a PAT, and the last-line gate runs after the deploy",
           "labels": [
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/172"
+        },
+        {
+          "id": 171,
+          "title": "The chip placer is near-cubic and there is a two-line fix proven output-identical",
+          "labels": [
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/171"
         },
         {
           "id": 169,
@@ -168,29 +168,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/162"
-        },
-        {
-          "id": 161,
-          "title": "this is what i mean by duplicate days",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/161"
-        },
-        {
-          "id": 160,
-          "title": "check space frame above, do a general review",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/160"
         }
       ],
-      "hidden": 139,
+      "hidden": 141,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
