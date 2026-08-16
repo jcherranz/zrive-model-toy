@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T20:14:08Z",
+  "generated": "2026-08-16T20:16:18Z",
   "columns": [
     {
       "key": "raw",
@@ -82,14 +82,6 @@
       "title": "In progress",
       "cards": [
         {
-          "id": 207,
-          "title": "site/render.js reserves every node label and caption from a probe measured at 14px, because .node .lbl is a descendant selector and the probe is not inside a .node",
-          "labels": [
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/207"
-        },
-        {
           "id": 211,
           "title": "The forbidden-content gate guards one of two network-reaching git calls, and the unguarded one is the list it checks",
           "labels": [
@@ -121,6 +113,14 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/208"
+        },
+        {
+          "id": 207,
+          "title": "site/render.js reserves every node label and caption from a probe measured at 14px, because .node .lbl is a descendant selector and the probe is not inside a .node",
+          "labels": [
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/207"
         },
         {
           "id": 203,
@@ -173,18 +173,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/186"
-        },
-        {
-          "id": 184,
-          "title": "The only file in the repository that grep cannot read is a source file, and a grep that skips it reports clean",
-          "labels": [
-            "bug",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/184"
         }
       ],
-      "hidden": 151,
+      "hidden": 152,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
