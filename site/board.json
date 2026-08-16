@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T21:28:48Z",
+  "generated": "2026-08-16T21:40:25Z",
   "columns": [
     {
       "key": "raw",
@@ -75,15 +75,6 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/215"
-        },
-        {
-          "id": 216,
-          "title": "A stylesheet that never loaded is reported as twelve assertions about the page, and the run says the page has regressed",
-          "labels": [
-            "limitation",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/216"
         }
       ]
     },
@@ -91,6 +82,15 @@
       "key": "in_progress",
       "title": "In progress",
       "cards": [
+        {
+          "id": 216,
+          "title": "A stylesheet that never loaded is reported as twelve assertions about the page, and the run says the page has regressed",
+          "labels": [
+            "limitation",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/216"
+        },
         {
           "id": 217,
           "title": "Nothing holds build_layout.py's own text_w() call sites, and nothing re-measures the width table",
