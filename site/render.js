@@ -215,6 +215,15 @@
   // four rather than as a dotted line at the sizes this drawing is ever framed at, and the inset
   // clears the 16 unit glyph at the tile's centre by four units.
   var SOCK_R = 2.1, SOCK_STEP = 5.4, SOCK_INSET = 5;
+
+  // ---- the arrowhead, issue 156 ------------------------------------------------------------
+  // TWO NUMBERS AND ONE SHAPE BUILT FROM THEM. The head was a `d` string with 6.5 typed into it
+  // twice and nothing else in the file knowing how long it is, which is why the rotation below
+  // could not have been written without inventing a third copy of the number. It is a triangle
+  // whose tip is at its own origin and whose base is HEAD_LEN behind it, HEAD_HALF either side.
+  var HEAD_LEN = 6.5, HEAD_HALF = 2.6;
+  var HEAD_D = 'M0 0 L' + (-HEAD_LEN) + ' ' + HEAD_HALF + ' L' + (-HEAD_LEN) + ' ' + (-HEAD_HALF) +
+               ' Z';
     (function () {
       var decls = [];
       opts.drawing.types.forEach(function (t) {
@@ -416,6 +425,54 @@
     // added a caller and not a mechanism. The drawings are the same shape as each other and the
     // same shape as the one this function was written against, so nothing in here knows how many
     // there are, which one is on screen, or that the reader can change it.
+    // ---- which way the arrowhead points, issue 156 ------------------------------------------
+    // HE FILED `check arrow vs line alignment` ON `bl_students->bl_cohort` AND HE WAS RIGHT. What
+    // was measured, before any constant was touched, at 2560, 1536 and 390 and on all seven
+    // drawings plus the union of two under an eight week window:
+    //
+    //   the tip is exactly on the line's own end point, 0.0000 units out, everywhere;
+    //   the tip is exactly on the target tile's box edge, to every decimal measured, everywhere;
+    //   the rotation is exactly the curve's tangent at that end point, to 0.7 of a degree, which
+    //     is the residual of the driver's own finite difference and not an error in the page;
+    //   and the head is in the drawing's own units inside the scaled group, so its size against
+    //     the drawing is the same at every viewport and the skew below does not move with scale.
+    //
+    // So the tip, the box and the tangent were all right, and the picture was still wrong. What is
+    // wrong is that NOBODY CAN SEE A TANGENT. These lines are cubic curves whose control points sit
+    // horizontally off each end, so a line that has to climb 174 units while it travels 75 leaves
+    // its end horizontally and then swings hard. Over the arrowhead's OWN LENGTH, which is the only
+    // stretch of line a reader compares the head against, the line had already turned away from the
+    // head by 18.1 degrees on the edge he filed and by 27.5 on the worst of the ninety eight; over
+    // two head lengths, by 31.0 and 41.5. A head aimed along the tangent of a curve that is turning
+    // is aimed at where the line is going, not at where it came from.
+    //
+    // SO THE HEAD IS AIMED ALONG THE CHORD FROM ITS OWN BASE TO ITS OWN TIP, and the base is one
+    // HEAD_LEN back along the line the browser actually drew. It is read off the path element
+    // rather than recomputed from the coefficients on purpose: the head then cannot disagree with
+    // the line for any shape this file or the build ever emits, including one neither of them has
+    // written yet, and there is no second implementation of arc length to drift.
+    //
+    // NOTHING THE BUILD WROTE MOVES. `e.ax` and `e.ay` are still the tip and are still painted;
+    // `e.aa` is still the tangent the build computed and is still what `faithful()` below holds
+    // render.js's own edgeGeom to, which is a claim about the reflow agreeing with the build and
+    // not a claim about what is painted. The fourteen drawing digests are digests of the build's
+    // artefacts and this card touched none of them.
+    //
+    // WHICH END, READ OFF THE PATH. `e.rev` says which end the build put the head on and this does
+    // not consult it: the tip is on one end or the other and the two are never closer than a tile
+    // apart, so the path answers it exactly rather than by agreeing with a flag. A line shorter
+    // than the head takes its whole length as the chord, which is the right answer for it and not
+    // a fallback; scripts/smoke.mjs asserts that no line in any drawing is that short, so the
+    // clamp is a statement about arithmetic rather than a branch nobody has seen run.
+    function headAngle(line, e) {
+      var L = line.getTotalLength();
+      var a = line.getPointAtLength(0), b = line.getPointAtLength(L);
+      var atEnd = Math.hypot(e.ax - b.x, e.ay - b.y) <= Math.hypot(e.ax - a.x, e.ay - a.y);
+      var base = line.getPointAtLength(atEnd ? Math.max(0, L - HEAD_LEN)
+                                             : Math.min(L, HEAD_LEN));
+      return r1(Math.atan2(e.ay - base.y, e.ax - base.x) * 180 / Math.PI);
+    }
+
     function paint(g) {
       G = g;
       PAINTS++;
@@ -516,11 +573,11 @@
         // <title>, which is why the verb on the chip is left exactly as the model wrote it.
         var etitle = e.n > 1 ? e.v + ', ' + e.n + ' relationships drawn as one line' : null;
         if (etitle) el('title', {}, g2).textContent = etitle;
-        el('path', { d: e.d, class: e.ghost ? 'edge edge-ghost' : 'edge' }, g2);
+        var line = el('path', { d: e.d, class: e.ghost ? 'edge edge-ghost' : 'edge' }, g2);
         el('path', {
-          d: 'M0 0 L-6.5 2.6 L-6.5 -2.6 Z',
+          d: HEAD_D,
           class: e.ghost ? 'arrow arrow-ghost' : 'arrow',
-          transform: 'translate(' + e.ax + ',' + e.ay + ') rotate(' + e.aa + ')'
+          transform: 'translate(' + e.ax + ',' + e.ay + ') rotate(' + headAngle(line, e) + ')'
         }, g2);
 
         var c = el('g', { 'data-edge': key, class: eq }, gChip);
