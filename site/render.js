@@ -127,6 +127,30 @@
 
   var ZM = window.ZM = window.ZM || {};
 
+  // ---- what the chip placer costs, COUNTED AND NOT TIMED -----------------------------------
+  // Issue 171. The placer is the one loop in this file whose cost grows faster than the picture:
+  // once per relationship, once per slide along its arc, once per perpendicular step off it, and
+  // once more per box already placed. A budget on it therefore has to be enforced by something,
+  // and a millisecond is the wrong something. This repository has already bought a constant
+  // fitted to one machine: a table that wanted 1145.98 locally and 1160.69 on the runner, and the
+  // difference was the fonts the runner had. A wall clock on a shared CI box is worse than that
+  // again, because the number moves with whatever else the host is doing.
+  //
+  // WHAT IS COUNTED IS A BOX COMPARISON, which is the placer's unit of work: one candidate
+  // position weighed against one already-occupied rectangle. It is an integer, it is the same
+  // integer on every machine that measures the same text to the same widths, and it goes up the
+  // moment somebody takes the prune out of the search or puts a per-candidate copy back into it.
+  //
+  // `composes` COUNTS COMPOSITIONS AND THE OTHER TWO ARE RESET BY EACH ONE, so what a reader gets
+  // is the cost of ONE repaint rather than a total that depends on how many repaints a driver
+  // happened to provoke on the way to asking. A caller that reads 0 compositions has been handed
+  // a page where this code never ran, which is a different answer from a cheap repaint and must
+  // not be reported as one.
+  var PLACER = { composes: 0, calls: 0, compares: 0 };
+  ZM.placerCost = function () {
+    return { composes: PLACER.composes, calls: PLACER.calls, compares: PLACER.compares };
+  };
+
   // opts.svg      the <svg> the drawing is painted into
   // opts.canvas   the box it sits in, which carries the drawing's width as a custom property
   // opts.drawing  the first drawing, read once for the type palette and the tile size
@@ -1127,6 +1151,8 @@
 
     function overlapDepth(x, y, w, boxes) {
       var tot = 0, i, b, ox, oy;
+      PLACER.calls++;
+      PLACER.compares += boxes.length;
       for (i = 0; i < boxes.length; i++) {
         b = boxes[i];
         ox = (w + b[2]) / 2 - Math.abs(x - b[0]);
@@ -1342,6 +1368,9 @@
     // of y coordinates, so pitchOf() over the merged list would measure a gap between two tiles
     // that were never in the same picture. union() takes the strictest of the seven and says so.
     function compose(g, nodes, out, opt) {
+      PLACER.composes++;
+      PLACER.calls = 0;
+      PLACER.compares = 0;
       var gap = (opt && opt.pitch) || pitchOf(g);
       var at = place(g, nodes, gap, (opt && opt.top !== undefined) ? opt.top : topOf(g));
       var pos = {};
@@ -1406,9 +1435,32 @@
         var reach = CHIP_SLIDE * L, best = null, bestCost = null, k = 1;
         var slides = [0];
         while (k * CHIP_STEP <= reach) { slides.push(k * CHIP_STEP, -k * CHIP_STEP); k++; }
+        // A CANDIDATE THAT CANNOT WIN IS NOT WEIGHED. Issue 171, and it is the second repair to
+        // the cost and not to the picture that this loop has taken. The cost of a candidate is
+        // `W_OVER * overlap + |ds| + W_PERP * |perp|`, and the last two terms are known BEFORE the
+        // overlap is computed while the first can only ever add to them: an overlap depth is a sum
+        // of positive penetrations, so it is never negative. So `|ds| + W_PERP * |perp|` is a FLOOR
+        // under the candidate's cost, and a candidate whose floor already reaches the incumbent
+        // cannot beat it. The incumbent is replaced on `cost < bestCost` and not on `<=`, so a tie
+        // does not change the answer either: the skipped candidate would have lost, not drawn.
+        //
+        // AND THE SLIDES ARE GENERATED IN NON-DECREASING `|ds|`, `0, +4, -4, +8, -8, ...`, so once
+        // one slide's floor reaches the incumbent every later slide's does too and the search stops
+        // rather than skipping its way to the end. That is where the saving is: on the drawings
+        // this page composes it takes the placer from 11274165 box comparisons to 1914418 over a
+        // whole build, and it removes no candidate that the old search would have chosen.
+        //
+        // IEEE arithmetic does not weaken the argument. `cost` is `((W_OVER * ov) + |ds|) + W_PERP
+        // * |perp|` and the floor is `|ds| + W_PERP * |perp|`; rounding to nearest is monotone and
+        // every term is non-negative, so `cost >= floor` holds in the doubles the browser actually
+        // computes and not only in the reals. The check on it is check_build.sh: the same prune is
+        // in build_layout.py, which is the copy with fourteen digests over it, and not one moved.
         slides.some(function (ds) {
+          if (bestCost !== null && Math.abs(ds) >= bestCost) return true;
           var s = atS(tab, L / 2 + ds);
           [0, CHIP_PERP / 2, -CHIP_PERP / 2, CHIP_PERP, -CHIP_PERP].forEach(function (perp) {
+            var floor = Math.abs(ds) + W_PERP * Math.abs(perp);
+            if (bestCost !== null && floor >= bestCost) return;
             var x = s.p[0] - s.t[1] * perp, y = s.p[1] + s.t[0] * perp;
             var cost = W_OVER * overlapDepth(x, y, e.cw + 4, boxes) +
                        Math.abs(ds) + W_PERP * Math.abs(perp);

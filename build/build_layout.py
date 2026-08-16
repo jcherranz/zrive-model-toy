@@ -589,7 +589,21 @@ def layout(view, tag, bands, col_of, types):
         lab_h = LINE_H * n["nlines"]
         blocked.append((n["x"], tile_y(n) + TILE / 2 + GAP_LABEL + lab_h / 2,
                         n["lw"] + 6, lab_h + 2))
-    chips = []
+    # ONE LIST THAT GROWS RATHER THAN TWO JOINED ON EVERY CANDIDATE. Issue 171, and the same
+    # repair site/render.js took on issue 145 for the same reason: `blocked + chips` stood in the
+    # innermost loop below, which runs once per perpendicular step per slide per edge, and built a
+    # fresh list of every tile, every label and every chip placed so far each time. That is
+    # 11274165 element copies over one build. `overlap()` returns a sum over every box, in the
+    # order the list holds them, and a chip is appended only after its own placement is decided,
+    # so the list this loop reads is the same list in the same order at every candidate it was
+    # before: `blocked` first, then the chips already placed. The sum is therefore not merely
+    # equal but bit-identical, and the fourteen digests say so.
+    #
+    # `blocked` IS NOT COPIED, and that is deliberate rather than careless: nothing reads it after
+    # this loop, and a copy here would be one more allocation to justify. The name changes to
+    # `boxes` at the point it stops meaning "what the tiles and labels occupy" and starts meaning
+    # "what a chip must not land on", which is the whole of what the placer asks of it.
+    boxes = blocked
 
     for e in sorted(edges, key=lambda e: (-e["span"], e["s"], e["t"])):
         e["cw"] = text_w(e["v"], 9.0, 400, e["ghost"]) + 2 * PADX
@@ -603,18 +617,40 @@ def layout(view, tag, bands, col_of, types):
             slides += [k * CHIP_STEP, -k * CHIP_STEP]
             k += 1
         best, best_cost = None, None
+        # A CANDIDATE THAT CANNOT WIN IS NOT WEIGHED. Issue 171. The cost below is
+        # `W_OVER * overlap + |ds| + W_PERP * |perp|`; the last two terms are known before the
+        # overlap is computed and the first can only add to them, because an overlap depth is a
+        # sum of positive penetrations and is never negative. So `|ds| + W_PERP * |perp|` is a
+        # FLOOR under the candidate's cost, and a candidate whose floor already reaches the
+        # incumbent cannot beat it. The incumbent moves on `cost < best_cost` and not on `<=`, so
+        # a tie is a loss for the newcomer and skipping it changes nothing.
+        #
+        # The slides are generated in non-decreasing `|ds|`, `0, +4, -4, +8, -8, ...`, so once one
+        # slide's floor reaches the incumbent every later slide's does too and the search stops
+        # rather than skipping its way to the end.
+        #
+        # IEEE arithmetic does not weaken it. `cost` is `((W_OVER * ov) + |ds|) + W_PERP * |perp|`
+        # and the floor is `|ds| + W_PERP * |perp|`; round-to-nearest is monotone and every term is
+        # non-negative, so `cost >= floor` holds in the doubles this runs in and not only in the
+        # reals. Measured over one build it takes the placer from 80270 overlap calls and 11274165
+        # box comparisons to 18042 and 1914418, and the fourteen drawing digests did not move.
         for ds in slides:
+            if best_cost is not None and abs(ds) >= best_cost:
+                break
             (px, py), (tx, ty) = at_s(xs, cum, L / 2 + ds)
             for perp in (0.0, CHIP_PERP / 2, -CHIP_PERP / 2, CHIP_PERP, -CHIP_PERP):
+                floor = abs(ds) + W_PERP * abs(perp)
+                if best_cost is not None and floor >= best_cost:
+                    continue
                 x, y = px - ty * perp, py + tx * perp
-                cost = (W_OVER * overlap(x, y, e["cw"] + 4, blocked + chips)
+                cost = (W_OVER * overlap(x, y, e["cw"] + 4, boxes)
                         + abs(ds) + W_PERP * abs(perp))
                 if best_cost is None or cost < best_cost:
                     best, best_cost = (x, y), cost
             if best_cost == 0.0 and ds == 0.0:
                 break
         e["cx"], e["cy"] = best
-        chips.append((e["cx"], e["cy"], e["cw"] + 4, CH))
+        boxes.append((e["cx"], e["cy"], e["cw"] + 4, CH))
 
     for e in edges:
         p0, p1, p2, p3 = e["pts"]

@@ -281,6 +281,11 @@ const PHASES = {
   // draws that drawing on a document built from it, which is a different claim from what the bar
   // reads and is the only one that can catch a router resolved once at construction.
   'the scope':            { count: 15, when: 'behavioural' },
+  // Issue 171. Two budgets on the chip placer, one per drawing size, both counted in box
+  // comparisons rather than timed. They are `behavioural` because the count is a fact about the
+  // drawing and about the search over it, and about no width at all: the same union costs the
+  // same at 2560 as at 390.
+  'the placer':           { count: 2, when: 'behavioural' },
   'model and reveal':     { count: 14, when: 'behavioural' },
   'cold load':            { count: 4, when: 'behavioural' },
   'students':             { count: 11, when: 'behavioural' },
@@ -629,7 +634,10 @@ const PHASES = {
 // and that it follows the drawing under it when the scope moves and the window does not, and one
 // in `the scope`, that the address the sheet's close leaves draws that drawing on a document built
 // from it.
-const EXPECTED_ASSERTIONS = 316;
+// AND 318 SINCE ISSUE 171, which adds two and replaces none: one budget on the chip placer at
+// the seven programme union and one at two programmes, both counted in box comparisons because a
+// millisecond on a shared runner is a fact about the runner.
+const EXPECTED_ASSERTIONS = 318;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -2398,6 +2406,80 @@ async function checkScope(page, base) {
     `${backTo} reloaded cold draws ZIB+ZSC at modules on digest ${onScreen.canon}, which is what ` +
       'the sheet was closed over',
     JSON.stringify({ copied, onScreen, beforeReload, recipient }));
+}
+
+// =================================================================================================
+// THE PLACER'S BUDGET, IN OPERATIONS AND NOT IN MILLISECONDS. Issue 171.
+//
+// site/render.js places one verb chip per relationship by searching: along the arc of its own line
+// in CHIP_STEP increments, five perpendicular offsets at each step, and at every one of those
+// candidate positions the chip's box is weighed against every box already occupied. That last
+// factor is what makes the search grow faster than the picture does, and it is the reason a
+// repaint of the seven programme union was the worst frame this page has.
+//
+// WHY THE ASSERTION IS A COUNT. A millisecond on a shared runner is a fact about what else the
+// host was doing. This repository has already bought a constant fitted to one machine once: a
+// table that wants 1145.98 locally and 1160.69 on the runner, because the two font stacks resolve
+// to different faces, and a ceiling written from the local figure alone was a red run. A count of
+// box comparisons is an integer, the same integer on every machine that measures the same strings
+// to the same widths, and it is the number the change was actually about.
+//
+// AND THE CEILINGS ARE WRITTEN FROM BOTH MACHINES. The figure below each one is what this suite
+// measured locally and what it measured on the GitHub runner, and the ceiling sits above both.
+// What matters more than the headroom is the other side: each ceiling is far UNDER what the same
+// address cost before the search learned to skip a candidate whose cost floor already reaches the
+// incumbent. Taking that prune out again puts the count back over the ceiling by a factor of three
+// or of seven, which was planted and confirmed rather than assumed.
+//
+// THE READING IS TAKEN COLD, which is not fussiness. site/app.js keeps a union per scope and
+// altitude for the life of the page, so a second visit to an address composes nothing at all and
+// would be read as a free repaint. A reload composes exactly once, `composes` says so, and a
+// reading with no composition behind it is reported as a failure with its own sentence rather
+// than as a cheap pass. Three states: the counter is not published, the placer did not run, or it
+// ran and this is what it cost.
+//
+// THE WAIT IS DIAGRAM_READY AND NOTHING NARROWER. A wait that encoded the budget could only ever
+// time out on a page that blew it, which is the subtlest dead instrument this repository has
+// found: it would report a harness failure where the answer is a regression.
+
+// The seven programme union, which is what `#/` itself draws and is therefore the repaint every
+// reader pays for. It resolves to the modules altitude under the grain load budget, so this is
+// also the biggest drawing the page will agree to lay out.
+const PLACER_BUDGET_ALL = 6000000;
+// Two programmes at the sessions altitude, which the seven way union cannot reach. A second size
+// and a second altitude, so a regression that only shows on the small drawing is still caught.
+const PLACER_BUDGET_PAIR = 1000000;
+
+async function checkPlacer(page) {
+  const budget = async (at, ceiling, what) => {
+    await page.evaluate(`location.hash = ${JSON.stringify(at)}`);
+    await page.reload();
+    await page.waitFor(DIAGRAM_READY, `the diagram to draw cold at ${at}`);
+    const cost = JSON.parse(await page.evaluate(
+      `JSON.stringify(window.ZM && typeof window.ZM.placerCost === 'function'
+         ? window.ZM.placerCost() : null)`));
+    if (!cost) {
+      fail(what, `at most ${ceiling} box comparisons`,
+        'site/render.js published no window.ZM.placerCost, so this budget measured nothing at all');
+      return;
+    }
+    if (!(cost.composes > 0)) {
+      fail(what, `at most ${ceiling} box comparisons`,
+        `the placer composed nothing at ${at}, so the count below is about no work: ` +
+          JSON.stringify(cost));
+      return;
+    }
+    assert(what, cost.compares > 0 && cost.compares <= ceiling,
+      `more than none and at most ${ceiling} box comparisons`,
+      `${cost.compares} box comparisons over ${cost.calls} candidate positions ` +
+        `in ${cost.composes} composition(s)`,
+      `${cost.compares} of ${ceiling}`);
+  };
+
+  await budget('#/p/ALL', PLACER_BUDGET_ALL,
+    'the placer stays inside its budget on the seven programme union, counted in box comparisons');
+  await budget('#/p/ZIB+ZSC', PLACER_BUDGET_PAIR,
+    'and inside a tighter one on two programmes at the sessions altitude');
 }
 
 async function checkColdLoad(page, base) {
@@ -12357,6 +12439,11 @@ async function runViewport(chrome, viewport, base, full, narrow) {
       // reads the union and then hands the page over on `ONE`. Every phase after it is driven at
       // that address rather than at the default, which is the note beside the constant.
       await group('the scope', () => checkScope(page, base));
+      // Immediately after `the scope`, which is the other phase that drives the union, and before
+      // the two lines below hand the page over on ONE. It reloads twice on addresses of its own
+      // and leaves the page cold on the second of them, which those two lines then move off.
+      // Issue 171.
+      await group('the placer', () => checkPlacer(page));
       await page.evaluate('location.hash = ' + JSON.stringify(ONE));
       await page.waitFor(`window.ZT.scope().n === 1`, 'the scope of one this suite drives');
       await group('model and reveal', () => checkModelAndReveal(page));

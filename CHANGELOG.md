@@ -107,6 +107,24 @@ of what changed and when, and it is meant to be scannable.
   Half (a) of the card, that `site/index.html` leaves a literal `0` on
   screen as the headline number, **is dead and was not rebuilt**: `gapsval` does not occur anywhere
   in the repository, the panel redesign in #136, #137 and #139 having deleted that readout.
+- **THE CHIP PLACER WEIGHED EVERY CANDIDATE, INCLUDING THE ONES THAT COULD NOT WIN, #171.** A verb
+  chip is placed by searching along its own line and then off it, and each candidate position was
+  weighed against every box already occupied. **Measured at `4727576`:** one build made 80270 calls
+  into `overlap()` and 11274165 box comparisons, and `blocked + chips` inside the innermost loop
+  copied a fresh list of every one of those boxes at every candidate, 11274165 element copies. The
+  cost of a candidate is `W_OVER * overlap + |ds| + W_PERP * |perp|`; the last two terms are known
+  before the overlap is computed and the first can only add to them, so those two are a **floor**
+  under the candidate's cost and a candidate whose floor already reaches the incumbent cannot beat
+  it. The incumbent moves on a strict `<`, so a tie is a loss for the newcomer and skipping it
+  changes nothing. The slides are generated in non-decreasing `|ds|`, so the search now stops rather
+  than skipping to the end. **After: 18042 calls and 1914418 comparisons, and the build goes from
+  6.74s to 3.87s.** In the browser, a cold repaint of the seven programme union goes from 18098895
+  box comparisons to 3874779 and two programmes at the sessions altitude from 7067670 to 637730.
+  **Nothing about the picture moved and that is the headline rather than a side condition:** all
+  fourteen drawing digests are unchanged, `site/instance.js` and `site/layout.js` rebuild byte for
+  byte, and every chip in 240 browser states, 90772 chips in all, is at the coordinate it was at.
+  Two budget assertions are added to `scripts/smoke.mjs`, **in box comparisons and not in
+  milliseconds**, because a wall clock on a shared runner is a fact about the runner.
 - **A SOURCE FILE THIS REPOSITORY COULD NOT GREP, #184.** `site/render.js` carried two raw NUL bytes,
   written as literal `0x00` rather than as the escape for the same character, in a line that joins
   three fields into a key. The string value was right and the page was right; every line-oriented
