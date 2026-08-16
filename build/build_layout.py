@@ -148,6 +148,15 @@ except (OSError, ValueError, KeyError) as exc:
 NARROW, WIDE = set("ijlt.,;:!'|íÍ "), set("mwMW@")
 _fellback = []   # (context, string) for every lookup that missed
 _errors = []     # (measured - estimated, context, string) for every lookup that hit
+# (tag, node id, the reserved half-box width) for every node laid out, appended by layout() once
+# the reserve is final. Issue 220, and the same device as the two lists above for the same
+# reason: `n["lw"]` is a local inside layout() and reaches neither document the builder writes,
+# so between the width table answering and the answer becoming a coordinate there was nothing
+# any gate outside this process could read. scripts/check_build.sh runs this file and holds every
+# entry against a reserve it computes from build/label_widths.json alone. Nothing painted depends
+# on this list: it is appended to and never read here, and site/layout.js is byte-identical with
+# it and without it.
+_reserved = []
 
 
 def estimate_w(s, size, caps=False):
@@ -454,6 +463,10 @@ def layout(view, tag, bands, col_of, types):
             n["lw"] = max(n["lw"], text_w(n["mark"], 9.0))
         if n.get("tail"):
             n["lw"] = max(n["lw"], text_w(n["tail"], 9.0))
+        # HERE AND NOT A LINE EARLIER: the reserve is final at this point, after the issue 43
+        # re-break and after the mark and the tail have had their say, and the number recorded is
+        # the one every consumer below reads. Issue 220.
+        _reserved.append((tag, nid, n["lw"]))
         n["h"] = TILE + GAP_LABEL + LINE_H * n["nlines"]
         n["x"] = COLX[n["col"]]
 

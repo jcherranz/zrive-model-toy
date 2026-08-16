@@ -897,7 +897,410 @@ PY
 }
 
 # ---------------------------------------------------------------------------------------------
-# 4. The model is well formed.
+# 4. And the width it got back is the width it reserved. Issue 220.
+# ---------------------------------------------------------------------------------------------
+# Check 3 above proves the right question was put to the width table. This one proves the answer
+# was used. Between `text_w()` returning a number and that number becoming a coordinate sits
+# `reserve()` at build/build_layout.py:428-430 and the two lines that widen its result for a mark
+# and for a tail, and until this section existed nothing anywhere read what came out of them.
+#
+# ONE TOKEN, AND EVERY OTHER GATE GREEN. `max` to `min` inside reserve() returns the regular
+# width of a label the stylesheet paints bold the moment a reader clicks it, which is #203's harm
+# arriving from the build side. Check 3 stays green because every line is still asked for in both
+# faces, so its census is unchanged in shape. Check 1 stays green in the only workflow a builder
+# edit has, because it compares the rebuild against the INDEX and any builder change is rebuilt
+# and staged before the gates are read. The digest census stays green because it recomputes the
+# fourteen from the bytes in front of it and asserts they are distinct, which a regenerated
+# document satisfies by construction.
+#
+# AND THE LANE GATE INSIDE layout() CANNOT SEE IT, WHICH IS THE LOAD BEARING POINT AND IS
+# ARITHMETIC RATHER THAN OPINION. `lane_slack()` is `min(x - lw/2 - x0, x1 - x - lw/2)`, so `lw`
+# appears only negatively and a SMALLER reserve makes the slack LARGER. Driven with a lane of 250
+# and a node centred at 125: a reserve of 240 gives +5.0, an under reserve of 200 gives +25.0,
+# and an over reserve of 280 gives -15.0 and is refused. The lane gate can only ever catch a box
+# that grew, and under reserving is the whole of #203 and the whole of this card. Measured on
+# this tree, the `min` takes the tightest label from 0.0px of lane to spare to 5.6px and the gate
+# says nothing.
+#
+# WHAT THIS RUNS. The real builder, over the real fourteen drawings, into a throwaway directory,
+# with `_reserved` read back off the module the way check 3 reads `_errors` and `_fellback`. That
+# list is one tuple per node laid out, `(tag, id, lw)`, appended by layout() at the point the
+# reserve is final: after the issue 43 re-break and after the mark and the tail have widened it.
+# It is appended to and never read inside the builder, and site/layout.js is byte identical with
+# it and without it, which was checked by rebuilding rather than reasoned about. That is what
+# makes the reserve readable at all: it is a local inside layout() and it reaches neither
+# document, so emitting it into site/layout.js was the alternative and it would have moved the
+# fourteen digests to carry a number only a gate reads.
+#
+# AND THE OTHER SIDE OF THE COMPARISON IS NOT build_layout.py, which is the whole discipline
+# here and is the fourth place in this repository where the same trap has been walked around. A
+# check that recomputed `max(text_w(400), text_w(600))` and held it against what the builder
+# computed would be two copies of one opinion, and it would agree with the defect the moment the
+# table was wrong. So the expectation is built from three places that have never heard of the
+# builder's arithmetic:
+#
+#   the WIDTHS come out of build/label_widths.json, read as JSON from this file rather than
+#   through build_layout.py's own lookup. #195 settled that this is admissible and why: the
+#   width table is an INPUT to the placement, and an oracle that reads the input and never reads
+#   the output is not circular. It is stronger than that here, because the table is not taken on
+#   trust either. Check 2 holds it against the job that writes it, and scripts/smoke.mjs's own
+#   phase holds the painted page against it. The table's correctness is those two checks' claim
+#   and this one inherits it;
+#
+#   the FACES come out of site/app.css through measure_labels.css_rule(), composed from what
+#   `.node .lbl`, `.node.sel .lbl` and `.lbl-ghost` declare, exactly as check 3's assertion E
+#   composes them, so a stylesheet that stopped painting a selected label bold moves this
+#   expectation with it instead of fighting it;
+#
+#   the LINES come out of the two documents the builder just wrote, rebuilt from the label and
+#   the wrap counts by the same arithmetic site/app.js uses at unwrap(). That is the same narrow
+#   claim check 3 states for its label lines and it is stated narrowly here too: WHATEVER LINES
+#   IT DECIDED TO BREAK THE LABEL INTO, THE BOX IT RESERVED HOLDS THEM. Where a label breaks is
+#   the builder's own decision and there is nowhere else to read it from, so a defect in the
+#   WRAPPING moves this expectation with it and is not what this section is about.
+#
+# TWO DIRECTIONS, AND THEY ARE NOT WORTH THE SAME. The under direction is the card: a reserve
+# short of the widest face is a label box the page paints outside, and nothing else in this
+# repository looks that way. The over direction is a reserve nothing can name a string for, and
+# the lane gate does eventually catch it, but only once the box has left its lane; before that it
+# is silent and it still moves geometry, because build/build_layout.py:597 blocks the chip placer
+# with `n["lw"] + 6` and a box that grew pushes chips onto different candidates. Both are
+# asserted and the headroom in both is printed on the PASS, so a corpus drifting towards the
+# tolerance is visible before it crosses it rather than after.
+#
+# WHAT IT DOES NOT SAY. It is about the arithmetic and not about the face a mark is measured in.
+# The mark and the tail are held against every context the committed table measures them in at
+# the size site/app.css gives `.chip-tx`, which today is `9/400` and `9/400i` and which holds the
+# mark strings under the upright one only. #215 is open on the stylesheet painting a mark italic
+# at `.node .lbl.lbl-missing`, and when it lands and the table gains the italic entries this
+# bound tightens on its own and goes red until build/build_layout.py:460 follows it. Composing
+# that context from the stylesheet TODAY would go red on another card's defect.
+#
+# The builder to run is the first argument, the number of drawings it must lay out the second,
+# both for the reasons check 3 gives. The third is a nudge in units applied to ONE recorded
+# reserve, which exists because neither direction of a comparison is armed until something has
+# been shown to fail it and this corpus agrees exactly, at 0.0 in both directions: there is no
+# mutation of the arithmetic that over reserves and still builds, because the tightest label
+# already has 0.0px of lane to spare and the lane gate refuses anything wider. So the over
+# direction is proved on a plant in the reading rather than on a plant in the builder, and the
+# plant is one entry out of five hundred and seventy rather than all of them.
+check_reserve_used() {  # [builder] [expected-drawings] [nudge]
+  ZRIVE_ROOT="$ROOT" ZRIVE_LAYOUT_PY="${1:-$ROOT/build/build_layout.py}" \
+  ZRIVE_DRAWINGS="${2:-$EXPECTED_DRAWINGS}" ZRIVE_NUDGE="${3:-0}" python3 - <<'PY'
+import contextlib
+import io
+import json
+import os
+import pathlib
+import runpy
+import sys
+import tempfile
+
+root = pathlib.Path(os.environ["ZRIVE_ROOT"])
+layout_py = pathlib.Path(os.environ["ZRIVE_LAYOUT_PY"])
+nudge = float(os.environ["ZRIVE_NUDGE"])
+sys.path.insert(0, str(root / "build"))
+import measure_labels as ml  # noqa: E402
+from model import doc_views  # noqa: E402
+
+# Float, and the two sides are the same floats: the builder's reserve is the maximum of values
+# read out of build/label_widths.json and this file reads the same values out of the same file,
+# so exact equality is what a correct build produces and this is a guard against arithmetic and
+# not a tolerance for disagreement. The clean corpus sits at 0.0 in both directions and the
+# number is printed on the PASS so that is checkable rather than asserted here.
+TOL = 1e-6
+BAD = 0
+
+
+def fail(msg):
+    global BAD
+    BAD = 1
+    print(f"::error::{msg}")
+
+
+def show(rows, head, n=12):
+    for row in rows[:n]:
+        print(f"      {row}")
+    if len(rows) > n:
+        print(f"      ... and {len(rows) - n} more {head}")
+
+
+def unwrap(path, prefix):
+    text = path.read_text(encoding="utf-8")
+    return json.loads(text[len(prefix):-len(";\n")])
+
+
+if not layout_py.is_file():
+    print(f"::error::no builder at {layout_py}. Nothing was run, so nothing here is evidence")
+    sys.exit(1)
+
+# ---- run the builder and keep only what it reserved -------------------------
+with tempfile.TemporaryDirectory() as td:
+    saved_argv = sys.argv
+    sys.argv = [str(layout_py), "--out", td]
+    log = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(log), contextlib.redirect_stderr(log):
+            built = runpy.run_path(str(layout_py), run_name="__main__")
+    except BaseException as exc:  # noqa: BLE001
+        why = exc.code if isinstance(exc, SystemExit) else f"{type(exc).__name__}: {exc}"
+        print(f"::error::{layout_py} did not finish ({why}). Nothing was reserved, so nothing "
+              f"here is evidence. Its last words:")
+        show([ln for ln in log.getvalue().splitlines() if ln.strip()][-8:], "lines", 8)
+        sys.exit(1)
+    finally:
+        sys.argv = saved_argv
+    try:
+        inst = unwrap(pathlib.Path(td) / "instance.js", "window.GI=")
+        lay = unwrap(pathlib.Path(td) / "layout.js", "window.GL=")
+    except (OSError, ValueError) as exc:
+        print(f"::error::the builder wrote no readable documents ({type(exc).__name__}), so the "
+              f"nodes it reserved boxes for cannot be enumerated and nothing here is evidence")
+        sys.exit(1)
+
+try:
+    record = [(str(tag), str(nid), float(lw)) for tag, nid, lw in built["_reserved"]]
+except (KeyError, TypeError, ValueError) as exc:
+    print(f"::error::build/build_layout.py no longer keeps the record of what it reserved "
+          f"({type(exc).__name__}). The reserve is a local inside layout() and reaches neither "
+          f"document, so without that list this check cannot look, and a check that cannot look "
+          f"must not report clean")
+    sys.exit(1)
+
+# THE TABLE THE BUILDER READ AND THE TABLE THIS CHECK READS ARE THE SAME FILE, asserted rather
+# than assumed. build_layout.py resolves its table through ZRIVE_LABEL_WIDTHS, and a run against
+# one table judged from another would disagree everywhere and name the arithmetic for it.
+widths_path = root / "build" / "label_widths.json"
+try:
+    used = pathlib.Path(built["WIDTHS_PATH"]).resolve()
+except (KeyError, TypeError) as exc:
+    print(f"::error::the builder no longer says which width table it read "
+          f"({type(exc).__name__}), so this check cannot tell whether it is judging that run "
+          f"against the numbers that produced it")
+    sys.exit(1)
+if used != widths_path.resolve():
+    print(f"::error::the builder laid out from {used} and this check reads {widths_path}. Two "
+          f"different tables cannot be one expectation, and the disagreement would be reported "
+          f"as an arithmetic defect")
+    sys.exit(1)
+try:
+    doc = json.loads(widths_path.read_text(encoding="utf-8"))
+    TBL, CTX = doc["widths"], doc["contexts"]
+except (OSError, ValueError, KeyError) as exc:
+    print(f"::error::no readable width table at {widths_path} ({type(exc).__name__}). Nothing "
+          f"here is evidence: every reserve would be compared against nothing")
+    sys.exit(1)
+
+# ---- the faces, out of the stylesheet ---------------------------------------
+lbl = ml.css_rule(".node .lbl")
+sel = ml.css_rule(".node.sel .lbl")
+ghost_rule = ml.css_rule(".lbl-ghost")
+chip = ml.css_rule(".chip-tx")
+if "font-weight" not in sel or "font-size" not in lbl or "font-size" not in chip:
+    print("::error::site/app.css no longer declares the size a node label is painted at, the "
+          "weight a click gives it, or the size of a chip. What the page paints is not readable "
+          "from the stylesheet and this check will not guess it")
+    sys.exit(1)
+size = ml.px(lbl["font-size"])
+slant = "i" if ghost_rule.get("font-style") == "italic" else ""
+rest_w = f"{float(lbl.get('font-weight', '400')):g}"
+sel_w = f"{float(sel['font-weight']):g}"
+faces = {False: (f"{size}/{rest_w}", f"{size}/{sel_w}"),
+         True: (f"{size}/{rest_w}{slant}", f"{size}/{sel_w}{slant}")}
+# The mark and the tail are drawn at the chip size, and which FACE of it is #215's question and
+# not this one's. So the bound is every context the committed table measures a string in at that
+# size, excluding the uppercased caption face, which is a different rule of the stylesheet and
+# would put a caption's letter spacing under a mark that happened to read the same.
+chip_size = ml.px(chip["font-size"])
+try:
+    small = sorted(k for k, v in CTX.items()
+                   if ml.px(v["css"]["font-size"]) == chip_size
+                   and "text-transform" not in v["css"])
+except (KeyError, TypeError, ValueError) as exc:
+    print(f"::error::build/label_widths.json no longer says what CSS each of its contexts was "
+          f"measured under ({type(exc).__name__}), so the faces a mark could have been measured "
+          f"in cannot be enumerated")
+    sys.exit(1)
+missing_face = sorted({c for pair in faces.values() for c in pair} - set(TBL))
+if missing_face or not small:
+    lack = ("no entries for " + ", ".join(missing_face) if missing_face
+            else f"no context at {chip_size}px that is not the uppercased caption face")
+    print(f"::error::site/app.css paints node labels in "
+          f"{', '.join(sorted({c for p in faces.values() for c in p}))} and paints marks at "
+          f"{chip_size}px, and build/label_widths.json holds {lack}. The stylesheet and the "
+          f"table disagree about the faces the page is painted in, and until they agree neither "
+          f"can be the expectation for the other")
+    sys.exit(1)
+
+# ---- the population, asserted before any verdict is read off it -------------
+# A gate that enumerated no reserve would report no disagreement and print clean, which is the
+# state this repository has shipped seventeen instruments unable to tell from a real one. There
+# are three ways to enumerate nothing here and all three are refusals: an empty record, a run
+# that laid out a different number of drawings than this check intends, and a record whose nodes
+# are not the nodes the documents carry.
+views_i, views_l = doc_views(inst), doc_views(lay)
+if not record:
+    print("::error::the builder reserved a box for nothing over the whole run. Either the record "
+          "is not being kept or the build laid nothing out; either way this check looked at "
+          "nothing and will not call it clean")
+    sys.exit(1)
+if not views_i or len(views_i) != len(views_l):
+    print(f"::error::the builder wrote {len(views_i)} drawing(s) of data and {len(views_l)} of "
+          f"geometry. The labels a reserve is for cannot be read off a pair that does not match")
+    sys.exit(1)
+want_drawings = int(os.environ["ZRIVE_DRAWINGS"])
+if len(views_l) != want_drawings:
+    print(f"::error::the builder laid out {len(views_l)} drawing(s) and this check intends "
+          f"{want_drawings}. Either the run was short, in which case nothing below is a "
+          f"statement about the drawings that did not happen, or there is genuinely a new one, "
+          f"in which case EXPECTED_DRAWINGS in scripts/check_build.sh belongs in the same commit")
+    sys.exit(1)
+
+reserved = {}
+dupes = []
+for tag, nid, lw in record:
+    if (tag, nid) in reserved:
+        dupes.append(f"{tag} {nid}")
+    reserved[(tag, nid)] = lw
+if dupes:
+    print(f"::error::{len(dupes)} node(s) were recorded twice, so a reserve read by id is not "
+          f"the reserve a particular node got: " + ", ".join(sorted(set(dupes))[:8]))
+    sys.exit(1)
+
+# THE NUDGE, and it lands on one entry rather than on all of them. See the header: the over
+# direction has no mutation of the builder that survives the lane gate, so it is proved on a
+# plant in the reading, and a plant that moved every reserve would prove only that a gate can
+# see five hundred and seventy disagreements at once.
+if nudge:
+    k = min(reserved)
+    reserved[k] += nudge
+    print(f"    (self-test nudged {k[0]} {k[1]} by {nudge:+g} units)")
+
+# ---- what each node paints, out of the two documents ------------------------
+expected, weighed = {}, set()
+unmeasured = []
+for data, geo in zip(views_i, views_l):
+    grain = data.get("grain", "sessions")
+    tag = data["key"] + ("" if grain == "sessions" else "/" + grain)
+    if data["key"] != geo["key"] or grain != geo.get("grain", "sessions"):
+        print(f"::error::the instance document's {data['key']}/{grain} drawing is paired with "
+              f"the layout's {geo['key']}/{geo.get('grain')}; the two documents are not in the "
+              f"same order and nothing can be read across them")
+        sys.exit(1)
+    placed = {n["id"]: n for n in geo["drawing"]["nodes"]}
+    for n in data["nodes"]:
+        if n["id"] not in placed:
+            print(f"::error::{n['id']} on {tag} is in the instance document and not in the "
+                  f"geometry, so the lines it paints cannot be rebuilt")
+            sys.exit(1)
+        words = n["label"].split()
+        lines = []
+        for count in placed[n["id"]]["wrap"]:
+            lines.append(" ".join(words[:count]))
+            words = words[count:]
+        if words or not lines:
+            print(f"::error::{n['id']} on {tag} carries wrap counts that leave {words} over or "
+                  f"break its label into no lines at all. The lines the page paints cannot be "
+                  f"rebuilt, so what the box under them has to hold is not known")
+            sys.exit(1)
+        need = []
+        for line in lines:
+            for ctx in faces[bool(n.get("ghost"))]:
+                if line in TBL.get(ctx, {}):
+                    need.append((ctx, line, TBL[ctx][line]))
+                else:
+                    unmeasured.append((ctx, line))
+        for kind in ("mark", "tail"):
+            s = n.get(kind)
+            if not s:
+                continue
+            hit = [(c, s, TBL[c][s]) for c in small if s in TBL.get(c, {})]
+            if not hit:
+                unmeasured.append(("/".join(small), s))
+            need += hit
+        expected[(tag, n["id"])] = need
+
+# EVERY STRING THIS CHECK NEEDS IS IN THE TABLE, or it did not look. A miss is a real defect as
+# well, and check 3's assertion A is where it is reported as one; here it is the state in which
+# a comparison cannot be made, because the builder would have laid the box out from the hand
+# written per character estimate and there is no measured number to hold it against.
+if unmeasured:
+    uniq = sorted(set(unmeasured))
+    print(f"::error::{len(uniq)} (face, string) pair(s) the drawings paint are not in "
+          f"{widths_path.name}, so the box reserved for them cannot be weighed against anything "
+          f"and nothing below is a statement about those nodes. Regenerate the table with "
+          f"build/measure_labels.py, and see check 2 and check 3 for why it went missing")
+    show([f"{c:<12} {s!r}" for c, s in uniq], "pairs")
+    sys.exit(1)
+
+only_recorded = sorted(set(reserved) - set(expected))
+only_painted = sorted(set(expected) - set(reserved))
+if only_recorded or only_painted:
+    print(f"::error::the builder recorded {len(reserved)} reserve(s) and the two documents it "
+          f"wrote carry {len(expected)} node(s). A reserve this check never sees is a box "
+          f"nothing holds, and a node with no reserve recorded is a node this check silently "
+          f"passed over")
+    show([f"recorded, not painted: {t} {i}" for t, i in only_recorded]
+         + [f"painted, not recorded: {t} {i}" for t, i in only_painted], "nodes")
+    sys.exit(1)
+
+for k, need in expected.items():
+    weighed.update((c, s) for c, s, _w in need)
+print(f"    {len(expected)} node(s) over {len(views_l)} drawings, weighed against "
+      f"{len(weighed)} measured (face, string) pair(s) in "
+      f"{', '.join(sorted({c for c, _s in weighed}))}")
+
+# ---- A. the reserve holds every line in the face a click paints it in -------
+short, wide = [], []
+worst_short = worst_wide = 0.0
+for key in sorted(expected):
+    need = expected[key]
+    got = reserved[key]
+    ctx, string, bound = max(need, key=lambda r: r[2])
+    gap = got - bound
+    if gap < -TOL:
+        short.append((key, ctx, string, bound, got))
+        worst_short = min(worst_short, gap)
+    elif gap > TOL:
+        wide.append((key, ctx, string, bound, got))
+        worst_wide = max(worst_wide, gap)
+
+if short:
+    fail(f"{len(short)} of the {len(expected)} node(s) reserved a box narrower than the widest "
+         f"face site/app.css paints their own lines in, by up to {-worst_short:.2f}px. A label "
+         f"is painted at {faces[False][0]} at rest and at {faces[False][1]} while its card is "
+         f"selected, and reserve() in build/build_layout.py exists to hold the second: the box "
+         f"has to hold the state the page enters on a click as well as the one it starts in. The "
+         f"lane overflow gate inside layout() cannot report this, because lw appears only "
+         f"negatively in lane_slack() and a box that shrank makes the slack larger")
+    show([f"{t} {i:<10} reserved {g:.2f} for {b:.2f} of {c} {s!r}"
+          for (t, i), c, s, b, g in short], "nodes")
+if wide:
+    fail(f"{len(wide)} of the {len(expected)} node(s) reserved a box wider than any string they "
+         f"paint, by up to {worst_wide:.2f}px, and nothing names what the extra is for. The lane "
+         f"gate catches this direction only once the box has left its lane; before that it is "
+         f"silent and the reserve still moves geometry, because the chip placer is blocked with "
+         f"lw + 6 and a box that grew pushes chips onto different candidates")
+    show([f"{t} {i:<10} reserved {g:.2f} for {b:.2f} of {c} {s!r}"
+          for (t, i), c, s, b, g in wide], "nodes")
+
+if BAD:
+    print()
+    print("  THE FIX IS IN THE ARITHMETIC AND NOT AT THE CALL SITE. Check 3 above says which "
+          "widths were asked for and this one says what was done with them, so a run that is "
+          "green there and red here has the right numbers and the wrong sum. reserve() at "
+          "build/build_layout.py:428-430 takes the wider of the two faces, the issue 43 re-break "
+          "below it re-reserves after re-wrapping, and the mark and the tail widen the result "
+          "again. One of those four is not holding.")
+    sys.exit(1)
+
+print(f"    every reserve is the widest measured line the node paints, headroom 0.00px short "
+      f"and {worst_wide:.2f}px wide against a tolerance of {TOL:g}")
+PY
+}
+
+# ---------------------------------------------------------------------------------------------
+# 5. The model is well formed.
 # ---------------------------------------------------------------------------------------------
 # stderr is KEPT and not discarded, which is the whole reason these are two lines rather than
 # one. A refusal from check_structure() is a SystemExit and its message is on stderr, so a
@@ -916,7 +1319,7 @@ check_structure_live() { _model_says --structure; }
 check_structure_armed() { _model_says --structure-self-test; }
 
 # ---------------------------------------------------------------------------------------------
-# 5. The digest census. Issue 116.
+# 6. The digest census. Issue 116.
 # ---------------------------------------------------------------------------------------------
 # Before this card `drawingDigest` occurred zero times in every gate this repository runs. The
 # value was correct, nothing read it, and the audit changed one glyph in build/model.py, rebuilt
@@ -1082,7 +1485,7 @@ PY
 }
 
 # ---------------------------------------------------------------------------------------------
-# 6. The census of what could look. Issue 168 R4(a).
+# 7. The census of what could look. Issue 168 R4(a).
 # ---------------------------------------------------------------------------------------------
 # THE NOTICES ARE THE EVIDENCE AND THE CORPUS IS THE CROSS-CHECK, in that order and not the other
 # way round. Each gate says on its own face whether it verified or declined, and one of them can
@@ -2483,6 +2886,10 @@ check_widths_cover || bad=1
 echo
 echo "== and the builder asks it for the faces the page paints in"
 check_widths_asked || bad=1
+
+echo
+echo "== and the width it got back is the width it reserved"
+check_reserve_used || bad=1
 
 echo
 echo "== the model is a graph a drawing can be made of"
