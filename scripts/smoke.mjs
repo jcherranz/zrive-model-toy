@@ -295,7 +295,7 @@ const PHASES = {
   'console and requests': { count: 2, when: 'every' },
   'two artefacts':        { count: 4, when: 'grain' },
   'the count':            { count: 3, when: 'grain' },
-  'well formed':          { count: 6, when: 'grain' },
+  'well formed':          { count: 8, when: 'grain' },
   'the fold':             { count: 3, when: 'grain' },
   'reflow':               { count: 8, when: 'grain' },
   'the address':          { count: 3, when: 'grain' },
@@ -565,7 +565,15 @@ const PHASES = {
 // assertion is repaired in the same commit rather than counted again: its three arrivals were
 // fragment navigations that built no document, so the union it called `read cold` was the scope the
 // page had been constructed with, and it reloads now.
-const EXPECTED_ASSERTIONS = 298;
+// 298 until issue 156, which adds two to `well formed` and changes no other count. Both are about
+// the arrowhead against the line it terminates, and the reason they are two rather than one is that
+// they fail on different things: the first says the head is on its line's end point and turned the
+// way the line runs over the head's own length, rebuilt in this file from the line's `d` by a
+// second implementation of the walk; the second says it is attached to the end nearest the tile
+// the relationship names, aimed inside that tile's box, and carried on a line longer than the head
+// itself, which is what makes the clamp in render.js's headAngle() arithmetic rather than a branch
+// no run has ever entered.
+const EXPECTED_ASSERTIONS = 300;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -10344,19 +10352,33 @@ const GRAIN_READ = `
   }
   var svg = document.getElementById('graph');
   var tiles = [], chips = [], ids = {}, edges = [], folds = 0, foldSum = 0;
+  var tileAt = {}, heads = [];
   svg.querySelectorAll('g[data-node], g[data-outside]').forEach(function (g) {
-    ids[g.getAttribute('data-node') || g.getAttribute('data-outside')] = true;
+    var id = g.getAttribute('data-node') || g.getAttribute('data-outside');
+    ids[id] = true;
     var r = g.querySelector('rect.tile-bg');
-    if (r) tiles.push(box(r));
+    if (r) { tiles.push(box(r)); tileAt[id] = box(r); }
   });
   svg.querySelectorAll('rect.chip-bg').forEach(function (r) { chips.push(box(r)); });
   svg.querySelectorAll('g[data-edge]').forEach(function (g) {
-    if (!g.querySelector('path.edge, path.edge-ghost, path.edge-outside')) return;
+    var line = g.querySelector('path.edge, path.edge-ghost, path.edge-outside');
+    if (!line) return;
     var k = g.getAttribute('data-edge');
     var t = g.querySelector('title');
     var m = t && /, (\\d+) relationships drawn as one line/.exec(t.textContent);
     if (m) { folds++; foldSum += +m[1]; }
     edges.push(k);
+    // Issue 156. The arrowhead as three raw strings and one measured length, carried out of the
+    // page unjudged: what it ought to be is rebuilt in the driver from the line's own d, so
+    // nothing here can agree with render.js by sharing its arithmetic.
+    var head = g.querySelector('path.arrow, path.arrow-ghost');
+    var tr = head && /translate\\(([-\\d.]+),([-\\d.]+)\\) rotate\\(([-\\d.]+)\\)/
+      .exec(head.getAttribute('transform'));
+    heads.push({ key: k, d: line.getAttribute('d'),
+                 len: +line.getTotalLength().toFixed(4),
+                 shape: head ? head.getAttribute('d') : null,
+                 ax: tr ? +tr[1] : null, ay: tr ? +tr[2] : null, aa: tr ? +tr[3] : null,
+                 target: tileAt[k.slice(k.indexOf('->') + 2)] || null });
   });
   var tileOverlap = 0, chipPile = 0, dangling = [];
   for (var i = 0; i < tiles.length; i++) {
@@ -10381,7 +10403,7 @@ const GRAIN_READ = `
   });
   return { tiles: tiles.length, chips: chips.length, edges: edges.length,
            tileOverlap: tileOverlap, chipPile: chipPile, chipWorst: chipWorst,
-           dangling: dangling,
+           dangling: dangling, heads: heads,
            folds: folds, foldSum: foldSum, tails: counted,
            // The DRAWING's extent, off the page's own report, and NOT the viewBox: the canvas is
            // a viewport onto a plane, so the viewBox is where the reader is looking and moves
@@ -10390,6 +10412,116 @@ const GRAIN_READ = `
            grain: window.ZT.grain(), reflow: window.ZT.reflow(),
            filtered: window.ZT.filtered(), digest: window.ZT.programme().digest };
 `;
+
+// =================================================================================================
+// THE ARROWHEAD, REBUILT HERE. Issue 156.
+//
+// He filed `check arrow vs line alignment` on `bl_students->bl_cohort` and the measurement before
+// anything was touched said the tip was on the line's end point to 0.0000 units, on the target
+// tile's box edge to every decimal measured, and rotated to the curve's exact tangent there. All
+// three right, and
+// the picture still wrong: over the arrowhead's own length, which is the only stretch of line
+// anybody compares the head against, the line had turned away from the head by 18.1 degrees on the
+// edge he filed and by 27.5 on the worst of the ninety eight in that drawing.
+//
+// SO WHAT IS ASSERTED IS THE THING A READER SEES, and it is rebuilt from the line's own `d` by a
+// second implementation rather than read back off render.js's answer. render.js asks the browser
+// for the point one head length back along the path; this walks the cubic itself in ten thousand
+// steps, accumulates the polyline length, and interpolates. Two different arithmetics, so an
+// agreement between them is evidence and not an echo.
+//
+// THE SHAPE IS READ RATHER THAN KNOWN. The head's length is taken out of the `d` attribute the page
+// painted, so a card that changed the triangle without changing the rotation would fail here
+// instead of quietly moving what this checks against.
+const HEAD_STEPS = 10000;
+
+function parseCubic(d) {
+  const m = /^M\s*(-?[\d.]+)\s+(-?[\d.]+)\s+C\s*(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s*$/
+    .exec(String(d).trim());
+  if (!m) return null;
+  const n = m.slice(1).map(Number);
+  if (n.some(v => !Number.isFinite(v))) return null;
+  return [[n[0], n[1]], [n[2], n[3]], [n[4], n[5]], [n[6], n[7]]];
+}
+
+// `M0 0 L-6.5 2.6 L-6.5 -2.6 Z`: tip at the origin, base one length behind it, half a width either
+// side. Returns null on anything else, and the assertion below reports that rather than skipping.
+function parseHead(shape) {
+  const m = /^M0 0 L(-?[\d.]+) (-?[\d.]+) L(-?[\d.]+) (-?[\d.]+) Z$/.exec(String(shape).trim());
+  if (!m) return null;
+  const back = Number(m[1]), half = Number(m[2]), back2 = Number(m[3]), half2 = Number(m[4]);
+  if (!(back < 0) || !(half > 0) || back2 !== back || half2 !== -half) return null;
+  return { len: -back, half: half };
+}
+
+function bezAtT(p, t) {
+  const u = 1 - t;
+  return [u * u * u * p[0][0] + 3 * u * u * t * p[1][0] + 3 * u * t * t * p[2][0] + t * t * t * p[3][0],
+          u * u * u * p[0][1] + 3 * u * u * t * p[1][1] + 3 * u * t * t * p[2][1] + t * t * t * p[3][1]];
+}
+
+// The point `want` units back along the curve from the end named by `fromEnd`, and the curve's own
+// length, both from a polyline this file builds. Nothing is shared with render.js but the numbers
+// in the `d` attribute.
+function walkBack(p, fromEnd, want) {
+  const pts = [];
+  for (let i = 0; i <= HEAD_STEPS; i++) pts.push(bezAtT(p, i / HEAD_STEPS));
+  if (fromEnd) pts.reverse();
+  let run = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const seg = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+    if (run + seg >= want) {
+      const f = seg === 0 ? 0 : (want - run) / seg;
+      return { pt: [pts[i - 1][0] + f * (pts[i][0] - pts[i - 1][0]),
+                    pts[i - 1][1] + f * (pts[i][1] - pts[i - 1][1])],
+               len: null };
+    }
+    run += seg;
+  }
+  return { pt: pts[pts.length - 1], len: run };
+}
+
+function totalLen(p) {
+  let run = 0, prev = bezAtT(p, 0);
+  for (let i = 1; i <= HEAD_STEPS; i++) {
+    const q = bezAtT(p, i / HEAD_STEPS);
+    run += Math.hypot(q[0] - prev[0], q[1] - prev[1]);
+    prev = q;
+  }
+  return run;
+}
+
+function normDeg(a) { while (a > 180) a -= 360; while (a <= -180) a += 360; return a; }
+
+// One head, judged. Returns the four numbers the two assertions read, or a reason it could not be
+// judged at all, which is never treated as a pass.
+function judgeHead(h) {
+  const p = parseCubic(h.d);
+  if (!p) return { why: `${h.key}: its line is not a single cubic (${String(h.d).slice(0, 40)})` };
+  const shape = parseHead(h.shape);
+  if (!shape) return { why: `${h.key}: its head is not the triangle this checks (${h.shape})` };
+  if (h.ax === null || h.aa === null) return { why: `${h.key}: no translate and rotate on the head` };
+  const ends = [p[0], p[3]];
+  const dist = ends.map(e => Math.hypot(h.ax - e[0], h.ay - e[1]));
+  const fromEnd = dist[1] <= dist[0];
+  const len = totalLen(p);
+  const base = walkBack(p, fromEnd, shape.len).pt;
+  const want = Math.atan2(h.ay - base[1], h.ax - base[0]) * 180 / Math.PI;
+  // Does the head point into the tile the relationship names? The ray from the tip along the
+  // rotation, sampled to the far side of a tile, has to be inside that tile's box at some point.
+  let intoTarget = null;
+  if (h.target) {
+    const t = h.target;
+    const rad = h.aa * Math.PI / 180;
+    intoTarget = false;
+    for (let s = 0.5; s <= t.w + t.h; s += 0.5) {
+      const x = h.ax + s * Math.cos(rad), y = h.ay + s * Math.sin(rad);
+      if (x >= t.x && x <= t.x + t.w && y >= t.y && y <= t.y + t.h) { intoTarget = true; break; }
+    }
+  }
+  return { key: h.key, aa: h.aa, tipOff: Math.min(...dist), angleOff: Math.abs(normDeg(h.aa - want)),
+           len: len, headLen: shape.len, intoTarget: intoTarget };
+}
 
 // The nine phases, in one function so that the values one phase measures are the values the next
 // one reasons about, which is how build/check_grain.mjs was written and is why the assertions
@@ -10576,6 +10708,67 @@ async function runGrain(chrome, base) {
           KEYS.map(k => `${k} ${per[k + '/' + g].chipPile} pair(s), worst ` +
                         `${per[k + '/' + g].chipWorst.toFixed(2)}`).join('; '));
       }
+
+      // ---- the arrowhead sits on its line, issue 156 --------------------------
+      // OVER ALL FOURTEEN DRAWINGS AT ONCE rather than once per grain, because the claim is about
+      // the shape of a line and not about an altitude, and two copies of one claim would say the
+      // suite covers more than it does.
+      const judged = [];
+      for (const g of ['sessions', 'modules']) {
+        for (const k of KEYS) {
+          (per[k + '/' + g].heads || []).forEach(h => judged.push([k + '/' + g, judgeHead(h)]));
+        }
+      }
+      // A head this file could not judge is reported as a failure and never as a silence, which is
+      // the whole family of dead instrument this repository has found nine of.
+      const unjudged = judged.filter(([, j]) => j.why);
+      const TIP_TOL = 1e-3;       // the tip is ON the end point, not near it
+      // HALF A DEGREE, AND IT IS A TOLERANCE RATHER THAN A MEASUREMENT OF THIS MACHINE. Two things
+      // it has to cover and neither of them is the page being wrong: render.js rounds the rotation
+      // to a tenth of a degree, which is worth up to a twentieth on its own, and the browser's
+      // getPointAtLength flattens the curve to its own tolerance while the walk above flattens it to
+      // this file's. Locally the worst of 740 heads came out at eight hundredths of a degree. Issue 149 turned
+      // its own new assertion red by fitting a pixel constant to one machine's rendering and meeting
+      // a different font metric on the CI runner, so this is set an order of magnitude clear of what
+      // was measured rather than just above it. The defect it exists to catch is 18.1 degrees on the
+      // edge the card was filed on and 27.5 on the worst in that drawing, so half a degree is still
+      // thirty six times smaller than the smallest thing it has to see.
+      const ANG_TOL = 0.5;
+      const offTip = judged.filter(([, j]) => !j.why && !(j.tipOff <= TIP_TOL));
+      const offAng = judged.filter(([, j]) => !j.why && !(j.angleOff <= ANG_TOL));
+      const worstAng = judged.reduce((a, [, j]) => j.why ? a : Math.max(a, j.angleOff), 0);
+      assert('every arrowhead sits on its own line: on its end point, and turned the way the line ' +
+             'runs over the head\'s own length',
+        judged.length > 0 && unjudged.length === 0 && offTip.length === 0 && offAng.length === 0,
+        `all ${judged.length} heads on all fourteen drawings within ${TIP_TOL} units of the end ` +
+          `point and ${ANG_TOL} of a degree of the chord this file rebuilt from the line's own d`,
+        unjudged.length
+          ? `${unjudged.length} could not be judged: ${unjudged.slice(0, 3).map(([w, j]) => w + ' ' + j.why).join('; ')}`
+          : `${offTip.length} off the end point (${offTip.slice(0, 3).map(([w, j]) => `${w} ${j.key} ${j.tipOff.toFixed(3)}`).join(', ')}), ` +
+            `${offAng.length} off the chord (${offAng.slice(0, 3).map(([w, j]) => `${w} ${j.key} ${j.angleOff.toFixed(2)} deg`).join(', ')})`,
+        `worst angle ${worstAng.toFixed(3)} of a degree over ${judged.length} heads`);
+
+      // AND IT IS ATTACHED TO THE RIGHT END AND AIMED AT THE RIGHT TILE. The first half is what
+      // makes render.js's clamp arithmetic rather than a branch nobody has watched run: it takes
+      // the whole line as the chord when the line is shorter than the head, and no line in any of
+      // the fourteen is. The second is the direction the verb means, and the two together are what
+      // a rotation free to be anything has to be held to.
+      const short = judged.filter(([, j]) => !j.why && !(j.len > j.headLen));
+      const away = judged.filter(([, j]) => !j.why && j.intoTarget === false);
+      const noTarget = judged.filter(([, j]) => !j.why && j.intoTarget === null);
+      const shortest = judged.reduce((a, [, j]) => j.why ? a : Math.min(a, j.len), Infinity);
+      assert('and it points into the tile the relationship names, on a line longer than itself',
+        judged.length > 0 && unjudged.length === 0 && short.length === 0 && away.length === 0 &&
+          noTarget.length === 0,
+        `every head aimed inside its target's box, and the shortest line on any of the fourteen ` +
+          `longer than the head it carries`,
+        `${short.length} lines no longer than their head ` +
+          `(${short.slice(0, 3).map(([w, j]) => `${w} ${j.key} ${j.len.toFixed(2)}`).join(', ')}), ` +
+          `${away.length} heads aimed off their target ` +
+          `(${away.slice(0, 3).map(([w, j]) => `${w} ${j.key} ${j.aa}`).join(', ')}), ` +
+          `${noTarget.length} with no target tile to aim at`,
+        `shortest line ${shortest === Infinity ? 'none' : shortest.toFixed(2)} units against a ` +
+          `head of ${judged.length ? (judged.find(([, j]) => !j.why) || [, {}])[1].headLen : '?'}`);
     });
 
     // ---- the fold ---------------------------------------------------------
