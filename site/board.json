@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T19:11:14Z",
+  "generated": "2026-08-16T19:40:55Z",
   "columns": [
     {
       "key": "raw",
@@ -74,15 +74,6 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/206"
-        },
-        {
-          "id": 211,
-          "title": "The forbidden-content gate guards one of two network-reaching git calls, and the unguarded one is the list it checks",
-          "labels": [
-            "limitation",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/211"
         }
       ]
     },
@@ -97,6 +88,15 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/207"
+        },
+        {
+          "id": 211,
+          "title": "The forbidden-content gate guards one of two network-reaching git calls, and the unguarded one is the list it checks",
+          "labels": [
+            "limitation",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/211"
         }
       ]
     },
