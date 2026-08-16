@@ -289,10 +289,11 @@ const PHASES = {
   // drives them, and the week grid's old assertion went with the shape it was written against.
   'term':                 { count: 63, when: 'behavioural' },
   'the sample':           { count: 6, when: 'behavioural' },
-  // 6 until issue 167, which adds two: that the sentence over a window with nothing in it says
-  // which KIND of nothing, in the words the review's own absence row uses, and that over a scope of
-  // two it counts the two together.
-  'the empty window':     { count: 8, when: 'behavioural' },
+  // 6 until issue 167, which adds three: that the sentence over a window with nothing in it says
+  // which KIND of nothing, in the words the review's own absence row uses, that over a scope of
+  // two it counts the two together, and that it follows the drawing under it when the scope moves
+  // and the window does not.
+  'the empty window':     { count: 9, when: 'behavioural' },
   'the review':           { count: 7, when: 'behavioural' },
   'the worklist':         { count: 7, when: 'behavioural' },
   'the cut':              { count: 9, when: 'behavioural' },
@@ -623,11 +624,12 @@ const PHASES = {
 // each. It is one assertion rather than three because the claim is that the three states are told
 // apart from each other, and a comparison of the three together is the only form of that claim
 // which a page answering two of them correctly cannot pass.
-// 315 since issues 167 and 169: two in `the empty window`, that the sentence over a window with
-// nothing in it says which KIND of nothing and that over a scope of two it counts the two
-// together, and one in `the scope`, that the address the sheet's close leaves draws that drawing
-// on a document built from it.
-const EXPECTED_ASSERTIONS = 315;
+// 316 since issues 167 and 169: three in `the empty window`, that the sentence over a window with
+// nothing in it says which KIND of nothing, that over a scope of two it counts the two together,
+// and that it follows the drawing under it when the scope moves and the window does not, and one
+// in `the scope`, that the address the sheet's close leaves draws that drawing on a document built
+// from it.
+const EXPECTED_ASSERTIONS = 316;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -7246,6 +7248,46 @@ async function checkEmptyWindow(page) {
       `${firstSamp.drawn} of ${firstSamp.total}`,
     JSON.stringify({ said: setState.said, wantBoth, wantFirst, rows: setState.rows,
                      scope: setState.scope }));
+
+  // ---- 9. and the canvas follows the drawing under it, with no window moved --------------------
+  // THE HALF OF #167 A SENTENCE READ ONCE CANNOT CATCH. term.js hands render.js a window spec and
+  // render.js keeps the one it was last given; app.js's showView() draws a new scope without
+  // pushing a window it did not change. So a sentence computed when the WINDOW last moved is read
+  // out over whatever is drawn afterwards, and the two assertions above, which read one drawing
+  // each, would both pass on a page that froze it: they never change the drawing under a standing
+  // window. This walks from one programme to the other by address alone, with the window left
+  // exactly where it is, and requires the sentence to have followed.
+  //
+  // THE TWO EXPECTATIONS HAVE TO BE DIFFERENT OR THE CHECK CANNOT FAIL, and that is asserted of
+  // the DATA before the page is asked anything: a pair whose fractions coincide would make a
+  // frozen string indistinguishable from a live one, and a driver that reported clean on it would
+  // be the tenth dead instrument rather than the ninth.
+  const walk = [];
+  for (const k of pairKeys) {
+    await page.evaluate(`location.hash = ${JSON.stringify('#/p/' + k)}`);
+    await page.waitFor(`window.ZT.term().open === false && window.ZT.programme().key === ` +
+      JSON.stringify(k), `the ${k} drawing with the sheet shut`);
+    await viewSettled(page);
+    const samp = JSON.parse(await page.evaluate(SAMPLE_OF + '(' + JSON.stringify([k]) + ')'));
+    walk.push({
+      key: k,
+      want: windowEmptyWords(samp, await page.evaluate('window.ZT.term().window')),
+      said: await page.evaluate(
+        `(function () { var t = document.querySelector('.win-empty'); ` +
+        `return t ? t.textContent : null; })()`),
+      shown: await page.evaluate('window.ZT.filtered().shown.length')
+    });
+  }
+  if (walk[0].want === walk[1].want) {
+    throw new Error(`${pairKeys.join(' and ')} would print the same sentence in this window, so a ` +
+                    'sentence frozen on the first of them could not be told from one recomputed ' +
+                    'on the second, and this assertion could not fail');
+  }
+  assert('and the sentence on the canvas follows the drawing under it, with the window left alone',
+    walk.length === 2 && walk.every(w => w.shown === 0 && w.said === w.want),
+    `${pairKeys[0]} then ${pairKeys[1]} in the same week from ${pairAnchor}, each drawing empty ` +
+      'and each saying its own population',
+    JSON.stringify(walk));
 
   // Left as it was found: the window off, and the address back on the diagram. Every phase after
   // this one starts on a page nobody filtered.
