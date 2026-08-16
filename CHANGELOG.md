@@ -107,6 +107,43 @@ of what changed and when, and it is meant to be scannable.
   Half (a) of the card, that `site/index.html` leaves a literal `0` on
   screen as the headline number, **is dead and was not rebuilt**: `gapsval` does not occur anywhere
   in the repository, the panel redesign in #136, #137 and #139 having deleted that readout.
+- **THE CHIP PLACER WEIGHED EVERY CANDIDATE, INCLUDING THE ONES THAT COULD NOT WIN, #171.** A verb
+  chip is placed by searching along its own line and then off it, and each candidate position was
+  weighed against every box already occupied. **Measured at `4727576`:** one build made 80270 calls
+  into `overlap()` and 11274165 box comparisons, and `blocked + chips` inside the innermost loop
+  copied a fresh list of every one of those boxes at every candidate, 11274165 element copies. The
+  cost of a candidate is `W_OVER * overlap + |ds| + W_PERP * |perp|`; the last two terms are known
+  before the overlap is computed and the first can only add to them, so those two are a **floor**
+  under the candidate's cost and a candidate whose floor already reaches the incumbent cannot beat
+  it. The incumbent moves on a strict `<`, so a tie is a loss for the newcomer and skipping it
+  changes nothing. The slides are generated in non-decreasing `|ds|`, so the search now stops rather
+  than skipping to the end. **After: 18042 calls and 1914418 comparisons, and the build goes from
+  6.74s to 3.87s.** In the browser, a cold repaint of the seven programme union goes from 18098895
+  box comparisons to 3874779 and two programmes at the sessions altitude from 7067670 to 637730.
+  **Nothing about the picture moved and that is the headline rather than a side condition:** all
+  fourteen drawing digests are unchanged, `site/instance.js` and `site/layout.js` rebuild byte for
+  byte, and every verb chip in 240 browser states, 45386 chip boxes in all, is at the coordinate
+  it was at, against `render.js` at HEAD and again against a copy carrying the concat repair
+  but not the prune.
+  Two budget assertions are added to `scripts/smoke.mjs`, **in box comparisons and not in
+  milliseconds**, because a wall clock on a shared runner is a fact about the runner.
+- **A SOURCE FILE THIS REPOSITORY COULD NOT GREP, #184.** `site/render.js` carried two raw NUL bytes,
+  written as literal `0x00` rather than as the escape for the same character, in a line that joins
+  three fields into a key. The string value was right and the page was right; every line-oriented
+  tool that read the file afterwards was not. GNU grep calls the file binary, so `grep -o` prints
+  nothing and exits 1 while `grep -c` answers 1: a match found and not shown. **ugrep, which is what
+  `grep` resolves to on at least one machine this repository is worked on, skips the file outright
+  and prints nothing at all**, so the two implementations fail differently and both fail silently.
+  `file` is no witness either: it reported the pre-fix copy as "JavaScript source, ASCII text". This
+  cost a card before it was found. The agent that shipped the Content-Security-Policy scanned
+  `site/` for inline style with `grep -r`, got a clean answer, and the one thing a strict
+  `style-src` breaks, the palette `render.js` builds as a `<style>` element from model data, was in
+  the file grep had declined to read; it was caught by redoing every scan in Python. The two bytes
+  are now the escape, the file is plain ASCII, and **`scripts/check_repo.sh` gains a rule that no
+  tracked file carries a NUL byte**, reporting three states: a finding, a clean count of the files
+  it actually read, and a refusal at exit 2 when it was handed nothing to scan or a file it could
+  not open. `--self-test` goes from 126 probes to 129. A sweep of all 45 tracked paths says
+  `render.js` was the only one.
 - **THE WEEK GRID COMPARED NOTHING AND THE MONTH GRID DREW SOME DAYS TWICE, #158.** His words:
   "In calendar view 'week' please make monday to sunday vertical and weeks horizontal so it is a
   grid that adds value + in months view do not duplicate days in two month grids." The week grid
