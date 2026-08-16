@@ -834,11 +834,61 @@ h1 {
   overflow-x: auto;
   overflow-y: hidden;
   /* The scrollbar is a phone affordance and a desktop distraction, and at every width the rail
-     either fits or is the one box on this row a thumb is expected to push. */
+     either fits or is the one box on this row a thumb is expected to push.
+
+     THE SECOND HALF OF THAT SENTENCE IS FALSE AT 390 AND THE RULE BELOW IS WHY IT IS NOW TRUE.
+     Issue 170. Measured at 390 by 844 on `#/`: the rail holds 426 px of chips in a 256 px box, so
+     it neither fits nor is a box anything tells a thumb to push. `All IB SC BL PE` are on the
+     screen and `HR`, `DS` and `CFA` are not, at rest, with no scrollbar because of the two
+     declarations here, no arrow, and no chip cut in half at the edge to suggest one: the rail's
+     right edge falls at 268.4 and the last painted chip ends at 265.1, so the row reads as a
+     complete row of five programmes out of a set the page has seven of. Three programmes were
+     unreachable to a reader who did not already know the row moves.
+
+     A SCROLLER EARNS CLIPPING, AND ONLY IF IT SAYS IT IS A SCROLLER, which is the line this card
+     drew and argued on #170. #168's hit test scrolls each control into its scroller before it
+     tests, on the reasoning that a control a reader can scroll to is a control a reader can press,
+     and that is right about pressing and says nothing about knowing. Nothing here is COVERED: the
+     rail ends twelve pixels before the view selector begins and `overflow-x` clips what is past
+     it, so the audit's reading of these chips as sitting under `#navdiagram` is what
+     `elementFromPoint` reports about a clipped child's unclipped rect and not what is painted. */
   scrollbar-width: none;
 }
 
 .pgrail::-webkit-scrollbar { display: none; }
+
+/* WHAT SAYS SO IS THE CONTENT GOING, AND NOT A CONTROL. The two alternatives were measured and
+   both spend something this card was told not to spend. A scrollbar under the row is 11 px of a
+   844 px screen and, on the phone this is actually for, iOS draws an overlay scrollbar that
+   appears while a finger is moving and is therefore not a rest state affordance at all. Letting
+   the rail wrap to a second line is the header's own phone sketch one row taller: 32 px, which
+   takes the chrome from 0.1268 of the viewport to 0.1647 against the 0.1730 this file holds itself
+   to, and #142 already spent that line on the term strip. A mask costs no layout at all and it is
+   what a reader already reads as "there is more this way".
+
+   ON THE SIDE THAT HAS MORE, AND ONLY WHILE IT HAS. router.js writes the two classes from
+   scrollLeft, scrollWidth and clientWidth, so a rail that fits carries neither and a rail scrolled
+   to its end drops the one behind it. A fade painted at an edge with nothing past it would be the
+   page saying there is more when there is not, which is the same defect as saying nothing.
+
+   A MASK AND NOT A PANEL OVER THE EDGE, which is not a preference. A gradient painted on top would
+   be an element covering the rail, and covering a control is exactly what the line above says a
+   scroller never earns; the assertion this card adds would have to exempt it. `mask-image` takes
+   the chips' own pixels down instead, so nothing is added to the page for `elementFromPoint` to
+   find and the chip under the fade is still the thing at that point. Baseline Chrome 120, Safari
+   15.4, Firefox 53, earlier than the `light-dark()` this file already requires. */
+.pgrail.rail-more-r {
+  mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
+}
+
+.pgrail.rail-more-l {
+  mask-image: linear-gradient(to left, #000 calc(100% - 22px), transparent);
+}
+
+.pgrail.rail-more-l.rail-more-r {
+  mask-image: linear-gradient(to right, transparent, #000 22px,
+                              #000 calc(100% - 22px), transparent);
+}
 
 /* A chip is the nav's own control box with a second value inside it, so it inherits the height,
    the radius and the focus ring from nothing typed twice: the numbers here are the ones .linkbtn
@@ -1689,11 +1739,43 @@ body.fb-mode #canvas { cursor: crosshair; }
 .node .focus-frame { fill: none; stroke: none; }
 
 /* Keyboard focus, and nothing else, gets a mark: a reader tabbing through the drawing has to be
-   able to see where they are, and a mouse click does not match :focus-visible. Kept faint, so
-   arriving at a node does not read as having chosen it. */
+   able to see where they are, and a mouse click does not match :focus-visible.
+
+   THIS RULE SAID "KEPT FAINT" AND IT DELIVERED NOTHING AT ALL. Issue 170, and it is one of this
+   repository's own recurring defects met on a third element: a number written in the units of the
+   thing rather than in the units of the reader. `stroke-width: 1` on a rect inside `#graph` is one
+   USER unit, and #graph carries the canvas matrix, so what a reader gets is one unit times the
+   scale. Measured at 1536 by 839 at the fit the page opens on, `getScreenCTM().a` is 0.1721 and
+   the ring painted at 0.1721 CSS px. That is not a faint ring, it is an antialiased tint: read off
+   a 1x screenshot it moved 85 of 960 pixels from #f9fbfc to #f1f5fa, a contrast
+   of 1.05 to 1 against the plate. Six presses of zoom in reach 0.87px. Every node in the drawing
+   is focusable, so this was the whole of the keyboard's evidence of where it was, on 186 of the
+   206 focus stops a 390px screen has.
+   `.capbtn-frame` twelve rules up never had this defect and shows why: render.js puts it inside a
+   group carrying `scale(1/k)`, so one unit in there is already one CSS px. The frame here is a
+   direct child of the node's own group and has no such correction, and adding one would be a
+   second copy of a mechanism.
+
+   THREE CHANGES AND EACH IS A MEASUREMENT. `vector-effect: non-scaling-stroke` takes the stroke
+   out of the matrix, so the width below is CSS px at every zoom and at every viewport, which is
+   the unit a reader's eye is in. Two of them rather than one, which is WCAG 2.2 SC 2.4.13's own
+   floor for a focus indicator and is what `.capbtn:focus` on this same drawing already uses. And
+   an OPAQUE token: `--rule-select` is `rgba(45, 114, 210, 0.45)`, which composites over the lane
+   plate to #9ebde9 and 1.8535 to 1, under the 3 to 1 SC 1.4.11 asks of a non-text
+   indicator and under the 3.0000 this repository's own plate gate holds a surface to.
+   `--i-primary` is the same hue with nothing taken off it: 4.5558 to 1 on the light plate and
+   4.8112 to 1 on the dark one, and it is the colour every other focus ring in this stylesheet is
+   already drawn in, so the drawing stops being the one place the keyboard is marked differently.
+
+   WHAT "FAINT" WAS PROTECTING IS PROTECTED BY THE SELECTOR AND NOT BY THE WIDTH. The sentence
+   above worried that arriving at a node would read as having chosen it. Selection is the tile
+   inverting, the label going bold and the rest of the drawing dimming, which is three statements
+   this ring is none of; and the rule is :focus-visible, so a mouse click never raises it. A ring
+   nobody can see is not a quiet ring. */
 .node:focus-visible .focus-frame {
-  stroke: var(--rule-select);
-  stroke-width: 1;
+  stroke: var(--i-primary);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
 }
 
 /* A forced colours mode replaces the stroke above with the reader's own palette and can leave
@@ -1740,11 +1822,35 @@ body.fb-mode #canvas { cursor: crosshair; }
   padding: 16px 18px 24px;
   overflow-y: auto;
   transform: translateX(100%);
-  transition: transform 160ms cubic-bezier(0.4, 1, 0.75, 0.9);
+  transition: transform 160ms cubic-bezier(0.4, 1, 0.75, 0.9),
+              visibility 0s linear 160ms;
   z-index: var(--z-panel);
+  /* A CLOSED PANEL WAS A TAB STOP AND A LIVE REGION, AND IT WAS MOVED BY TRANSFORM ALONE. Issue
+     170. `translateX(100%)` puts this off the right edge and nothing else: measured at 1536 by
+     839 with no node selected, `#close` sat at x 1818 and was reached five tabs after the last
+     node in the drawing, so a keyboard reader walking the page fell off the end of it into a
+     button belonging to a panel that is not on the screen. The element also carries
+     `aria-live="polite"` and holds whatever the last selected node's properties were, so a
+     screen reader had a shut panel's stale contents in the tree behind everything.
+
+     `visibility: hidden` is what a transform cannot do: it takes the subtree out of the tab order
+     and out of the accessibility tree in the same word, and it is the one hiding property that
+     still animates, because `visibility` is discrete and can be DELAYED. So the slide out is
+     unchanged and the panel goes invisible at the end of it rather than at the start, and the
+     slide in makes it visible at once. Nothing about the 160ms a reader sees has moved.
+
+     NOT `display: none`, which is what the closed state would otherwise want: display cannot be
+     transitioned, so the panel would vanish instead of sliding, and the rule one block down
+     already uses display for the routes where the panel is not on the page at all. */
+  visibility: hidden;
 }
 
-#panel.open { transform: none; }
+#panel.open {
+  transform: none;
+  visibility: visible;
+  transition: transform 160ms cubic-bezier(0.4, 1, 0.75, 0.9),
+              visibility 0s;
+}
 
 body.panel-open #canvas { margin-right: 320px; }
 
@@ -3629,7 +3735,13 @@ body.outline .term-table .term-no {
 /* The same mark the list puts on a row with nobody to teach it, in the register a chip can carry
    it: the edge of the chip rather than the colour of the text, because a chip is three short runs
    and colouring all of them would read as an error rather than as a gap. */
-.cal-gap { border-left-color: var(--fg-warning); }
+/* AND THE MARK IS NOT ONLY A COLOUR, ISSUE 170. A gap chip was told apart from an ordinary one by
+   the hue of a 2px rule and the hue of its time, and nothing else: two colours carrying the one
+   fact an operator opens this grid for. A dash is this document's own word for absent and it is
+   what carries it everywhere else, on the ghost tiles and on the second ring round the cohort, so
+   a reader who cannot separate the two hues reads the same distinction off the same idiom. It
+   costs no width, because a border already stood there. */
+.cal-gap { border-left-color: var(--fg-warning); border-left-style: dashed; }
 .cal-gap .cal-time { color: var(--fg-warning); }
 
 /* ---- what the grid cannot show, issue 146 --------------------------------------
@@ -3683,7 +3795,16 @@ body.outline .term-table .term-no {
      table beside them collapses to one block per row at this width, and the same treatment here
      would turn a month grid into the list it is an alternative to. A seventh of 390px is about
      50, which holds a time and a programme code at 9px and does not hold a session title, so the
-     title is what goes and the chip keeps its whole content in its own title attribute. */
+     title is what goes.
+
+     THE CLAUSE THAT FOLLOWED IT WAS THE DEFECT. It read "and the chip keeps its whole content in
+     its own title attribute", which is true and is the whole of issue 170's fifth finding: a phone
+     is the one device with no hover, so at exactly the width this rule is written for, the session
+     title sat in a tooltip that cannot be shown. And `display: none` here takes it out of the
+     accessibility tree with it, so it was gone from both readings at once. What the chip keeps its
+     content in now is its own `aria-label`, written by term.js and the same at every width; and the
+     sighted reader's answer at this width is `list`, one press up on the shape bar, which draws all
+     eight fields as visible cells. */
   .cal-day { min-height: 38px; padding: 1px 2px; }
   .cal-chip { padding: 1px 2px; font-size: 9px; border-left-width: 2px; }
   .cal-title { display: none; }

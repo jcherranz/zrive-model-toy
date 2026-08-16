@@ -1398,10 +1398,35 @@
     // a move. Anywhere else on the track centres the window on the week pressed and then moves
     // with the pointer, so a press and a press-and-drag are the same gesture at two lengths.
     //
-    // A BAND TOO NARROW TO HOLD TWO HANDLES IS ALL MOVE. Below three handle widths the two resize
-    // zones would meet in the middle and a reader aiming at the band would resize it instead. The
-    // way to widen a narrow band is then the keyboard or an end of a wider one, and the caps and
-    // the arrows are unaffected either way.
+    // A BAND TOO NARROW TO HOLD TWO HANDLES WAS ALL MOVE, AND THAT MADE THIS CONTROL A RATCHET ON
+    // TOUCH. Issue 170. The paragraph that stood here read: "Below three handle widths the two
+    // resize zones would meet in the middle and a reader aiming at the band would resize it
+    // instead. The way to widen a narrow band is then the keyboard or an end of a wider one." The
+    // first sentence is a real constraint. The second is circular on the device the second half of
+    // this line matters on: a phone has no keyboard here, and "an end of a wider one" is an end of
+    // the band the reader is trying to get back. Measured, the gate was never once open on a
+    // narrow band: the strip's week is 11.5 CSS px at 390 and 12.83 at 1536, so a one week band is
+    // 11.5 and 12.83 against a floor of 24, and no x anywhere on the track mapped to a resize.
+    // Narrow to one week on a phone and the whole term view needed a page reload.
+    //
+    // THE HIT ZONE IS NOT THE PAINTED BAND, WHICH IS `.capbtn-hit`'s IDEA ON A SECOND CONTROL.
+    // render.js draws a lane heading and gives it a transparent rect held at 26px however small
+    // the caption is; the same split works here. The band stays exactly the width the window is,
+    // because it is a reading of the window and a band drawn wider would be a lie about it. What
+    // is held at a floor is where a press LANDS: the two resize zones are measured against a
+    // virtual band of at least three handle widths, centred on the painted one.
+    //
+    // BYTE FOR BYTE THE SAME GESTURE AT 24px AND ABOVE, which is the property that makes this
+    // safe: `hw` is `bw` and `hx` is `bx` for every band the old gate admitted, so nothing a
+    // desktop reader does with a three week window has moved.
+    //
+    // WHAT IT COSTS, MEASURED RATHER THAN GLOSSED. At a one week band on a 11.5px week the virtual
+    // half width puts each resize zone about 10.25px outside the painted band, against the 4px a
+    // wide band's handle already bleeds. So a press on most of the week immediately beside a one
+    // week band resizes it rather than re-centring the window there. That is the trade, and it is
+    // taken because re-centring is reachable from the rest of a 276px track and from both caps,
+    // and widening was reachable from nowhere at all. The move zone is still the painted band and
+    // is still checked after the two resize zones, so the grips keep meaning what they draw.
     var HANDLE = 8;
     var drag = null;
 
@@ -1429,9 +1454,22 @@
       if (x < g.x) { stepAnchor(-1); return; }
       if (x > g.x + g.w) { stepAnchor(1); return; }
       var bx = g.x + start * g.cw, bw = span * g.cw;
+      // The virtual band the two resize zones are measured against, which is the painted one at
+      // every width the old gate admitted and a centred 24px stand-in below that. Issue 170.
+      var hw = Math.max(bw, HANDLE * 3), hx = bx - (hw - bw) / 2;
+      // AND A ZONE THAT COULD NOT CHANGE ANYTHING IS NOT A ZONE, which is the one case the virtual
+      // band gets wrong on its own and it was found on the diff rather than by driving it. An edge
+      // can move two ways: outward, which the term's own end refuses, and inward, which one week
+      // refuses. Where both are refused the zone is dead, and on a one week band sitting on the
+      // first or last week of the term it lands on the 1.75px of track the virtual half width
+      // reaches inside the cap. Pressing there used to MOVE the band; without this it would select
+      // a resize, clamp, and do nothing at all, which is a reachability card taking a gesture away.
+      // A dead zone falls through to the move it displaced.
+      var canL = start > 0 || span > 1;
+      var canR = start + span < TERM.weeks || span > 1;
       var mode;
-      if (bw >= HANDLE * 3 && x >= bx - HANDLE / 2 && x <= bx + HANDLE) mode = 'left';
-      else if (bw >= HANDLE * 3 && x >= bx + bw - HANDLE && x <= bx + bw + HANDLE / 2) mode = 'right';
+      if (canL && x >= hx - HANDLE / 2 && x <= hx + HANDLE) mode = 'left';
+      else if (canR && x >= hx + hw - HANDLE && x <= hx + hw + HANDLE / 2) mode = 'right';
       else if (x >= bx && x <= bx + bw) mode = 'move';
       else {
         setBand(centreOn(weekAtX(x), span), span);
@@ -2199,6 +2237,37 @@
     // 83 chips in seven columns at 390px cannot be 26 wide. A chip is a rendering of a row, its
     // whole content is in its own title attribute, and the way to a session is the drawing and
     // the panel, which is where it already was.
+    // AND A TITLE WAS THE ONLY COPY, WHICH IS TWO READERS SHORT. Issue 170. `title` is a hover, a
+    // phone has no hover, and on a `div` carrying no role it is also not reliably announced, so
+    // five facts about 83 sessions were reachable by a mouse and by nothing else. The stylesheet
+    // makes it worse at 390 by taking `.cal-title` off, which leaves a chip reading `18:30 Z-IB`
+    // in 45.1 by 24.5 px and no way at all to learn which session it is.
+    //
+    // THE STRING IS WRITTEN ONCE AND CARRIED TWICE, as the title for a mouse and as the chip's own
+    // accessible name for everything else. What is announced no longer depends on which of the
+    // three painted spans the stylesheet is showing at this width, which is the half of this a
+    // wide screen hid: `display: none` takes an element out of the accessibility tree as well as
+    // off the screen, so at 390 the session title was gone from both.
+    //
+    // WHY A ROLE HAS TO BE ON IT. `aria-label` on a bare `div` is ignored: the implicit role is
+    // `generic` and naming a generic element is prohibited, so the name has to hang off a role
+    // that takes one. `img` is the role for a cluster of marks that means one thing and is read as
+    // one thing, which is what a chip is, and it makes the label REPLACE the three spans in the
+    // reading rather than being read beside them.
+    //
+    // AND NOT A VISUALLY HIDDEN SPAN, WHICH IS WHAT THIS WAS FIRST. A 1x1 clipped span is real text
+    // in the document, `clip-path` is invisible to `innerText`, and feedback.js's `renderedText`
+    // IS `innerText`: a capture filed on a calendar chip would have quoted the whole sentence on
+    // top of the words on the screen. An attribute is read by the accessibility tree and by nothing
+    // else, which is exactly the reach this needs. Found on the diff by a second opinion, not by
+    // this file.
+    //
+    // The sighted phone reader is the one this still does not serve, and the answer for them is
+    // not a tooltip either: `list` and `review` are two of the four shapes of this same sheet, one
+    // press away on the bar above the grid, and both draw every one of these fields as a cell.
+    //
+    // NOTHING HERE IS A CONTROL, AND THE PARAGRAPH ABOVE STANDS. No tabindex, no press, and `img`
+    // is not an interactive role. 83 focus stops is what that paragraph refuses and this adds none.
     function chip(s) {
       var c = el('div', 'cal-chip' + (s.teacher !== 'yes' ? ' cal-gap' : ''));
       c.appendChild(el('span', 'cal-time', s.time));
@@ -2206,9 +2275,13 @@
       c.appendChild(el('span', 'cal-title', s.title));
       // A TITLE IS TEXT AND OFF SCREEN IS NOT ABSENT, which is why the last clause of this string
       // is gone rather than left where only a hover finds it. Issue 110.
-      c.title = s.date + ' ' + s.time + ' · ' + s.code + ' · ' + s.title + ' · ' + s.state +
-        ' · ' + (s.teacher === 'yes' ? 'instructor named' : 'no instructor named') +
+      var words = s.date + ' ' + s.time + ' · ' + s.code + ' · ' + s.title + ' · ' +
+        s.state + ' · ' +
+        (s.teacher === 'yes' ? 'instructor named' : 'no instructor named') +
         ' · attendance ' + s.attendance + ' · drawn as ' + s.id;
+      c.title = words;
+      c.setAttribute('role', 'img');
+      c.setAttribute('aria-label', words);
       return c;
     }
 
@@ -3031,10 +3104,13 @@
         openRows = {};
         sheet.hidden = true;
         document.body.classList.remove('calendar', 'outline');
-        if (returnTo && returnTo.focus && document.contains(returnTo) &&
-            returnTo.getAttribute && returnTo.getAttribute('tabindex') !== null) {
-          returnTo.focus();
-        }
+        // BEFORE the restore below. Issue 170, and the reason is written where the function is:
+        // what focus goes back to is usually inside #view-diagram, and an inert element cannot
+        // take it.
+        if (window.ZM && window.ZM.contain) window.ZM.contain();
+        // The same tabindex guess the student list carried, and the same repair: focus it and ask
+        // where focus is. Issue 170.
+        if (window.ZM && window.ZM.refocus) window.ZM.refocus(returnTo);
         returnTo = null;
         // And the strip comes back to life when the reading it was inert on is closed, issue 151.
         paintBrush();
@@ -3109,6 +3185,9 @@
       if (!wasOpen) {
         returnTo = document.activeElement;
         sheet.hidden = false;
+        // Issue 170. Before the close button takes focus, so the two live regions while this
+        // sheet is up are the header and this sheet.
+        if (window.ZM && window.ZM.contain) window.ZM.contain();
         var close = document.getElementById('termclose');
         if (close && close.focus) close.focus();
       }

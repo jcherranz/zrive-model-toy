@@ -80,6 +80,71 @@
 
   var ZM = window.ZM = window.ZM || {};
 
+  // ---- WHAT IS BEHIND AN OPEN SHEET, ISSUE 170 -------------------------------------------------
+  // THE COMMENT OVER #roster IN index.html ALREADY CLAIMED THIS AND THE PAGE DID NOT DO IT. It
+  // says the sheet "is still modal in every sense the page enforces. It covers the drawing, the
+  // backdrop makes the canvas inert". The backdrop makes the canvas inert to a POINTER. Measured
+  // at 1536 by 839 with the student list open, 195 elements behind it were still tabbable, none of
+  // them carried `inert` or `aria-hidden`, and 186 of those are the nodes of a drawing the reader
+  // cannot see. A keyboard reader who tabbed off the end of the list walked into a picture behind
+  // a scrim. This function is that sentence made true.
+  //
+  // IT IS NOT `aria-modal` AND IT IS NOT A FOCUS TRAP, and that is issue 86 being kept rather than
+  // overruled. #86 put the header deliberately OUTSIDE the dialog and deliberately live, because
+  // the one control it would otherwise put out of reach is `feedback`, and a reader who cannot
+  // reach feedback cannot report anything at all. So the page has two live regions while a sheet
+  // is open, the sheet and the header, and what goes inert is exactly what the sheet COVERS: the
+  // two views and the properties panel. Tab from the last control in the sheet reaches the header
+  // and then comes back round into the sheet, which is a cycle of the two things on screen.
+  //
+  // `inert` AND NOT `tabindex="-1"` ON EACH ELEMENT. One attribute on three ancestors takes the
+  // whole subtree out of the tab order, out of the accessibility tree and out of the pointer's
+  // reach, and takes it back out again by being removed, with nothing to restore per element and
+  // nothing to get wrong on a subtree that changed while it was covered. Baseline Chrome 102,
+  // Safari 15.5, Firefox 112, all earlier than the `light-dark()` this page already requires; a
+  // browser without it is left exactly where this page was before this function existed.
+  //
+  // CALLED SYNCHRONOUSLY BY THE TWO MODULES THAT OPEN A SHEET, AND NOT FROM AN OBSERVER. app.js
+  // watches the body's class with a MutationObserver and that was the obvious place for this. It
+  // is the wrong place: an observer runs as a microtask AFTER the attribute write, and both
+  // openers put focus somewhere in the same synchronous block, so a close would restore focus to
+  // an element that was still inert and the focus would go nowhere. It is published here, beside
+  // the factory rather than inside it, for `ZM.placerCost`'s reason in render.js: term.js owns the
+  // other sheet, is loaded after this file and needs to call the same one copy.
+  //
+  // IT READS THE SHEETS AND NOT A FLAG, so a third sheet is covered by existing and a caller that
+  // forgets to say WHICH sheet it just opened cannot get a wrong answer out of it.
+  var COVERED_BY_A_SHEET = ['view-diagram', 'view-board', 'panel'];
+
+  // ---- PUTTING FOCUS BACK, AND KNOWING WHETHER IT WENT. ISSUE 170 ------------------------------
+  // Both sheets already saved their opener and both tested it the same wrong way: `focus &&
+  // document.contains(el) && el.getAttribute('tabindex') !== null`. The last conjunct is a guess
+  // at focusability standing in for the thing itself, and it is wrong in the commonest case this
+  // page has. The documented route into the student list is `.pmore-link`, an ordinary `<a href>`
+  // written by app.js with no tabindex attribute at all, so a reader who opened the list from the
+  // cohort's panel and closed it was dropped on `<body>` by a line whose whole purpose was to stop
+  // that happening. It never fired, and nothing said so.
+  //
+  // WHAT REPLACES THE GUESS IS THE MEASUREMENT. Focus it and ask where focus is. There is no list
+  // of focusable selectors to keep in step with the markup, an element that refuses focus leaves
+  // the page exactly where a refusal to try would have left it, and the caller is told which of
+  // the two happened rather than being left to assume the first.
+  ZM.refocus = function refocus(el) {
+    if (!el || !el.focus || el === document.body || !document.contains(el)) return false;
+    try { el.focus(); } catch (err) { return false; }
+    return document.activeElement === el;
+  };
+
+  ZM.contain = function contain() {
+    var open = !!document.querySelector('.sheet:not([hidden])');
+    COVERED_BY_A_SHEET.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      if (open) el.setAttribute('inert', '');
+      else el.removeAttribute('inert');
+    });
+  };
+
   // opts.views        the seven joined views, in build order
   // opts.defaultKey   which of them an address with no opinion draws
   // opts.svg          the drawing, which is given its accessible name from the view
@@ -332,16 +397,22 @@
         buildRoster();
         rosterReturn = document.activeElement;
         rosterEl.hidden = false;
+        // Before the close button is focused, so the header and this sheet are the only two
+        // places focus can be while the list is up. Issue 170.
+        ZM.contain();
         var close = document.getElementById('rosterclose');
         if (close && close.focus) close.focus();
       } else {
         // Focus is put back where it came from, unless it has already moved on or the element it
-        // came from is a node that is no longer painted.
+        // came from is a node that is no longer painted. ZM.refocus is the whole of that test and
+        // it makes it by trying; the tabindex guess that stood here never fired on this sheet's
+        // own documented opener. Issue 170.
         rosterEl.hidden = true;
-        if (rosterReturn && rosterReturn.focus && document.contains(rosterReturn) &&
-            rosterReturn.getAttribute && rosterReturn.getAttribute('tabindex') !== null) {
-          rosterReturn.focus();
-        }
+        // BEFORE the restore below and not after it, which is the whole reason this is a call and
+        // not a MutationObserver: the element focus is going back to is usually a node inside
+        // #view-diagram, and focusing an element that is still inert puts focus on nothing.
+        ZM.contain();
+        ZM.refocus(rosterReturn);
         rosterReturn = null;
       }
       // Issue 139 deleted the header's `students` link, so there is no nav item left to mark.
@@ -517,6 +588,35 @@
       return e;
     }
 
+    // ---- the rail saying that it does not fit, issue 170 ------------------------
+    // The stylesheet carries the argument for the fade and the measurement that made it necessary.
+    // This is the half that decides WHEN: a rail that fits says nothing, a rail with chips off one
+    // end fades that end, and a rail with chips off both fades both. Written from the three
+    // numbers the element already knows rather than from a width the page would have to be told,
+    // so it is right at 2560, at 390 and at whatever a reader's window actually is.
+    //
+    // ONE PIXEL OF SLACK. `scrollWidth` and `clientWidth` are integers rounded off subpixel
+    // layout, and a rail that fits exactly has reported a one pixel overflow on this page before,
+    // which would paint a fade over a chip with nothing past it.
+    var RAIL_SLACK = 1;
+
+    function railFit() {
+      if (!pgRail) return;
+      var max = pgRail.scrollWidth - pgRail.clientWidth;
+      var at = pgRail.scrollLeft;
+      pgRail.classList.toggle('rail-more-l', at > RAIL_SLACK);
+      pgRail.classList.toggle('rail-more-r', max - at > RAIL_SLACK);
+    }
+
+    if (pgRail) {
+      // Three occasions, and each is one the other two cannot see. A scroll is the reader moving
+      // the rail. A resize is the row rewrapping under them, which changes clientWidth and nothing
+      // else. And describeRail() below is the chips being rewritten, which changes scrollWidth:
+      // the rail is rebuilt when the grain changes and the fractions on it change with it.
+      pgRail.addEventListener('scroll', railFit, { passive: true });
+      window.addEventListener('resize', railFit);
+    }
+
     // Every chip's address and every chip's state, rewritten on every change of scope and of
     // grain, because both are in the address the chip links to.
     function describeRail() {
@@ -532,6 +632,7 @@
               ? 'all ' + VIEWS.length + ' programmes are drawn'
               : 'draw all ' + VIEWS.length + ' programmes');
       });
+      railFit();
     }
 
     // ---- how much of the programme the drawing is, issue 122 --------------------
