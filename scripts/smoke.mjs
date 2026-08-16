@@ -12853,6 +12853,36 @@ function judgeHead(h) {
 // equal cost, because it asserts that nothing beats the placed candidate and not which of several
 // equals was taken. And it cannot see a bad width in the table it shares, which is the price of
 // the argument below.
+//
+// FOUR MORE THINGS IT CANNOT SEE, NAMED BY AN ADVERSARIAL READ OF THIS BLOCK RATHER THAN BY ITS
+// AUTHOR, and written down here because the list above was the author's own and a list of a
+// check's blind spots that only its author has looked for is half a list.
+//
+//   THE PLACEMENT ORDER. Each chip is weighed against the boxes as they stood when it was placed,
+//   and the prefix is taken off the PAINTED page rather than off a reconstruction, which is
+//   deliberate and argued below: it keeps one bad chip from being blamed on the chips after it.
+//   The cost is that a build which places the same chips in a DIFFERENT order can still leave
+//   every one of them locally unbeatable, and this agrees with all of them. Dropping the second
+//   tiebreak at build/build_layout.py's `key=lambda e: (-e["span"], e["s"], e["t"])` is the
+//   concrete edit. The order is reconstructed here and would have to move a chip past
+//   CHIP_COST_TOL to be caught, which is not the same claim as checking the order itself.
+//
+//   THE ARC SAMPLING, within a quarter unit. CHIP_ARC_N is 240 here because it is 240 in the
+//   build, and site/render.js already runs the same placement at 96. On this corpus the two
+//   samplings put a candidate in the same place to well under CHIP_POS_TOL, so a build retuned
+//   from 240 to 96 would pass here. That is the same class as any mutation landing inside a
+//   tolerance and it is stated rather than left to be discovered.
+//
+//   A COST RETUNE THAT STAYS SMALL. W_OVER at 18 instead of 20 moves which candidate wins on some
+//   chips and can keep every move under CHIP_COST_TOL. The tolerance is a floor on the size of a
+//   defect and not on its kind, and the floor is measured over the corpus below.
+//
+//   AND THE RUN-TIME PLACER ENTIRELY. This judges the fourteen drawings the build wrote and
+//   refuses anything without an artefact digest, so site/render.js's own copy of the search, the
+//   one that composes a windowed drawing in the browser, is judged by nothing here. Closing that
+//   is a card of its own and not a tolerance on this one: the run-time copy measures its chip
+//   widths in the browser instead of carrying the build's, so it needs a different argument about
+//   what may be shared with it.
 // =================================================================================================
 
 // THE PLACER'S OWN CONSTANTS, RESTATED HERE AND NOT IMPORTED. The names are build/build_layout.py's
@@ -12887,6 +12917,15 @@ const CHIP_EXPECTED = 740;
 // computed differ by a rounding of the input and a rounding of the output. A quarter of a unit is
 // an order above what that can amount to and two orders below the smallest movement the defect
 // this exists for produces.
+//
+// AND THE FLOOR WAS MEASURED IN BOTH DIRECTIONS RATHER THAN ARGUED. On a clean tree, this branch
+// sitting on origin/main at 78c18c8, the worst any painted chip sits from its nearest candidate is
+// 0.1336 over all 740, which is the headroom and is now printed on the PASS as well as on the
+// failure. Moving one chip in site/layout.js by hand brackets the other side: at 0.3 units the
+// reading is 0.3092 and this assertion is the only one in the whole suite that fires, and at 0.2
+// the whole suite is clean. So the floor for a chip nudged off its own grid sits at CHIP_POS_TOL
+// and nowhere else, and the nudge that a reader's eye would not catch is one nothing in this
+// suite catches either.
 const CHIP_POS_TOL = 0.25;
 
 // AND HOW MUCH BETTER A CANDIDATE MAY LOOK BEFORE THE PLACER IS SAID TO HAVE MISSED IT. This is
@@ -12894,11 +12933,21 @@ const CHIP_POS_TOL = 0.25;
 // The noise in it is the same rounding: a box centre this file reads is up to five hundredths off
 // the one the placer weighed, a chip width up to five hundredths, and a candidate's own position
 // up to about a tenth, and an overlap depth is multiplied by W_OVER, which is twenty. Over the
-// fourteen canonical drawings at ef4b6d5 the worst any candidate beat a placed chip by was under a
-// half, and no chip on any of them reached one. The doubled prune this exists to catch puts 149 of
-// the same 740 chips over one unit and its worst reads over sixty. So the floor sits at one: above
-// everything a clean tree produces, below every candidate the defect leaves on the table, and a
-// quarter of the four units one step of the slide costs, so no whole candidate can hide under it.
+// fourteen canonical drawings the worst any candidate beat a placed chip by reads 0.4413, measured
+// on a clean tree, this branch sitting on origin/main at 78c18c8, and no chip on any of them
+// reaches one. The doubled prune this exists to catch puts 153 of the same 740 chips over one
+// unit and its worst reads 51.80, measured on the same tree with
+// `floor = 2*(abs(ds) + W_PERP * abs(perp))` in build/build_layout.py and the site rebuilt from
+// it, which moved 179 of the 740 chips by as much as 51.98 units. So the floor sits at
+// one: above everything a clean tree produces, below every candidate the defect leaves on the
+// table, and a quarter of the four units one step of the slide costs, so no whole candidate can
+// hide under it.
+//
+// WHAT THAT FLOOR IS NOT. It is a floor on the SIZE of a defect and not on its kind. A mutation
+// that moves the argmin and keeps every move under one unit of cost passes, and W_OVER retuned
+// from 20 to 18 is a real edit of that shape. A tolerance is a statement about the smallest thing
+// a check can see, and this one's is: some candidate its own line offers is more than one unit
+// cheaper, which at W_OVER of twenty is a twentieth of a unit of overlap.
 const CHIP_COST_TOL = 1.0;
 
 // THE WIDTH TABLE, AND WHY IT IS READ FROM THE TREE RATHER THAN MEASURED IN THE BROWSER. A label's
@@ -12952,7 +13001,16 @@ function chipWidthOf(table, ctx, s) {
 // Everything one drawing's chips can be judged from, off the painted SVG. No coordinate here is
 // read from window.GL, and the placer's answers are read as the attributes of the rects a reader
 // is looking at.
-const CHIP_READ = `
+//
+// VERB_CHIP_READ AND NOT CHIP_READ, and the name is the record of a collision worth knowing about.
+// This block was first written against a tree that did not yet carry issue 170, which landed a
+// `CHIP_READ` of its own about the CALENDAR chip while this branch sat. Two things in this file
+// are called a chip and they are not the same thing: a verb chip is the labelled box on a
+// relationship line, which is this block's whole subject, and a calendar chip is a row in the term
+// strip. The rebase put both declarations in one module scope and node refused to parse the file
+// at all, which is the good failure; the bad one would have been two blocks quietly sharing a
+// reader. Whatever else moves here, the two names stay apart.
+const VERB_CHIP_READ = `
   function boxOf(el) {
     return { x: +el.getAttribute('x'), y: +el.getAttribute('y'),
              w: +el.getAttribute('width'), h: +el.getAttribute('height') };
@@ -13295,7 +13353,7 @@ async function runGrain(chrome, base) {
       for (const g of ['sessions', 'modules']) {
         for (const k of KEYS) {
           await goto(base + '#/p/' + k + (g === 'modules' ? '/modules' : ''));
-          seen.push({ where: k + '/' + g, r: await ev(CHIP_READ) });
+          seen.push({ where: k + '/' + g, r: await ev(VERB_CHIP_READ) });
         }
       }
       // The columns, taken off all fourteen drawings together. Z-CFA draws nothing in one of the
@@ -13330,7 +13388,8 @@ async function runGrain(chrome, base) {
         `all fourteen reconstructed and all ${CHIP_EXPECTED} chips weighed, each of them as wide ` +
           `as the width table says its own verb is`,
         why.length ? `${why.length} could not be compared: ${why.slice(0, 3).join('; ')}`
-                   : `${judged.length} drawings, ${chips} chips`);
+                   : `${judged.length} drawings, ${chips} chips`,
+        `${judged.length} drawings, ${chips} chips`);
 
       // SECOND, THAT EVERY CHIP IS ON THE GRID ITS OWN LINE OFFERS. A placement free to be anywhere
       // is not a placement this can certify, and this is the half that catches an anchor computed
@@ -13341,7 +13400,13 @@ async function runGrain(chrome, base) {
           `line's own d`,
         `${offGrid.length} off the grid` +
           (offGrid.length ? `: ${offGrid.slice(0, 3).map(o => `${o.where} ${o.key} by ${o.gap.toFixed(2)}`).join(', ')}` : '') +
-          `, worst gap ${worstGap.toFixed(4)}`);
+          `, worst gap ${worstGap.toFixed(4)}`,
+        // THE HEADROOM ON A CLEAN RUN, PRINTED ON THE PASS AND NOT ONLY ON THE FAILURE. A tolerance
+        // whose margin is only visible when it has already been breached is a tolerance nobody can
+        // watch drift towards its own limit, and the third assertion below already prints its
+        // margin for exactly that reason. This one was silent about it and now is not.
+        `worst gap between a painted chip and the nearest candidate, over ${chips} chips: ` +
+          `${worstGap.toFixed(4)}, against a tolerance of ${CHIP_POS_TOL}`);
 
       // AND THIRD, THE ONE THE CARD IS ABOUT: nothing cheaper was left on the table. The search
       // here prunes nothing, so a prune in the placer that skips a winner shows up as a candidate
