@@ -2889,8 +2889,15 @@ body.hide-unrecorded .sock-unrec { display: none; }
    week grid is one column per week of the term under `minmax(46px, 1fr)`, and a `1fr` track has no
    content demand to be past: every extra pixel goes into a column the reader is comparing against
    the other twenty three. So the cap is not a measure and it is not inertia. It is a rule about
-   tables meeting the one surface here that is not one, and that surface earns an opt-out rather
-   than the ceiling being lifted for the readings the ceiling is right about.
+   tables, and the week grid is the surface it is wrong about.
+
+   AND THE MONTH GRID IS THE CONTROL ON THAT CLAIM RATHER THAN A SECOND CASE OF IT, which is the
+   distinction to keep: it is a grid too, `repeat(7, minmax(0, 1fr))` above, so `1fr` is not what
+   decides this. What decides it is whether the surface is at its floor. Measured on the page, a
+   month cell is 169.86px at 2560 and paints a chip title 153.84 wide over a scroll width of 154,
+   so it holds its whole content; the week grid's twenty four columns are at 46 and the rule below
+   drops the title because 46 does not hold one. One of them is out of room and the other is not,
+   so one of them gets the opt-out and the other stays where the ceiling is right about it.
 
    MEASURED ON THE PAGE, BEFORE. At 2560 by 1317 the box was 1240 at left 660, so 660px of screen
    sat empty either side, and the twenty four columns were 47.14px each against their own floor of
@@ -2916,8 +2923,10 @@ body.hide-unrecorded .sock-unrec { display: none; }
    SCOPED BY WHAT IS ON THE SCREEN RATHER THAN BY A FLAG. `.cal-weekpanel` is the section term.js
    builds for this shape and for no other, so the sheet is wide exactly when the wide thing is in
    it and there is no second state to keep true. The review, the month grid, the list and both
-   readings of the outline stay at the ceiling above, and the assertion in scripts/smoke.mjs
-   requires that half as well as this one. */
+   readings of the outline stay at the ceiling above; scripts/smoke.mjs drives the month grid
+   beside the week grid and requires that half as well as this one, and that is the half worth
+   having, because a rule that widened the SHEET rather than the reading passes issue 149's own
+   assertion. A wider box makes the outline's table overflow less, not more. */
 .term .sheet-box:has(.cal-weekpanel) { width: 100%; }
 
 .term-switch {
