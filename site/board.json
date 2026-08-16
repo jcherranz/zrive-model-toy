@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T19:40:55Z",
+  "generated": "2026-08-16T20:11:28Z",
   "columns": [
     {
       "key": "raw",
@@ -42,6 +42,14 @@
             "idea"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
+        },
+        {
+          "id": 213,
+          "title": "stop_srv kills nothing: the self-test leaks four http servers per run, and 243 are alive on one machine",
+          "labels": [
+            "limitation"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/213"
         }
       ]
     },
