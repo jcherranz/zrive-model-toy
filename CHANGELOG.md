@@ -48,6 +48,45 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- **THE WEEK GRID COMPARED NOTHING AND THE MONTH GRID DREW SOME DAYS TWICE, #158.** His words:
+  "In calendar view 'week' please make monday to sunday vertical and weeks horizontal so it is a
+  grid that adds value + in months view do not duplicate days in two month grids." The week grid
+  drew one panel per week that held a session, seven columns each, stacked down the sheet: twenty
+  four pictures of one week. It is **one grid** now, seven day rows down and **one column per week
+  of the term** across, so the weeks sit side by side and the columns are the header strip's
+  columns one for one, which is what makes the window one instrument rather than two. **Measured at
+  `a31f3b9`**: a month panel ran from the Monday on or before the first to the Sunday on or after
+  the last, so six panels were **217 day cells over 189 distinct dates, 28 of them a repeat**. A
+  panel draws its own month now and holds the weekdays at each end with blanks: **181 cells, 181
+  dates, 0 repeats, 36 blanks**. **No count anywhere was over the rendered cells**, so no number
+  was wrong: a panel only ever received its own month's rows and the chip count was 83 either way.
+  The one instrument that had worked around the repeat, a `Set` over distinct lit days in the smoke
+  suite, is a plain count again with both readings asserted.
+- **THE TWO GRIDS PRINTED ABSENCES THEY COULD NOT ACCOUNT FOR, AND THE CALENDAR HAD NO SCOPE SET,
+  #146.** The sampling-honest sentence lived where `SHAPE_FILTERS` is true, so the review and the
+  list said which kind of nothing they were showing and the two grids, which are the shapes a
+  screenshot is most likely to be believed from, said nothing. Both grids now carry a note built
+  from the review's own functions: **177 of the 260 sessions the model counts carry no date**, so a
+  day grid has no cell for them; which programmes have nothing in the window, in the review's two
+  sentences; and which are drawn as a part of themselves, with the fraction and the span drawn.
+  The grids also drew only the months and weeks the drawn rows fell in, so a document that stops in
+  February ended the term there; both draw the term now. The calendar takes a **scope set** in the
+  drawing's own spelling, `#/calendar/ZIB+ZSC`, and **the enumerated address count does not move:
+  35 before and after, the sheet's own routes 16**, because a spelled set is constructed rather
+  than maintained. Two sentences the set would have made wrong were repaired with it: the header's
+  absence count matched `v.key === st.scope` and would have counted over no view at all, and the
+  clause naming its subject had only two forms.
+- **THE SHEET'S GUTTER HAD THREE SIDES, #160.** He filed it from the month grid at 2560 pointing at
+  the `January 2026` heading. **Measured before any value was touched**: the space between the rule
+  under the controls and the first thing painted in the rows box was **0 at 2560, 0 at 1536 and 0
+  at 390** on both grids, and 25.3 on the two tables at the desktop widths and 0 at 390, where the
+  phone layout hides the column headings they were getting their air from. **It is not a wide
+  viewport defect**, which the triage expected: this sheet has a maximum width, so `#termrows` is
+  1238px at 2560 and 1238px at 1536. It is issue 113's defect on the fourth side of the same box,
+  and the box is what is fixed: `.sheet-rows` takes `padding-top: var(--sheet-gutter)`, giving 6,
+  6 and 4 on all four shapes of both sheets, with the panel rhythm below untouched so nothing is
+  spaced twice.
+
 - **THE ARROWHEAD WAS AIMED ALONG A TANGENT NOBODY CAN SEE, #156.** He filed `check arrow vs line
   alignment` on `[data-edge="bl_students->bl_cohort"]` at 2560 by 1317. **Measured before any
   constant was touched**, at 2560, 1536 and 390, over all seven drawings, both grains and the union
