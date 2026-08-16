@@ -13581,7 +13581,12 @@ const FACE_CENSUS = {
   '10/400': 611, '10/400i': 56, '10/600': 611, '10/600i': 56,
   '9/400': 832, '9/400i': 470, '9/600+caps': 121
 };
-const FACE_UNRESERVED_READINGS = 0;
+// And how many readings the unreserved half produced, pinned for the same reason the census above
+// is: a row whose population is not stated is a row that cannot notice its subject leaving. It is
+// an even number because every card is pressed and every press answers, so a counted tile's numeral
+// is read once at rest and once more with its own card selected; the figure is twice the number of
+// counted tiles over the fourteen drawings.
+const FACE_UNRESERVED_READINGS = 76;
 
 // Every card on the fourteen drawings is pressed and read again in the state the press leaves it
 // in. A card the page declined to select is counted and refused rather than read twice in the same
@@ -13603,10 +13608,10 @@ const FACE_CARDS = 570;
 // IT IS PINNED IN EVERY DIRECTION IT COULD MOVE. The string has to be painted at exactly this face,
 // it has to be ABSENT from the italic context, it has to be PRESENT in the upright one that reserves
 // it, and there have to be exactly this many readings of it. A second string joining it fails. This
-// one being repaired fails too, which is deliberate: the repair belongs to a card of its own,
-// because it needs `collect()` to measure the mark italic, `build_layout.py` to reserve it italic
-// and `build/label_widths.json` regenerated in a browser, and the card that does that has to come
-// back here and take this row out.
+// one being repaired fails too, which is deliberate: the repair is issue 215, because it needs
+// `collect()` to measure the mark italic, `build_layout.py` to reserve it italic and
+// `build/label_widths.json` regenerated in a browser, none of which is a change to this file, and
+// the card that does it has to come back here and take this row out.
 //
 // The consequence is not unwatched in the meantime: the third assertion of `the captions under a
 // label` holds this caption's PAINTED italic width against the number `9/400` reserves, on whatever
@@ -14233,20 +14238,20 @@ async function runGrain(chrome, base) {
       for (const r of kept) {
         if (r.ctx === '(no context)' || !table || !table[r.ctx] ||
             table[r.ctx][r.s] === undefined) {
-          const key = r.ctx + ' ' + r.s;
+          const key = JSON.stringify([r.ctx, r.s]);
           if (!missed[key]) missed[key] = { s: r.s, painted: r.ctx, n: 0, where: r.where };
           missed[key].n++;
         }
       }
       const known = {};
-      for (const d of FACE_KNOWN) known[d.painted + ' ' + d.s] = d;
+      for (const d of FACE_KNOWN) known[JSON.stringify([d.painted, d.s])] = d;
       const surprise = Object.keys(missed).filter(k => !known[k])
         .map(k => `${missed[k].where} ${JSON.stringify(missed[k].s)} is painted ` +
                   `${missed[k].painted} and no context of that face holds it ` +
                   `(${missed[k].n} readings)`);
       const changed = [];
       for (const d of FACE_KNOWN) {
-        const got = missed[d.painted + ' ' + d.s];
+        const got = missed[JSON.stringify([d.painted, d.s])];
         if (!got) {
           changed.push(`${JSON.stringify(d.s)} no longer disagrees; take its row out of FACE_KNOWN`);
         } else if (got.n !== d.readings) {
