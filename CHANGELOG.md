@@ -9,7 +9,55 @@ of what changed and when, and it is meant to be scannable.
 
 ## [Unreleased]
 
+### Added
+
+- **THE SERVED-BYTES GATE CAN NOW ASK ABOUT A FILE THE WORKING TREE HAS NEVER HEARD OF, #6.** It took
+  its file list from the local `site/` directory and fetched those paths from the origin, so **a path
+  the origin served and the tree did not name was outside its reach**: a stale artifact from an
+  earlier deploy, or a path added by hand. The card offered a committed deployed manifest or
+  accepting the gap in writing. **Neither was taken**, because the card's own warning kills the
+  manifest: one written at deploy time and read by a later run is a record of THAT deploy, and a
+  stale artifact from an EARLIER one is the thing being hunted.
+- **The list comes from the commit the origin names.** `site/version.js` is written by `pages.yml` at
+  deploy time and the deploy already fails unless the origin serves it back, so the gate reads it off
+  the target and lists that commit's `site/` out of git. **Freshness stops being a property of when
+  somebody last pushed and becomes a property of what the origin says it is serving**, however far
+  behind main that is. Not from the Pages API, and measured rather than assumed: on 2026-08-16 the
+  origin served `48d1d17` while `pages/builds/latest` reported `3bb347a` from three days earlier,
+  which is the head of `gh-pages` from a spell when the site was published by branch.
+- **And the ghost sweep, which is the half that answers the card.** Enumerating the origin is still
+  impossible; enumerating **what this repository could ever have caused the origin to serve** is not.
+  Every path any commit on any ref ever placed under `site/`, plus every path on a branch that has
+  been a Pages source, minus the live list, is probed. A candidate the origin still serves is
+  reported **whether or not its bytes are forbidden**, and its bytes go through the same five rules.
+  Against the live origin: 17 paths ever published, 14 accounted for, 3 probed (`.nojekyll`,
+  `desk.js`, `graph.js`), all 404.
+- **Six probes, `EXPECTED_PROBES` 19 to 25, and the plant is the proof.** A path an earlier deploy
+  published, served by a real server on a loopback port, with the live list not naming it: the gate
+  goes red and names `desk.js`. **The control is the sweep stubbed out, and three of the six then
+  report MISS.** One probe passed under that stub and was rewritten: it read "did something fail",
+  and a sweep that fetches nothing leaves an empty directory whose scan aborts, which is a failure
+  that is not a finding. It counts findings now.
+- **`fetch-depth: 0` on the deploy checkout is load-bearing, not tidiness.** The candidate set is git
+  history and `actions/checkout` defaults to depth 1, verified in the pinned action's own metadata.
+  The sweep **aborts on a shallow clone** rather than probing nothing and printing the same clean
+  line, so the depth is what keeps the deploy green and the abort is what stops a hand that removes
+  it getting a green deploy anyway. Depth 0 also brings `origin/gh-pages`.
+
 ### Fixed
+
+- **A REMOTE ORIGIN THAT WILL NOT NAME ITS DEPLOY NOW STOPS THE GATE, #6.** The first draft fell back
+  to the working tree whenever the stamp was missing or unresolvable, which left **a safety gate able
+  to print clean about a published site whose contents it could not establish**. A local server keeps
+  the fallback, because the tree is what it serves.
+- **Hidden files are out of the deployed list because they are out of the artifact, #6.** Verified in
+  the pinned action rather than assumed: `actions/upload-pages-artifact` v5.0.0 tars `site/` with
+  `--exclude=.git --exclude=.github` and, since `include-hidden-files` defaults to false, an exclusion
+  for dotted names. A committed `site/.something` would have been fetched and 404. **It stays a ghost
+  candidate**, which is the direction that matters: excluded from the artifact means the origin must
+  not serve it.
+- **A ghost is saved under its own path, #6**, so a finding in one names the path the origin serves
+  rather than a decorated one.
 
 - **AN ADDRESS THAT MEANS ONE THING COLD AND ANOTHER THING WARM IS NOT AN ADDRESS, #138.**
   `router.js` read the scope off the `#/p/` prefix and answered null to everything else, and the

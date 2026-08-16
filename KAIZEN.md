@@ -436,3 +436,20 @@ build on a cited slug that resolves to nothing.
   that fell over. Run the gates and the suite one after another, and read `no view`, `undefined` and
   a whole phase group failing at once as a question about the bytes before it is a question about the
   code.
+- `kaizen-ask-the-subject-its-state-not-the-log-of-what-you-did-to-it` &middot; **A record written
+  when you acted describes the act; only the subject can describe its state, so a check that needs
+  to know what a system IS must ask the system rather than the log of what was last done to it.**
+  Issue 6 offered a manifest committed by the deploy and compared by a later run, and the card
+  supplied the objection that kills it: the thing being hunted is a file surviving from an EARLIER
+  deploy, and a manifest is a record of the LATEST one, so the hunted case is exactly the case where
+  the record is silent. The origin already answered the question itself, in a `version.js` the
+  deploy fails without, and a file list derived from the commit the origin NAMES describes whatever
+  is live however far behind it has fallen. The same reading settled which API to trust: the Pages
+  builds endpoint reported a commit three days stale while the served bytes were current, so the
+  side channel was wrong and the subject was right. **The corollary is where this bites elsewhere.**
+  Anything of the form "we wrote down what we published" degrades into a claim about a past event
+  the moment the event stops being the most recent one, and it degrades silently, because the
+  record still parses and still looks like an inventory. Prefer a reading the subject has to make
+  good on; where there is no such reading, say the inventory is a history and not a census, which is
+  what the ghost sweep does when it calls its list "what this repository has ever published" rather
+  than "what is out there".
