@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T15:59:55Z",
+  "generated": "2026-08-16T16:00:47Z",
   "columns": [
     {
       "key": "raw",
@@ -35,13 +35,13 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
         },
         {
-          "id": 203,
-          "title": "The missing-instructor mark is reserved upright and painted italic, so its label box is the wrong width and nobody measured by how much",
+          "id": 204,
+          "title": "The run-time chip placer in render.js is judged by nothing, and #195 deliberately refuses to judge it",
           "labels": [
-            "bug",
-            "layout"
+            "enhancement",
+            "limitation"
           ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/203"
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/204"
         }
       ]
     },
@@ -56,6 +56,16 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/202"
+        },
+        {
+          "id": 203,
+          "title": "The missing-instructor mark is reserved upright and painted italic, so its label box is the wrong width and nobody measured by how much",
+          "labels": [
+            "bug",
+            "layout",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/203"
         }
       ]
     },
