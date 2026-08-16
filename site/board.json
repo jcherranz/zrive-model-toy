@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T07:29:25Z",
+  "generated": "2026-08-16T07:39:30Z",
   "columns": [
     {
       "key": "raw",
@@ -129,14 +129,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/146"
         },
         {
-          "id": 158,
-          "title": "The week grid compares nothing and the month grid draws some days twice",
-          "labels": [
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/158"
-        },
-        {
           "id": 160,
           "title": "check space frame above, do a general review",
           "labels": [
@@ -197,6 +189,14 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/161"
         },
         {
+          "id": 158,
+          "title": "The week grid compares nothing and the month grid draws some days twice",
+          "labels": [
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/158"
+        },
+        {
           "id": 156,
           "title": "check arrow vs line alignment",
           "labels": [
@@ -225,19 +225,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/154"
-        },
-        {
-          "id": 153,
-          "title": "what value does \"4 rows here\" add?",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/153"
         }
       ],
-      "hidden": 132,
+      "hidden": 133,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
