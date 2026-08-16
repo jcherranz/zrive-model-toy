@@ -108,6 +108,34 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- **THE CREDENTIAL GUARD WAS ON ONE OF TWO NETWORK-REACHING GIT CALLS, AND THE UNGUARDED ONE
+  PRODUCED THE LIST THE GATE CHECKS, #211.** #208 wrote `GIT_TERMINAL_PROMPT=0` on the fetch in
+  `fetch_named_commit` and nowhere else. The call that can actually block is `git ls-tree` in
+  `deployed_paths`: in a partial clone (`--filter=blob:none` or `--filter=tree:0`) the trees it
+  walks are absent and it resolves them from the promisor remote, so that line is where the network
+  call happens. The same shape is the two `git cat-file -p` calls in `scripts/check_repo.sh`
+  `scan_snapshots` and, found while walking the directory rather than from the card,
+  `git cat-file blob "HEAD:$1"` in `scripts/check_build.sh` `baseline_read`. **This has never fired
+  in CI and the card says so up front:** no workflow here makes a partial clone, and a reader who
+  clones this repository by hand with a filter is the exposure. The guard is now
+  `export GIT_TERMINAL_PROMPT=0` at the top of every script in `scripts/` that calls git, which
+  covers the calls added later as well, and **the per-call assignment is removed** so the fact has
+  one owner: a reader who sees one call guarded infers the others were deliberately left bare,
+  which is how this residue was created. **What the variable does not cover is written down where
+  it is set:** it disables git's own terminal prompt and not a credential helper or a `GIT_ASKPASS`
+  program, neither of which is configured or invoked anywhere here.
+- **And two probes, each made to fail on purpose before it was trusted, #211.** Probe 9 in
+  `scripts/check_forbidden.sh --self-test` runs the command shape of `deployed_paths` against a
+  `--filter=tree:0` clone whose remote answers every request with a credential challenge, **on a
+  pseudo-terminal whose input side never delivers a byte**. That last part is load-bearing and was
+  measured: with no terminal git cannot prompt whatever the variable says, both directions exit 128
+  in about ten milliseconds, and a probe written against CI's own stdin would have passed with the
+  guard deleted. It failed as required with the export removed (guarded exit 124), with the clone
+  made complete (the fixture assertion), and with the remote left at `file://` so nothing demanded
+  credentials (both directions exit 0). Probe 130 in `scripts/check_repo.sh --self-test` checks
+  presence and position across every script that calls git, carries two synthetic controls that
+  must be caught, and failed as required in four ways: an export deleted, an export moved after the
+  first call, a detector that matched nothing, and a checker that answered ok to everything.
 - **THE FORBIDDEN-CONTENT GATE ABORTED ON ANY CLONE OLDER THAN THE LAST BOARD SYNC, #208.** Since
   #6 the gate lists the commit the origin names, read off the live `site/version.js` and listed out
   of git locally, which requires that commit to be in the local object store. `board.yml` turns an
