@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T21:14:39Z",
+  "generated": "2026-08-16T21:28:48Z",
   "columns": [
     {
       "key": "raw",
@@ -92,14 +92,6 @@
       "title": "In progress",
       "cards": [
         {
-          "id": 206,
-          "title": "No gate holds a reserved width against the style rule that actually paints the string",
-          "labels": [
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/206"
-        },
-        {
           "id": 217,
           "title": "Nothing holds build_layout.py's own text_w() call sites, and nothing re-measures the width table",
           "labels": [
@@ -150,6 +142,14 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/207"
         },
         {
+          "id": 206,
+          "title": "No gate holds a reserved width against the style rule that actually paints the string",
+          "labels": [
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/206"
+        },
+        {
           "id": 203,
           "title": "The missing-instructor mark is reserved upright and painted italic, so its label box is the wrong width and nobody measured by how much",
           "labels": [
@@ -174,18 +174,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/196"
-        },
-        {
-          "id": 195,
-          "title": "A prune twice as aggressive moves 10257 chip boxes and the suite passes 314 of 314 clean",
-          "labels": [
-            "bug",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/195"
         }
       ],
-      "hidden": 154,
+      "hidden": 155,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
