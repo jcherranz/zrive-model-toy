@@ -73,9 +73,12 @@ same way to compare.
 *Named by:* `scripts/check_forbidden.sh`, `scripts/forbidden_lib.sh`,
 `scripts/forbidden_names.sha256`, `build/model.py`
 
-**Note.** This repository is also private and its site is also public, on purpose, stated in
-TPS.md and README.md, because the failure was never the configuration; it was the configuration
-being a surprise.
+**Note.** This repository was private and its site public when this entry was written, which is
+the same pairing, on purpose, stated in TPS.md and README.md. It is public on both sides now, and
+this note went on saying otherwise until issue 164 asked the API, by which time other decisions
+had been taken on it. The failure this entry records was never the configuration; it was the
+configuration being a surprise, and a sentence about the configuration that has stopped being
+true is that same failure with a longer fuse.
 
 ---
 
@@ -290,10 +293,14 @@ identical from outside.
 **Open, and stated rather than closed quietly.** The surname is still in nine ancestor commits of
 `main`, in `scripts/gen_forbidden_hashes.sh`, and an earlier one is in the first commit in
 `build/safety_grep.py`. `HEAD`, the index and the working tree are clean and the gate now covers
-all three. History is not rewritten here: the repository is private, several agents were pushing
-to it while this was written, and a force push to clean history is a decision with a blast radius
-that belongs to a person, not to a gate run. The gate can honestly say that nothing new can be
-committed carrying a name; it cannot say that nothing old does.
+all three. History is not rewritten here, and two of the three reasons for that stand: several
+agents were pushing to it while this was written, and a force push to clean history is a decision
+with a blast radius that belongs to a person and not to a gate run. The third does not. This
+paragraph said the repository is private, and issue 164 asked the API and got `public`, so the
+decision to leave the history alone was taken partly on a premise that was false. It is the
+owner's decision to revisit and it is not revisited here. The gate can honestly say that nothing
+new can be committed carrying a name; it cannot say that nothing old does, and the audience for
+what is old is now everybody.
 
 ---
 

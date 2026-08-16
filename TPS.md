@@ -11,9 +11,11 @@ gets a row and no more.
 Status markers: `[OK]` implemented and traceable to a file, `[OPEN]` unvalidated or not built,
 `[FLAG]` a deliberate rejection, recorded so it reads as a choice rather than an omission.
 
-The repository is private and the site is public. That is the arrangement, deliberately, and it
-is the reason most of what follows exists. Only `site/` is deployed; the documentation, `build/`
-and `scripts/` are not.
+The repository and the site are both public. This line said the repository was private until
+issue 164 asked the API; the arrangement it described was real once and is not the arrangement
+now, and most of what follows was designed under the old one. Only `site/` is deployed, which is
+why the repository gate exists at all: the documentation, `build/` and `scripts/` reach no
+deployment and are readable by anyone regardless.
 
 | Pillar | Status | Where |
 |---|---|---|

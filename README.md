@@ -53,8 +53,14 @@ excused files, and an entry that stops matching fails the run rather than linger
 checks the documentation's citations: `HANSEI.md` and `KAIZEN.md` entries carry slugs, everything
 that cites one names the slug, and a citation naming a slug no entry carries fails the build.
 
-The repository is private and the site is public. That is deliberate. Read `HANSEI.md` first if
-that combination looks like an accident.
+The repository and the site are both public. This line said the repository was private, and so
+did lines in TPS.md and HANSEI.md; issue 164 asked the API and corrected all five. It was private
+once, and most of the machinery above was designed under that premise, which is the part worth
+knowing: a gate built for a private tree is now the whole barrier rather than the second one.
+Read `HANSEI.md` first. Its entry `2026-08-09-private-repo-public-pages` is about a different
+repository and its lesson holds here unchanged, that the visibility of a repository and the
+visibility of the site it publishes are two settings and neither one is evidence about the other.
+Whether this repository stays public is the owner's decision and it is open.
 
 ## Reading the diagram
 
@@ -278,9 +284,36 @@ The `feedback` button in the header opens a small popover: a note and a category
 filing paths and which one runs depends on the visitor, not on the page.
 
 **With no token stored, which is the state of every visitor by default,** submitting opens a
-prefilled `github.com` issue URL in a new tab. No POST, no API call, no credential. The
-repository is private, so only someone already signed in with access can file, and a prefilled
-URL needs none.
+prefilled `github.com` issue URL in a new tab. No POST, no API call, no credential, and a
+prefilled URL needs none. What it does need is a GitHub account, and that is the whole of the
+barrier: this paragraph used to add that the repository is private, so only someone already
+granted access could file. It is public and its issue tracker is enabled, so any signed-in GitHub
+user can file. Issue 164.
+
+**Which means the board is writable by strangers, and the honest description of that is below.**
+`.github/workflows/board.yml` runs on every issue event, `scripts/sync_board.mjs` renders the
+tracker into `site/board.json`, and `site/board.js` draws it. An open issue carrying no status
+label lands in Raw, and Raw draws every card it holds, so a person nobody invited can put a line
+of their own text on the board this project is managed from and on the published page.
+
+That is the exposure. It is a text exposure and it is bounded, and each bound is something a
+file does rather than something this paragraph hopes:
+
+- The title is written with `textContent` in `site/board.js`, so it is inserted as text. No
+  markup is parsed, no script runs, no attribute is reachable from it.
+- Before the board is written at all, every title goes through the name rule in
+  `scripts/forbidden_lib.sh`, invoked from `scripts/sync_board.mjs`; a title carrying a token the
+  faculty register holds is replaced by a placeholder and the substitution is counted and
+  logged. A run where that rule cannot be executed writes no board rather than an ungated one.
+- The rendered board is then read by `scripts/check_repo.sh` before the workflow commits it, in
+  the same step and with nothing re-rendering in between, so a banned word, a euro-formatted
+  figure, an email address, a UUID or a corpus link arriving in a title turns the run red instead
+  of reaching the page.
+
+What survives all of that is arbitrary clean text in a card, plus the ordinary running cost of an
+open tracker: noise, and a column that anyone can lengthen. No credential is reachable this way
+and no code executes; calling it an injection would overstate it. It is the front door being a
+front door, and the thing worth writing down is that the door was described as locked.
 
 **A visitor may connect their own fine grained personal access token** through the popover. It
 is stored in that browser's `localStorage` under `zmt.gh.token` and nowhere else. When such a
