@@ -46,6 +46,66 @@ of what changed and when, and it is meant to be scannable.
   private would return Actions to the billing block that stopped every workflow for eleven hours,
   and it would not undo a disclosure already made.
 
+### Added
+
+- **A PERSON ON THE DRAWING IS SOMEONE YOU CAN REACH, AND THE ROUTE IS A FACT ON THE OBJECT, #157.**
+  The owner asked to click a professor or an institution and send an email, place a call or open a
+  meeting room, so that he can reconfirm a session without leaving the page. Every Instructor and
+  every Company now carries the way to reach it as ordinary property rows, and the panel renders
+  each one as the act it names. **There is no contacts panel, no directory and no row of buttons**,
+  and the page stays read-only: `mailto:`, `tel:` and an https room are handed to the reader's own
+  client and nothing is written to any system.
+- **The word is `reach_` and not `route_`, because `route_` already means something else here.** The
+  four rows at the head of every panel are the populate route and they are provenance: which system
+  holds the row, who enters it, on what event, and which analysis the answer was read from. All 320
+  of each are untouched. `reach_` is the other question, how you get hold of the thing that fact is
+  about, and two meanings under one prefix on one object is a panel a reader cannot parse.
+  `contact_` was the other candidate and was refused for being a noun: these rows are acts.
+- **Who has one is derived and never typed, and the answer is 29 of the 49.** A class nothing holds
+  a row for has no address, because a firm that is a free text name in a Notion select has no
+  fields: the sixteen employer firms. A row whose companion field records that nothing was filled
+  in has none either, and on an Instructor that companion is `employer`, a field of the same
+  collaborator directory row an address would be a field of: four of the twenty seven instructors.
+  **23 instructors and 6 empresas colaboradoras carry a way to be reached; 4 instructors and 16
+  firms do not.** The second clause is stated on the row as this model's own refusal and not as a
+  finding about the business: what is established is that the row records no employer, and the row
+  therefore reads "none offered" rather than "not recorded".
+- **The absence needed no new device, which is the whole design.** It is a row flagged `absent` like
+  any other, so `absKind` in `site/app.js` turns it into the empty ring the tiles have carried since
+  #139, in the warning hue where a system holds the row and in the ghost grey where nothing does. A
+  person you cannot reach reads exactly like an instructor with no recorded employer. **Nothing is
+  painted for a person you CAN reach**: this page's marking vocabulary is negative, and a positive
+  mark on 29 of 49 tiles is the sixth copy that makes the first weaker.
+- **Every address is built so that it cannot be real, which is stronger than marking it.**
+  `mailto:t1@invalid`, `tel:+00000000000`, `https://meet.invalid/t1`. `invalid` is the top level
+  domain RFC 2606 reserves so that it can never be delegated or resolve, and no E.164 country code
+  begins with a zero, so the number cannot dial. Sixteen Company tiles carry the name of a firm that
+  exists, and **the hazard the card named is that invented contact data which looks real gets acted
+  on before the flag beside it is read**; these fail closed instead. One placeholder number on every
+  object rather than 29 invented ones, on `cohort_roster()`'s own reasoning about names.
+- **`check_reach_addresses()` refuses the build over anything else, and the rule is written
+  independently of the generator.** The first draft rebuilt the expected string by calling the table
+  that writes them, which is a checker agreeing with itself: a plant changing the generator to
+  `mailto:hr@invalid` passed it. The patterns are stated in the gate, and whatever they capture must
+  equal the object's own drawing id, compared against the node. Proved on four plants, each on a
+  clean tree: an address at a domain that could resolve, an unresolvable address naming a
+  department, a meeting room naming a firm, and a telephone number that could dial. All four refuse
+  and the unplanted tree passes.
+- **The chip is back on three rows and #110 is untouched.** #110 took the flag chip off every row in
+  the panel on the owner's instruction; #148 put it back where a line that can be cropped or quoted
+  has to carry its own standing. A clickable invented address is that case one degree sharper, so
+  each reach row prints its own `f` ahead of the address, and the row packs left so that the badge
+  cannot be separated from the thing it qualifies by the flex rule above it.
+- **All fourteen drawing digests moved and no coordinate did.** A drawing digest covers the type
+  registry, the view payload and the geometry, and props live in the payload, so 49 nodes gaining
+  rows moves every digest by construction. Measured: `site/layout.js` differs in exactly fifteen
+  tokens, the fourteen drawing digests and the document digest, and the drawing objects compared
+  field by field on three programmes at both grains are byte-identical in `w`, `h`, `bandTop`,
+  `capLineH`, `capGap`, `lineH`, `nodes`, `bands`, `edges`, `tile`, `font` and `gapLabel`.
+  `glyphDigest` is unchanged, which is the same mechanism as `db5d83e`. The absence control moves
+  from 22 and 73 to **27 and 95**; the header element counts do not move at all, because nothing was
+  added to the header.
+
 ### Fixed
 
 - **A PAGE THAT FAILED TO LOAD SHOWED NO ERROR, AND THE FAILURE IT COULD NOT SHOW IS THE ONE THAT

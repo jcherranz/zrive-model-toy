@@ -613,22 +613,139 @@ CAVEAT = {
 # one: the sentences belong to the panel and the entry belongs to whatever reads the registry,
 # and carrying the prose inside the shipped entry would put every one of those strings in the
 # document twice.
+# ---- THE SECOND QUESTION ABOUT AN OBJECT, AND THE WORD IT IS NOT SPELLED WITH. Issue 157 -----
+# The owner: "contact details of institutions and professors so for example I could directly
+# click on them and send an email or do a call, send a Zoom call, etc. for example if a need to
+# reconfirm a session". A fact belongs on the thing it is about, so an instructor's address is on
+# the instructor and there is no directory anywhere on this page.
+#
+# IT IS NOT SPELLED `route_`, AND THAT IS THE FIRST DECISION THIS BLOCK MADE. The four rows above
+# are already called the route and they mean PROVENANCE: which system holds the row, who types
+# it, on what event, and which analysis the answer was read from. On instructor `t1`,
+# `route_system` reads "Notion. A collaborator directory row, and a select option on the
+# calendar". A `route_email` beside it would put two unrelated questions under one prefix on one
+# object, and a reader scanning a panel would have to know which of the two any `route_` row
+# belonged to. `reach_` is the other question in the owner's own verb: `route_` is where the fact
+# LIVES, `reach_` is how you get hold of the thing the fact is about. `contact_` was the other
+# candidate and was refused for being a noun: these rows are acts, one URI each, and the panel
+# hands each of them to the reader's own client rather than storing anything anywhere.
+#
+# NOTHING IS WRITTEN TO ANY SYSTEM. `mailto:`, `tel:` and an https meeting room are handed to the
+# reader's own mail client, dialler and browser. The page stays read-only, which is the
+# constraint every card on it has held to.
+#
+# ---- THE ADDRESSES ARE INVENTED AND ARE BUILT SO THAT THEY CANNOT BE ANYTHING ELSE -----------
+# This is the sharper edge of issue 148's hazard. Invented PROSE that reads as real is bad; an
+# invented ADDRESS that reads as real is worse, because a reader acts on it, and sixteen of the
+# twenty two Company tiles on this page carry the name of a firm that exists. So the addresses
+# are not merely flagged, they are unable to be real:
+#
+#   the domain   `invalid`, the top level domain RFC 2606 section 2 reserves precisely so that a
+#                name under it can never be delegated and can never resolve. Used BARE, with no
+#                second label, which is also what keeps it out of the shape of a real address:
+#                every deliverable address has a dotted domain.
+#   the number   all zeros. No E.164 country code begins with 0, so the number cannot exist in
+#                any country. ONE placeholder number on every object and not twenty nine
+#                invented ones, for the reason cohort_roster() gives about names further down
+#                this file: each invented one is another chance to write down a real one, and a
+#                telephone number has no safe generator the way a drawing id does.
+#   the room     `meet.invalid`, under the same reserved top level domain.
+#
+# The email and the meeting room carry the object's DRAWING ID, which is already in this document
+# and has already been through the name gate, so a per-object address costs no new invention.
+#
+# AND THE BUILD REFUSES ANYTHING ELSE. check_reach_addresses() below walks every address this
+# model ships and stops the build on one that is not of these three forms. A plausible address
+# typed into this file by a later card does not reach the page.
+REACH_CALL = "+00000000000"
+
+# The three acts the owner named, and what each one hands to the reader. It is a vocabulary and
+# it ships with the document for the reason every other vocabulary here ships: a row whose key
+# only means something to the program that wrote it is not machine readable.
+REACH_ACT = {
+    "reach_email":   "an address the reader's own mail client is handed. Nothing is sent from "
+                     "this page and nothing is written anywhere",
+    "reach_call":    "a number the reader's own dialler is handed. The digits are all zeros "
+                     "because no country code begins with one, so it can never connect",
+    "reach_meeting": "a room the reader's own browser is handed, under a reserved name that "
+                     "cannot resolve",
+}
+
+# key -> the URI, built from the object's own drawing id. In the order a reader meets them.
+REACH_ACTS = (
+    ("reach_email",   lambda nid: f"mailto:{nid}@invalid"),
+    ("reach_call",    lambda _nid: f"tel:{REACH_CALL}"),
+    ("reach_meeting", lambda nid: f"https://meet.invalid/{nid}"),
+)
+
+# The one row an object gets when there is no way to reach it, and it is ONE row and not three.
+# Three addresses is three different things a reader can do; NO address is one claim, and writing
+# it three times on one tile is the over-marking the ghost exemption further down this file
+# already refuses in the same words. It is flagged `absent` like any other absence, so the empty
+# socket on the tile, the number on the header control and this row are one answer read three
+# times rather than three opinions.
+REACH_NONE = "reach"
+
+# Every address form the model is allowed to ship, anchored end to end and keyed by the act it
+# belongs to. A form is here or the build stops; there is no list of exceptions and no way to add
+# one from a call site.
+#
+# THE PATTERNS ARE WRITTEN OUT AGAIN HERE RATHER THAN DERIVED FROM REACH_ACTS ABOVE, and that is
+# the whole value of them. The first draft of check_reach_addresses() rebuilt the expected string
+# by CALLING the table that writes them, which is a checker agreeing with itself: a plant that
+# changed the generator to `mailto:hr@invalid` passed the gate, because the gate asked the
+# generator what to expect and the generator said `mailto:hr@invalid`. A reserved domain stops
+# the message being delivered and does nothing at all about a local part that names a department
+# or a firm, so the rule has to be stated independently of the thing it judges.
+#
+# `who` IS THE OBJECT'S OWN DRAWING ID and it is compared against the node, not against the
+# table. That is what makes an address a fact about the object it sits on rather than a string
+# somebody typed: an id is already in this document and has already been through the name gate,
+# and nothing else is allowed at either end of the @.
+_REACH_FORMS = {
+    "reach_email":   re.compile(r"^mailto:(?P<who>[a-z0-9_]+)@invalid$"),
+    "reach_call":    re.compile(r"^tel:\+0+$"),
+    "reach_meeting": re.compile(r"^https://meet\.invalid/(?P<who>[a-z0-9_]+)$"),
+}
+
+# Three tables now say what the acts are: the vocabulary that ships, the generator, and the rule
+# that judges the generator. Writing the rule out twice is the point of it and a fourth act
+# reaching two of the three is not, so they are held to the same key set here. A missing form
+# would otherwise surface as a KeyError inside a gate, which is a gate that crashed rather than a
+# gate that refused, and the two read differently in a log.
+if not (set(REACH_ACT) == {_k for _k, _u in REACH_ACTS} == set(_REACH_FORMS)):
+    raise SystemExit(f"model: the acts a reader can be handed are declared three times and the "
+                     f"three do not agree: vocabulary {sorted(REACH_ACT)}, generator "
+                     f"{sorted(_k for _k, _u in REACH_ACTS)}, rule {sorted(_REACH_FORMS)}.")
+
 ROUTES = {}
 ROUTE_SAYS = {}
 
 
 def route_class(cid, *, cls, drawn_as, system, unit=None, partition=None, entered_by, event,
-                source, says, absence=None, caveats=(), key=None, read=None, module=None):
+                source, says, absence=None, caveats=(), key=None, read=None, module=None,
+                reach=False, reach_with=None):
     """One class's route: the machine declaration and the four rows a reader sees, together.
 
     Everything derivable is derived and nothing is declared twice. `attachable` is whether a
     system holds the rows; the adapter state follows from that and from whether a module exists;
     the flag on each display row is the state of the field it displays. There is no way to
     satisfy one of those by editing another.
+
+    `reach` and `reach_with` are issue 157's and are the SECOND question about an object. See the
+    block under route_props() for what they mean and why they are not spelled `route_`.
     """
     attachable = system is not None
+    if reach_with is not None and not reach:
+        raise SystemExit(f"model: route {cid}: a companion field {reach_with!r} is declared and "
+                         f"the class carries no way to reach it, so nothing would ever read the "
+                         f"companion. A rule that cannot fire reads as a rule that passed.")
     ROUTE_SAYS[cid] = says
     ROUTES[cid] = {
+        # Issue 157. Whether the class is one you can get hold of, and the field on its own row
+        # that says whether anybody has filled that row in. Null on the fifteen classes that are
+        # not somebody or something you write to.
+        "reach": {"acts": [_k for _k, _u in REACH_ACTS], "with": reach_with} if reach else None,
         "id": cid,
         "class": cls,
         "type": drawn_as,
@@ -677,6 +794,58 @@ def route_props(entry):
             p("route_source", entry["source"], E, OBSERVED)]
 
 
+def reach_props(entry, nid, own):
+    """How you get hold of this object, or one row saying why you cannot. Issue 157.
+
+    THE ANSWER IS DERIVED IN ONE PLACE AND IS NEVER TYPED, exactly as the tile's `mark` is. Two
+    facts decide it and both are already in the registry or on the node:
+
+      the class holds no row anywhere   there is nowhere an address could sit, so there is none.
+                                        This is the sixteen employer Companies: "no company
+                                        record. A firm is a free text name in a Notion select".
+                                        A free text name in a select has no fields.
+      the row exists and is blank       the class names a companion field on the same row, and
+                                        that field records that nothing was filled in. On an
+                                        Instructor the companion is `employer`, which is a field
+                                        of the same Notion collaborator directory row an address
+                                        would be a field of. Four of the twenty seven carry it
+                                        as an absence, and this model will not write an address
+                                        onto a row it has just finished saying is empty.
+
+    THE SECOND CLAUSE IS A REFUSAL BY THIS MODEL AND NOT A FINDING ABOUT THE BUSINESS, and the
+    sentence it ships says so in those words. What is established is that the row records no
+    employer. That it therefore records no address does NOT follow, and a row reading "not
+    recorded" would be this page asserting something nobody has looked at, which is the one thing
+    the whole registry above exists to refuse. So what the row says is what is true: this model
+    declines to invent an address for a directory row it has just called empty. The honest
+    alternative was to give all twenty seven an address, and it was refused because that makes
+    the same unlooked-at claim in the direction a reader acts on.
+
+    WHICH SIDE OF THE ABSENCE CONTROL EACH ONE LANDS ON IS NOT DECIDED HERE EITHER. site/app.js
+    reads the class's `system` at the join: no system holds it, ghost grey; a system holds the
+    row and has left it empty, the warning hue. Those are exactly the two cases above and they
+    come out with the right colour without this function knowing there is a colour.
+    """
+    r = entry.get("reach")
+    if not r:
+        return []
+    if not entry["attachable"]:
+        return [p(REACH_NONE, "no row holds one. " + ABSENCE[entry["absence"]], A)]
+    field = r["with"]
+    if field:
+        rows = [row for row in own if row["k"] == field]
+        if len(rows) != 1:
+            raise SystemExit(f"model: class {entry['id']} says a way to reach an object is a "
+                             f"field of the same row as {field!r}, and {nid} carries "
+                             f"{len(rows)} such row. The companion cannot be read, so the "
+                             f"absence cannot be derived and would have to be guessed.")
+        if rows[0]["f"] == A:
+            return [p(REACH_NONE, f"none offered. The row that would carry one records no "
+                                  f"{field} either, and this model will not invent an address "
+                                  f"for a row it has just called empty", A)]
+    return [p(_k, _uri(nid), D) for _k, _uri in REACH_ACTS]
+
+
 route_class(
     "programme", cls="Programme", drawn_as="Programme",
     system=None, absence="contested-enumerations",
@@ -690,6 +859,7 @@ route_class(
 route_class(
     "company-employer", cls="Company, employer of an instructor", drawn_as="Company",
     system=None, absence="value-not-a-row",
+    reach=True,
     entered_by=(None, "not-recorded"),
     event=(None, "none"),
     source="ontology.yaml, Company, identity key",
@@ -700,6 +870,7 @@ route_class(
 route_class(
     "company-colaboradora", cls="Company, empresa colaboradora", drawn_as="Company",
     system="notion", unit="invitation-page", partition="invitation",
+    reach=True,
     entered_by=("operations", "recorded"),
     event=("invitation-sent", "recorded"),
     caveats=("not-a-database", "outcome-not-recorded"),
@@ -721,6 +892,10 @@ route_class(
 route_class(
     "instructor", cls="Instructor", drawn_as="Instructor",
     system="notion", unit="collaborator-directory-row", partition="single",
+    # Issue 157. The companion is `employer`, which is a field of the same directory row an
+    # address would be a field of, and it is the only field on this node whose absence is
+    # recorded rather than assumed. Four of the twenty seven instructors carry it as an absence.
+    reach=True, reach_with="employer",
     entered_by=("operations", "recorded"),
     event=("session-scheduled", "recorded"),
     caveats=("confirming-actor-not-recorded",),
@@ -934,6 +1109,22 @@ def _check_registry():
             bad(f"read state {e['read']!r} claims a system was reached, and nothing here has "
                 f"ever reached one. That state is declared so the field can move, not so it "
                 f"can be asserted.")
+
+        # ---- the way to reach the object, issue 157 ------------------------------------
+        # A companion field is what makes the absence DERIVED rather than guessed, so it may
+        # only be declared where there is a row for it to be a field of. Declared on a class
+        # nothing holds a row for, it would be a rule reading a field of a row that does not
+        # exist, and reach_props() would never consult it: a rule that cannot fire reads as a
+        # rule that passed.
+        rch = e["reach"]
+        if rch is not None:
+            if rch["acts"] != [_k for _k, _u in REACH_ACTS]:
+                bad(f"the acts {rch['acts']!r} are not the ones this model can hand to a "
+                    f"client. Those are declared once, in REACH_ACTS.")
+            if rch["with"] is not None and not e["attachable"]:
+                bad(f"a way to reach it is said to be a field of the same row as "
+                    f"{rch['with']!r}, and nothing holds a row for this class at all. The "
+                    f"companion could never be read and the absence would be a guess.")
 
 
 _check_registry()
@@ -4021,11 +4212,28 @@ for _n in ALL_NODES:
     _n["source_system"] = _r["system"]
     _n["source_key"] = source_key(_r["system"], _n.pop("source_seed", _n["id"]))
     _rows = route_props(_r)
-    _n["props"] = _rows + _n["props"]
+    # ---- and the way to reach it, at the OTHER end of the list. Issue 157 -------------------
+    # AFTER the object's own values and not among them, which is where the reader's questions
+    # actually run out: what holds this, what does it say, and then what do I do about it. Read
+    # off the same registry entry the route rows come from and built before they are prepended,
+    # so `own` is the node's own list and the companion field cannot be confused with a route row
+    # of the same name.
+    #
+    # AND THE SOCKET MACHINERY PICKS THEM UP WITH NO CODE AT ALL. site/app.js counts every row
+    # after the route block that is flagged `absent`, so an object with no way to reach it gains
+    # an empty ring on its tile and a unit on the header control, in the same device an
+    # instructor with no recorded employer has carried since issue 139. That was the whole
+    # argument for putting the answer in a flagged row rather than in a new mark.
+    _reach = reach_props(_r, _n["id"], _n["props"])
+    _n["props"] = _rows + _n["props"] + _reach
     # How many of the rows at the front of the list are the route, so the panel can rule a line
     # under them. A count and not a name: the browser never has to know that a key beginning
     # "route_" is special, and renaming a row here cannot silently move the line.
     _n["route"] = len(_rows)
+    # And how many at the BACK of it are the way to reach the object, for the same reason and by
+    # the same means. The panel rules a second line above them and turns each one into the act it
+    # names; a node with none carries a zero and the panel draws no line.
+    _n["reach"] = len(_reach)
     if not _r["attachable"] and not _n.get("ghost"):
         _n["mark"] = NO_SYSTEM
 
@@ -4035,6 +4243,77 @@ _UNBOUND = sorted(set(ROUTES) - _BOUND)
 if _UNBOUND:
     raise SystemExit(f"model: the populate registry declares {', '.join(_UNBOUND)} and no object "
                      f"on any view belongs to that class. Remove the entry or draw the class.")
+
+
+# ---- and no address this page ships may be capable of being real. Issue 157 ---
+# THE HAZARD THIS REFUSES IS NOT A WRONG VALUE, IT IS A VALUE THAT GETS ACTED ON. Every other
+# invented figure on this page is read; an address is clicked. Sixteen of the twenty two Company
+# tiles carry the name of a firm that exists, so a plausible looking address on one of them is a
+# message sent to somebody, and the flag beside it would not have stopped the click.
+#
+# So the addresses are not merely declared invented, they are built so that they cannot be
+# anything else, and this refuses the build over one that is not: `invalid` is the top level
+# domain RFC 2606 reserves so that it can never be delegated, and a telephone number of zeros
+# cannot exist under E.164. It walks the rows that ship rather than the table they were built
+# from, which is the difference between checking the generator and checking the document.
+#
+# IT REFUSES BOTH WAYS. An address of the wrong form stops the build, and so does a row inside
+# the reach block whose value is not an address at all: a reach row silently downgraded to prose
+# would leave the panel with nothing to hand a client, which passes every other gate in this file.
+# 192 address rows over the fourteen drawings, 59 distinct strings on 29 of the 49 objects, and
+# the count is printed so that a rule quietly matching nothing reads as the failure it is.
+def check_reach_addresses():
+    seen = 0
+    for _v in ALL_VIEWS:
+        for _n in _v["nodes"]:
+            if not _n["reach"]:
+                continue
+            for _row in _n["props"][len(_n["props"]) - _n["reach"]:]:
+                if _row["f"] == A:
+                    if _row["k"] != REACH_NONE:
+                        raise SystemExit(
+                            f"model: {_n['id']} carries a reach row {_row['k']!r} flagged "
+                            f"{A!r}. An absence is one row and it is named {REACH_NONE!r}; "
+                            f"three of them is one claim printed three times on one tile.")
+                    continue
+                if _row["k"] not in REACH_ACT:
+                    raise SystemExit(f"model: {_n['id']} carries a reach row {_row['k']!r}, "
+                                     f"which is not one of {sorted(REACH_ACT)}. A key the "
+                                     f"document does not define is an act nobody can read.")
+                _hit = _REACH_FORMS[_row["k"]].match(_row["v"])
+                if not _hit:
+                    raise SystemExit(
+                        f"model: {_n['id']} would hand a reader {_row['v']!r} for "
+                        f"{_row['k']!r}. Every address this page ships is at a name RFC 2606 "
+                        f"reserves so that it can never resolve, or is a number of zeros that "
+                        f"can never connect. An address that could be real is the one invented "
+                        f"value on this page a reader acts on before they read the flag beside "
+                        f"it.")
+                # AND THE SHAPE IS NOT ENOUGH, WHICH IS THE HALF A PATTERN CANNOT SEE ON ITS OWN.
+                # An address at hr@invalid satisfies the form and names a department; one under
+                # meet.invalid ending in a firm's name satisfies it and names that firm. The
+                # reserved domain stops the message being delivered and does nothing whatever
+                # about what is written in front of it. So whatever the pattern captured has to
+                # be this object's own drawing id, compared against the NODE and never against
+                # the table that wrote the value.
+                _who = _hit.groupdict().get("who")
+                if _who is not None and _who != _n["id"]:
+                    raise SystemExit(
+                        f"model: {_n['id']} ships {_row['v']!r}, which names {_who!r}. An "
+                        f"address is built from the drawing id of the object it sits on and "
+                        f"from nothing a person typed: a local part or a path naming anything "
+                        f"else reads as somebody in particular however unreachable the domain "
+                        f"is, and on this page it would be naming the wrong somebody.")
+                seen += 1
+    if not seen:
+        raise SystemExit("model: no object on any view ships a way to reach it, so this rule "
+                         "examined nothing and would pass on any document at all.")
+    return seen
+
+
+_REACH_SEEN = check_reach_addresses()
+print(f"[model] reach: {_REACH_SEEN} addresses shipped over the fourteen drawings, every one at "
+      f"a reserved name that cannot resolve or a number that cannot connect", file=sys.stderr)
 
 # ---- and identity has to join, which is the only reason to carry it ----------
 # A key that names two objects is worse than no key, because a join on it silently merges them.
@@ -4092,7 +4371,7 @@ _strings += [(f"registry {_cid} caveat", _c) for _cid, _e in ROUTES.items() for 
 _strings += [(f"registry vocabulary {_name}", _s)
              for _name, _tbl in (("read", READ_STATE), ("adapter", ADAPTER_STATE),
                                  ("key", KEY_STATE), ("field", FIELD_STATE), ("role", ROLE),
-                                 ("absence", ABSENCE), ("caveat", CAVEAT))
+                                 ("absence", ABSENCE), ("caveat", CAVEAT), ("act", REACH_ACT))
              for _tok, _why in _tbl.items() for _s in (_tok, _why)]
 # The provenance vocabularies ship on the public page for the same reason the registry's do, so
 # they go through the same folding. Issue 73.
@@ -5724,6 +6003,12 @@ def emit_view(v):
         # has always read.
         "nodes": [{"id": n["id"], "type": n["type"], "label": n["label"], "class": n["class"],
                    "count": n.get("count"), "props": n["props"], "route": n["route"],
+                   # Issue 157, and the mirror of `route`: how many rows at the BACK of the list
+                   # are ways to reach this object. Zero on every node that is not somebody or
+                   # something you write to, and written on all of them rather than only where it
+                   # is non-zero, because a key that is sometimes absent is a key a reader has to
+                   # tell apart from a key that is zero.
+                   "reach": n["reach"],
                    "source_system": n["source_system"], "source_key": n["source_key"],
                    "ghost": 1 if n.get("ghost") else None,
                    "mark": n.get("mark"), "tail": n.get("tail"), "note": n.get("note")}
@@ -5992,7 +6277,7 @@ def instance_document():
         # stops the build.
         "routes": {"vocab": {"read": READ_STATE, "adapter": ADAPTER_STATE, "key": KEY_STATE,
                              "field": FIELD_STATE, "role": ROLE, "absence": ABSENCE,
-                             "caveat": CAVEAT},
+                             "caveat": CAVEAT, "act": REACH_ACT},
                    "classes": ROUTES},
         # ---- provenance, issue 73 -------------------------------------------------------------
         # What kind of estate this document describes, the date its provenance was established,
