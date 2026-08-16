@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T12:04:32Z",
+  "generated": "2026-08-16T12:19:02Z",
   "columns": [
     {
       "key": "raw",
@@ -80,23 +80,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
-        },
-        {
-          "id": 168,
-          "title": "Two planted defects shipped green through the whole suite and both content gates",
-          "labels": [
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/168"
-        },
-        {
-          "id": 187,
-          "title": "The redesign's headline number is the one number not pinned: a new header button ships green",
-          "labels": [
-            "bug",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/187"
         }
       ]
     },
@@ -104,6 +87,15 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 187,
+          "title": "The redesign's headline number is the one number not pinned: a new header button ships green",
+          "labels": [
+            "bug",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/187"
+        },
         {
           "id": 186,
           "title": "The sheet caps content at 1238px, and the week grid is the first surface that wants the width",
@@ -146,31 +138,23 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/169"
         },
         {
+          "id": 168,
+          "title": "Two planted defects shipped green through the whole suite and both content gates",
+          "labels": [
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/168"
+        },
+        {
           "id": 167,
           "title": "Four surfaces render sampled programmes as complete, and one deletes half the term",
           "labels": [
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/167"
-        },
-        {
-          "id": 166,
-          "title": "A page that failed to load says gaps 0 and shows no error",
-          "labels": [
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/166"
-        },
-        {
-          "id": 164,
-          "title": "The salt is printed in the file it protects and 87 people are recoverable in under a second",
-          "labels": [
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/164"
         }
       ],
-      "hidden": 143,
+      "hidden": 145,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
