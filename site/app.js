@@ -18,7 +18,10 @@
 // them DEFINES one factory on window.ZM and EXECUTES NOTHING, so the order among the four is
 // irrelevant and the only rule is that all four come before this file. index.html says so, and the
 // check below turns a missing or misordered tag into one named error rather than into a page that
-// half draws.
+// half draws. WHO THE NAMED ERROR IS FOR, since issue 166: site/boot.js, the first script on the
+// page, which catches it and puts it on screen. Until that file the ten throws in here all fired
+// before feedback.js had registered a listener, so the named error went to a console nobody had
+// open and the reader got a blank canvas and no sentence.
 (function () {
   'use strict';
 
@@ -1370,6 +1373,14 @@
   // see all of it. It is also the page's own readiness signal: scripts/smoke.mjs waits on
   // window.ZT existing, which means this statement ran, which means every module above was built
   // and wired without throwing. Nothing may be added after it.
+  //
+  // AND SINCE ISSUE 166 THE PAGE ITSELF READS IT, WHICH IS A SECOND READER OF THE SAME FACT AND
+  // NOT A SECOND FLAG. site/boot.js is the first script in index.html; at the load event it asks
+  // whether this statement ran, and if it did not it says so on screen, in three states, naming
+  // the throw where there is one. The ten throws above are what that file exists to make visible,
+  // and this line is how it knows they did not happen. Moving this publication earlier, or
+  // publishing a partial object before the wiring is done, would leave that reading true on a
+  // page that had not finished, which is the failure boot.js is there to end rather than to join.
   window.ZT = {
     // The digest of the drawing, under a name that cannot be read as a revision, and the commit
     // the page was deployed from, which is the value that answers "what code was this". The

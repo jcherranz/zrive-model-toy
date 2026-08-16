@@ -653,3 +653,17 @@ build on a cited slug that resolves to nothing.
   the question itself became a standing claim rather than a measurement somebody took once. **A
   triage that turns out to be wrong is not a wasted card; measuring beyond the tile that was
   pointed at is what turns it into a good one.**
+- `kaizen-a-watcher-that-loads-after-what-it-watches` &middot; **A watcher registered after the
+  code it watches is not a watcher, and nothing about it looks wrong.** feedback.js was written to
+  put an uncaught error on screen and says so in its own comment, that it reads the deploy stamp
+  directly "because this block has to answer in a run where app.js has thrown". Its listener was
+  registered from the last script tag in the document and every one of app.js's ten throws fires
+  before that line is reached, so the file whose job was reporting a broken load was the one file
+  guaranteed to be absent for it. Measured three ways at once: a throw inside a module left the
+  drawing on screen and said nothing, a one node drift between the two generated documents drew a
+  blank canvas and said nothing, and both looked in a diff exactly like a page with error handling.
+  **The general form: for anything that watches, the position of its registration is part of its
+  correctness, and the test is not whether the handler is right but whether it exists at the
+  earliest moment the thing it watches can happen.** The corollary is that the watcher belongs in
+  its own file, ahead of everything, and small enough to be obviously correct, rather than inside
+  the large file that happens to own the reporting machinery.
