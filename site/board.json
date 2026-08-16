@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T22:20:33Z",
+  "generated": "2026-08-16T22:21:28Z",
   "columns": [
     {
       "key": "raw",
@@ -50,6 +50,14 @@
             "limitation"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/220"
+        },
+        {
+          "id": 221,
+          "title": "build/label_widths.json is never re-measured, and --check is too coarse to gate on",
+          "labels": [
+            "limitation"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/221"
         }
       ]
     },
