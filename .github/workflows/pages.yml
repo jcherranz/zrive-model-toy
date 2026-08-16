@@ -322,46 +322,142 @@ jobs:
           }
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
+      # Jidoka. Prove the gate refuses before anything is asked to believe it when it says clean,
+      # and prove it BEFORE it is used rather than after, which is the order the two steps below
+      # now depend on.
+      - name: Prove the forbidden-content gate fires
+        run: bash scripts/check_forbidden.sh --self-test
+
+      # ---------------------------------------------------------------------------------------
+      # THE LOCK. This is the step that decides whether anything is published at all.
+      # ---------------------------------------------------------------------------------------
+      # Issue 172, surfaced by issue 164. For as long as this workflow has existed, the
+      # forbidden-content gate ran AFTER deploy-pages, which makes it an alarm and not a lock: by
+      # the time it can object, the bytes it objects to are already public, and pulling the cord
+      # is the fallback the gate's own header describes. That was a known ordering problem and it
+      # was tolerated because the gate is only one of four, and because reading the served bytes
+      # is the only reading that settles the question the gate is really about.
+      #
+      # Both things stay true and neither requires the ordering. The bytes in site/ at this
+      # moment, stamp included, are exactly the bytes upload-pages-artifact is about to tar, so
+      # serving them here and gating them here answers "would publishing this publish something
+      # forbidden" BEFORE the answer stops being actionable. The origin gate below still runs and
+      # still reads what the public is served, because a build step, an artifact, a cache and a
+      # CDN sit between this step and that one and the gate's header is right that only the far
+      # side settles anything.
+      #
+      # A LOCAL SERVER AND NOT THE DISK, on purpose. scripts/verify.sh does exactly this and for
+      # the same reason: the gate's file list and rules must be the ones that really run, and its
+      # claim is about bytes fetched over HTTP. The gate prints, itself, which of the two things
+      # it read, so nothing downstream has to infer that this step is the weaker claim.
+      - name: The bytes about to be published are clean, before they are published
+        run: |
+          set -euo pipefail
+          # One line on purpose. This is a YAML block scalar, so every continuation line keeps the
+          # block's indentation, and a multi-line python3 -c here is an IndentationError rather
+          # than a port. scripts/verify.sh can write the same thing over five lines because a
+          # shell script has no such margin.
+          port="$(python3 -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')"
+          python3 -m http.server "$port" --bind 127.0.0.1 --directory site >/dev/null 2>&1 &
+          server=$!
+          # A server that never came up would make the gate fail on a fetch, which is a confusing
+          # way to say "this step could not run". Ask for one file first and say so plainly.
+          ready=0
+          for _ in 1 2 3 4 5 6 7 8 9 10; do
+            if curl -fsS -o /dev/null "http://127.0.0.1:$port/index.html"; then ready=1; break; fi
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]; then
+            kill "$server" 2>/dev/null || true
+            echo "::error::the local server over site/ never answered, so the pre-publication gate could not run"
+            exit 2
+          fi
+          rc=0
+          bash scripts/check_forbidden.sh "http://127.0.0.1:$port/" || rc=$?
+          kill "$server" 2>/dev/null || true
+          wait "$server" 2>/dev/null || true
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::the bytes this job was about to publish did not pass the forbidden-content gate. Nothing was published."
+            exit "$rc"
+          fi
+
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: site
       - id: deployment
         uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
 
-      - name: Prove the forbidden-content gate fires
-        run: bash scripts/check_forbidden.sh --self-test
-
-      - name: Forbidden-content gate, against deployed bytes
-        run: bash scripts/check_forbidden.sh "${{ steps.deployment.outputs.page_url }}"
-
-      # Jidoka, and for the same reason the gate above reads the origin rather than the disk: a
-      # stamp written into the workspace proves nothing about what the public is served. This
-      # fetches the stamp back and fails the job unless the page names the commit that was just
-      # published, so the defect in issue 47, a value that does not track the deploy, cannot come
-      # back without lighting the andon. Retried because the origin can serve the previous
-      # deployment for a moment after deploy-pages returns, the same reason the gate above has
-      # FETCH_ATTEMPTS.
-      - name: Prove the deployed page names the commit that was deployed
+      # ---------------------------------------------------------------------------------------
+      # WAIT FOR THE ORIGIN TO NAME THIS DEPLOY, AND ONLY THEN READ IT.
+      # ---------------------------------------------------------------------------------------
+      # THIS STEP MOVED. Issue 164. It used to run after the origin gate, which is the wrong way
+      # round and went unnoticed for as long as the gate quietly fell back to the tree when it
+      # could not establish what the origin was serving. Issue 6 removed that fallback, correctly,
+      # so the gate now ABORTS instead; and the first deploy after issue 164 merged went red here,
+      # because deploy-pages had returned and the origin was not yet serving the new bytes. The
+      # gate was right, the site was fine, and the ordering was the defect. An honest alarm turned
+      # a silent ordering problem into a visible one, which is what an honest alarm is for.
+      #
+      # THE FIX IS TO WAIT FOR THE CONDITION THE GATE NEEDS, NOT TO SLEEP. A fixed sleep is a race
+      # with a different constant in it, and a race that fails intermittently on the deploy path is
+      # worse than the failure it replaces. This polls the one thing the origin can be asked, and
+      # the deploy stamp is exactly that thing: pages.yml writes the commit into site/version.js,
+      # so the origin naming this run's sha IS the origin serving this run's bytes.
+      #
+      # THREE OUTCOMES, KEPT APART, because they are three different sentences and only one of
+      # them is "wait longer":
+      #   names this deploy       the origin is serving this run's bytes. Gate them.
+      #   names another commit    the origin is serving a different deploy and did not converge.
+      #                           A real failure. It stays red.
+      #   names nothing at all    the origin served no stamp. Also a real failure, and a different
+      #                           one: something other than this workflow is serving that url,
+      #                           which is the case issue 6's abort exists for.
+      # A timeout is never clean. The step below reads this one's success as "the origin is
+      # established", so a quiet pass here would put the gate back in front of an unknown origin.
+      #
+      # The budget is generous rather than tight, for the same reason the gate has FETCH_ATTEMPTS:
+      # the cost of waiting is seconds on a deploy, and the cost of being too tight is a red main.
+      - name: Wait for the origin to name the commit that was deployed
         env:
           PAGE_URL: ${{ steps.deployment.outputs.page_url }}
           DEPLOYED_SHA: ${{ steps.stamp.outputs.sha }}
         run: |
           set -euo pipefail
           url="${PAGE_URL%/}/version.js"
+          attempts=18
+          wait_seconds=10
           body=""
-          for attempt in 1 2 3 4 5; do
+          named=""
+          for attempt in $(seq 1 "$attempts"); do
             body="$(curl -sS -L "$url" || true)"
-            case "$body" in *"$DEPLOYED_SHA"*) break ;; esac
-            echo "  attempt $attempt/5: the origin does not name $DEPLOYED_SHA yet"
-            # An if, not `[ ... ] && sleep`: under set -e a trailing AND-list that ends false
-            # takes the step down on the last attempt, with no message and before the check below
-            # can say what went wrong.
-            if [ "$attempt" -lt 5 ]; then sleep 10; fi
+            named="$(printf '%s' "$body" | grep -oE 'commit: "[0-9a-f]{40}"' | grep -oE '[0-9a-f]{40}' | head -1 || true)"
+            if [ "$named" = "$DEPLOYED_SHA" ]; then
+              echo "the origin names ${DEPLOYED_SHA:0:7} after ${attempt} reading(s)"
+              exit 0
+            fi
+            if [ -n "$named" ]; then
+              echo "  reading $attempt/$attempts: the origin still names ${named:0:7}, not ${DEPLOYED_SHA:0:7}"
+            else
+              echo "  reading $attempt/$attempts: the origin served no stamp naming a commit"
+            fi
+            # An if, not a trailing AND-list: under set -e an AND-list ending false takes the step
+            # down on the last iteration, before the report below can say what went wrong.
+            if [ "$attempt" -lt "$attempts" ]; then sleep "$wait_seconds"; fi
           done
+
           echo "origin:   $url"
-          echo "$body"
           echo "deployed: $DEPLOYED_SHA"
-          case "$body" in
-            *"$DEPLOYED_SHA"*) echo "the deployed page reports the deployed commit" ;;
-            *) echo "::error::the deployed page does not report $DEPLOYED_SHA"; exit 1 ;;
-          esac
+          if [ -n "$named" ]; then
+            echo "::error::after $(( attempts * wait_seconds )) seconds the origin still names ${named} and not ${DEPLOYED_SHA}. This deploy did not become the live one."
+          else
+            echo "::error::after $(( attempts * wait_seconds )) seconds the origin has served no version.js naming a commit. A deployment by this workflow always serves one, so something else is serving that url."
+          fi
+          exit 1
+
+      # THE ANDON, which is what this gate has always been and is now allowed to be only that.
+      # The lock above decided whether to publish; this reads what a third party actually hands
+      # back over the public internet, which is the only reading that can catch a build step, an
+      # artifact, a cache or a CDN putting something else in front of a reader. It runs after the
+      # wait above, so the origin it reads is established rather than assumed.
+      - name: Forbidden-content gate, against deployed bytes
+        run: bash scripts/check_forbidden.sh "${{ steps.deployment.outputs.page_url }}"
