@@ -77,6 +77,31 @@ of what changed and when, and it is meant to be scannable.
   `Error` before the refusal could be reached, so an origin with nothing listening exited 1 under
   `VERDICT: the page has regressed` while the grain phases in the same run refused correctly. It
   is a `HarnessFailure` now: the document's own bytes are the case the first version missed.
+- **And a third the negative control found, which the network record cannot see at all.** A
+  stylesheet served under the wrong content type arrives 200 and whole, and the CSS parser refuses
+  to apply it. Serving `site/app.css` as `text/plain` gave **62 red assertions** and
+  `VERDICT: the page has regressed` over a clean network record. So the **document** is asked as
+  well as the network, about the thing that matters: a `<link rel=stylesheet>` whose sheet the
+  browser would not build has `link.sheet === null`, which is the browser's own answer and not an
+  inference from a header. It catches the wrong-type case and catches a 404'd stylesheet a second
+  time over, which is the direction two instruments should overlap in. Now 0 red assertions and
+  exit 2, naming the stylesheet.
+- **And a fourth: an origin answering 200 with a placeholder.** The bytes arrive, the status is
+  fine, and the first thing that notices is the readiness wait timing out after twenty seconds,
+  reported as `the 1536x839 run (it threw before it finished)` under `VERDICT: the page has
+  regressed`. Serving `<p>There is nothing published here.` at 200 gave **16 red assertions**. A
+  document that links **no** stylesheet is now refused as not being the document this suite is
+  written against, which is safe to assert because `site/index.html` carries `style-src 'self'`
+  with no `unsafe-inline` and therefore cannot dress itself any other way. Both refusals now run
+  **before** the readiness wait, so that wait means the one thing it should: this page came up and
+  did not draw, which IS a finding about the page.
+- **`SMOKE_BREAK_RESOURCE` gained the terminator it claimed not to need.** Its comment said it
+  could never produce a clean verdict. Chrome matches these patterns case sensitively, so
+  `SMOKE_BREAK_RESOURCE=app.CSS` blocked nothing and gave `354 assertions, 354 passed,
+  VERDICT: clean`, exit 0: an operator checking the refusal with a mistyped substring was told it
+  works by the one mechanism whose job is to show that it does. A substring matching no url the
+  run asked for is now a harness failure, which is `SMOKE_SKIP_PHASE`'s guard applied after the
+  run instead of before it, because what is named is a substring and not a member of a list.
 - **It exits 2 and names the resource, and it is neither a skip nor a wait.** Not `VERDICT: the page
   has regressed`, because a run that could not fetch the page's own bytes has no evidence about the
   page in either direction. Not a silent skip: `harnessFail` prints every failed resource with the

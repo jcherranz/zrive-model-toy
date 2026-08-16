@@ -730,7 +730,7 @@ step_may_decline untracked "2. nothing is untracked, so the gates see everything
 # already there and already honest. The label is prose and nothing can check it, which is the same
 # reason the step NUMBERS are asserted a hundred lines up and the descriptions are not, so it is
 # written out in the gate's own order to make the next drift visible by reading.
-step_three_state build-gate "3. the build gate: both documents rebuild, the widths cover, the builder asks for the faces the page paints in, the model is well formed, the fourteen digests are the ones these bytes produce, and the gates that could not look say so" \
+step_three_state build-gate "3. the build gate: both documents rebuild, the widths cover, the widths the builder asks for are the widths the job declares, the model is well formed, the fourteen digests are the ones these bytes produce, and the gates that could not look say so" \
      bash scripts/check_build.sh
 step build-gate-armed "4. prove the build gate fires"     bash scripts/check_build.sh --self-test
 # The provenance gate runs inside build/build_layout.py on every build, so the build gate step
@@ -920,9 +920,9 @@ fi
 # declined, which is exactly the composition issue 103 spent a night removing.
 if [ "$fails" -gt 0 ]; then
   if [ "$aborts" -eq "$fails" ]; then
-    echo "VERDICT: nothing here could look. $aborts step(s) aborted and none of the rest failed,"
-    echo "         so this run is not evidence that anything is wrong and not evidence that"
-    echo "         nothing is. Nothing is ready to push. The summary names each one and why."
+    echo "VERDICT: nothing that failed here could look. $aborts step(s) aborted and no other step"
+    echo "         failed, so what those cover is not evidence that anything is wrong and not"
+    echo "         evidence that nothing is. Nothing is ready to push. The summary names each one."
   else
     echo "VERDICT: something is wrong. Nothing is ready to push."
   fi
