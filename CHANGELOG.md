@@ -129,6 +129,57 @@ of what changed and when, and it is meant to be scannable.
   line, so the depth is what keeps the deploy green and the abort is what stops a hand that removes
   it getting a green deploy anyway. Depth 0 also brings `origin/gh-pages`.
 
+### Changed
+
+- **THE OUTLINE, ANSWERED AS ONE QUESTION IN SIX CARDS, #148 #149 #151 #152 #153 #154.** They are
+  one question, how much this surface should say, and six separate answers would have been worse
+  than one considered one.
+- **The two devices that survive a crop are back, and the outline is a numbered document, #148.**
+  `app.css` names four devices keeping invented session prose apart from the published titles
+  beside it; **measured on this tree and on the served bytes, two of them did not exist**: `dummy`
+  occurred 0 times in `site/term.js` and `agenda-note` 0 times. #108 removed them and the comment
+  never followed; #135 found the same gap and correctly declined to repair it, because that card
+  forbade visible characters from rising and both devices are text. The note is the first thing in
+  the block and the badge is on the **line**, so there is no line to quote without one. With the
+  badge back the box stops being load bearing, which pays for the styling asked for in the same
+  card: the block gives up its warning ground and takes the table's type ramp, its rhythm and the
+  rail idiom `body.outline` already draws down a module. Three levels of numbering, every one an
+  index into the model's own order, scope relative, nothing stored and nothing typed.
+- **The sheet holds its widest reading whole at 2560, #149.** The card's hypothesis was that the
+  thead and the tbody disagreed about the columns at that width; driven there, **the nine column
+  boxes are identical to the pixel**. What was wrong is the box around them: pinned to 1100 CSS px
+  from 1132 upwards, against a widest table of 1145.98, so the last column was clipped inside 1100
+  of a 2560 screen. **The ceiling's headroom is a second measurement that cost a red run**: the
+  same table demands 1160.69 on the CI runner, because every column is sized by its content and
+  the font stacks resolve to different faces on different machines.
+- **The window control shows it is not in effect rather than a paragraph saying so, #151.** The
+  sentence goes by #128's rule; the fact moves onto the control, in the three moves `grain` makes
+  when the node budget refuses an altitude. It greys and loses the band's accent, it stops
+  answering a pointer and a keyboard while keeping its focus stop and reporting `aria-disabled`,
+  and its value slot carries the count that refused it: 0 of the rows in front of the reader,
+  scope relative.
+- **The outline's typed heading was a label and it goes, #152.** Both tests the card asked for were
+  measured rather than argued: 32 of the 32 module headings carry syllabus ordinals that strictly
+  ascend inside them and 6 of the 6 programmes that name modules carry codes that ascend, so the
+  ordering is legible; and the reading control and the sheet's own h2 both name the view. The h1 is
+  taken out of the accessibility tree rather than left rendering nothing, and keeps its box,
+  because it is the item that takes the header row's spare width.
+- **The sweep, #153.** A reading must tell you something the page is not already showing you. 27
+  surfaces, and four cuts ranked by the characters they cost over all of them: the module heading's
+  row count at 1556 over 128 headings, the delivery total on a programme heading at 400 over 28,
+  and the calendar's typed page heading at 184 over 8. **The last is a contradiction rather than a
+  duplicate**: the h1 read `in date order` while the sheet's own h2 at the same address read
+  `unstaffed first`, and #124 made the order a property of the shape.
+- **The footer is a reading and no longer an explainer, #154.** The disclosure and its box are
+  deleted; what is left is the build stamp, which is the one fact on the page that is about the
+  page. No drawing digest, because a digest is about the picture; no link farm, no social icons and
+  no copyright line, which the card ruled out in those words. The two items the box held that
+  nothing else stated are not deleted, they moved onto the drawing and the zoom readout.
+- **Visible characters, measured over all 27 surfaces by one instrument: 325547 before, 337224
+  after.** The whole of the rise is #148's two authorised devices, which come to 15846; everything
+  else, the three-level numbering included, **falls by 4169**.
+
+
 ### Fixed
 
 - **A REMOTE ORIGIN THAT WILL NOT NAME ITS DEPLOY NOW STOPS THE GATE, #6.** The first draft fell back

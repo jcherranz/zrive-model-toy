@@ -1241,56 +1241,79 @@
     window.addEventListener('hashchange', function () { setTimeout(describeReadout, 0); });
   }
 
-  // ---- how to read this ----------------------------------------------------
-  // Issue 79. The footer used to carry three instructions in running text: what clicking does,
-  // what the mouse does, and that the programme name opens the other six. An instruction written
-  // into a permanent strip is read once and then occupies the screen forever, and on a phone
-  // those three cost a sixth of the viewport for as long as the page was open. They are here
-  // instead, closed on arrival, one control wide.
+  // ---- the build stamp, issue 154 ------------------------------------------
+  // WHAT STOOD HERE WAS `how to read this` AND A BOX BEHIND IT, and issue 79's whole argument for
+  // that disclosure was that an instruction written into a permanent strip is read once and then
+  // occupies the screen forever. #128 cut its five items to two. #154 finishes the thought: by
+  // this project's rule a sentence that explains how to read the page goes, and a footer whose
+  // entire content is an explainer is that failure at the bottom of the screen. The control, the
+  // box, the three listeners and the focus return are all deleted.
   //
-  // IT IS A DISCLOSURE AND NOT A DIALOG, which is why this is fifteen lines and not a focus trap.
-  // Nothing behind it is inert, the content is four sentences of text with no control in it, and
-  // the box is absolutely positioned so opening it moves neither the footer nor the canvas. The
-  // three listeners are the three the programme menu already has, in the same shapes and for the
-  // same reasons: the click on the control stops there so the document listener does not close
-  // what it just opened, a click anywhere else closes it, and Escape closes it in the capture
-  // phase, ahead of the bubble listener in selection.js that clears the selection, so a reader
-  // who opens this and changes their mind does not also lose the node they had open behind it.
-  // Capture mode is left alone for the reason the student list and the programme menu leave it
-  // alone: while it is on, Escape is how a reader gets out of it.
+  // THE TWO ITEMS THAT WERE LEFT ARE NOT DELETED, THEY MOVED, which is #79's own repair applied to
+  // the last two things it had not applied it to. What a click on a node does is a title on the
+  // drawing, and the drag modifier joined the wheel and the Ctrl on the zoom readout, which
+  // already carried half of it. Both are in index.html, on the elements they are about, and
+  // neither costs a visible character.
   //
-  // IN THE WIRING FILE FOR THE REASON THE THEME IS. It belongs to the page rather than to a view:
-  // the same four sentences are true of all seven drawings, and there is no module whose subject
-  // it is.
-  var helpBtn = document.getElementById('helpbtn');
-  var helpBox = document.getElementById('helpbox');
+  // WHAT REPLACES THEM IS THE ONE FACT ON THIS PAGE THAT IS ABOUT THE PAGE. Which build you are
+  // looking at. It is a reading rather than an explainer, it belongs to the document rather than
+  // to any view of it, so a page footer is its correct home by the same principle that puts a
+  // programme's fraction on that programme's chip.
+  //
+  // AND THE UNSTAMPED CASE IS SAID IN ITS OWN WORDS RATHER THAN LEFT BLANK. site/version.js in the
+  // repository names no commit on purpose: a working tree, a page opened from disk and a local
+  // server are not deployments and there is no commit they can honestly claim. A blank strip there
+  // would read as a stamp that failed to load, which is a different and worse thing to be, and it
+  // is exactly the distinction feedback.js already draws one line further down. Three states, and
+  // the third is version.js not loading at all.
+  //
+  // THE DATE IS SHORTENED AND THE COMMIT IS NOT. The commit is what identifies the build and it is
+  // quoted into reports, so it is printed whole; the moment is what tells a reader whether they
+  // are looking at a stale cache, and a day and a time is enough for that. Whatever
+  // .github/workflows/pages.yml writes is what is read, and a value this file cannot parse is
+  // printed as it stands rather than dropped.
+  // Three letters per month, written here rather than taken from term.js: that module owns the
+  // TERM and this is the deploy clock, and a page whose build stamp went through the term's date
+  // vocabulary would be one edit away from a stamp that moved when the syllabus did.
+  var MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-  function helpOpen() { return !!helpBox && !helpBox.hidden; }
+  var stampEl = document.getElementById('fstamp');
 
-  function showHelp(on) {
-    if (!helpBtn || !helpBox || helpOpen() === on) return;
-    helpBox.hidden = !on;
-    helpBtn.setAttribute('aria-expanded', on ? 'true' : 'false');
+  // SEVEN CHARACTERS OF THE COMMIT AND NOT FORTY, AND THAT IS A MEASUREMENT RATHER THAN A TASTE.
+  // .github/workflows/pages.yml writes the whole sha, which is what a feedback report has to quote
+  // and what feedback.js therefore prints in full; on a strip under the drawing forty hexadecimal
+  // characters is a line of noise, and seven is what every tool that shows a commit to a person
+  // shows. The whole of it is on the title, one hover away, so nothing is lost and the strip is
+  // the length of a reading rather than the length of a hash.
+  //
+  // AND THE UNSTAMPED FORM IS THE SHORT ONE FOR THE SAME REASON. `zv.source` reads "working tree,
+  // not a deployment", which is the right sentence for a report and twice the length this strip
+  // wants; the claim a reader needs here is the second half of it, and the first half is on the
+  // title with everything else.
+  function stampWords() {
+    var zv = window.ZV;
+    if (!zv) return 'no build stamp';
+    if (!zv.commit) return 'not a deployment';
+    var at = zv.deployedAt ? String(zv.deployedAt) : '';
+    var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(at);
+    var when = m ? Number(m[3]) + ' ' + MONTH_SHORT[Number(m[2]) - 1] + ' ' + m[4] + ':' + m[5]
+                 : at;
+    return String(zv.commit).slice(0, 7) + (when ? ', ' + when : '');
   }
 
-  if (helpBtn && helpBox) {
-    helpBtn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      showHelp(!helpOpen());
-    });
-    document.addEventListener('click', function (e) {
-      var t = e.target;
-      if (t && t.closest && t.closest('.helppick')) return;
-      showHelp(false);
-    });
-    document.addEventListener('keydown', function (e) {
-      if (e.key !== 'Escape' || !helpOpen()) return;
-      if (document.body.classList.contains('fb-mode')) return;
-      e.preventDefault();
-      e.stopPropagation();
-      showHelp(false);
-      if (helpBtn.focus) helpBtn.focus();
-    }, true);
+  if (stampEl) {
+    stampEl.textContent = stampWords();
+    // The whole of it on the title, because the strip is one short line and the reader who wants
+    // the full moment or the reason there is no commit should not have to open a report for it.
+    stampEl.title = !window.ZV
+      ? 'site/version.js did not load, so this page is either older than the build stamp or was ' +
+        'served without it'
+      : window.ZV.commit
+        ? 'the commit this page was deployed from: ' + window.ZV.commit +
+          (window.ZV.deployedAt ? ', published ' + window.ZV.deployedAt : '')
+        : 'this copy of the site was not published by the deploy workflow, so there is no commit ' +
+          'it can name' + (window.ZV.source ? ' (' + window.ZV.source + ')' : '');
   }
 
   // The student list and the programme description are both read off the drawing, so neither can

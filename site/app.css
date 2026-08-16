@@ -209,7 +209,7 @@
 
        --z-canvas    5   the zoom control, furniture inside the plane it acts on
        --z-panel    10   the detail panel, which describes one node of the drawing under it
-       --z-pop      15   the programme menu and the help box, which hang off their own control
+       --z-pop      15   the programme menu, which hangs off its own control
        --z-sheet    20   a sheet, which covers the drawing on purpose and keeps the reader in it
        --z-chrome   25   the header, which belongs to the page and not to any view of it
        --z-capture  30   the capture popover, which must reach over anything it can name
@@ -1843,16 +1843,29 @@ body.panel-open #canvas { margin-right: 320px; }
 
 #close:hover { background: var(--tint-hover); }
 
-/* ONE CONTROL, AND NOTHING ELSE ON THE STRIP. It carried 101 words in a single paragraph and 144
-   to 158 CSS px on a 390 by 844 phone, 17 to 19 per cent of the viewport; issue 79 put three
-   instructions behind the disclosure and left one sentence, and issue 110 took that sentence off
-   the page. What is left is the disclosure, one line high at every width, and the canvas above it
-   is taller by what went. */
+/* ---- ONE READING, AND NOTHING ELSE ON THE STRIP. Issue 154 ---------------------
+   The history of this element is a subtraction. It carried 101 words in a single paragraph and
+   144 to 158 CSS px on a 390 by 844 phone, 17 to 19 per cent of the viewport; #79 put three
+   instructions behind a disclosure, #110 took the remaining sentence off, #128 cut the box from
+   five items to two, and #154 deletes the disclosure itself, because by this project's own rule a
+   sentence that explains how to read the page goes and a footer whose entire content is an
+   explainer is that failure at the bottom of the screen.
+
+   WHAT IS LEFT IS A READING AND NOT A CONTROL. The build stamp, written by app.js off
+   site/version.js, which is the one fact on this page that is about the page rather than about
+   the drawing or the view. The strip is still one line high at every width and still `flex: none`,
+   so the canvas above it is the same height it has been since #110.
+
+   AND IT MOVES TO THE OTHER END OF THE ROW WITH THE THING IN IT. The control sat at the right,
+   which is where a control goes; a stamp is a caption on the document and reads at the left, under
+   the drawing's own left edge. `justify-content` is the whole of that change, and the flex row
+   stays because the strip must keep its own height with one item in it, which is the finding the
+   deleted float left behind: a float in an otherwise empty box takes the box's height with it. */
 footer {
   flex: none;
   position: relative;
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   padding: 6px 20px;
   font-size: 11px;
   line-height: 1.45;
@@ -1861,52 +1874,14 @@ footer {
   background: var(--bg-panel);
 }
 
-/* THE FLOAT WENT WITH THE SENTENCE. It existed so the control could take the right hand end of
-   the first line and let the rest of the words wrap under it at full width, which on a phone was
-   the difference between a three line strip and a four line one. With no words to wrap there is
-   nothing for a float to buy, and a float in an otherwise empty box takes the box's height with
-   it: the strip would have collapsed to its padding and the control would have hung out of it.
-   A one item flex row puts it at the same right hand end and keeps the strip its own height. */
-.helppick {
-  margin-left: 12px;
-}
-
-/* Upward and absolute, so opening it moves nothing: the footer's height, the canvas above it and
-   the fit of the drawing are the same before and after. That is .pgmenu's reasoning and the same
-   rung on the ladder in the palette block: --z-pop, over the canvas and the detail panel and
-   under a sheet and the capture popover.
-
-   IT HANGS OFF THE FOOTER AND NOT OFF THE BUTTON, which is the one thing .pgmenu does differently
-   and the reason is the width. A 340px box anchored to the right edge of a control that sits 125px
-   from the left of a 390px screen starts at minus 215 and is half off the screen. Anchored to the
-   strip, its right edge lines up with the end of the sentence above it at every width, and the
-   max-width keeps it inside the viewport when the viewport is narrower than the box. */
-.helpbox {
-  position: absolute;
-  bottom: calc(100% + 6px);
-  right: 20px;
-  z-index: var(--z-pop);
-  width: 340px;
-  max-width: calc(100vw - 24px);
-  padding: 10px 14px 10px 4px;
-  background: var(--bg-panel);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  box-shadow: var(--elev-1);
-  color: var(--fg-body);
-  text-align: left;
-}
-
-.helpbox[hidden] { display: none; }
-
-.helpbox ul {
+/* Tabular figures because the stamp is a hexadecimal digest and a clock, and both are read by
+   comparing them against another copy rather than by reading them as words. */
+.fstamp {
   margin: 0;
-  padding-left: 18px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
 }
-
-.helpbox li { margin: 0 0 6px; }
-.helpbox li:last-child { margin-bottom: 0; }
-.helpbox b { color: var(--fg-body); font-weight: 600; }
 
 /* ---- feedback capture ----------------------------------------------------
    The interaction is monetary-lab's, the skin is this site's: the same class names and the
@@ -2394,7 +2369,6 @@ body.fb-mode .fb-popover select { cursor: pointer; }
     max-width: none;
   }
   footer { padding: 6px 12px; }
-  .helpbox { right: 12px; }
   .bcols { display: block; }
   .bcol { min-width: 0; margin-bottom: 10px; }
   /* One number, used twice. The sheet's height and the room reserved under the drawing for it

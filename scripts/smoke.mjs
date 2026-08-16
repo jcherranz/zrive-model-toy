@@ -5985,29 +5985,69 @@ async function checkCut(page, base) {
     `${standing.length} of ${notes.length}: ` +
       JSON.stringify(standing.slice(0, 3).map(n => n.slice(0, 80))));
 
-  // ---- 6. the help is what nothing else says ---------------------------------------
-  // Five items to two. Three of them told the reader what a control says by being pressed, and
-  // what is left is a click and a modifier, which no element on the page states. 280 is above the
-  // two that are there and below the five that were.
+  // ---- 6. the footer is a reading and the help it replaced went to the controls ------
+  // "Is this what a professional webapp footer looks like?", issue 154. What stood here was one
+  // control, `how to read this`, and a box behind it. #79 put three instructions in that box, #128
+  // cut it to two, and this card deletes the disclosure: by this project's own rule a sentence
+  // that explains how to read the page goes, and a footer whose entire content is an explainer is
+  // that failure at the bottom of the screen. This assertion is the version of the one that stood
+  // here, turned around, and it makes three claims that have to hold together.
+  //
+  // ONE. THE DISCLOSURE IS GONE, control, box and all. Read as the absence of the elements rather
+  // than as the absence of the words, because a box that came back holding other words would be
+  // the same thing at the bottom of the same screen.
+  //
+  // TWO. WHAT IS LEFT IS A READING AND NOT AN EXPLAINER, and it is checked against window.ZV
+  // rather than against a string: on this tree the stamp names no commit and the strip has to say
+  // so in words rather than go blank, because a blank strip reads as a stamp that failed to load,
+  // which is a different and worse thing to be. Neither it nor anything else in the footer may
+  // name a gesture, which is the same regex `the cut` already sweeps the canvas captions with, and
+  // there may be no control in it at all.
+  //
+  // THREE. AND THE TWO ITEMS THE BOX HELD ARE STILL ON THE PAGE, on the things they are about.
+  // This is the half a deletion card silently loses: the click affordance and the drag modifier
+  // were the only two statements of their kind anywhere, and if they had simply gone with the box
+  // the page would have got shorter and less usable at once. They are titles on the drawing and on
+  // the zoom readout now, so this reads those two attributes and requires both facts in them.
   await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor(`window.ZT.term().open === false`, 'the drawing');
-  await page.evaluate(`document.getElementById('helpbtn').click()`);
-  await page.waitFor(`!document.getElementById('helpbox').hidden`, 'the help to open');
-  const help = JSON.parse(await page.evaluate(`(function () {
-    var box = document.getElementById('helpbox');
-    var items = Array.prototype.slice.call(box.querySelectorAll('li'))
-      .map(function (li) { return li.textContent.replace(/\\s+/g, ' ').trim(); });
-    return JSON.stringify({ items: items,
-      n: items.reduce(function (t, s) { return t + s.length; }, 0) });
-  })()`));
-  await page.evaluate(`document.getElementById('helpbtn').click()`);
-  assert('the footer help is the two things nothing on the page states, and no longer the five',
-    help.items.length === 2 && help.n <= 280 &&
-      help.items.some(t => /Ctrl/.test(t) && /Cmd/.test(t)) &&
-      help.items.some(t => /click/i.test(t)),
-    `two items totalling at most 280 characters, one naming the click and one the modifier`,
-    `${help.items.length} items, ${help.n} characters: ` +
-      JSON.stringify(help.items.map(t => t.slice(0, 70))));
+  const foot = JSON.parse(await page.evaluate(`JSON.stringify((function () {
+    var f = document.querySelector('footer');
+    var stamp = document.getElementById('fstamp');
+    var graph = document.getElementById('canvas');
+    var zoom = document.getElementById('zoomlevel');
+    return {
+      disclosure: !!document.getElementById('helpbtn') || !!document.getElementById('helpbox'),
+      controls: f ? f.querySelectorAll('button, a, input, select, [tabindex]').length : null,
+      text: f ? f.innerText.replace(/\\s+/g, ' ').trim() : null,
+      stamp: stamp ? stamp.textContent.trim() : null,
+      stampTitle: stamp ? (stamp.getAttribute('title') || '') : null,
+      zv: window.ZV || null,
+      graphTitle: graph ? (graph.getAttribute('title') || '') : null,
+      zoomTitle: zoom ? (zoom.getAttribute('title') || '') : null
+    };
+  })())`));
+  // A SECOND IMPLEMENTATION OF THE SHORTENING RULE, not a copy of what the page printed. app.js
+  // prints seven characters of the commit and the short unstamped phrase; this rebuilds both from
+  // window.ZV, so a page that printed the wrong seven characters, or the whole forty, fails.
+  const stampWanted = foot.zv
+    ? (foot.zv.commit ? String(foot.zv.commit).slice(0, 7) : 'not a deployment')
+    : 'no build stamp';
+  assert('the footer carries one reading and no explainer, and the help it replaced is on the controls',
+    foot.disclosure === false && foot.controls === 0 &&
+      !!foot.stamp && foot.text === foot.stamp &&
+      !GESTURE_WORDS.test(foot.text) &&
+      !!stampWanted && foot.stamp.indexOf(stampWanted) === 0 &&
+      /click/i.test(foot.graphTitle) && /propert/i.test(foot.graphTitle) &&
+      // AND THE COMMIT IS NOT PRINTED WHOLE, which is the half a slice can silently lose: a page
+      // that ignored the shortening would still start with the same seven characters.
+      (!foot.zv || !foot.zv.commit || foot.stamp.indexOf(foot.zv.commit) === -1) &&
+      /Ctrl/.test(foot.zoomTitle) && /Cmd/.test(foot.zoomTitle) &&
+      /drag/i.test(foot.zoomTitle),
+    'no disclosure and no control in the footer, its whole text the build stamp rebuilt here ' +
+      `from window.ZV (${JSON.stringify(stampWanted)}) and never the whole sha, naming no ` +
+      'gesture, with the click affordance on the canvas and the drag modifier on the zoom readout',
+    JSON.stringify(foot));
 
   // ---- 7. and the canvas names no gesture ------------------------------------------
   // "employers appear on click" and "individuals appear on click" were caption lines, so they
