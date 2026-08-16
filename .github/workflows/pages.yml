@@ -325,6 +325,7 @@ jobs:
       # Jidoka. Prove the gate refuses before anything is asked to believe it when it says clean,
       # and prove it BEFORE it is used rather than after, which is the order the two steps below
       # now depend on.
+      # verify-step: forbidden-armed
       - name: Prove the forbidden-content gate fires
         run: bash scripts/check_forbidden.sh --self-test
 
@@ -459,5 +460,6 @@ jobs:
       # back over the public internet, which is the only reading that can catch a build step, an
       # artifact, a cache or a CDN putting something else in front of a reader. It runs after the
       # wait above, so the origin it reads is established rather than assumed.
+      # verify-step: forbidden-gate
       - name: Forbidden-content gate, against deployed bytes
         run: bash scripts/check_forbidden.sh "${{ steps.deployment.outputs.page_url }}"

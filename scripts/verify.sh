@@ -96,6 +96,20 @@ STEP_NAMES=()
 STEP_STATE=()
 STEP_NOTE=()
 
+# THE KEY, WHICH IS THE HALF THAT WAS NOT WRITTEN DOWN ANYWHERE. Issue 168 R4(e). This file and
+# the seven workflow files were two hand-maintained lists of the same checks, joined by nothing.
+# The workflows call this file nowhere; they re-enumerate the commands. The drift that structure
+# produces has already happened once, was repaired by hand at issue 103, and had happened again
+# by the time the audit read the tree: `check_syntax`, the only thing in the repository that runs
+# `node --check` over site/*.js, was in no workflow at all.
+#
+# So every step now carries a stable key, a workflow step that covers it carries the same key in
+# a `verify-step:` marker comment, and scripts/check_ci_drift.sh joins the two and refuses a step
+# that no workflow claims and no exemption names. Two lists became one relation and the relation
+# is checked. The key is FIRST in the argument list and not last, so a step registered without
+# one is a syntax-level accident rather than a silently empty string.
+STEP_KEYS=()
+
 # THE STEP NUMBERS ARE CHECKED, NOT TRUSTED. Issue 106 E4. The number a step prints is part of a
 # string written by hand, and twice now a step inserted in the middle has left the numbers behind
 # it wrong: at one point a section header numbered 8 introduced the function invoked as step 9,
@@ -108,6 +122,22 @@ STEP_NOTE=()
 # EVERY OTHER CROSS-REFERENCE IN THIS FILE NAMES A STEP BY WHAT IT DOES, and none of them by
 # number, for the same reason. A description survives an insertion; a number does not, and there
 # is nothing that can check prose.
+# THE LIST WITHOUT THE RUN. Issue 168 R4(e). scripts/check_ci_drift.sh needs the authoritative
+# ordered list of steps and their keys, and the one place that list exists is the registrations
+# below. Deriving it by parsing this file with a regular expression would be a third copy of it,
+# so this file hands it over itself: with ZMT_LIST_ONLY set every registration prints its key and
+# its name and runs nothing, the preflight and the origin probe are not reached, and the run ends
+# with the list. It is a listing and never a verdict, so it prints no summary and no VERDICT line.
+LIST_ONLY="${ZMT_LIST_ONLY:-}"
+
+# A step registered under list-only still has to pass the numbering assertion, because the number
+# is part of what is being listed and a list whose numbers do not count is the thing
+# assert_step_number exists to prevent.
+list_step() {  # key name
+  STEP_NAMES+=("$2")
+  printf 'STEP\t%s\t%s\n' "$1" "$2"
+}
+
 assert_step_number() {  # name
   local n=$(( ${#STEP_NAMES[@]} + 1 ))
   case "$1" in
@@ -128,8 +158,10 @@ assert_step_number() {  # name
 # "the gate refused the tree" and "the gate never read the tree" send a reader to different
 # places.
 step() {
-  local name="$1"; shift
+  local key="$1" name="$2"; shift 2
   assert_step_number "$name"
+  if [ -n "$LIST_ONLY" ]; then list_step "$key" "$name"; return 0; fi
+  STEP_KEYS+=("$key")
   echo
   echo "=============================================================================="
   echo "== $name"
@@ -156,8 +188,10 @@ step() {
 # argument, so a reader of the summary is never left to guess which of the two meanings applied.
 # Nothing outside this file may be run through it.
 step_may_decline() {
-  local name="$1" reason="$2"; shift 2
+  local key="$1" name="$2" reason="$3"; shift 3
   assert_step_number "$name"
+  if [ -n "$LIST_ONLY" ]; then list_step "$key" "$name"; return 0; fi
+  STEP_KEYS+=("$key")
   echo
   echo "=============================================================================="
   echo "== $name"
@@ -198,8 +232,10 @@ step_may_decline() {
 # gets made. Nothing is inferred; the wrapper is chosen per step, by hand, and there is exactly
 # one step in the list below that uses it.
 step_three_state() {
-  local name="$1"; shift
+  local key="$1" name="$2"; shift 2
   assert_step_number "$name"
+  if [ -n "$LIST_ONLY" ]; then list_step "$key" "$name"; return 0; fi
+  STEP_KEYS+=("$key")
   echo
   echo "=============================================================================="
   echo "== $name"
@@ -225,14 +261,16 @@ step_three_state() {
   return 0
 }
 
-skip() {
-  assert_step_number "$1"
-  STEP_NAMES+=("$1"); STEP_STATE+=("SKIP"); STEP_NOTE+=("$2")
+skip() {  # key name reason
+  assert_step_number "$2"
+  if [ -n "$LIST_ONLY" ]; then list_step "$1" "$2"; return 0; fi
+  STEP_KEYS+=("$1")
+  STEP_NAMES+=("$2"); STEP_STATE+=("SKIP"); STEP_NOTE+=("$3")
   echo
   echo "=============================================================================="
-  echo "== $1"
+  echo "== $2"
   echo "=============================================================================="
-  echo "-- [SKIP] $2"
+  echo "-- [SKIP] $3"
 }
 
 # ---------------------------------------------------------------------------------------------
@@ -597,27 +635,40 @@ preflight_register() {
 # ---------------------------------------------------------------------------------------------
 # The run
 # ---------------------------------------------------------------------------------------------
-preflight_register
-choose_target
-echo "verify: $ROOT"
-echo "node:   $(node --version 2>/dev/null || echo 'not found')"
-echo "python: $(python3 --version 2>/dev/null || echo 'not found')"
-if [ "$TARGET_KIND" = remote ]; then
-  echo "target: $TARGET_URL  (an origin, served by somebody else)"
+# UNDER LIST-ONLY NOTHING IS RUN AND NOTHING IS PROBED, which is why the preflight and the origin
+# probe are here rather than at the top of the file. A listing that refused to be produced on a
+# machine with no register would be a listing scripts/check_ci_drift.sh could not take in CI,
+# which is the one place the drift it looks for actually costs something.
+if [ -z "$LIST_ONLY" ]; then
+  preflight_register
+  choose_target
 else
-  echo "target: a local server over site/, started below  (there is no origin)"
+  # The maximal list: with a remote target both origin-shaped steps register under their own key
+  # rather than one of them being replaced by a skip carrying the same key.
+  TARGET_KIND=remote
+  TARGET_URL="an origin"
 fi
-echo "        $TARGET_HOW"
+[ -n "$LIST_ONLY" ] || echo "verify: $ROOT"
+if [ -z "$LIST_ONLY" ]; then
+  echo "node:   $(node --version 2>/dev/null || echo 'not found')"
+  echo "python: $(python3 --version 2>/dev/null || echo 'not found')"
+  if [ "$TARGET_KIND" = remote ]; then
+    echo "target: $TARGET_URL  (an origin, served by somebody else)"
+  else
+    echo "target: a local server over site/, started below  (there is no origin)"
+  fi
+  echo "        $TARGET_HOW"
+fi
 
-step "1. every shipped script parses"                     check_syntax
+step syntax "1. every shipped script parses"              check_syntax
 
-step_may_decline "2. nothing is untracked, so the gates see everything" \
+step_may_decline untracked "2. nothing is untracked, so the gates see everything" \
      "some files are untracked and the repository gate cannot see them; its two steps are about the rest of the tree" \
      check_untracked
 
-step_three_state "3. the build gate: both documents rebuild, the widths cover, the model is well formed, the fourteen digests are the ones these bytes produce" \
+step_three_state build-gate "3. the build gate: both documents rebuild, the widths cover, the model is well formed, the fourteen digests are the ones these bytes produce" \
      bash scripts/check_build.sh
-step "4. prove the build gate fires"                      bash scripts/check_build.sh --self-test
+step build-gate-armed "4. prove the build gate fires"     bash scripts/check_build.sh --self-test
 # The provenance gate runs inside build/build_layout.py on every build, so the build gate step
 # above already exercises it against the real document. This is the other half of the TPS rule: a gate that
 # has never been seen to refuse is not a gate, so one synthetic document per rule, each one a
@@ -633,14 +684,14 @@ provenance_gates() {
   python3 build/model.py --provenance-self-test || return 1
   python3 build/model.py --ontology-self-test  || return 1
 }
-step "5. prove the two provenance gates fire"             provenance_gates
-step "6. prove the repository gate fires"                 bash scripts/check_repo.sh --self-test
-step "7. repository gate, over every tracked file"        bash scripts/check_repo.sh
+step provenance-armed "5. prove the two provenance gates fire" provenance_gates
+step repo-gate-armed "6. prove the repository gate fires" bash scripts/check_repo.sh --self-test
+step repo-gate "7. repository gate, over every tracked file" bash scripts/check_repo.sh
 # The gate is named by what it reads and not by where the bytes came from, because where they came
 # from is now a variable and the next line says which. It was called the deployed-bytes gate while
 # the only thing it could read was a deployment; "forbidden-content gate" is the name pages.yml has
 # always used for it and it is true in both modes.
-step "8. prove the forbidden-content gate fires"          bash scripts/check_forbidden.sh --self-test
+step forbidden-armed "8. prove the forbidden-content gate fires" bash scripts/check_forbidden.sh --self-test
 
 # THIS STEP ALWAYS RUNS, and what changes is what it read. Against an origin it answers "is what
 # the public is served clean". Against a local server it answers the weaker question "are the bytes
@@ -649,22 +700,22 @@ step "8. prove the forbidden-content gate fires"          bash scripts/check_for
 # in this file that can see a file sitting in site/ that has never been added, and the repository
 # gate two steps up is structurally blind to exactly that file.
 if [ "$TARGET_KIND" = remote ]; then
-  step "9. the forbidden-content gate, against the origin at $TARGET_URL" served_bytes_gate
+  step forbidden-gate "9. the forbidden-content gate, against the origin at $TARGET_URL" served_bytes_gate
 else
-  step "9. the forbidden-content gate, against a local server over site/" served_bytes_gate
+  step forbidden-gate "9. the forbidden-content gate, against a local server over site/" served_bytes_gate
 fi
 
 # The populate registry, read back out of the bytes the page loads. Issue 72 wrote the registry
 # and scripts/routes.py to read it, and issue 103 found that nothing ran the reader: not this
 # file, not any of seven workflows. Its three failure conditions are the generated-but-never-
 # verified class and nothing else in the tree tests them. It is wired in here and in build.yml.
-step "10. the populate registry is complete and every drawn object binds to it" \
+step routes "10. the populate registry is complete and every drawn object binds to it" \
      python3 scripts/routes.py
 
 if register_present; then
-  step "11. the local token grep, against site/"          check_token_grep
+  step token-grep "11. the local token grep, against site/" check_token_grep
 else
-  skip "11. the local token grep, against site/" \
+  skip token-grep "11. the local token grep, against site/" \
        "the faculty register build/safety_grep.py reads is not on this machine, so the gate was not run. It is the local half of the safety machinery; the two CI gates hold salted hashes instead and are the half that does not need it."
 fi
 
@@ -685,7 +736,7 @@ fi
 # one total, deleting it means editing 177 in front of a reader, and a hand that deletes the code
 # and forgets the number gets a red run. That is a stronger guarantee than a line in this file,
 # which is itself a line somebody can delete.
-step "12. the smoke suite, against a local server over site/"  node scripts/smoke.mjs
+step smoke-local "12. the smoke suite, against a local server over site/" node scripts/smoke.mjs
 
 # WHICH IS WHY THIS ONE IS NOT RUN LOCALLY WHEN THERE IS NO ORIGIN, AND IS NOT QUIETLY DELETED
 # EITHER. The step above and this one are two runs only while there are two copies of the bytes:
@@ -700,13 +751,30 @@ step "12. the smoke suite, against a local server over site/"  node scripts/smok
 # check that was gained: the grain suite only ever ran against the working tree, and the two
 # altitudes of the drawing are now driven on the published bytes as well.
 if [ "$TARGET_KIND" = remote ]; then
-  step "13. the smoke suite, against the origin at $TARGET_URL" node scripts/smoke.mjs "$TARGET_URL"
+  step smoke-origin "13. the smoke suite, against the origin at $TARGET_URL" node scripts/smoke.mjs "$TARGET_URL"
 else
-  skip "13. the smoke suite, against the origin" \
+  skip smoke-origin "13. the smoke suite, against the origin" \
        "there is no origin, so there is no second copy of these bytes to drive a browser at. The suite itself ran in full one step above, against a local server over site/; what did not happen is the run that would have proved a published copy behaves. scripts/publish.sh on brings it back."
 fi
 
+# AND THE LAST TWO STEPS ARE ABOUT THIS FILE. Issue 168 R4(e). Everything above answers "is the
+# artefact sound"; these answer "is the list you just read the same list CI runs". The workflows
+# call this file nowhere and re-enumerate its commands by hand, which is two lists of one thing
+# joined by nothing, and it had already drifted twice: issue 103 found the first and repaired it
+# by hand, leaving the structure, and by the time the audit read the tree `check_syntax` was in
+# no workflow at all. scripts/check_ci_drift.sh joins the two lists and refuses the difference.
+#
+# LAST, because a contributor reading a red run wants the artefact's failures first and a note
+# about the workflow files after them, and because this is the only step whose subject is the
+# repository's process rather than its product.
+step ci-drift-armed "14. prove the CI drift check fires"  bash scripts/check_ci_drift.sh --self-test
+step ci-drift "15. every step this file runs is run by a workflow, or is named as one CI cannot" \
+     bash scripts/check_ci_drift.sh
+
 # ---------------------------------------------------------------------------------------------
+# A listing is not a run and prints no verdict. Issue 168 R4(e).
+if [ -n "$LIST_ONLY" ]; then exit 0; fi
+
 echo
 echo "=============================================================================="
 echo "== summary"

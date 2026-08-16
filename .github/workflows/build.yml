@@ -116,6 +116,7 @@ jobs:
       # Jidoka. Prove the check refuses a bad drawing before believing it when it says clean.
       # A gate that cannot be shown to fire is not a gate. Both other gates in this repository
       # are run this way and this one is no different.
+      # verify-step: build-gate-armed
       - name: Prove the build check fires
         run: bash scripts/check_build.sh --self-test
 
@@ -123,6 +124,7 @@ jobs:
       # already exercises it against the real document on every run. This is the other half of
       # the same rule: one synthetic document per refusal, each differing from a document that
       # passes by exactly the field under test.
+      # verify-step: provenance-armed
       - name: Prove the provenance gate fires
         run: python3 build/model.py --provenance-self-test
 
@@ -132,6 +134,7 @@ jobs:
       # in this repository. So the suite below is the whole of what CI can prove about it, and
       # it is written to be provable here: every probe builds its own synthetic corpus in a
       # temporary directory, so the refusals are exercised on a runner that holds no real one.
+      # verify-step: provenance-armed
       - name: Prove the ontology gate fires
         run: python3 build/model.py --ontology-self-test
 
@@ -141,8 +144,33 @@ jobs:
       # bytes and the run says "the index copy". That agreement is exactly why the defect was
       # invisible in CI and expensive locally: this step's old title was true here and the same
       # sentence printed on a contributor's machine was about the file on their disk.
+      #
+      # AND THE THIRD STATE IS READ HERE RATHER THAN COLLAPSED INTO GREEN. Issue 168 R4(a). The
+      # gate exits 3 when everything it could check was clean AND at least one sub-gate could
+      # not look at the corpus it re-reads, which on this runner is always true: three of the
+      # five read a vault no runner has. Before the repair those three said so on stderr, two
+      # hundred lines up, under a run whose last line was VERDICT: clean and whose step here was
+      # green. A permanent red would be worse and is not the repair: the state is permanent and
+      # honest, so it is annotated and summarised rather than either failed or hidden. Anything
+      # other than 0 or 3 still fails the job.
+      # verify-step: build-gate
       - name: The drawing git holds is what the builder produces
-        run: bash scripts/check_build.sh
+        run: |
+          set +e
+          bash scripts/check_build.sh
+          rc=$?
+          set -e
+          if [ "$rc" -eq 0 ]; then exit 0; fi
+          if [ "$rc" -ne 3 ]; then exit "$rc"; fi
+          echo "::warning title=The build gate ran incomplete::Sub-gates that re-read a corpus could not look at one on this runner. This job did not establish anything they cover. Read the INCOMPLETE verdict in the log above."
+          {
+            echo "### The build gate: INCOMPLETE, not clean"
+            echo
+            echo "It exited 3. Everything it could check was checked and nothing is wrong with it,"
+            echo "and at least one sub-gate could not look at the corpus it re-reads. This runner"
+            echo "holds no vault, so this is the expected state here and it is not a pass."
+            echo "The gates that could not look are named in the step log."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # The populate registry, read back out of the bytes the page loads rather than out of the
       # model that wrote them. Issue 72 wrote both the registry and the reader; issue 103 found
@@ -155,5 +183,6 @@ jobs:
       # It runs AFTER the rebuild above and not before, deliberately: the bytes it reads are then
       # the bytes the builder just produced and compared, so a registry that is complete in the
       # committed file and incomplete in the rebuilt one cannot pass here.
+      # verify-step: routes
       - name: The populate registry is complete and every drawn object binds to it
         run: python3 scripts/routes.py
