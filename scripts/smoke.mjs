@@ -1328,12 +1328,22 @@ function refuseUnlessTheDocumentArrived(page, what) {
   const missing = missingBytes(page);
   if (!missing.length) return;
   const named = missing.map(b => `  ${b.type.toLowerCase()} ${b.url}\n      ${b.why}`).join('\n');
+  // Named by which kind is missing, because the consequence is a different one and a message that
+  // said "stylesheet" over a missing script would be the same class of wrong subject this whole
+  // refusal is about.
+  const kinds = [...new Set(missing.map(b => b.type))];
+  const consequence = kinds.includes('Stylesheet')
+    ? 'A page missing its stylesheet paints at the browser\'s own defaults, so every reading of a\n' +
+      'face, a height or a scroll width taken from it is a true measurement of the wrong document.'
+    : kinds.includes('Document')
+      ? 'A document that did not arrive is not a page, and there is nothing here to read.'
+      : 'A page missing one of its scripts is a page that stopped part way through building itself,\n' +
+        'so everything below it is a reading of a document that was never finished.';
   throw new HarnessFailure(
     `the document at ${what} arrived without ${missing.length === 1 ? 'one of' : missing.length + ' of'} ` +
     'its own resources, so nothing here can be measured against it',
     'The browser was asked for these and did not get them whole:\n' + named + '\n\n' +
-    'A page missing its stylesheet paints at the browser\'s own defaults, and every reading of a\n' +
-    'face, a height or a scroll width taken from it is a true measurement of the wrong document.\n' +
+    consequence + '\n' +
     'This is not evidence that the page has regressed and it is not evidence that it has not. The\n' +
     'resource may be gone from the deployment, or the network may have moved under a live request;\n' +
     'this suite cannot tell those apart, so it names what is missing and stops.');
@@ -1437,9 +1447,18 @@ async function openPage(cdp, viewport) {
   cdp.on('Network.loadingFailed', p => {
     if (p.canceled) return;
     const b = began.get(p.requestId);
+    // Both halves of the browser's answer, and it gives different halves in different cases. A
+    // transport fault fills errorText and nothing else: `net::ERR_CERT_VERIFIER_CHANGED` is the
+    // string off the run that filed this card. A refusal made above the transport fills
+    // blockedReason instead and can leave errorText empty, which is what Network.setBlockedURLs
+    // does and therefore what the affordance below produces, so a message built from errorText
+    // alone would name the resource and then say nothing about why on the one path anybody can
+    // run on demand.
+    const why = [p.errorText, p.blockedReason ? `blocked: ${p.blockedReason}` : '']
+      .filter(Boolean).join(', ');
     bytes.push({ url: (b && b.url) || '(a request this suite never saw begin)',
                  type: p.type || (b && b.type) || '',
-                 why: p.errorText || 'the browser did not say why' });
+                 why: why || 'the browser did not say why' });
   });
 
   const page = {
