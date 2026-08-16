@@ -48,6 +48,90 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- **A STYLESHEET THAT NEVER LOADED WAS REPORTED AS TWELVE ASSERTIONS ABOUT THE PAGE, AND THE RUN
+  SAID THE PAGE HAD REGRESSED, #216.** A `verify.sh` run against the deployed origin came back with
+  twelve red assertions naming the captions and the header: an SVG caption at 16px, header controls
+  21 and 17 high, `scrollWidth 790` at a 375px client. The eleventh of the twelve carried the cause,
+  `net::ERR_CERT_VERIFIER_CHANGED` on `boot.js` and on `app.css`. Every other one is a consequence of
+  a stylesheet that never arrived, and each was **right about what it saw**: 16px is the browser's
+  unstyled default for an SVG text and 790 is an unstyled body. The defect is the subject, not the
+  numbers. Measured at `c86d1a5`: **237 of 287 assertions, 83 per cent, ran before the load was ever
+  questioned.**
+- **`scripts/smoke.mjs` refuses before reporting.** It records `Network.loadingFailed` and every
+  `Network.responseReceived` carrying a status of 400 or more, keyed on **the failed resource**
+  rather than on a count of console errors: a `Document`, a `Stylesheet` or a `Script` that did not
+  arrive whole, or a `Fetch` or `XHR` that did not arrive **from the page's own origin**. The
+  favicon this site does not ship stays out by being an `Other`, and `api.github.com` stays out by
+  being somebody else's origin. The question is asked at the load event of every navigation and
+  every reload, **at every read of the page**, inside the grain runner's own poll, and once more
+  before the console is judged. It is the doctrine the placer oracle already applies to its own
+  input: a document that arrived without its stylesheet is not something the phases below can be
+  evidence about, so they do not run.
+- **Two holes an adversarial read found in the first version of that repair, both reproduced before
+  being fixed.** `site/board.json` is fetched by `site/board.js` after the load event and Chrome
+  types it `Fetch`, so removing it from the tree reproduced this card **verbatim**: twelve reds,
+  `a paint this suite cannot read: "none"` among them, the cause reported as the console assertion
+  below its own consequences, and a line printed four times saying every resource had been
+  delivered. That is why the fetched types are in and why the refusal is asked at every read rather
+  than only at each load. Separately, a navigation the browser refused outright raised a plain
+  `Error` before the refusal could be reached, so an origin with nothing listening exited 1 under
+  `VERDICT: the page has regressed` while the grain phases in the same run refused correctly. It
+  is a `HarnessFailure` now: the document's own bytes are the case the first version missed.
+- **And a third the negative control found, which the network record cannot see at all.** A
+  stylesheet served under the wrong content type arrives 200 and whole, and the CSS parser refuses
+  to apply it. Serving `site/app.css` as `text/plain` gave **62 red assertions** and
+  `VERDICT: the page has regressed` over a clean network record. So the **document** is asked as
+  well as the network, about the thing that matters: a `<link rel=stylesheet>` whose sheet the
+  browser would not build has `link.sheet === null`, which is the browser's own answer and not an
+  inference from a header. It catches the wrong-type case and catches a 404'd stylesheet a second
+  time over, which is the direction two instruments should overlap in. Now 0 red assertions and
+  exit 2, naming the stylesheet.
+- **And a fourth: an origin answering 200 with a placeholder.** The bytes arrive, the status is
+  fine, and the first thing that notices is the readiness wait timing out after twenty seconds,
+  reported as `the 1536x839 run (it threw before it finished)` under `VERDICT: the page has
+  regressed`. Serving `<p>There is nothing published here.` at 200 gave **16 red assertions**. A
+  document that links **no** stylesheet is now refused as not being the document this suite is
+  written against, which is safe to assert because `site/index.html` carries `style-src 'self'`
+  with no `unsafe-inline` and therefore cannot dress itself any other way. Both refusals now run
+  **before** the readiness wait, so that wait means the one thing it should: this page came up and
+  did not draw, which IS a finding about the page.
+- **`SMOKE_BREAK_RESOURCE` gained the terminator it claimed not to need.** Its comment said it
+  could never produce a clean verdict. Chrome matches these patterns case sensitively, so
+  `SMOKE_BREAK_RESOURCE=app.CSS` blocked nothing and gave `354 assertions, 354 passed,
+  VERDICT: clean`, exit 0: an operator checking the refusal with a mistyped substring was told it
+  works by the one mechanism whose job is to show that it does. A substring matching no url the
+  run asked for is now a harness failure, which is `SMOKE_SKIP_PHASE`'s guard applied after the
+  run instead of before it, because what is named is a substring and not a member of a list.
+- **It exits 2 and names the resource, and it is neither a skip nor a wait.** Not `VERDICT: the page
+  has regressed`, because a run that could not fetch the page's own bytes has no evidence about the
+  page in either direction. Not a silent skip: `harnessFail` prints every failed resource with the
+  browser's own reason and no refusal can produce a zero exit. Not a wait, for the reason
+  `site/boot.js`'s header already gives, that a wait encoding its own condition can only ever time
+  out; nothing was added to any poll, and the healthy path **prints what it found** rather than
+  passing in silence.
+- **`SMOKE_BREAK_RESOURCE`, the affordance that proves the refusal fires**, on the same footing as
+  `SMOKE_SKIP_PHASE`: name a substring and every url holding it is refused at the network layer.
+  `SMOKE_BREAK_RESOURCE=app.css` reproduces the card. Proved by both mechanisms the recorder
+  watches, a network-layer refusal and an HTTP 404 from a server serving `site/` with `app.css`
+  removed, and the twelve assertions are unchanged: 354 of 354 on a healthy page, before and after.
+- **A `HarnessFailure` raised inside a `group()` is no longer recorded as a failed assertion.** It
+  is the suite saying it has nothing to report, which is the one thing the two lists are kept apart
+  to keep straight, and recording it put the page back on the wrong side of the ledger. It reaches
+  one throw site besides the refusal, stated rather than left to be found: a renderer that stops
+  answering the DevTools protocol inside a group now ends that viewport at exit 2 instead of
+  recording one failed group and asserting twenty more things against a browser that has stopped
+  answering.
+- **`scripts/verify.sh`'s headline names an abort as its own state.** The step wrappers already told
+  the two kinds of red apart, with `exit 2: it ABORTED. It did not scan what it was asked to, so
+  nothing here is evidence`, and the headline threw that away: every red read
+  `something is wrong. Nothing is ready to push.`, which names no subject and is this card's own
+  complaint one layer up. A run whose **only** failures are aborts now says so. Nothing goes green
+  and nothing stops being red: an abort is still counted in `fails`, still prints `[FAIL]`, the
+  exit code is 1 in both branches, and a single ordinary failure restores the original sentence,
+  because a real red outranks a run that could not look. It is **not** routed through
+  `step_may_decline`, whose own comment forbids it and which would reclassify a gate that scanned
+  nothing as a gate that politely declined.
+
 - **NOTHING HELD `build/build_layout.py`'S OWN `text_w()` CALL SITES AGAINST ANYTHING, #217.**
   A reserve comes out of a row of `build/label_widths.json`, and which row is decided by a key
   `text_w()` composes at `build_layout.py:165` out of a size, a weight, an italic flag and a caps
