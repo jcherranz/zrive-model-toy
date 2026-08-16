@@ -38,9 +38,9 @@ invented set.
 takes its file list from `site/`, fetches each of those paths from the public origin over HTTP,
 and fails the job on a real name, a euro-formatted figure other than the two invented ones,
 `collection://`, a UUID, an email address, or any of the words that would name a vendor
-architecture. It holds no names: `scripts/forbidden_names.sha256` carries salted hashes, and
-`scripts/gen_forbidden_hashes.sh` regenerates them locally from the register. Run
-`scripts/check_forbidden.sh --self-test` to see it fire on one synthetic case per rule.
+architecture. It holds no names: it matches against a register of salted hashes, described under
+"The name register" below. Run `scripts/check_forbidden.sh --self-test` to see it fire on one
+synthetic case per rule.
 
 `scripts/check_repo.sh` runs in CI on every push and every pull request and scans **every
 tracked file**, which is the half the deployed-bytes gate cannot reach: Pages publishes `site/`
@@ -52,6 +52,58 @@ self-matches, each an exact triple of rule, path and string; the table is not a 
 excused files, and an entry that stops matching fails the run rather than lingering. It also
 checks the documentation's citations: `HANSEI.md` and `KAIZEN.md` entries carry slugs, everything
 that cites one names the slug, and a citation naming a slug no entry carries fails the build.
+
+## The name register
+
+The three gates above recognise a real teacher's name by folding the bytes into tokens, hashing
+each token with a salt, and looking the hash up in a register. The register is
+`scripts/forbidden_names.sha256`, it holds nothing but hashes, and **it is not in this
+repository.**
+
+It was, until issue 164, and what it looked like then is the reason for everything in this
+section. It was a tracked file on a public repository, and its own third line printed the salt
+that protects it and a count of the real people it covers. Hashing was never claimed to be
+secrecy, and the generator said so; it said so about a private repository, and this one is
+public. With the salt in hand the construction is a dictionary attack that finishes before you
+can read the sentence describing it: measured single-threaded, in pure Python, on an ordinary
+laptop, a little over eight hundred thousand hashes a second, so a hundred thousand candidate
+Spanish given names and surnames run against the whole register in about a tenth of a second.
+
+So, in order:
+
+- **The register is untracked and ignored.** `scripts/gen_forbidden_hashes.sh` writes it, and it
+  can only run on a machine that holds the vault the names live in.
+- **The salt is random and lives in a secret.** It is not a readable slug any more and it is
+  written down nowhere in this tree. `scripts/forbidden_lib.sh` resolves it from
+  `FORBIDDEN_SALT`, or from a line `FORBIDDEN_SALT=<value>` in
+  `~/.config/zrive-model-toy/forbidden.env`, and **refuses to load if neither answers.**
+- **The header names no headcount and no salt.** A count of real people is a disclosure whether
+  or not anyone can be named. What it carries instead is a salt-check, which binds the file to
+  the salt that built it.
+- **CI has no vault**, so it cannot generate the register and gets the same bytes from the
+  `FORBIDDEN_NAMES_SHA256` repository secret. `scripts/ci_register.sh` writes them outside the
+  working tree, where they cannot be committed or swept into the published artifact, and exports
+  the path. Every workflow that runs a content gate calls it first.
+
+**What happens if you do not have it.** Everything that reads the register refuses, loudly, and
+names what is missing and what to do. `scripts/verify.sh` refuses the whole run before its first
+step rather than skipping six of thirteen and printing a ratio that means nothing. Nothing
+degrades, nothing defaults and nothing goes quietly green: a gate that cannot hash matches
+nothing, and a gate that matches nothing calls every file clean, which is the one failure this
+machinery exists to prevent. You can read and edit this repository without the register. You
+cannot run its content gates, and you will be told that rather than shown a green tick.
+
+**Rotation.** Regenerate with `scripts/gen_forbidden_hashes.sh`, then set both secrets together;
+the script prints the two commands when it finishes. Setting one without the other is caught
+rather than tolerated: the salt-check in the header will not match the salt in force, and every
+gate aborts instead of scanning happily against a register that can no longer match anything.
+`scripts/gen_forbidden_hashes.sh --salt-check` answers "do this machine's salt and register
+agree" without printing either.
+
+**And what rotation does not do.** The register as it stood, and the salt it was built under, are
+in this repository's git history and stay there until somebody rewrites it. Rotating stops the
+file being a live oracle from today; it does not reach backwards. That is recorded in `HANSEI.md`
+and the decision about the history is the owner's.
 
 The repository and the site are both public. This line said the repository was private, and so
 did lines in TPS.md and HANSEI.md; issue 164 asked the API and corrected all five. It was private

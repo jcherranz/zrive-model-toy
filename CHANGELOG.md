@@ -9,6 +9,72 @@ of what changed and when, and it is meant to be scannable.
 
 ## [Unreleased]
 
+### Security
+
+- **THE SALT WAS PRINTED IN THE HEADER OF THE FILE IT PROTECTS, AND THE REPOSITORY IS PUBLIC, #164.**
+  `scripts/forbidden_names.sha256` was a tracked file whose third line carried, in clear, the salt
+  that protects it and a count of the real people it covers, and the same salt was assigned in
+  `scripts/forbidden_lib.sh`. **Measured again before any change was made:** the exact construction
+  runs at a little over eight hundred thousand hashes a second, single-threaded, in pure Python, on
+  an ordinary laptop, so a hundred thousand candidate Spanish given names and surnames clear the
+  whole register in about a tenth of a second. `gh api ... --jq .visibility` returns `public`.
+  HANSEI.md `2026-08-16-salt-published-in-the-file-it-protects`.
+- **The register is untracked and comes from a repository secret.** `scripts/gen_forbidden_hashes.sh`
+  writes it on a machine that holds the vault; CI holds no vault, so `scripts/ci_register.sh` writes
+  the same bytes from `FORBIDDEN_NAMES_SHA256` **outside the working tree**, where they can neither
+  be committed nor swept into the published artifact, and exports the path. `repo-gate.yml`,
+  `board.yml`, `build.yml` and `pages.yml` each call it before their gate steps. `build.yml` is in
+  that list because it gates content without looking like it: `build/model.py` hashes every string
+  the model ships, at import.
+- **The salt is random and lives in a secret.** It is gone from the source. `scripts/forbidden_lib.sh`
+  resolves it from the environment or from a mode-600 file and **refuses to load** if neither
+  answers, because every consumer of that library is a gate and a gate that cannot hash matches
+  nothing and calls every file clean.
+- **A register that cannot match now aborts instead of passing everything.** Two secrets can be
+  rotated apart, and a register built under the previous salt is a full file of hashes the current
+  run cannot produce, which is indistinguishable from a clean tree. The header carries a salt-check
+  binding it to the salt that built it, and both gates check it before they scan.
+- **The header carries no headcount and no salt**, and neither gate prints the register's size any
+  more. A count of real people is a disclosure on its own, and a CI log on a public repository is
+  not the place for one. The assertions that the register is non-empty are unchanged and still decide.
+- **`build/model.py` read the salt out of the library with a regex** and now resolves it the same
+  two ways the shell does. That is two copies of one rule, so `--self-test` runs both and refuses a
+  disagreement, comparing salt-checks rather than values so neither side prints the secret.
+- **Rotation does not reach backwards, stated rather than implied.** The register as it stood and
+  the salt it was built under are in this repository's history. History is not rewritten here and
+  **whether the repository stays public is the owner's decision**, flagged and left open: making it
+  private would return Actions to the billing block that stopped every workflow for eleven hours,
+  and it would not undo a disclosure already made.
+
+### Fixed
+
+- **A probe that could not fail, #164.** `scripts/check_repo.sh --self-test` asked the name rule
+  about the register in use and ended the command substitution `|| true`, so "the rule ran and
+  found nothing" and "the rule aborted" were one outcome: on a machine with no register the probe
+  printed `[OK]` having asked nothing. It captures the exit status and demands it now. **That is
+  the eighth dead instrument found in this project.**
+- **Five document lines said this repository is private.** Two in README.md, one in TPS.md, two in
+  HANSEI.md. Lines that narrate the incident about a *different* private repository are untouched,
+  because they are still true.
+- **README.md's feedback threat model rested on access control that does not exist.** It said only
+  someone with access could file. The tracker is open to any signed-in GitHub user, `board.yml`
+  renders issue titles into `site/board.json` and `site/board.js` draws them, so **a stranger can
+  put text on the board this project is managed from.** Re-derived on what is true, with the bound
+  on each side named together with the file that enforces it: the title is set with `textContent`,
+  it passes the name rule before the board is written, and the rendered board passes
+  `scripts/check_repo.sh` before the workflow commits it. Text only; no script executes and no
+  credential is reachable.
+
+### Changed
+
+- **`scripts/verify.sh` gains a preflight and keeps thirteen steps.** With no salt, no register, or
+  a register built under another salt, it prints the reason and the remedy and refuses the whole
+  run before step 1. Six of its thirteen steps read the register, and a run that skipped them would
+  print a ratio worth nothing. `scripts/check_repo.sh --self-test` goes from 120 probes to 126, the
+  six additions covering the salt resolving from each of its two sources, a register naming no salt,
+  a register naming another one, a register naming the right one, and the shell and Python
+  resolutions agreeing.
+
 ### Added
 
 - **THE SERVED-BYTES GATE CAN NOW ASK ABOUT A FILE THE WORKING TREE HAS NEVER HEARD OF, #6.** It took
