@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T01:52:08Z",
+  "generated": "2026-08-16T02:21:04Z",
   "columns": [
     {
       "key": "raw",
@@ -145,16 +145,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
         },
         {
-          "id": 148,
-          "title": "Make the format of this outlines more in line with the style…",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/148"
-        },
-        {
           "id": 149,
           "title": "There is a gap to the left of this header blocks whicch looks bad",
           "labels": [
@@ -269,6 +259,16 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/161"
         },
         {
+          "id": 148,
+          "title": "Make the format of this outlines more in line with the style…",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/148"
+        },
+        {
           "id": 147,
           "title": "Make the format of this outlines more in line with the style…",
           "labels": [
@@ -307,17 +307,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/142"
-        },
-        {
-          "id": 139,
-          "title": "Absence is one idea with two numbers that never add",
-          "labels": [
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/139"
         }
       ],
-      "hidden": 123,
+      "hidden": 124,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
