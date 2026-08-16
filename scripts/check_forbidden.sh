@@ -145,7 +145,14 @@ scan_dir() {
   [ "$bytes"   -gt 0 ]  || { echo "ASSERTION FAILED: $n_files files, 0 bytes total" >&2; exit 2; }
   [ "$n_hashes" -gt 0 ] || { echo "ASSERTION FAILED: name hash list $hashfile is empty" >&2; exit 2; }
 
-  echo "scanning $n_files files, $bytes bytes, against $n_hashes name hashes"
+  # THE SIZE OF THE REGISTER IS NOT PRINTED, AND THE ASSERTION ABOVE STILL READS IT. Issue 164.
+  # This line used to end "against N name hashes". The register is a secret now, this runs in a
+  # public CI log, and the number of name tokens a real register holds is a fact about a group of
+  # real people that a reader of the log has no use for. What the line has to carry is that the
+  # register was non-empty, which is the claim the verdict rests on, and that is exactly what
+  # the assertion three lines up has just established. Nothing was relaxed: the count is still
+  # computed and still has to be positive.
+  echo "scanning $n_files files, $bytes bytes, against a register the assertion above found non-empty"
   echo
 
   # The five rules are scan_file in scripts/forbidden_lib.sh, shared with the repository gate.
@@ -809,6 +816,25 @@ main() {
       kind=local ;;
     *) kind=remote ;;
   esac
+
+  # THE REGISTER IS CHECKED BEFORE ANYTHING IS FETCHED. Issue 164. It is a secret now, delivered
+  # to a runner by scripts/ci_register.sh and generated locally by scripts/gen_forbidden_hashes.sh,
+  # which means it can be absent, and it can be present and built under a salt this run does not
+  # hold. Both of those produce a matcher that recognises nothing, and a matcher that recognises
+  # nothing hands back "clean" on a page carrying every name in the register. This is deliberately
+  # before the first fetch: the answer would be worthless, so the run must not begin.
+  #
+  # The self-test does not come through here, and must not: its registers are synthetic fixtures
+  # built under the salt in force, its probes call scan_dir directly, and the assertion it needs
+  # about them is that they are non-empty, which scan_dir makes.
+  [ -s "$HASHES" ] || {
+    echo "ASSERTION FAILED: no name register at $HASHES" >&2
+    echo "  This gate cannot recognise a name without one, and a gate that recognises nothing" >&2
+    echo "  reports clean. In CI, run scripts/ci_register.sh first. Locally, generate it with" >&2
+    echo "  scripts/gen_forbidden_hashes.sh on a machine that holds the vault." >&2
+    exit 2
+  }
+  assert_register_bound "$HASHES"
 
   echo "gate: forbidden content, against served bytes"
   echo "  target: $base"
