@@ -120,12 +120,36 @@
 #   two different sentences and a finding has to say which one it is about. A gate that cannot
 #   tell you which snapshot it read has told you less than it claims.
 #
+# AND THE GATES THAT COULD NOT LOOK ARE NAMED IN THE VERDICT. Issue 168 R4(a), and it is the
+# audit's verdict finding applied to this file. build/model.py runs three gates at import time
+# that re-read a corpus which is not on every machine, and each of them returns early with a
+# note on stderr when its corpus is absent. `_model_says` below filters `[model] ` chatter out
+# of the structure step, and the copy that survives lands two hundred lines into a log whose last
+# line said `VERDICT: clean`. Measured: with the corpora out of reach this file printed
+# `VERDICT: clean` and exited 0 while the sole check on SYLLABUS_SESSIONS had not run, and
+# SYLLABUS_SESSIONS is the only source of every `counts[*].total`, which is the denominator of
+# every fraction on every screen. A CEO reading that verdict cannot tell it from the run where
+# the folders were counted again.
+#
+# So there are three verdicts and not two, and the third has its own exit code. THE WORD "clean"
+# IS NOT PRINTED BY A RUN THAT COULD NOT LOOK. The census below asks build/model.py which gates
+# reported themselves unverified, cross-checks that against whether the corpus is actually there,
+# and refuses outright if those two disagree, because a census that can be wrong about what it
+# censused is the defect one level up.
+#
+# WHAT IS NOT FIXED HERE, AND IT IS THE OTHER HALF. The early `return` is in build/model.py and
+# that file is not this card's. Filed separately, with the measurement. This half is the
+# reporting: the state existed and nothing said so.
+#
 # Usage:
 #   scripts/check_build.sh              rebuild and compare against the snapshot git holds
 #   scripts/check_build.sh --self-test  prove the check refuses a bad input before believing it
 #
 # Exit: 0 clean, 1 a difference, a divergent working tree or a missing width, 2 the check could
-# not establish a baseline at all and is not evidence of anything.
+# not establish a baseline at all and is not evidence of anything, 3 everything it could check
+# was checked and found nothing wrong AND at least one sub-check could not look at its corpus.
+# 3 is a state and not a shade of 0: scripts/verify.sh renders it [SKIP] and never [OK], and
+# .github/workflows/build.yml annotates the run with it rather than passing it in silence.
 
 set -uo pipefail
 
@@ -660,17 +684,198 @@ PY
 }
 
 # ---------------------------------------------------------------------------------------------
+# 5. The census of what could look. Issue 168 R4(a).
+# ---------------------------------------------------------------------------------------------
+# THE NOTICES ARE THE EVIDENCE AND THE CORPUS IS THE CROSS-CHECK, in that order and not the other
+# way round. Each gate says on its own face whether it verified or declined, and one of them can
+# decline PARTIALLY, so a census built only out of "is the directory there" would be a second
+# implementation of a rule that already exists and would be the weaker copy. What the directory
+# is for is proving the census is reading the gates and not reading nothing.
+#
+# THE GATES ARE NAMED AND NOT COUNTED, and the difference bought something the first draft of
+# this census did not have. A count is satisfied by any five lines; a roster is satisfied only by
+# these five, so a gate that stops printing its notice is caught by name rather than by a total
+# that some other gate's new second line could make up. Same terminator discipline as
+# EXPECTED_DRAWINGS and EXPECTED_PROBES: a gate added to or removed from build/model.py moves
+# this list in the same commit, and there is nowhere to put a sixth gate quietly.
+#
+# A NAME THAT DOES NOT ANSWER IS AN ABORT AND NOT AN UNVERIFIED. Silence has two readings, "the
+# gate went quiet" and "the gate was deleted", this file cannot tell them apart, and under either
+# one it can no longer report on that gate. Reporting it as merely unverified would be this
+# card's own defect committed by the instrument written to close it.
+EXPECTED_MODEL_GATES='ontology registry|syllabus totals|module structure|session templates|session agendas'
+
+# Filled in by run_census below and read by verdict(). Zero is the state where every gate looked.
+CENSUS_UNVERIFIED=0
+CENSUS_NAMES=""
+
+# The model's own account of itself, in one import, machine readable. stderr is captured rather
+# than let out, because these lines are the subject here and not chatter.
+model_census_input() {
+  python3 - <<'PY'
+import contextlib
+import io
+import sys
+
+sys.path.insert(0, "build")
+buf = io.StringIO()
+with contextlib.redirect_stderr(buf):
+    import model  # noqa: F401  (imported for its import-time gates and its paths)
+
+for line in buf.getvalue().split("\n"):
+    if line.startswith("[model] "):
+        print("NOTICE\t" + line[len("[model] "):])
+
+# The one corpus whose absence has a single unambiguous consequence, asked of the module rather
+# than typed here (KAIZEN.md `kaizen-a-computed-value-is-never-typed-twice`). Both count gates
+# read it and neither can verify anything without it, so the census can predict exactly what
+# those two must have said, and a disagreement means one of the two is lying.
+print("CORPUS\tsyllabus\t" + ("present" if model.SYLLABUS_DIR.is_dir() else "absent"))
+PY
+}
+
+# The reader, kept apart from the reading so the self-test can drive it with inputs this machine
+# does not have. It takes the lines above on stdin and the intended notice count in the
+# environment, and it answers in three states of its own: 0 every gate looked, 3 at least one
+# did not, 2 the census cannot be trusted to say which.
+#
+# THE SCRIPT IS AN ARGUMENT AND NOT A HEREDOC, and that is not a style choice. `python3 - <<PY`
+# takes the program on stdin, so a reader written that way reads the tail of its own source
+# instead of the pipe, finds nothing, and reports that every gate has stopped speaking. It did
+# exactly that once here, and it failed loudly because the notice count is a terminator; a
+# census without one would have found no notices, seen no unverified gate among them, and said
+# every gate looked.
+census_report() {
+  local script
+  script="$(cat <<'PY'
+import os
+import sys
+
+roster = [g for g in os.environ["ZRIVE_GATES"].split("|") if g]
+notices, corpus = {}, {}
+order = []
+for raw in sys.stdin.read().split("\n"):
+    parts = raw.split("\t")
+    if parts[0] == "NOTICE" and len(parts) >= 2:
+        text = parts[1]
+        name = text.split(":", 1)[0].strip()
+        notices.setdefault(name, text)
+        if name not in order:
+            order.append(name)
+    elif parts[0] == "CORPUS" and len(parts) >= 3:
+        corpus[parts[1]] = parts[2]
+
+
+def abort(msg):
+    print(f"::error::{msg}")
+    sys.exit(2)
+
+
+ROSTER_FIX = ("EXPECTED_MODEL_GATES in scripts/check_build.sh is the roster and it belongs in "
+              "the same commit as the change to the gates.")
+
+silent = [g for g in roster if g not in notices]
+if silent:
+    abort(f"these gate(s) printed no notice at all: {', '.join(silent)}. A gate that says "
+          f"nothing has either gone quiet or been deleted, this file cannot tell those apart, "
+          f"and under either reading it can no longer report on them. {ROSTER_FIX}")
+
+strangers = [g for g in order if g not in roster]
+if strangers:
+    abort(f"build/model.py printed notice(s) from {', '.join(strangers)}, which this census does "
+          f"not know how to read, so it cannot say whether they looked at anything. "
+          f"{ROSTER_FIX}")
+
+if "syllabus" not in corpus:
+    abort("the census was handed no reading of the syllabus corpus, so it cannot check its own "
+          "answer against anything; nothing here is evidence.")
+
+# The cross-check, and it runs in both directions. A gate declining next to a corpus that is
+# there is a gate refusing work it could have done; a gate reporting verified next to a corpus
+# that is not there is the loudest thing this repository can be told. It covers the two gates
+# over the declared totals, which are the two whose corpus has exactly one answer.
+present = corpus["syllabus"] == "present"
+for name in ("syllabus totals", "module structure"):
+    if name not in notices:
+        continue
+    unverified = "unverified" in notices[name]
+    if unverified and present:
+        abort(f"the {name} gate says it could not look and the syllabus corpus is on this "
+              f"machine. One of those two is wrong and the census will not pick.")
+    if not unverified and not present:
+        abort(f"the {name} gate says it verified and the syllabus corpus is not on this "
+              f"machine. One of those two is wrong and the census will not pick.")
+
+blind = [g for g in roster if "unverified" in notices[g]]
+for name in roster:
+    mark = "UNVERIFIED" if "unverified" in notices[name] else "looked"
+    print(f"    [{mark}] {notices[name]}")
+if not blind:
+    print(f"    all {len(roster)} gates named in the roster read their corpus, on this machine, "
+          f"just now")
+    sys.exit(0)
+print()
+print(f"::warning::{len(blind)} gate(s) could not look at the corpus they are about")
+for name in blind:
+    print(f"      - {name}")
+print()
+print("    Nothing above is evidence about what those gates cover. Two of them are the only")
+print("    checks on the declared totals, and the totals are the denominator of every fraction")
+print("    the page draws.")
+sys.exit(3)
+PY
+)"
+  ZRIVE_GATES="${1:-$EXPECTED_MODEL_GATES}" python3 -c "$script"
+}
+
+run_census() {
+  local out rc
+  out="$(model_census_input | census_report)"
+  rc=$?
+  printf '%s\n' "$out"
+  CENSUS_UNVERIFIED=0
+  CENSUS_NAMES=""
+  if [ "$rc" -eq 3 ]; then
+    CENSUS_NAMES="$(printf '%s\n' "$out" | sed -n 's/^      - //p')"
+    CENSUS_UNVERIFIED="$(printf '%s\n' "$CENSUS_NAMES" | grep -c .)"
+  fi
+  return "$rc"
+}
+
+# ---------------------------------------------------------------------------------------------
 # The verdict, which names the snapshot it is about.
 # ---------------------------------------------------------------------------------------------
 # A function rather than two echoes at the foot of the file, so the self-test can read the text
 # that ships and can assert what it must NOT say. The old verdict was two lines of prose ending
 # in "The committed drawing is the build's own output", printed unconditionally, and it was that
 # sentence and not the comparison that issue 103 row B10 filed.
-verdict() {  # clean|bad ; reads BASELINE_ORIGIN
+#
+# AND A CALLER CANNOT ASK FOR "clean" AND GET IT WHILE SOMETHING DID NOT LOOK. Issue 168 R4(a).
+# The upgrade from clean to incomplete happens HERE and not at the call site, so the way to print
+# the word "clean" over a run with a blind gate is to delete this branch in front of a reader,
+# rather than to forget a line at the foot of the file. Same shape as the baseline check above:
+# the wrong sentence is unreachable, not merely undesired.
+verdict() {  # clean|bad ; reads BASELINE_ORIGIN, CENSUS_UNVERIFIED and CENSUS_NAMES
   local how="$1" origin="${BASELINE_ORIGIN:-}"
   if [ -z "$origin" ]; then
     echo "ASSERTION FAILED: no baseline snapshot was established, so there is no verdict to give."
     return 2
+  fi
+  if [ "$how" = "clean" ] && [ "${CENSUS_UNVERIFIED:-0}" -ne 0 ]; then
+    echo "VERDICT: INCOMPLETE. Everything this run could check was checked and nothing is wrong"
+    echo "         with it. ${CENSUS_UNVERIFIED} gate(s) could not look at the corpus they are about:"
+    printf '%s\n' "$CENSUS_NAMES" | sed 's/^/           /'
+    echo "         The drawing $(baseline_phrase "$origin") is the build's own output"
+    echo "         and the model it came from carries no repeated id, no dangling edge and no"
+    echo "         self-loop. What was NOT established is anything those gates cover, and one of"
+    echo "         them is the only check on the declared totals the whole page counts against."
+    echo "         This is not a clean run and the word is deliberately absent from this verdict."
+    if [ "$origin" = "worktree" ]; then
+      echo "         READ THAT SNAPSHOT NAME. These bytes were not read out of git, so nothing above"
+      echo "         is a statement about what the repository holds or about what a commit"
+      echo "         would carry."
+    fi
+    return 0
   fi
   if [ "$how" = "clean" ]; then
     echo "VERDICT: clean. The drawing $(baseline_phrase "$origin") is the build's own"
@@ -702,7 +907,7 @@ verdict() {  # clean|bad ; reads BASELINE_ORIGIN
 # probe at a time prints a clean ratio all the way down to 0/0. A count taken from the run cannot
 # notice a probe that did not run. A short run exits 2, "the suite could not answer"; a run that
 # also recorded a failure reports it and exits 1.
-EXPECTED_PROBES=53
+EXPECTED_PROBES=64
 PASS=0
 TOTAL=0
 probe() {
@@ -748,6 +953,31 @@ probe_says_not() {
     PASS=$((PASS + 1))
     printf '  [OK]   %s\n' "$name"
   fi
+}
+
+# Synthetic census input. Issue 168 R4(a): the census reads what build/model.py said about its
+# own corpora, and the whole point of the finding is that the two interesting states are the ones
+# a given machine cannot produce. A runner holds no vault and can never see the verified state; a
+# development machine holds one and can never see the blind state. So the probes drive the reader
+# rather than the reading, with lines it would have been handed, and both states are exercised
+# everywhere. This is the same argument the ontology self-test makes for writing its own corpus.
+census_fixture() {  # present|absent  gate-name:looked|unverified ...
+  local present="$1" spec name state; shift
+  for spec in "$@"; do
+    name="${spec%%:*}"; state="${spec#*:}"
+    if [ "$state" = unverified ]; then
+      printf 'NOTICE\t%s: the corpus is not on this machine, so it is unverified here.\n' "$name"
+    else
+      printf 'NOTICE\t%s: read again just now\n' "$name"
+    fi
+  done
+  printf 'CORPUS\tsyllabus\t%s\n' "$present"
+}
+
+census_case() {  # roster  present|absent  gate-name:looked|unverified ...
+  local roster="$1" present="$2"; shift 2
+  census_fixture "$present" "$@" | census_report "$roster"
+  return "${PIPESTATUS[1]}"
 }
 
 # A throwaway repository, so the snapshot probes never go near the tree being checked. It carries
@@ -1062,6 +1292,42 @@ PY
   probe 2 "a verdict with no baseline established was refused rather than printed" verdict clean
   BASELINE_ORIGIN=""
 
+  echo
+  echo "self-test: the census separates a gate that looked from one that could not"
+  local BOTH='syllabus totals|module structure'
+  probe 0 "every gate on the roster having looked answers 0" \
+        census_case "$BOTH" present 'syllabus totals:looked' 'module structure:looked'
+  probe 3 "both count gates declining answers 3, which is neither clean nor a defect" \
+        census_case "$BOTH" absent 'syllabus totals:unverified' 'module structure:unverified'
+  probe_says "UNVERIFIED" "and the declining gates are marked, not listed alongside the rest" \
+        census_case "$BOTH" absent 'syllabus totals:unverified' 'module structure:unverified'
+  probe 2 "a gate on the roster that printed no notice at all aborted the census" \
+        census_case "$BOTH" present 'syllabus totals:looked'
+  probe 2 "a gate the roster does not name aborted the census" \
+        census_case 'syllabus totals' present 'syllabus totals:looked' 'a new gate:looked'
+  probe 2 "a gate declining beside a corpus that IS on the machine aborted the census" \
+        census_case 'syllabus totals' present 'syllabus totals:unverified'
+  probe 2 "a gate reporting verified beside a corpus that is NOT aborted the census" \
+        census_case 'syllabus totals' absent 'syllabus totals:looked'
+
+  echo
+  echo "self-test: a run with a gate that could not look does not print the word clean"
+  # Row R4(a) of the audit in one probe, and the negative control under it. The measured defect
+  # was a verdict reading "VERDICT: clean" over a run in which the sole check on the declared
+  # totals had returned without counting anything.
+  BASELINE_ORIGIN=index
+  CENSUS_UNVERIFIED=2
+  CENSUS_NAMES="$(printf 'syllabus totals\nmodule structure\n')"
+  probe_says_not "VERDICT: clean" "a verdict over a run with two blind gates does not say clean" \
+        verdict clean
+  probe_says "INCOMPLETE" "it says INCOMPLETE in that word" verdict clean
+  probe_says "syllabus totals" "and it names the gate that could not look" verdict clean
+  CENSUS_UNVERIFIED=0
+  CENSUS_NAMES=""
+  probe_says "VERDICT: clean" "and with every gate having looked the clean verdict is back" \
+        verdict clean
+  BASELINE_ORIGIN=""
+
   rm -rf "$dir"
   echo
   # The count is asserted against the constant at the top, not against itself. See the note there.
@@ -1126,9 +1392,25 @@ fi
 [ "$rc" -eq 0 ] || bad=1
 
 echo
+echo "== and the gates that re-read a corpus say whether they read one"
+# LAST, AND NOT FIRST. Everything above it is a statement this file makes about bytes it read;
+# this is the statement it makes about what it did not read, and it is put where the reader's eye
+# already is, one line above the verdict that quotes it. The three notices exist either way and
+# used to land two hundred lines earlier, under a heading about something else.
+run_census
+census_rc=$?
+if [ "$census_rc" -eq 2 ]; then
+  echo
+  echo "ABORTED: the census of what could look could not be taken, so this run cannot say which"
+  echo "         of its own gates were evidence. Nothing here is."
+  exit 2
+fi
+
+echo
 if [ "$bad" -ne 0 ]; then
   verdict bad
   exit 1
 fi
 verdict clean
+[ "$CENSUS_UNVERIFIED" -eq 0 ] || exit 3
 exit 0

@@ -12,11 +12,21 @@
 # hides the rest, and the rest is what tells you whether you broke one thing or five. Each step
 # reports [OK], [FAIL] or [SKIP] and the exit code is non-zero if anything failed.
 #
-# [SKIP] IS NOT [OK], AND IS PRINTED DIFFERENTLY FOR THAT REASON. Two of these steps cannot run
-# everywhere: build/safety_grep.py reads the faculty register out of the vault, and the smoke
-# suite against the origin has no second copy of the bytes to read when nothing is published. A
-# skipped step is named in the summary with its reason, so a clean run that skipped two things
-# cannot be read as a clean run that did nine.
+# [SKIP] IS NOT [OK], AND IS PRINTED DIFFERENTLY FOR THAT REASON. Three of these steps cannot run
+# in full everywhere: build/safety_grep.py reads the faculty register out of the vault, the smoke
+# suite against the origin has no second copy of the bytes to read when nothing is published, and
+# the build gate runs five sub-gates that re-read a corpus, three of which go quiet where there
+# is none. A skipped step is named in the summary with its reason, so a clean run that skipped
+# two things cannot be read as a clean run that did nine.
+#
+# AND THE DOCTRINE WAS NOT APPLIED TO THE GATES GUARDING THE ARITHMETIC, which is issue 168 R4(a)
+# and the audit's verdict finding pointed at this file. The build gate is the one step whose
+# incompleteness this file cannot see from outside, because the precondition belongs to a
+# sub-check three layers in; it exited 0, printed VERDICT: clean, and rendered here as [OK] while
+# the sole check on the totals every fraction on the page divides by had not been run. The repair
+# is step_three_state below: the gate reports that state in a code of its own and this file
+# renders it [SKIP]. The rule the whole file is written around, said once: A CHECK THAT COULD NOT
+# RUN MUST NEVER PRINT THE WORD CLEAN.
 #
 # AND A SKIP THAT CAN MEAN AN ABORT IS A GREEN THAT CAN MEAN RED. Issue 103, and it is this
 # file's own headline doctrine turned on itself. Every step here used to map exit 2 to [SKIP],
@@ -161,6 +171,53 @@ step_may_decline() {
   elif [ "$rc" -eq 2 ]; then
     STEP_STATE+=("SKIP"); STEP_NOTE+=("$reason")
     echo "-- [SKIP] $name ($reason)"
+  else
+    STEP_STATE+=("FAIL"); STEP_NOTE+=("exit $rc")
+    echo "-- [FAIL] $name (exit $rc)"
+  fi
+  return 0
+}
+
+# AND THE THIRD SHAPE, WHICH IS THE ONE THE DOCTRINE ABOVE WAS NOT APPLIED TO. Issue 168 R4(a).
+# The two forms above are this file deciding, from outside, whether a gate could have answered.
+# That works where the precondition is a file this file can look for, and it does not work where
+# the gate is a sub-check buried inside a larger one: scripts/check_build.sh runs five gates that
+# re-read a corpus, three of them go quiet on a runner that holds none, and from out here the
+# gate exits 0 and the step reads [OK]. Measured before the repair: with the corpora out of
+# reach the build gate exited 0 and printed VERDICT: clean while the sole check on the declared
+# totals had counted nothing, and this file rendered it as an OK step among thirteen.
+#
+# So a gate may now report the third state itself, in a code of its own, and this wrapper is the
+# only thing that reads that code. Exit 3 means: it ran, everything it could check was checked,
+# and it has NAMED the sub-checks that could not look. It is a [SKIP] here and never an [OK],
+# which is this file's headline doctrine finally pointed at the gates guarding the arithmetic.
+#
+# ONLY A GATE TAUGHT TO SPEAK IT GETS IT. A step wired through the plain `step` above and
+# answering 3 is still a failure, because 3 from a command that never agreed to the contract is
+# an exit code nobody designed and reading it as a polite decline is how this class of defect
+# gets made. Nothing is inferred; the wrapper is chosen per step, by hand, and there is exactly
+# one step in the list below that uses it.
+step_three_state() {
+  local name="$1"; shift
+  assert_step_number "$name"
+  echo
+  echo "=============================================================================="
+  echo "== $name"
+  echo "=============================================================================="
+  "$@"
+  local rc=$?
+  STEP_NAMES+=("$name")
+  if [ "$rc" -eq 0 ]; then
+    STEP_STATE+=("OK"); STEP_NOTE+=("")
+    echo "-- [OK] $name"
+  elif [ "$rc" -eq 3 ]; then
+    STEP_STATE+=("SKIP")
+    STEP_NOTE+=("exit 3: the gate ran and named sub-check(s) that could not look at their corpus. Read its INCOMPLETE verdict above; what those gates cover was not established by this run")
+    echo "-- [SKIP] $name (exit 3: sub-check(s) could not look. It is not an OK and this line says so.)"
+  elif [ "$rc" -eq 2 ]; then
+    STEP_STATE+=("FAIL")
+    STEP_NOTE+=("exit 2: it ABORTED. It did not scan what it was asked to, so nothing here is evidence")
+    echo "-- [FAIL] $name (exit 2: the gate aborted rather than answering. It scanned nothing.)"
   else
     STEP_STATE+=("FAIL"); STEP_NOTE+=("exit $rc")
     echo "-- [FAIL] $name (exit $rc)"
@@ -558,7 +615,7 @@ step_may_decline "2. nothing is untracked, so the gates see everything" \
      "some files are untracked and the repository gate cannot see them; its two steps are about the rest of the tree" \
      check_untracked
 
-step "3. the build gate: both documents rebuild, the widths cover, the model is well formed, the fourteen digests are the ones these bytes produce" \
+step_three_state "3. the build gate: both documents rebuild, the widths cover, the model is well formed, the fourteen digests are the ones these bytes produce" \
      bash scripts/check_build.sh
 step "4. prove the build gate fires"                      bash scripts/check_build.sh --self-test
 # The provenance gate runs inside build/build_layout.py on every build, so the build gate step
