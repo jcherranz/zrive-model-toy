@@ -306,7 +306,9 @@ const PHASES = {
   'the brush':            { count: 14, when: 'behavioural' },
   'absence':              { count: 11, when: 'behavioural' },
   'the view selector':    { count: 6, when: 'behavioural' },
-  'the control panel':    { count: 9, when: 'behavioural' },
+  // 9 until issue 157, which adds four here and to no other phase: the panel is where a way to
+  // reach an object is handed to the reader, so it is where the claim about it belongs.
+  'the control panel':    { count: 13, when: 'behavioural' },
   'the plate':            { count: 6, when: 'behavioural' },
   'the outline':          { count: 9, when: 'behavioural' },
   'canvas':               { count: 7, when: 'behavioural' },
@@ -637,7 +639,15 @@ const PHASES = {
 // AND 318 SINCE ISSUE 171, which adds two and replaces none: one budget on the chip placer at
 // the seven programme union and one at two programmes, both counted in box comparisons because a
 // millisecond on a shared runner is a fact about the runner.
-const EXPECTED_ASSERTIONS = 318;
+// 322 SINCE ISSUE 157, which adds four to `the control panel` and replaces none. They are the four
+// different ways a way to reach an object can be wrong and no one of them implies another: that
+// the right objects carry one, which is a question about the document; that no address anywhere in
+// it could ever resolve, which is a question about all 192 rows and not about the one a panel
+// happens to be showing; that the panel hands the reader the act with its own flag beside it,
+// which is a question about the rendered list; and that a reader tells a person they can reach
+// from one they cannot WITHOUT opening anything, which is a question about the rings on two tiles
+// and the only one of the four a screenshot can answer.
+const EXPECTED_ASSERTIONS = 322;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -5784,6 +5794,12 @@ async function checkReview(page, base) {
 // which somebody can open this week, and 73 are a class no system holds at all, which no effort
 // inside the tooling that exists closes. The menu showed them as one list.
 //
+// 95, 22 AND 73 ARE #139'S FIGURES AND THEY MOVED AT ISSUE 157, to 122, 27 and 95. The split they
+// illustrate is unchanged and nothing in this phase reads a literal: GAP_SPLIT below recomputes
+// every number from window.GI on the run, which is the whole of the paragraph after this one. The
+// note is here because a comment quoting a figure the page no longer prints is a comment a reader
+// audits the phase against and is misled by, and this file has filed that defect twice.
+//
 // NOTHING HERE READS THE PAGE'S OWN BOOKKEEPING FOR AN ANSWER IT IS ASSERTING. #121 established
 // why: all 207 assertions at the time read what the page printed, which is exactly why none of them
 // could catch a wrong number, and #122 hit the same wall again. So GAP_SPLIT below walks window.GI,
@@ -9259,6 +9275,260 @@ async function checkPanel(page) {
       'of its neighbours',
     `gaps in document order ${JSON.stringify(gaps)} over ${JSON.stringify(order)}`,
     `${gaps[1]}px inside the absence control, ${gaps[0]}px between it and its neighbours`);
+
+  // ---- TEN TO THIRTEEN: A PERSON ON THE DRAWING IS SOMEONE YOU CAN REACH. Issue 157 -----------
+  // FOUR ASSERTIONS AND NOT ONE PER ACT, and the split is the four different ways this can be
+  // wrong. Whether the right objects carry a route is a question about the document; whether an
+  // address could be real is a question about every one of the 192 rows and not about the one a
+  // panel happens to show; whether the page hands the reader the act is a question about the
+  // rendered panel; and whether a reader can tell the two apart WITHOUT opening a panel is a
+  // question about the rings on the tiles, which is the only one of the four a screenshot can
+  // answer.
+  //
+  // EVERY ONE OF THEM REPORTS THE NUMBER IT MEASURED ON THE PASS AS WELL AS ON THE FAILURE. The
+  // twelve dead instruments this project has found were all the same shape: a check that could
+  // not tell "I looked and found nothing" from "I could not look". A count printed on the pass is
+  // what makes the difference readable from a green log, and each of the four below refuses an
+  // empty population rather than passing over one.
+  const reach = JSON.parse(await page.evaluate(`(function () {
+    var cls = (window.GI.routes && window.GI.routes.classes) || {};
+    var acts = (window.GI.routes && window.GI.routes.vocab && window.GI.routes.vocab.act) || {};
+    var lists = ['views', 'collapsed'];
+    var withR = {}, without = {}, byType = {}, rows = 0, absRows = 0;
+    var uris = {}, wrongForm = [], wrongWho = [], mismatch = [], strays = [], keyed = [];
+    lists.forEach(function (L) {
+      (window.GI[L] || []).forEach(function (v) {
+        v.nodes.forEach(function (n) {
+          var e = cls[n['class']] || {};
+          // What the registry says this object should carry, derived here a second time and
+          // never read off the node: the class has to declare a way to be reached, the system
+          // has to hold a row for it, and where a companion field is named that field has to
+          // record something. A node whose block disagrees with that is the mismatch below.
+          var canReach = !!e.reach;
+          var held = !!e.system;
+          var blank = false;
+          if (canReach && e.reach['with']) {
+            var f = null;
+            (n.props || []).forEach(function (p, i) {
+              if (i >= (n.route || 0) && p.k === e.reach['with']) f = p.f;
+            });
+            blank = f === 'absent';
+          }
+          var want = !canReach ? 0 : (held && !blank) ? e.reach.acts.length : 1;
+          if ((n.reach || 0) !== want) {
+            mismatch.push(n.id + ' carries ' + (n.reach || 0) + ' and the registry says ' + want);
+          }
+          if (!n.reach) {
+            if (canReach) { strays.push(n.id); }
+            return;
+          }
+          var block = n.props.slice(n.props.length - n.reach);
+          var absent = block.filter(function (p) { return p.f === 'absent'; });
+          if (absent.length === block.length) {
+            without[n.id] = n.type;
+            absRows += block.length;
+          } else if (absent.length === 0) {
+            withR[n.id] = n.type;
+            rows += block.length;
+            block.forEach(function (p) {
+              uris[p.v] = 1;
+              if (!acts[p.k]) { keyed.push(n.id + ' ' + p.k); }
+              // THE FORM, AND THIS IS THE ASSERTION A LINK-EXISTS TEST WOULD PASS WITHOUT. An
+              // address is allowed only at the top level domain RFC 2606 reserves so that it can
+              // never be delegated, or as a number of zeros no country code can begin with.
+              // Anchored end to end: a suffix test would accept anything ending in the right
+              // characters, which is exactly how a plausible address gets on the page.
+              if (!/^mailto:[a-z0-9_]+@invalid$/.test(p.v) &&
+                  !/^tel:\\+0+$/.test(p.v) &&
+                  !/^https:\\/\\/meet\\.invalid\\/[a-z0-9_]+$/.test(p.v)) {
+                wrongForm.push(n.id + ' ' + p.k + ' ' + p.v);
+              }
+              // AND THE SHAPE IS NOT ENOUGH, WHICH IS WHAT SEPARATES THIS FROM A LINK-EXISTS
+              // TEST TWICE OVER. An address at hr@invalid clears every pattern above and names
+              // a department; t9's address sitting on t7 clears them and names the wrong person,
+              // which is the more likely of the two and the one a reader would act on without
+              // noticing. So each address is rebuilt here from the id of the object it is on, in
+              // this driver, out of the document alone, and required to be equal. No backtick in
+              // this comment: the driver around it is a template literal and one would end it.
+              var want = p.k === 'reach_email' ? 'mailto:' + n.id + '@invalid'
+                       : p.k === 'reach_call' ? 'tel:+00000000000'
+                       : p.k === 'reach_meeting' ? 'https://meet.invalid/' + n.id : null;
+              if (p.v !== want) { wrongWho.push(n.id + ' ' + p.k + ' ' + p.v); }
+            });
+          } else {
+            mismatch.push(n.id + ' mixes ' + absent.length + ' absences into ' +
+                          block.length + ' rows');
+          }
+        });
+      });
+    });
+    function tally(m) {
+      var out = {};
+      Object.keys(m).forEach(function (k) { out[m[k]] = (out[m[k]] || 0) + 1; });
+      return out;
+    }
+    return JSON.stringify({
+      with: Object.keys(withR).length, without: Object.keys(without).length,
+      withBy: tally(withR), withoutBy: tally(without),
+      rows: rows, absRows: absRows, uris: Object.keys(uris).length,
+      wrongForm: wrongForm, wrongWho: wrongWho, mismatch: mismatch, strays: strays,
+      keyed: keyed,
+      acts: Object.keys(acts).length
+    });
+  })()`));
+
+  // TEN. WHO CAN BE REACHED, DERIVED TWICE AND COMPARED. The driver rebuilds the answer out of
+  // the registry the document ships, and the nodes carry the answer the model computed; a rule
+  // that moved on one side and not the other is a mismatch and not a silently different page.
+  // Both halves have to be non-empty, because "nobody can be reached" and "everybody can" are
+  // each a design this card would have to argue for and neither is the one that shipped.
+  assert('every instructor and every firm says whether it can be reached, and the registry agrees',
+    reach.mismatch.length === 0 && reach.strays.length === 0 &&
+      reach.with > 0 && reach.without > 0 &&
+      reach.with + reach.without === 49 && reach.acts === 3 &&
+      (reach.withBy.Instructor || 0) + (reach.withoutBy.Instructor || 0) === 27 &&
+      (reach.withBy.Company || 0) + (reach.withoutBy.Company || 0) === 22,
+    'the 27 instructors and the 22 firms split into those a system holds a way to reach and ' +
+      'those it does not, and the split the nodes carry is the split the registry implies',
+    reach.mismatch.length ? reach.mismatch.slice(0, 4).join('; ')
+      : reach.strays.length ? `${reach.strays.length} objects the registry can reach carry no block`
+      : `${reach.with} with and ${reach.without} without, ` +
+        `${JSON.stringify(reach.withBy)} against ${JSON.stringify(reach.withoutBy)}`,
+    `${reach.with} of 49 can be reached (${JSON.stringify(reach.withBy)}) and ` +
+    `${reach.without} cannot (${JSON.stringify(reach.withoutBy)})`);
+
+  // ELEVEN. AND NOT ONE OF THE ADDRESSES COULD BE REAL. Over every row the document ships and not
+  // over the ones a panel was opened on: sixteen of the twenty two Company tiles carry the name of
+  // a firm that exists, and one plausible address among 192 rows is a message sent to somebody.
+  assert('and no address on any of them could ever resolve, or name anyone but the object it is on',
+    reach.wrongForm.length === 0 && reach.wrongWho.length === 0 && reach.keyed.length === 0 &&
+      reach.rows > 0 && reach.uris > 1 && reach.absRows > 0,
+    'every address at the reserved top level domain of RFC 2606 or a number of zeros, every one ' +
+      'of them the address the object\'s own drawing id gives, and every key one the document\'s ' +
+      'own act vocabulary defines',
+    reach.wrongForm.length ? reach.wrongForm.slice(0, 4).join('; ')
+      : reach.wrongWho.length ? reach.wrongWho.slice(0, 4).join('; ')
+      : reach.keyed.length ? reach.keyed.slice(0, 4).join('; ')
+      : `${reach.rows} address rows, ${reach.absRows} absence rows, ${reach.uris} distinct`,
+    `${reach.rows} address rows over ${reach.uris} distinct strings, and ${reach.absRows} rows ` +
+    'saying there is no way to reach the object at all');
+
+  // TWELVE. THE PANEL HANDS THE READER THE ACT, AND EVERY ONE OF THEM CARRIES ITS OWN STANDING.
+  // The badge is issue 148's device and this is the case it was written for one degree sharper:
+  // there the risk was invented prose read as published curriculum, here it is an invented address
+  // that gets CLICKED. So the chip is required on every reach row, it is required to print the
+  // row's own `f` rather than a constant, and the href is required to be the value the reader can
+  // see, so that what the click does and what the panel says cannot come apart.
+  const reachable = await page.evaluate(`(function () {
+    var key = window.ZT.programme().key, out = null;
+    (window.GI.views || []).forEach(function (w) {
+      if (w.key !== key) return;
+      w.nodes.forEach(function (n) {
+        if (out || n.type !== 'Instructor' || !n.reach) return;
+        if (n.props[n.props.length - 1].f !== 'absent') out = n.id;
+      });
+    });
+    return out;
+  })()`);
+  if (!reachable) throw new Error('no instructor on this drawing carries a way to reach them');
+  await clickNode(page, reachable);
+  await page.waitFor(`window.ZT.selected() && window.ZT.selected().id === ` +
+    `${JSON.stringify(reachable)}`, 'the instructor to be selected');
+  const panelReach = JSON.parse(await page.evaluate(`(function () {
+    var dl = document.getElementById('pprops');
+    var dts = dl.querySelectorAll('dt'), dds = dl.querySelectorAll('dd');
+    // The node out of the drawing that is on screen, and not out of whichever view names this id
+    // first: a shared instructor is a different dict on each route it teaches, its own rows differ
+    // between them, and an index taken off the wrong one would read the wrong end of the list.
+    var key = window.ZT.programme().key, n = null;
+    window.GI.views.forEach(function (w) {
+      if (w.key !== key) return;
+      w.nodes.forEach(function (m) { if (m.id === ${JSON.stringify(reachable)}) n = m; });
+    });
+    var first = n.props.length - n.reach, out = [];
+    for (var i = first; i < n.props.length; i++) {
+      var dd = dds[i], a = dd.querySelector('a'), chip = dd.querySelector('.flag');
+      var box = a ? a.getBoundingClientRect() : null;
+      out.push({ key: dts[i].textContent, f: n.props[i].f, v: n.props[i].v,
+                 href: a ? a.getAttribute('href') : null,
+                 text: a ? a.textContent : null,
+                 chip: chip ? chip.textContent : null,
+                 chipClass: chip ? chip.className : null,
+                 w: box ? +box.width.toFixed(2) : 0, h: box ? +box.height.toFixed(2) : 0 });
+    }
+    return JSON.stringify({ rows: out, links: dl.querySelectorAll('a').length,
+                            buttons: dl.querySelectorAll('button').length });
+  })()`));
+  const badRow = panelReach.rows.filter(r =>
+    r.href !== r.v || r.text !== r.v || r.chip !== r.f || r.chipClass !== 'flag ' + r.f ||
+    Math.min(r.w, r.h) < 24);
+  assert('a reachable person hands the reader each act as a link, and every one wears its own flag',
+    panelReach.rows.length === 3 && badRow.length === 0 &&
+      panelReach.links === 3 && panelReach.buttons === 0 &&
+      new Set(panelReach.rows.map(r => r.href.split(':')[0])).size === 3,
+    'three links on mailto, tel and https, each href the value the reader can see, each with a ' +
+      'chip printing the row\'s own flag, each at least 24 by 24, and no button anywhere in the list',
+    badRow.length
+      ? badRow.map(r => `${r.key}: href ${JSON.stringify(r.href)} text ${JSON.stringify(r.text)} ` +
+                        `chip ${JSON.stringify(r.chip)} ${r.w}x${r.h}`).join('; ')
+      : `${panelReach.rows.length} rows, ${panelReach.links} links, ${panelReach.buttons} buttons`,
+    `${reachable}: ` + panelReach.rows.map(r => `${r.key} ${r.href} [${r.chip}]`).join(', '));
+
+  // THIRTEEN. AND A READER TELLS THE TWO APART WITHOUT OPENING ANYTHING. This is the whole of what
+  // the card meant by an affordance that has to be a reading: the absence of a way to reach an
+  // object is a row flagged `absent` like any other, so it lands on the tile as an empty ring
+  // through machinery this card wrote no line of. Asserted as a comparison of two tiles on ONE
+  // drawing rather than as a count, because what a reader does is look at two tiles side by side.
+  // The unreachable one has to carry strictly more rings, and the number on each has to be the
+  // number of absences in that node's own property list, or the picture and the panel are two
+  // opinions.
+  const pair = JSON.parse(await page.evaluate(`(function () {
+    var cls = window.GI.routes.classes;
+    var want = null;
+    (window.GI.views || []).forEach(function (w) {
+      if (want) return;
+      var lit = null, dark = null;
+      w.nodes.forEach(function (n) {
+        if (n.type !== 'Instructor' || !n.reach) return;
+        if (n.props[n.props.length - 1].f === 'absent') { dark = dark || n.id; }
+        else { lit = lit || n.id; }
+      });
+      if (lit && dark) { want = { key: w.key, lit: lit, dark: dark }; }
+    });
+    return JSON.stringify(want);
+  })()`));
+  if (!pair) throw new Error('no one drawing carries both a reachable and an unreachable person');
+  await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(pair.key)}`);
+  await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(pair.key)}`,
+    `the ${pair.key} drawing, which carries both`);
+  const rings = JSON.parse(await page.evaluate(`(function () {
+    function read(id) {
+      var g = document.querySelector('[data-node="' + id + '"]');
+      var n = null;
+      window.GI.views.forEach(function (w) {
+        w.nodes.forEach(function (m) { if (m.id === id) n = n || m; });
+      });
+      var absences = 0;
+      n.props.forEach(function (p, i) { if (i >= n.route && p.f === 'absent') absences++; });
+      return { id: id, socks: g ? g.querySelectorAll('circle.sock').length : -1,
+               work: g ? g.querySelectorAll('circle.sock-work').length : -1,
+               absences: absences };
+    }
+    return JSON.stringify({ lit: read(${JSON.stringify(pair.lit)}),
+                            dark: read(${JSON.stringify(pair.dark)}) });
+  })()`));
+  assert('and a person you cannot reach carries more empty rings than one you can, on the same drawing',
+    rings.dark.socks > rings.lit.socks && rings.lit.socks === rings.lit.absences &&
+      rings.dark.socks === rings.dark.absences && rings.dark.work === rings.dark.socks &&
+      rings.lit.socks === 0,
+    'the unreachable tile ringed once for each of its absences and the reachable one not ringed ' +
+      'at all, both counts equal to the tile\'s own property list, and the rings in the hue that ' +
+      'means a system holds the row and has left it empty',
+    `on ${pair.key}: ${pair.lit} ${rings.lit.socks} rings against ${rings.lit.absences} ` +
+      `absences, ${pair.dark} ${rings.dark.socks} against ${rings.dark.absences}`,
+    `${pair.dark} carries ${rings.dark.socks} rings and ${pair.lit} carries ${rings.lit.socks}, ` +
+    `on ${pair.key}, both equal to the absences in their own property lists`);
+  await clearSelection(page);
 
   await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(startedOn)}`);
   await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(startedOn)}`,

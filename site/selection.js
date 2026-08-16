@@ -392,8 +392,23 @@
         // somebody. So the row carries its own standing, it prints the row's own `f` rather than
         // the word `dummy`, and it survives a crop of the single line: there is no way to
         // photograph, quote or click one of these without the badge in the frame.
-        var uri = i >= reachAt && reachAt >= 0 && p.f !== 'absent' &&
-                  /^(mailto:|tel:|https:)/.test(p.v);
+        var isReach = reachAt >= 0 && i >= reachAt;
+        var uri = isReach && p.f !== 'absent' && /^(mailto:|tel:|https:)/.test(p.v);
+        // THE BADGE COMES FIRST AND THE ROW STOPS SPREADING, and both halves of that are what
+        // make the badge worth having. `#panel dd` is a flex row with `justify-content:
+        // space-between`, which is right for a key and a value and wrong here: it would put the
+        // chip at the far right of the panel with the address at the far left, and a crop, a
+        // quote or a screenshot of the address would carry no chip, which is the whole claim.
+        // So the reach rows pack left, and the chip is between the reader and the first
+        // character of the address, which is issue 148's own ordering and its own reason: a
+        // reader scanning left to right meets the standing of the line before they meet the line.
+        if (isReach) {
+          dd.style.justifyContent = 'flex-start';
+          var chip = document.createElement('span');
+          chip.className = 'flag ' + p.f;
+          chip.textContent = p.f;
+          dd.appendChild(chip);
+        }
         var b = document.createElement(uri ? 'a' : 'b');
         if (uri) {
           b.href = p.v;
@@ -419,12 +434,6 @@
         }
         b.textContent = p.v;
         dd.appendChild(b);
-        if (i >= reachAt && reachAt >= 0) {
-          var chip = document.createElement('span');
-          chip.className = 'flag ' + p.f;
-          chip.textContent = p.f;
-          dd.appendChild(chip);
-        }
         dl.appendChild(dt);
         dl.appendChild(dd);
       });

@@ -686,13 +686,37 @@ REACH_ACTS = (
 # times rather than three opinions.
 REACH_NONE = "reach"
 
-# Every address form the model is allowed to ship, anchored end to end. A form is here or the
-# build stops; there is no list of exceptions and no way to add one from a call site.
-_REACH_FORMS = (
-    re.compile(r"^mailto:[a-z0-9_]+@invalid$"),
-    re.compile(r"^tel:\+0+$"),
-    re.compile(r"^https://meet\.invalid/[a-z0-9_]+$"),
-)
+# Every address form the model is allowed to ship, anchored end to end and keyed by the act it
+# belongs to. A form is here or the build stops; there is no list of exceptions and no way to add
+# one from a call site.
+#
+# THE PATTERNS ARE WRITTEN OUT AGAIN HERE RATHER THAN DERIVED FROM REACH_ACTS ABOVE, and that is
+# the whole value of them. The first draft of check_reach_addresses() rebuilt the expected string
+# by CALLING the table that writes them, which is a checker agreeing with itself: a plant that
+# changed the generator to `mailto:hr@invalid` passed the gate, because the gate asked the
+# generator what to expect and the generator said `mailto:hr@invalid`. A reserved domain stops
+# the message being delivered and does nothing at all about a local part that names a department
+# or a firm, so the rule has to be stated independently of the thing it judges.
+#
+# `who` IS THE OBJECT'S OWN DRAWING ID and it is compared against the node, not against the
+# table. That is what makes an address a fact about the object it sits on rather than a string
+# somebody typed: an id is already in this document and has already been through the name gate,
+# and nothing else is allowed at either end of the @.
+_REACH_FORMS = {
+    "reach_email":   re.compile(r"^mailto:(?P<who>[a-z0-9_]+)@invalid$"),
+    "reach_call":    re.compile(r"^tel:\+0+$"),
+    "reach_meeting": re.compile(r"^https://meet\.invalid/(?P<who>[a-z0-9_]+)$"),
+}
+
+# Three tables now say what the acts are: the vocabulary that ships, the generator, and the rule
+# that judges the generator. Writing the rule out twice is the point of it and a fourth act
+# reaching two of the three is not, so they are held to the same key set here. A missing form
+# would otherwise surface as a KeyError inside a gate, which is a gate that crashed rather than a
+# gate that refused, and the two read differently in a log.
+if not (set(REACH_ACT) == {_k for _k, _u in REACH_ACTS} == set(_REACH_FORMS)):
+    raise SystemExit(f"model: the acts a reader can be handed are declared three times and the "
+                     f"three do not agree: vocabulary {sorted(REACH_ACT)}, generator "
+                     f"{sorted(_k for _k, _u in REACH_ACTS)}, rule {sorted(_REACH_FORMS)}.")
 
 ROUTES = {}
 ROUTE_SAYS = {}
@@ -788,11 +812,14 @@ def reach_props(entry, nid, own):
                                         as an absence, and this model will not write an address
                                         onto a row it has just finished saying is empty.
 
-    THE SECOND CLAUSE IS AN INFERENCE AND IS LABELLED ONE HERE. What is established is that the
-    row records no employer; that it therefore records no address does not follow with certainty
-    and it is the reason the row is flagged `absent` rather than carrying an invented value. The
-    honest alternative was to give all twenty seven an address, and it was refused because it
-    makes the same claim about a row nobody has opened, in the direction that gets acted on.
+    THE SECOND CLAUSE IS A REFUSAL BY THIS MODEL AND NOT A FINDING ABOUT THE BUSINESS, and the
+    sentence it ships says so in those words. What is established is that the row records no
+    employer. That it therefore records no address does NOT follow, and a row reading "not
+    recorded" would be this page asserting something nobody has looked at, which is the one thing
+    the whole registry above exists to refuse. So what the row says is what is true: this model
+    declines to invent an address for a directory row it has just called empty. The honest
+    alternative was to give all twenty seven an address, and it was refused because that makes
+    the same unlooked-at claim in the direction a reader acts on.
 
     WHICH SIDE OF THE ABSENCE CONTROL EACH ONE LANDS ON IS NOT DECIDED HERE EITHER. site/app.js
     reads the class's `system` at the join: no system holds it, ghost grey; a system holds the
@@ -813,8 +840,9 @@ def reach_props(entry, nid, own):
                              f"{len(rows)} such row. The companion cannot be read, so the "
                              f"absence cannot be derived and would have to be guessed.")
         if rows[0]["f"] == A:
-            return [p(REACH_NONE, f"not recorded. The row that would carry one records no "
-                                  f"{field} either", A)]
+            return [p(REACH_NONE, f"none offered. The row that would carry one records no "
+                                  f"{field} either, and this model will not invent an address "
+                                  f"for a row it has just called empty", A)]
     return [p(_k, _uri(nid), D) for _k, _uri in REACH_ACTS]
 
 
@@ -4252,13 +4280,30 @@ def check_reach_addresses():
                     raise SystemExit(f"model: {_n['id']} carries a reach row {_row['k']!r}, "
                                      f"which is not one of {sorted(REACH_ACT)}. A key the "
                                      f"document does not define is an act nobody can read.")
-                if not any(_f.match(_row["v"]) for _f in _REACH_FORMS):
+                _hit = _REACH_FORMS[_row["k"]].match(_row["v"])
+                if not _hit:
                     raise SystemExit(
-                        f"model: {_n['id']} would hand a reader {_row['v']!r}. Every address "
-                        f"this page ships is at a name RFC 2606 reserves so that it can never "
-                        f"resolve, or is a number of zeros that can never connect. An address "
-                        f"that could be real is the one invented value on this page a reader "
-                        f"acts on before they read the flag beside it.")
+                        f"model: {_n['id']} would hand a reader {_row['v']!r} for "
+                        f"{_row['k']!r}. Every address this page ships is at a name RFC 2606 "
+                        f"reserves so that it can never resolve, or is a number of zeros that "
+                        f"can never connect. An address that could be real is the one invented "
+                        f"value on this page a reader acts on before they read the flag beside "
+                        f"it.")
+                # AND THE SHAPE IS NOT ENOUGH, WHICH IS THE HALF A PATTERN CANNOT SEE ON ITS OWN.
+                # An address at hr@invalid satisfies the form and names a department; one under
+                # meet.invalid ending in a firm's name satisfies it and names that firm. The
+                # reserved domain stops the message being delivered and does nothing whatever
+                # about what is written in front of it. So whatever the pattern captured has to
+                # be this object's own drawing id, compared against the NODE and never against
+                # the table that wrote the value.
+                _who = _hit.groupdict().get("who")
+                if _who is not None and _who != _n["id"]:
+                    raise SystemExit(
+                        f"model: {_n['id']} ships {_row['v']!r}, which names {_who!r}. An "
+                        f"address is built from the drawing id of the object it sits on and "
+                        f"from nothing a person typed: a local part or a path naming anything "
+                        f"else reads as somebody in particular however unreachable the domain "
+                        f"is, and on this page it would be naming the wrong somebody.")
                 seen += 1
     if not seen:
         raise SystemExit("model: no object on any view ships a way to reach it, so this rule "

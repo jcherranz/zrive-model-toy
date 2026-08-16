@@ -773,6 +773,17 @@
   //      list. This is not work, and calling it work is how a backlog comes to have ninety five
   //      items in it that nobody can ever burn down.
   //
+  // THE THREE FIGURES ABOVE ARE #139'S AND THEY MOVED AT ISSUE 157, which is recorded here rather
+  // than swept through the file because the arithmetic they illustrate is unchanged and because
+  // nothing below reads a literal: every number on the control is computed at the join and this
+  // block is the argument for the split, not a copy of the answer. #157 put a way to reach an
+  // object on every instructor and every firm, and the objects that have none say so in a row
+  // flagged `absent` like any other, so both populations grew through the machinery this block
+  // describes and neither changed its meaning. It is 27 and 95 now, 122 in all: five more on the
+  // left, four instructors whose directory row is empty and one of them drawn on two routes,
+  // where somebody can fill the row in; and twenty two more on the right, the employer firms,
+  // which have no company record at all and so have nowhere an address could sit.
+  //
   // THE TWO ARE NEVER ADJACENT TO A PLUS SIGN AND NEVER SHARE A COLOUR. They sit on one control
   // separated by a middle dot, each in its own hue, each carrying its own denominator in the same
   // fraction grammar the chips in the heading use: the left number is what falls inside what is
