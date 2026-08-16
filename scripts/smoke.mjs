@@ -13221,6 +13221,13 @@ const RING_MIN_RATIO = 3.0000;
 // AND THE GROUND IS THE ONE THE RING IS ACTUALLY ON. A node sits on a lane plate, the plate is
 // translucent since #133, and the composite is what a reader's eye meets, so it is computed the way
 // checkPlate computes it and out of the same three readings.
+//
+// WHAT THIS DOES NOT MEASURE, named rather than left for the next audit. It is a model of the paint
+// and not the paint: the width comes from the resolved declarations and the matrix, and the control
+// below shares that model, so neither can see a ring that is the right width and the right colour
+// and is then clipped, painted under something, or dropped by a forced-colours path. Those were
+// photographed by hand at 2560, 1536 and 390 in both schemes on the card that added this, and a
+// suite that wanted them held would need a pixel reading this file has no machinery for.
 const RING_READ = `(function () {
   var n = document.querySelector('#graph .node');
   if (!n) return JSON.stringify({ why: 'the drawing has no node to focus' });
@@ -13298,19 +13305,30 @@ const RAIL_READ = `(function () {
   if (!r) return JSON.stringify({ why: 'there is no scope rail on this page' });
   var was = r.scrollLeft;
   var max = r.scrollWidth - r.clientWidth;
+  function read() {
+    return { at: r.scrollLeft,
+             l: r.classList.contains('rail-more-l'),
+             rt: r.classList.contains('rail-more-r'),
+             mask: getComputedStyle(r).maskImage === 'none' ? 'none' : 'a gradient' };
+  }
+  // AS FOUND, BEFORE ANYTHING IS DRIVEN, AND THIS LINE IS THE WHOLE OF A FALSE GREEN CAUGHT ON THE
+  // DIFF. The first version of this read scrolled to zero and dispatched a scroll before taking the
+  // rest state, which is the page being ASKED to compute the answer. A build that wrote the classes
+  // only from the scroll listener, and therefore said nothing at all until a reader touched the
+  // rail, would have passed it: the one state that matters most, the state the page comes up in,
+  // was the one state not being observed.
+  var found = read();
   function at(x) {
     r.scrollLeft = x;
     // The class is written by a scroll listener, and setting scrollLeft from script fires it
     // asynchronously, so the state is recomputed here from the same three numbers rather than
     // waited on: what is being asserted is the rule, and a wait would be asserting the event loop.
     r.dispatchEvent(new Event('scroll'));
-    return { at: r.scrollLeft,
-             l: r.classList.contains('rail-more-l'),
-             rt: r.classList.contains('rail-more-r'),
-             mask: getComputedStyle(r).maskImage === 'none' ? 'none' : 'a gradient' };
+    return read();
   }
   var out = { why: '', overflow: max, width: r.clientWidth, content: r.scrollWidth,
-              rest: at(0), mid: max > 2 ? at(Math.round(max / 2)) : null, end: at(max) };
+              found: found, rest: at(0), mid: max > 2 ? at(Math.round(max / 2)) : null,
+              end: at(max) };
   r.scrollLeft = was;
   r.dispatchEvent(new Event('scroll'));
   return JSON.stringify(out);
@@ -13357,37 +13375,55 @@ async function checkRingAndRail(page) {
   // than only at the narrow one.
   const rail = JSON.parse(await page.evaluate(RAIL_READ));
   const fits = !rail.why && rail.overflow <= 1;
-  const ok = !rail.why && (fits
-    ? !rail.rest.l && !rail.rest.rt && rail.rest.mask === 'none'
-    : (!rail.rest.l && rail.rest.rt && rail.rest.mask === 'a gradient' &&
+  // The state AS FOUND is asserted first and it is the state a reader arrives on: the page has
+  // just loaded and nothing has scrolled anything. Then the driven states, which are what say the
+  // answer follows the geometry rather than being written once and left.
+  const ok = !rail.why && rail.found.at === 0 && (fits
+    ? !rail.found.l && !rail.found.rt && rail.found.mask === 'none' &&
+      !rail.rest.l && !rail.rest.rt && rail.rest.mask === 'none'
+    : (!rail.found.l && rail.found.rt && rail.found.mask === 'a gradient' &&
+       !rail.rest.l && rail.rest.rt && rail.rest.mask === 'a gradient' &&
        rail.end.l && !rail.end.rt && rail.end.mask === 'a gradient' &&
        (rail.mid === null || (rail.mid.l && rail.mid.rt))));
   assert('the scope rail says which way it continues, and says nothing where it continues neither way',
     ok,
-    fits ? 'a rail that fits, carrying no fade on either edge'
-         : 'a fade on the right at rest, on the left at the far end, and on both in between',
+    fits ? 'a rail that fits, carrying no fade on either edge, as found and when driven'
+         : 'a fade on the right as the page came up and at rest, on the left at the far end, and ' +
+           'on both in between',
     rail.why
       ? rail.why
-      : `${rail.content} px of chips in ${rail.width}: rest ` +
-        `${JSON.stringify(rail.rest)}, mid ${JSON.stringify(rail.mid)}, end ${JSON.stringify(rail.end)}`,
+      : `${rail.content} px of chips in ${rail.width}: as found ` +
+        `${JSON.stringify(rail.found)}, rest ${JSON.stringify(rail.rest)}, mid ` +
+        `${JSON.stringify(rail.mid)}, end ${JSON.stringify(rail.end)}`,
     fits ? `${rail.content} px of chips in ${rail.width}, nothing off either end`
          : `${rail.content} px of chips in ${rail.width}, ${rail.overflow} off the end`);
 }
 
-// The five facts a calendar chip carries, read off the rendered document rather than off the
-// title. `innerText` is deliberately not used: it answers what is PAINTED, and the whole point of
-// the span term.js writes is that it is in the document and not painted. So the visible spans are
-// found by their aria-hidden, and what is left is what a reader with a screen reader is read.
+// The five facts a calendar chip carries, read off what the accessibility tree would be handed
+// rather than off the title. `role` is read beside `aria-label` because a label without a role that
+// takes one is a label nobody is ever read: on a bare `div` the implicit role is `generic` and
+// naming it is prohibited, so a check that read the attribute alone would go green on a chip whose
+// name is discarded by every browser.
+//
+// AND WHAT IS PAINTED IS READ TOO, WHICH IS THE HALF THAT CAUGHT THE FIRST ATTEMPT AT THIS REPAIR.
+// The facts were carried by a 1x1 clipped span at first, and `clip-path` is invisible to
+// `innerText`, so feedback.js's capture descriptor would have quoted the whole sentence on top of
+// the words on the screen. `painted` is asserted to be the three spans and nothing else, which is
+// the claim that this repair added a name and not a second copy of the text.
 const CHIP_READ = `(function () {
   var chips = Array.prototype.slice.call(document.querySelectorAll('.cal-chip'));
   if (!chips.length) return JSON.stringify({ why: 'no calendar chip is on the screen' });
-  var wrong = [], wrongN = 0, sr = 0;
+  var wrong = [], wrongN = 0, named = 0, roled = 0, grew = 0;
   chips.forEach(function (c) {
-    var spoken = Array.prototype.slice.call(c.childNodes).filter(function (n) {
-      return !(n.nodeType === 1 && n.getAttribute('aria-hidden') === 'true');
-    }).map(function (n) { return n.textContent; }).join('').trim();
-    if (spoken) sr++;
-    if (spoken !== String(c.getAttribute('title') || '').trim()) {
+    var label = String(c.getAttribute('aria-label') || '').trim();
+    var title = String(c.getAttribute('title') || '').trim();
+    if (label) named++;
+    if (c.getAttribute('role') === 'img') roled++;
+    var painted = Array.prototype.slice.call(c.querySelectorAll('span'))
+      .map(function (e) { return e.textContent; }).join('');
+    if (String(c.innerText || c.textContent || '').replace(/\\s+/g, '') !==
+        painted.replace(/\\s+/g, '')) grew++;
+    if (!label || label !== title) {
       wrongN++;
       if (wrong.length < 3) wrong.push((c.textContent || '').slice(0, 24));
     }
@@ -13400,7 +13436,8 @@ const CHIP_READ = `(function () {
     mark = { style: a.borderLeftStyle, other: b.borderLeftStyle,
              colour: a.borderLeftColor !== b.borderLeftColor };
   }
-  return JSON.stringify({ why: '', n: chips.length, spoken: sr, wrongN: wrongN, wrong: wrong,
+  return JSON.stringify({ why: '', n: chips.length, named: named, roled: roled, grew: grew,
+                          wrongN: wrongN, wrong: wrong,
                           gaps: document.querySelectorAll('.cal-chip.cal-gap').length, mark: mark });
 })()`;
 
@@ -13540,18 +13577,21 @@ async function checkReach(page, base) {
   })()`);
   await page.waitFor(`document.querySelectorAll('.cal-chip').length > 0`, 'the month grid to draw');
   const chip = JSON.parse(await page.evaluate(CHIP_READ));
-  assert('every calendar chip says its five facts in the document, and a gap is marked otherwise than by colour',
-    !chip.why && chip.n > 0 && chip.spoken === chip.n && chip.wrongN === 0 &&
+  assert('every calendar chip says its five facts to a reader who is not hovering, and a gap is marked otherwise than by colour',
+    !chip.why && chip.n > 0 && chip.named === chip.n && chip.roled === chip.n &&
+      chip.wrongN === 0 && chip.grew === 0 &&
       chip.gaps > 0 && !!chip.mark && chip.mark.style !== chip.mark.other && chip.mark.colour,
-    'every chip carrying its whole row as text that is not aria-hidden, and the no-instructor ' +
-      'chips differing from the rest in something that is not a colour',
+    'every chip carrying its whole row as an accessible name on a role that takes one, painting ' +
+      'no more text than its three spans, and the no-instructor chips differing from the rest in ' +
+      'something that is not a colour',
     chip.why
       ? chip.why
-      : `${chip.spoken} of ${chip.n} chips speak, ${chip.wrongN} disagree with their own ` +
-        `title${chip.wrong.length ? ' (first: ' + chip.wrong.join(', ') + ')' : ''}, ` +
-        `${chip.gaps} gaps marked ${JSON.stringify(chip.mark)}`,
-    `${chip.n} chips, ${chip.gaps} of them gaps, marked ${chip.mark && chip.mark.style} against ` +
-      `${chip.mark && chip.mark.other}`);
+      : `${chip.named} of ${chip.n} chips carry a name and ${chip.roled} a role that takes one, ` +
+        `${chip.wrongN} disagree with their own title` +
+        `${chip.wrong.length ? ' (first: ' + chip.wrong.join(', ') + ')' : ''}, ${chip.grew} ` +
+        `paint more text than their spans, ${chip.gaps} gaps marked ${JSON.stringify(chip.mark)}`,
+    `${chip.n} chips named on a role, ${chip.gaps} of them gaps, marked ` +
+      `${chip.mark && chip.mark.style} against ${chip.mark && chip.mark.other}`);
   // AND THE SHAPE GOES BACK, WHICH IS NOT TIDINESS AND WAS FOUND BY BREAKING THREE PHASES WITH IT.
   // `shape` is term.js's own state and it outlives the sheet: closing the sheet does not reset it.
   // Left on `month`, the phases after this one opened #/calendar and waited twenty seconds for a

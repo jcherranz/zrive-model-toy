@@ -3728,21 +3728,6 @@ body.outline .term-table .term-no {
   overflow-wrap: anywhere;
 }
 
-/* WHAT A SCREEN READER GETS OFF A CHIP, ISSUE 170. term.js writes the row's whole sentence into
-   this span and marks the three painted spans aria-hidden beside it, so what is announced is one
-   copy of every field and is the same at 390 as at 2560, where before it was whatever the width
-   happened to be painting plus a `title` a phone cannot raise. `clip-path` and not `display: none`,
-   which would take it out of the accessibility tree as well, and not a negative text indent, which
-   leaves a real box the page can be scrolled sideways by. */
-.cal-sr {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
 .cal-time { font-weight: 700; color: var(--fg-body); }
 .cal-code { margin-left: 4px; color: var(--fg-muted); }
 .cal-title { display: block; color: var(--fg-body); }
@@ -3815,10 +3800,11 @@ body.outline .term-table .term-no {
      THE CLAUSE THAT FOLLOWED IT WAS THE DEFECT. It read "and the chip keeps its whole content in
      its own title attribute", which is true and is the whole of issue 170's fifth finding: a phone
      is the one device with no hover, so at exactly the width this rule is written for, the session
-     title sat in a tooltip that cannot be shown. What the chip keeps its content in now is a
-     `.cal-sr` span written by term.js, which is in the document at every width; and the sighted
-     reader's answer at this width is `list`, one press up on the shape bar, which draws all eight
-     fields as visible cells. */
+     title sat in a tooltip that cannot be shown. And `display: none` here takes it out of the
+     accessibility tree with it, so it was gone from both readings at once. What the chip keeps its
+     content in now is its own `aria-label`, written by term.js and the same at every width; and the
+     sighted reader's answer at this width is `list`, one press up on the shape bar, which draws all
+     eight fields as visible cells. */
   .cal-day { min-height: 38px; padding: 1px 2px; }
   .cal-chip { padding: 1px 2px; font-size: 9px; border-left-width: 2px; }
   .cal-title { display: none; }

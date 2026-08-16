@@ -1457,9 +1457,19 @@
       // The virtual band the two resize zones are measured against, which is the painted one at
       // every width the old gate admitted and a centred 24px stand-in below that. Issue 170.
       var hw = Math.max(bw, HANDLE * 3), hx = bx - (hw - bw) / 2;
+      // AND A ZONE THAT COULD NOT CHANGE ANYTHING IS NOT A ZONE, which is the one case the virtual
+      // band gets wrong on its own and it was found on the diff rather than by driving it. An edge
+      // can move two ways: outward, which the term's own end refuses, and inward, which one week
+      // refuses. Where both are refused the zone is dead, and on a one week band sitting on the
+      // first or last week of the term it lands on the 1.75px of track the virtual half width
+      // reaches inside the cap. Pressing there used to MOVE the band; without this it would select
+      // a resize, clamp, and do nothing at all, which is a reachability card taking a gesture away.
+      // A dead zone falls through to the move it displaced.
+      var canL = start > 0 || span > 1;
+      var canR = start + span < TERM.weeks || span > 1;
       var mode;
-      if (x >= hx - HANDLE / 2 && x <= hx + HANDLE) mode = 'left';
-      else if (x >= hx + hw - HANDLE && x <= hx + hw + HANDLE / 2) mode = 'right';
+      if (canL && x >= hx - HANDLE / 2 && x <= hx + HANDLE) mode = 'left';
+      else if (canR && x >= hx + hw - HANDLE && x <= hx + hw + HANDLE / 2) mode = 'right';
       else if (x >= bx && x <= bx + bw) mode = 'move';
       else {
         setBand(centreOn(weekAtX(x), span), span);
@@ -2233,24 +2243,36 @@
     // makes it worse at 390 by taking `.cal-title` off, which leaves a chip reading `18:30 Z-IB`
     // in 45.1 by 24.5 px and no way at all to learn which session it is.
     //
-    // THE STRING IS WRITTEN ONCE AND CARRIED THREE WAYS. `words` is the row, and the same text is
-    // the title for a mouse and a `.cal-sr` span for the accessibility tree. The three painted
-    // spans are `aria-hidden` beside it, so a reader is not read the time and the code twice and,
-    // more to the point, what is announced does not depend on which of the three the stylesheet
-    // happens to be painting at this width. Sighted and on a phone is the reader this still does
-    // not serve, and the answer for them is not a tooltip either: `list` and `review` are two of
-    // the four shapes of this same sheet, one press away on the bar above the grid, and both draw
-    // every one of these fields as a visible cell.
+    // THE STRING IS WRITTEN ONCE AND CARRIED TWICE, as the title for a mouse and as the chip's own
+    // accessible name for everything else. What is announced no longer depends on which of the
+    // three painted spans the stylesheet is showing at this width, which is the half of this a
+    // wide screen hid: `display: none` takes an element out of the accessibility tree as well as
+    // off the screen, so at 390 the session title was gone from both.
     //
-    // NOTHING HERE IS A CONTROL, AND THE PARAGRAPH ABOVE STANDS. No tabindex, no role, no press.
-    // Text in the document is not a target and costs no tab stop; 83 of them would be 83.
+    // WHY A ROLE HAS TO BE ON IT. `aria-label` on a bare `div` is ignored: the implicit role is
+    // `generic` and naming a generic element is prohibited, so the name has to hang off a role
+    // that takes one. `img` is the role for a cluster of marks that means one thing and is read as
+    // one thing, which is what a chip is, and it makes the label REPLACE the three spans in the
+    // reading rather than being read beside them.
+    //
+    // AND NOT A VISUALLY HIDDEN SPAN, WHICH IS WHAT THIS WAS FIRST. A 1x1 clipped span is real text
+    // in the document, `clip-path` is invisible to `innerText`, and feedback.js's `renderedText`
+    // IS `innerText`: a capture filed on a calendar chip would have quoted the whole sentence on
+    // top of the words on the screen. An attribute is read by the accessibility tree and by nothing
+    // else, which is exactly the reach this needs. Found on the diff by a second opinion, not by
+    // this file.
+    //
+    // The sighted phone reader is the one this still does not serve, and the answer for them is
+    // not a tooltip either: `list` and `review` are two of the four shapes of this same sheet, one
+    // press away on the bar above the grid, and both draw every one of these fields as a cell.
+    //
+    // NOTHING HERE IS A CONTROL, AND THE PARAGRAPH ABOVE STANDS. No tabindex, no press, and `img`
+    // is not an interactive role. 83 focus stops is what that paragraph refuses and this adds none.
     function chip(s) {
       var c = el('div', 'cal-chip' + (s.teacher !== 'yes' ? ' cal-gap' : ''));
-      ['cal-time', 'cal-code', 'cal-title'].forEach(function (k, i) {
-        var e = el('span', k, [s.time, s.code, s.title][i]);
-        e.setAttribute('aria-hidden', 'true');
-        c.appendChild(e);
-      });
+      c.appendChild(el('span', 'cal-time', s.time));
+      c.appendChild(el('span', 'cal-code', s.code));
+      c.appendChild(el('span', 'cal-title', s.title));
       // A TITLE IS TEXT AND OFF SCREEN IS NOT ABSENT, which is why the last clause of this string
       // is gone rather than left where only a hover finds it. Issue 110.
       var words = s.date + ' ' + s.time + ' · ' + s.code + ' · ' + s.title + ' · ' +
@@ -2258,7 +2280,8 @@
         (s.teacher === 'yes' ? 'instructor named' : 'no instructor named') +
         ' · attendance ' + s.attendance + ' · drawn as ' + s.id;
       c.title = words;
-      c.appendChild(el('span', 'cal-sr', words));
+      c.setAttribute('role', 'img');
+      c.setAttribute('aria-label', words);
       return c;
     }
 
