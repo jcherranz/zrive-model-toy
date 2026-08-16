@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T13:56:25Z",
+  "generated": "2026-08-16T14:18:05Z",
   "columns": [
     {
       "key": "raw",
@@ -63,14 +63,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
-        },
-        {
-          "id": 170,
-          "title": "A keyboard user cannot see where they are and a phone user cannot hit what they see",
-          "labels": [
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/170"
         },
         {
           "id": 195,
@@ -138,6 +130,14 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/171"
         },
         {
+          "id": 170,
+          "title": "A keyboard user cannot see where they are and a phone user cannot hit what they see",
+          "labels": [
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/170"
+        },
+        {
           "id": 169,
           "title": "Closing the term sheet rewrites the address, so a shared link draws a different programme",
           "labels": [
@@ -152,17 +152,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/168"
-        },
-        {
-          "id": 167,
-          "title": "Four surfaces render sampled programmes as complete, and one deletes half the term",
-          "labels": [
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/167"
         }
       ],
-      "hidden": 145,
+      "hidden": 146,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
