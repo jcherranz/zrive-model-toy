@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T00:41:09Z",
+  "generated": "2026-08-16T00:41:57Z",
   "columns": [
     {
       "key": "raw",
@@ -95,6 +95,38 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/168"
+        },
+        {
+          "id": 169,
+          "title": "Closing the term sheet rewrites the address, so a shared link draws a different programme",
+          "labels": [
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/169"
+        },
+        {
+          "id": 170,
+          "title": "A keyboard user cannot see where they are and a phone user cannot hit what they see",
+          "labels": [
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/170"
+        },
+        {
+          "id": 171,
+          "title": "The chip placer is near-cubic and there is a two-line fix proven output-identical",
+          "labels": [
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/171"
+        },
+        {
+          "id": 172,
+          "title": "No CSP on a public origin holding a PAT, and the last-line gate runs after the deploy",
+          "labels": [
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/172"
         }
       ]
     },
