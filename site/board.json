@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T11:52:24Z",
+  "generated": "2026-08-16T11:53:18Z",
   "columns": [
     {
       "key": "raw",
@@ -33,12 +33,6 @@
             "idea"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
-        },
-        {
-          "id": 196,
-          "title": "The two count gates return early with the vault absent, so the denominator of every fraction is unchecked on every CI run",
-          "labels": [],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/196"
         }
       ]
     },
@@ -62,6 +56,14 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/195"
+        },
+        {
+          "id": 196,
+          "title": "The two count gates return early with the vault absent, so the denominator of every fraction is unchecked on every CI run",
+          "labels": [
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/196"
         }
       ]
     },
