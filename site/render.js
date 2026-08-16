@@ -1594,7 +1594,7 @@
       var edgeBy = {}, edgeOrder = [];
       list.forEach(function (v) {
         v.drawing.edges.forEach(function (e) {
-          var k = e.s + ' ' + e.t + ' ' + e.v;
+          var k = e.s + '\u0000' + e.t + '\u0000' + e.v;
           if (edgeBy[k]) { edgeBy[k].n = Math.max(edgeBy[k].n, e.n || 1); return; }
           edgeBy[k] = { s: e.s, t: e.t, e: e, n: e.n || 1 };
           edgeOrder.push(k);

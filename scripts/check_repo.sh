@@ -455,6 +455,101 @@ scan_citations() {  # defsfile
 }
 
 # ---------------------------------------------------------------------------------------
+# THE NUL RULE. No tracked file carries a NUL byte.  Issue 184.
+#
+# WHY A BYTE IS WORTH A RULE. site/render.js carried two of them, written as literal 0x00 rather
+# than as the escape for the same character, inside `var k = e.s + ... + e.t + ... + e.v;`. The
+# string value was correct and the page was correct. What was not correct was every tool that
+# read the file afterwards, because a NUL is what the whole line-oriented toolchain uses to tell
+# text from data:
+#
+#   GNU grep calls the file binary. `grep -o PATTERN site/render.js` prints nothing and exits 1
+#   while `grep -c` on the same pattern answers 1. A match is found and not shown.
+#
+#   ugrep, which is what `grep` resolves to on at least one machine this repository is worked on,
+#   SKIPS the file outright: `grep -c` prints nothing, exits 1, and says nothing about why. The
+#   two implementations fail differently and both fail silently, which is worse than either.
+#
+#   `file` is not a witness either. It reported the pre-fix copy as "JavaScript source, ASCII
+#   text", NUL bytes and all, so the ordinary structural probe would have cleared it.
+#
+# So a `grep -r` over site/ returned a confident empty answer for the largest file in it, and
+# could not tell "no match" from "did not look". That is this repository's signature failure in
+# somebody else's tool, and it has already cost a card: the agent that shipped the
+# Content-Security-Policy scanned site/ for inline style and got a clean answer, while the one
+# thing a strict `style-src` breaks, the palette that render.js builds as a `<style>` element
+# from model data, sat in the file grep had declined to read. It was caught by redoing every scan
+# in Python and not by the scan that was run.
+#
+# WHAT THE RULE IS NOT. It is not a rule against using NUL as a separator, which is a sound
+# technique and is what `git ls-files -z` and the `while IFS= read -r` loops in this very file are
+# built on. It is a rule against writing one as a raw byte into a source file, where every escape
+# sequence in every language this repository holds says the same character in ASCII.
+#
+# THE WORKING TREE IS WHAT IS READ, and unlike the name rule there is no snapshot pass. The harm
+# is done to whatever reads the bytes on a disk, and every clone and every CI checkout produces
+# that disk from the commit, so in CI this loop IS reading what the repository carries. A NUL that
+# exists only as an uncommitted edit harms only the person who made it, and meets this gate on the
+# run after they commit it.
+NUL_FAILURES=0
+
+# Its own marker, for contrast_fail's reason: a reader skims the one word that says what to do
+# about a finding, and a raw control byte is neither forbidden content nor a dangling citation.
+nul_fail() {
+  FAILURES=$((FAILURES + 1))
+  NUL_FAILURES=$((NUL_FAILURES + 1))
+  echo "  [NUL] $*"
+}
+
+# The number of NUL bytes in one file, on stdout. It is the file's length minus its length with
+# every NUL deleted, which needs no interpreter and no regular expression and cannot itself be
+# confounded by the byte it is counting.
+#
+# IT RETURNS NON-ZERO RATHER THAN PRINTING 0 WHEN IT COULD NOT READ THE FILE, and the caller is
+# required to tell those two apart. A counter that answers "none" for a file it never opened is
+# the dead instrument this gate is made of assertions against.
+nul_bytes() {  # path
+  local total stripped
+  # The readability test is first so that a missing or unreadable path is answered by the return
+  # value rather than by the shell writing a redirection error into a log that is otherwise a
+  # list of verdicts. Both reads are still guarded: a file readable at this line and gone at the
+  # next is the same refusal, reached the same way.
+  [ -r "$1" ] || return 1
+  total="$( { wc -c < "$1"; } 2>/dev/null )" || return 1
+  stripped="$( { tr -d '\000' < "$1" | wc -c; } 2>/dev/null )" || return 1
+  [ -n "$total" ] && [ -n "$stripped" ] || return 1
+  echo $(( total - stripped ))
+}
+
+scan_nul() {
+  local f n read=0
+  while IFS= read -r f; do
+    [ -f "$f" ] || continue
+    if ! n="$(nul_bytes "$f")"; then
+      echo "ASSERTION FAILED: $f is tracked and its bytes could not be read." >&2
+      echo "  This rule reports on files it has read. It will not carry on and print a verdict" >&2
+      echo "  that silently excludes one, because a file nobody read is exactly where the byte" >&2
+      echo "  this rule is about would sit." >&2
+      exit 2
+    fi
+    read=$(( read + 1 ))
+    [ "$n" -eq 0 ] && continue
+    nul_fail "$f: $n raw NUL byte(s). Write the escape for the character instead."
+  done < <(git ls-files)
+  # The third state. Two files, zero files and an unreadable file are three different answers and
+  # only one of them is "clean". `assert_scan_inputs` makes the same refusal for the name rule and
+  # for the same reason, and it is repeated here rather than borrowed because this loop skips
+  # paths that are tracked and absent from the disk, so its own count is the only honest one.
+  [ "$read" -gt 0 ] || {
+    echo "ASSERTION FAILED: the NUL rule read no tracked file at all." >&2
+    echo "  Either git named none or every one of them was skipped. A rule handed nothing to" >&2
+    echo "  scan reports clean, which is the loudest lie it can tell." >&2
+    exit 2
+  }
+  echo "NUL bytes: $read tracked files read as bytes"
+}
+
+# ---------------------------------------------------------------------------------------
 # The contrast rule's machinery. Counted apart from the content findings and from the citation
 # findings for the same reason those two are counted apart from each other: the three want
 # different sentences at the end of a run. A name is removed from the tree and then reckoned
@@ -708,6 +803,7 @@ scan_repo() {
 
   citation_defs > "$WORKDIR/citation_defs"
   scan_citations "$WORKDIR/citation_defs"
+  scan_nul
 
   echo
   scan_contrast
@@ -750,7 +846,10 @@ raise SystemExit(1)' "$1" "$2" 2>/dev/null || true
 # distinction smoke.mjs draws between "the page has regressed" and "the suite could not answer".
 # A run that ALSO recorded a real MISS reports the MISS and exits 1, because evidence about the
 # gate beats a complaint about the harness.
-EXPECTED_PROBES=126
+# 126 until issue 184, whose NUL rule adds three: the byte is a finding, the same string written
+# with the escape is clean, and a file the rule could not read is refused. The third is the probe
+# that is worth having.
+EXPECTED_PROBES=129
 
 # How many cases build/model.py's stylesheet reader emits into the block below. Same argument,
 # and it lives here rather than in the emitter because here is where the cases are judged and
@@ -924,6 +1023,42 @@ self_test() {
   # could be legalised by writing the definition next to it.
   cite_probe "a definition written outside the two documents defines nothing" 'trip' \
         '`2026-08-10-no-such-entry` &middot; 2026-08-10 ... and see `2026-08-10-no-such-entry`'
+
+  # ---- the NUL rule, issue 184 -------------------------------------------------------------
+  # Three states and one probe each, because the sensor under scan_nul is the piece that can be
+  # wrong while looking right. `nul_bytes` prints a count or refuses; what it must never do is
+  # print 0 for a file it did not open, which is how the byte it is about got into this
+  # repository under a clean gate in the first place. The payloads are written with printf and a
+  # `\000` rather than being copied out of a source file, so no fixture in the tree has to carry
+  # the byte for this suite to prove the rule sees one.
+  nul_probe() {  # name expect path      expect: clean | finding | refused
+    local name="$1" expect="$2" path="$3" got n
+    total=$((total + 1))
+    if n="$(nul_bytes "$path")"; then
+      if [ "$n" -eq 0 ]; then got=clean; else got=finding; fi
+    else
+      got=refused
+    fi
+    if [ "$got" = "$expect" ]; then
+      echo "  [OK]   $name"
+      pass=$((pass + 1))
+    else
+      echo "  [MISS] $name: wanted $expect, got $got"
+    fi
+  }
+
+  printf 'var k = a + \000 + b;\n' > "$tmp/withnul.js"
+  printf 'var k = a + \\u0000 + b;\n' > "$tmp/withescape.js"
+
+  echo
+  echo "self-test: a raw NUL byte in a file is a finding, and an unreadable file is not a pass"
+  nul_probe "a raw NUL byte in a source line"                  finding "$tmp/withnul.js"
+  # The control, and it carries the whole point of the card: the SAME string, said with the
+  # escape, is clean. Without it the rule could be wedged shut and every probe above would still
+  # be green.
+  nul_probe "the same string written with the escape instead"  clean   "$tmp/withescape.js"
+  nul_probe "a file the rule could not read is refused, not reported clean" \
+        refused "$tmp/there-is-no-such-file"
 
   # The contrast rule is proved against synthetic rows for the same reason the other two rules
   # are proved against synthetic inputs: a probe that read the real palette would start passing
@@ -1730,7 +1865,7 @@ main() {
     exit 0
   fi
 
-  local content=$((FAILURES - CITATION_FAILURES - CONTRAST_FAILURES))
+  local content=$((FAILURES - CITATION_FAILURES - CONTRAST_FAILURES - NUL_FAILURES))
   if [ "$content" -gt 0 ]; then
     echo "VERDICT: FORBIDDEN CONTENT IS COMMITTED ($content findings)"
     echo "Remove it from the working tree first; then decide what the history needs."
@@ -1738,6 +1873,11 @@ main() {
   if [ "$CITATION_FAILURES" -gt 0 ]; then
     echo "VERDICT: $CITATION_FAILURES citation(s) name an entry that does not exist"
     echo "Cite the slug the entry carries, or add the entry the citation was written about."
+  fi
+  if [ "$NUL_FAILURES" -gt 0 ]; then
+    echo "VERDICT: $NUL_FAILURES tracked file(s) carry a raw NUL byte"
+    echo "Write the escape sequence for the character instead. The string value is unchanged and"
+    echo "the file goes back to being text, which is what decides whether grep reads it at all."
   fi
   if [ "$CONTRAST_FAILURES" -gt 0 ]; then
     echo "VERDICT: $CONTRAST_FAILURES type colour(s) are under $CONTRAST_MIN on the plate they"
