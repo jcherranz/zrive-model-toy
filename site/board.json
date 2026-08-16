@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-15T23:40:24Z",
+  "generated": "2026-08-16T00:22:11Z",
   "columns": [
     {
       "key": "raw",
@@ -14,6 +14,16 @@
             "limitation"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/5"
+        },
+        {
+          "id": 6,
+          "title": "The safety gate cannot enumerate the origin, only the files the tree knows about",
+          "labels": [
+            "constraint",
+            "documentation",
+            "limitation"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
         },
         {
           "id": 144,
@@ -68,17 +78,6 @@
       "key": "in_progress",
       "title": "In progress",
       "cards": [
-        {
-          "id": 6,
-          "title": "The safety gate cannot enumerate the origin, only the files the tree knows about",
-          "labels": [
-            "constraint",
-            "documentation",
-            "limitation",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
-        },
         {
           "id": 132,
           "title": "Let's go and try once again with the panel of control header, I need…",
