@@ -711,6 +711,25 @@ PY
 # it reads the 192 addresses the drawings ship and needs no corpus, so it is always verified, and
 # it is on the roster because a gate this file cannot read is a gate this file cannot report on
 # whether or not it has a corpus to lose.
+#
+# AND A HAND-MAINTAINED LIST IS THE RIGHT ANSWER HERE AND WAS THE WRONG ONE FOR CI, which is worth
+# writing down because the two look identical and are not. R4(e) of the same audit is about the
+# workflows re-enumerating scripts/verify.sh's steps, and the defect there is not that a list was
+# written by hand: it is that there were TWO lists of one thing with nothing joining them, so a
+# divergence was silent, sat from issue 103 until the audit, and was found by a reader.
+#
+# This is ONE list, and the thing it must correspond to is asked of the source on every run. It is
+# therefore a relation and it is checked in both directions: a name that answers nothing aborts,
+# and a notice from a name not on the list aborts. A divergence is loud on the first run after it
+# appears, and that is measured rather than argued: issue 157 added the sixth gate about half an
+# hour before this roster's first CI run, and that run aborted at exit 2 naming `reach` instead of
+# reporting on five gates out of six.
+#
+# So the rule, said once for the next reader: a hand-written constant is safe when it is a
+# TERMINATOR, checked against the run's own reading of reality so that being wrong is loud. It is
+# unsafe when it is a COPY, a second statement of something nobody compares. EXPECTED_DRAWINGS,
+# EXPECTED_PROBES, the smoke suite's EXPECTED_ASSERTIONS and its address count are terminators.
+# The workflows' command list was a copy.
 EXPECTED_MODEL_GATES='ontology registry|syllabus totals|module structure|reach|session templates|session agendas'
 
 # Filled in by run_census below and read by verdict(). Zero is the state where every gate looked.
