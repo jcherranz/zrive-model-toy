@@ -15,9 +15,20 @@
 # [SKIP] IS NOT [OK], AND IS PRINTED DIFFERENTLY FOR THAT REASON. Three of these steps cannot run
 # in full everywhere: build/safety_grep.py reads the faculty register out of the vault, the smoke
 # suite against the origin has no second copy of the bytes to read when nothing is published, and
-# the build gate runs five sub-gates that re-read a corpus, three of which go quiet where there
-# is none. A skipped step is named in the summary with its reason, so a clean run that skipped
-# two things cannot be read as a clean run that did nine.
+# the build gate runs sub-gates that re-read a corpus, three of which have none to read where the
+# vault and the analysis repository are not on the machine. A skipped step is named in the summary
+# with its reason, so a clean run that skipped two things cannot be read as a clean run that did
+# nine.
+#
+# AND THE THIRD OF THOSE HAS STOPPED BEING A SKIP, which is issue 196 and is written here because
+# this paragraph would otherwise describe a machine that no longer exists. Those three gates now
+# check their declared tables against build/corpus_reading.txt, an attestation a machine holding
+# the corpus wrote, and a table edited without the corpus refuses the build instead of passing.
+# So the build gate exits 0 on a runner and this file renders it [OK]. What that [OK] does NOT
+# say is that a corpus was read: check_build.sh prints, under its own verdict, which gates checked
+# a recording rather than a corpus and the one thing a recording cannot see. Exit 3 stays wired
+# below, because the state it names is still reachable: delete the attestation and the gates go
+# back to looking at nothing, and that has to read differently from a run where they did not.
 #
 # AND THE DOCTRINE WAS NOT APPLIED TO THE GATES GUARDING THE ARITHMETIC, which is issue 168 R4(a)
 # and the audit's verdict finding pointed at this file. The build gate is the one step whose
