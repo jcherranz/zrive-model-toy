@@ -1689,11 +1689,43 @@ body.fb-mode #canvas { cursor: crosshair; }
 .node .focus-frame { fill: none; stroke: none; }
 
 /* Keyboard focus, and nothing else, gets a mark: a reader tabbing through the drawing has to be
-   able to see where they are, and a mouse click does not match :focus-visible. Kept faint, so
-   arriving at a node does not read as having chosen it. */
+   able to see where they are, and a mouse click does not match :focus-visible.
+
+   THIS RULE SAID "KEPT FAINT" AND IT DELIVERED NOTHING AT ALL. Issue 170, and it is one of this
+   repository's own recurring defects met on a third element: a number written in the units of the
+   thing rather than in the units of the reader. `stroke-width: 1` on a rect inside `#graph` is one
+   USER unit, and #graph carries the canvas matrix, so what a reader gets is one unit times the
+   scale. Measured at 1536 by 839 at the fit the page opens on, `getScreenCTM().a` is 0.1721 and
+   the ring painted at 0.1721 CSS px. That is not a faint ring, it is an antialiased tint: read off
+   a 1x screenshot it moved 85 of 960 pixels from rgb(249,251,252) to rgb(241,245,250), a contrast
+   of 1.05 to 1 against the plate. Six presses of zoom in reach 0.87px. Every node in the drawing
+   is focusable, so this was the whole of the keyboard's evidence of where it was, on 186 of the
+   206 focus stops a 390px screen has.
+   `.capbtn-frame` twelve rules up never had this defect and shows why: render.js puts it inside a
+   group carrying `scale(1/k)`, so one unit in there is already one CSS px. The frame here is a
+   direct child of the node's own group and has no such correction, and adding one would be a
+   second copy of a mechanism.
+
+   THREE CHANGES AND EACH IS A MEASUREMENT. `vector-effect: non-scaling-stroke` takes the stroke
+   out of the matrix, so the width below is CSS px at every zoom and at every viewport, which is
+   the unit a reader's eye is in. Two of them rather than one, which is WCAG 2.2 SC 2.4.13's own
+   floor for a focus indicator and is what `.capbtn:focus` on this same drawing already uses. And
+   an OPAQUE token: `--rule-select` is `rgba(45, 114, 210, 0.45)`, which composites over the lane
+   plate to rgb(158, 189, 233) and 1.8535 to 1, under the 3 to 1 SC 1.4.11 asks of a non-text
+   indicator and under the 3.0000 this repository's own plate gate holds a surface to.
+   `--i-primary` is the same hue with nothing taken off it: 4.5558 to 1 on the light plate and
+   4.8112 to 1 on the dark one, and it is the colour every other focus ring in this stylesheet is
+   already drawn in, so the drawing stops being the one place the keyboard is marked differently.
+
+   WHAT "FAINT" WAS PROTECTING IS PROTECTED BY THE SELECTOR AND NOT BY THE WIDTH. The sentence
+   above worried that arriving at a node would read as having chosen it. Selection is the tile
+   inverting, the label going bold and the rest of the drawing dimming, which is three statements
+   this ring is none of; and the rule is :focus-visible, so a mouse click never raises it. A ring
+   nobody can see is not a quiet ring. */
 .node:focus-visible .focus-frame {
-  stroke: var(--rule-select);
-  stroke-width: 1;
+  stroke: var(--i-primary);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
 }
 
 /* A forced colours mode replaces the stroke above with the reader's own palette and can leave
