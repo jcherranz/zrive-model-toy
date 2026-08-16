@@ -605,3 +605,23 @@ build on a cited slug that resolves to nothing.
   the assertion reads the length back out of the `d` the page painted rather than knowing it, so a
   card that changes the triangle and forgets the rotation fails instead of quietly moving what the
   check is measured against.
+- `kaizen-spacing-is-a-fact-about-the-painted-shape` &middot; **A stroke straddles the edge it is
+  drawn on, so the shape a reader sees is wider than the shape the geometry specifies, and any
+  spacing computed against the specification closes by the width of the stroke.** Issue 139 stepped
+  its rings 5.4 apart against a radius of 2.1 and reasoned that 2.57 radii was the smallest spacing
+  at which four of them read as four; the stylesheet then gave each ring a stroke of 1.1, which put
+  the painted diameter at 5.3 and left **a tenth of a unit** of daylight, and the row painted as one
+  smear at every scale the drawing is framed at. The number was never wrong for the shape it was
+  computed for. **The general form: geometry and stylesheet each hold half of what a reader sees,
+  and a distance that matters visually has to be computed over both halves.** The check that catches
+  it measures the gap off the rendered elements and derives what it must be from the stroke the
+  browser resolved, so the stylesheet and the layout cannot drift apart again in silence.
+- `kaizen-the-answer-to-is-this-aligned-can-be-yes` &middot; **A card that asks a question is
+  allowed to be answered, and the answer is worth shipping as an assertion even when nothing moves.**
+  Issue 155 asked whether a ring was aligned; it was, to four decimals, at three widths, for every
+  ring count. Three named candidates were all falsified and the tile the card was filed on was not
+  touched. What made the card worth its width was that the same measurement, taken over every tile
+  rather than the one that was pointed at, found a different defect on the same feature, and that
+  the question itself became a standing claim rather than a measurement somebody took once. **A
+  triage that turns out to be wrong is not a wasted card; measuring beyond the tile that was
+  pointed at is what turns it into a good one.**
