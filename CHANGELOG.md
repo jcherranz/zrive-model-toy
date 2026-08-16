@@ -122,7 +122,9 @@ of what changed and when, and it is meant to be scannable.
   box comparisons to 3874779 and two programmes at the sessions altitude from 7067670 to 637730.
   **Nothing about the picture moved and that is the headline rather than a side condition:** all
   fourteen drawing digests are unchanged, `site/instance.js` and `site/layout.js` rebuild byte for
-  byte, and every chip in 240 browser states, 90772 chips in all, is at the coordinate it was at.
+  byte, and every verb chip in 240 browser states, 45386 chip boxes in all, is at the coordinate
+  it was at, against `render.js` at HEAD and again against a copy carrying the concat repair
+  but not the prune.
   Two budget assertions are added to `scripts/smoke.mjs`, **in box comparisons and not in
   milliseconds**, because a wall clock on a shared runner is a fact about the runner.
 - **A SOURCE FILE THIS REPOSITORY COULD NOT GREP, #184.** `site/render.js` carried two raw NUL bytes,
