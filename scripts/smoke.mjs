@@ -287,7 +287,7 @@ const PHASES = {
   'the view selector':    { count: 6, when: 'behavioural' },
   'the control panel':    { count: 9, when: 'behavioural' },
   'the plate':            { count: 6, when: 'behavioural' },
-  'the outline':          { count: 6, when: 'behavioural' },
+  'the outline':          { count: 8, when: 'behavioural' },
   'canvas':               { count: 7, when: 'behavioural' },
   'capture':              { count: 15, when: 'behavioural' },
   'board':                { count: 13, when: 'behavioural' },
@@ -565,7 +565,7 @@ const PHASES = {
 // assertion is repaired in the same commit rather than counted again: its three arrivals were
 // fragment navigations that built no document, so the union it called `read cold` was the scope the
 // page had been constructed with, and it reloads now.
-const EXPECTED_ASSERTIONS = 291;
+const EXPECTED_ASSERTIONS = 293;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -2526,11 +2526,29 @@ const TERM_READ = `(function () {
     agendaRows: ag.length,
     agendaLines: document.querySelectorAll('#termrows .agenda-line').length,
     // Badges PRINTED in the block, which is a different question from the flag each line carries
-    // in the document and is counted here because issue 110 wants the answer to be none. It was
-    // agendaUnflagged, a count of lines whose printed badge did not read dummy, and that field
-    // could only ask its question while there was a badge to read. No backtick anywhere in this
+    // in the document. Issue 110 wanted the answer to be none and ISSUE 148 WANTS IT TO BE ALL OF
+    // THEM, so the field that could only ask its question while there was a badge to read is back
+    // and asks it: how many lines carry no badge at all, and what the badges that are there say.
+    // A count of badges alone would pass on a block that badged one line and left the other three
+    // quotable, which is the state device three exists to prevent. No backtick anywhere in this
     // comment: the driver around it is a template literal and one would end the string.
     agendaBadges: document.querySelectorAll('#termrows .agenda-line .flag').length,
+    agendaUnbadged: Array.prototype.slice.call(
+      document.querySelectorAll('#termrows .agenda-line')).filter(function (li) {
+        return !li.querySelector('.flag');
+      }).length,
+    agendaBadgeWords: (function () {
+      var seen = {};
+      Array.prototype.forEach.call(
+        document.querySelectorAll('#termrows .agenda-line .flag'), function (b) {
+          seen[b.textContent.trim()] = 1;
+        });
+      return Object.keys(seen);
+    })(),
+    // And the crop-proof sentence, counted per block rather than read once: a note on the first
+    // block and none on the other 82 is a block a reader can crop.
+    agendaBlocksSeen: document.querySelectorAll('#termrows .agenda-box').length,
+    agendaNotes: document.querySelectorAll('#termrows .agenda-box > .agenda-note').length,
     agendaNote: (function () {
       var p = document.querySelector('#termrows .agenda-note');
       return p ? p.textContent : null;
@@ -2762,6 +2780,22 @@ const TERM_READ = `(function () {
 // board is a repository issue whose title was written by somebody else and is quoted, and this
 // suite's own board fixture is written by this file. Sweeping either would make the guard fail on
 // text that is not the page's statement about itself, and a guard that cries wolf is turned off.
+//
+// ---- AND ONE EXEMPTION, NAMED, WITH THE ASSERTION THAT PAYS FOR IT, ISSUE 148 -----------------
+// `.agenda-box` is the one place on this page where a statement about the standing of the content
+// is REQUIRED rather than forbidden, and after this card it is the only place that carries one.
+// The rule this guard enforces came from issues 110 and 115 and was about a page telling a reader
+// over and over that the whole artefact is a toy; #148 is the opposite case and the owner's own
+// reversal, that invented PROSE about what happens inside a session is indistinguishable from
+// curriculum design and has to be marked on the line so it cannot be cropped away.
+//
+// THE EXEMPTION IS A SUBTREE AND NOT A WORD, so a statement anywhere else on the page, in any of
+// the vocabulary, in text or in any of the eight attributes, on any of the addresses, in any of
+// the shapes, is still a finding. And it is not a hole: what the sweep stops asserting inside
+// that block, the assertion above asserts in the other direction and more strictly, that every
+// line of every block carries a badge and every block carries the note. A subtree this guard
+// ignores and nothing else checks would be a hole; this one is checked twice as hard.
+const STANDING_EXEMPT = '.agenda-box';
 const STANDING_WORDS =
   /invent|fictit|fictic|ficción|ficcion|fabricat|placeholder|made up|make believe|not real|no es real|dummy|fake|falso|synthetic|simulated|imaginar/i;
 
@@ -2780,8 +2814,10 @@ const STANDING_READ = `(function () {
   function look(where, text) {
     if (text && HITS.test(text)) out.push(where + ' :: ' + String(text).trim().slice(0, 90));
   }
+  var EXEMPT = ${JSON.stringify(STANDING_EXEMPT)};
   Array.prototype.forEach.call(document.querySelectorAll('*'), function (e) {
     if (SKIP[e.nodeName]) return;
+    if (e.closest && e.closest(EXEMPT)) return;
     if (e.children.length === 0) look(name(e) + ' text', e.textContent);
     ATTRS.forEach(function (a) {
       if (e.hasAttribute && e.hasAttribute(a)) look(name(e) + ' @' + a, e.getAttribute(a));
@@ -3424,9 +3460,9 @@ async function checkTerm(page) {
 
   assert('no statement anywhere on the page about the standing of the content',
     standing.length === 0 && cal.inventedInSheet.length === 0 && cal.inventedInFooter === 0,
-    `nothing matching ${STANDING_WORDS} in the text or the attributes of any element, on any ` +
-      `of the ${standingRoutes.length} addresses the page publishes, in every shape each of ` +
-      'them offers',
+    `nothing matching ${STANDING_WORDS} in the text or the attributes of any element outside ` +
+      `${STANDING_EXEMPT}, on any of the ${standingRoutes.length} addresses the page publishes, ` +
+      'in every shape each of them offers',
     `${standing.length} on the sweep ${JSON.stringify(standing.slice(0, 6))}, ` +
       `${cal.inventedInSheet.length} in the sheet ${JSON.stringify(cal.inventedInSheet)}, ` +
       `${cal.inventedInFooter} in the footer`);
@@ -3817,35 +3853,52 @@ async function checkTerm(page) {
   const agState = await page.evaluate('window.ZT.term()');
   // A COMPOUND ASSERTION SPLIT, AND ONLY THE HALF WHOSE SUBJECT IS GONE WAS DROPPED. It read: one
   // block under each row, every line carrying the printed flag `dummy`, and a note on the face of
-  // the block saying what the lines are. The note is deleted under the owner's instruction of
-  // 12 August, issue 110, and so is the badge that printed the flag, so both of those clauses now
-  // have nothing to read. The FLAG ITSELF is not gone and neither is this check on it: `f` and `r`
-  // are still on every one of these rows, term.js publishes the set of tokens present for exactly
-  // this reason, and the assertion holds them to the closed vocabulary the model gates. So the
-  // clause about the data survives, the clause about the printing is turned around to demand the
-  // absence, and the note's clause is the only thing removed. One assertion in, one assertion out,
-  // and no drop in what is measured about the fields.
+  // the block saying what the lines are. The note was deleted under the owner's instruction of
+  // 12 August, issue 110, and so was the badge that printed the flag, so both of those clauses
+  // lost their subject and the assertion was turned around to demand the absence.
+  //
+  // ISSUE 148 TURNS IT BACK, AND IT IS THE OWNER REVERSING HIS OWN INSTRUCTION WITH A REASON.
+  // "this outlines are important and will play a crucial role in the near future", which makes
+  // invented prose that is visually indistinguishable from published curriculum and survives a
+  // screenshot with nothing attached the state to avoid rather than an untidiness. app.css named
+  // four devices keeping the two registers apart and two of them stopped existing at #108 while
+  // the comment went on naming four; both are back.
+  //
+  // WHAT IS ASSERTED IS STRICTLY MORE THAN EITHER VERSION ASKED. Not that badges exist, which a
+  // block badging one line of four would satisfy while leaving three quotable, but that NO line is
+  // unbadged; not that a note exists, which one note on the first of 83 blocks would satisfy, but
+  // that every block carries one; and that what the badges print is the closed vocabulary the
+  // model gates rather than a word this page chose. The clause about the data is untouched.
   //
   // THE LINE COUNT IS THE MODEL'S TOTAL AND NOT rows TIMES A CONSTANT, which is issue 108: there
   // are 83 lists of three or four now rather than one list drawn 83 times, so the old product
   // would be an assertion that the page draws the same block everywhere. `agendaBlocks` is the
   // claim that replaces it, being how many DIFFERENT blocks the templates in scope carry.
-  assert('every line of the outline carries its provenance fields, and nothing on the page prints them',
+  const FLAG_WORDS = ['dummy', 'estimated', 'absent', 'real'];
+  assert('every line of the outline carries its provenance fields, and every line prints one',
     agOn.agendaRows === agOn.rows &&
       agOn.agendaLines === agState.agendaLines &&
       agState.agendaBlocks === agOn.rows &&
       agState.agendaFlags.length > 0 &&
-      agState.agendaFlags.every(f => ['dummy', 'estimated', 'absent', 'real'].indexOf(f) !== -1) &&
+      agState.agendaFlags.every(f => FLAG_WORDS.indexOf(f) !== -1) &&
       agState.agendaRanks.length > 0 &&
       agState.agendaRanks.every(r => /^\d_/.test(r)) &&
-      agOn.agendaBadges === 0 &&
-      !(agOn.agendaNote || '').trim(),
+      agOn.agendaBadges === agOn.agendaLines &&
+      agOn.agendaUnbadged === 0 &&
+      agOn.agendaBadgeWords.length > 0 &&
+      agOn.agendaBadgeWords.every(w => FLAG_WORDS.indexOf(w) !== -1) &&
+      agOn.agendaBlocksSeen === agOn.rows &&
+      agOn.agendaNotes === agOn.agendaBlocksSeen &&
+      STANDING_WORDS.test(agOn.agendaNote || ''),
     `one block under each of the ${agOn.rows} rows, ${agState.agendaBlocks} of them different, ` +
-      `every line carrying a flag from the closed vocabulary and a rank, no badge printed and ` +
-      'no note',
+      `every line carrying a flag from the closed vocabulary and a rank, a badge on every one of ` +
+      `the ${agOn.agendaLines} lines printing that flag, and a note on every block`,
     `${agOn.agendaRows} blocks, ${agOn.agendaLines} lines, flags ` +
       `${JSON.stringify(agState.agendaFlags)}, ranks ${JSON.stringify(agState.agendaRanks)}, ` +
-      `${agOn.agendaBadges} badges, note ${JSON.stringify((agOn.agendaNote || '').slice(0, 90))}`);
+      `${agOn.agendaBadges} badges reading ${JSON.stringify(agOn.agendaBadgeWords)}, ` +
+      `${agOn.agendaUnbadged} unbadged line(s), ${agOn.agendaNotes} note(s) on ` +
+      `${agOn.agendaBlocksSeen} block(s), note ` +
+      JSON.stringify((agOn.agendaNote || '').slice(0, 90)));
   await page.evaluate(`document.querySelector('.agenda-toggle').click()`);
   await page.waitFor('window.ZT.term().agenda === false', 'the agenda to be switched off again');
 
@@ -8221,6 +8274,100 @@ const OUTLINE_READ = `(function () {
   });
 })()`;
 
+// ---- the numbering, issue 148, rebuilt out of window.GI by a second implementation -------------
+// WHAT THE PAGE PAINTS, read as three lists of strings in document order and nothing else: the
+// number on each programme heading, on each module heading and on each opened block. Read off the
+// rendered rows rather than off any list term.js keeps, so a page that computed the numbers right
+// and painted them in the wrong cells fails here.
+const NUMBER_PAINTED = `(function () {
+  var g = [], m = [], b = [];
+  Array.prototype.forEach.call(
+    document.querySelectorAll('#termrows tbody tr'), function (tr) {
+      var n = tr.querySelector('.term-no');
+      if (tr.classList.contains('term-group')) g.push(n ? n.textContent : null);
+      else if (tr.classList.contains('term-module')) m.push(n ? n.textContent : null);
+      else if (tr.classList.contains('term-agenda')) {
+        var a = tr.querySelector('.agenda-note .agenda-no');
+        b.push(a ? a.textContent : null);
+      }
+    });
+  return JSON.stringify({ groups: g, modules: m, blocks: b });
+})()`;
+
+// AND WHAT THE NUMBERS SHOULD BE, DERIVED HERE FROM THE INSTANCE DOCUMENT AND FROM NOTHING ELSE.
+// This is a second implementation of the walk buildOutline() does: the views in the order the
+// document lists them, the SessionTemplate nodes of each view in the order that view lists them,
+// grouped by the `module_name` row with the `absent` flag making a group of its own, first seen
+// first. It reads window.GI and never window.ZT, so an outline that numbered itself off its own
+// painted rows would agree with itself and disagree with this.
+//
+// THE SCOPE IS AN ARGUMENT because the page's numbering is scope relative: `#/outline/ZSC` is a
+// document of one programme and its modules are 1.1 to 1.6. A driver that recomputed the unscoped
+// numbers and compared them against a scoped page would be asserting the wrong claim, and one that
+// only ever looked at the unscoped outline would never see the difference at all.
+const NUMBER_MODEL = `(function (scopeKey) {
+  var g = [], m = [], b = [];
+  window.GI.views.forEach(function (v) {
+    if (scopeKey && v.key !== scopeKey) return;
+    var gi = g.length + 1;
+    g.push(gi + '.');
+    var order = [], byKey = {};
+    v.nodes.forEach(function (n) {
+      if (n.type !== 'SessionTemplate') return;
+      var row = null;
+      (n.props || []).forEach(function (p) { if (p.k === 'module_name' && !row) row = p; });
+      var absent = !!(row && row.f === 'absent');
+      var key = absent ? '\\u0000none' : String(row ? row.v : null);
+      if (!byKey[key]) { byKey[key] = []; order.push(key); }
+      byKey[key].push(n.id);
+    });
+    order.forEach(function (key, mi) {
+      m.push(gi + '.' + (mi + 1) + '.');
+      byKey[key].forEach(function (id, ri) {
+        b.push({ id: id, no: gi + '.' + (mi + 1) + '.' + (ri + 1) });
+      });
+    });
+  });
+  return JSON.stringify({ groups: g, modules: m, blocks: b });
+})`;
+
+// The paint under the agenda block, walked up until something is not transparent, and the badge on
+// its lines. This is the measurement that pays for issue 148's trade: the block gave up the ground
+// that used to set it apart and the mark that replaces it has to be legible where it now sits.
+const AGENDA_PAINT = `(function () {
+  var box = document.querySelector('#termrows .agenda-box');
+  if (!box) return JSON.stringify({ box: null });
+  function groundOf(el) {
+    var e = el;
+    while (e) {
+      var bg = getComputedStyle(e).backgroundColor;
+      if (bg && bg !== 'rgba(0, 0, 0, 0)') return bg;
+      e = e.parentElement;
+    }
+    return null;
+  }
+  var lines = Array.prototype.slice.call(document.querySelectorAll('#termrows .agenda-line'));
+  var badges = lines.map(function (li) { return li.querySelector('.flag'); });
+  var one = badges.filter(Boolean)[0] || null;
+  var note = document.querySelector('#termrows .agenda-note');
+  var title = document.querySelector('#termrows .term-table td.r-title .rowdisc');
+  return JSON.stringify({
+    box: { ownBg: getComputedStyle(box).backgroundColor, ground: groundOf(box),
+           shadow: getComputedStyle(box).boxShadow,
+           x: box.getBoundingClientRect().x },
+    titleX: title ? title.getBoundingClientRect().x : null,
+    lines: lines.length,
+    unbadged: badges.filter(function (b) { return !b; }).length,
+    badge: one ? { text: one.textContent, color: getComputedStyle(one).color,
+                   bg: getComputedStyle(one).backgroundColor,
+                   size: getComputedStyle(one).fontSize } : null,
+    note: note ? { text: note.textContent, color: getComputedStyle(note).color,
+                   size: getComputedStyle(note).fontSize } : null,
+    lineSize: lines.length ? getComputedStyle(lines[0]).fontSize : null,
+    lineStyle: lines.length ? getComputedStyle(lines[0]).fontStyle : null
+  });
+})()`;
+
 // The shadow comes back as `rgb(r, g, b) 2px 0px 0px 0px inset`, so the colour is the head of it.
 // A shadow that is not there returns null rather than throwing, because the assertion about a
 // missing rail is the one about the rail and not the one about the ratio: a throw would take the
@@ -8341,6 +8488,110 @@ async function checkOutline(page, base) {
     'no railed row, no left border and no state span anywhere on the calendar',
     `${cal.railed} railed of ${cal.sessionRows} rows, ${cal.borders} border(s), ` +
     `states ${JSON.stringify(Object.keys(cal.states).filter(k => cal.states[k]))}`);
+
+  // ---- 7. the outline is a numbered document, and the numbers are the model's --------
+  // ISSUE 148. "Make the format of this outlines more in line with the style", and the card's own
+  // list: numbering, bullets, header levels. Three levels of number, and the claim is that not one
+  // of them is a string: each is the position of a thing in the document's own order, so the whole
+  // outline renumbers itself when a programme is added or a row moves and nothing is edited.
+  //
+  // ASSERTED AGAINST A SECOND WALK OF window.GI, on the unscoped outline AND on a scoped one,
+  // because the numbering is scope relative and a driver that only saw one of the two would pass
+  // on a page that ignored the scope entirely. Every block is opened first: a block that is not
+  // open is not in the document, so its number cannot be read, and the third level is the one the
+  // owner will quote.
+  //
+  // AND THE BLOCK NUMBERS ARE MATCHED TO THE ROWS THEY BELONG TO AND NOT ONLY IN ORDER, through
+  // the `drawn as` cell, which carries the template's own id. Two lists in the same order can
+  // agree while every number is on the wrong block; joining on the id cannot.
+  const numbersAt = async (hash, scopeKey) => {
+    await page.navigate(new URL(hash + '?open=all', base).toString());
+    await page.waitFor(`!!document.querySelector('.agenda-box')`, `the blocks at ${hash}`);
+    const painted = JSON.parse(await page.evaluate(NUMBER_PAINTED));
+    const model = JSON.parse(await page.evaluate(
+      `(${NUMBER_MODEL})(${JSON.stringify(scopeKey)})`));
+    // The id of the row each painted block hangs under, taken off the row above it, so the join is
+    // the page's own arrangement rather than an assumption about the order.
+    const rowIds = JSON.parse(await page.evaluate(`JSON.stringify((function () {
+      var out = [], last = null;
+      Array.prototype.forEach.call(
+        document.querySelectorAll('#termrows tbody tr'), function (tr) {
+          if (tr.classList.contains('term-agenda')) { out.push(last); return; }
+          if (tr.classList.contains('term-group') || tr.classList.contains('term-module')) return;
+          var c = tr.querySelector('.r-drawn');
+          last = c ? c.textContent : null;
+        });
+      return out;
+    })())`));
+    const byId = {};
+    model.blocks.forEach(x => { byId[x.id] = x.no; });
+    return { hash, painted, model,
+             blockJoin: painted.blocks.map((no, i) => ({ id: rowIds[i], painted: no,
+                                                         want: byId[rowIds[i]] })) };
+  };
+  const numWide = await numbersAt('#/outline', null);
+  const numOne = await numbersAt('#/outline/ZBL', 'ZBL');
+  const numOk = t =>
+    t.painted.groups.length > 0 &&
+    JSON.stringify(t.painted.groups) === JSON.stringify(t.model.groups) &&
+    t.painted.modules.length > 0 &&
+    JSON.stringify(t.painted.modules) === JSON.stringify(t.model.modules) &&
+    t.blockJoin.length === t.model.blocks.length &&
+    t.blockJoin.every(x => x.id && x.want && x.painted === x.want);
+  const numWrong = [numWide, numOne].filter(t => !numOk(t)).map(t => t.hash);
+  assert('the outline numbers its three levels off the model\'s own order, scoped and unscoped',
+    numWrong.length === 0 && numWide.painted.groups.length > 1 &&
+      numOne.painted.groups.length === 1 &&
+      numWide.painted.blocks.length > numOne.painted.blocks.length,
+    'every programme, module and opened block carrying the number a second walk of window.GI ' +
+      'gives it, joined to the block by the row\'s own id, on the unscoped outline and on one ' +
+      'programme',
+    numWrong.length ? `disagreed at ${numWrong.join(', ')}: ` +
+      JSON.stringify([numWide, numOne].filter(t => !numOk(t)).map(t => ({
+        at: t.hash,
+        groups: [t.painted.groups.slice(0, 3), t.model.groups.slice(0, 3)],
+        modules: [t.painted.modules.slice(0, 3), t.model.modules.slice(0, 3)],
+        blocks: t.blockJoin.filter(x => x.painted !== x.want).slice(0, 3)
+      })))
+      : `unscoped ${numWide.painted.groups.length} programmes, ` +
+        `${numWide.painted.modules.length} modules, ${numWide.painted.blocks.length} blocks; ` +
+        `scoped ${numOne.painted.modules.length} modules, ${numOne.painted.blocks.length} blocks`);
+
+  // ---- 8. the block gave up its ground and the mark moved onto the line -----------------
+  // ISSUE 148'S TRADE, MEASURED IN BOTH DIRECTIONS. The owner asked for this block to be styled
+  // like the table, which deletes the second of the four devices app.css names: a warning ground
+  // and a heavy rule that made it visibly not a cell. That is only payable because devices three
+  // and four came back, so the assertion is the trade and not either half of it: the block has NO
+  // ground of its own any more, AND not one of its lines is quotable without a badge, AND the
+  // badge still clears the 4.5:1 SC 1.4.3 asks of ten pixel text on whatever ground it now sits
+  // on, in both schemes. A page that took the ground away and left the lines bare fails the second
+  // clause; one that put a tint back fails the first; one that bought the mark by making it
+  // unreadable fails the third.
+  const paints = {};
+  for (const choice of ['light', 'dark']) {
+    await setScheme(page, choice);
+    await page.navigate(new URL('#/outline/ZBL?open=bl_st6', base).toString());
+    await page.waitFor(`!!document.querySelector('.agenda-box')`, 'the opened agenda for the paint');
+    paints[choice] = JSON.parse(await page.evaluate(AGENDA_PAINT));
+  }
+  await setScheme(page, 'light');
+  const badgeRatio = p => (!p.badge || !p.box || !p.box.ground) ? null
+    : ratio4(parsePaint(p.badge.color),
+             paintOver(parsePaint(p.badge.bg), parsePaint(p.box.ground)));
+  const noGround = p => !!p.box && p.box.ownBg === 'rgba(0, 0, 0, 0)';
+  const bl = badgeRatio(paints.light), bd = badgeRatio(paints.dark);
+  assert('the agenda block carries no ground of its own, and no line of it is quotable unbadged',
+    noGround(paints.light) && noGround(paints.dark) &&
+      paints.light.lines > 0 && paints.light.unbadged === 0 && paints.dark.unbadged === 0 &&
+      paints.light.lineStyle === 'normal' &&
+      bl !== null && bd !== null && bl >= 4.5 && bd >= 4.5,
+    'a transparent block on the row\'s own ground, a badge on every line, and that badge at or ' +
+      'over 4.5000 on the ground it sits on, in both schemes',
+    `light ground ${paints.light.box && paints.light.box.ownBg} over ` +
+      `${paints.light.box && paints.light.box.ground}, ${paints.light.lines} lines, ` +
+      `${paints.light.unbadged} unbadged, badge ${bl === null ? 'none' : bl.toFixed(4)}; ` +
+      `dark ${paints.dark.box && paints.dark.box.ownBg}, ${paints.dark.unbadged} unbadged, ` +
+      `badge ${bd === null ? 'none' : bd.toFixed(4)}`);
 
   // Back on the address this suite drives, by name. This read `page.navigate` to `#/`, which is two
   // wrongs that cancelled: a url differing from the one on screen only in its fragment is a

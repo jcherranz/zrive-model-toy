@@ -2903,7 +2903,7 @@ body.hide-unrecorded .sock-unrec { display: none; }
    is the point: the two bars are the same control at two grains and they should read as one. */
 .term-gapbar { color: var(--fg-muted); }
 
-/* ---- the invented session agenda, issue 85 -------------------------------------
+/* ---- the invented session agenda, issues 85 and 148 ----------------------------
    THE HARDEST THING ON THIS PAGE TO SHIP HONESTLY, and the styling is half of the answer. Every
    other invented value here is an identifier, a date, a count or an amount, and each of those is
    obviously a placeholder. Invented PROSE about what happens inside a session looks exactly like
@@ -2912,16 +2912,40 @@ body.hide-unrecorded .sock-unrec { display: none; }
 
    FOUR THINGS DO THAT, and they are all here or in site/term.js.
    1. It is off until a reader presses a control that says what it turns on.
-   2. It is inside a box with its own ground and a heavy left rule, indented off the row it hangs
-      under, so it is visibly not a cell of the table.
+   2. It is a block set apart from the rows: its own indent off the title column, its own left
+      rule and its own rhythm, so it is visibly not a cell of the table.
    3. Every line carries the same `dummy` badge the panel puts on an invented property, and the
       badge is on the LINE, so there is no line to quote without one.
-   4. The first thing in the box is the sentence saying the same four lines sit under all 83
-      templates and that they are not Zrive's, which is what survives a crop.
+   4. The first thing in the block is the sentence saying it is not Zrive's curriculum, which is
+      what survives a crop that starts at the top of the block.
 
-   The ground is the warning tint, which is the token the invented notice and the sticky banner
-   already take, so the reader has met this colour twice before reaching the block and it means
-   the same thing all three times. */
+   ---- ISSUE 148, AND IT IS TWO CORRECTIONS AND A TRADE -----------------------------------------
+   THE COMMENT ABOVE WAS FALSE FOR THE LENGTH OF THIS FILE'S LIFE SINCE #108. That card deleted
+   devices 3 and 4 on the owner's instruction and this paragraph did not follow: measured on the
+   repository and on the served bytes before this card, `dummy` occurred 0 times in site/term.js
+   and `agenda-note` 0 times, while this comment went on naming four. Both are back, and the
+   argument for them is in site/term.js over agendaRow().
+
+   AND THE TRADE THE OWNER ASKED FOR. He asked for this block to be styled like the table and
+   given the structure of a document, which would delete device 2 outright. It is not deleted, it
+   is CHANGED IN KIND: what set the block apart was a warning ground the reader had to be looking
+   at to see, and what sets it apart now is the shape of the block itself. That is a fair trade
+   only because devices 3 and 4 are back, and it is the wrong trade if either is ever removed
+   again. If a later card takes the badge off the line, the ground comes back with it.
+
+   WHAT THE BLOCK TOOK FROM THE TABLE. The type ramp: the rung is the size and the tabular figures
+   the mono columns are set at since #135, and the prose is the body size the title is set at, so
+   the block reads down in the same two voices the rows do rather than in an italic nobody else on
+   this sheet uses. The rhythm: one line per rung at the row's own line height. And the rail: the
+   block hangs off a hairline in the same idiom `body.outline` draws down the inside of a module,
+   two pixels wide, painted rather than laid out, in the warning colour so that the ONE thing the
+   block still says with colour is the one thing it has to say.
+
+   THE WARNING COLOUR IS WHERE THE GROUND WENT, and it is on the rail and on the badge rather than
+   behind the words. --fg-warning on --bg-panel is the pair the invented notice and the sticky
+   banner already used, so the reader has met this colour twice before reaching the block and it
+   means the same thing all three times; what has gone is 83 blocks of tinted ground, which is
+   what made the sheet read as a warning rather than as a document. */
 .term-table tbody tr.term-agenda td {
   padding: 0 var(--row-inset) 10px var(--row-inset);
   border-bottom: 0;
@@ -2929,40 +2953,67 @@ body.hide-unrecorded .sock-unrec { display: none; }
 
 .term-table tbody tr.term-agenda:hover { background: transparent; }
 
+/* THE RAIL AND NOT A BORDER, WHICH IS #135'S OWN FINDING APPLIED ONE LEVEL DOWN. A border on this
+   box is laid out and moves everything inside it; an inset shadow paints in the same place and
+   costs no layout at all, so the block's own left edge is the title column's left edge to the
+   pixel, which is the alignment the suite asserts on two outlines. */
 .agenda-box {
-  border-left: 3px solid var(--fg-warning);
-  background: var(--tint-warning);
-  padding: 8px 10px;
-  border-radius: 0 3px 3px 0;
+  box-shadow: inset 2px 0 0 var(--fg-warning);
+  padding: 6px 0 6px 10px;
 }
 
+/* The note is the crop-proof line, so it is set at the size a reader reads and not at the size a
+   caption is read at: it is the one line in the block that has to be legible in a screenshot
+   somebody else took. */
 .agenda-note {
-  margin: 0 0 6px;
-  font-size: 10px;
-  line-height: 1.45;
+  margin: 0 0 5px;
+  font-size: 11px;
+  line-height: 1.5;
   color: var(--fg-warning);
   font-weight: 600;
 }
 
-.agenda-lines { margin: 0; padding: 0; list-style: none; }
+/* BULLETS, AND THEY ARE THE FOURTH LEVEL OF THE DOCUMENT. The three above are numbered; a rung is
+   not numbered because the four are a closed named set and `1.1.1.2` for `method` would be an
+   ordinal over a thing that has a name. The marker sits inside the block's own padding, so a
+   line's text starts where the note's text starts and the block reads as one column. */
+.agenda-lines {
+  margin: 0;
+  padding-left: 14px;
+  list-style: disc;
+}
 
 .agenda-line {
   font-size: 11px;
   line-height: 1.5;
-  color: var(--fg-muted);
-  font-style: italic;
+  color: var(--fg-body);
 }
 
-/* The badge takes the panel's own ground inside the box and not the tint it would otherwise sit
-   on, and this is a measurement rather than a preference. --fg-muted over --tint-neutral over the
-   warmed ground of this box is 4.2891 in light and 4.4503 in dark, both under the 4.5 SC 1.4.3
-   asks of ten pixel text; the same badge in the panel, which is the ground it was chosen against,
-   is 4.7292 and 5.5068. Painting --bg-panel under it puts it back on that ground exactly. */
+.agenda-line::marker { color: var(--fg-muted); }
+
+/* The rung is the heading of its line and takes the mono columns' own treatment from #135: the
+   size the column headers are set at, and the muted colour, so the four rungs read as a schema
+   down the left of the block and the prose after them is the only thing at full strength. */
+.agenda-rung {
+  margin-right: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+}
+
+/* The badge sits on the panel's own ground now, which is what it was measured against when #85
+   chose it: `--fg-muted` on `--tint-neutral` on `--bg-panel` is 4.7292 in light and 5.5068 in
+   dark, both over the 4.5 SC 1.4.3 asks of ten pixel text, and the suite measures 4.7292 and
+   5.5067 on the block as it now stands rather than taking that pair on trust. The rule that
+   painted `--bg-panel`
+   under it existed because the block's own warmed ground took the same pair to 4.2891 and 4.4503,
+   under the floor; with the tint gone the ground under the badge IS the panel and the repair is
+   the removal of the thing it repaired. */
 .agenda-line .flag,
 .agenda-note .flag {
-  font-style: normal;
-  margin-right: 2px;
-  background: var(--bg-panel);
+  margin-right: 4px;
 }
 
 .term-agendactl { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
@@ -3144,6 +3195,35 @@ body.outline .term-table tbody .r-drawn {
   font-size: 10px;
   font-variant-numeric: tabular-nums;
 }
+
+/* ---- the numbering, issue 148 --------------------------------------------------
+   "Make the format of this outlines more in line with the style", and the card's own list:
+   numbering, bullets, header levels. site/term.js derives every one of these numbers from the
+   model's own order and nothing about them is stored or typed; what is here is only how they are
+   painted.
+
+   ONE TREATMENT AT ALL THREE LEVELS AND IT IS THE MONO COLUMNS'. A section number is a figure and
+   #135 already decided what a figure on this sheet looks like: the size the column headers are
+   set at, tabular, so `1.1.` and `7.12.` occupy the same width per digit and the names after them
+   line up down the document instead of drifting by a character. The number is muted and the name
+   is not, because the name is what a reader is looking for and the number is how they cite it.
+
+   IT IS SCOPED TO `body.outline` FOR THE REASON THE RAIL IS. The calendar and the review are the
+   same table class at other readings, and neither is a document with sections: a month is not
+   numbered and a band is a ranking. Only the outline grows numbers. */
+body.outline .term-table .term-no {
+  margin-right: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-muted);
+}
+
+/* The block's own number is the one that is NOT muted against its line, because the line it leads
+   is the warning-coloured note and a muted number in front of it would read as a different
+   sentence. It takes the note's own colour and keeps the mono figures. */
+.agenda-note .agenda-no { color: inherit; }
 
 .term-table .r-settled { font-weight: 400; }
 .term-table .r-settled-delivered { color: var(--fg-body); font-weight: 600; }
