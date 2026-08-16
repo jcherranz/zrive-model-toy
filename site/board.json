@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T15:52:49Z",
+  "generated": "2026-08-16T15:55:42Z",
   "columns": [
     {
       "key": "raw",
@@ -33,19 +33,22 @@
             "idea"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
-        },
-        {
-          "id": 202,
-          "title": "The suite cannot read a pixel, so two assertions model the painted result instead of measuring it",
-          "labels": [],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/202"
         }
       ]
     },
     {
       "key": "backlog",
       "title": "Backlog",
-      "cards": []
+      "cards": [
+        {
+          "id": 202,
+          "title": "The suite cannot read a pixel, so two assertions model the painted result instead of measuring it",
+          "labels": [
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/202"
+        }
+      ]
     },
     {
       "key": "in_progress",
@@ -69,14 +72,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/195"
-        },
-        {
-          "id": 199,
-          "title": "Capture mode is mouse-only on the drawing, and three reach measurements that #170 left standing",
-          "labels": [
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/199"
         }
       ]
     },
@@ -84,6 +79,14 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 199,
+          "title": "Capture mode is mouse-only on the drawing, and three reach measurements that #170 left standing",
+          "labels": [
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/199"
+        },
         {
           "id": 196,
           "title": "The two count gates return early with the vault absent, so the denominator of every fraction is unchecked on every CI run",
@@ -141,17 +144,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/170"
-        },
-        {
-          "id": 169,
-          "title": "Closing the term sheet rewrites the address, so a shared link draws a different programme",
-          "labels": [
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/169"
         }
       ],
-      "hidden": 147,
+      "hidden": 148,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
