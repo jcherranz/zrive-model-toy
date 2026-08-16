@@ -605,6 +605,34 @@ build on a cited slug that resolves to nothing.
   the assertion reads the length back out of the `d` the page painted rather than knowing it, so a
   card that changes the triangle and forgets the rotation fails instead of quietly moving what the
   check is measured against.
+- `kaizen-a-check-that-works-around-a-defect-is-the-defect-reported-in-the-wrong-place` &middot;
+  **When an assertion has to compensate for the page instead of measuring it, the compensation is
+  a defect report nobody read.** The month grid drew a day at a month boundary in two panels, and
+  the assertion that a grid marks the window instead of filtering it counted DISTINCT lit days
+  through a `Set`, with a comment explaining that two adjacent panels overlap by construction. That
+  comment was the bug, written down, in the file whose job is to notice bugs, and it sat there
+  until the owner filed the same thing from the screen. The repair deletes the workaround and
+  asserts both readings, 21 lit cells over 21 distinct days, so the defect coming back now fails
+  twice. **The general form: a `Set`, a tolerance, a sort or a filter added to make an assertion
+  pass is a claim about the page, and it should be read as one.**
+- `kaizen-drive-an-assertion-to-a-width-where-its-claim-is-not-vacuous` &middot; **A claim that is
+  trivially true at the width the suite happens to run at is not a check, however carefully it is
+  worded.** The week grid may be wider than the sheet while the page never scrolls sideways, and
+  the first draft of that assertion read `docOverflow === 0` at 1536, where twenty four columns fit
+  and nothing overflows anything: it would have passed on a grid that had silently dropped half its
+  columns. It is driven to a narrow width now, where the grid genuinely overflows, and asserts the
+  pair, that the scroller is scrolling and the document is not, with the cell count required to be
+  the same as at the wide width. **The general form: before writing an assertion, ask at which
+  width, scope or state its subject exists at all, and drive it there.**
+- `kaizen-the-triage-guess-is-a-hypothesis-and-the-measurement-is-the-answer` &middot; **A card's
+  triage can name the wrong family with complete confidence, and the only thing that settles it is
+  measuring the thing he pointed at.** Issue 160 was triaged as the #142, #143 and #149 family,
+  nothing in the layout measured above 980px sitting in a container two thirds wider at 2560. The
+  measurement refused it: the sheet has a maximum width, so the rows box is 1238px at 2560 and
+  1238px at 1536, and the space above the heading was 0 at both, and 0 at 390 as well. The defect
+  was a gutter with three sides, which is issue 113 one side round. **Report the refusal rather
+  than quietly fixing something else**, because the triage will otherwise be cited by the next card
+  as though it had been confirmed.
 - `kaizen-spacing-is-a-fact-about-the-painted-shape` &middot; **A stroke straddles the edge it is
   drawn on, so the shape a reader sees is wider than the shape the geometry specifies, and any
   spacing computed against the specification closes by the width of the stroke.** Issue 139 stepped

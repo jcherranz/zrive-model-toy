@@ -2706,12 +2706,30 @@ body.hide-unrecorded .sock-unrec { display: none; }
    number to keep true. A gutter of 16 in its own right would have cost 32px of a fixed-width
    table on a 390px viewport, which is how a sheet that scrolls inside itself starts scrolling
    the page. */
+/* ---- ISSUE 160. THE GUTTER HAD THREE SIDES AND THE FOURTH IS WHERE HE LOOKED ----------------
+   He filed it from the month grid at 2560, pointing at the `January 2026` heading, and the
+   measurement says the space above it is 0 at 2560, 0 at 1536 and 0 at 390: the first panel of the
+   calendar is painted hard against the rule under the controls, at every width. It is the same
+   defect issue 113 repaired on the left edge, one side round, and the same sentence explains it:
+   a short bold month against the hard edge of the box is where the eye catches it.
+
+   IT IS NOT A 2560 DEFECT, WHICH THE TRIAGE ON THE CARD EXPECTED AND THE MEASUREMENT REFUSED.
+   This sheet has a maximum width, so `#termrows` is 1238px wide at 2560 and 1238px wide at 1536,
+   and the gap above the heading is the same 0 in both. Nothing here was mis-tuned for a wide
+   viewport: the gutter simply had no fourth side.
+
+   AND IT IS THE BOX AND NOT THE HEADING THAT IS FIXED, so every reading of both sheets gets it
+   from one declaration: the two tables, whose column headings were 25.3px below the rule at the
+   two desktop widths and 0 below it at 390, where the phone layout hides the thead; and the two
+   grids, which start with a heading and had nothing. The panel rhythm below is untouched, so the
+   first panel is not spaced twice. */
 .sheet-rows {
   --sheet-gutter: 6px;
   --row-inset: 10px;
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
+  padding-top: var(--sheet-gutter);
   padding-left: var(--sheet-gutter);
   padding-right: var(--sheet-gutter);
 }
@@ -2975,6 +2993,16 @@ body.hide-unrecorded .sock-unrec { display: none; }
    page. */
 .term-scope { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px; }
 .term-scope .term-scope-lead { color: var(--fg-muted); }
+
+/* ISSUE 146. THE SCOPE BAR IS A MULTI-SELECT AND A CODE SAYS WHETHER IT IS IN. It listed the
+   programmes the reader was not on and dropped the one they were, so "which are in" was a fact
+   about which link was missing. Every one of the seven is there now and the ones in the scope are
+   marked, in the same register the reading switch above them uses for the same claim: weight and
+   an underline, on a control whose text is its state, and never a second colour. */
+.term-scope .linkbtn[aria-current="true"] {
+  font-weight: 700;
+  text-decoration: underline;
+}
 
 /* The way off a worklist, issue 125, and it is the scope bar's rule with one word of its own: the
    sentence between the lead and the link is prose rather than a row of codes, so it takes the
@@ -3416,6 +3444,69 @@ body.outline .term-table .term-no {
   gap: 2px;
 }
 
+/* ---- the week grid turned over, issue 158 ---------------------------------------
+   The month grid is seven columns of a seventh each and must never scroll sideways, which is the
+   `minmax(0, 1fr)` above. The week grid is the other shape entirely: one column per week of the
+   term, twenty four of them, and a column that took a twenty fourth of a phone would be six pixels
+   wide. So its tracks carry a floor and the grid is allowed to be wider than the sheet, inside a
+   scroller of its own. The page still never scrolls sideways: `.sheet-rows` is the scroll box, the
+   outline's table already overflows inside it at every width, and this wrapper is a second one
+   nested in it so the sticky day labels have something to be sticky against.
+
+   THE TEMPLATE ITSELF IS WRITTEN BY term.js AND NOT HERE, because the number of columns is the
+   number of weeks the term runs and a number typed in a stylesheet is right for one term. */
+.cal-weekwrap {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.cal-weekgrid {
+  /* Overridden inline with the term's own week count. Declared here so a grid that arrived
+     without one is still a grid rather than a column of blocks. */
+  grid-template-columns: auto repeat(1, minmax(46px, 1fr));
+  align-items: stretch;
+}
+
+/* The week's own heading, over its column, and it is a date and not a count: how many sessions
+   the week holds is what the column under it is showing. */
+.cal-wk {
+  padding: 2px 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--fg-muted);
+  border-bottom: 1px solid var(--rule-muted);
+  white-space: nowrap;
+}
+
+/* The corner, where the two axes meet, holding nothing because there is nothing true to put in
+   it: the day labels name the rows and the week headings name the columns. */
+.cal-corner { border-bottom: 1px solid var(--rule-muted); }
+
+/* THE DAY LABELS ARE THE LEFT AXIS NOW AND THEY STAY WITH THE ROWS THEY NAME. A grid that scrolls
+   sideways would otherwise take Monday off the screen and leave the reader counting rows. */
+.cal-weekgrid .cal-dow {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  align-self: stretch;
+  padding-right: 6px;
+  background: var(--bg-panel);
+  border-bottom: 0;
+  border-right: 1px solid var(--rule-muted);
+}
+
+/* A week column is 46px at its narrowest, which holds a time and a code at 10px and does not hold
+   a session title, so the title is what goes. The chip keeps its whole content in its own title
+   attribute, which is the same trade the phone layout of the month grid already makes. */
+.cal-weekgrid .cal-title { display: none; }
+.cal-weekgrid .cal-code { display: block; margin-left: 0; }
+
+/* A blank at the head or the foot of a month, holding the place of a weekday that belongs to the
+   month before or after it. Issue 158: those days used to be drawn here as well as in their own
+   month, so a day at a boundary was on the screen twice. It has no border, no number and no date,
+   because it is not a day. */
+.cal-pad { border: 0; }
+
 .cal-dow {
   padding: 2px 4px;
   font-size: 10px;
@@ -3441,11 +3532,9 @@ body.outline .term-table .term-no {
   text-align: right;
 }
 
-/* The days a month panel draws that belong to the month before or after it. They are drawn
-   because a panel of whole weeks is what makes the columns line up down the sheet, and they are
-   quiet because they are not this month. */
-.cal-offmonth { background: var(--tint-hover); }
-.cal-offmonth .cal-dnum { opacity: .5; }
+/* `.cal-offmonth` stood here, painting the days a month panel drew that belonged to the month
+   before or after it. Issue 158 stopped drawing them at all, so the rule has nothing left to
+   paint: a day belongs to one panel now and the place it used to hold in another is a blank. */
 
 /* Issue 90 on a grid. The window MARKS rather than filters here: the list is the shape that
    drops what is outside, because a list is an agenda, and a grid that had holes cut in it would
@@ -3478,7 +3567,27 @@ body.outline .term-table .term-no {
 .cal-gap { border-left-color: var(--fg-warning); }
 .cal-gap .cal-time { color: var(--fg-warning); }
 
-.cal-empty { margin: 12px 0 0; color: var(--fg-muted); font-size: var(--fs-sm); }
+/* ---- what the grid cannot show, issue 146 --------------------------------------
+   `.cal-empty` stood here and carried one sentence, "No session in this scope.", which is a claim
+   about the business made out of what these documents drew. It is replaced rather than restyled.
+   What is under a grid now is the sheet's own register: the same muted size the rest of this
+   sheet's prose takes, a lead in the words the scope bar and the worklist bar already lead with,
+   and one line per programme that has something to say. */
+.cal-notes {
+  margin: 14px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--rule-muted);
+}
+
+.cal-note {
+  margin: 0 0 4px;
+  color: var(--fg-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+}
+
+.cal-note:last-child { margin-bottom: 0; }
+.cal-note-lead { color: var(--fg-body); }
 
 /* The shape control, issue 88. Three states and one press each, so it is three buttons and not a
    cycle: a reader who wants the list should not have to walk past the week grid to reach it,
