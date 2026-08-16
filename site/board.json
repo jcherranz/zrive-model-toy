@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T20:16:18Z",
+  "generated": "2026-08-16T20:24:47Z",
   "columns": [
     {
       "key": "raw",
@@ -66,14 +66,6 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/204"
-        },
-        {
-          "id": 206,
-          "title": "No gate holds a reserved width against the style rule that actually paints the string",
-          "labels": [
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/206"
         }
       ]
     },
@@ -81,6 +73,14 @@
       "key": "in_progress",
       "title": "In progress",
       "cards": [
+        {
+          "id": 206,
+          "title": "No gate holds a reserved width against the style rule that actually paints the string",
+          "labels": [
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/206"
+        },
         {
           "id": 211,
           "title": "The forbidden-content gate guards one of two network-reaching git calls, and the unguarded one is the list it checks",
