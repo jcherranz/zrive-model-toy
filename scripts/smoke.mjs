@@ -1503,7 +1503,14 @@ async function openPage(cdp, viewport) {
     async reload() {
       const loaded = new Promise(resolve => { cdp.on('Page.loadEventFired', () => resolve()); });
       await cdp.send('Page.reload', {}, sessionId);
-      await orThrow(loaded, 'the load event after a reload');
+      await orThrow(loaded, 'the load event after a reload').catch(err => {
+        // A load event that never came is a page finding, and it stays one; what it must not be
+        // allowed to be is a page finding standing over a resource the browser already said it
+        // could not deliver. Asked before the throw is let go, so whichever of the two is true is
+        // the one reported.
+        refuseUnlessTheDocumentArrived(page, 'this page, reloaded');
+        throw err;
+      });
       refuseUnlessTheDocumentArrived(page, 'this page, reloaded');
     },
 
@@ -1526,7 +1533,10 @@ async function openPage(cdp, viewport) {
       // A fragment change fetched nothing, so there is nothing new to ask about; the document it
       // is a fragment of was asked about when it loaded.
       if (!res || !res.loaderId) return;
-      await orThrow(loaded, `the load event after navigating to ${url}`);
+      await orThrow(loaded, `the load event after navigating to ${url}`).catch(err => {
+        refuseUnlessTheDocumentArrived(page, url);   // the same rule as in reload() above
+        throw err;
+      });
       refuseUnlessTheDocumentArrived(page, url);
     },
 
