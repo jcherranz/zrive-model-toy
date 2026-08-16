@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T02:21:04Z",
+  "generated": "2026-08-16T03:13:55Z",
   "columns": [
     {
       "key": "raw",
@@ -145,16 +145,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
         },
         {
-          "id": 149,
-          "title": "There is a gap to the left of this header blocks whicch looks bad",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/149"
-        },
-        {
           "id": 151,
           "title": "Remove",
           "labels": [
@@ -259,6 +249,16 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/161"
         },
         {
+          "id": 149,
+          "title": "There is a gap to the left of this header blocks whicch looks bad",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/149"
+        },
+        {
           "id": 148,
           "title": "Make the format of this outlines more in line with the style…",
           "labels": [
@@ -297,19 +297,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/143"
-        },
-        {
-          "id": 142,
-          "title": "I love this idea (in general of this controler / filter)…",
-          "labels": [
-            "feedback",
-            "layout",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/142"
         }
       ],
-      "hidden": 124,
+      "hidden": 125,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
