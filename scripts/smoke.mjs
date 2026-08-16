@@ -2445,9 +2445,18 @@ async function checkScope(page, base) {
 // The seven programme union, which is what `#/` itself draws and is therefore the repaint every
 // reader pays for. It resolves to the modules altitude under the grain load budget, so this is
 // also the biggest drawing the page will agree to lay out.
+//
+// Measured 3874779 locally on Chrome 150 and 3994850 on the GitHub runner's Chrome 151, which is
+// three per cent apart and is the fonts, exactly as the table at 1145.98 against 1160.69 was. The
+// ceiling is above both with half again to spare, and, which matters more, it is a THIRD of the
+// 18098895 the same address cost before the prune. A ceiling that a regression can still fit
+// under is not a budget.
 const PLACER_BUDGET_ALL = 6000000;
 // Two programmes at the sessions altitude, which the seven way union cannot reach. A second size
 // and a second altitude, so a regression that only shows on the small drawing is still caught.
+//
+// Measured 637730 locally and 644070 on the runner, one per cent apart, against 7067670 before
+// the prune. This ceiling is seven times under the regression and half again over the reading.
 const PLACER_BUDGET_PAIR = 1000000;
 
 async function checkPlacer(page) {
