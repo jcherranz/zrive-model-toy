@@ -287,7 +287,7 @@ const PHASES = {
   'the view selector':    { count: 6, when: 'behavioural' },
   'the control panel':    { count: 9, when: 'behavioural' },
   'the plate':            { count: 6, when: 'behavioural' },
-  'the outline':          { count: 8, when: 'behavioural' },
+  'the outline':          { count: 9, when: 'behavioural' },
   'canvas':               { count: 7, when: 'behavioural' },
   'capture':              { count: 15, when: 'behavioural' },
   'board':                { count: 13, when: 'behavioural' },
@@ -565,7 +565,7 @@ const PHASES = {
 // assertion is repaired in the same commit rather than counted again: its three arrivals were
 // fragment navigations that built no document, so the union it called `read cold` was the scope the
 // page had been constructed with, and it reloads now.
-const EXPECTED_ASSERTIONS = 293;
+const EXPECTED_ASSERTIONS = 294;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -8592,6 +8592,82 @@ async function checkOutline(page, base) {
       `${paints.light.unbadged} unbadged, badge ${bl === null ? 'none' : bl.toFixed(4)}; ` +
       `dark ${paints.dark.box && paints.dark.box.ownBg}, ${paints.dark.unbadged} unbadged, ` +
       `badge ${bd === null ? 'none' : bd.toFixed(4)}`);
+
+  // ---- 9. and at his width the sheet holds its widest reading whole -------------------
+  // ISSUE 149, AND THE CARD'S OWN HYPOTHESIS IS THE FIRST THING THIS DISPROVES. He filed a gap to
+  // the left of the header blocks at 2560 by 1317; the triage guessed the thead and the tbody
+  // disagreed about the columns at that width and said to confirm it on the real page. Driven
+  // there, the nine column boxes in the thead and the nine in a row are identical to the pixel, so
+  // that is not it, and the two lists are compared here rather than merely asserted equal once,
+  // because a claim that has been disproved is worth keeping proved.
+  //
+  // WHAT IS ASSERTED IS WHAT THE MEASUREMENT FOUND. The box was pinned to 1100 CSS px from 1132
+  // upwards, and the widest table this sheet can be asked to draw wants 1145.98, so at 2560 the
+  // last column was clipped and the sheet scrolled sideways inside 1100 of a 2560 screen. Every
+  // address this sheet publishes is visited at 2560, both readings, blocks open and shut, and each
+  // is required to fit. That is what makes the ceiling in app.css a declaration a term can
+  // outgrow LOUDLY: add a column, lengthen a code, change the type ramp, and this goes red instead
+  // of a column quietly disappearing behind a scrollbar again.
+  //
+  // AND IT IS SWEPT RATHER THAN SAMPLED, and reports how many surfaces it visited. A sweep that
+  // failed to open a sheet would find no overflow anywhere and look exactly like a sheet with
+  // nothing wrong, which is the shape of every dead instrument this repository has found: the
+  // count of what was actually measured is in the pass message, and the assertion refuses a run
+  // that measured fewer surfaces than there are addresses.
+  const sheetAt2560 = [];
+  const columnsDisagree = [];
+  await atWidths(page, [2560], async () => {
+    const routes = JSON.parse(await page.evaluate('JSON.stringify(window.ZT.termRoutes())'));
+    for (const at of routes) {
+      const stops = [at].concat(/^#\/outline/.test(at) ? [at + '?open=all'] : []);
+      for (const stop of stops) {
+        await page.evaluate(`location.hash = ${JSON.stringify(stop)}`);
+        await page.waitFor(`location.hash === ${JSON.stringify(stop)}`,
+          `the address bar to read ${stop}`);
+        await sleep(140);
+        const m = JSON.parse(await page.evaluate(`JSON.stringify((function () {
+          var rows = document.getElementById('termrows');
+          var t = rows ? rows.querySelector('table') : null;
+          if (!rows) return null;
+          function boxes(tr) {
+            if (!tr) return null;
+            return Array.prototype.map.call(tr.children, function (c) {
+              var r = c.getBoundingClientRect();
+              return [+r.left.toFixed(2), +r.width.toFixed(2)];
+            });
+          }
+          var body = null;
+          if (t) Array.prototype.forEach.call(t.querySelectorAll('tbody tr'), function (tr) {
+            if (body) return;
+            if (tr.classList.contains('term-group') || tr.classList.contains('term-module') ||
+                tr.classList.contains('term-agenda')) return;
+            body = tr;
+          });
+          return { over: rows.scrollWidth - rows.clientWidth,
+                   client: rows.clientWidth, scroll: rows.scrollWidth,
+                   table: t ? +t.getBoundingClientRect().width.toFixed(2) : null,
+                   head: t ? boxes(t.querySelector('thead tr')) : null,
+                   body: boxes(body) };
+        })())`));
+        if (!m) continue;
+        sheetAt2560.push({ at: stop, over: m.over, table: m.table });
+        if (m.head && m.body && JSON.stringify(m.head) !== JSON.stringify(m.body)) {
+          columnsDisagree.push({ at: stop, head: m.head, body: m.body });
+        }
+      }
+    }
+  });
+  const clipped = sheetAt2560.filter(s => s.over > 0);
+  const widest = sheetAt2560.reduce((a, s) => (s.table > a ? s.table : a), 0);
+  assert('at 2560 every reading of this sheet fits, and its columns agree with their own headers',
+    sheetAt2560.length >= 16 && clipped.length === 0 && columnsDisagree.length === 0,
+    'no sideways scroll on any address this sheet publishes at 2560, blocks open and shut, and ' +
+      'the thead column boxes equal to the tbody ones on every one of them',
+    clipped.length || columnsDisagree.length
+      ? `${clipped.length} clipped ${JSON.stringify(clipped.slice(0, 4))}, ` +
+        `${columnsDisagree.length} disagreeing ${JSON.stringify(columnsDisagree.slice(0, 1))}`
+      : `${sheetAt2560.length} surfaces visited, widest table ${widest}, none clipped`,
+    `${sheetAt2560.length} surfaces measured at 2560, widest table ${widest}px`);
 
   // Back on the address this suite drives, by name. This read `page.navigate` to `#/`, which is two
   // wrongs that cancelled: a url differing from the one on screen only in its fragment is a
