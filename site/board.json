@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T18:49:47Z",
+  "generated": "2026-08-16T19:02:54Z",
   "columns": [
     {
       "key": "raw",
@@ -24,6 +24,15 @@
             "limitation"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
+        },
+        {
+          "id": 132,
+          "title": "Let's go and try once again with the panel of control header, I need…",
+          "labels": [
+            "bug",
+            "feedback"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
         },
         {
           "id": 144,
@@ -72,16 +81,6 @@
       "key": "in_progress",
       "title": "In progress",
       "cards": [
-        {
-          "id": 132,
-          "title": "Let's go and try once again with the panel of control header, I need…",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
-        },
         {
           "id": 207,
           "title": "site/render.js reserves every node label and caption from a probe measured at 14px, because .node .lbl is a descendant selector and the probe is not inside a .node",
