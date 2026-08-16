@@ -703,7 +703,15 @@ PY
 # gate went quiet" and "the gate was deleted", this file cannot tell them apart, and under either
 # one it can no longer report on that gate. Reporting it as merely unverified would be this
 # card's own defect committed by the instrument written to close it.
-EXPECTED_MODEL_GATES='ontology registry|syllabus totals|module structure|session templates|session agendas'
+#
+# MOVED ONCE ALREADY, AND THE MOVE IS THE ARGUMENT FOR THE SHAPE. Issue 157 landed a sixth gate,
+# `reach`, on main while this card was in flight. The rebase brought it in, the census met a name
+# it did not know, and CI ABORTED at exit 2 rather than reporting on five gates out of six and
+# calling that a census. The sixth is added here deliberately, by hand, in the commit that met it:
+# it reads the 192 addresses the drawings ship and needs no corpus, so it is always verified, and
+# it is on the roster because a gate this file cannot read is a gate this file cannot report on
+# whether or not it has a corpus to lose.
+EXPECTED_MODEL_GATES='ontology registry|syllabus totals|module structure|reach|session templates|session agendas'
 
 # Filled in by run_census below and read by verdict(). Zero is the state where every gate looked.
 CENSUS_UNVERIFIED=0
