@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T11:53:18Z",
+  "generated": "2026-08-16T12:04:32Z",
   "columns": [
     {
       "key": "raw",
@@ -90,14 +90,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/168"
         },
         {
-          "id": 186,
-          "title": "The sheet caps content at 1238px, and the week grid is the first surface that wants the width",
-          "labels": [
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/186"
-        },
-        {
           "id": 187,
           "title": "The redesign's headline number is the one number not pinned: a new header button ships green",
           "labels": [
@@ -112,6 +104,14 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 186,
+          "title": "The sheet caps content at 1238px, and the week grid is the first surface that wants the width",
+          "labels": [
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/186"
+        },
         {
           "id": 184,
           "title": "The only file in the repository that grep cannot read is a source file, and a grep that skips it reports clean",
@@ -168,19 +168,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/164"
-        },
-        {
-          "id": 162,
-          "title": "check space of frame below",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/162"
         }
       ],
-      "hidden": 142,
+      "hidden": 143,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
