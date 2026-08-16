@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T12:19:02Z",
+  "generated": "2026-08-16T12:25:42Z",
   "columns": [
     {
       "key": "raw",
@@ -41,14 +41,6 @@
       "title": "Backlog",
       "cards": [
         {
-          "id": 170,
-          "title": "A keyboard user cannot see where they are and a phone user cannot hit what they see",
-          "labels": [
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/170"
-        },
-        {
           "id": 195,
           "title": "A prune twice as aggressive moves 10257 chip boxes and the suite passes 314 of 314 clean",
           "labels": [
@@ -56,14 +48,6 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/195"
-        },
-        {
-          "id": 196,
-          "title": "The two count gates return early with the vault absent, so the denominator of every fraction is unchecked on every CI run",
-          "labels": [
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/196"
         }
       ]
     },
@@ -80,6 +64,22 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
+        },
+        {
+          "id": 170,
+          "title": "A keyboard user cannot see where they are and a phone user cannot hit what they see",
+          "labels": [
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/170"
+        },
+        {
+          "id": 196,
+          "title": "The two count gates return early with the vault absent, so the denominator of every fraction is unchecked on every CI run",
+          "labels": [
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/196"
         }
       ]
     },
