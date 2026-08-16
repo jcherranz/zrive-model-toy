@@ -2799,12 +2799,21 @@ body.hide-unrecorded .sock-unrec { display: none; }
    viewport meets a table that stops before its final column with half the screen unused, which
    is a gap to the left of the block and one to the right of it at the same time.
 
-   THE CEILING IS DERIVED AND NOT NUDGED. 1180 is above the 1145.98 the widest reading demands and
-   above the sheet's own border and gutter on top of it, and it is not larger, because every pixel
-   past what the table demands is distributed by the table into its own auto columns as slack:
-   growing this box to fill 2560 would buy exactly the wide empty bands INSIDE the table that the
-   triage predicted outside it. What is either side of the sheet is the drawing it is open over,
-   which is the artefact rather than dead space.
+   THE CEILING IS DERIVED, AND HOW MUCH HEADROOM IT CARRIES IS A SECOND MEASUREMENT THAT COST A
+   RED RUN. Written first as 1180, which is above the 1145.98 this table demands on the machine it
+   was measured on and above the sheet's own border and gutter on top of that, it went red in CI
+   on the assertion below: the same table on the GitHub runner demands 1160.69. Nothing about the
+   page differs; the fonts do. Every column here is sized by its content and the two font stacks
+   resolve to different faces on different machines, so the demand is not a property of this
+   repository at all and a ceiling fitted to one machine's metrics is a ceiling that clips on
+   somebody else's.
+
+   So the number carries real headroom over the widest demand either machine reports, and the
+   assertion is what proves the headroom is enough on the machine the run is on. It is still not
+   larger than it needs to be, because every pixel past what the table demands is distributed by
+   the table into its own auto columns as slack: growing this box to fill 2560 would buy exactly
+   the wide empty bands INSIDE the table that the triage predicted outside it. What is either side
+   of the sheet is the drawing it is open over, which is the artefact rather than dead space.
 
    AND THE NUMBER IS HELD BY AN ASSERTION RATHER THAN BY THIS COMMENT. A ceiling typed here is
    right for one term and one type ramp, which is #142's objection to a measured value written
@@ -2812,7 +2821,7 @@ body.hide-unrecorded .sock-unrec { display: none; }
    of them to fit without a sideways scroll, so a term that outgrows this number turns the run red
    rather than quietly clipping a column again. Below the ceiling the box is the viewport's, which
    is what it always was, and 390 is untouched. */
-.term .sheet-box { width: min(1180px, 100%); }
+.term .sheet-box { width: min(1240px, 100%); }
 
 .term-switch {
   flex: none;
