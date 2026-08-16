@@ -315,7 +315,7 @@ body.board #view-board { display: flex; }
    router.js where the list is opened, beside the aria-current it already sets on the nav link.
    The ghost toggle describes the drawing, so on the board it is not dimmed or reworded, it is
    gone. Issue 77. */
-.h-board, .h-students, .h-calendar, .h-outline { display: none; }
+.h-board, .h-students, .h-calendar { display: none; }
 body.board .h-diagram { display: none; }
 body.board .h-board { display: inline; }
 body.students .h-diagram { display: none; }
@@ -327,7 +327,25 @@ body.students .h-students { display: inline; }
 body.calendar .h-diagram { display: none; }
 body.calendar .h-calendar { display: inline; }
 body.outline .h-diagram { display: none; }
-body.outline .h-outline { display: inline; }
+
+/* ---- and the outline has no heading of its own any more, issue 152 --------------
+   It carried "The outline, in curriculum order", which named the view and explained its ordering.
+   Both claims are already on the page: `.term-switch` names the reading with `aria-current` on the
+   one that is up, the sheet's own h2 names it again with the count, and the ordering is the shape
+   of the table, which issue 148 then numbered at three levels. Measured before deleting it: 32 of
+   the 32 module headings carry syllabus ordinals that strictly ascend inside them and 6 of the 6
+   programmes that name modules carry module codes that strictly ascend.
+
+   `visibility` AND NOT `display`, AND THAT IS THE WHOLE OF WHY THIS RULE EXISTS RATHER THAN THE
+   SPAN SIMPLY GOING. Two things would otherwise break at once. The h1 is `flex: 1 1 auto` and is
+   the item that takes the row's spare width and gives it back first, so removing it from the
+   layout collapses the nav leftwards at every width; and an h1 that renders nothing is an UNNAMED
+   HEADING, which on a page that gates itself on WCAG for contrast and target size is a worse thing
+   to ship than the redundant sentence it replaced. `visibility: hidden` keeps the box, so the row
+   is laid out exactly as it was, and takes the element out of the accessibility tree, so there is
+   no empty heading in the document. What names this route to a screen reader is the sheet, which
+   is `role="dialog"` labelled by its own h2. */
+body.outline h1 { visibility: hidden; }
 /* THE ABSENCE CONTROL IS WITHDRAWN WHEREVER THE DRAWING IS NOT ON SCREEN, and it inherits that
    rule from the two controls it replaces rather than inventing one. Issue 139.
 
