@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T07:57:46Z",
+  "generated": "2026-08-16T08:20:10Z",
   "columns": [
     {
       "key": "raw",
@@ -97,14 +97,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
         },
         {
-          "id": 166,
-          "title": "A page that failed to load says gaps 0 and shows no error",
-          "labels": [
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/166"
-        },
-        {
           "id": 167,
           "title": "Four surfaces render sampled programmes as complete, and one deletes half the term",
           "labels": [
@@ -150,6 +142,14 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/172"
+        },
+        {
+          "id": 166,
+          "title": "A page that failed to load says gaps 0 and shows no error",
+          "labels": [
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/166"
         },
         {
           "id": 164,
@@ -204,19 +204,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/158"
-        },
-        {
-          "id": 156,
-          "title": "check arrow vs line alignment",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/156"
         }
       ],
-      "hidden": 136,
+      "hidden": 137,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
