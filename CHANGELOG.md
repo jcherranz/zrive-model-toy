@@ -48,6 +48,25 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- **THE DEPLOY GATE WAS AN ALARM AND IS NOW A LOCK, #172, SURFACED BY #164.** `pages.yml` ran the
+  forbidden-content gate **after** `deploy-pages`, so by the time it could object the bytes were
+  already public. It is now run twice, and the two runs answer two questions. **Before the
+  artifact is built**, over a local server on the stamped `site/`, which is byte for byte what
+  `upload-pages-artifact` is about to tar: a failure there publishes nothing. **After the deploy**,
+  against the origin, which is the only reading that can catch a build step, an artifact, a cache
+  or a CDN putting something else in front of a reader. Proved in both directions before shipping:
+  a real name planted into the bytes takes the pre-publication step red with a counted finding,
+  and the same step passes when it is removed.
+- **And the race that made it visible.** Issue 6 removed the gate's fallback to the working tree
+  when it could not establish what the origin was serving, correctly, so it aborts instead. The
+  first deploy after #164 merged went red on exactly that: `deploy-pages` had returned and the
+  origin was not yet serving the new bytes, so the gate could not establish the origin and refused
+  to print a verdict. **The gate was right, the site was fine, and the ordering was the defect.**
+  The step that waits for the origin to name the deployed commit now runs **before** the gate
+  rather than after it, polls rather than sleeping, and keeps its three outcomes apart: the origin
+  names this deploy and the gate runs; it names another commit after the budget, which is a real
+  failure; it names nothing at all, which is a different real failure and the one #6's abort
+  exists for. **A timeout is never clean.**
 - **A probe that could not fail, #164.** `scripts/check_repo.sh --self-test` asked the name rule
   about the register in use and ended the command substitution `|| true`, so "the rule ran and
   found nothing" and "the rule aborted" were one outcome: on a machine with no register the probe
