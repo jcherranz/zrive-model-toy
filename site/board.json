@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T20:54:32Z",
+  "generated": "2026-08-16T20:58:52Z",
   "columns": [
     {
       "key": "raw",
@@ -42,12 +42,6 @@
             "idea"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
-        },
-        {
-          "id": 215,
-          "title": "The missing-key caption is painted italic and its line is reserved upright",
-          "labels": [],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/215"
         }
       ]
     },
@@ -72,6 +66,15 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/204"
+        },
+        {
+          "id": 215,
+          "title": "The missing-key caption is painted italic and its line is reserved upright",
+          "labels": [
+            "limitation",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/215"
         }
       ]
     },
