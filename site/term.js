@@ -2227,16 +2227,38 @@
     // 83 chips in seven columns at 390px cannot be 26 wide. A chip is a rendering of a row, its
     // whole content is in its own title attribute, and the way to a session is the drawing and
     // the panel, which is where it already was.
+    // AND A TITLE WAS THE ONLY COPY, WHICH IS TWO READERS SHORT. Issue 170. `title` is a hover, a
+    // phone has no hover, and on a `div` carrying no role it is also not reliably announced, so
+    // five facts about 83 sessions were reachable by a mouse and by nothing else. The stylesheet
+    // makes it worse at 390 by taking `.cal-title` off, which leaves a chip reading `18:30 Z-IB`
+    // in 45.1 by 24.5 px and no way at all to learn which session it is.
+    //
+    // THE STRING IS WRITTEN ONCE AND CARRIED THREE WAYS. `words` is the row, and the same text is
+    // the title for a mouse and a `.cal-sr` span for the accessibility tree. The three painted
+    // spans are `aria-hidden` beside it, so a reader is not read the time and the code twice and,
+    // more to the point, what is announced does not depend on which of the three the stylesheet
+    // happens to be painting at this width. Sighted and on a phone is the reader this still does
+    // not serve, and the answer for them is not a tooltip either: `list` and `review` are two of
+    // the four shapes of this same sheet, one press away on the bar above the grid, and both draw
+    // every one of these fields as a visible cell.
+    //
+    // NOTHING HERE IS A CONTROL, AND THE PARAGRAPH ABOVE STANDS. No tabindex, no role, no press.
+    // Text in the document is not a target and costs no tab stop; 83 of them would be 83.
     function chip(s) {
       var c = el('div', 'cal-chip' + (s.teacher !== 'yes' ? ' cal-gap' : ''));
-      c.appendChild(el('span', 'cal-time', s.time));
-      c.appendChild(el('span', 'cal-code', s.code));
-      c.appendChild(el('span', 'cal-title', s.title));
+      ['cal-time', 'cal-code', 'cal-title'].forEach(function (k, i) {
+        var e = el('span', k, [s.time, s.code, s.title][i]);
+        e.setAttribute('aria-hidden', 'true');
+        c.appendChild(e);
+      });
       // A TITLE IS TEXT AND OFF SCREEN IS NOT ABSENT, which is why the last clause of this string
       // is gone rather than left where only a hover finds it. Issue 110.
-      c.title = s.date + ' ' + s.time + ' · ' + s.code + ' · ' + s.title + ' · ' + s.state +
-        ' · ' + (s.teacher === 'yes' ? 'instructor named' : 'no instructor named') +
+      var words = s.date + ' ' + s.time + ' · ' + s.code + ' · ' + s.title + ' · ' +
+        s.state + ' · ' +
+        (s.teacher === 'yes' ? 'instructor named' : 'no instructor named') +
         ' · attendance ' + s.attendance + ' · drawn as ' + s.id;
+      c.title = words;
+      c.appendChild(el('span', 'cal-sr', words));
       return c;
     }
 

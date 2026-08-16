@@ -3728,6 +3728,21 @@ body.outline .term-table .term-no {
   overflow-wrap: anywhere;
 }
 
+/* WHAT A SCREEN READER GETS OFF A CHIP, ISSUE 170. term.js writes the row's whole sentence into
+   this span and marks the three painted spans aria-hidden beside it, so what is announced is one
+   copy of every field and is the same at 390 as at 2560, where before it was whatever the width
+   happened to be painting plus a `title` a phone cannot raise. `clip-path` and not `display: none`,
+   which would take it out of the accessibility tree as well, and not a negative text indent, which
+   leaves a real box the page can be scrolled sideways by. */
+.cal-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .cal-time { font-weight: 700; color: var(--fg-body); }
 .cal-code { margin-left: 4px; color: var(--fg-muted); }
 .cal-title { display: block; color: var(--fg-body); }
@@ -3735,7 +3750,13 @@ body.outline .term-table .term-no {
 /* The same mark the list puts on a row with nobody to teach it, in the register a chip can carry
    it: the edge of the chip rather than the colour of the text, because a chip is three short runs
    and colouring all of them would read as an error rather than as a gap. */
-.cal-gap { border-left-color: var(--fg-warning); }
+/* AND THE MARK IS NOT ONLY A COLOUR, ISSUE 170. A gap chip was told apart from an ordinary one by
+   the hue of a 2px rule and the hue of its time, and nothing else: two colours carrying the one
+   fact an operator opens this grid for. A dash is this document's own word for absent and it is
+   what carries it everywhere else, on the ghost tiles and on the second ring round the cohort, so
+   a reader who cannot separate the two hues reads the same distinction off the same idiom. It
+   costs no width, because a border already stood there. */
+.cal-gap { border-left-color: var(--fg-warning); border-left-style: dashed; }
 .cal-gap .cal-time { color: var(--fg-warning); }
 
 /* ---- what the grid cannot show, issue 146 --------------------------------------
@@ -3789,7 +3810,15 @@ body.outline .term-table .term-no {
      table beside them collapses to one block per row at this width, and the same treatment here
      would turn a month grid into the list it is an alternative to. A seventh of 390px is about
      50, which holds a time and a programme code at 9px and does not hold a session title, so the
-     title is what goes and the chip keeps its whole content in its own title attribute. */
+     title is what goes.
+
+     THE CLAUSE THAT FOLLOWED IT WAS THE DEFECT. It read "and the chip keeps its whole content in
+     its own title attribute", which is true and is the whole of issue 170's fifth finding: a phone
+     is the one device with no hover, so at exactly the width this rule is written for, the session
+     title sat in a tooltip that cannot be shown. What the chip keeps its content in now is a
+     `.cal-sr` span written by term.js, which is in the document at every width; and the sighted
+     reader's answer at this width is `list`, one press up on the shape bar, which draws all eight
+     fields as visible cells. */
   .cal-day { min-height: 38px; padding: 1px 2px; }
   .cal-chip { padding: 1px 2px; font-size: 9px; border-left-width: 2px; }
   .cal-title { display: none; }
