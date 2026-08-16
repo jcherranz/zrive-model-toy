@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T08:52:13Z",
+  "generated": "2026-08-16T09:07:28Z",
   "columns": [
     {
       "key": "raw",
@@ -71,14 +71,6 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/170"
-        },
-        {
-          "id": 186,
-          "title": "The sheet caps content at 1238px, and the week grid is the first surface that wants the width",
-          "labels": [
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/186"
         }
       ]
     },
@@ -112,6 +104,14 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/184"
+        },
+        {
+          "id": 186,
+          "title": "The sheet caps content at 1238px, and the week grid is the first surface that wants the width",
+          "labels": [
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/186"
         }
       ]
     },
