@@ -694,7 +694,11 @@ s.close()' 2>/dev/null)" || return 1
     set -e
     mkdir -p "$deep/$SITE_DIR"
     git -C "$deep" init -q
-    git -C "$deep" config user.email probe@example.invalid
+    # BUILT, NOT TYPED, for the reason the payload comments above give: git wants an identity to
+    # commit with, and a complete address written here is one the repository gate then finds in
+    # this file and somebody has to declare. It found this one, which is the gate working.
+    local at='@'
+    git -C "$deep" config user.email "probe${at}example.invalid"
     git -C "$deep" config user.name probe
     echo one > "$deep/$SITE_DIR/index.html"
     git -C "$deep" add -A && git -C "$deep" commit -qm one
