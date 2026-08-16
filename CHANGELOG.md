@@ -86,7 +86,38 @@ of what changed and when, and it is meant to be scannable.
   and the box is what is fixed: `.sheet-rows` takes `padding-top: var(--sheet-gutter)`, giving 6,
   6 and 4 on all four shapes of both sheets, with the panel rhythm below untouched so nothing is
   spaced twice.
-
+- **THE RINGS WERE ALIGNED AND THE ROW WAS NOT COUNTABLE, #155.** He pressed a socket ring on
+  `[data-node="bl_co_col"]` at 2560 by 1317 and asked `is alignment ok here?`. **Measured before any
+  constant was touched**, at 2560, 1536 and 390, over all seven drawings and over the union of Z-SC
+  and Z-BL under the eight week window the card was filed from: the row's centre is on the tile's
+  centre to 0.0000 units on every socketed tile, at every width, for one ring, two and three alike,
+  and the tile's screen box and the ring's screen box share a centre to the same figure. **All three
+  candidates on the card are false.** `span` cannot centre one ring differently from three, because
+  the row's centre is `n.x` whatever the count is; the label is drawn below the tile and the rings
+  inside it, so a label wrapping has nothing to pull them off; and a circle's centre and the tile's
+  box centre are the same point here rather than a radius apart. **The tile he pressed was not
+  moved and no ring anywhere moved horizontally.**
+- **What the same measurement did find is the step.** `app.css` strokes a ring 1.1 wide about a
+  radius of 2.1, and a stroke straddles the edge, so the ring a reader sees is 5.3 across and not
+  4.2. At the step of 5.4 that stood since #139 the clear space between two rings was **a tenth of
+  a unit**: at every scale this drawing is framed at, a fortieth to a fifth of a CSS pixel, so the
+  three rings on a Z-CFA session template painted as one smear and the count, which is the whole
+  feature, could not be read off the tile. The step is now the painted ring plus one stroke of
+  daylight, 6.4. KAIZEN.md `kaizen-spacing-is-a-fact-about-the-painted-shape`.
+- **And three claims in that comment were false against the document**, all in the same direction,
+  because each was computed against the specified ring rather than the painted one: that four is the
+  most any object carries, where the most is three; that four span 24.6 units, where they span 24.5;
+  and that the step was the smallest spacing at which four read as four rather than as a dotted
+  line, which is the property that had failed.
+- **One assertion, 300 to 301, over every socketed tile of all seven drawings.** It carries both
+  halves: the row is on its tile's centre, which is his question made standing so a later card
+  cannot quietly move it, and the daylight between two rings is at least the ring's **own** stroke,
+  derived from the stroke the browser resolved rather than from a number, so a stylesheet that
+  changes the weight fails it. **The count of multi-ring tiles is asserted positive beside the gap**,
+  because a drawing with no such tile has no pair to measure and a check that could not tell that
+  from a clean measurement would pass with half of its own name unread. Proved by planting three
+  defects: the step put back to 5.4, the row shifted a unit off the tile's centre, and every tile
+  cut to a single ring, which must fail on the guard rather than pass on an empty measurement.
 - **THE ARROWHEAD WAS AIMED ALONG A TANGENT NOBODY CAN SEE, #156.** He filed `check arrow vs line
   alignment` on `[data-edge="bl_students->bl_cohort"]` at 2560 by 1317. **Measured before any
   constant was touched**, at 2560, 1536 and 390, over all seven drawings, both grains and the union

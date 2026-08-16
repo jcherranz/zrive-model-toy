@@ -286,7 +286,7 @@ const PHASES = {
   'the cut':              { count: 9, when: 'behavioural' },
   'the modified drag':    { count: 6, when: 'behavioural' },
   'the brush':            { count: 14, when: 'behavioural' },
-  'absence':              { count: 10, when: 'behavioural' },
+  'absence':              { count: 11, when: 'behavioural' },
   'the view selector':    { count: 6, when: 'behavioural' },
   'the control panel':    { count: 9, when: 'behavioural' },
   'the plate':            { count: 6, when: 'behavioural' },
@@ -581,24 +581,31 @@ const PHASES = {
 // check: that index.html carries an enforcing meta CSP ahead of every loader in the head, that the
 // directives the page relies on are still in it, and that the page violated it nowhere at that
 // width. The credential feedback.js keeps in localStorage is what the policy is there for.
-// 303 until issues 146, 158 and 160, which add eight to `term`, replace one of its own and delete
-// nothing, so the total moves by seven and this phase from 56 to 63. The replaced one asserted the
-// week grid's old shape, one panel per week that holds a session, which is the shape the owner
-// asked to be turned over; what stands in its place asserts the shape he asked for and is two
-// claims rather than one. Two of the eight are #158's own defects, that no day is drawn twice
-// anywhere in the month grid and that the week grid is one grid with the days down its side and a
-// column per week of the term, read off the painted axes rather than off document order. One is
-// that grid's scroller, which may overflow while the page may not, driven to a width where it
-// actually does. Three are #146's: that the grid says which kind of nothing an empty cell is, that
-// the calendar answers for a set of programmes in the drawing's own spelling while its enumerated
-// routes stay at sixteen, and that the header's absence count is over that whole set. One is the
-// window being one instrument rather than two, that the columns the week grid lights are exactly
-// the columns the strip has brushed. The eighth is #160's, that all four shapes are spaced off the
-// rule above them by the box they scroll in rather than by whatever each reading begins with.
-// Three cards landed between this file being read and this commit being merged onto them, and
-// every increment is kept: issue 156 owns the two in `well formed`, issue 172 the three in
-// `console and requests`, and these three the seven in `term`.
-const EXPECTED_ASSERTIONS = 310;
+// 303 plus one for issue 155, which adds it to `absence` and changes no other count. He asked
+// whether a socket ring was aligned; it was, to 0.0000 units at all three widths for one ring, two
+// and three alike, and the answer is now a standing claim over every socketed tile of all seven
+// drawings rather than a measurement somebody took once. The same assertion carries what that
+// measurement did find, that two rings had a tenth of a unit of daylight between them where the
+// stroke the browser paints them with is 1.1, and it requires the daylight to be at least that
+// stroke rather than at least a number, so a stylesheet that changes the weight fails it.
+// 304 plus seven for issues 146, 158 and 160, which add eight to `term`, replace one of its own
+// and delete nothing, so that phase moves from 56 to 63. The replaced one asserted the week grid's
+// old shape, one panel per week that holds a session, which is the shape the owner asked to be
+// turned over; what stands in its place asserts the shape he asked for and is two claims rather
+// than one. Two of the eight are #158's own defects, that no day is drawn twice anywhere in the
+// month grid and that the week grid is one grid with the days down its side and a column per week
+// of the term, read off the painted axes rather than off document order. One is that grid's
+// scroller, which may overflow while the page may not, driven to a width where it actually does.
+// Three are #146's: that the grid says which kind of nothing an empty cell is, that the calendar
+// answers for a set of programmes in the drawing's own spelling while its enumerated routes stay
+// at sixteen, and that the header's absence count is over that whole set. One is the window being
+// one instrument rather than two, that the columns the week grid lights are exactly the columns
+// the strip has brushed. The eighth is #160's, that all four shapes are spaced off the rule above
+// them by the box they scroll in rather than by whatever each reading begins with.
+// Four cards landed between this file being read and this commit being merged onto them, and every
+// increment is kept: issue 156 owns the two in `well formed`, issue 172 the three in `console and
+// requests`, issue 155 the one in `absence`, and these three the seven in `term`.
+const EXPECTED_ASSERTIONS = 311;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -7043,6 +7050,44 @@ const SOCKETS = `(function () {
                           ghosts: count('.node.ghost') });
 })()`;
 
+// WHERE THE RINGS ARE, off the rendered circles and the rendered tile. Issue 155. Nothing here is
+// read from render.js's constants: the row's centre is taken from the circles the browser drew, the
+// tile's centre from the rect it drew, and the daylight between two rings is the distance between
+// their centres less each one's radius and half of the stroke the browser resolved for it, which is
+// what a reader sees rather than what the geometry specifies.
+const SOCKET_GEOM = `(function () {
+  var out = { nodes: 0, multi: 0, worstOffset: 0, offNode: '', worstGap: null, tightNode: '',
+              stroke: 0, counts: {} };
+  Array.prototype.forEach.call(document.querySelectorAll('#graph g[data-node]'), function (g) {
+    var rings = Array.prototype.slice.call(g.querySelectorAll('circle.sock'));
+    var tile = g.querySelector('rect.tile-bg');
+    if (!rings.length || !tile) return;
+    var id = g.getAttribute('data-node');
+    var got = rings.map(function (c) {
+      return { cx: +c.getAttribute('cx'), r: +c.getAttribute('r'),
+               sw: parseFloat(getComputedStyle(c).strokeWidth) || 0 };
+    }).sort(function (a, b) { return a.cx - b.cx; });
+    out.nodes++;
+    out.counts[got.length] = (out.counts[got.length] || 0) + 1;
+    got.forEach(function (c) { out.stroke = Math.max(out.stroke, c.sw); });
+    var centre = (got[0].cx + got[got.length - 1].cx) / 2;
+    var tileC = +tile.getAttribute('x') + (+tile.getAttribute('width')) / 2;
+    var off = Math.abs(centre - tileC);
+    if (off > out.worstOffset) { out.worstOffset = off; out.offNode = id; }
+    if (got.length > 1) {
+      out.multi++;
+      for (var i = 1; i < got.length; i++) {
+        var gap = (got[i].cx - got[i - 1].cx) - (got[i].r + got[i].sw / 2) -
+                  (got[i - 1].r + got[i - 1].sw / 2);
+        if (out.worstGap === null || gap < out.worstGap) {
+          out.worstGap = gap; out.tightNode = id + ' with ' + got.length;
+        }
+      }
+    }
+  });
+  return JSON.stringify(out);
+})()`;
+
 async function absSwitch(page, which, want) {
   const id = which === 'work' ? 'abswork' : 'absunrec';
   const cls = which === 'work' ? 'hide-work' : 'hide-unrecorded';
@@ -7055,7 +7100,8 @@ async function absSwitch(page, which, want) {
 }
 
 // ---- absence is one idea with two numbers that never add, issue 139 -----------------------------
-// TEN ASSERTIONS ON THE ONE CONTROL THIS CARD SHIPPED, and none of them reads the count and asserts
+// ELEVEN ASSERTIONS ON THE ONE CONTROL THIS CARD SHIPPED, ten of them #139's and the eleventh
+// issue 155's, and none of them reads the count and asserts
 // the count. Every figure is recomputed here, in this file, by a second implementation over
 // window.GI, and the control's own answer is checked against it; the windowed pair is recomputed a
 // third way, over render.js's own record of which tiles the window left, so a count that agreed
@@ -7172,6 +7218,57 @@ async function checkHeader(page) {
       ? mismatched.map(x => `${x.key} painted ${x.sk.work.painted}/${x.sk.unrec.painted} for ` +
           `${x.work}/${x.unrec}`).join(', ')
       : socketed.map(x => `${x.key} ${x.sk.work.painted} and ${x.sk.unrec.painted}`).join(', '));
+
+  // FOUR AND A HALF. AND THE RINGS ARE WHERE THEY SAY THEY ARE, WHICH IS ISSUE 155'S QUESTION MADE
+  // STANDING. He pressed a ring on `bl_co_col` and asked whether the alignment was right. It was:
+  // measured at 2560, 1536 and 390 over all seven drawings, the row's centre was on its tile's
+  // centre to 0.0000 units for one ring, two and three alike. That is now asserted rather than
+  // remembered, on every socketed node of all seven, so a later card cannot quietly move it.
+  //
+  // AND THE DAYLIGHT, WHICH IS WHAT THE SAME MEASUREMENT FOUND WRONG. The stylesheet strokes a ring
+  // 1.1 wide about a radius of 2.1, so the ring a reader sees is 5.3 across; at the step of 5.4 that
+  // stood until #155 the clear space between two rings was a tenth of a unit and three rings painted
+  // as one smear. What is required here is not a number: it is that the daylight is at least the
+  // ring's OWN stroke, derived from the stroke the browser resolved, so a stylesheet that changes
+  // the weight turns this red instead of closing the gap again in silence.
+  //
+  // THE GUARD THAT KEEPS IT FROM BEING THE TENTH DEAD INSTRUMENT. A drawing with no multi-ring tile
+  // has no pair to measure, and a check that could not tell that from a clean measurement would
+  // pass on a page where the second half of its own name was never read. So the count of multi-ring
+  // tiles is asserted to be positive alongside the gap.
+  const geom = [];
+  for (const key of Object.keys(model.byView)) {
+    await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(key)}`);
+    await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(key)}`, `the ${key} drawing`);
+    geom.push({ key, g: JSON.parse(await page.evaluate(SOCKET_GEOM)) });
+  }
+  // A millionth of a unit, on both, and it is arithmetic rather than a fitted allowance. The row's
+  // centre is a sum and a difference of numbers that went through the DOM as decimal strings, and
+  // the daylight at the step this file requires comes out exactly at the stroke, so a bare `>=`
+  // would turn on the last bit of a double. The defects underneath are a whole unit and a tenth of
+  // one, six orders of magnitude clear of this.
+  const FLOAT_EPS = 1e-6;
+  const offCentre = geom.filter(x => !(x.g.worstOffset <= FLOAT_EPS));
+  const tight = geom.filter(x => x.g.worstGap !== null &&
+                                 !(x.g.worstGap + FLOAT_EPS >= x.g.stroke));
+  const multiRing = geom.reduce((a, x) => a + x.g.multi, 0);
+  const ringed = geom.reduce((a, x) => a + x.g.nodes, 0);
+  assert('every row of rings is centred on its own tile, and no two of them are closer than a ' +
+         'stroke of daylight',
+    geom.length === 7 && ringed > 0 && multiRing > 0 &&
+      offCentre.length === 0 && tight.length === 0,
+    `all ${ringed} socketed tiles across the seven with their row on the tile's centre to a ` +
+      `millionth of a unit, and the ${multiRing} carrying more than one ring clear by at least the ` +
+      'stroke the browser resolved for them',
+    `${offCentre.length} off centre (` +
+      offCentre.slice(0, 3).map(x => `${x.key} ${x.g.offNode} ${x.g.worstOffset}`).join(', ') +
+      `), ${tight.length} too tight (` +
+      tight.slice(0, 3).map(x => `${x.key} ${x.g.tightNode} ${x.g.worstGap.toFixed(2)} of daylight ` +
+        `against a stroke of ${x.g.stroke}`).join(', ') +
+      `), ${multiRing} tiles carrying more than one ring`,
+    `${ringed} socketed tiles, ${multiRing} of them with more than one ring, worst gap ` +
+      `${Math.min(...geom.filter(x => x.g.worstGap !== null).map(x => x.g.worstGap)).toFixed(2)} ` +
+      'units');
 
   // FIVE. EACH SWITCH TAKES ITS OWN KIND OFF THE PICTURE AND LEAVES THE OTHER WHERE IT IS. Both
   // directions on both switches, on the drawing that carries both kinds, because a page that
