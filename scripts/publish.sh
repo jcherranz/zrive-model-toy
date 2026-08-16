@@ -32,6 +32,15 @@
 
 set -uo pipefail
 
+# NO GIT CALL IN THIS FILE MAY SIT AT A CREDENTIAL PROMPT. Issue 211. The one git call here,
+# `git config --get`, reads local state and reaches no network, so this is a guard against what
+# gets added rather than against anything measured. It is the same line every script in this
+# directory that calls git now carries, and scripts/check_repo.sh --self-test checks that it is
+# still there and still ahead of the first call. The reasoning, and why one line is not enough,
+# are in the same block in that file.
+export GIT_TERMINAL_PROMPT=0
+export GIT_ASKPASS=
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 

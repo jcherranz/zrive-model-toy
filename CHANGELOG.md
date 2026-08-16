@@ -108,6 +108,66 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- **THE CREDENTIAL GUARD WAS ON ONE OF TWO NETWORK-REACHING GIT CALLS, AND THE UNGUARDED ONE
+  PRODUCED THE LIST THE GATE CHECKS, #211.** #208 wrote `GIT_TERMINAL_PROMPT=0` on the fetch in
+  `fetch_named_commit` and nowhere else. The call that can actually block is `git ls-tree` in
+  `deployed_paths`: in a partial clone (`--filter=blob:none` or `--filter=tree:0`) the trees it
+  walks are absent and it resolves them from the promisor remote, so that line is where the network
+  call happens. The same shape is the two `git cat-file -p` calls in `scripts/check_repo.sh`
+  `scan_snapshots` and, found while walking the directory rather than from the card,
+  `git cat-file blob "HEAD:$1"` in `scripts/check_build.sh` `baseline_read`. **This has never fired
+  in CI and the card says so up front:** no workflow here makes a partial clone, and a reader who
+  clones this repository by hand with a filter is the exposure. The guard is now
+  `export GIT_TERMINAL_PROMPT=0` at the top of every script in `scripts/` that calls git, which
+  covers the calls added later as well, and **the per-call assignment is removed** so the fact has
+  one owner: a reader who sees one call guarded infers the others were deliberately left bare,
+  which is how this residue was created.
+- **AND ONE LINE WAS NOT THE POLICY IT LOOKED LIKE, which an outside review established and a
+  measurement settled, #211.** `GIT_TERMINAL_PROMPT` governs git's **own** prompt. When
+  `GIT_ASKPASS` or `core.askpass` names a program, git runs that program and waits for whatever it
+  does, and the variable has no opinion about it. Measured against the self-test fixture: with
+  `GIT_TERMINAL_PROMPT=0` alone and `core.askpass` configured, the helper was called; with
+  `GIT_ASKPASS` exported empty it was not, and git fell through to the terminal prompt the other
+  guard refuses. **That configuration is not hypothetical:** an editor's integrated terminal
+  exports `GIT_ASKPASS` pointing at its own helper, so a reader running these gates from one has it
+  set without having chosen it, and the helper opens a window. Empty rather than a path to a
+  program that always fails, because git takes the first of `GIT_ASKPASS`, `core.askpass` and
+  `SSH_ASKPASS` that is set and stops there. **What is still not covered is written down where the
+  variables are set:** a credential helper and ssh's own prompts are a third mechanism neither line
+  reaches, and neither is configured or reachable here.
+- **STOP_SRV KILLED NOTHING AND RETURNED 0 WHILE DOING IT, #213.** Found while working #211 in the
+  same file. `serve_dir` is called as `gbase="$(serve_dir "$g")"`, and `$(...)` is a subshell, so
+  `GHOST_SRV_PID=$!` was assigned in a process that exits when the substitution ends; `stop_srv` in
+  the parent read an empty value and took its early return. **Measured at `1de5550`: four servers
+  left running per self-test run, 243 alive on one machine and the oldest twenty hours old**, each
+  holding a loopback port and serving a `WORKDIR` the EXIT trap had already deleted. The pid now
+  crosses the subshell through a file inside `WORKDIR`, read before the trap can fire by
+  construction, because `stop_srv` is only ever called from a probe. `stop_srv` no longer calls
+  `wait` on a process that was never its child, and `serve_dir` kills a server that never answered
+  instead of returning past it. **The check is the ground truth and not an exit code**, which is
+  the whole point when the exit code was already 0: probe 11 requires that no process whose command
+  line names this run's temporary directory is alive at the end, after making the same counter
+  watch one appear and disappear. Reverting the pid plumbing turns it red, prints the four
+  survivors by pid, and moves the machine-wide count by five.
+- **And two probes, each made to fail on purpose before it was trusted, #211.** Probe 9 in
+  `scripts/check_forbidden.sh --self-test` runs the command shape of `deployed_paths` against a
+  `--filter=tree:0` clone whose remote answers every request with a credential challenge, **on a
+  pseudo-terminal whose input side never delivers a byte**. That last part is load-bearing and was
+  measured: with no terminal git cannot prompt whatever the variable says, both directions exit 128
+  in about ten milliseconds, and a probe written against CI's own stdin would have passed with the
+  guard deleted. It failed as required with the export removed (guarded exit 124), with the clone
+  made complete (the fixture assertion), and with the remote left at `file://` so nothing demanded
+  credentials (both directions exit 0). It also requires a `PTY-DEADLINE` sentinel the harness
+  writes, because 124 on its own is a code the command under test could produce. Probe 10 proves
+  the askpass half in both directions. Probe 130 in `scripts/check_repo.sh --self-test` checks
+  presence, value and position of **both** exports across every script that calls git, and carries
+  four synthetic controls that must all be caught. Between them the new probes were made to fail
+  eleven ways, each recorded on the pull request. **The detector was wrong when first written and
+  an outside review found it:** it missed `if git ...`, `done < <(git ls-files)` and a call at the
+  start of a line in a case arm. A backtick and a bare `(` were tried as separators and taken back
+  out after testing every file here, because this repository writes `git ls-files` in backticks and
+  "(git was not asked)" in an echo, and a rule that fires on a sentence is a rule somebody switches
+  off.
 - **THE FORBIDDEN-CONTENT GATE ABORTED ON ANY CLONE OLDER THAN THE LAST BOARD SYNC, #208.** Since
   #6 the gate lists the commit the origin names, read off the live `site/version.js` and listed out
   of git locally, which requires that commit to be in the local object store. `board.yml` turns an

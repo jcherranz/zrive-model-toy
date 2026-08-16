@@ -153,6 +153,19 @@
 
 set -uo pipefail
 
+# NO GIT CALL IN THIS FILE MAY SIT AT A CREDENTIAL PROMPT. Issue 211. baseline_read runs
+# `git cat-file blob "HEAD:$1"`, and in a partial clone made with `--filter=blob:none` that blob
+# is absent and the line fetches it from the promisor remote. A remote that wants credentials
+# would then block this gate at a prompt nobody unattended is going to answer. No workflow here
+# makes a partial clone, so it has never fired in CI. Exported once rather than written on the
+# call, because a per-call guard is a guard on the calls somebody remembered; the reasoning and
+# the limits of what these variables cover are in the same block in scripts/check_repo.sh, and
+# scripts/check_forbidden.sh proves the mechanism against a real partial clone. The second line is
+# not redundant: with GIT_ASKPASS or core.askpass set, git runs that program rather than prompting,
+# and the first line has no opinion about it.
+export GIT_TERMINAL_PROMPT=0
+export GIT_ASKPASS=
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
