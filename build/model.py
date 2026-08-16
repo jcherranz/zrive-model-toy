@@ -396,6 +396,16 @@ AGING_DAYS = 240
 # printed in the gate's own notice, it is named again in the verdict, and it decays: past
 # AGING_DAYS the recorded reading stops being accepted and the build refuses.
 #
+# AND THE LIMIT IS STATED BEFORE THE MECHANISM IS PRAISED, because a check whose reach is
+# oversold is what this repository is named for. THIS IS A CONSISTENCY CHECK AND NOT AN
+# AUTHENTICITY PROOF. The preimages are public and so is the algorithm, so anybody editing a
+# table can recompute the digest and commit it beside the edit, and nothing here would know. What
+# it catches is the realistic act, which is the one that has actually happened in this repository
+# over and over: a table edited on a machine with no corpus, in good faith, by somebody who did
+# not know a corpus was involved. Closing the forgery would need a signature nobody but the owner
+# can make, which is a secret, and a secret buys that one thing at the price listed below. The
+# cost of leaving it open is written here rather than left for a reader to discover.
+#
 # WHY NOT A REPOSITORY SECRET, WHICH IS THE ROUTE scripts/ci_register.sh ALREADY TAKES. Because
 # a secret is for bytes that must not be public, and there are none here. This file is three
 # hex digests over strings that are committed in the clear four hundred lines further down, plus
@@ -470,15 +480,6 @@ def load_recorded_reading(path=None):
         recorded = datetime.date.fromisoformat(out["read_on"] or "")
     except ValueError:
         return bad(f"{path.name} says it was read on {out['read_on']!r}, which is not a date.")
-    # The lower bracket, and it needs no clock. The source in VALUE_SOURCES states the day the
-    # syllabus corpus was read; an attestation older than that is an attestation of tables from
-    # before the reading the document itself claims, so it cannot be evidence for them.
-    source_read_on = VALUE_SOURCES["programme-syllabus"]["read_on"]
-    if out["read_on"] < source_read_on:
-        return bad(f"{path.name} records a reading on {out['read_on']} and the programme-syllabus "
-                   f"source in this file says its corpus was read on {source_read_on}. An "
-                   f"attestation from before the reading it is supposed to attest is about some "
-                   f"earlier version of these tables.")
     missing = [k for k in READING_KEYS if k not in out["readings"]]
     extra = [k for k in out["readings"] if k not in READING_KEYS]
     if missing or extra:
@@ -493,6 +494,24 @@ def load_recorded_reading(path=None):
 
 
 RECORDED_READING = load_recorded_reading()
+
+
+def reading_lower_bracket(sources=None):
+    """The earliest date an attestation of these tables could honestly carry.
+
+    DERIVED OFF VALUE_SOURCES AND NOT TYPED, and it is derived off ALL of them rather than off
+    the syllabus source alone: every source in that table states the day its corpus was read, an
+    attestation is a claim that the tables covered by those sources were re-read, and one older
+    than the latest of those dates is an attestation of some earlier version of them. Written as
+    a loop rather than as two named lookups because a third source added to that table is then
+    bracketed by this rule on the day it lands, and a named lookup would not have noticed it.
+
+    It is computed on demand rather than at load time for a plain ordering reason: the
+    operations-ontology source is registered a thousand lines below the loader, so nothing read
+    at import time can see it and a bracket taken there would be quietly about one source.
+    """
+    sources = VALUE_SOURCES if sources is None else sources
+    return max(s["read_on"] for s in sources.values())
 
 
 def recorded_verdict(key, declared, corpus_present, today=None, reading=False):
@@ -525,14 +544,32 @@ def recorded_verdict(key, declared, corpus_present, today=None, reading=False):
     """
     rec = RECORDED_READING if reading is False else reading
     today = datetime.date.today() if today is None else today
+    # THE TWO BRACKETS ON THE DATE, both computed here rather than in the loader. The lower one
+    # is clock-free and comes off VALUE_SOURCES; the upper one is the clock and refuses a reading
+    # from the future, which is not a pedantry: a date typed a year ahead by hand would otherwise
+    # buy an attestation a year of immunity from the ageing rule below, and typing a date is
+    # exactly how somebody would reach for that.
+    problem = None if rec is None else rec["problem"]
+    if rec is not None and not problem:
+        floor = reading_lower_bracket()
+        if rec["read_on"] < floor:
+            problem = (f"{CORPUS_READING_PATH.name} records a reading on {rec['read_on']} and the "
+                       f"latest source in VALUE_SOURCES says its corpus was read on {floor}. An "
+                       f"attestation from before the reading it is supposed to attest is about "
+                       f"some earlier version of these tables.")
+        elif rec["date"] > today:
+            problem = (f"{CORPUS_READING_PATH.name} says it was read on {rec['read_on']}, which "
+                       f"is in the future. Nothing has been read on a day that has not happened, "
+                       f"and a date ahead of the clock is how an attestation would buy itself "
+                       f"immunity from the ageing rule.")
     if corpus_present:
         if rec is None:
             return ("stale-record", f"and no recorded reading is committed at "
                                     f"{CORPUS_READING_PATH.name}, so a machine without the "
                                     f"corpus has nothing to check these tables against. Write "
                                     f"one with scripts/gen_corpus_reading.sh.")
-        if rec["problem"]:
-            return ("stale-record", "and the recorded reading cannot be used: " + rec["problem"])
+        if problem:
+            return ("stale-record", "and the recorded reading cannot be used: " + problem)
         if rec["readings"][key] != declared:
             return ("stale-record",
                     f"and the recorded reading in {CORPUS_READING_PATH.name} is of different "
@@ -543,11 +580,11 @@ def recorded_verdict(key, declared, corpus_present, today=None, reading=False):
         return ("verified", "")
     if rec is None:
         return ("unverified", "")
-    if rec["problem"]:
+    if problem:
         raise SystemExit(
             f"[model] the corpus this gate is about is not on this machine, so the recorded "
             f"reading in {CORPUS_READING_PATH.name} is the only evidence there is about the "
-            f"{key} tables, and it cannot be used: {rec['problem']}\n"
+            f"{key} tables, and it cannot be used: {problem}\n"
             f"  A build that carried on here would divide every fraction on every screen by a "
             f"number nothing has ever checked. Regenerate the file on a machine holding the "
             f"corpus with scripts/gen_corpus_reading.sh.")
@@ -561,7 +598,8 @@ def recorded_verdict(key, declared, corpus_present, today=None, reading=False):
             f"  The corpus itself is not on this machine, so nothing here can say which of the "
             f"two is right. What it can say is that somebody changed these tables without "
             f"holding them up against the thing they are about. Every counts[*].total on this "
-            f"page comes out of them.\n"
+            f"page comes out of them, which is the denominator of every fraction on every "
+            f"screen.\n"
             f"  Either restore the tables, or re-read the corpus on a machine that has it and "
             f"regenerate the attestation with scripts/gen_corpus_reading.sh in the same commit.")
     age = (today - rec["date"]).days

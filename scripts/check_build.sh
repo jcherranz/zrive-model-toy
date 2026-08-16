@@ -732,9 +732,39 @@ PY
 # The workflows' command list was a copy.
 EXPECTED_MODEL_GATES='ontology registry|syllabus totals|module structure|reach|session templates|session agendas'
 
+# ---- the state a gate is in, which is a TOKEN now and was a substring. Issue 196 -------------
+# THE READER USED TO DECIDE WHETHER A GATE WAS BLIND BY LOOKING FOR THE WORD "unverified" INSIDE
+# ITS PROSE. That worked while there were two states and it cannot survive a third: issue 196
+# gives the three corpus gates a middle state, in which the corpus is absent and the tables were
+# checked against a reading recorded by a machine that had it, and any sentence describing that
+# state honestly contains the word "unverified" somewhere in it. A sniff over prose would have
+# filed the repair as the defect.
+#
+# So every gate prints a token as the first thing after its name, this file reads the token, and
+# a notice carrying no token or a token this file does not know is an ABORT. Same terminator
+# discipline as the roster itself, and for the same reason: the failure of a gate to say what
+# state it is in must be loud on the first run after it appears, not absorbed into a default.
+#
+#   verified      the gate read its corpus, here, on this run.
+#   recorded      the corpus is not on this machine and the tables are byte for byte the ones a
+#                 machine holding it verified on a recorded date. Weaker than verified by exactly
+#                 one thing: a corpus that moved since that date.
+#   stale-record  the gate read its corpus AND the committed attestation is of other tables. The
+#                 document is sound and a tracked file is wrong. A DEFECT, failed below, and it
+#                 is failed HERE rather than raised in build/model.py because
+#                 scripts/gen_corpus_reading.sh imports that module to repair the very file.
+#   unverified    the gate could not look at anything. The state every run of this repository
+#                 was in before issue 196, kept reachable because a machine can still be in it.
+MODEL_GATE_TOKENS='verified|recorded|stale-record|unverified'
+
 # Filled in by run_census below and read by verdict(). Zero is the state where every gate looked.
 CENSUS_UNVERIFIED=0
 CENSUS_NAMES=""
+# And the middle state, reported separately because it is not the same claim. A run with these
+# is not incomplete: every gate answered, and each of these answered about a recorded reading
+# rather than about a corpus. The verdict says so in its own paragraph.
+CENSUS_RECORDED=0
+CENSUS_RECORDED_NAMES=""
 
 # The model's own account of itself, in one import, machine readable. stderr is captured rather
 # than let out, because these lines are the subject here and not chatter.
@@ -758,6 +788,15 @@ for line in buf.getvalue().split("\n"):
 # read it and neither can verify anything without it, so the census can predict exactly what
 # those two must have said, and a disagreement means one of the two is lying.
 print("CORPUS\tsyllabus\t" + ("present" if model.SYLLABUS_DIR.is_dir() else "absent"))
+# And the second thing a gate's answer is a function of, issue 196. With the corpus absent the
+# two count gates say `recorded` when this file is there and usable and `unverified` when it is
+# not, so the census can predict those two answers off two facts instead of one and refuses a
+# gate whose answer does not follow from them. The reading is reported as usable or not rather
+# than merely present, because a file that is there and malformed produces the same `unverified`
+# as no file at all on the corpus-present path and must not be read as evidence either way.
+_rec = model.RECORDED_READING
+print("CORPUS\treading\t" + ("absent" if _rec is None else
+                             "unusable" if _rec["problem"] else "present"))
 PY
 }
 
@@ -776,19 +815,24 @@ census_report() {
   local script
   script="$(cat <<'PY'
 import os
+import re
 import sys
 
 roster = [g for g in os.environ["ZRIVE_GATES"].split("|") if g]
-notices, corpus = {}, {}
+tokens_known = [t for t in os.environ["ZRIVE_TOKENS"].split("|") if t]
+notices, corpus, state = {}, {}, {}
 order = []
 for raw in sys.stdin.read().split("\n"):
     parts = raw.split("\t")
     if parts[0] == "NOTICE" and len(parts) >= 2:
         text = parts[1]
         name = text.split(":", 1)[0].strip()
-        notices.setdefault(name, text)
-        if name not in order:
-            order.append(name)
+        if name in notices:
+            continue
+        notices[name] = text
+        m = re.match(r"^\s*\[([a-z-]+)\]", text.split(":", 1)[1] if ":" in text else "")
+        state[name] = m.group(1) if m else None
+        order.append(name)
     elif parts[0] == "CORPUS" and len(parts) >= 3:
         corpus[parts[1]] = parts[2]
 
@@ -813,46 +857,112 @@ if strangers:
           f"not know how to read, so it cannot say whether they looked at anything. "
           f"{ROSTER_FIX}")
 
-if "syllabus" not in corpus:
-    abort("the census was handed no reading of the syllabus corpus, so it cannot check its own "
-          "answer against anything; nothing here is evidence.")
+# Issue 196. A gate that does not say which state it is in is a gate this file cannot report on,
+# and the answer is the same one silence gets: abort. The alternative is a default, and a default
+# here would file every unlabelled gate as the state that costs nothing.
+mute = [g for g in roster if state[g] is None]
+if mute:
+    abort(f"these gate(s) printed a notice with no state token: {', '.join(mute)}. Every gate "
+          f"says [{']/['.join(tokens_known)}] as the first thing after its name, so that this "
+          f"file reads a token rather than sniffing prose. MODEL_GATE_TOKENS in "
+          f"scripts/check_build.sh is the vocabulary and it belongs in the same commit as the "
+          f"change to the gates.")
+unknown = sorted({state[g] for g in roster if state[g] not in tokens_known})
+if unknown:
+    abort(f"gate(s) reported the state(s) {', '.join(unknown)}, which this file does not know "
+          f"how to read, so it cannot say what they establish. MODEL_GATE_TOKENS in "
+          f"scripts/check_build.sh is the vocabulary and it belongs in the same commit as the "
+          f"change to the gates.")
 
-# The cross-check, and it runs in both directions. A gate declining next to a corpus that is
-# there is a gate refusing work it could have done; a gate reporting verified next to a corpus
-# that is not there is the loudest thing this repository can be told. It covers the two gates
-# over the declared totals, which are the two whose corpus has exactly one answer.
+for name in ("syllabus", "reading"):
+    if name not in corpus:
+        abort(f"the census was handed no reading of the {name} corpus, so it cannot check its "
+              f"own answer against anything; nothing here is evidence.")
+
+# THE CROSS-CHECK, AND IT RUNS IN BOTH DIRECTIONS. A gate's state is a FUNCTION of two facts this
+# census is handed independently: whether the syllabus corpus is on the machine, and whether a
+# usable recorded reading is committed. So the census does not merely notice a contradiction, it
+# computes what each of the two count gates MUST have said and refuses anything else. Those two
+# are covered because their corpus has exactly one answer; the ontology gate is not, because it
+# has a partial branch where half the corpus is present and a rule over one boolean cannot
+# describe it.
 present = corpus["syllabus"] == "present"
+reading = corpus["reading"]
+if present:
+    # With the corpus here the gate read it either way. Which of the two it says depends on
+    # whether the committed attestation is of these tables, which this census cannot know.
+    allowed = ("verified", "stale-record") if reading == "present" else ("stale-record",)
+elif reading == "present":
+    allowed = ("recorded",)
+else:
+    # No corpus and no usable reading. build/model.py refuses outright when the reading is there
+    # and unusable, so the only way this line is reached is with no reading at all.
+    allowed = ("unverified",)
 for name in ("syllabus totals", "module structure"):
     if name not in notices:
         continue
-    unverified = "unverified" in notices[name]
-    if unverified and present:
-        abort(f"the {name} gate says it could not look and the syllabus corpus is on this "
-              f"machine. One of those two is wrong and the census will not pick.")
-    if not unverified and not present:
-        abort(f"the {name} gate says it verified and the syllabus corpus is not on this "
-              f"machine. One of those two is wrong and the census will not pick.")
+    if state[name] not in allowed:
+        abort(f"the {name} gate reports [{state[name]}], and on a machine where the syllabus "
+              f"corpus is {corpus['syllabus']} and the recorded reading is {reading} the only "
+              f"state it could be in is [{'] or ['.join(allowed)}]. One of those readings is "
+              f"wrong and the census will not pick.")
 
-blind = [g for g in roster if "unverified" in notices[g]]
+blind = [g for g in roster if state[g] == "unverified"]
+stale = [g for g in roster if state[g] == "stale-record"]
+recorded = [g for g in roster if state[g] == "recorded"]
+MARK = {"verified": "looked", "recorded": "RECORDED", "stale-record": "STALE RECORD",
+        "unverified": "UNVERIFIED"}
 for name in roster:
-    mark = "UNVERIFIED" if "unverified" in notices[name] else "looked"
-    print(f"    [{mark}] {notices[name]}")
-if not blind:
-    print(f"    all {len(roster)} gates named in the roster read their corpus, on this machine, "
-          f"just now")
+    print(f"    [{MARK[state[name]]}] {notices[name]}")
+
+# A DEFECT OUTRANKS AN INCOMPLETENESS, so this branch is first. The gate read its corpus and the
+# committed attestation is of other tables, which means the next run on a machine WITHOUT the
+# corpus will refuse the build outright. Catching it here, on the machine that can repair it, is
+# the whole reason build/model.py does not raise on this state.
+if stale:
+    print()
+    print(f"::error::{len(stale)} gate(s) read their corpus and the recorded reading in "
+          f"build/corpus_reading.txt is of other tables")
+    for name in stale:
+        print(f"      ! {name}")
+    print()
+    print("    The tables in build/model.py are right: they were just held up against the corpus")
+    print("    on this machine. The committed attestation is what is wrong, and a runner reading")
+    print("    it will refuse the build rather than divide by numbers nothing checked. Run")
+    print("    scripts/gen_corpus_reading.sh and commit the result in this same commit.")
+    sys.exit(1)
+
+if blind:
+    print()
+    print(f"::warning::{len(blind)} gate(s) could not look at the corpus they are about")
+    for name in blind:
+        print(f"      - {name}")
+    print()
+    print("    Nothing above is evidence about what those gates cover. Two of them are the only")
+    print("    checks on the declared totals, and the totals are the denominator of every fraction")
+    print("    the page draws.")
+    sys.exit(3)
+
+if recorded:
+    print()
+    print(f"    {len(recorded)} gate(s) had no corpus here and checked their tables against the")
+    print("    reading recorded in build/corpus_reading.txt instead:")
+    for name in recorded:
+        print(f"      ~ {name}")
+    print()
+    print("    That is not the same claim as having read the corpus, and the difference is one")
+    print("    thing: a corpus that moved after the recorded date. What it does establish is that")
+    print("    these tables are the ones somebody held up against it, which is what no run on a")
+    print("    machine without the corpus could say at all before issue 196.")
     sys.exit(0)
-print()
-print(f"::warning::{len(blind)} gate(s) could not look at the corpus they are about")
-for name in blind:
-    print(f"      - {name}")
-print()
-print("    Nothing above is evidence about what those gates cover. Two of them are the only")
-print("    checks on the declared totals, and the totals are the denominator of every fraction")
-print("    the page draws.")
-sys.exit(3)
+
+print(f"    all {len(roster)} gates named in the roster read their corpus, on this machine, "
+      f"just now")
+sys.exit(0)
 PY
 )"
-  ZRIVE_GATES="${1:-$EXPECTED_MODEL_GATES}" python3 -c "$script"
+  ZRIVE_GATES="${1:-$EXPECTED_MODEL_GATES}" ZRIVE_TOKENS="${2:-$MODEL_GATE_TOKENS}" \
+    python3 -c "$script"
 }
 
 # THE TWO HALVES ARE ASKED SEPARATELY, and the first draft of this function did not do that. It
@@ -870,6 +980,8 @@ run_census() {
   local raw out prc rrc
   CENSUS_UNVERIFIED=0
   CENSUS_NAMES=""
+  CENSUS_RECORDED=0
+  CENSUS_RECORDED_NAMES=""
   raw="$(mktemp)" || {
     echo "::error::no temporary file for the census, so it was not taken"
     return 2
@@ -886,8 +998,15 @@ run_census() {
   rrc=$?
   rm -f "$raw"
   printf '%s\n' "$out"
+  # Read off the same lines the reader printed, for both of the states that have names attached.
+  # Issue 196: `~` is the recorded state and `-` is the blind one, and they are counted from the
+  # output rather than passed some other way for the reason the blind list already was: the
+  # verdict must quote what the reader printed, not a parallel account of it.
+  CENSUS_RECORDED_NAMES="$(printf '%s\n' "$out" | sed -n 's/^      ~ //p')"
+  CENSUS_RECORDED="$(printf '%s\n' "$CENSUS_RECORDED_NAMES" | grep -c . || true)"
   case "$rrc" in
     0) return 0 ;;
+    1) return 1 ;;
     3)
       CENSUS_NAMES="$(printf '%s\n' "$out" | sed -n 's/^      - //p')"
       CENSUS_UNVERIFIED="$(printf '%s\n' "$CENSUS_NAMES" | grep -c .)"
@@ -946,6 +1065,31 @@ verdict() {  # clean|bad ; reads BASELINE_ORIGIN, CENSUS_UNVERIFIED and CENSUS_N
     echo "VERDICT: clean. The drawing $(baseline_phrase "$origin") is the build's own"
     echo "         output, the working tree agrees with it, and the model it came from carries no"
     echo "         repeated id, no dangling edge and no self-loop."
+    # ISSUE 196, AND THE WORD `clean` IS EARNED HERE RATHER THAN ASSUMED. The doctrine this file
+    # was rewritten around is that a check which could not run must never print that word. A gate
+    # in the recorded state RAN: it held the tables against a reading a machine with the corpus
+    # took, that comparison can fail, and there are plants in the self-test below proving it does.
+    # What it did not do is open the corpus. So the word stands and the limit is printed under it,
+    # in the same breath, every time.
+    #
+    # AND THE ALTERNATIVE WAS MEASURED RATHER THAN ARGUED. Folding this state into the INCOMPLETE
+    # branch would make a CI run with a recorded reading indistinguishable from one where
+    # build/corpus_reading.txt had been deleted: .github/workflows/build.yml treats 3 as an
+    # expected outcome and does not fail the job on it, so a deletion would have been green and
+    # silent, and the third state issue 168 built would have gone back to being the constant
+    # background that made the original defect invisible. Two states that must be told apart are
+    # not told apart by giving them one exit code.
+    if [ "${CENSUS_RECORDED:-0}" -ne 0 ]; then
+      echo
+      echo "         AND READ THIS BEFORE QUOTING THE WORD ABOVE. ${CENSUS_RECORDED} gate(s) had no corpus"
+      echo "         on this machine and checked their tables against the reading recorded in"
+      echo "         build/corpus_reading.txt instead of against the corpus itself:"
+      printf '%s\n' "$CENSUS_RECORDED_NAMES" | sed 's/^/           /'
+      echo "         What that establishes is that these tables are the ones somebody held up"
+      echo "         against the corpus on the recorded date. What it cannot establish is that the"
+      echo "         corpus has not moved since. Every counts[*].total on the page comes out of"
+      echo "         those tables, so the distinction is the denominator of every fraction drawn."
+    fi
   else
     echo "VERDICT: the drawing $(baseline_phrase "$origin") is not the build's own"
     echo "         output, or the working tree does not agree with it, or the model it was built"
@@ -972,7 +1116,7 @@ verdict() {  # clean|bad ; reads BASELINE_ORIGIN, CENSUS_UNVERIFIED and CENSUS_N
 # probe at a time prints a clean ratio all the way down to 0/0. A count taken from the run cannot
 # notice a probe that did not run. A short run exits 2, "the suite could not answer"; a run that
 # also recorded a failure reports it and exits 1.
-EXPECTED_PROBES=66
+EXPECTED_PROBES=111
 PASS=0
 TOTAL=0
 probe() {
@@ -1026,23 +1170,113 @@ probe_says_not() {
 # development machine holds one and can never see the blind state. So the probes drive the reader
 # rather than the reading, with lines it would have been handed, and both states are exercised
 # everywhere. This is the same argument the ontology self-test makes for writing its own corpus.
-census_fixture() {  # present|absent  gate-name:looked|unverified ...
-  local present="$1" spec name state; shift
+#
+# THE FIXTURE EMITS THE TOKEN AND NOT A DESCRIPTION OF IT, issue 196: a probe that hand-wrote the
+# prose and let the fixture guess the token would be testing the fixture. A `-` for the token
+# emits a notice with none at all, which is the state the reader must abort on.
+census_fixture() {  # syllabus-state reading-state  gate-name:token ...
+  local present="$1" reading="$2" spec name state; shift 2
   for spec in "$@"; do
     name="${spec%%:*}"; state="${spec#*:}"
-    if [ "$state" = unverified ]; then
-      printf 'NOTICE\t%s: the corpus is not on this machine, so it is unverified here.\n' "$name"
-    else
-      printf 'NOTICE\t%s: read again just now\n' "$name"
-    fi
+    case "$state" in
+      # No token at all, which is what a gate that stops saying what state it is in produces.
+      -) printf 'NOTICE\t%s: a notice from a gate that never says which state it is in\n' \
+                "$name" ;;
+      # THE PROSE UNDER THE `recorded` TOKEN CARRIES THE WORD `unverified` ON PURPOSE. That is
+      # what an honest sentence about this state says: the corpus was not read, so the tables are
+      # unverified against it, and what was checked is the recording. The reader that this
+      # repository shipped before issue 196 decided blindness by looking for exactly that word,
+      # so this fixture is the regression: a reader that sniffs prose files the repair as the
+      # defect, and the probe over this line answers 0 only if the token is what is read.
+      recorded) printf 'NOTICE\t%s: [recorded] the corpus is not on this machine, so nothing was '\
+'re-read and these tables are unverified against the corpus itself; they are the recorded ones\n' \
+                       "$name" ;;
+      unverified) printf 'NOTICE\t%s: [unverified] the corpus is not on this machine, so it is '\
+'unverified here.\n' "$name" ;;
+      *) printf 'NOTICE\t%s: [%s] read again just now\n' "$name" "$state" ;;
+    esac
   done
   printf 'CORPUS\tsyllabus\t%s\n' "$present"
+  [ "$reading" = "none" ] || printf 'CORPUS\treading\t%s\n' "$reading"
 }
 
-census_case() {  # roster  present|absent  gate-name:looked|unverified ...
-  local roster="$1" present="$2"; shift 2
-  census_fixture "$present" "$@" | census_report "$roster"
+census_case() {  # roster  syllabus-state reading-state  gate-name:token ...
+  local roster="$1" present="$2" reading="$3"; shift 3
+  census_fixture "$present" "$reading" "$@" | census_report "$roster"
   return "${PIPESTATUS[1]}"
+}
+
+# A copy of build/model.py that cannot find any corpus, so the two states a development machine
+# can never reach are reachable in a probe. The three corpus paths are rewritten to a directory
+# under the temporary tree rather than $HOME being moved, deliberately: moving $HOME also moves
+# the name register's salt file, and the model would then abort for a reason that has nothing to
+# do with this card while the probe recorded a refusal. scripts/ and site/ are symlinked because
+# build/model.py reads the register and the stylesheet relative to its own parent's parent.
+blind_model_copy() {  # dir  [sed-expression ...]
+  local dir="$1"; shift
+  mkdir -p "$dir/build" || return 1
+  ln -sfn "$ROOT/scripts" "$dir/scripts" || return 1
+  ln -sfn "$ROOT/site" "$dir/site" || return 1
+  cp "$ROOT/build/corpus_reading.txt" "$dir/build/" 2>/dev/null || return 1
+  sed -e "s#^SYLLABUS_DIR = pathlib.Path.home() / \".*\"#SYLLABUS_DIR = pathlib.Path(\"$dir/no-corpus\")#" \
+      -e "s#^ONTOLOGY_DIR = pathlib.Path.home() / \".*\"#ONTOLOGY_DIR = pathlib.Path(\"$dir/no-corpus\")#" \
+      -e "s#^ONTOLOGY_VAULT = pathlib.Path.home() / \".*\"#ONTOLOGY_VAULT = pathlib.Path(\"$dir/no-corpus\")#" \
+      "$@" "$ROOT/build/model.py" > "$dir/build/model.py" || return 1
+  grep -q '^SYLLABUS_DIR = pathlib.Path("' "$dir/build/model.py" || return 1
+  grep -q '^ONTOLOGY_DIR = pathlib.Path("' "$dir/build/model.py" || return 1
+  grep -q '^ONTOLOGY_VAULT = pathlib.Path("' "$dir/build/model.py" || return 1
+  return 0
+}
+
+# Build that copy and say what it printed, or die the way it died. The stderr is what the probe
+# reads, because the notice IS the gate's answer. Three entry points, because the three things a
+# probe wants to doctor are the tables, the attestation, and whether there is an attestation.
+blind_run() {  # dir
+  ( cd "$1" && python3 -c 'import sys; sys.path.insert(0, "build"); import model' 2>&1 )
+}
+
+blind_build() {  # dir  [sed -e expr ...]   doctors the tables
+  local d="$1"; shift
+  rm -rf "$d"
+  blind_model_copy "$d" "$@" || { echo "the blind copy could not be built"; return 9; }
+  blind_run "$d"
+}
+
+blind_build_reading() {  # dir  sed-expr    doctors the attestation
+  local d="$1" expr="$2"
+  rm -rf "$d"
+  blind_model_copy "$d" || { echo "the blind copy could not be built"; return 9; }
+  sed -i "$expr" "$d/build/corpus_reading.txt" || return 9
+  blind_run "$d"
+}
+
+blind_build_no_reading() {  # dir           takes the attestation away entirely
+  local d="$1"
+  rm -rf "$d"
+  blind_model_copy "$d" || { echo "the blind copy could not be built"; return 9; }
+  rm -f "$d/build/corpus_reading.txt" || return 9
+  blind_run "$d"
+}
+
+# ---- and the other half of the plant: does the serialisation COVER the field? -----------------
+# Codex, reviewing this card's design: "if the canonical serializer omits one denominator-bearing
+# field, both generator and gate will agree while the page lies". A digest that ignores a column
+# is a gate that cannot see that column, and it fails in the direction that costs nothing. So
+# every field either attestation covers is mutated on its own and the digest must move, with a
+# negative control mutating nothing that must report it did not.
+digest_moves() {  # python-statement-over-`model`  digest-function-name
+  ZRIVE_MUT="$1" ZRIVE_FN="$2" python3 - <<'PY'
+import os
+import sys
+
+sys.path.insert(0, "build")
+import model  # noqa: E402
+
+fn = getattr(model, os.environ["ZRIVE_FN"])
+before = fn()
+exec(os.environ["ZRIVE_MUT"])  # noqa: S102
+sys.exit(0 if fn() != before else 1)
+PY
 }
 
 # run_census with the producer replaced, which is the only way to drive the producer's own exit
@@ -1372,20 +1606,74 @@ PY
   echo
   echo "self-test: the census separates a gate that looked from one that could not"
   local BOTH='syllabus totals|module structure'
+  local ONE='syllabus totals'
   probe 0 "every gate on the roster having looked answers 0" \
-        census_case "$BOTH" present 'syllabus totals:looked' 'module structure:looked'
+        census_case "$BOTH" present present \
+        'syllabus totals:verified' 'module structure:verified'
   probe 3 "both count gates declining answers 3, which is neither clean nor a defect" \
-        census_case "$BOTH" absent 'syllabus totals:unverified' 'module structure:unverified'
+        census_case "$BOTH" absent absent \
+        'syllabus totals:unverified' 'module structure:unverified'
   probe_says "UNVERIFIED" "and the declining gates are marked, not listed alongside the rest" \
-        census_case "$BOTH" absent 'syllabus totals:unverified' 'module structure:unverified'
+        census_case "$BOTH" absent absent \
+        'syllabus totals:unverified' 'module structure:unverified'
   probe 2 "a gate on the roster that printed no notice at all aborted the census" \
-        census_case "$BOTH" present 'syllabus totals:looked'
+        census_case "$BOTH" present present 'syllabus totals:verified'
   probe 2 "a gate the roster does not name aborted the census" \
-        census_case 'syllabus totals' present 'syllabus totals:looked' 'a new gate:looked'
+        census_case "$ONE" present present 'syllabus totals:verified' 'a new gate:verified'
   probe 2 "a gate declining beside a corpus that IS on the machine aborted the census" \
-        census_case 'syllabus totals' present 'syllabus totals:unverified'
+        census_case "$ONE" present present 'syllabus totals:unverified'
   probe 2 "a gate reporting verified beside a corpus that is NOT aborted the census" \
-        census_case 'syllabus totals' absent 'syllabus totals:looked'
+        census_case "$ONE" absent absent 'syllabus totals:verified'
+
+  echo
+  echo "self-test: the census reads a state token and refuses to guess one"
+  # Issue 196. The reader used to decide whether a gate was blind by looking for the word
+  # `unverified` inside its prose, which was sound while there were two states and cannot survive
+  # a third: every honest sentence about the recorded state contains that word.
+  probe 2 "a gate whose notice carries no state token at all aborted the census" \
+        census_case "$ONE" present present 'syllabus totals:-'
+  probe 2 "a gate reporting a state this file does not know aborted the census" \
+        census_case "$ONE" present present 'syllabus totals:half-looked'
+  probe 2 "a census handed no reading of whether a recorded reading exists aborted" \
+        census_case "$ONE" present none 'syllabus totals:verified'
+  probe 0 "a recorded gate whose own prose carries the word unverified is not filed as blind" \
+        census_case "$ONE" absent present 'syllabus totals:recorded'
+  probe_says_not "UNVERIFIED" "and it is not marked as one either" \
+        census_case "$ONE" absent present 'syllabus totals:recorded'
+
+  echo
+  echo "self-test: the census computes what each count gate MUST have said, off two facts"
+  # Both directions and every cell. A gate's state is a function of whether the corpus is on the
+  # machine and whether a usable recorded reading is committed, so the census does not merely
+  # notice a contradiction: it works out the only answer that follows and refuses anything else.
+  probe 0 "no corpus and a usable reading: the gate says recorded, and that is not a defect" \
+        census_case "$ONE" absent present 'syllabus totals:recorded'
+  probe 2 "no corpus, a usable reading, and a gate that says it could not look at all" \
+        census_case "$ONE" absent present 'syllabus totals:unverified'
+  probe 2 "no corpus, NO reading, and a gate claiming it checked a recorded one" \
+        census_case "$ONE" absent absent 'syllabus totals:recorded'
+  probe 2 "the corpus here, no reading committed, and a gate not saying the record is missing" \
+        census_case "$ONE" present absent 'syllabus totals:verified'
+  probe 1 "control: the corpus here and no reading committed is the stale-record state, and \
+that state is a defect rather than an abort" \
+        census_case "$ONE" present absent 'syllabus totals:stale-record'
+  probe 2 "a reading that is there and unusable is not a reading a gate may report against" \
+        census_case "$ONE" absent unusable 'syllabus totals:recorded'
+
+  echo
+  echo "self-test: a stale attestation is a defect and not an incompleteness"
+  # It has its own exit code because it is its own thing: the tables were read against the corpus
+  # on this machine and the tracked file records other tables, so the next run on a machine
+  # WITHOUT the corpus refuses the build outright. This one fails on the machine that can fix it.
+  probe 1 "a gate that read its corpus beside a record of other tables answers 1" \
+        census_case "$ONE" present present 'syllabus totals:stale-record'
+  probe_says "STALE RECORD" "and it is marked as that and not as a gate that merely looked" \
+        census_case "$ONE" present present 'syllabus totals:stale-record'
+  probe_says_not "could not look" "a stale record is not reported as a gate that could not look" \
+        census_case "$ONE" present present 'syllabus totals:stale-record'
+  probe 1 "and a stale record outranks a blind gate, so a run with both is the defect" \
+        census_case 'syllabus totals|ontology registry' absent absent \
+        'syllabus totals:unverified' 'ontology registry:stale-record'
 
   echo
   echo "self-test: a run with a gate that could not look does not print the word clean"
@@ -1408,12 +1696,121 @@ PY
   # read one exit code off a pipeline under `pipefail`, so this exact case answered 1, fell past a
   # branch that tested only 2, and reached the clean verdict with no gate marked blind.
   probe 2 "a census producer that printed good notices and then failed is an abort, not a pass" \
-        census_with_producer 'printf "NOTICE\tsyllabus totals: read again just now\n"; \
-                              printf "CORPUS\tsyllabus\tpresent\n"; return 1'
+        census_with_producer 'printf "NOTICE\tsyllabus totals: [verified] read again just now\n"; \
+                              printf "CORPUS\tsyllabus\tpresent\n"; \
+                              printf "CORPUS\treading\tpresent\n"; return 1'
   probe 0 "control: the same notices from a producer that succeeded are a clean census" \
-        census_with_producer 'printf "NOTICE\tsyllabus totals: read again just now\n"; \
-                              printf "CORPUS\tsyllabus\tpresent\n"'
+        census_with_producer 'printf "NOTICE\tsyllabus totals: [verified] read again just now\n"; \
+                              printf "CORPUS\tsyllabus\tpresent\n"; \
+                              printf "CORPUS\treading\tpresent\n"'
   BASELINE_ORIGIN=""
+
+  echo
+  echo "self-test: the recorded state is clean AND the verdict says what it did not establish"
+  # Issue 196, and this is the pair the whole verdict decision rests on. The word `clean` is
+  # earned, because the gate ran a check that can fail and did not fail; and it can never be read
+  # on its own, because the paragraph naming the limit is printed by the same branch.
+  BASELINE_ORIGIN=index
+  CENSUS_UNVERIFIED=0
+  CENSUS_NAMES=""
+  CENSUS_RECORDED=2
+  CENSUS_RECORDED_NAMES="$(printf 'syllabus totals\nmodule structure\n')"
+  probe_says "VERDICT: clean" "a run whose gates checked a recorded reading is clean" verdict clean
+  probe_says "build/corpus_reading.txt" "and it names the file they checked against" verdict clean
+  probe_says "syllabus totals" "and it names each gate that did not open its corpus" verdict clean
+  probe_says "corpus has not moved" "and it names the one thing it did not establish" verdict clean
+  CENSUS_RECORDED=0
+  CENSUS_RECORDED_NAMES=""
+  probe_says_not "corpus_reading" "and with every gate having read its corpus that paragraph is gone" \
+        verdict clean
+  BASELINE_ORIGIN=""
+
+  echo
+  echo "self-test: the attestation covers every field it is supposed to, one field at a time"
+  # Against a copy that can find no corpus, and built once. The tables are the repository's own
+  # either way; what the copy saves is a walk of the vault per probe on the one machine that has
+  # one, which is twenty five seconds of a suite that has to be cheap enough to be run.
+  local tb="$dir/tables"
+  blind_model_copy "$tb" || echo "  [FAIL] the copy the coverage probes run against"
+  probe 0 "a session total moved moves the syllabus-totals digest" \
+        in_dir "$tb" digest_moves 'model.SYLLABUS_SESSIONS["ZIB"] += 1' syllabus_totals_digest
+  probe 1 "negative control: nothing moved leaves it exactly where it was" \
+        in_dir "$tb" digest_moves 'pass' syllabus_totals_digest
+  probe 0 "a module's session count moved moves the module-structure digest" \
+        in_dir "$tb" digest_moves \
+        'k = sorted(model.SYLLABUS_MODULES)[0]
+t = list(model.SYLLABUS_MODULES[k]); c, n, s = t[0]; t[0] = (c, n, s + 1)
+model.SYLLABUS_MODULES[k] = tuple(t)' module_structure_digest
+  probe 0 "a module renamed moves it too" \
+        in_dir "$tb" digest_moves \
+        'k = sorted(model.SYLLABUS_MODULES)[0]
+t = list(model.SYLLABUS_MODULES[k]); c, n, s = t[0]; t[0] = (c, n + " (renamed)", s)
+model.SYLLABUS_MODULES[k] = tuple(t)' module_structure_digest
+  probe 0 "a drawn row claiming another sequence in the syllabus moves it" \
+        in_dir "$tb" digest_moves \
+        'k = sorted(model.SYLLABUS_ROWS)[0]; sid = sorted(model.SYLLABUS_ROWS[k])[0]
+c, q = model.SYLLABUS_ROWS[k][sid]; model.SYLLABUS_ROWS[k][sid] = (c, q + 1)' \
+        module_structure_digest
+  probe 0 "a drawn row claiming another module moves it" \
+        in_dir "$tb" digest_moves \
+        'k = sorted(model.SYLLABUS_ROWS)[0]; sid = sorted(model.SYLLABUS_ROWS[k])[0]
+c, q = model.SYLLABUS_ROWS[k][sid]
+model.SYLLABUS_ROWS[k][sid] = (None if c else "M99", q)' module_structure_digest
+  probe 1 "negative control: the module tables untouched leave that digest where it was" \
+        in_dir "$tb" digest_moves 'pass' module_structure_digest
+  probe 0 "a route's citation edited moves the ontology-citations digest" \
+        in_dir "$tb" digest_moves \
+        'cid = sorted(model.ROUTES)[0]
+model.ROUTES[cid]["source"] = model.ROUTES[cid]["source"] + ", one more locator"' \
+        ontology_citation_digest
+  probe 0 "the declared size of the ontology moves it" \
+        in_dir "$tb" digest_moves 'model.ONTOLOGY_ENTITIES += 1' ontology_citation_digest
+  probe 1 "negative control: the citations untouched leave that digest where it was" \
+        in_dir "$tb" digest_moves 'pass' ontology_citation_digest
+
+  echo
+  echo "self-test: a build with no corpus, which is every CI run, over a doctored table"
+  # THE PLANT THIS CARD IS FOR, end to end and not in parts. A copy of build/model.py whose three
+  # corpus paths point at nothing is the machine every runner is; the probes below are what it
+  # does with a table somebody edited without holding it up against the corpus. Before this card
+  # every one of them printed one line to stderr and built the document.
+  local bd="$dir/blind"
+  probe 0 "control: with the corpus gone and the attestation current, the build stands" \
+        blind_build "$bd"
+  probe_says "[recorded]" "and it says so in that word rather than reporting a verified read" \
+        blind_build "$bd"
+  probe 1 "a session total edited with no corpus to check it against refuses the build" \
+        blind_build "$bd" -e 's/"ZIB": 79/"ZIB": 80/'
+  probe_says "denominator" "and it says what the number it refused is used for" \
+        blind_build "$bd" -e 's/"ZIB": 79/"ZIB": 80/'
+  probe 1 "a module's session count edited the same way refuses it" \
+        blind_build "$bd" -e 's/("M01", "External Courses", 2)/("M01", "External Courses", 3)/'
+  probe 1 "a route citation edited the same way refuses it" \
+        blind_build "$bd" -e 's/^ONTOLOGY_ENTITIES = 55$/ONTOLOGY_ENTITIES = 56/'
+  probe 1 "an attestation that has aged out is refused rather than gone on being quoted" \
+        blind_build "$bd" -e 's/^AGING_DAYS = 240$/AGING_DAYS = -1/'
+  probe 0 "with the attestation deleted the build stands and the gate says it looked at nothing" \
+        blind_build_no_reading "$bd"
+  probe_says "[unverified]" "in that word, which is the state this repository was in before" \
+        blind_build_no_reading "$bd"
+
+  echo
+  echo "self-test: and the attestation itself is refused when it cannot be evidence"
+  # From the other side. Above, the tables move under a fixed attestation; here the attestation
+  # moves under fixed tables, and every one of these is a hand-edit somebody could make to
+  # build/corpus_reading.txt to buy a green run.
+  probe 1 "a digest edited by hand no longer answers for the tables it is filed under" \
+        blind_build_reading "$bd" 's/^\(reading syllabus-totals *\)./\1a/'
+  probe 1 "a reading dated in the future, which would buy itself immunity from the ageing rule" \
+        blind_build_reading "$bd" 's/^read_on .*/read_on 2099-01-01/'
+  probe 1 "a reading dated before the day the sources say their corpora were read" \
+        blind_build_reading "$bd" 's/^read_on .*/read_on 2020-01-01/'
+  probe 1 "a reading in a schema this build does not know how to read" \
+        blind_build_reading "$bd" 's/^schema 1$/schema 7/'
+  probe 1 "a reading with one of the three digests taken out of it" \
+        blind_build_reading "$bd" '/^reading module-structure/d'
+  probe 1 "a reading carrying a line in none of the three forms it has" \
+        blind_build_reading "$bd" 's/^schema 1$/schema 1\nwhatever i felt like typing/'
 
   rm -rf "$dir"
   echo
@@ -1492,6 +1889,10 @@ if [ "$census_rc" -eq 2 ]; then
   echo "         of its own gates were evidence. Nothing here is."
   exit 2
 fi
+# Issue 196. The census now has a defect of its own to report, and it is not an incompleteness: a
+# gate read its corpus and the tracked attestation is of other tables, so the next run on a
+# machine without the corpus refuses the build. It fails this one, on the machine that can fix it.
+[ "$census_rc" -ne 1 ] || bad=1
 
 echo
 if [ "$bad" -ne 0 ]; then

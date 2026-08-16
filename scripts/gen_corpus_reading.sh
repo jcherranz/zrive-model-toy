@@ -44,58 +44,69 @@ case "$MODE" in
   *) echo "usage: $0 [--check]" >&2; exit 1 ;;
 esac
 
-# THE CORPORA ARE LOOKED FOR BEFORE THE IMPORT AND NOT AFTER, because the gates decline politely
-# when a corpus is missing and this script must not. A reading written on a machine holding half
-# the corpus would attest a comparison that half happened, which is the exact confusion between
-# "I looked and found nothing" and "I could not look" that this whole repository is about.
-missing="$(ZRIVE_ROOT="$ROOT" python3 - <<'PY'
-import os
-import pathlib
-import sys
-
-sys.path.insert(0, str(pathlib.Path(os.environ["ZRIVE_ROOT"]) / "build"))
-# Read the paths out of the module's source rather than by importing it: the import runs the
-# gates, and this check exists to be made BEFORE they run.
-src = (pathlib.Path(os.environ["ZRIVE_ROOT"]) / "build" / "model.py").read_text(encoding="utf-8")
-import re
-want = {}
-for name in ("SYLLABUS_DIR", "ONTOLOGY_DIR", "ONTOLOGY_VAULT"):
-    m = re.search(rf'^{name} = pathlib\.Path\.home\(\) / "([^"]+)"$', src, re.M)
-    if not m:
-        print(f"NOPATH:{name}")
-        sys.exit(0)
-    want[name] = pathlib.Path.home() / m.group(1)
-for name, path in want.items():
-    if not path.is_dir():
-        print(f"{name}")
-PY
-)"
-
-if [ -n "$missing" ]; then
-  {
-    echo "ASSERTION FAILED: this machine does not hold the corpora, so it cannot record a"
-    echo "                  reading of them."
-    echo
-    echo "  Not on this machine:"
-    printf '    %s\n' $missing
-    echo
-    echo "  A recorded reading says that somebody compared the tables in build/model.py with the"
-    echo "  corpus they are about. A machine that cannot open the corpus cannot say that, and a"
-    echo "  file written here would be an attestation of nothing wearing the shape of one."
-  } >&2
-  exit 2
-fi
-
+# THE PRECONDITION IS READ OFF THE GATES' OWN NOTICES AND NOT OFF A DIRECTORY LISTING, and the
+# difference is the whole safety of this script. An import that SUCCEEDS is not evidence that a
+# corpus was read: the gates decline politely when theirs is missing, and each of them records
+# itself in RECHECK_GATES_RUN on ENTRY, before the branch that declines. So a first draft that
+# imported the module and took its digests would happily write an attestation on a machine with
+# no vault at all, which is a signature on a reading that never happened, and it is the cheapest
+# way there is to defeat everything this card builds.
+#
+# A directory listing would have closed that too, and it would have been a SECOND statement of
+# where the corpora live, disagreeing with build/model.py the first time one of them moved. The
+# gates already say, on their own faces, whether they read a corpus. That sentence is the
+# precondition, so there is one place the fact lives and this script cannot be wrong about it
+# while the gates are right.
+#
+# THE TWO TOKENS ACCEPTED ARE THE TWO CORPUS-PRESENT ONES. `verified` is a machine whose recorded
+# reading is already current; `stale-record` is a machine that read the corpus and found the
+# committed file out of date, which is precisely the machine that has to be able to run this. The
+# two corpus-ABSENT tokens, `recorded` and `unverified`, are refused: neither of them read
+# anything.
 new="$(ZRIVE_ROOT="$ROOT" python3 - <<'PY'
+import contextlib
 import datetime
+import io
 import os
 import pathlib
+import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(os.environ["ZRIVE_ROOT"]) / "build"))
-# The import is the proof. Every gate runs here, re-reads its corpus and raises on a drift, so
-# nothing below this line can be reached over tables the corpus disagrees with.
-import model  # noqa: E402
+# The import runs every gate, which re-reads its corpus and raises on a drift, so nothing below
+# this line is reached over tables the corpus disagrees with. What the import does NOT establish
+# is that a corpus was there at all, and that is what the notices below are read for.
+buf = io.StringIO()
+with contextlib.redirect_stderr(buf):
+    import model  # noqa: E402
+sys.stderr.write(buf.getvalue())
+
+WANT = {"syllabus totals": "syllabus-totals",
+        "module structure": "module-structure",
+        "ontology registry": "ontology-citations"}
+READ_THE_CORPUS = ("verified", "stale-record")
+seen = {}
+for line in buf.getvalue().split("\n"):
+    m = re.match(r"^\[model\] ([^:]+): \[([a-z-]+)\]", line)
+    if m and m.group(1) in WANT:
+        seen[m.group(1)] = m.group(2)
+wrong = {g: seen.get(g, "no notice at all") for g in WANT
+         if seen.get(g) not in READ_THE_CORPUS}
+if wrong:
+    print("ASSERTION FAILED: this machine did not read the corpora, so it cannot record a "
+          "reading of them.", file=sys.stderr)
+    print(file=sys.stderr)
+    for g, tok in sorted(wrong.items()):
+        print(f"    {g}: {tok}", file=sys.stderr)
+    print(file=sys.stderr)
+    print("  A recorded reading says somebody compared the tables in build/model.py with the "
+          "corpus they are about.", file=sys.stderr)
+    print("  A gate that declined did not compare anything, and a file written over it would be "
+          "an attestation of", file=sys.stderr)
+    print("  nothing wearing the shape of one. Run this on a machine holding both the syllabus "
+          "vault and the analysis", file=sys.stderr)
+    print("  repository.", file=sys.stderr)
+    raise SystemExit(2)
 
 digests = {
     "syllabus-totals": model.syllabus_totals_digest(),
