@@ -48,6 +48,59 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- **NOTHING PROVED A RESERVED WIDTH WAS USED, ONLY THAT IT WAS ASKED FOR, #220.** #217 named this
+  gap and left it open. Four things held parts of the width machinery and all four stopped at the
+  same place: `check_widths_cover` holds `build/label_widths.json` against the job that writes it,
+  #206 holds the painted page against the table, `check_widths_asked` holds the builder's `text_w()`
+  arguments against both. **Between the lookup returning a number and the number becoming a
+  coordinate there is arithmetic, and the arithmetic was unwatched.** `max` to `min` inside
+  `reserve()` returns the regular width of a label `.node.sel .lbl` paints bold on a click, which is
+  **#203's harm arriving from the build side**, and it shipped green everywhere: #217's census is
+  unchanged in shape because both faces are still asked for, check 1 compares the rebuild against
+  the **index** so any builder edit that is rebuilt and staged passes, the digest census recomputes
+  the fourteen from the bytes in front of it rather than from a stored baseline, and **the lane
+  overflow gate goes quieter rather than louder**. That last one is arithmetic and was executed
+  rather than argued: `lane_slack()` is `min(x - lw/2 - x0, x1 - x - lw/2)`, `lw` appears only
+  negatively, and driven with a 250 lane and a node centred at 125 a reserve of 240 gives `+5.0`,
+  an under reserve of 200 gives **`+25.0`**, and an over reserve of 280 gives `-15.0` and is
+  refused. **The lane gate can only ever catch a box that grew.**
+  **The new gate, `check_reserve_used`, section 4 of `scripts/check_build.sh`.** `layout()` records
+  the reserve it settled on, `(tag, id, lw)` per node, appended at the point the number is final:
+  after the issue 43 re-break and after the mark and the tail have widened it. That is the same
+  device `text_w()` already uses for `_errors` and `_fellback`, and it is what makes the number
+  readable at all, because `n["lw"]` is a local inside `layout()` and reaches neither document;
+  emitting it into `site/layout.js` was the alternative and would have moved the fourteen digests to
+  carry a number only a gate reads. **Nothing painted moved**: `site/instance.js` and
+  `site/layout.js` are byte identical with the record and without it, proved by building both ways
+  and comparing sha256.
+  **The other side of the comparison is not `build_layout.py`**, which is the whole discipline and
+  is the fourth place this repository has walked around the placer oracle's trap. A check that
+  recomputed `max(text_w(400), text_w(600))` would be two copies of one opinion and would agree with
+  the defect the moment the table was wrong. So the widths come out of `build/label_widths.json` read
+  as JSON, the faces out of `site/app.css` through `measure_labels.css_rule()`, and the lines out of
+  the two documents the builder just wrote. **#195 settled that this is admissible: the table is an
+  INPUT to the placement and the oracle never reads the placement's OUTPUT**, and the table is not
+  taken on trust either, because check 2 and #206 hold it from both sides and this check inherits
+  both.
+  **570 nodes over 14 drawings, weighed against 794 measured `(face, string)` pairs in `10/400`,
+  `10/400i`, `10/600`, `10/600i` and `9/400`**, with the clean corpus agreeing exactly, `0.00px` in
+  both directions against a tolerance of `1e-6`, and the headroom printed on the pass. The
+  population is asserted before any verdict is read off it: an empty record, a run that laid out
+  other than `EXPECTED_DRAWINGS` drawings, a record with a duplicate node, and a record whose node
+  set is not the document's node set are each a refusal rather than a clean sheet.
+  **Both directions.** Short of the widest face is the card. Wider than anything the node paints is
+  the direction the lane gate does eventually catch, but only once the box has left its lane; before
+  that it is silent and the reserve still moves geometry, because the chip placer is blocked with
+  `n["lw"] + 6`.
+  **19 probes, measured rather than asserted.** The card's own mutation takes **454 of 570** nodes
+  short by up to **30.70px**; reserving the bold width of only the first line takes **38** short by
+  up to **7.92px**; turning the mark widening into a narrowing, which leaves every one of #217's
+  five assertions satisfied because the lookup still happens in the context the table declares,
+  takes **201** short by up to **167.48px**. The over direction has no mutation of the builder that
+  survives the lane gate, because the tightest label already has **0.0px** of lane to spare, so it is
+  proved on a plant in the reading: **one entry out of 570 moved by a hundredth of a unit is caught
+  in both directions**. A builder that stops recording, one that records only some of its nodes, one
+  that is not there and a wrong drawings pin are each proved to refuse and to say so in words.
 - **A STYLESHEET THAT NEVER LOADED WAS REPORTED AS TWELVE ASSERTIONS ABOUT THE PAGE, AND THE RUN
   SAID THE PAGE HAD REGRESSED, #216.** A `verify.sh` run against the deployed origin came back with
   twelve red assertions naming the captions and the header: an SVG caption at 16px, header controls

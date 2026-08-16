@@ -68,7 +68,26 @@
 #      strings the two documents it just wrote actually paint. The section itself carries the
 #      argument for each of the five things it asserts and for the one it does not.
 #
-#   4. THE MODEL IS WELL FORMED, AND THE GATE THAT SAYS SO IS PROVED ARMED. Issue 102, and this
+#   4. AND THE WIDTH IT GOT BACK IS THE WIDTH IT RESERVED. Issue 220, and check 3 is what named
+#      it: that check proves the right question was put to the table and stops there, because
+#      between the lookup returning a number and the number becoming a coordinate there is
+#      arithmetic and the arithmetic was unwatched. `max` to `min` inside reserve() returns the
+#      regular width of a label the stylesheet paints bold on a click, which is #203's harm
+#      arriving from the build side, and it shipped green through every gate this repository
+#      ran: check 3's census is unchanged in shape, check 1 compares against the index and any
+#      builder edit is rebuilt and staged, the digest census recomputes the fourteen from the
+#      bytes in front of it, and the lane overflow gate goes QUIETER, because `lw` appears only
+#      negatively in `lane_slack()` and a box that shrank leaves more slack, not less.
+#
+#      So layout() now records the reserve it settled on, one tuple per node, the way text_w()
+#      already records what it was asked for, and this file holds every one of them against a
+#      reserve built from build/label_widths.json, the faces site/app.css declares and the lines
+#      the two documents carry. The table is an INPUT to the placement and the check never reads
+#      the placement's output, which is the distinction #195 drew and the reason this is not the
+#      placer oracle's flaw in a fourth place. Nothing painted moved to make it readable:
+#      site/instance.js and site/layout.js are byte identical with the record and without it.
+#
+#   5. THE MODEL IS WELL FORMED, AND THE GATE THAT SAYS SO IS PROVED ARMED. Issue 102, and this
 #      is the check whose absence made the whole of check 1 above worth less than it read. A
 #      duplicate node id was injected into build/model.py, the real build was run, and this file
 #      printed "VERDICT: clean. The committed drawing is the build's own output." That verdict
@@ -901,7 +920,7 @@ PY
 # ---------------------------------------------------------------------------------------------
 # Check 3 above proves the right question was put to the width table. This one proves the answer
 # was used. Between `text_w()` returning a number and that number becoming a coordinate sits
-# `reserve()` at build/build_layout.py:428-430 and the two lines that widen its result for a mark
+# `reserve()` at build/build_layout.py:427-432 and the two lines that widen its result for a mark
 # and for a tail, and until this section existed nothing anywhere read what came out of them.
 #
 # ONE TOKEN, AND EVERY OTHER GATE GREEN. `max` to `min` inside reserve() returns the regular
@@ -963,7 +982,7 @@ PY
 # short of the widest face is a label box the page paints outside, and nothing else in this
 # repository looks that way. The over direction is a reserve nothing can name a string for, and
 # the lane gate does eventually catch it, but only once the box has left its lane; before that it
-# is silent and it still moves geometry, because build/build_layout.py:597 blocks the chip placer
+# is silent and it still moves geometry, because build/build_layout.py:604 blocks the chip placer
 # with `n["lw"] + 6` and a box that grew pushes chips onto different candidates. Both are
 # asserted and the headroom in both is printed on the PASS, so a corpus drifting towards the
 # tolerance is visible before it crosses it rather than after.
@@ -973,7 +992,7 @@ PY
 # the size site/app.css gives `.chip-tx`, which today is `9/400` and `9/400i` and which holds the
 # mark strings under the upright one only. #215 is open on the stylesheet painting a mark italic
 # at `.node .lbl.lbl-missing`, and when it lands and the table gains the italic entries this
-# bound tightens on its own and goes red until build/build_layout.py:460 follows it. Composing
+# bound tightens on its own and goes red until build/build_layout.py:463 follows it. Composing
 # that context from the stylesheet TODAY would go red on another card's defect.
 #
 # The builder to run is the first argument, the number of drawings it must lay out the second,
@@ -1289,7 +1308,7 @@ if BAD:
     print("  THE FIX IS IN THE ARITHMETIC AND NOT AT THE CALL SITE. Check 3 above says which "
           "widths were asked for and this one says what was done with them, so a run that is "
           "green there and red here has the right numbers and the wrong sum. reserve() at "
-          "build/build_layout.py:428-430 takes the wider of the two faces, the issue 43 re-break "
+          "build/build_layout.py:427-432 takes the wider of the two faces, the issue 43 re-break "
           "below it re-reserves after re-wrapping, and the mark and the tail widen the result "
           "again. One of those four is not holding.")
     sys.exit(1)
@@ -1917,7 +1936,7 @@ verdict() {  # clean|bad ; reads BASELINE_ORIGIN, CENSUS_UNVERIFIED and CENSUS_N
 # probe at a time prints a clean ratio all the way down to 0/0. A count taken from the run cannot
 # notice a probe that did not run. A short run exits 2, "the suite could not answer"; a run that
 # also recorded a failure reports it and exits 1.
-EXPECTED_PROBES=138
+EXPECTED_PROBES=159
 PASS=0
 TOTAL=0
 probe() {
@@ -2269,6 +2288,29 @@ asked_with_mutation() {  # old new
   return "$rc"
 }
 
+# The same fixture, driving the reserve check instead. Issue 220. Two callers of one overlay
+# rather than one caller of two overlays, because the two checks fail on different things and a
+# probe that could not say which of them had spoken would be worth less than either.
+reserved_with_mutation() {  # old new
+  local d rc
+  d="$(mktemp -d)" || return 9
+  if ! overlay_builder "$d" "$1" "$2"; then
+    rm -rf "$d"
+    return 9
+  fi
+  check_reserve_used "$d/build/build_layout.py"
+  rc=$?
+  rm -rf "$d"
+  return "$rc"
+}
+
+# The builder laying out from one width table while the check judges it from another. A function
+# because `probe` runs its argument as a command and `env` cannot run a shell function, and the
+# variable is the one build_layout.py itself honours.
+reserved_against_table() {  # table
+  ZRIVE_LABEL_WIDTHS="$1" check_reserve_used
+}
+
 self_test() {
   local dir a b
   dir="$(mktemp -d)"
@@ -2437,6 +2479,102 @@ PY
   probe_says "looked at nothing and will not call it clean" \
         "and refused to read a census of nothing as a census with no mismatches" \
         asked_with_mutation '_errors.append((tbl[s] - est, ctx, s, est, tbl[s]))' 'pass'
+
+  echo
+  echo "self-test: the answer that table gave back"
+  # Issue 220, and the same fixture as the section above: the real bands, the real model, the
+  # real stylesheet and the real table behind an overlay of symlinks, with one line of the
+  # builder changed. Two controls first, for the same reason they come first there.
+  probe 0 "the builder as it stands reserves the width its own table gives it" \
+        check_reserve_used
+  probe 0 "control: the same builder copied through the fixture unchanged still passes" \
+        reserved_with_mutation '' ''
+  probe 9 "control: an edit matching no line was a broken probe rather than a refusal" \
+        reserved_with_mutation 'text_w(what_nobody_wrote)' 'text_w(x)'
+
+  # THE CARD'S OWN MUTATION. One token, and before this section every other gate was green over
+  # it: check 3's census is unchanged in shape because both faces are still asked for, check 1
+  # passes in the only workflow a builder edit has, and the lane gate goes QUIETER rather than
+  # louder because a smaller reserve makes lane_slack() larger. Measured here: 454 of the 570
+  # nodes reserve a box narrower than the face a click paints them in, by up to 30.70px.
+  probe 1 "the regular width reserved for a label the page paints bold was refused" \
+        reserved_with_mutation \
+          'return max(max(text_w(ln, FONT, 400, it) for ln in lines),' \
+          'return min(max(text_w(ln, FONT, 400, it) for ln in lines),'
+  probe_says "narrower than the widest face" \
+        "and the refusal said the box was narrower than the face a click paints the label in" \
+        reserved_with_mutation \
+          'return max(max(text_w(ln, FONT, 400, it) for ln in lines),' \
+          'return min(max(text_w(ln, FONT, 400, it) for ln in lines),'
+  probe_says "lane_slack()" \
+        "and named the gate that is structurally unable to report it" \
+        reserved_with_mutation \
+          'return max(max(text_w(ln, FONT, 400, it) for ln in lines),' \
+          'return min(max(text_w(ln, FONT, 400, it) for ln in lines),'
+
+  # The same call site one step subtler and the one check 3 also catches, kept because the two
+  # catch it for different reasons: there it is a context that stopped being populated, here it
+  # is 38 boxes that are up to 7.92px short of a line they paint.
+  probe 1 "reserving the bold width of only the first line of a wrapped label was refused" \
+        reserved_with_mutation 'max(text_w(ln, FONT, 600, it) for ln in lines))' \
+                               'text_w(lines[0], FONT, 600, it))'
+  # AND A SECOND MUTATION OF THE ARITHMETIC THAT CHECK 3 CANNOT SEE AT ALL. The mark is still
+  # looked up, in the context the table declares for it, so every one of check 3's five
+  # assertions is satisfied; what changes is that the widening becomes a narrowing and 201 nodes
+  # collapse to the width of their mark, by up to 167.48px.
+  probe 1 "the mark widening turned into a narrowing was refused" \
+        reserved_with_mutation 'n["lw"] = max(n["lw"], text_w(n["mark"], 9.0))' \
+                               'n["lw"] = min(n["lw"], text_w(n["mark"], 9.0))'
+
+  # BOTH DIRECTIONS OF THE COMPARISON, PROVED ON A PLANT IN THE READING. There is no mutation of
+  # the builder that over reserves and still builds: the tightest label already has 0.0px of lane
+  # to spare, so anything wider is refused by the lane gate before this check is reached. One
+  # entry out of 570 is moved by a hundredth of a unit, which is also where the floor of this
+  # instrument is: the clean corpus agrees exactly, at 0.00px in both directions.
+  probe 1 "a reserve a hundredth of a unit short of what the table measured was refused" \
+        check_reserve_used "" "" -0.01
+  probe 1 "a reserve a hundredth of a unit wider than any string it paints was refused" \
+        check_reserve_used "" "" 0.01
+  probe_says "wider than any string they paint" \
+        "and the refusal said the extra width was for nothing the node draws" \
+        check_reserve_used "" "" 0.01
+
+  # The population pin, and the three ways this check could enumerate nothing and print clean.
+  probe 1 "a run laying out other than the intended number of drawings was refused" \
+        check_reserve_used "" 15
+  probe_says "EXPECTED_DRAWINGS" "and the refusal named the constant a fifteenth would change" \
+        check_reserve_used "" 15
+  probe 1 "a builder that is not there was refused rather than reported clean" \
+        check_reserve_used "$dir/no-such-build_layout.py"
+  probe_says "nothing here is evidence" "and said so in those words" \
+        check_reserve_used "$dir/no-such-build_layout.py"
+  # `_reserved.append(...)` to `pass`, which leaves a builder that runs, lays out all fourteen
+  # drawings, writes both documents byte for byte as before and simply stops saying what it
+  # reserved. That is the shape of the seventeen instruments this repository has found unable to
+  # tell "I looked and found nothing" from "I could not look".
+  probe 1 "a builder that stopped recording what it reserved was refused" \
+        reserved_with_mutation '_reserved.append((tag, nid, n["lw"]))' 'pass'
+  probe_says "looked at nothing and will not call it clean" \
+        "and refused to read a record of nothing as a run with nothing to disagree about" \
+        reserved_with_mutation '_reserved.append((tag, nid, n["lw"]))' 'pass'
+  # And the harder half of the same thing, which a non-empty test cannot catch: a record that
+  # covers some of the nodes. 363 of 570 recorded, and every one of the 363 agrees.
+  probe 1 "a record covering only some of the nodes drawn was refused" \
+        reserved_with_mutation '_reserved.append((tag, nid, n["lw"]))' \
+                               'if not n.get("mark"): _reserved.append((tag, nid, n["lw"]))'
+  probe_says "painted, not recorded" \
+        "and the refusal named the nodes it would otherwise have passed over in silence" \
+        reserved_with_mutation '_reserved.append((tag, nid, n["lw"]))' \
+                               'if not n.get("mark"): _reserved.append((tag, nid, n["lw"]))'
+  # And the state in which the two sides of the comparison are not about the same numbers at all.
+  # `$bad` is the doctored table the width section above built, one string short; the builder
+  # honours ZRIVE_LABEL_WIDTHS and this check does not, so the run would be judged against a table
+  # that did not produce it and every disagreement would be reported as arithmetic.
+  probe 1 "a builder laying out from a different width table than this check reads was refused" \
+        reserved_against_table "$bad"
+  probe_says "cannot be one expectation" \
+        "and the refusal said the two tables cannot be one expectation" \
+        reserved_against_table "$bad"
 
   echo
   echo "self-test: the model is well formed"
