@@ -142,8 +142,11 @@ of what changed and when, and it is meant to be scannable.
   are now the escape, the file is plain ASCII, and **`scripts/check_repo.sh` gains a rule that no
   tracked file carries a NUL byte**, reporting three states: a finding, a clean count of the files
   it actually read, and a refusal at exit 2 when it was handed nothing to scan or a file it could
-  not open. `--self-test` goes from 126 probes to 129. A sweep of all 45 tracked paths says
-  `render.js` was the only one.
+  not open. `--self-test` goes from 126 probes to 129. A sweep of all 46 tracked paths at `c5360f5` says
+  `render.js` was the only one. The figure was 45 when that sweep first ran at `ade028e`, and
+  `site/boot.js` had landed by the time this entry was written; the rule itself walks
+  `git ls-files` at run time and prints the count it actually read, so only this sentence was
+  ever stale.
 - **THE WEEK GRID COMPARED NOTHING AND THE MONTH GRID DREW SOME DAYS TWICE, #158.** His words:
   "In calendar view 'week' please make monday to sunday vertical and weeks horizontal so it is a
   grid that adds value + in months view do not duplicate days in two month grids." The week grid
