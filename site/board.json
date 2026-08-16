@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T03:13:55Z",
+  "generated": "2026-08-16T03:48:10Z",
   "columns": [
     {
       "key": "raw",
@@ -145,16 +145,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
         },
         {
-          "id": 151,
-          "title": "Remove",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/151"
-        },
-        {
           "id": 152,
           "title": "Why this here?",
           "labels": [
@@ -249,6 +239,16 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/161"
         },
         {
+          "id": 151,
+          "title": "Remove",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/151"
+        },
+        {
           "id": 149,
           "title": "There is a gap to the left of this header blocks whicch looks bad",
           "labels": [
@@ -287,19 +287,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/145"
-        },
-        {
-          "id": 143,
-          "title": "Make this bigger / taller maybe also include a right panel for other…",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/143"
         }
       ],
-      "hidden": 125,
+      "hidden": 126,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
