@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T17:57:25Z",
+  "generated": "2026-08-16T18:16:36Z",
   "columns": [
     {
       "key": "raw",
@@ -65,15 +65,6 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/206"
-        },
-        {
-          "id": 208,
-          "title": "verify.sh step 9 aborts on any clone older than the last board sync, and the board syncs every quarter hour",
-          "labels": [
-            "bug",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/208"
         }
       ]
     },
@@ -98,6 +89,15 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/207"
+        },
+        {
+          "id": 208,
+          "title": "verify.sh step 9 aborts on any clone older than the last board sync, and the board syncs every quarter hour",
+          "labels": [
+            "bug",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/208"
         }
       ]
     },
