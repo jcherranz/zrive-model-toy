@@ -359,6 +359,12 @@ const PHASES = {
   'the address':          { count: 3, when: 'grain' },
   'keeping place':        { count: 3, when: 'grain' },
   'composing':            { count: 4, when: 'grain' },
+  // Issue 195. Three, and they are three because they fail on three different things: that the
+  // width table in this tree is the one the page was built from, without which nothing here can be
+  // compared at all; that every chip stands on a candidate position its own line offers; and that
+  // no candidate that line offers is cheaper than the one it stands on, which is the claim the
+  // doubled prune breaks and every other instrument in this file slept through.
+  'the placer oracle':    { count: 3, when: 'grain' },
   'the header':           { count: 3, when: 'grain' }
 };
 
@@ -696,7 +702,7 @@ const PHASES = {
 // has, against a closed list of clause shapes. The claim of that name checked two figures, in one
 // sentence each, on two routes, and the audit shipped a reworded count past it and past both
 // content gates.
-// 327 until issue 170, which adds nine: two at each of the three widths and three behavioural.
+// 336 SINCE ISSUE 170, which adds nine: two at each of the three widths and three behavioural.
 // R7 of the audit is five findings and the suite could make none of them. The two per width are
 // the keyboard's mark on a node, which is the one thing a keyboard reader is told about where they
 // are and was painting at 0.1721 CSS px because a stroke inside #graph is in the drawing's units
@@ -708,7 +714,7 @@ const PHASES = {
 // narrowed to one week by a finger can be widened by one, which no x on the track could do; and
 // that a calendar chip's five facts are in the document rather than in a title a phone cannot
 // raise, with the no-instructor mark carried by something that is not a colour.
-// 336 until issue 199 item 1, which adds four to `capture` and to no other phase. Capture mode was
+// 340 SINCE ISSUE 199 item 1, which adds four to `capture` and to no other phase. Capture mode was
 // mouse only on the drawing, so a keyboard reader could file about the chrome and about none of
 // the primary view. Three of the four are the press itself, read in three states rather than two
 // because the defect produced a SELECTED NODE and not silence: that Enter with the mode on opens
@@ -717,7 +723,14 @@ const PHASES = {
 // the mode off, which must select the node and open no popover: it pairs with the mouse half's
 // `a pan in capture mode opens no popover`, it is the regression guard on render.js's own keydown,
 // and it is what stops a dispatch that never reached the page from reading as a repair.
-const EXPECTED_ASSERTIONS = 340;
+// AND 343 SINCE ISSUE 195, which adds three in a grain phase of its own and replaces none. The
+// count is 340 plus 3 and not either side of the two rebases this branch went through: issue 170's
+// nine and issue 199's four both landed while this work sat, and all three sets run. The placer
+// that puts a verb chip on its line had no instrument over its ANSWER at all: a prune made twice
+// as aggressive as the one issue 171 argued for moves a seventh of every chip box this suite
+// drives and every assertion here passed over it. The three run a second implementation of the
+// placement in the driver, pruning nothing, and hold it against what the page painted.
+const EXPECTED_ASSERTIONS = 343;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -12786,6 +12799,476 @@ function judgeHead(h) {
            len: len, headLen: shape.len, intoTarget: intoTarget };
 }
 
+// =================================================================================================
+// WHERE EVERY VERB CHIP IS, ANSWERED BY A SECOND IMPLEMENTATION. Issue 195.
+//
+// THE DEFECT THIS EXISTS FOR, AND IT IS NOT HYPOTHETICAL. build/build_layout.py places one verb
+// chip per relationship by searching: along the arc of its own line in steps of CHIP_STEP out to
+// CHIP_SLIDE of the arc length, and at five offsets perpendicular to it, keeping the candidate of
+// least cost, where the cost is `W_OVER * overlap + |ds| + W_PERP * |perp|`. Issue 171 added a
+// prune, and site/render.js carries the same one for the drawings it composes at run time: the
+// last two terms are known before the overlap is computed and the first can only add to them, so
+// `|ds| + W_PERP * |perp|` is a floor under a candidate's cost and a candidate whose floor already
+// reaches the incumbent cannot win. DOUBLING THAT FLOOR is a two character edit to shipped code.
+// It moves 10257 of the 45386 chip boxes this suite drives, by as much as 233.8 units, and every
+// assertion in this file passed clean over it. A seventh of every chip on the page was somewhere
+// else and the whole apparatus said so was fine.
+//
+// TWO INSTRUMENTS WERE MEASURED AGAINST THAT DEFECT AND NEITHER DISCRIMINATES, which is why this
+// one is not a third tolerance on the same reading. The distance from a chip to its own line reads
+// 6.04 clean and 6.08 defective under a cap of 6.5, and the worst overlapping pair reads nothing
+// clean and a tenth of a unit defective under a cap of one. Both defects are real and both are
+// smaller than the tolerance the check that would have caught them already allows.
+//
+// AND A GOLDEN FILE CANNOT CLOSE IT EITHER, because a chip's width is a measured text width, so no
+// coordinate here is knowable from the model alone. What IS knowable is the rule, and the rule is
+// what is checked: given the boxes on the page and the line the chip names, a chip sits at the
+// least cost candidate its own line offers. This file enumerates EVERY candidate and prunes
+// nothing. That is the whole of its independence from the copy it is checking, and it is the right
+// independence: a prune that skips a winner is a difference in the answer, not a difference in the
+// search, so no prune this repository could write can hide from a search that has none.
+//
+// WHAT IT SHARES, NAMED, BECAUSE A SECOND OPINION THAT SHARES THE FIRST ONE'S INPUTS IS THE
+// THIRTEENTH DEAD INSTRUMENT WEARING A BETTER NAME. That one was a gate that read the same table
+// the generator writes and passed a planted bad value. This shares three things and no more.
+// First, the SPECIFICATION: the cost function, the candidate set, the placement order and the
+// shapes of the blocked boxes are restated below from build/build_layout.py's own account of them
+// rather than imported, computed or read off the page, so a build that retunes any of them turns
+// this red and names the drift, exactly as site/render.js's own restated constants do. Second, the
+// flattening: a chip is anchored to the arc length midpoint of a curve sampled at CHIP_ARC_N
+// chords, and that sampling is definitional rather than incidental, so it is the same number here.
+// Third, the WIDTH TABLE, and that one is argued in full over chipWidths() below.
+//
+// WHAT IT READS IS THE PAINTED PAGE AND NEVER window.GL. Every chip box, every tile box, every
+// label string and every path comes off the rendered SVG. The one thing it must never take from
+// the artefact is the answer, and the answer is the chip's own cx and cy: those are read as
+// attributes of the rect a reader is looking at, and then recomputed from scratch.
+//
+// WHAT IT CANNOT SEE, so that nobody reads more into a green than is in it. It certifies that each
+// chip is a least cost candidate GIVEN the boxes around it, so it says nothing about whether those
+// boxes are right: a mutation of a tile's position, of a label's wrap or of the line's own shape
+// moves the chip and this agrees with the chip's new home. Those are the reflow and the arrowhead
+// assertions' subject and not this one's. It cannot see a mutation that leaves the argmin where it
+// was, one that lands within CHIP_COST_TOL of it, or a change of tiebreak between two candidates of
+// equal cost, because it asserts that nothing beats the placed candidate and not which of several
+// equals was taken. And it cannot see a bad width in the table it shares, which is the price of
+// the argument below.
+//
+// FOUR MORE THINGS IT CANNOT SEE, NAMED BY AN ADVERSARIAL READ OF THIS BLOCK RATHER THAN BY ITS
+// AUTHOR, and written down here because the list above was the author's own and a list of a
+// check's blind spots that only its author has looked for is half a list.
+//
+//   THE PLACEMENT ORDER. Each chip is weighed against the boxes as they stood when it was placed,
+//   and the prefix is taken off the PAINTED page rather than off a reconstruction, which is
+//   deliberate and argued below: it keeps one bad chip from being blamed on the chips after it.
+//   The cost is that a build which places the same chips in a DIFFERENT order can still leave
+//   every one of them locally unbeatable, and this agrees with all of them. Dropping the second
+//   tiebreak at build/build_layout.py's `key=lambda e: (-e["span"], e["s"], e["t"])` is the
+//   concrete edit. The order is reconstructed here and would have to move a chip past
+//   CHIP_COST_TOL to be caught, which is not the same claim as checking the order itself.
+//
+//   THE ARC SAMPLING, within a quarter unit. CHIP_ARC_N is 240 here because it is 240 in the
+//   build, and site/render.js already runs the same placement at 96. On this corpus the two
+//   samplings put a candidate in the same place to well under CHIP_POS_TOL, so a build retuned
+//   from 240 to 96 would pass here. That is the same class as any mutation landing inside a
+//   tolerance and it is stated rather than left to be discovered.
+//
+//   A COST RETUNE THAT STAYS SMALL. W_OVER at 18 instead of 20 moves which candidate wins on some
+//   chips and can keep every move under CHIP_COST_TOL. The tolerance is a floor on the size of a
+//   defect and not on its kind, and the floor is measured over the corpus below.
+//
+//   AND THE RUN-TIME PLACER ENTIRELY. This judges the fourteen drawings the build wrote and
+//   refuses anything without an artefact digest, so site/render.js's own copy of the search, the
+//   one that composes a windowed drawing in the browser, is judged by nothing here. Closing that
+//   is a card of its own and not a tolerance on this one: the run-time copy measures its chip
+//   widths in the browser instead of carrying the build's, so it needs a different argument about
+//   what may be shared with it.
+// =================================================================================================
+
+// THE PLACER'S OWN CONSTANTS, RESTATED HERE AND NOT IMPORTED. The names are build/build_layout.py's
+// and the values are the ones that file carries; site/render.js restates the same set for the same
+// reason and says so beside them. A third statement of a constant is not duplication, it is the
+// only thing that makes a change to it visible to something other than the code that made it.
+const CHIP_TILE = 34;          // TILE, the tile's own side
+const CHIP_LINE_H = 11.5;      // LINE_H, one line of label
+const CHIP_GAP_LABEL = 7;      // GAP_LABEL, tile to first label line
+const CHIP_H = 13;             // CH, a chip box's height
+const CHIP_PADX = 5;           // PADX, the pad either side of a verb inside its chip
+const CHIP_SLIDE = 0.34;       // CHIP_SLIDE, the share of the arc a chip may slide over
+const CHIP_STEP = 4;           // CHIP_STEP, the grain of the slide
+const CHIP_PERP = 6;           // CHIP_PERP, the cap on stepping off the line
+const CHIP_W_OVER = 20;        // W_OVER, the cost of a unit of overlap
+const CHIP_W_PERP = 3;         // W_PERP, the cost of a unit off the line
+const CHIP_ARC_N = 240;        // arc_table()'s chord count, which decides where the midpoint is
+const CHIP_TILE_PAD = 6;       // the tile's blocked box is TILE + 6 square
+const CHIP_LAB_PAD_W = 6;      // a label's blocked box is its widest line + 6
+const CHIP_LAB_PAD_H = 2;      // and its lines' height + 2
+const CHIP_BOX_PAD = 4;        // a chip's own blocked box is its width + 4
+const CHIP_COLS = 8;           // COL_W's length: how many columns the geometry was computed for
+
+// One chip per relationship over the fourteen canonical drawings. Written out rather than counted
+// off the page, because a reconstruction that silently weighed half the corpus and agreed with
+// itself on all of it is the failure this whole block is written against.
+const CHIP_EXPECTED = 740;
+
+// HOW CLOSE A PAINTED CHIP HAS TO BE TO A CANDIDATE TO BE CALLED THAT CANDIDATE. site/layout.js
+// rounds every coordinate to a tenth, and the curve this file walks is rebuilt from a `d` whose
+// control points were rounded the same way, so the candidate computed here and the one the placer
+// computed differ by a rounding of the input and a rounding of the output. A quarter of a unit is
+// an order above what that can amount to and two orders below the smallest movement the defect
+// this exists for produces.
+//
+// AND THE FLOOR WAS MEASURED IN BOTH DIRECTIONS RATHER THAN ARGUED. On a clean tree, this branch
+// sitting on origin/main at 78c18c8, the worst any painted chip sits from its nearest candidate is
+// 0.1336 over all 740, which is the headroom and is now printed on the PASS as well as on the
+// failure. Moving one chip in site/layout.js by hand brackets the other side: at 0.3 units the
+// reading is 0.3092 and this assertion is the only one in the whole suite that fires, and at 0.2
+// the whole suite is clean. So the floor for a chip nudged off its own grid sits at CHIP_POS_TOL
+// and nowhere else, and the nudge that a reader's eye would not catch is one nothing in this
+// suite catches either.
+const CHIP_POS_TOL = 0.25;
+
+// AND HOW MUCH BETTER A CANDIDATE MAY LOOK BEFORE THE PLACER IS SAID TO HAVE MISSED IT. This is
+// the one tolerance that decides what the check can see, so it is measured rather than picked.
+// The noise in it is the same rounding: a box centre this file reads is up to five hundredths off
+// the one the placer weighed, a chip width up to five hundredths, and a candidate's own position
+// up to about a tenth, and an overlap depth is multiplied by W_OVER, which is twenty. Over the
+// fourteen canonical drawings the worst any candidate beat a placed chip by reads 0.4413, measured
+// on a clean tree, this branch sitting on origin/main at 78c18c8, and no chip on any of them
+// reaches one. The doubled prune this exists to catch puts 153 of the same 740 chips over one
+// unit and its worst reads 51.80, measured on the same tree with
+// `floor = 2*(abs(ds) + W_PERP * abs(perp))` in build/build_layout.py and the site rebuilt from
+// it, which moved 179 of the 740 chips by as much as 51.98 units. So the floor sits at
+// one: above everything a clean tree produces, below every candidate the defect leaves on the
+// table, and a quarter of the four units one step of the slide costs, so no whole candidate can
+// hide under it.
+//
+// WHAT THAT FLOOR IS NOT. It is a floor on the SIZE of a defect and not on its kind. A mutation
+// that moves the argmin and keeps every move under one unit of cost passes, and W_OVER retuned
+// from 20 to 18 is a real edit of that shape. A tolerance is a statement about the smallest thing
+// a check can see, and this one's is: some candidate its own line offers is more than one unit
+// cheaper, which at W_OVER of twenty is a twentieth of a unit of overlap.
+const CHIP_COST_TOL = 1.0;
+
+// THE WIDTH TABLE, AND WHY IT IS READ FROM THE TREE RATHER THAN MEASURED IN THE BROWSER. A label's
+// blocked box is as wide as its widest line, and a line's width is a text measurement. Measuring it
+// here would not reproduce what the placer used: build/measure_labels.py writes an ENVELOPE, the
+// widest that string shapes under any font family the measuring machine could resolve distinctly,
+// rounded up to two decimals, because the page names ten families and falls through to whatever the
+// reader's machine holds. A re-measurement in this browser gives one face out of that envelope, and
+// which faces a runner has installed is a fact about the runner.
+//
+// SO THE TABLE IS THE INPUT AND NOT THE ANSWER, and the distinction is the whole argument. What
+// this check asserts is that the placement is optimal GIVEN the widths; a wrong width would move
+// the placer and this together and go unseen, which is stated above as a limit. What it must never
+// do is read the placer's OUTPUT, and it does not: every coordinate it judges comes off the painted
+// page and every coordinate it judges against is recomputed here.
+//
+// AND THE TREE'S TABLE MIGHT NOT BE THE ONE THE PAGE WAS BUILT FROM, which is a real state: this
+// suite can be pointed at a deployed origin whose layout.js is older than the checkout. That is not
+// answered by hoping. Every chip's painted width is the table's own value for that verb plus twice
+// PADX, rounded to a tenth, and that is checked on all seven hundred and forty of them. A table
+// that does not reproduce them is not the table the page was built from, and the run says it could
+// not compare rather than agreeing or disagreeing on a reconstruction it knows is not the page's.
+const CHIP_WIDTHS_PATH = path.join(ROOT, 'build', 'label_widths.json');
+let CHIP_WIDTHS = null;
+let CHIP_WIDTHS_WHY = null;
+
+function chipWidths() {
+  if (CHIP_WIDTHS === null && CHIP_WIDTHS_WHY === null) {
+    try {
+      const raw = JSON.parse(fs.readFileSync(CHIP_WIDTHS_PATH, 'utf8'));
+      if (!raw || !raw.widths) throw new Error('no "widths" in it');
+      CHIP_WIDTHS = raw.widths;
+    } catch (err) {
+      CHIP_WIDTHS_WHY = `${CHIP_WIDTHS_PATH} could not be read: ${err && err.message ? err.message : err}`;
+    }
+  }
+  return CHIP_WIDTHS;
+}
+
+// One string in one context, or null if the table has never been asked for it. build_layout.py
+// falls back to an estimate for a string it has not measured; this does not reimplement that
+// estimate, because a string the table misses is a state check_build.sh already refuses and a
+// second guess at it here would be a second opinion about the input rather than about the answer.
+function chipWidthOf(table, ctx, s) {
+  const t = table[ctx];
+  if (!t) return null;
+  const w = t[s];
+  return typeof w === 'number' ? w : null;
+}
+
+// Everything one drawing's chips can be judged from, off the painted SVG. No coordinate here is
+// read from window.GL, and the placer's answers are read as the attributes of the rects a reader
+// is looking at.
+//
+// VERB_CHIP_READ AND NOT CHIP_READ, and the name is the record of a collision worth knowing about.
+// This block was first written against a tree that did not yet carry issue 170, which landed a
+// `CHIP_READ` of its own about the CALENDAR chip while this branch sat. Two things in this file
+// are called a chip and they are not the same thing: a verb chip is the labelled box on a
+// relationship line, which is this block's whole subject, and a calendar chip is a row in the term
+// strip. The rebase put both declarations in one module scope and node refused to parse the file
+// at all, which is the good failure; the bad one would have been two blocks quietly sharing a
+// reader. Whatever else moves here, the two names stay apart.
+const VERB_CHIP_READ = `
+  function boxOf(el) {
+    return { x: +el.getAttribute('x'), y: +el.getAttribute('y'),
+             w: +el.getAttribute('width'), h: +el.getAttribute('height') };
+  }
+  var svg = document.getElementById('graph');
+  var nodes = [], chips = [], paths = {}, keys = [];
+  svg.querySelectorAll('g[data-node], g[data-outside]').forEach(function (g) {
+    var r = g.querySelector('rect.tile-bg');
+    if (!r) return;
+    var b = boxOf(r), lines = [], mark = null, tail = null, ys = [];
+    g.querySelectorAll('text.lbl').forEach(function (t) {
+      ys.push(+t.getAttribute('y'));
+      if (t.classList.contains('lbl-tail')) tail = t.textContent;
+      else if (t.classList.contains('lbl-missing')) mark = t.textContent;
+      else lines.push(t.textContent);
+    });
+    nodes.push({ id: g.getAttribute('data-node') || g.getAttribute('data-outside'),
+                 x: b.x + b.w / 2, y: b.y + b.h / 2, side: b.w, high: b.h,
+                 lines: lines, mark: mark, tail: tail, ys: ys,
+                 ghost: g.classList.contains('ghost') });
+  });
+  svg.querySelectorAll('rect.chip-bg').forEach(function (r) {
+    var g = r.parentNode, b = boxOf(r), t = g.querySelector('text.chip-tx');
+    chips.push({ key: g.getAttribute('data-edge'),
+                 cx: b.x + b.w / 2, cy: b.y + b.h / 2, cw: b.w, high: b.h,
+                 verb: t ? t.textContent : null,
+                 ghost: g.classList.contains('ghost') });
+  });
+  svg.querySelectorAll('g[data-edge]').forEach(function (g) {
+    var p = g.querySelector('path.edge, path.edge-ghost, path.edge-outside');
+    if (!p) return;
+    var k = g.getAttribute('data-edge');
+    keys.push(k);
+    paths[k] = p.getAttribute('d');
+  });
+  return { nodes: nodes, chips: chips, paths: paths, keys: keys,
+           // WHICH DRAWING THIS IS, because only one of the two can be judged here. A window turns
+           // the picture into a run-time transform composed by site/render.js, which measures its
+           // own chip widths in the browser instead of carrying the build's, and the artefact
+           // digest goes with the artefact: a composed drawing has none. Read here so that the
+           // driver refuses rather than certifying a reconstruction of the wrong picture.
+           digest: window.ZT.programme().digest };
+`;
+
+// The curve, flattened the way the placer flattens it. Nothing is shared with build_layout.py but
+// the chord count and the numbers in the `d` attribute the page painted.
+function chipArc(p, n) {
+  const xs = [], cum = [0];
+  for (let i = 0; i <= n; i++) xs.push(bezAtT(p, i / n));
+  for (let i = 1; i <= n; i++) {
+    cum.push(cum[i - 1] + Math.hypot(xs[i][0] - xs[i - 1][0], xs[i][1] - xs[i - 1][1]));
+  }
+  return { xs: xs, cum: cum };
+}
+
+// The point and the unit tangent at arc length s, clamped to the curve's ends.
+function chipAtS(tab, s) {
+  const cum = tab.cum, n = cum.length - 1;
+  const at = Math.min(Math.max(s, 0), cum[n]);
+  let lo = 1, hi = n;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (cum[mid] < at) lo = mid + 1; else hi = mid;
+  }
+  const seg = (cum[lo] - cum[lo - 1]) || 1e-9;
+  const f = (at - cum[lo - 1]) / seg;
+  const a = tab.xs[lo - 1], b = tab.xs[lo];
+  const tx = b[0] - a[0], ty = b[1] - a[1];
+  const m = Math.hypot(tx, ty) || 1e-9;
+  return { p: [a[0] + f * tx, a[1] + f * ty], t: [tx / m, ty / m] };
+}
+
+// Total penetration depth of one chip box against a list of boxes, each `[cx, cy, w, h]`. A depth
+// and not a count, which is the placer's own rule and the reason clipping a pad by a unit is cheap
+// and sitting on a label is not.
+function chipDepth(x, y, w, boxes) {
+  let tot = 0;
+  for (let i = 0; i < boxes.length; i++) {
+    const b = boxes[i];
+    const ox = (w + b[2]) / 2 - Math.abs(x - b[0]);
+    const oy = (CHIP_H + b[3]) / 2 - Math.abs(y - b[1]);
+    if (ox > 0 && oy > 0) tot += Math.min(ox, oy);
+  }
+  return tot;
+}
+
+// Every candidate the placer had, in the order it generated them, which matters to nothing here
+// because nothing here prunes: the whole set is weighed and the least is taken.
+function chipCandidates(tab) {
+  const L = tab.cum[tab.cum.length - 1];
+  const reach = CHIP_SLIDE * L;
+  const slides = [0];
+  for (let k = 1; k * CHIP_STEP <= reach; k++) slides.push(k * CHIP_STEP, -k * CHIP_STEP);
+  const perps = [0, CHIP_PERP / 2, -CHIP_PERP / 2, CHIP_PERP, -CHIP_PERP];
+  const out = [];
+  for (const ds of slides) {
+    const s = chipAtS(tab, L / 2 + ds);
+    for (const perp of perps) {
+      out.push({ ds: ds, perp: perp,
+                 x: s.p[0] - s.t[1] * perp, y: s.p[1] + s.t[0] * perp,
+                 fixed: Math.abs(ds) + CHIP_W_PERP * Math.abs(perp) });
+    }
+  }
+  return out;
+}
+
+// One drawing, judged. Returns a list of findings and never a bare boolean: `why` is a state this
+// could not answer in, and the assertions below treat it as neither an agreement nor a
+// disagreement but as a failure of its own, because a check that cannot say is the one shape of
+// dead instrument this repository keeps finding.
+function judgeChips(where, r, table, colX) {
+  const out = { where: where, chips: 0, offGrid: [], beaten: [], why: [],
+                worstGap: 0, worstBeat: 0 };
+  const say = (m) => { out.why.push(`${where}: ${m}`); return out; };
+  if (!table) return say(CHIP_WIDTHS_WHY || 'no width table');
+  if (!r.nodes.length || !r.chips.length) return say('no tiles or no chips on the page');
+  if (!/^[0-9a-f]{7}$/.test(String(r.digest))) {
+    return say(`the drawing on screen carries no artefact digest (${r.digest}), so it is a ` +
+               `run-time transform and not the drawing build/build_layout.py wrote`);
+  }
+
+  // The geometry the placer packed with, cross-checked against the page rather than believed. A
+  // tile is a square of TILE and label lines are LINE_H apart; if the drawing says otherwise then
+  // the constants restated above are not this drawing's and every box below would be wrong.
+  for (const n of r.nodes) {
+    if (Math.abs(n.side - CHIP_TILE) > 0.05 || Math.abs(n.high - CHIP_TILE) > 0.05) {
+      return say(`the tile on ${n.id} is ${n.side} by ${n.high} and this file was written for ` +
+                 `${CHIP_TILE}`);
+    }
+    for (let i = 1; i < n.ys.length; i++) {
+      if (Math.abs((n.ys[i] - n.ys[i - 1]) - CHIP_LINE_H) > 0.05) {
+        return say(`the label lines on ${n.id} are ${(n.ys[i] - n.ys[i - 1]).toFixed(2)} apart ` +
+                   `and this file was written for ${CHIP_LINE_H}`);
+      }
+    }
+  }
+
+  // The blocked boxes, in the placer's own two shapes. The tile, and the label under it as wide as
+  // its widest line reserved at the bold weight a click turns it to.
+  const boxes = [];
+  for (const n of r.nodes) {
+    const c4 = n.ghost ? '10/400i' : '10/400';
+    const c6 = n.ghost ? '10/600i' : '10/600';
+    let lw = 0;
+    for (const ln of n.lines) {
+      const a = chipWidthOf(table, c4, ln), b = chipWidthOf(table, c6, ln);
+      if (a === null || b === null) return say(`no measured width for ${JSON.stringify(ln)}`);
+      lw = Math.max(lw, a, b);
+    }
+    for (const extra of [n.mark, n.tail]) {
+      if (extra === null || extra === undefined) continue;
+      const w = chipWidthOf(table, '9/400', extra);
+      if (w === null) return say(`no measured width for ${JSON.stringify(extra)}`);
+      lw = Math.max(lw, w);
+    }
+    const nlines = n.lines.length + (n.mark === null ? 0 : 1) + (n.tail === null ? 0 : 1);
+    const labH = CHIP_LINE_H * nlines;
+    boxes.push([n.x, n.y, CHIP_TILE + CHIP_TILE_PAD, CHIP_TILE + CHIP_TILE_PAD]);
+    boxes.push([n.x, n.y + CHIP_TILE / 2 + CHIP_GAP_LABEL + labH / 2,
+                lw + CHIP_LAB_PAD_W, labH + CHIP_LAB_PAD_H]);
+  }
+
+  // Which column a tile is in, from the x values the whole corpus uses rather than this drawing's,
+  // because a drawing that leaves a column empty would otherwise renumber every column right of it
+  // and the placement ORDER below is keyed on the distance between two of them.
+  const colOf = (x) => {
+    for (let i = 0; i < colX.length; i++) if (Math.abs(colX[i] - x) < 0.05) return i;
+    return null;
+  };
+  const at = {};
+  for (const n of r.nodes) {
+    const c = colOf(n.x);
+    if (c === null) return say(`the tile on ${n.id} is at x ${n.x}, which is no column of the eight`);
+    at[n.id] = c;
+  }
+
+  // The chips, in the order build_layout.py places them: widest span first, then by the two ends'
+  // own ids. The order is what decides which chips are already down when this one is weighed, and
+  // site/render.js records at length what a missing tiebreak here costs.
+  const rows = [];
+  for (const c of r.chips) {
+    const cut = String(c.key).indexOf('->');
+    const s = String(c.key).slice(0, cut), t = String(c.key).slice(cut + 2);
+    if (at[s] === undefined || at[t] === undefined) return say(`${c.key} ends on a tile that is not drawn`);
+    if (!r.paths[c.key]) return say(`${c.key} has a chip and no line`);
+    if (c.verb === null) return say(`${c.key} has a chip with no verb on it`);
+    rows.push({ c: c, s: s, t: t, span: Math.abs(at[t] - at[s]) });
+  }
+  if (rows.length !== r.keys.length) {
+    return say(`${rows.length} chips against ${r.keys.length} lines`);
+  }
+  rows.sort((a, b) => (b.span - a.span) ||
+                      (a.s < b.s ? -1 : a.s > b.s ? 1 : 0) ||
+                      (a.t < b.t ? -1 : a.t > b.t ? 1 : 0));
+
+  for (const row of rows) {
+    const c = row.c;
+    // The chip's own width, which the table has to reproduce or this is not the table the page was
+    // built from. It is the one value here that is both an input to the search and a painted fact,
+    // so it is the one place the two can be held against each other.
+    const want = chipWidthOf(table, c.ghost ? '9/400i' : '9/400', c.verb);
+    if (want === null) return say(`no measured width for the verb ${JSON.stringify(c.verb)}`);
+    // THE PAINTED WIDTH HAS TO BE THAT WIDTH ROUNDED, AND THE TEST IS WRITTEN AS "ROUNDED" RATHER
+    // THAN AS ONE OF THE TWO WAYS OF ROUNDING. site/layout.js is written by Python, which breaks a
+    // half to the even digit, and a chip whose width lands exactly on a half therefore prints a
+    // tenth below what Math.round here would give. That is a fact about two languages and not
+    // about the page, so what is asserted is that the painted tenth is A rounding of the table's
+    // own value. The cost below is then weighed with the UNROUNDED value, which is the one the
+    // placer weighed.
+    const wantCw = want + 2 * CHIP_PADX;
+    if (Math.abs(wantCw - c.cw) > 0.05 + 1e-9) {
+      return say(`the chip on ${c.key} is ${c.cw} wide and the width table makes it ` +
+                 `${wantCw.toFixed(2)}. The table in this tree is not the one this page was built ` +
+                 `from, so nothing here can be compared`);
+    }
+    if (Math.abs(c.high - CHIP_H) > 0.05) return say(`the chip on ${c.key} is ${c.high} high`);
+
+    const p = parseCubic(r.paths[c.key]);
+    if (!p) return say(`${c.key}: its line is not a single cubic`);
+    const cand = chipCandidates(chipArc(p, CHIP_ARC_N));
+    const w = wantCw + CHIP_BOX_PAD;
+
+    // Which candidate the page is standing on, and the first of the two claims: it is standing on
+    // one. A placement free to be anywhere is not the placement this file can certify.
+    let near = null, gap = Infinity;
+    for (const k of cand) {
+      const d = Math.hypot(k.x - c.cx, k.y - c.cy);
+      if (d < gap) { gap = d; near = k; }
+    }
+    out.chips++;
+    out.worstGap = Math.max(out.worstGap, gap);
+    if (gap > CHIP_POS_TOL) {
+      out.offGrid.push({ where: where, key: c.key, gap: gap });
+    } else {
+      // And the second: nothing beats it. Every candidate is weighed against the boxes as they
+      // stood when this chip was placed, which is the tiles, the labels and the chips already
+      // down at the positions the page actually painted them. Reading the prefix off the page
+      // rather than off a reconstruction is what keeps one bad chip from being blamed on the
+      // chips after it.
+      const mine = CHIP_W_OVER * chipDepth(near.x, near.y, w, boxes) + near.fixed;
+      let best = Infinity, bestAt = null;
+      for (const k of cand) {
+        const cost = CHIP_W_OVER * chipDepth(k.x, k.y, w, boxes) + k.fixed;
+        if (cost < best) { best = cost; bestAt = k; }
+      }
+      const beat = mine - best;
+      out.worstBeat = Math.max(out.worstBeat, beat);
+      if (beat > CHIP_COST_TOL) {
+        out.beaten.push({ where: where, key: c.key, beat: beat,
+                          from: [near.ds, near.perp], to: [bestAt.ds, bestAt.perp],
+                          moved: Math.hypot(bestAt.x - near.x, bestAt.y - near.y) });
+      }
+    }
+    boxes.push([c.cx, c.cy, w, CHIP_H]);
+  }
+  return out;
+}
+
 // The nine phases, in one function so that the values one phase measures are the values the next
 // one reasons about, which is how build/check_grain.mjs was written and is why the assertions
 // below are that file's, unedited. What changed in the move is the spelling of the harness calls
@@ -12858,6 +13341,86 @@ async function runGrain(chrome, base) {
         'no module tile, and the same tile count at both altitudes',
         `${per['ZCFA/modules'].grain.modules} modules, ` +
         `${per['ZCFA/modules'].tiles} tiles against ${per['ZCFA/sessions'].tiles}`);
+    });
+
+    // ---- where every verb chip is, issue 195 -------------------------------
+    // ITS OWN NAVIGATION AND NOT A SECOND READING OF `per`, because what this phase needs off each
+    // drawing is not what `two artefacts` reads: it needs every label string, every tile box and
+    // every path, and hanging that on the read above would make one phase's cost the other's.
+    await group('the placer oracle', async () => {
+      const table = chipWidths();
+      const seen = [];
+      for (const g of ['sessions', 'modules']) {
+        for (const k of KEYS) {
+          await goto(base + '#/p/' + k + (g === 'modules' ? '/modules' : ''));
+          seen.push({ where: k + '/' + g, r: await ev(VERB_CHIP_READ) });
+        }
+      }
+      // The columns, taken off all fourteen drawings together. Z-CFA draws nothing in one of the
+      // eight and ranking its own tiles would number every column right of that one differently
+      // from the way the build numbers them, which would change the span two ends are apart and
+      // with it the order the chips are placed in.
+      const colX = [];
+      for (const s of seen) {
+        for (const n of s.r.nodes) if (!colX.some(v => Math.abs(v - n.x) < 0.05)) colX.push(n.x);
+      }
+      colX.sort((a, b) => a - b);
+      const judged = seen.map(s => (colX.length === CHIP_COLS
+        ? judgeChips(s.where, s.r, table, colX)
+        : { where: s.where, chips: 0, offGrid: [], beaten: [], worstGap: 0, worstBeat: 0,
+            why: [`${s.where}: the fourteen drawings stand on ${colX.length} columns and the ` +
+                  `geometry was computed for ${CHIP_COLS}`] }));
+      const why = judged.reduce((a, j) => a.concat(j.why), []);
+      const offGrid = judged.reduce((a, j) => a.concat(j.offGrid), []);
+      const beaten = judged.reduce((a, j) => a.concat(j.beaten), []);
+      const chips = judged.reduce((a, j) => a + j.chips, 0);
+      const worstGap = judged.reduce((a, j) => Math.max(a, j.worstGap), 0);
+      const worstBeat = judged.reduce((a, j) => Math.max(a, j.worstBeat), 0);
+
+      // FIRST, THAT IT COULD ANSWER AT ALL, and it is an assertion rather than a silence. Every
+      // reconstruction this file makes rests on the width table in the tree being the one the page
+      // was built from, and the proof of that is that the table reproduces the width of every chip
+      // the page painted. A run that cannot say has to say so where a reader of the log will see
+      // it, because a check that quietly answers about nothing is the shape of dead instrument
+      // this repository has now found fourteen of.
+      assert('the fourteen drawings can be weighed against the widths this tree carries',
+        why.length === 0 && judged.length === 14 && chips === CHIP_EXPECTED,
+        `all fourteen reconstructed and all ${CHIP_EXPECTED} chips weighed, each of them as wide ` +
+          `as the width table says its own verb is`,
+        why.length ? `${why.length} could not be compared: ${why.slice(0, 3).join('; ')}`
+                   : `${judged.length} drawings, ${chips} chips`,
+        `${judged.length} drawings, ${chips} chips`);
+
+      // SECOND, THAT EVERY CHIP IS ON THE GRID ITS OWN LINE OFFERS. A placement free to be anywhere
+      // is not a placement this can certify, and this is the half that catches an anchor computed
+      // off a different curve, a slide off the step, or a chip nudged by a hand.
+      assert('every verb chip stands on one of the candidate positions its own line offers',
+        why.length === 0 && chips > 0 && offGrid.length === 0,
+        `all ${CHIP_EXPECTED} within ${CHIP_POS_TOL} of a candidate rebuilt in this file from the ` +
+          `line's own d`,
+        `${offGrid.length} off the grid` +
+          (offGrid.length ? `: ${offGrid.slice(0, 3).map(o => `${o.where} ${o.key} by ${o.gap.toFixed(2)}`).join(', ')}` : '') +
+          `, worst gap ${worstGap.toFixed(4)}`,
+        // THE HEADROOM ON A CLEAN RUN, PRINTED ON THE PASS AND NOT ONLY ON THE FAILURE. A tolerance
+        // whose margin is only visible when it has already been breached is a tolerance nobody can
+        // watch drift towards its own limit, and the third assertion below already prints its
+        // margin for exactly that reason. This one was silent about it and now is not.
+        `worst gap between a painted chip and the nearest candidate, over ${chips} chips: ` +
+          `${worstGap.toFixed(4)}, against a tolerance of ${CHIP_POS_TOL}`);
+
+      // AND THIRD, THE ONE THE CARD IS ABOUT: nothing cheaper was left on the table. The search
+      // here prunes nothing, so a prune in the placer that skips a winner shows up as a candidate
+      // this file found and that one did not.
+      assert('and no candidate its own line offers is cheaper than the one it stands on',
+        why.length === 0 && chips > 0 && beaten.length === 0,
+        `no candidate anywhere on the fourteen beating its own chip's placement by more than ` +
+          `${CHIP_COST_TOL} of cost`,
+        `${beaten.length} chips beaten` +
+          (beaten.length
+            ? `: ${beaten.slice(0, 4).map(o => `${o.where} ${o.key} by ${o.beat.toFixed(2)} ` +
+                `(${o.moved.toFixed(1)} units away)`).join(', ')}`
+            : ''),
+        `worst any candidate beat a placed chip by, over ${chips} chips: ${worstBeat.toFixed(4)}`);
     });
 
     // ---- the count --------------------------------------------------------
