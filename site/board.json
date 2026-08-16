@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T06:25:35Z",
+  "generated": "2026-08-16T06:53:56Z",
   "columns": [
     {
       "key": "raw",
@@ -139,16 +139,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/155"
         },
         {
-          "id": 156,
-          "title": "check arrow vs line alignment",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/156"
-        },
-        {
           "id": 158,
           "title": "The week grid compares nothing and the month grid draws some days twice",
           "labels": [
@@ -209,6 +199,16 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/161"
         },
         {
+          "id": 156,
+          "title": "check arrow vs line alignment",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/156"
+        },
+        {
           "id": 154,
           "title": "Is this what a professional webapp footer looks like?",
           "labels": [
@@ -247,19 +247,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/151"
-        },
-        {
-          "id": 149,
-          "title": "There is a gap to the left of this header blocks whicch looks bad",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/149"
         }
       ],
-      "hidden": 129,
+      "hidden": 130,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
