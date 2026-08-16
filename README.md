@@ -120,6 +120,52 @@ repository and its lesson holds here unchanged, that the visibility of a reposit
 visibility of the site it publishes are two settings and neither one is evidence about the other.
 Whether this repository stays public is the owner's decision and it is open.
 
+## The recorded reading
+
+`build/corpus_reading.txt` is the other artefact a machine holding the private corpora produces,
+and it is the opposite of the register in every way that matters: it is tracked, it is not a
+secret, and it carries no private byte at all.
+
+**What it is for.** Three gates in `build/model.py` re-read a corpus, and until issue 196 all
+three returned after one line to stderr when the corpus was not on the machine. No runner has
+any of them, so on every CI run the sole check on `SYLLABUS_SESSIONS` counted nothing, and that
+table is the only source of every `counts[*].total`, which is the denominator of every fraction
+on every screen.
+
+**What it holds.** A date and one SHA-256 per gate over a canonical serialisation of that gate's
+declared tables, plus a provenance block naming, for each reading, the gate that produced it and
+the source in `VALUE_SOURCES` that names that gate. Not the numbers again: the numbers are
+already in `build/model.py` in the clear, a second copy would compare a table with itself, and
+the copy is the one that rots. What is missing on a runner is the join between the numbers on
+its disk and an occasion when somebody compared them with the corpus.
+
+**What a run without the corpus may conclude from it.** That the tables it is about to divide by
+are byte for byte the tables somebody held up against the corpus on the recorded date. Not that
+the corpus has not moved since. The gate prints that limit in its own notice, the build gate's
+verdict prints it again under the word clean, and past `AGING_DAYS` the build refuses the file
+rather than going on quoting it.
+
+**Regenerating it.** On a machine holding both the syllabus vault and the analysis repository:
+
+```
+scripts/gen_corpus_reading.sh            rewrite it
+scripts/gen_corpus_reading.sh --check    say whether the committed one is current
+```
+
+It refuses on any machine where the three gates did not report that they read their corpus, and
+that precondition is taken off the gates' own notices rather than off a directory listing: an
+import that succeeds is not evidence that anything was read, because a gate that declines
+declines politely. Commit the result in the same commit as the change to the tables it is about.
+A machine that holds the corpus and a stale file fails `scripts/check_build.sh` with the gate
+marked `STALE RECORD`; a machine that does not hold the corpus refuses the build outright.
+
+**What it is not.** An authenticity proof. The preimages and the algorithm are both public, so
+anybody editing a table can recompute the digest and commit it alongside. What it catches is the
+act that has actually happened here repeatedly, a table edited on a machine with no corpus by
+somebody who did not know a corpus was involved. Closing the forgery would need a signature only
+the owner can make, which is a secret, and a secret was rejected for this because there is
+nothing private in the file to protect.
+
 ## Reading the diagram
 
 Flow is left to right, through six named bands: programme and employer, session templates,

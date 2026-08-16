@@ -147,20 +147,47 @@ jobs:
       #
       # AND THE THIRD STATE IS READ HERE RATHER THAN COLLAPSED INTO GREEN. Issue 168 R4(a). The
       # gate exits 3 when everything it could check was clean AND at least one sub-gate could
-      # not look at the corpus it re-reads, which on this runner is always true: three of the
-      # five read a vault no runner has. Before the repair those three said so on stderr, two
+      # not look at the corpus it re-reads. Before that repair those gates said so on stderr, two
       # hundred lines up, under a run whose last line was VERDICT: clean and whose step here was
-      # green. A permanent red would be worse and is not the repair: the state is permanent and
-      # honest, so it is annotated and summarised rather than either failed or hidden. Anything
-      # other than 0 or 3 still fails the job.
+      # green. A permanent red would be worse and is not the repair: the state is annotated and
+      # summarised rather than either failed or hidden. Anything other than 0 or 3 fails the job.
+      #
+      # IT USED TO BE THE STATE OF EVERY RUN HERE AND IT IS NOT ANY MORE. Issue 196. The three
+      # gates that read a vault no runner has now check their declared tables against
+      # build/corpus_reading.txt, an attestation written by a machine that held the corpus, so
+      # this runner exits 0 and the gate prints under its own verdict which gates read a
+      # recording rather than a corpus. Exit 3 stays handled because the state it names is still
+      # reachable: delete that file and the gates go back to looking at nothing. That is the one
+      # thing this branch is now for, and it is why the branch is not deleted.
       # verify-step: build-gate
       - name: The drawing git holds is what the builder produces
         run: |
           set +e
-          bash scripts/check_build.sh
-          rc=$?
+          bash scripts/check_build.sh | tee "$RUNNER_TEMP/build-gate.log"
+          rc="${PIPESTATUS[0]}"
           set -e
-          if [ "$rc" -eq 0 ]; then exit 0; fi
+          if [ "$rc" -eq 0 ]; then
+            # A GREEN JOB MUST STILL SAY WHICH GATES DID NOT OPEN A CORPUS. Issue 196. This runner
+            # exits 0 now, and a summary that said nothing would put the state back where issue
+            # 168 found it, two hundred lines down a log nobody opens. The gate's own verdict is
+            # the source of the sentence; this step only lifts it into the summary.
+            if grep -q "AND READ THIS BEFORE QUOTING THE WORD ABOVE" "$RUNNER_TEMP/build-gate.log"; then
+              echo "::notice title=The build gate read a recording, not a corpus::Gates that re-read a private corpus checked their tables against build/corpus_reading.txt instead. Clean, and it does not establish that the corpus has not moved since that date."
+              {
+                echo "### The build gate: clean, on a recorded reading"
+                echo
+                echo "It exited 0. This runner holds no corpus, so the gates that re-read one"
+                echo "checked their declared tables against the attestation in"
+                echo "\`build/corpus_reading.txt\` and found them unchanged since it was written."
+                echo "What that does NOT establish is that the corpus has not moved since. The"
+                echo "verdict in the step log names each gate and the date it is quoting."
+                echo
+                sed -n '/AND READ THIS BEFORE QUOTING THE WORD ABOVE/,$p' "$RUNNER_TEMP/build-gate.log" \
+                  | sed 's/^/    /'
+              } >> "$GITHUB_STEP_SUMMARY"
+            fi
+            exit 0
+          fi
           if [ "$rc" -ne 3 ]; then exit "$rc"; fi
           echo "::warning title=The build gate ran incomplete::Sub-gates that re-read a corpus could not look at one on this runner. This job did not establish anything they cover. Read the INCOMPLETE verdict in the log above."
           {
