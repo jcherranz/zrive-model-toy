@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T13:52:25Z",
+  "generated": "2026-08-16T13:56:25Z",
   "columns": [
     {
       "key": "raw",
@@ -33,19 +33,22 @@
             "idea"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
-        },
-        {
-          "id": 199,
-          "title": "Capture mode is mouse-only on the drawing, and three reach measurements that #170 left standing",
-          "labels": [],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/199"
         }
       ]
     },
     {
       "key": "backlog",
       "title": "Backlog",
-      "cards": []
+      "cards": [
+        {
+          "id": 199,
+          "title": "Capture mode is mouse-only on the drawing, and three reach measurements that #170 left standing",
+          "labels": [
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/199"
+        }
+      ]
     },
     {
       "key": "in_progress",
