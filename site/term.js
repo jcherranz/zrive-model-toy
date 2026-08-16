@@ -765,8 +765,38 @@
     // #128 took the second sentence off. It told the reader which two header controls to press,
     // which is what the header controls already say by being there; the fact is the first
     // sentence and the fact is all that is left.
-    function windowEmptyText() {
-      return 'No session in ' + windowText() + '.';
+    //
+    // ISSUE 167. AND IT TOOK NO SCOPE, SO IT NAMED NONE, AND THE SCREEN CONTRADICTED ITSELF. On
+    // Z-IB the review printed this sentence over its rows and, three lines below it,
+    // `Z-IB · no drawn session in this window · 6 of the 79 sessions the model counts, so 73 are
+    // not drawn here`. Two sentences about the same window, one of them a statement about the
+    // business and the other a statement about what these documents drew, and the shorter one was
+    // the one on the canvas and at the head of the list. On five of the seven programmes almost
+    // every week is empty, so this was the common case rather than an edge, and it is the exact
+    // thing this file's own rule at CAL_SHAPES forbids.
+    //
+    // SO IT TAKES THE SCOPE AND SPEAKS IN absentWords()'s OWN WORDS, which is what makes the two
+    // agree rather than merely stop disagreeing: `drawn session` where the rows are a sample and
+    // `session` where they are the term, the fraction in the form #122 settled, and the count of
+    // what is not here spelled out rather than left for the reader to subtract. Both are built
+    // from sampleOf() and sampleWords(), so a third wording cannot appear here.
+    //
+    // THE SCOPE IS AN ARGUMENT BECAUSE THE ANSWER IS DIFFERENT PER CALLER, and that is the whole
+    // reason it is not read off `scope` inside. The sheet asks about the rows it is showing; the
+    // drawing asks about the programmes it is drawing, and since #136 those are two different
+    // sets that a reader can hold at once. A scope of more than one is answered over the UNION,
+    // which sampleOf() already sums: on `#/calendar/ZIB+ZSC` the sentence is about the 31 of 104
+    // the two hold together, and it says `drawn session` because one of the two is a sample. The
+    // weaker claim is the true one about a set, and a set with one sampled programme in it is a
+    // set the page may not describe as complete.
+    function windowEmptyText(sc) {
+      var samp = sampleOf(sc, 'CohortSession');
+      // `null` on a complete scope and on one the model counts nothing in: there is no sample to
+      // report and the short sentence is the honest one.
+      var sw = samp.complete ? null : sampleWords(samp, 'session');
+      var bits = ['No ' + (sw ? 'drawn session' : 'session') + ' in ' + windowText()];
+      if (sw) bits.push(sw + ', so ' + (samp.total - samp.drawn) + ' are not drawn here');
+      return bits.join(' · ') + '.';
     }
 
     // ---- what the drawing is told, issues 90 and 100 ----------------------------
@@ -790,12 +820,8 @@
     function windowSpec() {
       var r = winRange();
       if (!r) return null;
-      return {
+      var spec = {
         from: r.from, to: r.to, weeks: win.weeks, text: windowText(),
-        // Issue 119. What the drawing prints when this predicate leaves it with nothing, written
-        // by the module that owns the window and identical to the sentence the list prints in the
-        // same state. render.js decides WHERE it goes and never what it says.
-        empty: windowEmptyText(),
         // TWO QUESTIONS AND NOT ONE, because "outside the window" and "the window has an opinion
         // about this at all" are different claims and the drawing needs both. A cohort session
         // carries a date, so the window answers for it either way; a session template, an
@@ -835,6 +861,23 @@
           return !!(a && b) && (b < r.from || a > r.to);
         }
       };
+      // Issue 119. What the drawing prints when this predicate leaves it with nothing, written by
+      // the module that owns the window and identical to the sentence the list prints in the same
+      // state. render.js decides WHERE it goes and never what it says.
+      //
+      // ISSUE 167 MADE IT A QUESTION RATHER THAN A VALUE, and the reason is the one `windowEffect`
+      // and `drawnScope` are already questions: the sentence is now about a SCOPE, and render.js
+      // holds the spec it was last handed while app.js's showView() redraws the canvas at a new
+      // scope without setting a window it did not change. A string frozen here would then be read
+      // out over a drawing of a different set of programmes, which is the sampling defect this
+      // card is repairing arriving one frame later. Read at paint time it cannot be stale, and it
+      // is asked of drawnViews(), because a sentence painted on the drawing is about the
+      // programmes the drawing is of and never about the ones the sheet is over.
+      Object.defineProperty(spec, 'empty', {
+        enumerable: true,
+        get: function () { return windowEmptyText(drawnViews()); }
+      });
+      return spec;
     }
 
     // ---- the term strip and its brush, issue 137 --------------------------------
@@ -930,10 +973,20 @@
     // cannot show them and does not pretend to, and the control's own title names the population.
     // The chips carry the drawn-against-declared fraction; this carries the shape of what is
     // drawn. Two honest readings rather than one dishonest one.
-    function stripScope() {
-      if (isOpen() && !isAll(scope)) return scope;
+    // WHICH PROGRAMMES THE CANVAS IS DRAWING, which is not the same question as which the sheet is
+    // over and is asked separately since issue 167. app.js answers it off router.js, so it is the
+    // set the address behind the sheet names, and it is VIEWS before the router exists and on a
+    // page that hands over no answer at all. Two callers: the strip below, which falls back to it,
+    // and the window spec's empty sentence, which is painted on the drawing and is about nothing
+    // else.
+    function drawnViews() {
       var sc = opts.drawnScope ? opts.drawnScope() : null;
       return (sc && sc.length) ? sc : VIEWS;
+    }
+
+    function stripScope() {
+      if (isOpen() && !isAll(scope)) return scope;
+      return drawnViews();
     }
 
     function sessionsInScope(sc) {
@@ -2700,7 +2753,7 @@
         // the worklist, which is this card's and is said over the drawn rows.
         groupRow(tb, cols.length, function (th) {
           th.textContent = (gapField && bands.inWindow.length)
-            ? gapEmptyText(bands.inWindow.length) : windowEmptyText();
+            ? gapEmptyText(bands.inWindow.length) : windowEmptyText(scope);
         });
       } else if (gapField) {
         // ONE BAND AND NOT TWO WHILE A WORKLIST IS ON. The review ranks by what the meeting acts
@@ -2764,8 +2817,11 @@
       if (!rows.length) {
         // Issue 119. The sentence is windowEmptyText()'s and not this line's any more, because the
         // canvas prints it too and two copies of it are two sentences waiting to disagree.
+        // Issue 167. Over the rows THIS list is showing, which is the sheet's scope and not the
+        // drawing's: the two are one set on every address that names a programme and can differ
+        // on `#/calendar`, where the sheet holds all seven over a drawing of one.
         groupRow(tb, cols.length, function (th) {
-          th.textContent = windowEmptyText();
+          th.textContent = windowEmptyText(scope);
         });
       }
       rows.forEach(function (s) {

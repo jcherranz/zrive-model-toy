@@ -2621,7 +2621,7 @@ def company_node(cid, supplied):
     }
 
 
-def sample_phrase(drawn, total, noun):
+def sample_phrase(drawn, total, noun, one=None):
     """"6 of 22 <noun>" while a drawing shows a sample, "all 28 <noun>" once it shows the lot.
 
     ONE FORMATTER, and that is the point of it. The Programme tile, the Cohort tile and the two
@@ -2631,12 +2631,30 @@ def sample_phrase(drawn, total, noun):
 
     It refuses a sample larger than its population rather than writing "28 of 25". That string
     would read as a typo in the drawing and would in fact be a wrong number in the model.
+
+    ISSUE 167 GAVE IT `one`, AND THE NOUN AGREES WITH THE TOTAL. Z-HR groups four of its twenty
+    five sessions into four modules of one session each, so four module tiles read "all 1 session
+    templates" and four delivery tiles read "all 1 sessions", eight strings on two altitudes of
+    one programme. site/term.js has carried this guard in three places since it started counting
+    rows and the Python formatter never got one, so the generated document was the half of the
+    page that could not write a singular.
+
+    THE SINGULAR IS THE CALLER'S AND NOT A RULE APPLIED HERE, because there is no rule that
+    survives this callers list: "sessions" drops an s, "session templates" drops it off the
+    second word, and "in the syllabus", "in this module" and "drawn" are not count nouns at all
+    and would be mangled by anything mechanical. A caller that passes none is a caller whose
+    phrase does not inflect, which is three of the five.
+
+    IT AGREES WITH `total` AND NOT WITH `drawn`, which is the number the noun stands next to in
+    both forms: "all 1 session" and "0 of 1 session" are both about a population of one, and
+    "1 of 2 sessions" is correct with a drawn of one because the population is two.
     """
     if drawn > total:
         raise SystemExit(f"model: {drawn} {noun} are drawn out of a declared {total}. Either the "
                          f"declared total is wrong or the route carries a row the syllabus does "
                          f"not.")
-    return f"all {total} {noun}" if drawn == total else f"{drawn} of {total} {noun}"
+    word = (one or noun) if total == 1 else noun
+    return f"all {total} {word}" if drawn == total else f"{drawn} of {total} {word}"
 
 
 def check_syllabus_counts():
@@ -3762,7 +3780,8 @@ def collapse_view(spec, view):
                 # lying. The numeral inside the tile and the card stack behind it are the
                 # drawing's own aggregate idiom, the one the students card has carried since #41.
                 "count": str(len(drawn)) if len(drawn) > 1 else None,
-                "tail": sample_phrase(len(drawn), in_syllabus, "session templates"),
+                "tail": sample_phrase(len(drawn), in_syllabus, "session templates",
+                                      "session template"),
                 "props": [
                     p("module_code", code, R, SYLLABUS_RANK),
                     p("module_name", name, R, SYLLABUS_RANK),
@@ -3796,7 +3815,7 @@ def collapse_view(spec, view):
                          "picked out as the calendar rows whose template names it, no row is "
                          "created when one begins or ends, and no role owns them."),
                 "count": str(len(ran)) if len(ran) > 1 else None,
-                "tail": sample_phrase(len(ran), in_syllabus, "sessions"),
+                "tail": sample_phrase(len(ran), in_syllabus, "sessions", "session"),
                 "props": [
                     p("module", f"{code} {name}", R, SYLLABUS_RANK),
                     p("cohort_sessions", sample_phrase(len(ran), in_syllabus,

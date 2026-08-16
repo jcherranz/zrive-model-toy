@@ -277,7 +277,10 @@ const ZOOM_TOLERANCE_PX = 0.5;
 const PHASES = {
   'the viewport opened':  { count: 2, when: 'every' },
   'every width':          { count: 6, when: 'every' },
-  'the scope':            { count: 14, when: 'behavioural' },
+  // 14 until issue 169, which adds the assertion that the address the sheet's close leaves
+  // draws that drawing on a document built from it, which is a different claim from what the bar
+  // reads and is the only one that can catch a router resolved once at construction.
+  'the scope':            { count: 15, when: 'behavioural' },
   'model and reveal':     { count: 14, when: 'behavioural' },
   'cold load':            { count: 4, when: 'behavioural' },
   'students':             { count: 11, when: 'behavioural' },
@@ -286,7 +289,11 @@ const PHASES = {
   // drives them, and the week grid's old assertion went with the shape it was written against.
   'term':                 { count: 63, when: 'behavioural' },
   'the sample':           { count: 6, when: 'behavioural' },
-  'the empty window':     { count: 6, when: 'behavioural' },
+  // 6 until issue 167, which adds three: that the sentence over a window with nothing in it says
+  // which KIND of nothing, in the words the review's own absence row uses, that over a scope of
+  // two it counts the two together, and that it follows the drawing under it when the scope moves
+  // and the window does not.
+  'the empty window':     { count: 9, when: 'behavioural' },
   'the review':           { count: 7, when: 'behavioural' },
   'the worklist':         { count: 7, when: 'behavioural' },
   'the cut':              { count: 9, when: 'behavioural' },
@@ -617,7 +624,12 @@ const PHASES = {
 // each. It is one assertion rather than three because the claim is that the three states are told
 // apart from each other, and a comparison of the three together is the only form of that claim
 // which a page answering two of them correctly cannot pass.
-const EXPECTED_ASSERTIONS = 312;
+// 316 since issues 167 and 169: three in `the empty window`, that the sentence over a window with
+// nothing in it says which KIND of nothing, that over a scope of two it counts the two together,
+// and that it follows the drawing under it when the scope moves and the window does not, and one
+// in `the scope`, that the address the sheet's close leaves draws that drawing on a document built
+// from it.
+const EXPECTED_ASSERTIONS = 316;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -2345,6 +2357,47 @@ async function checkScope(page, base) {
     `${backTo} left in the bar by the roster's close, the sheet's close and the diagram segment, ` +
       'with the two programmes still drawn at the altitude they were drawn at',
     JSON.stringify({ ways, segHref, want: backTo, ended }));
+
+  // ---- FIFTEEN. AND THE ADDRESS IT LEAVES DRAWS THAT DRAWING IN SOMEBODY ELSE'S BROWSER ---------
+  // ISSUE 169, AND IT IS A DIFFERENT CLAIM FROM FOURTEEN ABOVE. That one reads what the bar SAYS
+  // after the sheet closes; this one reads what that string DOES on a document built from it, which
+  // is what the card is about: "a link the owner sends draws a different programme for the recipient
+  // than the one he was looking at when he copied it". Only the second catches the failure the audit
+  // measured, because `replaceState` raises no hashchange and router.js resolves its scope and its
+  // altitude once at construction: a wrong address leaves the RUNNING page looking exactly right,
+  // and nothing short of building a second document out of it can tell the two apart.
+  //
+  // THE RELOAD IS ON THE ADDRESS THE PAGE ITSELF WROTE, so it is the owner's F5 and the recipient's
+  // first visit at once, and it is compared against what was on screen the instant before: the scope
+  // as a set, the altitude the header was asked for, and the digest of the drawing, which is the one
+  // value a page drawing a different picture of the same two programmes cannot reproduce.
+  //
+  // THE WINDOW IS NOT IN THIS AND THAT IS SAID RATHER THAN GLOSSED. It is page state by #90's
+  // decision and appears in no address, so a link carries the drawing and not the weeks; what this
+  // asserts is exactly what the address claims to carry.
+  const drawnNow = () => page.evaluate(
+    `JSON.stringify({ keys: window.ZT.scope().keys, asked: window.ZT.grain().asked,
+                      canon: window.ZT.scope().canon, sectors: window.ZT.scope().sectors })`)
+    .then(JSON.parse);
+  await warmTo('#/p/ZIB+ZSC/modules');
+  const onScreen = await drawnNow();
+  await warmTo('#/calendar/ZIB+ZSC');
+  await page.evaluate(`document.getElementById('termclose').click()`);
+  await page.waitFor('window.ZT.term().open === false', 'the sheet to close on its own button');
+  const copied = await page.evaluate('location.hash');
+  const beforeReload = await drawnNow();
+  await page.reload();
+  await page.waitFor(DIAGRAM_READY, `the diagram to draw cold at ${copied}`);
+  const recipient = await drawnNow();
+  const same = (a, b) => a.keys.join('+') === b.keys.join('+') && a.asked === b.asked &&
+                         a.canon === b.canon && a.sectors === b.sectors;
+  assert('and a document built from the address that close left draws the drawing that was on screen',
+    copied === backTo && same(beforeReload, onScreen) && same(recipient, beforeReload) &&
+      recipient.keys.join('+') === 'ZIB+ZSC' && recipient.asked === 'modules' &&
+      !ROOT_ADDRESS.test(copied),
+    `${backTo} reloaded cold draws ZIB+ZSC at modules on digest ${onScreen.canon}, which is what ` +
+      'the sheet was closed over',
+    JSON.stringify({ copied, onScreen, beforeReload, recipient }));
 }
 
 async function checkColdLoad(page, base) {
@@ -2988,6 +3041,36 @@ function longDate(d) {
   return String(Number(d.slice(8, 10))) + ' ' + LONG_MONTHS[Number(d.slice(5, 7)) - 1] + ' ' +
          d.slice(0, 4);
 }
+
+// ---- what a window with nothing in it must say, rebuilt here, issue 167 -------------------------
+// A SECOND IMPLEMENTATION AND NOT A SECOND READING, which is the pattern the gap count already
+// runs on: the expectation is built from the window state and from the document's own drawn and
+// declared counts, so a page that reworded the sentence fails and a page that quoted itself back
+// cannot pass. Two branches, because the sentence has two: on a scope whose rows are the whole
+// term it names the window and stops, and on one whose rows are a sample it says `drawn session`
+// and carries the fraction, which is the whole of what #167 was filed about. `samp` is summed over
+// the scope, so a set of two is one population and never one of the two.
+function windowEmptyWords(samp, win) {
+  const whole = samp.total > 0 && samp.drawn >= samp.total;
+  return 'No ' + (whole ? 'session' : 'drawn session') + ' in ' +
+    (win.weeks === 1 ? 'one week' : win.weeks + ' weeks') + ', ' +
+    longDate(win.from) + ' to ' + longDate(win.to) +
+    (whole ? '' : ' · ' + samp.drawn + ' of the ' + samp.total +
+      ' sessions the model counts, so ' + (samp.total - samp.drawn) + ' are not drawn here') + '.';
+}
+
+// The same sum the page's own sampleOf() makes, over a set of programme keys, off the counts block
+// the instance document ships per view.
+const SAMPLE_OF = `(function (keys) {
+  var d = 0, t = 0;
+  window.GI.views.forEach(function (v) {
+    if (keys.indexOf(v.key) === -1) return;
+    var c = (v.counts || {}).CohortSession || { drawn: 0, total: 0 };
+    d += c.drawn;
+    t += c.total;
+  });
+  return JSON.stringify({ drawn: d, total: t });
+})`;
 
 // The window menu is a disclosure and closes on a click anywhere else, exactly as the programme
 // menu does, so a driver that pressed its control blind would toggle it the wrong way the moment
@@ -6220,12 +6303,20 @@ async function checkCut(page, base) {
     var ths = document.querySelectorAll('#termrows tbody tr th');
     return ths.length ? ths[ths.length - 1].textContent.replace(/\\s+/g, ' ').trim() : null;
   })()`);
-  const wantEmpty = 'No session in ' +
-    (cw.weeks === 1 ? 'one week' : cw.weeks + ' weeks') + ', ' +
-    longDate(cw.from) + ' to ' + longDate(cw.to) + '.';
-  assert('a window with nothing in it says which window, and does not go on to name the controls that move it',
+  // ISSUE 167 PUT THE SAMPLE IN IT, so the expectation is rebuilt from the window state AND from
+  // the model's own drawn-against-declared counts for this programme. The sentence used to name
+  // the window and stop, which on five of the seven documents said "no session" about a term the
+  // page holds six rows of; it now says `drawn session` and carries the fraction wherever the rows
+  // are a sample, and is unchanged where they are the whole term. Both branches are written here
+  // so that a page which dropped the clause, and a page which printed it on a complete programme,
+  // each fail.
+  const emptySamp = JSON.parse(
+    await page.evaluate(SAMPLE_OF + '(' + JSON.stringify([emptyProg.key]) + ')'));
+  const wantEmpty = windowEmptyWords(emptySamp, cw);
+  assert('a window with nothing in it says which window and which kind of nothing, and does not go on to name the controls that move it',
     emptySaid === wantEmpty,
-    `"${wantEmpty}" on ${emptyProg.key}, rebuilt here from the window state`,
+    `"${wantEmpty}" on ${emptyProg.key}, rebuilt here from the window state and the ` +
+      `${emptySamp.drawn} of ${emptySamp.total} the document declares`,
     `the page says ${JSON.stringify(emptySaid)}`);
 
   // ---- 3. the typed heading claims no scope ----------------------------------------
@@ -6815,6 +6906,52 @@ const EMPTY_PAIR = `(function () {
   return best;
 })()`;
 
+// ---- and the same state over a SCOPE OF TWO, issue 167 -----------------------------------------
+// The first pair of programmes, in the build's order, sharing one week that falls inside BOTH of
+// their terms and holds a session of neither. Measured for the reason EMPTY_PAIR is measured: a
+// pair named in this file is a pair that stops being empty the first time the model moves, and the
+// harder reading, the anchor inside both terms, is what makes the window a gap in two running
+// terms rather than a window parked past the end of one of them.
+const EMPTY_SET = `(function () {
+  function addDays(d, n) {
+    var t = new Date(d + 'T00:00:00Z');
+    t.setUTCDate(t.getUTCDate() + n);
+    return t.toISOString().slice(0, 10);
+  }
+  var w = window.ZT.term().window, days = {}, keys = [];
+  window.GI.views.forEach(function (v) {
+    var ds = [];
+    v.nodes.forEach(function (n) {
+      if (n.type !== 'CohortSession') return;
+      var at = '';
+      (n.props || []).forEach(function (p) { if (p.k === 'scheduled_at') at = p.v; });
+      var d = String(at).split(' ')[0];
+      if (d) ds.push(d);
+    });
+    ds.sort();
+    days[v.key] = ds;
+    keys.push(v.key);
+  });
+  var best = null;
+  keys.forEach(function (a, i) {
+    keys.slice(i + 1).forEach(function (b) {
+      if (best) return;
+      var m = w.firstMonday;
+      while (m <= w.lastMonday) {
+        var to = addDays(m, 6);
+        var ok = [a, b].every(function (k) {
+          var ds = days[k];
+          return ds.length && m >= ds[0] && m <= ds[ds.length - 1] &&
+                 !ds.some(function (d) { return d >= m && d <= to; });
+        });
+        if (ok) { best = { keys: [a, b], anchor: m, to: to }; return; }
+        m = addDays(m, 7);
+      }
+    });
+  });
+  return best ? JSON.stringify(best) : null;
+})()`;
+
 async function checkEmptyWindow(page) {
   const pair = await page.evaluate(EMPTY_PAIR);
   if (!pair) {
@@ -7019,6 +7156,138 @@ async function checkEmptyWindow(page) {
     `view ${back.vw} by ${back.vh} against ${back.boxW} by ${back.boxH}, ctm ${back.ctm}, ` +
       `drawing ${back.top.toFixed(1)} to ${back.bot.toFixed(1)} in a canvas ` +
       `${back.boxTop.toFixed(1)} to ${back.boxBot.toFixed(1)}, off centre by ${centred.toFixed(1)}px`);
+
+  // ---- 7. and it says WHICH KIND of nothing, in the words the row below it uses -----------------
+  // ISSUE 167. The sentence took no scope and named none, so on a document holding six sessions of
+  // seventy nine it read "No session in one week", while the review's own absence row three lines
+  // under it read "no drawn session in this window · 6 of the 79 sessions the model counts". Two
+  // sentences about one window on one screen, and the one a screenshot carries was the one that
+  // described a sample as though it were the term.
+  //
+  // THREE SURFACES AND ONE SENTENCE, which is what the claim has to be: the canvas and the list
+  // were already held to each other by assertion 4, and this adds the review's absence row, which
+  // is the row that was contradicting them. The expectation is rebuilt from the model's counts by
+  // windowEmptyWords(), so a page that agreed with itself in the wrong words fails too.
+  await page.evaluate(`location.hash = ${JSON.stringify(cal)}`);
+  await page.waitFor(`window.ZT.term().reading === 'calendar'`, 'the calendar reading');
+  await pressByText(page, '#termnotice .shape-btn', 'review');
+  await page.waitFor(`window.ZT.term().shape === 'review'`, 'the review shape');
+  const revSaid = await page.evaluate(`(function () {
+    var out = [];
+    Array.prototype.forEach.call(document.querySelectorAll('#termrows tbody tr th'), function (t) {
+      out.push(t.textContent.replace(/\\s+/g, ' ').trim());
+    });
+    return JSON.stringify(out);
+  })()`).then(JSON.parse);
+  const oneSamp = JSON.parse(
+    await page.evaluate(SAMPLE_OF + '(' + JSON.stringify([pair.key]) + ')'));
+  // The code as the document spells it, because the absence row is headed by the programme's code
+  // and a code derived from its key here would be a second spelling of a name this file does not own.
+  const pairCode = await page.evaluate(`(function () {
+    return window.GI.views.filter(function (v) {
+      return v.key === ${JSON.stringify(pair.key)}; })[0].code;
+  })()`);
+  const wantOne = windowEmptyWords(oneSamp, empty);
+  // The clause the absence row carries about the same population, in #122's words. On a complete
+  // programme there is no fraction to find in either sentence and both sides of this are empty,
+  // which is the honest reading of a scope that is not a sample: the claim then is only that the
+  // three surfaces agree and that neither invents a sample.
+  const fraction = oneSamp.drawn >= oneSamp.total ? null
+    : oneSamp.drawn + ' of the ' + oneSamp.total + ' sessions the model counts';
+  const revAbsent = revSaid.filter(t => t.indexOf(pairCode) === 0);
+  assert('and it says which kind of nothing it is, in the words the review\'s own absence row uses',
+    empty.text === wantOne && listSaid === wantOne &&
+      revSaid.indexOf(wantOne) !== -1 && revAbsent.length === 1 &&
+      (fraction === null
+        ? (wantOne.indexOf('drawn') === -1 && revAbsent[0].indexOf('drawn session') === -1)
+        : (wantOne.indexOf(fraction) !== -1 && revAbsent[0].indexOf(fraction) !== -1)),
+    `"${wantOne}" on the canvas, at the head of the list and over the review, with ` +
+      `${pair.key}'s own absence row quoting ${fraction === null
+        ? 'no fraction, because these rows are the whole term' : '"' + fraction + '"'}`,
+    JSON.stringify({ canvas: empty.text, list: listSaid, want: wantOne, revAbsent, revSaid }));
+
+  // ---- 8. and over a scope of two it counts the two together -----------------------------------
+  // THE SCOPE IS A SET SINCE #136 AND A SENTENCE ABOUT A SET HAS TO BE ABOUT THE SET. `#/calendar/
+  // ZIB+ZHR` is a legal address, and a sentence built off one of the two would name a population
+  // the reader is not looking at: the honest denominator is the union's, and the weaker of the two
+  // claims wins on completeness, because a set holding one sampled programme is a set the page may
+  // not describe as complete. The pair and the week are MEASURED off the instance document rather
+  // than named here, for the reason the pair above is: a programme named in this file is a
+  // programme that stops being empty the first time the model moves.
+  const found = await page.evaluate(EMPTY_SET);
+  if (!found) {
+    throw new Error('no two programmes in site/instance.js share a week inside both their terms ' +
+                    'with no session in it, so the claim this assertion makes has no state to be ' +
+                    'made in');
+  }
+  const set = JSON.parse(found);
+  const pairKeys = set.keys, pairAnchor = set.anchor;
+  await page.evaluate(`location.hash = '#/calendar/' + ${JSON.stringify(pairKeys.join('+'))}`);
+  await page.waitFor(`window.ZT.term().open === true`, `the calendar over ${pairKeys.join('+')}`);
+  await pressByText(page, '#termnotice .shape-btn', 'list');
+  await page.waitFor(`window.ZT.term().shape === 'list'`, 'the list shape');
+  await setWindowAt(page, 1, pairAnchor);
+  const setState = JSON.parse(await page.evaluate(`(function () {
+    var ths = document.querySelectorAll('#termrows tbody tr th');
+    return JSON.stringify({
+      scope: window.ZT.term().scope, win: window.ZT.term().window,
+      rows: document.querySelectorAll('#termrows tbody tr').length,
+      said: ths.length ? ths[ths.length - 1].textContent.replace(/\\s+/g, ' ').trim() : null
+    });
+  })()`));
+  const bothSamp = JSON.parse(await page.evaluate(SAMPLE_OF + '(' + JSON.stringify(pairKeys) + ')'));
+  const firstSamp = JSON.parse(
+    await page.evaluate(SAMPLE_OF + '(' + JSON.stringify([pairKeys[0]]) + ')'));
+  const wantBoth = windowEmptyWords(bothSamp, setState.win);
+  const wantFirst = windowEmptyWords(firstSamp, setState.win);
+  assert('and over a scope of two it counts the two together and not either one of them',
+    setState.scope === pairKeys.join('+') && setState.said === wantBoth &&
+      wantBoth !== wantFirst && bothSamp.total > firstSamp.total,
+    `"${wantBoth}" over ${pairKeys.join('+')} in the week from ${pairAnchor}, which is the two ` +
+      `summed at ${bothSamp.drawn} of ${bothSamp.total} and not ${pairKeys[0]}'s own ` +
+      `${firstSamp.drawn} of ${firstSamp.total}`,
+    JSON.stringify({ said: setState.said, wantBoth, wantFirst, rows: setState.rows,
+                     scope: setState.scope }));
+
+  // ---- 9. and the canvas follows the drawing under it, with no window moved --------------------
+  // THE HALF OF #167 A SENTENCE READ ONCE CANNOT CATCH. term.js hands render.js a window spec and
+  // render.js keeps the one it was last given; app.js's showView() draws a new scope without
+  // pushing a window it did not change. So a sentence computed when the WINDOW last moved is read
+  // out over whatever is drawn afterwards, and the two assertions above, which read one drawing
+  // each, would both pass on a page that froze it: they never change the drawing under a standing
+  // window. This walks from one programme to the other by address alone, with the window left
+  // exactly where it is, and requires the sentence to have followed.
+  //
+  // THE TWO EXPECTATIONS HAVE TO BE DIFFERENT OR THE CHECK CANNOT FAIL, and that is asserted of
+  // the DATA before the page is asked anything: a pair whose fractions coincide would make a
+  // frozen string indistinguishable from a live one, and a driver that reported clean on it would
+  // be the tenth dead instrument rather than the ninth.
+  const walk = [];
+  for (const k of pairKeys) {
+    await page.evaluate(`location.hash = ${JSON.stringify('#/p/' + k)}`);
+    await page.waitFor(`window.ZT.term().open === false && window.ZT.programme().key === ` +
+      JSON.stringify(k), `the ${k} drawing with the sheet shut`);
+    await viewSettled(page);
+    const samp = JSON.parse(await page.evaluate(SAMPLE_OF + '(' + JSON.stringify([k]) + ')'));
+    walk.push({
+      key: k,
+      want: windowEmptyWords(samp, await page.evaluate('window.ZT.term().window')),
+      said: await page.evaluate(
+        `(function () { var t = document.querySelector('.win-empty'); ` +
+        `return t ? t.textContent : null; })()`),
+      shown: await page.evaluate('window.ZT.filtered().shown.length')
+    });
+  }
+  if (walk[0].want === walk[1].want) {
+    throw new Error(`${pairKeys.join(' and ')} would print the same sentence in this window, so a ` +
+                    'sentence frozen on the first of them could not be told from one recomputed ' +
+                    'on the second, and this assertion could not fail');
+  }
+  assert('and the sentence on the canvas follows the drawing under it, with the window left alone',
+    walk.length === 2 && walk.every(w => w.shown === 0 && w.said === w.want),
+    `${pairKeys[0]} then ${pairKeys[1]} in the same week from ${pairAnchor}, each drawing empty ` +
+      'and each saying its own population',
+    JSON.stringify(walk));
 
   // Left as it was found: the window off, and the address back on the diagram. Every phase after
   // this one starts on a page nobody filtered.
