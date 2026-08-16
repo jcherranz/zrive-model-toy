@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T08:20:10Z",
+  "generated": "2026-08-16T08:52:13Z",
   "columns": [
     {
       "key": "raw",
@@ -97,22 +97,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
         },
         {
-          "id": 167,
-          "title": "Four surfaces render sampled programmes as complete, and one deletes half the term",
-          "labels": [
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/167"
-        },
-        {
-          "id": 169,
-          "title": "Closing the term sheet rewrites the address, so a shared link draws a different programme",
-          "labels": [
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/169"
-        },
-        {
           "id": 171,
           "title": "The chip placer is near-cubic and there is a two-line fix proven output-identical",
           "labels": [
@@ -142,6 +126,22 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/172"
+        },
+        {
+          "id": 169,
+          "title": "Closing the term sheet rewrites the address, so a shared link draws a different programme",
+          "labels": [
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/169"
+        },
+        {
+          "id": 167,
+          "title": "Four surfaces render sampled programmes as complete, and one deletes half the term",
+          "labels": [
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/167"
         },
         {
           "id": 166,
@@ -188,25 +188,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/160"
-        },
-        {
-          "id": 159,
-          "title": "Architecture and engineering audit, adversarial, before this is called professional",
-          "labels": [
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/159"
-        },
-        {
-          "id": 158,
-          "title": "The week grid compares nothing and the month grid draws some days twice",
-          "labels": [
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/158"
         }
       ],
-      "hidden": 137,
+      "hidden": 139,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
