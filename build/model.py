@@ -362,6 +362,226 @@ RECHECK_GATES_RUN = set()
 FRESH_DAYS = 120
 AGING_DAYS = 240
 
+# ---- the recorded reading, issue 196 ---------------------------------------------------------
+# THE MEASUREMENT THIS EXISTS FOR. Three of the gates below re-read a corpus, and all three of
+# them used to `return` after one line to stderr when the corpus was not on the machine. No CI
+# runner has any of the three. SYLLABUS_SESSIONS is the only source of every counts[*].total,
+# which is the denominator of every fraction on every screen, and on every CI run the sole check
+# on it counted nothing. Issue 168 made that state VISIBLE, in a verdict of its own and an exit
+# code of its own. It could not make it stop being the state.
+#
+# WHAT IS ACTUALLY MISSING ON A RUNNER, AND IT IS NOT THE NUMBERS. Every value those gates
+# compare against is already in this file in the clear: SYLLABUS_SESSIONS, SYLLABUS_MODULES,
+# SYLLABUS_ROWS and the `source` citation on every populate route. A committed file restating
+# them would be a SECOND COPY of a table that already exists, which is the defect this repository
+# has been bitten by more often than any other, and comparing a copy with its original proves
+# nothing at all. What is missing is the JOIN: nothing anywhere says that the numbers on a
+# runner's disk are the numbers somebody once held up against the corpus.
+#
+# SO WHAT IS COMMITTED IS AN ATTESTATION AND NOT A CENSUS. build/corpus_reading.txt carries a
+# date and one SHA-256 per gate over a canonical serialisation of that gate's declared tables.
+# scripts/gen_corpus_reading.sh writes it, and it runs only on a machine holding the corpora; it
+# imports this module, so the import-time gates have already re-read the corpus and refused any
+# drift before a single digest is taken. A recorded reading can therefore only ever be written
+# over tables that agreed with the corpus at the moment it was written.
+#
+# THERE IS ONE SERIALISER PER GATE AND BOTH SIDES CALL IT. The generator and the gate compute the
+# digest with the same function over the same tables, so there is no second implementation to
+# rot. The corpus comparison itself is not duplicated either: it stays exactly where it already
+# was, inside the gates.
+#
+# WHAT A RUNNER NOW ESTABLISHES: the tables it is about to divide by are byte for byte the tables
+# that were held up against the corpus on `read_on`. WHAT IT STILL CANNOT ESTABLISH: that the
+# corpus has not moved since that date. That limit is not left to a reader's goodwill. It is
+# printed in the gate's own notice, it is named again in the verdict, and it decays: past
+# AGING_DAYS the recorded reading stops being accepted and the build refuses.
+#
+# WHY NOT A REPOSITORY SECRET, WHICH IS THE ROUTE scripts/ci_register.sh ALREADY TAKES. Because
+# a secret is for bytes that must not be public, and there are none here. This file is three
+# hex digests over strings that are committed in the clear four hundred lines further down, plus
+# one date. Paying a secret's costs, a value only the owner can rotate, a second thing that must
+# be rotated in step, and a hard failure on every pull request from a fork, buys nothing that
+# is not already had. The name register is a secret because it is a list of real people. This
+# is not one and must not be dressed as one.
+CORPUS_READING_PATH = pathlib.Path(__file__).resolve().parent / "corpus_reading.txt"
+CORPUS_READING_SCHEMA = "1"
+# The three readings the file must carry, and it is a TERMINATOR rather than a convenience: a
+# gate added here without a reading is caught by the loader, and a reading with no gate is caught
+# by it too. Same discipline as EXPECTED_MODEL_GATES in scripts/check_build.sh.
+READING_KEYS = ("syllabus-totals", "module-structure", "ontology-citations")
+
+
+def _reading_digest(lines):
+    """The one hash used on both sides of the attestation.
+
+    Tab-separated fields, newline-separated records, no trailing newline, UTF-8. Nothing here is
+    negotiable at the call site: a digest whose serialisation is decided by its caller is a
+    digest two callers can spell differently.
+    """
+    return hashlib.sha256("\n".join(lines).encode("utf-8")).hexdigest()
+
+
+def load_recorded_reading(path=None):
+    """Read build/corpus_reading.txt, or say in one sentence why it cannot be used.
+
+    Returns None when there is no such file at all, which is a different answer from a file that
+    is there and wrong: the first is the state every run of this repository was in before this
+    card, and the second is an assertion somebody committed that is not true. Otherwise a dict
+    with `read_on`, `readings` and `problem`, where `problem` is None or the sentence a gate
+    prints. Nothing here raises: the caller decides what a problem costs, because that answer
+    differs by whether the corpus is on the machine.
+    """
+    path = CORPUS_READING_PATH if path is None else path
+    if not path.is_file():
+        return None
+    out = {"path": path, "schema": None, "read_on": None, "readings": {}, "problem": None}
+
+    def bad(why):
+        out["problem"] = why
+        return out
+
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return bad(f"{path.name} could not be read ({type(exc).__name__}).")
+    for n, raw in enumerate(text.split("\n"), 1):
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = line.split()
+        if parts[0] == "schema" and len(parts) == 2:
+            out["schema"] = parts[1]
+        elif parts[0] == "read_on" and len(parts) == 2:
+            out["read_on"] = parts[1]
+        elif parts[0] == "reading" and len(parts) == 3:
+            if parts[1] in out["readings"]:
+                return bad(f"{path.name} records the {parts[1]} reading twice, and two answers "
+                           f"to one question are no answer.")
+            out["readings"][parts[1]] = parts[2]
+        else:
+            return bad(f"line {n} of {path.name} is {line!r}, which is none of the three forms "
+                       f"this file has: `schema <n>`, `read_on <YYYY-MM-DD>` and "
+                       f"`reading <name> <64 hex>`.")
+    if out["schema"] != CORPUS_READING_SCHEMA:
+        return bad(f"{path.name} declares schema {out['schema']!r} and this build reads schema "
+                   f"{CORPUS_READING_SCHEMA!r}. A file in a shape this code does not know is not "
+                   f"evidence about anything.")
+    try:
+        recorded = datetime.date.fromisoformat(out["read_on"] or "")
+    except ValueError:
+        return bad(f"{path.name} says it was read on {out['read_on']!r}, which is not a date.")
+    # The lower bracket, and it needs no clock. The source in VALUE_SOURCES states the day the
+    # syllabus corpus was read; an attestation older than that is an attestation of tables from
+    # before the reading the document itself claims, so it cannot be evidence for them.
+    source_read_on = VALUE_SOURCES["programme-syllabus"]["read_on"]
+    if out["read_on"] < source_read_on:
+        return bad(f"{path.name} records a reading on {out['read_on']} and the programme-syllabus "
+                   f"source in this file says its corpus was read on {source_read_on}. An "
+                   f"attestation from before the reading it is supposed to attest is about some "
+                   f"earlier version of these tables.")
+    missing = [k for k in READING_KEYS if k not in out["readings"]]
+    extra = [k for k in out["readings"] if k not in READING_KEYS]
+    if missing or extra:
+        return bad(f"{path.name} records {sorted(out['readings']) or 'nothing'} and this build "
+                   f"reads {list(READING_KEYS)}. Missing: {missing or 'nothing'}. Not known "
+                   f"here: {extra or 'nothing'}.")
+    for k, v in sorted(out["readings"].items()):
+        if not re.fullmatch(r"[0-9a-f]{64}", v):
+            return bad(f"the {k} reading in {path.name} is {v!r}, which is not a sha256.")
+    out["date"] = recorded
+    return out
+
+
+RECORDED_READING = load_recorded_reading()
+
+
+def recorded_verdict(key, declared, corpus_present, today=None, reading=False):
+    """What a corpus-reading gate may say, given the corpus it found and the reading on disk.
+
+    Four answers, and every one of them is a state some real machine is in:
+
+      ("verified", "")        the corpus is here, it was read, and the recorded reading agrees
+                              with the tables that were read.
+      ("stale-record", why)   the corpus is here and was read, and the committed reading is of
+                              other tables or is not usable. The document is sound and the
+                              committed file is not.
+      ("recorded", why)       no corpus here, and these tables are byte for byte the ones a
+                              machine holding it verified on the recorded date.
+      ("unverified", "")      no corpus here and no recorded reading either. This is the state
+                              every CI run of this repository was in before issue 196, and it is
+                              kept reachable rather than deleted because a machine really can be
+                              in it and the honest answer then is that nothing was checked.
+
+    and ONE REFUSAL: no corpus here, and a recorded reading that does not agree with these tables
+    or that has aged out. That refusal is the whole card. It is the only thing standing between a
+    runner and a denominator nobody ever counted.
+
+    WHY `stale-record` DOES NOT RAISE, which is the one asymmetry here and it is deliberate. On a
+    machine holding the corpus the tables were just compared against the corpus itself, which is
+    strictly stronger evidence than any recording; what is wrong is a tracked file that has gone
+    out of date. scripts/check_build.sh fails on the token, so it is not forgiven, it is caught
+    one level up. And it must not raise HERE, because scripts/gen_corpus_reading.sh imports this
+    module in order to rewrite that very file: a raise would lock the only thing that repairs it.
+    """
+    rec = RECORDED_READING if reading is False else reading
+    today = datetime.date.today() if today is None else today
+    if corpus_present:
+        if rec is None:
+            return ("stale-record", f"and no recorded reading is committed at "
+                                    f"{CORPUS_READING_PATH.name}, so a machine without the "
+                                    f"corpus has nothing to check these tables against. Write "
+                                    f"one with scripts/gen_corpus_reading.sh.")
+        if rec["problem"]:
+            return ("stale-record", "and the recorded reading cannot be used: " + rec["problem"])
+        if rec["readings"][key] != declared:
+            return ("stale-record",
+                    f"and the recorded reading in {CORPUS_READING_PATH.name} is of different "
+                    f"tables: it records {rec['readings'][key][:12]} and these tables digest to "
+                    f"{declared[:12]}. The tables here are right, the committed attestation is "
+                    f"stale, and a runner reading it would refuse this build. Regenerate it with "
+                    f"scripts/gen_corpus_reading.sh in this same commit.")
+        return ("verified", "")
+    if rec is None:
+        return ("unverified", "")
+    if rec["problem"]:
+        raise SystemExit(
+            f"[model] the corpus this gate is about is not on this machine, so the recorded "
+            f"reading in {CORPUS_READING_PATH.name} is the only evidence there is about the "
+            f"{key} tables, and it cannot be used: {rec['problem']}\n"
+            f"  A build that carried on here would divide every fraction on every screen by a "
+            f"number nothing has ever checked. Regenerate the file on a machine holding the "
+            f"corpus with scripts/gen_corpus_reading.sh.")
+    if rec["readings"][key] != declared:
+        raise SystemExit(
+            f"[model] the {key} tables in build/model.py are NOT the tables that were checked "
+            f"against the corpus.\n"
+            f"  {CORPUS_READING_PATH.name} records a reading taken on {rec['read_on']} over "
+            f"tables digesting to {rec['readings'][key]}\n"
+            f"  and the tables in this build digest to {declared}.\n"
+            f"  The corpus itself is not on this machine, so nothing here can say which of the "
+            f"two is right. What it can say is that somebody changed these tables without "
+            f"holding them up against the thing they are about. Every counts[*].total on this "
+            f"page comes out of them.\n"
+            f"  Either restore the tables, or re-read the corpus on a machine that has it and "
+            f"regenerate the attestation with scripts/gen_corpus_reading.sh in the same commit.")
+    age = (today - rec["date"]).days
+    if age > AGING_DAYS:
+        raise SystemExit(
+            f"[model] the recorded reading in {CORPUS_READING_PATH.name} was taken on "
+            f"{rec['read_on']}, which is {age} days ago, and this build accepts one no older "
+            f"than {AGING_DAYS} days.\n"
+            f"  It still agrees with the {key} tables, and that is exactly the point: what it "
+            f"cannot see is a corpus that moved after it was written, and the longer it stands "
+            f"the more of that it cannot see. An attestation nobody refreshes becomes a sentence "
+            f"about the past that reads like a check.\n"
+            f"  Re-read the corpus on a machine that holds it and run "
+            f"scripts/gen_corpus_reading.sh.")
+    return ("recorded",
+            f"the tables are byte for byte the ones a machine holding the corpus verified on "
+            f"{rec['read_on']}, {age} day(s) ago, recorded in {CORPUS_READING_PATH.name}. What "
+            f"that cannot see is a corpus that moved since")
+
+
 # This document's own stance, and the date its provenance was last established.
 #
 # THE DATE IS DECLARED AND IS NOT READ OFF THE CLOCK, which is not a shortcut. site/instance.js
@@ -1379,12 +1599,35 @@ def _ontology_read(path):
             written[0] if written else None)
 
 
-def check_ontology_registry(routes=None, root=None, vault=None, read_on=None, entities=None):
+def ontology_citation_digest(routes=None, read_on=None, entities=None):
+    """The serialisation of everything check_ontology_registry holds against the corpus.
+
+    Issue 196. Every string in it is already committed in the clear a few hundred lines above:
+    the citations are the fourth row of every populate panel, the entity count has been in this
+    file's prose since issue 72, and the date is ONTOLOGY_READ_ON. Nothing from inside the
+    private analysis is here, and nothing from inside it may ever be: what this attests to is
+    the ADDRESSES, which is exactly what the gate follows.
+    """
+    routes = ROUTES if routes is None else routes
+    read_on = ONTOLOGY_READ_ON if read_on is None else read_on
+    entities = ONTOLOGY_ENTITIES if entities is None else entities
+    lines = [f"entities\t{entities}", f"read_on\t{read_on}"]
+    lines += [f"cite\t{cid}\t{routes[cid]['source']}" for cid in sorted(routes)]
+    return _reading_digest(lines)
+
+
+def check_ontology_registry(routes=None, root=None, vault=None, read_on=None, entities=None,
+                            attest=True):
     """Re-read the analysis the populate registry was written from, and refuse a drift.
 
     The arguments exist so that ontology_self_test() can point this at a synthetic corpus it
     built itself and prove each refusal fires. Defaulted, so the live call below takes the real
     ones and there is one place each of them is written.
+
+    `attest` is off for those probes and on for the live call. The attestation in
+    build/corpus_reading.txt is about THESE routes, and a probe driving the gate over a synthetic
+    corpus with three invented routes would be held against a digest of the real seventeen and
+    would report a stale record on every run. Issue 196.
     """
     # Issue 118's line, and the same one check_module_structure and check_syllabus_counts carry.
     # VALUE_SOURCES names this function as the gate that re-reads its corpus and check_provenance
@@ -1430,9 +1673,24 @@ def check_ontology_registry(routes=None, root=None, vault=None, read_on=None, en
 
     have_root, have_vault = root.is_dir(), vault.is_dir()
     if not have_root and not have_vault:
-        print(f"[model] ontology registry: neither the analysis repository nor the vault is on "
-              f"this machine, so all {len(cited)} citations on the {len(routes)} populate "
-              f"routes are unverified here. They were recorded on {read_on}.", file=sys.stderr)
+        # Issue 196. This used to be the whole of it: one line to stderr and a `return`, on every
+        # CI run this repository has ever had. The gate now asks what the committed attestation
+        # says about these citations before it declines, and declines only where there is nothing
+        # to ask.
+        token, why = (("unverified", "") if not attest else
+                      recorded_verdict("ontology-citations",
+                                       ontology_citation_digest(routes, read_on, entities),
+                                       corpus_present=False))
+        if token == "recorded":
+            print(f"[model] ontology registry: [recorded] neither the analysis repository nor "
+                  f"the vault is on this machine, so not one of the {len(cited)} citations on "
+                  f"the {len(routes)} populate routes was followed here. {why}. The citations "
+                  f"themselves were recorded on {read_on}.", file=sys.stderr)
+            return
+        print(f"[model] ontology registry: [unverified] neither the analysis repository nor the "
+              f"vault is on this machine, and no recorded reading is committed either, so all "
+              f"{len(cited)} citations on the {len(routes)} populate routes are unverified "
+              f"here. They were recorded on {read_on}.", file=sys.stderr)
         return
 
     # ---- the corpus's own account of itself -------------------------------------------------
@@ -1516,15 +1774,26 @@ def check_ontology_registry(routes=None, root=None, vault=None, read_on=None, en
                     f"The passage this route was read from is not there any more.")
             resolved += 1
     if unchecked:
-        print(f"[model] ontology registry: {resolved} citation locators re-read against the "
-              f"corpus on this machine, {unchecked} of them unverified because "
+        # HALF A CORPUS IS NOT A CORPUS, and this notice keeps the token it carried before issue
+        # 196 rather than claiming the better one. The attestation is a single digest over ALL
+        # the citations and it cannot be split into the ones this machine followed and the ones
+        # it did not, so a machine holding one half of the corpus reports what it has always
+        # reported: it did not look at everything. Under-claiming is the direction this
+        # repository takes when it cannot tell.
+        print(f"[model] ontology registry: [unverified] {resolved} citation locators re-read "
+              f"against the corpus on this machine, {unchecked} of them unverified because "
               f"{'the vault' if have_root else 'the analysis repository'} is not on it. Every "
               f"one of them was recorded on {read_on}.", file=sys.stderr)
         return
-    print(f"[model] ontology registry: all {resolved} citation locators on the {len(routes)} "
-          f"populate routes resolve against the corpus on this machine, and its {len(names)} "
-          f"entities are the ones these routes were read from. What resolves is the address and "
-          f"never the sentence beside it.", file=sys.stderr)
+    token, why = (("verified", "") if not attest else
+                  recorded_verdict("ontology-citations",
+                                   ontology_citation_digest(routes, read_on, entities),
+                                   corpus_present=True))
+    print(f"[model] ontology registry: [{token}] all {resolved} citation locators on the "
+          f"{len(routes)} populate routes resolve against the corpus on this machine, and its "
+          f"{len(names)} entities are the ones these routes were read from. What resolves is the "
+          f"address and never the sentence beside it{(' ' + why) if why else ''}",
+          file=sys.stderr)
 
 
 check_ontology_registry()
@@ -2848,6 +3117,39 @@ def sample_phrase(drawn, total, noun, one=None):
     return f"all {total} {word}" if drawn == total else f"{drawn} of {total} {word}"
 
 
+def syllabus_totals_digest(sessions=None):
+    """The serialisation of the one table check_syllabus_counts holds against the vault.
+
+    Issue 196. Seven programme keys and seven integers, all of them written in the clear in
+    SYLLABUS_SESSIONS above and all of them printed on the page as the denominator of a fraction.
+    The digest carries nothing the repository does not already carry; what it carries is a way
+    for a machine with no vault to tell these seven numbers from seven other numbers.
+    """
+    sessions = SYLLABUS_SESSIONS if sessions is None else sessions
+    return _reading_digest([f"total\t{k}\t{sessions[k]}" for k in sorted(sessions)])
+
+
+def module_structure_digest(modules=None, rows=None):
+    """The serialisation of the two tables check_module_structure holds against the vault.
+
+    Both halves, because the gate checks both: the per programme module list with its session
+    counts, and every drawn template's claim to a (module, sequence) seat in the syllabus. A
+    digest over only the first would leave the second able to drift on a machine with no vault,
+    and the second is the half that catches a template coming to claim somebody else's place.
+    """
+    modules = SYLLABUS_MODULES if modules is None else modules
+    rows = SYLLABUS_ROWS if rows is None else rows
+    lines = []
+    for key in sorted(modules):
+        for code, name, n in modules[key]:
+            lines.append(f"module\t{key}\t{code}\t{name}\t{n}")
+    for key in sorted(rows):
+        for sid in sorted(rows[key]):
+            code, seq = rows[key][sid]
+            lines.append(f"row\t{key}\t{sid}\t{code}\t{seq}")
+    return _reading_digest(lines)
+
+
 def check_syllabus_counts():
     """Re-count the syllabus folders wherever they exist, and say which of the two happened.
 
@@ -2865,9 +3167,21 @@ def check_syllabus_counts():
                          f"that no programme uses, and misses "
                          f"{', '.join(sorted(keys - set(SYLLABUS_SESSIONS))) or 'nothing'}.")
     if not SYLLABUS_DIR.is_dir():
-        print(f"[model] syllabus totals: the vault is not on this machine, so the seven totals "
-              f"in SYLLABUS_SESSIONS are unverified here. They were counted on "
-              f"{SYLLABUS_COUNTED_ON}.", file=sys.stderr)
+        # Issue 196, and this is the branch the whole card is about. It used to be one line and a
+        # `return`, on every CI run, over the only check on the denominator of every fraction on
+        # every screen. It now asks the committed attestation whether these are the seven numbers
+        # somebody held up against the vault, and refuses if they are not.
+        token, why = recorded_verdict("syllabus-totals", syllabus_totals_digest(),
+                                      corpus_present=False)
+        if token == "recorded":
+            print(f"[model] syllabus totals: [recorded] the vault is not on this machine, so "
+                  f"nothing was counted here. {why}. They were counted on "
+                  f"{SYLLABUS_COUNTED_ON}.", file=sys.stderr)
+            return
+        print(f"[model] syllabus totals: [unverified] the vault is not on this machine and no "
+              f"recorded reading is committed either, so the seven totals in SYLLABUS_SESSIONS "
+              f"are unverified here. They were counted on {SYLLABUS_COUNTED_ON}.",
+              file=sys.stderr)
         return
     bad = []
     for key in sorted(SYLLABUS_SESSIONS):
@@ -2881,8 +3195,11 @@ def check_syllabus_counts():
     if bad:
         raise SystemExit("[model] the declared syllabus totals no longer match the vault, and "
                          "the band captions are written from them:\n  " + "\n  ".join(bad))
-    print(f"[model] syllabus totals: all {len(SYLLABUS_SESSIONS)} agree with the syllabus "
-          f"folders on this machine, counted again just now", file=sys.stderr)
+    token, why = recorded_verdict("syllabus-totals", syllabus_totals_digest(),
+                                  corpus_present=True)
+    print(f"[model] syllabus totals: [{token}] all {len(SYLLABUS_SESSIONS)} agree with the "
+          f"syllabus folders on this machine, counted again just now"
+          f"{(' ' + why) if why else ''}", file=sys.stderr)
 
 
 def module_stats(key):
@@ -2928,8 +3245,17 @@ def check_module_structure():
             raise SystemExit(f"model: {spec['key']} declares modules covering {covered} sessions "
                              f"and the syllabus holds {SYLLABUS_SESSIONS[spec['key']]}.")
     if not SYLLABUS_DIR.is_dir():
-        print(f"[model] module structure: the vault is not on this machine, so the module table "
-              f"is unverified here. It was read on {SYLLABUS_COUNTED_ON}.", file=sys.stderr)
+        # Issue 196, the same repair as check_syllabus_counts above and for the same reason.
+        token, why = recorded_verdict("module-structure", module_structure_digest(),
+                                      corpus_present=False)
+        if token == "recorded":
+            print(f"[model] module structure: [recorded] the vault is not on this machine, so "
+                  f"nothing was read here. {why}. It was read on {SYLLABUS_COUNTED_ON}.",
+                  file=sys.stderr)
+            return
+        print(f"[model] module structure: [unverified] the vault is not on this machine and no "
+              f"recorded reading is committed either, so the module table is unverified here. It "
+              f"was read on {SYLLABUS_COUNTED_ON}.", file=sys.stderr)
         return
     bad, rows_checked = [], 0
     for spec in PROGRAMMES:
@@ -2965,8 +3291,11 @@ def check_module_structure():
     if bad:
         raise SystemExit("[model] the declared module structure no longer matches the vault, and "
                          "the outline is grouped by it:\n  " + "\n  ".join(bad))
-    print(f"[model] module structure: all seven module lists and all {rows_checked} drawn rows "
-          f"agree with the vault on this machine, read again just now", file=sys.stderr)
+    token, why = recorded_verdict("module-structure", module_structure_digest(),
+                                  corpus_present=True)
+    print(f"[model] module structure: [{token}] all seven module lists and all {rows_checked} "
+          f"drawn rows agree with the vault on this machine, read again just now"
+          f"{(' ' + why) if why else ''}", file=sys.stderr)
 
 
 # ---- the invented session agenda, issue 85 -----------------------------------
@@ -4312,7 +4641,7 @@ def check_reach_addresses():
 
 
 _REACH_SEEN = check_reach_addresses()
-print(f"[model] reach: {_REACH_SEEN} addresses shipped over the fourteen drawings, every one at "
+print(f"[model] reach: [verified] {_REACH_SEEN} addresses shipped over the fourteen drawings, every one at "
       f"a reserved name that cannot resolve or a number that cannot connect", file=sys.stderr)
 
 # ---- and identity has to join, which is the only reason to carry it ----------
@@ -4448,7 +4777,7 @@ if _instance_like:
                      "label to take.")
 _n_templates = sum(1 for _v in ALL_VIEWS for _n in _v["nodes"]
                    if _n["type"] == "SessionTemplate")
-print(f"[model] session templates: {_n_templates} scanned, none carries a clock, an @ venue or "
+print(f"[model] session templates: [verified] {_n_templates} scanned, none carries a clock, an @ venue or "
       f"a date", file=sys.stderr)
 
 # ---- the per session agendas cover the templates, carry the schema, and none is a copy -------
@@ -4510,7 +4839,7 @@ if _agenda_missing or _agenda_stray or _agenda_short or _agenda_repeat or _agend
                      "templates exactly, they are three or four beats each, every beat carries "
                      "a label from the closed schema in reading order, and no beat appears "
                      "twice, or the block is not the thing the card asked for.")
-print(f"[model] session agendas: {len(TEMPLATE_AGENDA)} written, one per drawn template, "
+print(f"[model] session agendas: [verified] {len(TEMPLATE_AGENDA)} written, one per drawn template, "
       f"{sum(len(_rs) for _rs in TEMPLATE_AGENDA.values())} beats, none repeated, every one "
       f"labelled from {list(AGENDA_LABELS)}",
       file=sys.stderr)
@@ -6998,7 +7327,10 @@ def ontology_self_test():
             return check_ontology_registry(
                 routes=routes or _ONTOLOGY_PROBE_ROUTES, root=root, vault=vault,
                 read_on=read_on or _ONTOLOGY_PROBE_READ_ON,
-                entities=_ONTOLOGY_PROBE_ENTITIES if entities is None else entities)
+                entities=_ONTOLOGY_PROBE_ENTITIES if entities is None else entities,
+                # Issue 196: these are three invented routes over a synthetic corpus, and the
+                # committed attestation is about the real seventeen. See check_ontology_registry.
+                attest=False)
 
     def expect(rule, what, **kw):
         nonlocal ok, total
@@ -7082,7 +7414,7 @@ def ontology_self_test():
         try:
             check_ontology_registry(routes=_ONTOLOGY_PROBE_ROUTES, root=gone, vault=gone,
                                     read_on=_ONTOLOGY_PROBE_READ_ON,
-                                    entities=_ONTOLOGY_PROBE_ENTITIES)
+                                    entities=_ONTOLOGY_PROBE_ENTITIES, attest=False)
             ok += 1
             print("  [OK]   control: a machine holding no corpus at all builds, and the gate "
                   "says on stderr that nothing was verified rather than reporting clean")
