@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T22:23:20Z",
+  "generated": "2026-08-16T22:35:56Z",
   "columns": [
     {
       "key": "raw",
@@ -77,15 +77,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/215"
         },
         {
-          "id": 220,
-          "title": "Nothing proves a reserved width was USED, only that it was asked for",
-          "labels": [
-            "limitation",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/220"
-        },
-        {
           "id": 221,
           "title": "build/label_widths.json is never re-measured, and --check is too coarse to gate on",
           "labels": [
@@ -110,13 +101,13 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/216"
         },
         {
-          "id": 217,
-          "title": "Nothing holds build_layout.py's own text_w() call sites, and nothing re-measures the width table",
+          "id": 220,
+          "title": "Nothing proves a reserved width was USED, only that it was asked for",
           "labels": [
             "limitation",
             "status:in-progress"
           ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/217"
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/220"
         }
       ]
     },
@@ -124,6 +115,15 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 217,
+          "title": "Nothing holds build_layout.py's own text_w() call sites, and nothing re-measures the width table",
+          "labels": [
+            "limitation",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/217"
+        },
         {
           "id": 213,
           "title": "stop_srv kills nothing: the self-test leaks four http servers per run, and 243 are alive on one machine",
@@ -184,17 +184,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/199"
-        },
-        {
-          "id": 196,
-          "title": "The two count gates return early with the vault absent, so the denominator of every fraction is unchecked on every CI run",
-          "labels": [
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/196"
         }
       ],
-      "hidden": 155,
+      "hidden": 156,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
