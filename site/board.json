@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T06:09:02Z",
+  "generated": "2026-08-16T06:25:35Z",
   "columns": [
     {
       "key": "raw",
@@ -103,14 +103,6 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/171"
-        },
-        {
-          "id": 172,
-          "title": "No CSP on a public origin holding a PAT, and the last-line gate runs after the deploy",
-          "labels": [
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/172"
         }
       ]
     },
@@ -173,6 +165,14 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/160"
+        },
+        {
+          "id": 172,
+          "title": "No CSP on a public origin holding a PAT, and the last-line gate runs after the deploy",
+          "labels": [
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/172"
         }
       ]
     },
