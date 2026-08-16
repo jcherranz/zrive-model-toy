@@ -10134,20 +10134,56 @@ function checkRequests(page, base) {
 // WHAT IT CANNOT DETECT, stated because a check whose blind spots are unwritten gets trusted past
 // them. It reads the policy the DOM holds, so it says nothing about a response header, and Pages
 // sends none. It cannot see a violation the page commits on a route this suite never drives, nor
-// one in a window this suite never opens. It proves `style-src-attr` is enforced and infers from
-// the browser's own parse that the rest of the same tag is; a directive that Chrome silently
-// dropped as unknown while keeping the others would pass here, which is why the fallback
-// `style-src` is written out whole beside the two granular ones rather than relied on. And it is
-// a statement about Chrome: no other engine runs in this suite.
+// one in a window this suite never opens. ONE DIRECTIVE IS PROVED ENFORCING AND THE OTHER EIGHT
+// ARE INFERRED: the control exercises `style-src-attr` only, and what carries the rest is that the
+// policy text is asserted whole and the browser demonstrably parsed and applied that text. A
+// directive Chrome dropped as unknown while keeping its neighbours would still pass here, which is
+// why the fallback `style-src` is written out beside the two granular ones rather than relied on.
+// And it is a statement about Chrome: no other engine runs in this suite, so the fallback's whole
+// purpose, the engines that do not implement `style-src-elem` and `style-src-attr`, is argued in
+// site/index.html and tested by nothing.
 // =================================================================================================
-const CSP_MUST_CARRY = [
-  /(?:^|;)\s*default-src\s+'none'\s*(?:;|$)/,
-  /(?:^|;)\s*script-src\s+'self'\s*(?:;|$)/,
-  /(?:^|;)\s*connect-src\s+'self'\s+https:\/\/api\.github\.com\s*(?:;|$)/,
-  /(?:^|;)\s*style-src-attr\s+'none'\s*(?:;|$)/,
-  /(?:^|;)\s*base-uri\s+'none'\s*(?:;|$)/,
-  /(?:^|;)\s*form-action\s+'none'\s*(?:;|$)/
+// THE WHOLE POLICY AND NOT A LIST OF DIRECTIVES IT MUST MENTION, for two reasons that a review
+// found and a measurement then confirmed.
+//
+// THE FIRST IS THAT A DUPLICATE DIRECTIVE IS DECIDED BY THE ONE IN FRONT. Chrome keeps the first
+// occurrence of a directive name in a policy and ignores every later one, saying so on the console.
+// Measured against this page: `script-src 'unsafe-inline' 'self'; script-src 'self'` executed an
+// injected inline script, and the same pair in the other order refused it. A check that asked only
+// whether the text contains `script-src 'self'` reads the second of those as clean while the first
+// is what the browser is enforcing, so the policy is parsed here and a repeated name is a failure.
+//
+// THE SECOND IS THAT A DIRECTIVE NOBODY CHECKS IS A DIRECTIVE ANYBODY CAN WIDEN. `img-src`,
+// `style-src` and `style-src-elem` were not in the old list, and widening any of them would have
+// passed here on a page that never exercises the widened path. So the comparison is an equality
+// against the whole expected policy. That makes this list something a future card has to edit on
+// purpose, which is the point: a security policy should not be able to drift quietly, and the
+// argument for every line of it is in site/index.html beside the tag.
+const CSP_EXPECTED = [
+  ['default-src', "'none'"],
+  ['script-src', "'self'"],
+  ['style-src', "'self' 'unsafe-inline'"],
+  ['style-src-elem', "'self' 'unsafe-inline'"],
+  ['style-src-attr', "'none'"],
+  ['img-src', "'self'"],
+  ['connect-src', "'self' https://api.github.com"],
+  ['base-uri', "'none'"],
+  ['form-action', "'none'"]
 ];
+
+// name -> value, in order, whitespace normalised. Returns the names as well as the pairs, because
+// a repeated name has to be visible after the map that would have swallowed it.
+function parsePolicy(text) {
+  const parts = String(text).split(';').map(p => p.trim()).filter(Boolean);
+  const names = [], pairs = [];
+  for (const p of parts) {
+    const bits = p.split(/\s+/);
+    const name = bits.shift().toLowerCase();
+    names.push(name);
+    pairs.push(name + ' ' + bits.join(' '));
+  }
+  return { names, pairs };
+}
 
 // A violation the browser logged, told from any other error on that channel. The text is Chrome's
 // and is matched on the phrase every one of them carries rather than on a directive name, so a
@@ -10210,7 +10246,14 @@ async function checkCsp(page) {
   const fired = after.slice(r.before);
   const logged = page.console.slice(consoleBefore)
     .filter(e => CSP_LOGGED.test(e.text) && /style-src-attr/.test(e.text));
-  const missing = CSP_MUST_CARRY.filter(re => !re.test(r.content)).map(re => String(re));
+  const got = parsePolicy(r.content);
+  const want = CSP_EXPECTED.map(([n, v]) => n + ' ' + v);
+  const repeated = got.names.filter((n, i) => got.names.indexOf(n) !== i);
+  const missing = want.filter(w => got.pairs.indexOf(w) === -1);
+  const extra = got.pairs.filter(p => want.indexOf(p) === -1);
+  // Kept beside the equality rather than replaced by it, and deliberately so: the equality is a
+  // statement about a list somebody can edit, and this is a statement about what the two keywords
+  // mean. An edit that widens script-src and updates CSP_EXPECTED to match still fails here.
   const loose = /(?:^|;)\s*script-src[^;]*'unsafe-(?:inline|eval)'/.test(r.content);
   // The control has to have RUN for its refusal to mean anything: if the reading above never
   // fired it, `undefined !== '55px'` is true and a check with no control would read as a control
@@ -10224,7 +10267,12 @@ async function checkCsp(page) {
   if (r.tags === 1 && r.firstLoaderAt !== -1 && r.metaAt > r.firstLoaderAt) {
     why.push(`the policy sits at head child ${r.metaAt}, after a loader at ${r.firstLoaderAt}`);
   }
+  if (repeated.length) {
+    why.push(`the policy repeats ${repeated.join(' and ')}, and a browser keeps the FIRST of a ` +
+      'repeated directive, so the one read here is not the one being enforced');
+  }
   if (missing.length) why.push(`the policy no longer carries ${missing.join(' and ')}`);
+  if (extra.length) why.push(`the policy carries ${extra.join(' and ')}, which nothing here argues for`);
   if (loose) why.push("script-src has been given 'unsafe-inline' or 'unsafe-eval' back");
   if (!ran) why.push('the control never ran, so nothing here proved the browser refuses anything');
   else if (!refused) why.push(`the control was ALLOWED: width ${r.controlWidth}, outline ${r.controlOutline}`);
@@ -10244,12 +10292,12 @@ async function checkCsp(page) {
   assert('the page carries an enforcing policy, it is first in the head, it still names what this ' +
          'page relies on, and the page broke it nowhere',
     why.length === 0,
-    'one meta policy ahead of every loader, carrying default-src, script-src, connect-src, ' +
-      'style-src-attr, base-uri and form-action, refusing a style attribute, and no violation ' +
+    `one meta policy ahead of every loader, whose ${CSP_EXPECTED.length} directives are exactly ` +
+      `${want.join('; ')}, with no name repeated, refusing a style attribute, and no violation ` +
       'by the page itself on any document this viewport drove',
     why.length === 0 ? 'none' : why.join(' | '),
-    `${r.content.split(';').length} directives, control refused, ` +
-      `${r.before + earlier.length} violation(s) by the page`);
+    `${got.pairs.length} directives, all ${want.length} as expected, none repeated, ` +
+      `control refused, ${r.before + earlier.length} violation(s) by the page`);
 }
 
 // =================================================================================================
