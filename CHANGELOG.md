@@ -67,11 +67,21 @@ of what changed and when, and it is meant to be scannable.
   the claim stated as a set containment in each direction. **No width and no coordinate is read on
   either side**, which is the ground #195's review was rejected on and the ground the placer oracle
   cannot stand on; `getComputedTextLength()` appears once, as proof that a reading was laid out at
-  all, which is the state #207 found a live route to. **2757 readings over seven painted faces**,
-  611 label lines at rest and 611 selected, 56 ghost labels in each state, 684 verb chips, 56 ghost
-  chips, 148 count captions, 414 missing-key captions and 121 band caption lines, pinned per face
-  rather than counted, because `> 0` is what lets a page that lost nine tenths of its text pass a
-  containment over the tenth that is left.
+  all, which is the state #207 found a live route to. **2757 readings over nine state-and-face
+  rows**, pinned rather than counted, because `> 0` is what lets a page that lost nine tenths of its
+  text pass a containment over the tenth that is left.
+  **The census carries the STATE and not only the face, and an adversarial read is why.** The two
+  ten-pixel label rows are the same population read twice, so keyed on the face alone they read 611
+  and 611 whichever weight is painted at rest; and a containment cannot separate them either,
+  because `widths["10/600"]` is a superset of `widths["10/400"]` by one string and
+  `widths["10/400i"]` and `widths["10/600i"]` are **the same four strings**, `Beca`, `Instalment`,
+  `Placement` and `Refund`. Both were checked against the committed table rather than assumed. With
+  the state in the key, a page that paints the bold at rest moves every reading from one row to
+  another and the census names it: driven, `at rest 10/600: 611` and `selected 10/400: 611`, exactly
+  inverted. **The same read found that the `contexts` block was uncorroborated**, so assertion four
+  also holds each context's key against its own css block, which is what `build_layout.py:165`
+  composes against what `collect()` says it measured under; a `10/400` relabelled to weight 600 is
+  named there and leaves that context unwitnessed.
   **It finds one real disagreement in this tree and it is declared rather than tolerated.** The
   missing-key caption is painted `9px` **italic** by `.node .lbl.lbl-missing`, and its line is
   reserved by `text_w(n["mark"], 9.0)`, which is the **upright** `9/400`; the table's italic
@@ -83,14 +93,20 @@ of what changed and when, and it is meant to be scannable.
   painted at that face, must be absent from the italic context, must be present in the upright one
   that reserves it, and must be read exactly 414 times — and the repair is **#215**, which needs
   `collect()`, `build_layout.py` and a regenerated table and is not a change to this file.
-  **What it does not cover is stated in its own header rather than left to be found.** It holds the
-  paint against the table's assignment and `check_widths_cover` holds the table against `collect()`;
-  nothing yet holds `build_layout.py`'s own call sites, so a table that grew a context those call
-  sites never ask for would satisfy this phase without moving a single reserve. It is also not the
-  phase #207 shipped: `ZM.probeFaces()` answers the run-time half, whether the browser's own
-  measurement stands inside the cascade it measures for, and reading it here would replace the
-  painted page with a second measurement taken by the code under test.
-  **Proved in eight directions rather than argued, and every sub-clause was made to fire.** #203's
+  **What it does not cover is stated in its own header rather than left to be found, in four
+  paragraphs the same read earned.** `build_layout.py`'s own call sites are on neither side of the
+  comparison, and the exploits are one line each: dropping the bold term from `reserve()` at
+  `:422-423` reserves every label box at the regular width while the page paints it bold, which is
+  #203's harm from the other end. The widths themselves are never read, and **nothing in CI runs
+  `build/measure_labels.py --check`**, so a number in the table edited by hand passes every gate
+  here; both are **#217**. `font-family` is deliberately outside the face because the table is an
+  envelope over the whole stack rather than one face, and five other advance-affecting properties
+  are outside it because nothing declares one. And the population is one viewport, one theme, no
+  window and both absence switches on. It is also not the phase #207 shipped: `ZM.probeFaces()`
+  answers the run-time half, whether the browser's own measurement stands inside the cascade it
+  measures for, and reading it here would replace the painted page with a second measurement taken
+  by the code under test.
+  **Proved in ten directions rather than argued, and every sub-clause was made to fire.** #203's
   own defect put back on the tail alone, `.node .lbl.lbl-tail` weakened to `.lbl-tail` so
   `.node .lbl` outranks it again, is named as **39 strings painted `10/400` that no context of that
   face holds**, which is the gate catching #203 before #203 was found; the press removed leaves
@@ -99,9 +115,11 @@ of what changed and when, and it is meant to be scannable.
   label's strings are node-label runs and `10/400` holds them; a reserved class dropped from the
   census row moves 148 readings into the unreserved half; the declared pair withdrawn names the
   caption; the declared pair pointed at a context that does not hold its string says so; a context
-  deleted from the table's own list drops the context count; and `display: none` on the tail rule
-  puts **148 readings at zero**, which is the one sub-clause the shipped page can never reach and
-  which would otherwise have been a dead check.
+  deleted from the table's own list drops the context count; `display: none` on the tail rule puts
+  **148 readings at zero**, which is the one sub-clause the shipped page can never reach and which
+  would otherwise have been a dead check; the two label weights exchanged on the page invert every
+  ten-pixel row of the census; and a context's css block relabelled to a weight its key does not
+  spell is named as mislabelled and leaves that context unwitnessed.
 - **A PERSON ON THE DRAWING IS SOMEONE YOU CAN REACH, AND THE ROUTE IS A FACT ON THE OBJECT, #157.**
   The owner asked to click a professor or an institution and send an email, place a call or open a
   meeting room, so that he can reconfirm a session without leaving the page. Every Instructor and
