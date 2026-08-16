@@ -1134,6 +1134,41 @@ h1 {
 
 .brush.brush-drag .brush-band { cursor: grabbing; }
 
+/* ---- and what it looks like where it is not in effect, issue 151 ---------------
+   A paragraph over the outline's rows said "The window is off this reading: an outline is
+   curriculum order and a syllabus has no date to filter on." By #128's rule that sentence goes,
+   because it explains the page. Deleting it and leaving this control looking live would trade a
+   wordy truth for a silent lie, so the fact is on the thing it is about instead.
+
+   THIS IS `.gritem-off` IN ANOTHER GEOMETRY AND THE SAME THREE MOVES. When the node budget refuses
+   an altitude, the row for it greys, stops being a link, and carries the count that broke it. The
+   strip greys, stops answering a pointer and a keyboard, which term.js does, and its value slot
+   carries the count that refused it, which is 0 of the rows this reading is drawing.
+
+   THE ACCENT COMES OFF THE BAND AND THAT IS THE LOUDEST HALF. The band is the only element on this
+   strip that carries `--i-primary`, because it is the only one that is a value the reader set; on
+   a reading where the value is not doing anything the accent is the thing that would keep saying
+   it is. What is left is the same shape in the grey the refused grain row takes.
+
+   THE COLUMNS DIM AND ARE NOT DELETED, because how many sessions each week holds is still true
+   while this control is not acting on the screen, and a track emptied of its shape would be this
+   page inventing a term with nothing in it. */
+.brush-off {
+  cursor: default;
+}
+
+.brush-off .brush-col-all { border-color: var(--c-gray-3); opacity: .4; }
+.brush-off .brush-col-rec { background: var(--c-gray-3); opacity: .55; }
+.brush-off .brush-band {
+  background: none;
+  border-color: var(--c-gray-3);
+  cursor: default;
+}
+.brush-off .brush-grip { background: var(--c-gray-3); }
+.brush-off .brush-cap { color: var(--c-gray-3); }
+.brush-off .brush-cap:hover { background: none; }
+.brush-off .brush-val { color: var(--c-gray-3); }
+
 /* The two handles, at the band's own edges, drawn as a pair of rules so that the band reads as a
    thing with ends rather than as a shaded region. The hit zone is wider than the paint, which is
    the ordinary answer to a 1px edge and a pointer; the caps are what a thumb uses instead. */

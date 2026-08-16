@@ -994,6 +994,34 @@
     // it would sit between the reader and the track, and the track's left edge moving is exactly
     // what #137 chose this slot in the row to prevent.
 
+    // ---- when this control is not in effect, issue 151 -------------------------
+    // THE PARAGRAPH IT REPLACES SAID IT IN WORDS: "The window is off this reading: an outline is
+    // curriculum order and a syllabus has no date to filter on." By #128's rule that sentence goes,
+    // because it explains the page rather than stating a measured fact about the data. But
+    // deleting it and leaving a live-looking control in the header would trade a wordy truth for a
+    // silent lie, so the fact moves onto the thing it is about, which is the seventh principle and
+    // is what `grain` already does: the altitude the budget refuses is not a link, it greys, and
+    // it carries the count that refused it.
+    //
+    // THE SAME THREE THINGS HERE AND IN THE SAME ORDER. It greys. It stops answering a pointer and
+    // a keyboard, because a greyed control that still drags is the lie one step along. And it
+    // carries the count that refused it, which on this reading is how many of the rows in front of
+    // the reader the window can place in a week: none of them, because the outline's rows are
+    // session templates and a template has no date. The dates in the `delivered` column belong to
+    // its deliveries, which are the calendar's rows and are what the window is over.
+    //
+    // IT STAYS A FOCUS STOP AND KEEPS ITS ROLE. `aria-disabled` and not `tabindex="-1"`: a control
+    // a keyboard reader cannot reach at all is a control they cannot be told about, and the
+    // header's own count of what answers a press is what #139 built to notice a control going
+    // missing. It is reachable, it says it is disabled, and it does nothing.
+    function windowInert() { return reading === 'outline'; }
+
+    // The population the refusal is counted over, which is the rows this reading is drawing and
+    // not the term: on `#/outline/ZSC` it is that programme's 25 and not 83. Read through the same
+    // function the sheet's own sentences are read through, so the number on the control and the
+    // number in the heading cannot come apart.
+    function inertCount() { return templatesInScope().length; }
+
     // ---- what the strip says, restated on every change ------------------------
     // ISSUE 111'S ORDER IS LOAD BEARING AND IS KEPT: the title quotes how many tiles the window
     // has taken off the drawing, which is an answer only render.js can give and only after it has
@@ -1017,8 +1045,21 @@
       brushBand.style.left = (start / TERM.weeks * 100) + '%';
       brushBand.style.width = (span / TERM.weeks * 100) + '%';
       var r = winRange();
-      brushValFrom.textContent = shortDate(r ? r.from : TERM.first);
-      brushValTo.textContent = shortDate(r ? r.to : TERM.last);
+      // ISSUE 151. The value slot is where a refusal is printed, because it is the one place on
+      // this control that already holds words and it is what a reader looks at to learn what the
+      // control is set to. On a reading the window is not in effect on, what it is set to is not
+      // the interesting fact; what it is doing is, and it is doing nothing to any of the rows.
+      var inert = windowInert();
+      if (inert) {
+        brushValFrom.textContent = '0 of ' + inertCount();
+        brushValTo.textContent = '';
+      } else {
+        brushValFrom.textContent = shortDate(r ? r.from : TERM.first);
+        brushValTo.textContent = shortDate(r ? r.to : TERM.last);
+      }
+      brushEl.classList.toggle('brush-off', inert);
+      if (inert) brushEl.setAttribute('aria-disabled', 'true');
+      else brushEl.removeAttribute('aria-disabled');
       // The now marker, drawn only where the reader's own day falls inside the term. It is 0 of 83
       // sessions on or after today on this snapshot, so there is nothing to mark and nothing is
       // marked; a page that drew a line at the edge would be marking a today the term does not
@@ -1043,9 +1084,11 @@
       brushEl.setAttribute('aria-valuemin', '1');
       brushEl.setAttribute('aria-valuemax', String(TERM.weeks));
       brushEl.setAttribute('aria-valuenow', String(start + 1));
-      brushEl.setAttribute('aria-valuetext',
-        (span === 1 ? 'one week' : span + ' weeks') + ', ' + bandWords() + ', ' +
-        shown + ' of ' + sessionsInScope(stripScope()).length + ' drawn sessions');
+      brushEl.setAttribute('aria-valuetext', inert
+        ? 'not in effect on this reading: 0 of ' + inertCount() + ' session templates carry a ' +
+          'date, so there is nothing here for a week to hold'
+        : (span === 1 ? 'one week' : span + ' weeks') + ', ' + bandWords() + ', ' +
+          shown + ' of ' + sessionsInScope(stripScope()).length + ' drawn sessions');
       // EVERYTHING THE DELETED BOX SAID THAT NOTHING ELSE ON THE PAGE SAYS, on the title of the
       // control it was about. Four claims and no more: what the window is, what it holds, what it
       // has taken off the drawing, and that the page has no today. The three sentences #128 cut
@@ -1056,6 +1099,14 @@
       // DRAWING names them, off render.js's own report, so nothing here invents a second
       // vocabulary for the same six columns.
       var f = windowOff();
+      // AND THE TITLE SAYS THE REFUSAL AND STOPS, rather than saying it and then reciting the four
+      // claims the live control makes about a window that is not acting on anything.
+      if (inert) {
+        brushEl.title = 'not in effect on this reading: 0 of ' + inertCount() + ' rows here ' +
+          'carry a date. An outline is curriculum order and its rows are session templates; the ' +
+          'window is over the sessions the calendar draws';
+        return;
+      }
       brushEl.title = 'the part of the term in focus: ' + windowText() + '. ' +
         shown + ' of the ' + sessionsInScope(stripScope()).length +
         ' sessions these documents draw, ' + held + ' of them with a complete record' +
@@ -1237,7 +1288,13 @@
       return week - Math.floor((span - 1) / 2);
     }
 
+    // ISSUE 151. THE REFUSAL IS IN THE TWO ENTRY POINTS AND NOT IN EVERY GESTURE, because a drag
+    // already in flight when the reading changes has to keep working to its own pointerup or the
+    // capture is never released. `brushDown` is where a gesture can begin and `brushKey` is the
+    // other one; `brushMove` and `brushUp` answer only to a `drag` that `brushDown` created, so a
+    // refused press means there is nothing for them to do.
     function brushDown(e) {
+      if (windowInert()) return;
       if (!TERM || !brushTrack || e.button > 0) return;
       var g = trackGeom(), x = e.clientX;
       var start = bandStart(), span = bandSpan();
@@ -1306,6 +1363,7 @@
     // the ends of the term, and shift with them is the whole term and one week, which are the two
     // extremes a reader would otherwise reach by dragging a handle the length of the strip.
     function brushKey(e) {
+      if (windowInert()) return;
       if (!TERM || e.ctrlKey || e.metaKey || e.altKey) return;
       var start = bandStart(), span = bandSpan(), used = true;
       if (e.key === 'ArrowLeft') setBand(start + (e.shiftKey ? 0 : -1), span - (e.shiftKey ? 1 : 0));
@@ -1828,16 +1886,25 @@
       if (reading === 'calendar') {
         noticeEl.appendChild(shapeBar());
       }
-      // Issue 90. A reader who sets a window on the calendar and switches reading would otherwise
-      // meet a full outline with a header control saying three weeks and no explanation.
-      if (reading === 'outline' && windowOn()) {
-        // #128 cut it to the finding. The window's own words are on the control in the header
-        // that a reader arriving here with a window set has just come from, so repeating them
-        // here was the sentence saying the same thing twice before it said its own thing once.
-        noticeEl.appendChild(el('p', 'term-finding',
-          'The window is off this reading: an outline is curriculum order and a syllabus has ' +
-          'no date to filter on.'));
-      }
+      // ISSUE 151 DELETED THE PARAGRAPH THAT STOOD HERE and this comment is what is left of it,
+      // because a deletion card is the one kind the next card silently undoes.
+      //
+      // WHAT IT SAID: "The window is off this reading: an outline is curriculum order and a
+      // syllabus has no date to filter on." It was #90's, and it existed because a reader who
+      // sets a window on the calendar and switches reading would otherwise meet a full outline
+      // with a header control saying three weeks and no explanation. #128 cut it to its finding
+      // and left it standing.
+      //
+      // WHY IT GOES: by #128's own rule it explains the page rather than stating a measured fact
+      // about the data, and every sentence of that kind on this page has gone.
+      //
+      // AND WHY THIS IS NOT A DELETION ON ITS OWN. The fact it carried is true and a reader still
+      // needs it, so it moved onto the thing it is about, which is the seventh principle: the
+      // strip greys, stops answering a pointer and a keyboard, and carries the count that refused
+      // it, in the same three moves `grain` makes when the node budget refuses an altitude. The
+      // argument and the code are over windowInert() above. Nothing may put a sentence back here
+      // without taking that treatment off the control, because the two together would be the page
+      // saying it twice, which is what #128 was filed about.
       // The way from one reading to the other keeps the scope, and the way back to all seven is
       // its own control, because a reader who arrived at Z-SC from a tile has no other way out
       // of it and an address they have to edit by hand is not a way out.
@@ -2554,6 +2621,8 @@
           returnTo.focus();
         }
         returnTo = null;
+        // And the strip comes back to life when the reading it was inert on is closed, issue 151.
+        paintBrush();
         if (onRoute) onRoute();
         return;
       }
@@ -2600,6 +2669,12 @@
       describe();
       document.body.classList.toggle('calendar', reading === 'calendar');
       document.body.classList.toggle('outline', reading === 'outline');
+      // ISSUE 151. The strip says whether it is in effect, and that answer changes with the
+      // READING and not only with the window, so it is restated on every route through here:
+      // opening the outline, switching to it from the calendar, and switching back. Restating it
+      // only where a window moves would leave a live-looking control on the outline for any reader
+      // who arrived without touching one, which is most of them.
+      paintBrush();
       if (!wasOpen) {
         returnTo = document.activeElement;
         sheet.hidden = false;

@@ -282,7 +282,7 @@ const PHASES = {
   'the worklist':         { count: 7, when: 'behavioural' },
   'the cut':              { count: 8, when: 'behavioural' },
   'the modified drag':    { count: 6, when: 'behavioural' },
-  'the brush':            { count: 11, when: 'behavioural' },
+  'the brush':            { count: 14, when: 'behavioural' },
   'absence':              { count: 10, when: 'behavioural' },
   'the view selector':    { count: 6, when: 'behavioural' },
   'the control panel':    { count: 9, when: 'behavioural' },
@@ -565,7 +565,7 @@ const PHASES = {
 // assertion is repaired in the same commit rather than counted again: its three arrivals were
 // fragment navigations that built no document, so the union it called `read cold` was the scope the
 // page had been constructed with, and it reloads now.
-const EXPECTED_ASSERTIONS = 294;
+const EXPECTED_ASSERTIONS = 297;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -3012,6 +3012,24 @@ function weekIndexIn(anchor, firstMonday) {
 async function setWindowAt(page, weeks, anchor) {
   const w0 = await page.evaluate('window.ZT.term().window');
   const want = anchor || w0.anchor;
+  // ISSUE 151 MADE ONE READING REFUSE THIS CONTROL, AND A HELPER THAT DROVE IT ANYWAY WOULD BE THE
+  // NINTH DEAD INSTRUMENT. On the outline the strip is inert by design: it greys, reports
+  // aria-disabled and answers neither a pointer nor a key. A caller that sets a window while the
+  // outline is up is therefore asking for something the page will refuse, and the two ways that
+  // could be handled are both wrong. Waiting anyway times out twenty seconds later and reports a
+  // harness failure instead of the assertion the caller was about to make, which is what the first
+  // run of this card did to two phases. Silently accepting no change would be a helper that says
+  // it set a window and did not, which every phase after it would then report against.
+  //
+  // So it REFUSES, loudly, naming the reading. This is not a workaround: the window is a
+  // page-level state and every phase that wants one wants it over a drawing or over the calendar,
+  // both of which answer the control. A phase that lands here has a bug in its own setup.
+  const inertOn = await page.evaluate(
+    `document.getElementById('brush').getAttribute('aria-disabled') === 'true'`);
+  if (inertOn) {
+    throw new Error('the term strip is inert on the reading that is up, so no window can be set ' +
+      'from here: go to a reading the window is in effect on first (issue 151)');
+  }
   await brushFocus(page);
   await brushKey(page, 'Home', true);
   await page.waitFor('window.ZT.term().window.weeks === 0', 'the band over the whole term');
@@ -3678,13 +3696,41 @@ async function checkTerm(page) {
   await page.evaluate(`location.hash = '#/outline'`);
   await page.waitFor(`window.ZT.term().reading === 'outline'`, 'the outline with a window set');
   const outWin = await page.evaluate(TERM_READ);
-  assert('the outline says the window is off that reading rather than ignoring it',
-    /The window is off this reading/.test(outWin.notice) &&
-      /a syllabus has no date to filter on/.test(outWin.notice) &&
+  // ISSUE 151 TURNED THIS ROUND AND IT IS THE SAME CLAIM ON THE OTHER SURFACE. It read that the
+  // notice said "The window is off this reading: an outline is curriculum order and a syllabus has
+  // no date to filter on." By #128's rule that sentence explains the page, so it goes; what may not
+  // go with it is the fact, which a reader arriving here with a window set still needs. It is on
+  // the control instead, in the three moves `grain` makes when the budget refuses an altitude, and
+  // this assertion is where the two halves are held together at one address: no paragraph AND a
+  // strip that says it is off. Passing on a page that deleted the sentence and left the strip
+  // looking live is the exact failure the card named, so both conjuncts are here rather than in
+  // two assertions that could be satisfied one at a time.
+  const outStrip = JSON.parse(await page.evaluate(`JSON.stringify((function () {
+    var b = document.getElementById('brush');
+    return { off: b.classList.contains('brush-off'),
+             disabled: b.getAttribute('aria-disabled'),
+             said: (b.querySelector('.brush-val') || {}).textContent };
+  })())`));
+  const outProse = JSON.parse(await page.evaluate(`JSON.stringify(
+    Array.prototype.slice.call(document.querySelectorAll('#termnotice > p')).filter(function (p) {
+      return !p.querySelector('button') && !p.querySelector('a');
+    }).map(function (p) { return p.textContent.trim().slice(0, 80); }))`));
+  assert('the outline says the window is off that reading on the control and not in a paragraph',
+    outProse.length === 0 && !/window is off this reading/i.test(outWin.notice) &&
+      outStrip.off === true && outStrip.disabled === 'true' &&
+      outStrip.said === '0 of ' + state.templates &&
       outWin.rows === state.templates,
-    'the notice saying the window does not apply, over the full outline',
-    `${outWin.rows} rows, notice ${JSON.stringify(outWin.notice.slice(-200))}`);
+    `no prose in the notice, a greyed strip reporting aria-disabled, and 0 of ` +
+      `${state.templates} on its face, over the full outline`,
+    `${outWin.rows} rows, ${outProse.length} paragraph(s) ${JSON.stringify(outProse)}, ` +
+      `strip ${JSON.stringify(outStrip)}`);
 
+  // AND THE WINDOW IS TAKEN OFF FROM A READING THAT ANSWERS THE CONTROL, since issue 151. The
+  // strip refuses a key on the outline by design, so setWindow() here would be a driver asking the
+  // page for something it has just been asserted to refuse.
+  await page.evaluate(`location.hash = '#/calendar'`);
+  await page.waitFor(`window.ZT.term().reading === 'calendar'`,
+    'the calendar, where the window can be taken off');
   await setWindow(page, 0);
   await page.waitFor('window.ZT.term().window.on === false', 'the window off again');
   await page.evaluate(`location.hash = '#/calendar'`);
@@ -6565,8 +6611,19 @@ async function checkHeader(page) {
   // rather than this card's: a window is a slice of dates and an outline is a syllabus in
   // curriculum order. Asserted in both directions on one press of one control, so a window that
   // reached everything and a window that reached nothing both fail.
+  //
+  // ISSUE 151 CHANGED WHERE THE PRESS HAPPENS AND NOT WHAT IT PROVES. The strip is inert on the
+  // outline now, which is #90's own split made visible on the control, so the window is set from
+  // the calendar and the outline is then visited to read what it did there. It is still ONE press
+  // of one control read on two readings, which is the property that makes the assertion say
+  // anything: a window set once, and the two readings disagreeing about it.
+  await page.evaluate(`location.hash = '#/calendar'`);
+  await page.waitFor(`window.ZT.term().reading === 'calendar'`,
+    'the calendar, where the window can be set');
   await setWindow(page, 3);
   await page.waitFor('window.ZT.term().window.weeks === 3', 'a three week window');
+  await page.evaluate(`location.hash = '#/outline'`);
+  await page.waitFor(`window.ZT.term().reading === 'outline'`, 'the outline under that window');
   const outWin = await page.evaluate('window.ZT.absence()');
   await page.evaluate(`location.hash = '#/calendar'`);
   await page.waitFor(`window.ZT.term().reading === 'calendar'`, 'the calendar again');
@@ -7150,6 +7207,154 @@ async function checkBrush(page, base) {
       'for a different set',
     JSON.stringify({ away: memoAway, back: memoBack }),
     `${memoBack.shown} tiles on the window returned to against ${memoAway.shown} on the one between`);
+
+  // ---- TWELVE. WHERE IT IS NOT IN EFFECT IT SAYS SO, ISSUE 151 ---------------------------------
+  // A paragraph over the outline's rows said "The window is off this reading: an outline is
+  // curriculum order and a syllabus has no date to filter on." By #128's rule it goes, because it
+  // explains the page. What may not happen is that it goes and leaves a live-looking control in the
+  // header, so the fact is on the thing it is about, in the three moves `grain` makes when the node
+  // budget refuses an altitude: it greys, it stops answering, and it carries the count that refused
+  // it.
+  //
+  // THE COUNT IS RECOMPUTED OFF window.GI AND IS SCOPE RELATIVE, so `#/outline/ZSC` says 0 of that
+  // programme's templates rather than 0 of the term's. A control that printed the term's number on
+  // a scoped reading would be the sample confusion #122 was filed about arriving through the one
+  // door nothing had pointed at.
+  //
+  // AND IT IS SWEPT OVER EVERY ADDRESS RATHER THAN SAMPLED, both readings, and it reports how many
+  // it visited. A sweep that failed to open a sheet would find no live strip on any outline and
+  // read exactly like a page that had got it right everywhere.
+  await setWindow(page, 3);
+  const stripSweep = [];
+  for (const at of JSON.parse(await page.evaluate('JSON.stringify(window.ZT.termRoutes())'))) {
+    await page.evaluate(`location.hash = ${JSON.stringify(at)}`);
+    await page.waitFor(`location.hash === ${JSON.stringify(at)}`,
+      `the address bar to read ${at}`);
+    await sleep(160);
+    const seen = JSON.parse(await page.evaluate(`JSON.stringify((function () {
+      var b = document.getElementById('brush');
+      var band = b.querySelector('.brush-band');
+      var val = b.querySelector('.brush-val');
+      return { off: b.classList.contains('brush-off'),
+               disabled: b.getAttribute('aria-disabled'),
+               valueText: b.getAttribute('aria-valuetext') || '',
+               said: val ? val.textContent.trim() : null,
+               accent: band ? getComputedStyle(band).borderTopColor : null,
+               focusable: b.getAttribute('tabindex') };
+    })())`));
+    // The number this reading's strip should be printing, from the instance document and from
+    // nowhere else: the SessionTemplate nodes of the views in scope.
+    const want = await page.evaluate(`(function () {
+      var scope = window.ZT.term().scope, n = 0;
+      window.GI.views.forEach(function (v) {
+        if (scope && v.key !== scope) return;
+        v.nodes.forEach(function (node) { if (node.type === 'SessionTemplate') n++; });
+      });
+      return n;
+    })()`);
+    stripSweep.push({ at, outline: /^#\/outline/.test(at), want, ...seen });
+  }
+  // The live reading's own accent, taken from the page rather than named here, so this compares
+  // the two states of one control instead of asserting a colour.
+  const liveAccent = (stripSweep.find(s => !s.outline) || {}).accent;
+  const stripWrong = stripSweep.filter(s => s.outline
+    ? !(s.off && s.disabled === 'true' && s.focusable === '0' &&
+        s.said === '0 of ' + s.want && s.accent !== liveAccent &&
+        /not in effect/.test(s.valueText))
+    : !(!s.off && s.disabled === null && s.accent === liveAccent &&
+        !/not in effect/.test(s.valueText)));
+  assert('the strip greys, says it is disabled and carries the count that refused it, and only there',
+    stripSweep.length >= 16 && stripWrong.length === 0 &&
+      stripSweep.filter(s => s.outline).length > 1 &&
+      stripSweep.filter(s => !s.outline).length > 1,
+    'every outline address showing a greyed strip that reports aria-disabled, keeps its focus ' +
+      'stop, has lost the band accent and prints 0 of that scope\'s own template count, and ' +
+      'every calendar address showing none of that',
+    stripWrong.length ? JSON.stringify(stripWrong.slice(0, 3))
+      : `${stripSweep.length} addresses visited, ` +
+        `${stripSweep.filter(s => s.outline).length} inert, ` +
+        `${stripSweep.filter(s => !s.outline).length} live, accent ${liveAccent}`,
+    `${stripSweep.length} addresses visited, counts ` +
+      JSON.stringify(stripSweep.filter(s => s.outline).map(s => s.said).slice(0, 4)));
+
+  // ---- THIRTEEN. AND THE SENTENCE IT REPLACES IS GONE FROM EVERY OUTLINE ADDRESS ----------------
+  // With a window set, which is the only state the deleted paragraph ever appeared in, so a check
+  // run with no window would have found nothing to delete and passed on a page that still printed
+  // it. The strip is left at three weeks by the sweep above for exactly this reason.
+  const outlineProse = [];
+  for (const at of JSON.parse(await page.evaluate('JSON.stringify(window.ZT.termRoutes())'))
+    .filter(a => /^#\/outline/.test(a))) {
+    await page.evaluate(`location.hash = ${JSON.stringify(at)}`);
+    await page.waitFor(`location.hash === ${JSON.stringify(at)}`, `the address bar to read ${at}`);
+    await sleep(140);
+    const hits = JSON.parse(await page.evaluate(`JSON.stringify(
+      Array.prototype.slice.call(document.querySelectorAll('#termnotice > p')).filter(function (p) {
+        return !p.querySelector('button') && !p.querySelector('a');
+      }).map(function (p) { return p.textContent.trim().slice(0, 80); }))`));
+    hits.forEach(h => outlineProse.push(at + ' :: ' + h));
+  }
+  const windowStillOn = await page.evaluate('window.ZT.term().window.weeks');
+  assert('and the paragraph that used to say it is gone from every outline address, window and all',
+    outlineProse.length === 0 && windowStillOn === 3,
+    'no prose paragraph in the notice on any outline address while a three week window is set',
+    outlineProse.length ? JSON.stringify(outlineProse.slice(0, 4))
+      : `no paragraphs, window still at ${windowStillOn} weeks`);
+
+  // ---- FOURTEEN. AND IT IS INERT IN FACT AND NOT ONLY IN PAINT ---------------------------------
+  // THE NEGATIVE CONTROL IS THE WHOLE ASSERTION AND IT IS WHY THIS IS ONE CLAIM AND NOT TWO. "The
+  // drag did nothing" is exactly what a driver reports when it missed the control, which is the
+  // shape of half the dead instruments this repository has found, one of them a press whose y came
+  // from the header's padding so that every press at 390 landed on nothing while the page looked
+  // fine. So the SAME gesture, computed from the SAME measured geometry, is dispatched twice: once
+  // on the outline where it must do nothing, and once on the calendar where it must move the
+  // window. If the driver is missing the strip, the second half fails and says so.
+  //
+  // AND NEITHER HALF IS WAITED ON. A wait for "the band moved" times out on the outline by design,
+  // and a wait for "the band did not move" is satisfied before the gesture starts. Both are a fixed
+  // settle that elapses whatever the page does, and the assertion is made afterwards on what the
+  // page reports about itself.
+  await page.evaluate(`location.hash = '#/outline'`);
+  await page.waitFor(`window.ZT.term().reading === 'outline'`, 'the outline for the inert drag');
+  await sleep(200);
+  const inertBefore = await page.evaluate('window.ZT.brush()');
+  const inertWin = await page.evaluate('window.ZT.term().window');
+  const step = inertBefore.track.w / inertBefore.termWeeks;
+  const pushX = Math.round(inertBefore.band.x + inertBefore.band.w / 2);
+  const pushY = brushY(inertBefore);
+  const pushDx = Math.round(step * 4);
+  await dragBy(page, pushX, pushY, pushDx, 0, 8);
+  await sleep(320);
+  const inertAfter = await page.evaluate('window.ZT.term().window');
+  // The keyboard, on the same reading, through the same focus stop: the card's rule is that
+  // nothing this control does is available to one input and not the other, and a refusal that only
+  // covered the pointer would leave the arrow keys moving a window nobody can see move.
+  await page.evaluate(`document.getElementById('brush').focus()`);
+  await brushKey(page, 'ArrowRight', false);
+  await sleep(260);
+  const inertAfterKey = await page.evaluate('window.ZT.term().window');
+
+  await page.evaluate(`location.hash = '#/calendar'`);
+  await page.waitFor(`window.ZT.term().reading === 'calendar'`, 'the calendar for the control drag');
+  await sleep(220);
+  const liveBefore = await page.evaluate('window.ZT.brush()');
+  const liveWin = await page.evaluate('window.ZT.term().window');
+  await dragBy(page, Math.round(liveBefore.band.x + liveBefore.band.w / 2), brushY(liveBefore),
+    Math.round((liveBefore.track.w / liveBefore.termWeeks) * 4), 0, 8);
+  await sleep(320);
+  const liveAfter = await page.evaluate('window.ZT.term().window');
+  const same = (a, b) => a.from === b.from && a.to === b.to && a.weeks === b.weeks;
+  assert('and the same gesture that moves the window on the calendar moves nothing on the outline',
+    same(inertWin, inertAfter) && same(inertWin, inertAfterKey) && !same(liveWin, liveAfter) &&
+      inertBefore.band.w > 0 && pushDx > 8,
+    `a ${pushDx}px drag on the band and an ArrowRight leaving the window at ` +
+      `${inertWin.from} on the outline, and the same drag moving it on the calendar`,
+    `outline ${inertWin.from} to ${inertAfter.from} by drag and ${inertAfterKey.from} by key; ` +
+      `calendar ${liveWin.from} to ${liveAfter.from}`,
+    `dragged ${pushDx}px at y ${pushY} over a band ${inertBefore.band.w.toFixed(1)} wide`);
+  await setWindow(page, 0);
+  await page.evaluate(`location.hash = ${JSON.stringify(allRoute)}`);
+  await page.waitFor('window.ZT.term().open === false', 'the sheet shut again');
+  await viewSettled(page);
 
   // AND THE WINDOW GOES BACK OVER THE WHOLE TERM BEFORE THIS PHASE HANDS THE PAGE ON. The phase
   // after this one counts what is absent from each of the seven drawings against the whole term,
