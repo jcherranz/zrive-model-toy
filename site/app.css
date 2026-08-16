@@ -2597,9 +2597,11 @@ body.hide-unrecorded .sock-unrec { display: none; }
    survived was the slant, because `.node .lbl` declares no `font-style`, and the slant is the
    one property this defect was first reported as being about.
 
-   WHAT IT COST, IN THE UNITS THE PLACER WORKS IN. build/build_layout.py:454, site/render.js and
-   the placer oracle in scripts/smoke.mjs all reserve the mark's line at the 9px chip size, which
-   is what this rule always said it was. The envelope width of `no system holds it` is 82.49 at
+   WHAT IT COST, IN THE UNITS THE PLACER WORKS IN. build/build_layout.py:454 and the placer oracle
+   in scripts/smoke.mjs both reserve the mark's line at the 9px chip size, which is what this rule
+   always said it was. site/render.js is not in that list and its own reserve is issue 207: it
+   shapes a hidden `text class="lbl"` outside any `.node`, so the probe matches this rule and
+   `.node .lbl` alike not at all and inherits the page's 14px. The envelope width of `no system holds it` is 82.49 at
    9px and 91.65 at 10px, so the blocked box the verb-chip placer is handed was 9.16 units, an
    eighth, narrower than the text inside it, and 21.09 narrower while the node is selected and
    `.node.sel .lbl` turns the caption bold as well. A label box narrower than its own text is a
@@ -2711,9 +2713,10 @@ body.hide-unrecorded .sock-unrec { display: none; }
    and regular while one of the members is, which is a weight that changes for no reason a
    reader could name.
 
-   THREE CLASS SELECTORS AND NOT TWO, issue 203. This rule ties `.node.sel .lbl` and has been
+   FOUR CLASS SELECTORS AND NOT THREE, issue 203. This rule tied `.node.sel .lbl` and has been
    winning on source order since it was written, which is the same collision the two rules above
-   lost outright and is one reordering away from losing too. */
+   lost outright and is one reordering away from losing too. Every tail carries both classes, so
+   the set of elements it dresses does not change. */
 .node.sel .lbl.lbl-tail { font-weight: 400; }
 
 /* ---- the way from a card that stands for many to the list of them ------------ */
