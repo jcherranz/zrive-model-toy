@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T07:25:49Z",
+  "generated": "2026-08-16T07:29:25Z",
   "columns": [
     {
       "key": "raw",
@@ -129,16 +129,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/146"
         },
         {
-          "id": 155,
-          "title": "is alignment ok here?",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/155"
-        },
-        {
           "id": 158,
           "title": "The week grid compares nothing and the month grid draws some days twice",
           "labels": [
@@ -217,6 +207,16 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/156"
         },
         {
+          "id": 155,
+          "title": "is alignment ok here?",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/155"
+        },
+        {
           "id": 154,
           "title": "Is this what a professional webapp footer looks like?",
           "labels": [
@@ -235,19 +235,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/153"
-        },
-        {
-          "id": 152,
-          "title": "Why this here?",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/152"
         }
       ],
-      "hidden": 131,
+      "hidden": 132,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
