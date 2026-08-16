@@ -1510,12 +1510,44 @@
     // not a string invented here: the model refuses a label outside that closed set, so what
     // the reader sees as a schema is a schema and not a convention this file keeps.
     //
-    // WHAT IS NO LONGER DRAWN, on the owner's instruction and stated so the next reader of this
-    // function does not put it back as a repair. The block used to open with a sentence about
-    // where the lines came from, and every line used to carry a badge printing its `f`. Neither
-    // is rendered. The FIELDS are untouched in the model, which is where they do their work;
-    // this function simply no longer prints them. A future change that wants a badge back here
-    // is a product decision and not a bug fix.
+    // WHAT #108 STOPPED DRAWING AND WHAT ISSUE 148 PUTS BACK, and the second half is why this
+    // paragraph is now the longest in the file. #108 removed the block's leading sentence and the
+    // per line badge printing its `f`, on the owner's instruction, and left a note here saying a
+    // badge back was a product decision rather than a bug fix. Two things happened after that.
+    //
+    // THE COMMENT IN app.css NEVER FOLLOWED. It names FOUR devices keeping invented prose apart
+    // from the published titles beside it, and two of them stopped existing: measured on the
+    // repository and on the served bytes, `dummy` occurred 0 times in this file and `agenda-note`
+    // 0 times. So the stylesheet documented a safety argument the page had not made since #108,
+    // which is worse than never having made it: a reader auditing the honesty of this block would
+    // have read four devices and been able to find two.
+    //
+    // AND THE OWNER SAID THE OUTLINES ARE ABOUT TO MATTER: "this outlines are important and will
+    // play a crucial role in the near future". That turns the gap from an untidiness into the
+    // state to avoid, which is invented curriculum text visually indistinguishable from published
+    // titles and able to survive a screenshot with nothing attached. #135 found the same gap and
+    // correctly declined to repair it, because the constraint on that card forbade visible
+    // characters from rising and both devices are text; issue 148 waives that constraint for
+    // exactly these two and for nothing else.
+    //
+    // SO THE TWO THAT SURVIVE A CROP ARE BACK, and they are the two that survive a crop:
+    //   the note   the first thing in the box, saying the block is not Zrive's curriculum. It is
+    //              written HERE and not read off the model, which is the one place this function
+    //              departs from the rule below, and the reason is that #108 deleted the model's
+    //              `agenda.note` when it made every row's outline its own. The note is a
+    //              statement the PAGE makes about the page, in the register index.html and the
+    //              rest of this file already make such statements in; the LINES are content and
+    //              stay in the document, gated, where they were.
+    //   the badge  on every LINE and never on the block, which is the whole of what makes it the
+    //              strongest of the four: there is no line a reader can crop, quote or screenshot
+    //              without one. It prints the row's own `f`, so a document whose rows were
+    //              flagged as anything else would say so rather than say `dummy`.
+    //
+    // WITH THE BADGE BACK THE BOX STOPS BEING LOAD BEARING, which is what pays for the styling
+    // the owner asked for in the same card. app.css can give this block the table's typography,
+    // its rhythm and its bracket rail without the block becoming indistinguishable from real
+    // curriculum, because what tells a reader it is invented is now on the line rather than in
+    // the ground behind it. The argument is written out over `.agenda-box` in that file.
     //
     // A ROW WITH NO OUTLINE WRITTEN FOR IT DRAWS NO BLOCK, rather than an empty box or a
     // fallback. The build already refuses a drawn template with no outline, so this branch is
@@ -1536,7 +1568,14 @@
     // `title`, and a column added before them has to move the block with it.
     var AGENDA_LEAD = 2;
 
-    function agendaRow(cols, t) {
+    // THE SENTENCE THAT SURVIVES A CROP, ISSUE 148, and it says what the block is and stops.
+    // It does NOT say how many templates carry one, which is what the deleted #85 sentence said
+    // and what #108 made false when it gave every row its own outline; a crop-proof sentence that
+    // is wrong about the page is worse than none. It does not name a control either, which is the
+    // rule #128 left behind. What is left is the claim, in the fewest characters that carry it.
+    var AGENDA_NOTE = 'Not Zrive\'s curriculum. Every line here was written for this toy.';
+
+    function agendaRow(cols, t, secNo) {
       var rows = agendaFor(t);
       if (!rows) return null;
       var tr = document.createElement('tr');
@@ -1561,9 +1600,25 @@
       td.className = 'agenda-cell';
       td.colSpan = Math.max(1, cols - AGENDA_LEAD);
       var box = el('div', 'agenda-box');
+      // ISSUE 148, DEVICE FOUR: the first thing in the box, so a crop that starts at the top of
+      // the block carries it. Its section number leads, which is the only place the outline's
+      // numbering reaches the third level, and the badge is between the number and the sentence
+      // rather than after it, because a reader scanning left to right meets the standing of the
+      // block before they meet a word of the block.
+      var note = el('p', 'agenda-note');
+      if (secNo) note.appendChild(el('span', 'agenda-no term-no', secNo));
+      note.appendChild(el('span', 'flag dummy', 'invented'));
+      note.appendChild(document.createTextNode(' ' + AGENDA_NOTE));
+      box.appendChild(note);
       var ol = el('ul', 'agenda-lines');
       rows.forEach(function (r) {
         var li = el('li', 'agenda-line');
+        // ISSUE 148, DEVICE THREE, AND IT PRINTS THE ROW'S OWN `f` RATHER THAN THE WORD `dummy`.
+        // A document whose rows carried another flag would say that flag here; the build gate
+        // already refuses a rank or a flag outside what this block declares, so the badge and the
+        // gate are reading one field rather than agreeing by convention. It is on the LINE, which
+        // is what makes it the device that survives a crop of a single line.
+        li.appendChild(el('span', 'flag ' + r.f, r.f));
         li.appendChild(el('b', 'agenda-rung', r.k));
         li.appendChild(document.createTextNode(' ' + r.v));
         ol.appendChild(li);
@@ -2345,21 +2400,54 @@
       var table = el('table', 'sheet-table term-table');
       head(table, cols);
       var tb = document.createElement('tbody');
-      groupsFor(scope).forEach(function (g) {
+      // ---- the outline as a numbered document, issue 148 -------------------------
+      // "Make the format of this outlines more in line with the style" and, in the card,
+      // numbering, bullets and header levels. This is where the outline stops being a flat list.
+      //
+      // EVERY NUMBER HERE IS AN INDEX INTO THE MODEL AND NOT A STRING ANYWHERE. The three levels
+      // are the three the model already has, in the order the model already puts them in: the
+      // programme is its position in `groupsFor(scope)`, the module its position in
+      // `modulesOf(g)`, and the block its position in `mod.rows`. Nothing is typed, nothing is
+      // stored, and a programme added, a module renamed or a row moved renumbers the whole
+      // document with no edit here, in exactly the way router.js derives the programme hue from
+      // the programme list rather than choosing one per programme.
+      //
+      // AND IT IS SCOPE RELATIVE ON PURPOSE. `#/outline/ZSC` numbers Z-SC's own modules 1.1 to
+      // 1.6 rather than 2.1 to 2.6, because the document a reader has open is the one they are
+      // reading: a number that referred to a programme not on screen would be an address into a
+      // document nobody opened. What the number IS, on both, is the position of the thing in the
+      // outline in front of the reader.
+      //
+      // WHERE EACH IS PAINTED, and the first of the three is a measurement rather than a taste.
+      // The programme number is inside the LINK and not before it. The suite asserts that the
+      // sheet's four readings start their text on one x and measures the group heading on its
+      // anchor, so a number standing before the link moves the link right of every other first
+      // thing on this sheet and turns issue 113's alignment red. Inside it, the anchor's own left
+      // edge is where it always was and the number is the first thing painted on the row, which
+      // is where a heading number belongs anyway.
+      groupsFor(scope).forEach(function (g, gi) {
+        var gNo = String(gi + 1) + '.';
         var deliveries = g.templates.reduce(function (n, t) { return n + t.deliveries.length; }, 0);
         groupRow(tb, cols.length, function (th) {
           // The way back to the drawing the row came from, one per programme rather than one per
           // row: seven controls at the size this page requires, instead of 83 of them squeezed
           // into a table cell.
-          var a = el('a', 'linkbtn', g.view.label || g.view.code);
+          var a = el('a', 'linkbtn');
+          a.appendChild(el('span', 'term-no', gNo));
+          a.appendChild(document.createTextNode(g.view.label || g.view.code));
           a.href = g.view.route;
           th.appendChild(a);
           th.appendChild(document.createTextNode(' · ' + g.templates.length +
             ' templates, ' + deliveries + (deliveries === 1 ? ' delivery' : ' deliveries') +
             (g.modules ? ' · ' + g.modules : '')));
         });
-        modulesOf(g).forEach(function (mod) {
+        modulesOf(g).forEach(function (mod, mi) {
+          var mNo = gNo + (mi + 1) + '.';
           groupRow(tb, cols.length, function (th) {
+            // The number is the first span in this cell and the suite measures the module
+            // heading's indent on its first span, so it is painted exactly where the module name
+            // used to start and issue 94's indent claim is unmoved. The name follows it.
+            th.appendChild(el('span', 'term-no', mNo));
             if (mod.absent) {
               th.appendChild(el('span', 'term-nomodule', mod.name));
               th.appendChild(document.createTextNode(' · ' + mod.rows.length +
@@ -2370,7 +2458,7 @@
             th.appendChild(document.createTextNode(' · ' + mod.rows.length +
               (mod.rows.length === 1 ? ' row here' : ' rows here')));
           }, 'term-module');
-          mod.rows.forEach(function (t) {
+          mod.rows.forEach(function (t, ri) {
             var tr = document.createElement('tr');
             if (!t.deliveries.length) tr.className = 'term-gap';
             cell(tr, t.seqText, 'r-num s-seq');
@@ -2408,7 +2496,12 @@
             cell(tr, t.id, 'r-drawn');
             tb.appendChild(tr);
             if (isOpen_(t)) {
-              var ag = agendaRow(cols.length, t);
+              // The third level of the numbering, and it is on the BLOCK rather than on the row.
+              // The row already carries its position in the syllabus in the leading column, so a
+              // second ordinal beside it would be two numbers for one place; the block is the
+              // thing the numbering exists to give an address to, and it is the only part of this
+              // document a reader will want to quote.
+              var ag = agendaRow(cols.length, t, mNo + (ri + 1));
               if (ag) tb.appendChild(ag);
             }
           });
