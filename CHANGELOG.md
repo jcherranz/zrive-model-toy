@@ -108,6 +108,25 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- **THE FORBIDDEN-CONTENT GATE ABORTED ON ANY CLONE OLDER THAN THE LAST BOARD SYNC, #208.** Since
+  #6 the gate lists the commit the origin names, read off the live `site/version.js` and listed out
+  of git locally, which requires that commit to be in the local object store. `board.yml` turns an
+  issue change into a commit on main and every one of them deploys, so the origin moves roughly
+  every quarter of an hour while anybody is touching the board and the deployed commit is very
+  often itself a board sync made after the reader cloned. Measured: four syncs in one hour, and a
+  clone taken minutes earlier did not hold the commit the origin then named. Three readers hit the
+  abort in one evening. `scripts/check_forbidden.sh` now asks the remote for that one commit, by
+  its full hash, and parks it on `refs/zrive/deployed` so `git log --all` in the ghost sweep sees
+  it as a clone that held it all along would. **The fetch is not a fallback and adds none:** it
+  substitutes no other subject, the decision to list from the commit is taken from a fresh
+  `cat-file` and not from the fetch's exit code, and a commit that cannot be obtained still aborts,
+  naming the hash, reading nothing in its place. **PRESENT IS NOT REACHABLE, and an outside review
+  found the hole:** `deployed_paths` needs the object and `ghost_candidates` needs a ref, so a
+  fetch whose ref update failed would leave the live file list right and the candidate enumeration
+  missing the whole history of the deploy being swept, quietly. Success now means both, and
+  `ghost_sweep` asks again at the point of use, where a second run in the same clone could have
+  moved the ref. Two new self-test probes, 25 to 27, and each of their seven sub-checks was made
+  to fail before it was trusted: two were dead when first written.
 - **BOTH CAPTIONS UNDER A NODE LABEL WERE OUTRANKED BY THE LABEL'S OWN RULE AND PAINTED IN ITS
   FACE, #203.** The card was filed as a slant: the missing-key mark is reserved at the upright
   `9/400` width and `.lbl-missing` paints it italic, and nobody had measured the gap. Measured with

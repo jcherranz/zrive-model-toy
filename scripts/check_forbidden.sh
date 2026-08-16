@@ -189,6 +189,100 @@ ORIGIN_SHA=""
 LIST_SOURCE=""
 LIST_FROM_COMMIT=0
 
+# ---------------------------------------------------------------------------------------
+# Getting the commit the origin names, when this clone does not already hold it. Issue 208.
+#
+# WHY IT IS NEEDED, MEASURED RATHER THAN SUPPOSED. .github/workflows/board.yml turns an issue
+# change into a commit on main, and every one of those deploys. Four of them landed in one hour
+# on the evening this was written and the commit the origin named was itself one of them. So the
+# origin moves roughly every quarter of an hour while anybody is touching the board, and a clone
+# taken before the newest sync does not hold the commit the origin now names. The abort below is
+# correct and was firing on clones that were minutes old: three readers hit it in one evening,
+# and in each case one `git fetch` of the named hash was the whole remedy.
+#
+# WHY THIS IS NOT THE FALLBACK THE BLOCK BELOW REFUSES, which is the only real risk in the
+# change. A fallback substitutes a DIFFERENT SUBJECT: the working tree, HEAD, main, some other
+# tree whose bytes are not the bytes the origin says it is serving. This substitutes nothing. It
+# asks the remote for one object, named by its full forty character hash, taken from the
+# origin's own version.js seconds earlier, and either that exact object is in the store
+# afterwards or the run stops. There is no second subject for it to land on, and the file list
+# is built from ORIGIN_SHA either way.
+# ---------------------------------------------------------------------------------------
+
+# Where a fetched commit is parked. One fixed ref, force updated, so nothing accumulates across
+# runs, and so `git log --all` in ghost_candidates below sees that commit exactly as it would in
+# a clone that had held it all along. Fetching onto no ref would leave the candidate enumeration
+# possibly short of a path in the live file list, and the assertion that compares those two would
+# then fire on a clone that had done nothing wrong. It can only widen the candidate set, which is
+# the direction that probes more and hides nothing.
+DEPLOYED_REF="${DEPLOYED_REF:-refs/zrive/deployed}"
+
+# Which remote to ask. `origin` when there is one; otherwise the first configured, because a
+# clone made by actions/checkout and one made by hand do not always agree on the name. No remote
+# at all is reported by the caller rather than papered over.
+fetch_remote_name() {
+  local r
+  if git -C "$ROOT" remote get-url origin >/dev/null 2>&1; then printf 'origin'; return 0; fi
+  r="$(git -C "$ROOT" remote | head -1)"
+  [ -n "$r" ] || return 1
+  printf '%s' "$r"
+}
+
+# PRESENT IS NOT THE SAME AS REACHABLE, and the difference is the one thing about this change
+# that could make a gate report clean about less than it thinks. The two consumers ask git
+# different questions. deployed_paths runs `git ls-tree` on the hash, which needs the OBJECT.
+# ghost_candidates runs `git log --all`, which needs a REF that reaches it. A fetch can satisfy
+# the first and not the second: the pack lands and the ref update fails on a lock, a stale
+# `.lock` file or a permission, and `git fetch` exits non zero while `cat-file` says yes. The
+# live file list would then still be the right list and the candidate enumeration would quietly
+# be one deploy short, so a path that only that commit's history ever held could be served and
+# never probed. Reproduced by an outside review on a purpose-built repository, not argued.
+#
+# So success here means BOTH, and the reachable half is asked again at the point of use, in
+# ghost_sweep, where a second run in the same clone could have moved the ref between the two.
+commit_reachable() {
+  local sha="$1" r
+  r="$(git -C "$ROOT" for-each-ref --contains "$sha" --count=1 --format='%(refname)' 2>/dev/null || true)"
+  if [ -n "$r" ]; then return 0; fi
+  # `git log --all` reads HEAD as well as refs/, and a detached checkout of the deployed commit
+  # is exactly what a CI job on a pull request has.
+  if git -C "$ROOT" merge-base --is-ancestor "$sha" HEAD 2>/dev/null; then return 0; fi
+  return 1
+}
+
+# THE EXIT CODE OF THE FETCH IS NOT THE ANSWER. What settles it is what is in the store
+# afterwards, so that is what is asked, of git, after the attempt. A fetch that reports success
+# and leaves nothing usable behind fails here exactly like one that reports failure, and the
+# decision to list from the commit is taken from those two checks and from nothing else.
+#
+# GitHub serves a commit requested by hash when it is reachable from a ref. Measured against this
+# repository from an empty object store on the day this was written: the fetch below returned the
+# commit, and the same fetch for a hash that exists nowhere failed with `not our ref`.
+fetch_named_commit() {
+  local sha="$1" remote out rc=0
+  remote="$(fetch_remote_name)" || {
+    echo "  it is not in this clone, and this clone has no git remote to ask for it." >&2
+    return 1
+  }
+  echo "  it is not in this clone. Asking $remote for that one commit, by hash."
+  # GIT_TERMINAL_PROMPT=0 so a remote that wants credentials fails in a second rather than
+  # blocking a safety gate on a prompt nobody unattended is going to answer.
+  out="$(GIT_TERMINAL_PROMPT=0 git -C "$ROOT" fetch --quiet --no-tags "$remote" \
+         "+${sha}:${DEPLOYED_REF}" 2>&1)" || rc=$?
+  if git -C "$ROOT" cat-file -e "${sha}^{commit}" 2>/dev/null && commit_reachable "$sha"; then
+    echo "  fetched it, and parked it on ${DEPLOYED_REF}."
+    return 0
+  fi
+  if git -C "$ROOT" cat-file -e "${sha}^{commit}" 2>/dev/null; then
+    echo "  commit $sha arrived but is on no ref, so the ghost sweep could not see its" >&2
+    echo "  history and would probe less than it reported (git exit $rc)." >&2
+  else
+    echo "  the fetch did not produce commit $sha (git exit $rc)." >&2
+  fi
+  [ -z "$out" ] || printf '%s\n' "$out" | sed 's/^/    /' >&2
+  return 1
+}
+
 # Decide where the list comes from, and say so. Separate from the function that emits it
 # because that one is called in a command substitution, which is a subshell, and a decision
 # recorded in a subshell is a decision the banner never sees.
@@ -199,19 +293,32 @@ LIST_FROM_COMMIT=0
 # establish, which is the vacuous green this repository keeps finding. A local server is
 # different in kind: the tree's own version.js names no commit by design, the server is serving
 # that tree, and a list taken from the tree is the true list for it.
+#
+# THREE STATES, AND A READER HAS TO BE ABLE TO TELL THEM APART. The commit was already here; the
+# commit was not here and was fetched; the commit could not be obtained and this run is not
+# evidence about anything. The first two both say which, in the `file list from:` line the fetch
+# step prints; the third is the abort below, which names the hash it could not get and reads
+# nothing in its place. The fetch attempt is guarded on ORIGIN_SHA being set, and the tree's own
+# version.js sets `commit: null` on purpose, so a local server over site/ reaches no network.
 resolve_list_source() {
   local kind="$1"
   if [ -n "$ORIGIN_SHA" ] && git -C "$ROOT" cat-file -e "${ORIGIN_SHA}^{commit}" 2>/dev/null; then
     LIST_FROM_COMMIT=1
-    LIST_SOURCE="the commit the origin names, ${ORIGIN_SHA:0:7}, read out of git."
+    LIST_SOURCE="the commit the origin names, ${ORIGIN_SHA:0:7}, read out of git; this clone already held it."
+    return 0
+  fi
+  if [ -n "$ORIGIN_SHA" ] && fetch_named_commit "$ORIGIN_SHA"; then
+    LIST_FROM_COMMIT=1
+    LIST_SOURCE="the commit the origin names, ${ORIGIN_SHA:0:7}, read out of git; it was fetched during this run."
     return 0
   fi
   LIST_FROM_COMMIT=0
   if [ "$kind" = remote ]; then
     echo "ASSERTION FAILED: this is a remote origin and the live file list could not be" >&2
     if [ -n "$ORIGIN_SHA" ]; then
-      echo "  established: it names commit $ORIGIN_SHA and this clone does not hold it." >&2
-      echo "  Fetch that commit, or check out with fetch-depth: 0." >&2
+      echo "  established: it names commit $ORIGIN_SHA, this clone does not hold it, and it" >&2
+      echo "  could not be fetched. Nothing was read in its place." >&2
+      echo "  Get that commit into this clone, or check out with fetch-depth: 0." >&2
     else
       echo "  established: it served no version.js naming a commit." >&2
       echo "  A deployment by .github/workflows/pages.yml always serves one, and that workflow" >&2
@@ -304,6 +411,22 @@ ghost_sweep() {
     echo "ASSERTION FAILED: this clone is shallow (or is not a git repository), so the paths" >&2
     echo "  earlier deploys published cannot be enumerated and the sweep would probe nothing" >&2
     echo "  while reporting clean. Check out with fetch-depth: 0." >&2
+    exit 2
+  fi
+
+  # AND THE SAME POKA-YOKE ONE STEP FINER, asked at the point of use rather than trusted from
+  # where the commit came in. Issue 208. The list below is `git log --all`, which walks REFS; the
+  # live file list is `git ls-tree` on the hash, which walks the OBJECT. A commit that is in the
+  # object store and on no ref satisfies the second and is invisible to the first, and the sweep
+  # would then enumerate a history missing exactly the deploy it is sweeping against, quietly, and
+  # report as clean as one that enumerated everything. That state is reachable from a fetch whose
+  # ref update failed and from a second run in this clone moving the ref between the fetch and
+  # here, so it is asked again, here, where the answer is used.
+  if [ "$LIST_FROM_COMMIT" = 1 ] && [ -n "$ORIGIN_SHA" ] && ! commit_reachable "$ORIGIN_SHA"; then
+    echo "ASSERTION FAILED: the live file list is being taken from commit $ORIGIN_SHA, and that" >&2
+    echo "  commit is in this object store but on no ref, so 'git log --all' cannot see it and" >&2
+    echo "  the candidate enumeration below would be missing the very deploy it is sweeping" >&2
+    echo "  against. Point a ref at it, or check out with fetch-depth: 0." >&2
     exit 2
   fi
 
@@ -431,7 +554,7 @@ fetch_deployed() {
 #
 # A short run exits 2, which is "the suite could not answer for itself" and not "the gate is
 # broken"; a run that also recorded a MISS reports the MISS and exits 1.
-EXPECTED_PROBES=25
+EXPECTED_PROBES=27
 
 self_test() {
   local tmp fake_hashes whole_hashes rc pass=0 total=0
@@ -772,6 +895,124 @@ s.close()' 2>/dev/null)" || return 1
     pass=$((pass + 1))
   else
     echo "  [MISS] the no-stamp refusal is wrong (remote exit $rc_remote, local exit $rc_local)"
+  fi
+
+  # 7. THE DEPLOYED COMMIT IS FETCHED WHEN THIS CLONE LACKS IT, AND A HASH THAT CANNOT BE
+  #    FETCHED STILL STOPS THE RUN. Issue 208. Both directions, and the second is the one that
+  #    matters: the whole hazard of fetching inside a gate is that a failed fetch turns into a
+  #    quiet substitution and the gate reports clean about some other tree. So the probe requires
+  #    the abort, requires exit 2, and requires the hash to be named in what the abort printed,
+  #    because an operator who cannot see which object was missing cannot fix it.
+  #
+  #    Against a purpose-built two commit repository and not against this one, so the probe needs
+  #    no network and costs no clone. The upstream fixture is told to serve a bare hash, which
+  #    GitHub does and a local repository does not do by default.
+  total=$((total + 1))
+  local up="$tmp/up" down="$tmp/down"
+  rc=0
+  (
+    set -e
+    mkdir -p "$up/$SITE_DIR"
+    git -C "$up" init -q
+    local at='@'
+    git -C "$up" config user.email "probe${at}example.invalid"
+    git -C "$up" config user.name probe
+    git -C "$up" config uploadpack.allowAnySHA1InWant true
+    echo one > "$up/$SITE_DIR/index.html"
+    git -C "$up" add -A && git -C "$up" commit -qm one
+    # Cloned BEFORE the second commit, which is exactly the shape the card describes: a clone
+    # taken minutes before the board sync the origin now names.
+    git clone -q "file://$up" "$down"
+    echo two > "$up/$SITE_DIR/index.html"
+    git -C "$up" add -A && git -C "$up" commit -qm two
+  ) >/dev/null 2>&1 || rc=9
+  if [ "$rc" -ne 0 ]; then
+    echo "  [MISS] the deployed-commit fetch probe could not build its fixture, so it proved nothing"
+  else
+    local absent invented got msg rc_gone=0
+    absent="$(git -C "$up" rev-parse HEAD)"
+    invented="feedfacefeedfacefeedfacefeedfacefeedface"
+    if git -C "$down" cat-file -e "${absent}^{commit}" 2>/dev/null; then
+      # The fixture would prove nothing if the clone already held the commit: the first branch
+      # of resolve_list_source would answer and the fetch would never be reached.
+      echo "  [MISS] the deployed-commit fetch probe built a clone that already holds the commit"
+    else
+      local now_here=0 named=0 reach=0
+      # An abort inside the substitution kills the subshell before the printf, so an empty value
+      # here is "it refused" and 1 is "it listed from the commit". The two are never confused.
+      got="$( ( ROOT="$down"; ORIGIN_SHA="$absent"
+                resolve_list_source remote >/dev/null 2>&1
+                printf '%s' "$LIST_FROM_COMMIT" ) || true )"
+      rc_gone=0
+      msg="$( ( ROOT="$down"; ORIGIN_SHA="$invented"; resolve_list_source remote ) 2>&1 )" || rc_gone=$?
+      if git -C "$down" cat-file -e "${absent}^{commit}" 2>/dev/null; then now_here=1; fi
+      # NOT ONLY IN THE STORE. `git log --all` is what the ghost sweep enumerates with, and it
+      # walks refs. A fetch written as `git fetch <remote> <sha>`, with no destination, leaves
+      # the object here and this sub-check red, which is the edit the other three cannot see.
+      if ( ROOT="$down"; commit_reachable "$absent" ); then reach=1; fi
+      # THE ABORT'S OWN LINE, and not merely the hash appearing somewhere in the output. Both
+      # git's `not our ref` and this file's fetch report carry the hash, so a bare substring
+      # test passed with the abort's own sentence stripped of it. Measured while writing this
+      # probe: the sub-check was dead until it was anchored on the phrase the refusal prints.
+      if printf '%s\n' "$msg" | grep -q "names commit $invented"; then named=1; fi
+      if [ "$got" = 1 ] && [ "$now_here" = 1 ] && [ "$reach" = 1 ] \
+         && [ "$rc_gone" -eq 2 ] && [ "$named" = 1 ]; then
+        echo "  [OK]   a clone lacking the deployed commit fetched it onto a ref, and a hash that"
+        echo "         could not be fetched aborted with the hash named instead of listing"
+        echo "         another tree"
+        pass=$((pass + 1))
+      else
+        echo "  [MISS] the fetch is wrong (list-from-commit '$got', object present $now_here," \
+             "reachable $reach, unfetchable exit $rc_gone, hash named $named)"
+      fi
+    fi
+  fi
+
+  # 8. AND A COMMIT THAT IS IN THE STORE BUT ON NO REF STOPS THE SWEEP. Issue 208, and the hole
+  #    an outside review found in the first version of this change. deployed_paths needs the
+  #    object and ghost_candidates needs a ref, so the two can disagree: the live list comes out
+  #    right while the candidate enumeration is missing the whole history of the deploy being
+  #    swept, and the sweep prints the same clean line as one that enumerated everything. That is
+  #    the dead-instrument shape, so ghost_sweep asks for reachability at the point of use rather
+  #    than trusting where the commit came in. Same two commit fixture, no network.
+  total=$((total + 1))
+  if [ "$rc" -ne 0 ]; then
+    echo "  [MISS] the unreachable-commit probe has no fixture, so it proved nothing"
+  else
+    local unreachable rc_unreach=0 rc_reach=0
+    unreachable="$(git -C "$up" rev-parse HEAD)"
+    # Deliberately with no destination refspec, which is exactly the fetch this probe exists to
+    # forbid: the object lands and no ref points at it.
+    git -C "$down" fetch --quiet --no-tags origin "$unreachable" >/dev/null 2>&1 || true
+    git -C "$down" update-ref -d "$DEPLOYED_REF" >/dev/null 2>&1 || true
+    if ! git -C "$down" cat-file -e "${unreachable}^{commit}" 2>/dev/null; then
+      echo "  [MISS] the unreachable-commit probe could not get the object into the store"
+    elif ( ROOT="$down"; commit_reachable "$unreachable" ); then
+      echo "  [MISS] the unreachable-commit probe built a fixture where the commit is on a ref"
+    else
+      # THE ENUMERATION IS STUBBED IN BOTH DIRECTIONS, and it has to be in both or this probe is
+      # dead. Probe 3 above ends with `unset -f ghost_candidates`, which deletes the real
+      # function for the rest of the run, so an unstubbed sweep aborts at "no candidate paths"
+      # with the same exit 2 the reachability assertion produces. Measured: with the assertion
+      # deleted, an unstubbed first direction still exited 2 and this probe still said OK. The
+      # stub makes reachability the ONLY difference between the two directions.
+      ghost_candidates() { printf '%s\n' 'index.html'; }
+      ( ROOT="$down"; LIST_FROM_COMMIT=1; ORIGIN_SHA="$unreachable"
+        ghost_sweep "http://127.0.0.1:1/" "$tmp/gdest5" "$glist" >/dev/null 2>&1 ) || rc_unreach=$?
+      # The other direction, so the abort is not simply always-on: put a ref at it and the sweep
+      # gets past this assertion.
+      git -C "$down" update-ref "$DEPLOYED_REF" "$unreachable"
+      ( ROOT="$down"; LIST_FROM_COMMIT=1; ORIGIN_SHA="$unreachable"
+        ghost_sweep "http://127.0.0.1:1/" "$tmp/gdest6" "$glist" >/dev/null 2>&1 ) || rc_reach=$?
+      unset -f ghost_candidates
+      if [ "$rc_unreach" -eq 2 ] && [ "$rc_reach" -ne 2 ]; then
+        echo "  [OK]   a commit in the store but on no ref aborted the sweep, and putting a ref"
+        echo "         at it let the sweep past"
+        pass=$((pass + 1))
+      else
+        echo "  [MISS] the reachability assertion is wrong (on no ref exit $rc_unreach, on a ref exit $rc_reach)"
+      fi
+    fi
   fi
 
   echo
