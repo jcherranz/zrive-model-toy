@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T11:33:13Z",
+  "generated": "2026-08-16T11:37:57Z",
   "columns": [
     {
       "key": "raw",
@@ -72,14 +72,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
-        },
-        {
-          "id": 157,
-          "title": "A person on the drawing is someone you can reach, and the route is a fact on the object",
-          "labels": [
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/157"
         },
         {
           "id": 168,
@@ -180,7 +172,7 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/162"
         }
       ],
-      "hidden": 141,
+      "hidden": 142,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
