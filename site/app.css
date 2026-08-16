@@ -1040,6 +1040,39 @@ h1 {
   height: 100%;
 }
 
+/* THE TWENTY FOUR WEEKS ARE THERE WHETHER OR NOT ANYTHING HAPPENED IN THEM, and this rule is what
+   says so. Issue 142, and it is the owner's own question answered: he asked what the strip looks
+   like when the scope is one programme with six drawn sessions. Measured on Z-CFA at the ceiling
+   width, SIX of the twenty four columns carry a session and eighteen are nothing, and at 24 px a
+   week that is 432 CSS px of blank. A bar chart with most of its bars missing reads as an
+   instrument that failed rather than as a term with nothing in most of it.
+
+   MOST OF THE WORK WAS ALREADY BEING DONE AND THIS FINISHES IT, which is worth saying plainly
+   rather than claiming more. An empty week is not blank today: `.brush-col-all` is drawn at zero
+   height with a border, so it renders as a dash 60 per cent of the week wide, and the eighteen
+   empty weeks on Z-CFA are eighteen dashes. What they are not is JOINED, so at the ceiling width
+   they read as a row of ticks with 40 per cent of each week missing between them. This rule is the
+   line under them, so the twenty four weeks read as one term with six things in it.
+
+   AND A FILLED EMPTY COLUMN WOULD NOT BE HONEST, which is why this is a line and not a height. The
+   strip is over the sessions these documents DRAW, and the 177 they do not draw carry no date
+   anywhere in the model, so there is no height an empty week could be given that would not be an
+   invention. What the line claims is only that the week exists and is part of the term, which is
+   true of all twenty four of them, and it costs no character and no height.
+
+   IT IS A PSEUDO-ELEMENT AND NOT A CHILD, so it is not an element `elementFromPoint` can answer
+   with and no gesture on this strip can land on it. It sits inside the track's own 3px padding, at
+   the foot, where the band's own box does not reach. */
+.brush-track::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 3px;
+  height: 1px;
+  background: var(--rule-muted);
+}
+
 /* SOLID AGAINST HOLLOW IS THE CHIPS' OWN GRAMMAR IN ANOTHER GEOMETRY. The outline is every
    session the scope holds that week; the fill is the part of it the model holds a complete record
    for. So a week the records barely cover is a tall empty box and a week they cover is a solid

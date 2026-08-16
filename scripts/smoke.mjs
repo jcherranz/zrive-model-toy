@@ -7661,11 +7661,21 @@ async function checkPanel(page) {
       `document.getElementById('absworkv').textContent + ' ' + ` +
       `document.getElementById('absunrecv').textContent`);
     perView.push({ key, plateR: g.plate.r, vselX: g.vsel.x, pgW: g.pg.w, plateW: g.plate.w,
-                   said: said });
+                   said: said,
+                   digest: await page.evaluate('window.ZT.programme().digest') });
   }
   const plateRights = new Set(perView.map(v => v.plateR));
   const vselLefts = new Set(perView.map(v => v.vselX));
-  const names = new Set(perView.map(v => v.pgW));
+  // AND WHAT SAYS THE DRAWING UNDER THEM REALLY CHANGED IS THE DRAWING'S OWN DIGEST. Issue 142.
+  // The conjunct here was `names.size > 1`, the heading's box being of different widths over the
+  // seven, written for #131 when the heading was a programme NAME and its length was the thing
+  // moving the row. #136 replaced that name with a rail of eight chips which is the same eight
+  // chips at every scope, so what this had been reading since is not the heading at all: it is the
+  // h1's flex leftover, which varied only because the nav's own digits did. This card froze those
+  // digits on purpose, so the leftover is constant and the conjunct is 1 while nothing it was
+  // written about has changed. It is replaced by the premise it was standing in for, taken from
+  // the page's own report: seven addresses, seven different drawings.
+  const digests = new Set(perView.map(v => v.digest));
   // WHAT THE TWO SWITCHES SAY, AND NOT HOW WIDE SAYING IT MAKES THEM. Issue 142 replaced the
   // second half of this claim with the thing that half was standing in for. The conjunct here was
   // `widths.size > 1`, the absence control's own box being of different widths over the seven
@@ -7686,15 +7696,15 @@ async function checkPanel(page) {
   // instrument's own width genuinely moves, because `work 2/22` and `work 11/22` are different
   // numbers, and a card that had frozen that would have frozen the count.
   assert('the absence control and the view selector hold their place while the drawing under them changes',
-    perView.length === 7 && plateRights.size === 1 && vselLefts.size === 1 && names.size > 1 &&
-      said.size > 1,
+    perView.length === 7 && plateRights.size === 1 && vselLefts.size === 1 &&
+      digests.size === 7 && said.size > 1,
     'one right edge for the absence control and one left edge for the view selector across all ' +
-      'seven drawings, whose headings are of different widths and whose counts say different things',
+      'seven drawings, which are seven different drawings whose counts say different things',
     `absence right edges ${JSON.stringify([...plateRights])}, view selector left edges ` +
-      `${JSON.stringify([...vselLefts])}, ${names.size} distinct heading widths, ` +
+      `${JSON.stringify([...vselLefts])}, ${digests.size} distinct drawings, ` +
       `${said.size} distinct pairs of counts ${JSON.stringify([...said].slice(0, 3))}`,
     `absence right ${[...plateRights][0]}, view selector left ${[...vselLefts][0]}, over ` +
-      `${names.size} heading widths and ${said.size} distinct pairs of counts`);
+      `${digests.size} drawings and ${said.size} distinct pairs of counts`);
   await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor('window.ZT.term().open === false', 'the diagram again');
 
