@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T17:41:04Z",
+  "generated": "2026-08-16T17:47:12Z",
   "columns": [
     {
       "key": "raw",
@@ -89,16 +89,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
-        },
-        {
-          "id": 203,
-          "title": "The missing-instructor mark is reserved upright and painted italic, so its label box is the wrong width and nobody measured by how much",
-          "labels": [
-            "bug",
-            "layout",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/203"
         }
       ]
     },
@@ -106,6 +96,16 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 203,
+          "title": "The missing-instructor mark is reserved upright and painted italic, so its label box is the wrong width and nobody measured by how much",
+          "labels": [
+            "bug",
+            "layout",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/203"
+        },
         {
           "id": 199,
           "title": "Capture mode is mouse-only on the drawing, and three reach measurements that #170 left standing",
@@ -164,17 +164,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/172"
-        },
-        {
-          "id": 171,
-          "title": "The chip placer is near-cubic and there is a two-line fix proven output-identical",
-          "labels": [
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/171"
         }
       ],
-      "hidden": 149,
+      "hidden": 150,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
