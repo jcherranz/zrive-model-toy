@@ -536,3 +536,53 @@ build on a cited slug that resolves to nothing.
   and let a diagnostic line print plainly. The test that catches this is running the script
   outside CI and reading its output, which is the same discipline as running a gate on a machine
   that does not have what CI has.
+- `kaizen-a-comment-that-outlives-the-code-it-describes-is-worse-than-no-comment` &middot; **A
+  safety argument written next to the mechanism becomes a lie the moment the mechanism is deleted,
+  and it fails loud in the one direction nobody checks: it reassures.** `app.css` named four
+  devices keeping invented session prose apart from the published titles beside it. Issue 108
+  deleted two of them on instruction and left the paragraph naming four, so for the life of the
+  file a reader auditing the honesty of that block would have read four devices and been able to
+  find two. Nothing was red, because nothing asserted the devices; the assertion that existed had
+  been turned around to demand their absence, which is a correct record of the instruction and a
+  poor record of the argument. **Where a comment states that N things protect something, the
+  number is a claim and belongs in an assertion, in the direction the argument runs.** The cheap
+  version is to grep the file for each device the comment names; here `dummy` and `agenda-note`
+  both returned zero in the file the comment sits beside.
+- `kaizen-a-measurement-taken-on-one-machine-is-not-a-property-of-the-repository` &middot; **A
+  number derived from rendered text is a property of the machine's fonts, not of the code, and
+  fitting a constant to it ships a defect to every other machine.** Issue 149 measured the widest
+  table this sheet can draw at 1145.98 CSS px and set a ceiling above it with what looked like
+  ample room. It went red in CI on its own new assertion: the same table on the runner demands
+  1160.69, because every column is sized by its content and the two font stacks resolve to
+  different faces. **A constant fitted to a measured layout needs headroom sized by the spread
+  between machines, and the assertion that holds it has to run on the machine the run is on.**
+  The assertion is what makes the constant safe rather than lucky, and it did its job on its first
+  CI run rather than in a year.
+- `kaizen-a-sweep-needs-three-states-not-two` &middot; **A surface that failed to render holds no
+  text, and no text is exactly what a clean surface looks like.** Every dead instrument this project has found is the same shape, a check
+  that cannot tell *I looked and found nothing* from *I could not look*, and a sweep is the most
+  exposed thing there is to it because finding nothing is its success condition. So a sweep ends
+  each surface in one of **read, held no text, could not be read**, counts the three apart, refuses
+  the run on either of the last two, and **prints how many surfaces it actually visited in the
+  pass message** so a green line is a claim about a number rather than an absence of complaint.
+  Proved by making one surface unreadable: the run reported 26 blind and 0 holding no text, which
+  are the two answers that had to be distinguishable.
+- `kaizen-a-deletion-card-has-two-halves-and-the-second-one-is-invisible` &middot; **Deleting a
+  sentence that carries a fact deletes the fact, and the page gets shorter and less usable in one
+  move that reads as progress.** Three of these six cards were deletions. In each, the sentence
+  went and the fact it carried was relocated onto the thing it is about: the window's inertness
+  onto the control, which greys and refuses and carries the count that refused it; the outline's
+  ordering onto the numbering and the ascending ordinals that were already there; the two footer
+  affordances onto the drawing and the zoom readout. **The assertion that protects a deletion has
+  to assert the relocation, not the absence**, because an absence-only assertion is satisfied by a
+  page that lost both. Issue 153's sweep is written in both directions for exactly this reason, and
+  the plant that proves the second direction deletes a reading rather than adding one.
+- `kaizen-a-refusal-in-a-shared-driver-helper-beats-a-timeout-in-the-caller` &middot; **When a
+  page gains a state where a control refuses a gesture, every test helper that drives that control
+  gains a way to hang.** Issue 151 made the term strip inert on one reading; two phases that set a
+  window while that reading was up spent twenty seconds each in a wait that could never be
+  satisfied and reported a harness failure in place of the assertion they were about to make. The
+  helper now checks the refusal itself and **throws immediately, naming the reading and the card**,
+  so the failure points at the caller's setup instead of at the runner. Silently accepting no
+  change would have been worse than the timeout: a helper that says it set a window and did not is
+  a phase's whole premise being false.

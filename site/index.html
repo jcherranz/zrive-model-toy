@@ -292,56 +292,67 @@
        view control sits inside the canvas because it acts on the canvas, and because being
        inside it means the board view, which does not draw this main at all, needs no rule to
        hide it. -->
-  <div id="canvas">
+  <!-- WHAT A CLICK ON A NODE DOES, ON THE THING IT IS ABOUT RATHER THAN IN A BOX AT THE BOTTOM
+       OF THE SCREEN. Issue 154. It was the first of the two items left in the footer's help and
+       the only statement of its kind anywhere on the page; #79's own repair to the three items it
+       inherited was to put each on the control it is about, and this is that repair applied to the
+       last two. It costs no visible character: the plane is the thing a reader points at before
+       they wonder whether it answers.
+
+       ON THE CANVAS AND NOT ON THE `svg`, WHICH IS A MECHANICAL REASON AND NOT A PREFERENCE. Two
+       of them. A `title` ATTRIBUTE is an HTML affordance and the tooltip a reader gets from one is
+       reliable on this div and is not on an SVG root, where the idiom is a `<title>` CHILD; and
+       render.js writes the svg's `aria-label` per drawing, so anything added there is overwritten
+       on the first paint. A node's own `<title>` is a descendant and still wins over this one
+       wherever the pointer is on a node, so what this sentence answers is a hover on the empty
+       plane, which is exactly the reader who has not worked out that the tiles are live. -->
+  <div id="canvas"
+       title="Click a node for its properties. An instructor also brings out its employer, and the students card draws the individuals the picture carries">
     <svg id="graph" role="img" aria-label="Instance diagram of one cohort"></svg>
     <div class="zoomctl" id="zoomctl" role="group" aria-label="view">
       <button id="zoomout" class="zbtn" type="button" aria-label="zoom out"
               title="zoom out (minus key)">&minus;</button>
       <span class="zlevel" id="zoomlevel"
-            title="zoom, where 100% is the whole drawing on screen. Hold Ctrl, or Cmd on a Mac, and scroll to zoom; scrolling on its own moves the drawing">100%</span>
+            title="zoom, where 100% is the whole drawing on screen. Hold Ctrl, or Cmd on a Mac, and scroll to zoom, or pinch; scrolling on its own moves the drawing, as does a drag with Ctrl, Shift or Cmd held; fit brings it back">100%</span>
       <button id="zoomin" class="zbtn" type="button" aria-label="zoom in"
               title="zoom in (plus key)">+</button>
       <button id="zoomfit" class="zbtn" type="button"
               title="bring the whole drawing back into view (0 key)">fit</button>
     </div>
   </div>
-  <!-- ONE CONTROL. This strip was 101 words in a single paragraph doing four unrelated jobs, and
-       issue 79 put three of them behind one disclosure: an instruction written into a permanent
-       strip is read once and then occupies the screen forever, which on a 390px phone cost 17 per
-       cent of the viewport for a sentence nobody was still reading. Two of the three were already
-       discoverable at the control they are about, and stay there as well: the zoom readout's title
-       carries the wheel and the Ctrl or Cmd it now needs, and the programme button's title,
-       written by router.js, says how many other programmes pressing it opens.
+  <!-- ---- THE FOOTER, ISSUE 154 ------------------------------------------------------------
+       "Is this what a professional webapp footer looks like?", and the honest answer to what was
+       there was no. It carried one control, `how to read this`, and a box behind it, and by this
+       project's own rule from #128 a sentence that explains how to read the page goes; a footer
+       whose entire content is an explainer is that failure at the bottom of the screen.
 
-       THE FOURTH JOB WAS A STATEMENT ABOUT THE ARTEFACT and it is gone, on the owner's
-       instruction, along with the two counts that were written into it. What is left is the
-       disclosure alone. It opens upward, absolutely positioned, so the footer's height, the canvas
-       under it and the fit of the drawing are the same before and after, which is the same
-       reasoning .pgmenu is built on. The strip is one line high at every width now, so the float
-       that used to buy back a line has nothing to wrap under it and the flex row places the
-       control instead. -->
+       WHAT A FOOTER ON THIS TOOL OWES A READER, which is the question the card asked before any
+       styling. One thing, and it is the one fact on this page that is about the PAGE rather than
+       about the drawing or the view: which build you are looking at. site/version.js already
+       carries it and the deploy workflow already writes it. A build stamp is about the page, so by
+       the seventh principle a page footer is its correct home, and that is the argument for
+       keeping a small one rather than deleting the element outright.
+
+       AND WHAT IT DOES NOT CARRY, EACH FOR A STATED REASON. No drawing digest: a digest is about
+       the PICTURE and not about the page, so the same principle that puts the build stamp here
+       keeps that off it, and the feedback report already carries it beside the commit where a
+       reporter needs the pair. No population of the view: every view already states its own, in
+       the chips, the absence switches and the sheet's own sentence. And no link farm, no social
+       icons, no copyright line, which the card ruled out in those words: this is a private tool
+       with one reader.
+
+       THE TWO THINGS THE DELETED BOX SAID THAT NOTHING ELSE DID ARE NOT DELETED, THEY MOVED, and
+       that is the same repair #79 made to the three it inherited. A fact belongs on the thing it
+       is about: what a click on a node does is now on the drawing itself, and the modifier a drag
+       wants joins the wheel and the Ctrl on the zoom readout, which already carried half of it.
+       Neither costs a visible character, because both are titles on controls a reader is already
+       pointing at.
+
+       IT IS WRITTEN BY app.js AND NOT TYPED HERE, for the reason every other number on this page
+       is: the stamp is a property of the deploy and this file is what gets deployed. A commit
+       typed into this element would name whichever commit somebody last remembered to paste. -->
   <footer>
-    <div class="helppick"><button id="helpbtn" class="linkbtn" type="button"
-      aria-expanded="false" aria-controls="helpbox">how to read this</button><div
-      class="helpbox" id="helpbox" hidden>
-      <!-- FIVE BULLETS TO TWO, #128. Three of them said what a control says by being pressed:
-           what the drawing is, which the heading says; that the programme name opens the other
-           six and that `students` lists the cohort, which are the words on those two controls;
-           and what a session tile opens on to, which the sheet it opens says in its own heading.
-           What is left is the two things nothing else on the page states: that a node answers to
-           a click at all, and the modifier the wheel wants. The first of those absorbs the two
-           band captions this card took off the canvas, where the same affordance was printed on
-           thirty two of the thirty three addresses whether or not anybody wanted it, so the
-           claim moved rather than went. -->
-      <ul>
-        <li>Click a node for its properties. An instructor also brings out its employer, and the
-          students card draws the individuals the picture carries.</li>
-        <!-- #127 changed what a drag does, so this line changed with it: a plain drag no longer
-             moves the plane. It is the only place on the page that names the modifier. -->
-        <li>Scroll to move the drawing, or hold <b>Ctrl</b> or <b>Shift</b> (<b>Cmd</b> on a Mac)
-          and drag. Ctrl and scroll zooms, or pinch, and <b>fit</b> brings it back.</li>
-      </ul>
-    </div></div>
+    <p class="fstamp" id="fstamp"></p>
   </footer>
 </main>
 
