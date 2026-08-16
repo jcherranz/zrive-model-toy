@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T01:33:08Z",
+  "generated": "2026-08-16T01:47:48Z",
   "columns": [
     {
       "key": "raw",
@@ -119,14 +119,6 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/171"
-        },
-        {
-          "id": 172,
-          "title": "No CSP on a public origin holding a PAT, and the last-line gate runs after the deploy",
-          "labels": [
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/172"
         }
       ]
     },
@@ -241,6 +233,14 @@
       "title": "Done",
       "cards": [
         {
+          "id": 172,
+          "title": "No CSP on a public origin holding a PAT, and the last-line gate runs after the deploy",
+          "labels": [
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/172"
+        },
+        {
           "id": 164,
           "title": "The salt is printed in the file it protects and 87 people are recoverable in under a second",
           "labels": [
@@ -307,17 +307,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/142"
-        },
-        {
-          "id": 139,
-          "title": "Absence is one idea with two numbers that never add",
-          "labels": [
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/139"
         }
       ],
-      "hidden": 123,
+      "hidden": 124,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
