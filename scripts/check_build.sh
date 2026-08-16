@@ -531,7 +531,8 @@ PY
 # the table. Between them sat the arguments: `text_w()` composes its context key at
 # build/build_layout.py:165 out of a size, a weight, an italic flag and a caps flag TYPED AT THE
 # CALL SITE, and those arguments were on neither side of either comparison. Four one-line edits
-# to them were traced through the code and every one was green everywhere:
+# to them were traced through the code and every one was green, in the only workflow a builder
+# edit has: change it, rebuild, commit the documents with the change:
 #
 #   drop the bold term from reserve() and every label box is reserved at the regular width while
 #   the stylesheet paints a selected label bold, which is #203's harm reintroduced from the
@@ -553,9 +554,12 @@ PY
 # THE OTHER SIDE OF THE COMPARISON IS NOT build_layout.py, and that is the whole discipline of
 # this check. #206 records why an oracle that reads the same table its subject reads agrees with
 # the defect wherever the table is the wrong answer. So the expectation comes from two places
-# that know nothing of the call sites: measure_labels.collect(), which reads the sizes, the
-# weights and the letter-spacing out of site/app.css and the strings out of build/model.py, and
-# the two documents the page loads, which the builder has just written.
+# that know nothing of the call sites. measure_labels.collect(), which reads the sizes, the
+# weights and the letter-spacing out of site/app.css and the strings out of build/model.py. And
+# ALL_VIEWS, which is the model itself, for the three kinds of string the builder neither chooses
+# nor changes: a mark, a tail and an edge verb. Only where nothing else can answer, which is
+# where a label breaks and which of a lane's alternate captions is painted, does the expectation
+# come off the documents the builder has just written; that limit is written where it is used.
 #
 #   A. NOTHING FELL BACK. A lookup that missed the table is estimated and the build proceeds
 #      green. Here it is a refusal.
@@ -564,12 +568,12 @@ PY
 #   C. EVERY CONTEXT THE JOB DECLARES IS ASKED FOR, with a population, and this is the one that
 #      catches a whole term going missing. A gate that only counted mismatches would report zero
 #      of them over a call site that had stopped being made.
-#   D. EVERY STRING THE FOURTEEN DRAWINGS PAINT WAS MEASURED, and the fourteen is EXPECTED_DRAWINGS
-#      held against what the run actually laid out rather than a word in this sentence. Counted
-#      by kind, which is the population and not a total: label lines, marks, tails, verbs and
-#      caption lines, read out of the instance and layout documents
-#      rather than out of the builder's arguments. This is the population assertion and it is
-#      also what keeps the census honest: a text_w() that stopped recording would take it red.
+#   D. EVERY STRING THE FOURTEEN DRAWINGS CARRY WAS MEASURED, and the fourteen is
+#      EXPECTED_DRAWINGS held against what the run actually laid out rather than a word in this
+#      sentence. Counted by kind, which is the population and not a total: marks, tails and verbs
+#      from the model, label lines and caption lines from the documents. This is the population
+#      assertion and it is also what keeps the census honest: a text_w() that stopped recording
+#      would take it red.
 #      It is deliberately about the STRING and not the context it was asked in, because #215 is
 #      open on exactly that question for marks and tails, which the stylesheet paints at 9px
 #      italic (.node .lbl.lbl-missing) and the builder still measures upright. Making D
@@ -595,9 +599,9 @@ PY
 # check 1, because it moves `site/layout.js` and the rebuilt bytes stop matching git; what does
 # not is a workflow that rebuilds and stages before running the gates, and the caption case moves
 # no byte at all, because `caption_overflow()`'s answer only ever feeds a `sys.exit`. So: this
-# check proves the question was put to the table. Nothing proves the answer was used, and that is
-# a card rather than a line, because the reserve is a local inside layout() and reaches neither
-# document.
+# check proves the question was put to the table. Nothing proves the answer was used. That is a
+# card rather than a line, because the reserve is a local inside layout() and reaches neither
+# document, and it is filed as issue 220.
 #
 # The builder to run is an argument, defaulting to the real one, which is what lets the
 # self-test point it at a copy carrying one mutated line without going near build/. The number of
@@ -739,7 +743,8 @@ painted = {"mark": {n["mark"] for v in ALL_VIEWS for n in v["nodes"] if n.get("m
 # alternate captions is painted is the builder's own choice among the lines bands.py declares. So
 # for these two the claim is narrower and is worth stating in the narrow form: WHATEVER LINES IT
 # DECIDED TO DRAW, IT MEASURED THEM. A defect that changes the breaks moves this expectation with
-# it, and the reserve arithmetic named under WHAT IT DOES NOT SAY above is exactly such a defect.
+# it, and the reserve arithmetic named under WHAT IT DOES NOT SAY above, issue 220, is exactly
+# such a defect.
 # The lines are rebuilt by the same arithmetic site/app.js does at unwrap(): the label's words,
 # taken in the counts the geometry carries. A count that did not add up is a refusal here as it
 # is there.

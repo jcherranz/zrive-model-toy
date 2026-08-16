@@ -100,7 +100,8 @@ of what changed and when, and it is meant to be scannable.
   because it moves `site/layout.js`; a workflow that rebuilds and stages first loses that, and the
   matching `caption_overflow()` case moves no byte at all because that function's answer only ever
   feeds a `sys.exit`. **Nothing anywhere proves the answer was used**, which is a card and not a
-  line, because the reserve is a local inside `layout()` and reaches neither document.
+  line, because the reserve is a local inside `layout()` and reaches neither document. Filed as
+  **#220**, with the mutation and the measurement.
   **Six mutations proved red by making them, 119 probes to 138.** The four the card lists, plus two
   the card does not: the same `reserve()` asking the bold width of **only the first line** of a
   wrapped label, which leaves both contexts populated and is caught by the per-line assertion
@@ -136,7 +137,8 @@ of what changed and when, and it is meant to be scannable.
   runner whose resolvable font set differs from the author's, which is the reason check 2 is a
   coverage test and not a byte diff in the first place. **A check that cannot tell a surplus row
   from a shaping difference is too coarse to gate on**, and building one that can is a card, not a
-  line.
+  line. Filed as **#221**, with the four states a repair has to separate and the browser-free
+  relations that catch some of them.
 - **NO GATE HELD A RESERVED WIDTH AGAINST THE STYLE RULE THAT ACTUALLY PAINTS THE STRING, #206.**
   A context in `build/label_widths.json` **is** a face: `9/400` is nine pixels at the regular weight,
   `10/600i` is ten bold in italic, `9/600+caps` is the band captions' spaced upper case. Every
