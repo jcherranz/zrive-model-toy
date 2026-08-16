@@ -100,9 +100,11 @@ set -uo pipefail
 # unlike the three gates this is a guard against what gets added rather than against anything
 # measured. It is one line, it is the same line, and the alternative is the thing this card is
 # about: the next git call written into a gate script inherits the guard instead of needing
-# somebody to remember it. The reasoning and the limits of what this variable covers are in the
-# same block in scripts/check_repo.sh.
+# somebody to remember it. The reasoning and the limits of what these variables cover are in the
+# same block in scripts/check_repo.sh; the second is there because GIT_TERMINAL_PROMPT does not
+# reach an askpass program, which an editor's integrated terminal configures on its own.
 export GIT_TERMINAL_PROMPT=0
+export GIT_ASKPASS=
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"

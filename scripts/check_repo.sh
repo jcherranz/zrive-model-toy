@@ -66,9 +66,17 @@ set -euo pipefail
 # configured or invoked anywhere in this repository.
 #
 # scripts/check_forbidden.sh proves the mechanism against a real partial clone and a remote that
-# demands credentials; the self-test below proves the line is present, and present before the
+# demands credentials; the self-test below proves both lines are present, and present before the
 # first git call, in every gate script that makes one.
+#
+# TWO LINES, BECAUSE THE FIRST ONE ALONE IS NOT THE POLICY IT LOOKS LIKE. GIT_TERMINAL_PROMPT
+# governs git's own prompt; when GIT_ASKPASS or core.askpass names a program, git runs that program
+# and waits for it instead, and an editor's integrated terminal exports GIT_ASKPASS without being
+# asked. Empty ends git's search through GIT_ASKPASS, core.askpass and SSH_ASKPASS without naming a
+# program that has to exist. A credential helper and ssh's own prompts are a third mechanism that
+# neither line reaches; none is configured here.
 export GIT_TERMINAL_PROMPT=0
+export GIT_ASKPASS=
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/forbidden_lib.sh
@@ -1851,20 +1859,38 @@ print([i["title"] for i in issues if i["number"] == 1][0])' "$tmp/issues.json")"
   # instrument reporting a clean ratio.
   total=$((total + 1))
   # A git CALL, not the word git. Comment lines are dropped after numbering, so the line number
-  # stays the file's own, and the command has to sit where a command sits: at the start of a
-  # line, or after a `;`, `&&`, `||`, a pipe, or inside `$(`. Prose mentioning git in an echo is
-  # not matched, which was checked against every file in this directory rather than assumed.
+  # stays the file's own, and the command has to sit where a command sits: at the start of a line,
+  # after a `;`, `&&`, `||` or a pipe, inside `$(` or `<(`, or after one of the shell keywords a
+  # command can follow.
+  #
+  # THE FIRST VERSION OF THIS PATTERN MISSED THREE FORMS THIS REPOSITORY USES CONSTANTLY, and an
+  # outside review found them: `if git ...`, `done < <(git ls-files)`, and a call at the start of
+  # a line inside a case arm. Every file was still guarded, because the exports sit above
+  # everything, but the check was proving less than it said. Two separators were then taken back
+  # OUT after testing against every file here: a backtick and a bare `(` matched prose, because
+  # this repository writes `git ls-files` in backticks and "(git was not asked)" in an echo, and a
+  # rule that fires on a sentence is a rule somebody switches off.
   first_git_call() {  # file -> line number of the first git invocation, empty if none
-    { grep -nE '(^|[;&|]|\$\()[[:space:]]*git[[:space:]]' "$1" \
+    { grep -nE '(^|[;&|]|\$\(|<\()[[:space:]]*git[[:space:]]|(^|[[:space:];&|])(if|then|elif|else|do|while|until|!)[[:space:]]+git[[:space:]]' "$1" \
         | grep -vE '^[0-9]+:[[:space:]]*#' | head -1 | cut -d: -f1 ; } || true
   }
-  guard_verdict() {  # file -> ok | none | late | no-git-call
-    local f="$1" call exp
+  # BOTH LINES, because either one alone leaves a way for a gate to stop and wait for a person:
+  # GIT_TERMINAL_PROMPT governs git's own prompt and does nothing about an askpass program, which
+  # an editor's integrated terminal configures without being asked.
+  # The VALUE is part of what is checked, not only the name: `export GIT_TERMINAL_PROMPT=1` is a
+  # line that would satisfy a check written on the name alone and would turn the guard off.
+  guard_line() {  # file line-pattern -> line number of that export, empty if absent
+    { grep -nE "$2" "$1" | head -1 | cut -d: -f1 ; } || true
+  }
+  guard_verdict() {  # file -> ok | none | no-askpass | late | no-git-call
+    local f="$1" call exp ask
     call="$(first_git_call "$f")"
     [ -n "$call" ] || { printf 'no-git-call'; return 0; }
-    exp="$( { grep -nE '^export GIT_TERMINAL_PROMPT=0$' "$f" | head -1 | cut -d: -f1 ; } || true )"
+    exp="$(guard_line "$f" '^export GIT_TERMINAL_PROMPT=0$')"
+    ask="$(guard_line "$f" '^export GIT_ASKPASS=$')"
     [ -n "$exp" ] || { printf 'none'; return 0; }
-    if [ "$exp" -lt "$call" ]; then printf 'ok'; else printf 'late'; fi
+    [ -n "$ask" ] || { printf 'no-askpass'; return 0; }
+    if [ "$exp" -lt "$call" ] && [ "$ask" -lt "$call" ]; then printf 'ok'; else printf 'late'; fi
   }
   local gp_bad="" gp_seen=0 gp_f gp_rel gp_v gp_forbidden=0 gp_repo=0
   for gp_f in "$ROOT"/scripts/*.sh; do
@@ -1876,25 +1902,37 @@ print([i["title"] for i in issues if i["number"] == 1][0])' "$tmp/issues.json")"
     if [ "$gp_rel" = "scripts/check_repo.sh" ]; then gp_repo=1; fi
     [ "$gp_v" = "ok" ] || gp_bad="$gp_bad $gp_rel($gp_v)"
   done
-  local gp_none gp_late gp_dir="$tmp/promptguard"
+  # FOUR CONTROLS, one per way the checker could be wrong: no export at all, the prompt guard
+  # without the askpass one, both but after the first call, and a call written in a form the
+  # detector used to miss. The last one is not about the guard at all; it is about the pattern,
+  # which was measured missing `if git` and `< <(git ...)` before an outside review said so.
+  local gp_none gp_noask gp_late gp_ifform gp_dir="$tmp/promptguard"
   mkdir -p "$gp_dir"
   printf '%s\n' '#!/usr/bin/env bash' 'set -euo pipefail' 'git rev-parse HEAD' > "$gp_dir/none.sh"
+  printf '%s\n' '#!/usr/bin/env bash' 'set -euo pipefail' 'export GIT_TERMINAL_PROMPT=0' \
+                'git rev-parse HEAD' > "$gp_dir/noask.sh"
   printf '%s\n' '#!/usr/bin/env bash' 'set -euo pipefail' 'git rev-parse HEAD' \
-                'export GIT_TERMINAL_PROMPT=0' > "$gp_dir/late.sh"
+                'export GIT_TERMINAL_PROMPT=0' 'export GIT_ASKPASS=' > "$gp_dir/late.sh"
+  printf '%s\n' '#!/usr/bin/env bash' 'set -euo pipefail' \
+                'if git rev-parse HEAD >/dev/null; then :; fi' > "$gp_dir/ifform.sh"
   gp_none="$(guard_verdict "$gp_dir/none.sh")"
+  gp_noask="$(guard_verdict "$gp_dir/noask.sh")"
   gp_late="$(guard_verdict "$gp_dir/late.sh")"
+  gp_ifform="$(guard_verdict "$gp_dir/ifform.sh")"
   # The two scripts the card measured have to be in the set. A detector that stopped matching
   # anything would otherwise report a clean sweep over nothing, which is the shape this suite
   # exists to refuse.
   if [ -z "$gp_bad" ] && [ "$gp_seen" -ge 2 ] && [ "$gp_forbidden" = 1 ] && [ "$gp_repo" = 1 ] \
-     && [ "$gp_none" = "none" ] && [ "$gp_late" = "late" ]; then
-    echo "  [OK]   all $gp_seen scripts that call git export the prompt guard before their first"
-    echo "         call, and a script without one, and one that sets it too late, were both caught"
+     && [ "$gp_none" = "none" ] && [ "$gp_noask" = "no-askpass" ] && [ "$gp_late" = "late" ] \
+     && [ "$gp_ifform" = "none" ]; then
+    echo "  [OK]   all $gp_seen scripts that call git export both guards before their first call,"
+    echo "         and four scripts built to fail this check were all caught"
     pass=$((pass + 1))
   else
     echo "  [MISS] the prompt guard is not on every script that calls git" \
          "(bad:${gp_bad:- none}, scripts seen $gp_seen, forbidden $gp_forbidden, repo $gp_repo," \
-         "control with no export '$gp_none', control setting it late '$gp_late')"
+         "controls: no export '$gp_none', no askpass '$gp_noask', late '$gp_late'," \
+         "call after if '$gp_ifform')"
   fi
 
   echo
