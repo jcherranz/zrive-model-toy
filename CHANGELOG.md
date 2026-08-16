@@ -48,6 +48,40 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- **A STYLESHEET THAT NEVER LOADED WAS REPORTED AS TWELVE ASSERTIONS ABOUT THE PAGE, AND THE RUN
+  SAID THE PAGE HAD REGRESSED, #216.** A `verify.sh` run against the deployed origin came back with
+  twelve red assertions naming the captions and the header: an SVG caption at 16px, header controls
+  21 and 17 high, `scrollWidth 790` at a 375px client. The eleventh of the twelve carried the cause,
+  `net::ERR_CERT_VERIFIER_CHANGED` on `boot.js` and on `app.css`. Every other one is a consequence of
+  a stylesheet that never arrived, and each was **right about what it saw**: 16px is the browser's
+  unstyled default for an SVG text and 790 is an unstyled body. The defect is the subject, not the
+  numbers. Measured at `c86d1a5`: **237 of 287 assertions, 83 per cent, ran before the load was ever
+  questioned.**
+- **`scripts/smoke.mjs` refuses before reporting.** It records `Network.loadingFailed` and every
+  `Network.responseReceived` carrying a status of 400 or more, keyed on **the browser's own resource
+  type** rather than on a count of console errors, so a `Document`, a `Stylesheet` or a `Script` that
+  did not arrive whole stops the run while the favicon this site does not ship and the `github.com`
+  requests the network layer refuses on purpose stay out by being an `Other` and an `XHR`. The
+  question is asked at the load event of every navigation and every reload, inside the grain
+  runner's own poll, and once more before the console is judged. It is the doctrine the placer
+  oracle already applies to its own input: a document that arrived without its stylesheet is not
+  something the phases below can be evidence about, so they do not run.
+- **It exits 2 and names the resource, and it is neither a skip nor a wait.** Not `VERDICT: the page
+  has regressed`, because a run that could not fetch the page's own bytes has no evidence about the
+  page in either direction. Not a silent skip: `harnessFail` prints every failed resource with the
+  browser's own reason and no refusal can produce a zero exit. Not a wait, for the reason
+  `site/boot.js`'s header already gives, that a wait encoding its own condition can only ever time
+  out; nothing was added to any poll, and the healthy path **prints what it found** rather than
+  passing in silence.
+- **`SMOKE_BREAK_RESOURCE`, the affordance that proves the refusal fires**, on the same footing as
+  `SMOKE_SKIP_PHASE`: name a substring and every url holding it is refused at the network layer.
+  `SMOKE_BREAK_RESOURCE=app.css` reproduces the card. Proved by both mechanisms the recorder
+  watches, a network-layer refusal and an HTTP 404 from a server serving `site/` with `app.css`
+  removed, and the twelve assertions are unchanged: 354 of 354 on a healthy page, before and after.
+- **A `HarnessFailure` raised inside a `group()` is no longer recorded as a failed assertion.** It
+  is the suite saying it has nothing to report, which is the one thing the two lists are kept apart
+  to keep straight, and recording it put the page back on the wrong side of the ledger.
+
 - **NOTHING HELD `build/build_layout.py`'S OWN `text_w()` CALL SITES AGAINST ANYTHING, #217.**
   A reserve comes out of a row of `build/label_widths.json`, and which row is decided by a key
   `text_w()` composes at `build_layout.py:165` out of a size, a weight, an italic flag and a caps
