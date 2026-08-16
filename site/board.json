@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T07:44:28Z",
+  "generated": "2026-08-16T07:47:40Z",
   "columns": [
     {
       "key": "raw",
@@ -33,6 +33,12 @@
             "idea"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
+        },
+        {
+          "id": 186,
+          "title": "The sheet caps content at 1238px, and the week grid is the first surface that wants the width",
+          "labels": [],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/186"
         }
       ]
     },
@@ -57,28 +63,12 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/159"
         },
         {
-          "id": 167,
-          "title": "Four surfaces render sampled programmes as complete, and one deletes half the term",
-          "labels": [
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/167"
-        },
-        {
           "id": 168,
           "title": "Two planted defects shipped green through the whole suite and both content gates",
           "labels": [
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/168"
-        },
-        {
-          "id": 169,
-          "title": "Closing the term sheet rewrites the address, so a shared link draws a different programme",
-          "labels": [
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/169"
         },
         {
           "id": 170,
@@ -111,6 +101,22 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/166"
+        },
+        {
+          "id": 167,
+          "title": "Four surfaces render sampled programmes as complete, and one deletes half the term",
+          "labels": [
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/167"
+        },
+        {
+          "id": 169,
+          "title": "Closing the term sheet rewrites the address, so a shared link draws a different programme",
+          "labels": [
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/169"
         },
         {
           "id": 171,
