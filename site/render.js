@@ -829,6 +829,17 @@
         var frame = el('rect', { class: 'focus-frame', rx: 7 });
         g2.insertBefore(frame, titleEl.nextSibling);
 
+        // A `g` IS NOT A BUTTON, WHICH IS WHY THIS KEYDOWN EXISTS AND WHY IT MUST STAY WHERE IT
+        // IS. An SVG `g` with `tabindex` takes focus but synthesises no click from Enter, so
+        // without this listener a keyboard reader could not open a node at all. The cost is
+        // that a key press on a node is answered HERE and not by the click path, so anything
+        // that gates the click path has to gate this one too: feedback.js's capture mode did
+        // not, and in capture mode Enter selected the node instead of opening a report about
+        // it (issue 199). The repair is a keydown branch in feedback.js's own document-level
+        // capture listener, which the DOM runs before this one and which stops propagation, so
+        // this listener is simply never invoked while capture mode is on. Two listeners, one
+        // order, and the order is the DOM's rather than a delay's. Moving either of them out of
+        // the phase it is in breaks that, silently and in the direction of selecting.
         g2.addEventListener('click', function (ev) { ev.stopPropagation(); onSelect(n.id); });
         g2.addEventListener('keydown', function (ev) {
           if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onSelect(n.id); }
