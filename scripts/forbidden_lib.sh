@@ -20,7 +20,105 @@
 # one folded token per line on stdout, and scripts/check_repo.sh --self-test puts one corpus
 # through both and refuses a disagreement. The sentence above is now a claim something checks.
 
-FORBIDDEN_SALT="zrive-model-toy/forbidden/v1"
+# ---------------------------------------------------------------------------------------
+# THE SALT, WHICH IS NOT WRITTEN DOWN HERE ANY MORE. Issue 164.
+# ---------------------------------------------------------------------------------------
+# This line used to be an assignment. The value it assigned was also printed, in clear, in the
+# header of the hash list it protects, and that list was a tracked file in a repository the world
+# can read. The generator's own header conceded that hashing bought obscurity and not secrecy; it
+# conceded it about a PRIVATE repository, and the repository is public. Measured with the exact
+# construction below, in single-threaded pure Python on an ordinary laptop: a little over eight
+# hundred thousand hashes a second, so a dictionary of a hundred thousand ordinary Spanish given
+# names and surnames runs against the whole register in about a tenth of a second. A salt that is
+# published is not a salt. A salt that is a readable slug is barely one either, so the value that
+# replaced it is random and not memorable.
+#
+# WHERE IT LIVES NOW. In one place per machine, and never in this repository:
+#
+#   CI          the FORBIDDEN_SALT repository secret, exported by scripts/ci_register.sh
+#               before any gate step runs
+#   a developer the FORBIDDEN_SALT environment variable, or a line
+#               FORBIDDEN_SALT=<value> in $HOME/.config/zrive-model-toy/forbidden.env
+#
+# WHAT HAPPENS WITH NEITHER. This file refuses to load. Not a warning, not a skip, not a default:
+# every consumer of this library is a gate, a gate that cannot hash cannot recognise anything, and
+# a matcher that recognises nothing reports every input clean. That is the loudest lie this
+# machinery can tell and it is the one failure mode the whole file is written against, so the
+# refusal is at the top, before a caller has printed a banner it would then have to retract.
+#
+# THE FILE IS PARSED AND NOT SOURCED. Sourcing hands a config file the ability to run commands
+# inside every gate in this repository. One line of parsing costs nothing and takes that away.
+FORBIDDEN_SALT_FILE="${FORBIDDEN_SALT_FILE:-$HOME/.config/zrive-model-toy/forbidden.env}"
+
+if [ -z "${FORBIDDEN_SALT:-}" ] && [ -r "$FORBIDDEN_SALT_FILE" ]; then
+  FORBIDDEN_SALT="$(sed -n 's/^[[:space:]]*FORBIDDEN_SALT[[:space:]]*=[[:space:]]*//p' \
+                      "$FORBIDDEN_SALT_FILE" | tr -d '"'\''' | head -1)"
+fi
+
+if [ -z "${FORBIDDEN_SALT:-}" ]; then
+  {
+    echo "ASSERTION FAILED: no FORBIDDEN_SALT, so the name gate cannot hash anything."
+    echo
+    echo "  Every gate that sources scripts/forbidden_lib.sh recognises a real name by hashing"
+    echo "  it and looking the hash up. With no salt there is no hash, nothing matches, and a"
+    echo "  gate that matches nothing calls every file clean. It refuses to run instead."
+    echo
+    echo "  In CI: set the FORBIDDEN_SALT repository secret and put the scripts/ci_register.sh"
+    echo "  step in front of the gate step."
+    echo
+    echo "  On a developer machine: export FORBIDDEN_SALT, or write one line"
+    echo "  FORBIDDEN_SALT=<value> into $FORBIDDEN_SALT_FILE and chmod it 600."
+    echo
+    echo "  The value is not in this repository and must never be committed to it. Ask the"
+    echo "  owner. Without it you can read this tree and you cannot run its content gates."
+  } >&2
+  exit 2
+fi
+
+# Binds a register to the salt it was generated with. WHY THIS EXISTS: the salt and the hash list
+# are two secrets now, and two secrets rotate independently, which means one of them can be
+# rotated alone. A register hashed under the previous salt, read by a gate holding the current
+# one, matches nothing at all and every gate reports clean. That is the same lie as a missing
+# salt wearing a clean-looking hat, and nothing about the run would look wrong.
+#
+# So the generator stamps this value into the register's header and the gates check it before
+# they trust the register. It is the same one-way construction as a token hash, over the salt
+# alone and under its own prefix so it can never collide with one, and it discloses nothing that
+# the register does not already: against a random salt it is not invertible, and the register is
+# not public any more in any case.
+salt_check() {
+  printf 'zrive-model-toy salt-check\n%s' "$FORBIDDEN_SALT" | sha256sum | cut -c1-16
+}
+
+SALT_CHECK_TAG='# salt-check: '
+
+# A register the gates are about to trust must say which salt it was built under, and must be
+# right about it. Called by the two gates on the register actually in use, and by nothing else:
+# the synthetic registers a self-test writes are fixtures for the matcher and are built under
+# the salt in force by construction.
+assert_register_bound() {  # hashfile
+  local f="$1" want got
+  want="$(salt_check)"
+  got="$(sed -n "s/^${SALT_CHECK_TAG}//p" "$f" | head -1)"
+  if [ -z "$got" ]; then
+    {
+      echo "ASSERTION FAILED: the register at $f carries no salt-check line."
+      echo "  It was written by a generator older than issue 164, which means it was hashed"
+      echo "  under the published salt. Regenerate it with scripts/gen_forbidden_hashes.sh."
+    } >&2
+    exit 2
+  fi
+  if [ "$got" != "$want" ]; then
+    {
+      echo "ASSERTION FAILED: the register at $f was built under a different salt."
+      echo "  Nothing in it can match, so this gate would report every file clean. Refusing."
+      echo "  Either the FORBIDDEN_SALT in force is stale, or the register is. Regenerate the"
+      echo "  register from the vault with scripts/gen_forbidden_hashes.sh under the salt you"
+      echo "  intend, and update BOTH repository secrets together."
+    } >&2
+    exit 2
+  fi
+}
 
 # Tokens shorter than this are too common to be a name signal.
 FORBIDDEN_MIN_TOKEN=4
@@ -433,8 +531,23 @@ name_lines() {  # hashfile
 # was on stdin, so a caller that pipes a real name in gets real name tokens back out. Every
 # caller in this repository pipes it either a tracked file or a synthetic probe corpus.
 
-# Sourced, this file defines rules and runs nothing. Run directly, it exposes exactly two of
-# them, and refuses anything else rather than doing nothing quietly.
+# ---------------------------------------------------------------------------------------
+# The salt-check, for a caller that has to agree with this file about the salt without either
+# of them saying what it is.
+# ---------------------------------------------------------------------------------------
+# build/model.py hashes every string the model ships and refuses the build on a hit, so it needs
+# the salt itself, and it is Python and cannot source this file. It resolves the salt the same
+# two ways this file does, which is a second copy of a rule, and this repository has been bitten
+# five times by a rule living in two places. The copies are compared rather than trusted: both
+# sides compute the salt-check of whatever they resolved and the values have to be equal.
+#
+# Printing it is safe in a way that printing the salt is not. It is one way, it is over a random
+# value, and it is already carried in the register's own header. So it can go in a CI log, in a
+# probe's output and in a diagnostic, and the salt can go in none of those.
+
+# Sourced, this file defines rules and runs nothing. Run directly, it exposes exactly four of
+# them, and refuses anything else rather than doing nothing quietly. Note that reaching any of
+# them at all means the salt resolved: the check at the top of this file has already run.
 if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
   set -euo pipefail
   case "${1:-}" in
@@ -446,10 +559,20 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
     --fold-tokens)
       fold_tokens
       ;;
+    --salt-check)
+      salt_check
+      ;;
+    --assert-bound)
+      [ -n "${2:-}" ] || { echo "usage: forbidden_lib.sh --assert-bound <hashfile>" >&2; exit 2; }
+      [ -s "${2}" ] || { echo "ASSERTION FAILED: no name hash list at ${2}" >&2; exit 2; }
+      assert_register_bound "$2"
+      ;;
     *)
-      echo "scripts/forbidden_lib.sh is a library. Run directly it does two things:" >&2
+      echo "scripts/forbidden_lib.sh is a library. Run directly it does four things:" >&2
       echo "  bash scripts/forbidden_lib.sh --name-lines <hashfile>" >&2
       echo "  bash scripts/forbidden_lib.sh --fold-tokens" >&2
+      echo "  bash scripts/forbidden_lib.sh --salt-check" >&2
+      echo "  bash scripts/forbidden_lib.sh --assert-bound <hashfile>" >&2
       exit 2
       ;;
   esac

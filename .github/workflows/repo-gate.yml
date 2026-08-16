@@ -36,6 +36,20 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # The register this gate matches against. Issue 164: it used to arrive with the checkout,
+      # because it was a tracked file, and it was a tracked file whose own header printed the
+      # salt that protects it. It is untracked now and comes from two repository secrets, and
+      # this step writes it outside the working tree and points the steps below at it.
+      #
+      # It fails the job when the secrets are not available, which on a pull request from a FORK
+      # is always, because GitHub gives a fork's pull request no secrets. That is the intended
+      # direction: this gate cannot run there and must not appear to have run.
+      - name: Materialise the name register
+        env:
+          FORBIDDEN_SALT: ${{ secrets.FORBIDDEN_SALT }}
+          FORBIDDEN_NAMES_SHA256: ${{ secrets.FORBIDDEN_NAMES_SHA256 }}
+        run: bash scripts/ci_register.sh
+
       # Jidoka. Prove the gate is armed before believing it when it says clean. A gate that
       # cannot be shown to fire is not a gate.
       - name: Prove the repository gate fires

@@ -503,3 +503,36 @@ build on a cited slug that resolves to nothing.
   family as the rule that reads a comma or dot grouped number as a money figure, and the repair is
   the same: **change the text, never the rule.** Describe the shape instead of quoting an instance,
   or build the value from parts.
+- `kaizen-a-concession-outlives-the-premise-that-made-it-acceptable` &middot; **A limitation
+  written down honestly stops being honest the moment the condition that made it tolerable
+  changes, and nothing about the sentence changes to say so.**
+  `scripts/gen_forbidden_hashes.sh` carried a paragraph conceding that hashing the name register
+  bought obscurity and not secrecy, because the salt was committed and Spanish given names are a
+  short dictionary. Every word of it was true when it was written and it was written about a
+  PRIVATE repository, where an attacker had to be let in before any of it mattered. The
+  repository became public. The paragraph did not move, three documents went on saying the
+  repository was private, and the concession then read as a considered acceptance of a risk
+  nobody had re-priced. Issue 164 found the salt printed in the header of the very file it
+  protects, beside a count of the real people covered, at a hash rate that clears a hundred
+  thousand candidates in a fraction of a second.
+  **The rule is that a stated limitation carries its premise, and the premise is the thing to
+  re-read, not the limitation.** A concession is a conditional: *given X, this is acceptable*.
+  Filing it as a known gap files the conclusion and drops the condition, and a conclusion with no
+  condition attached cannot go stale in any way a reader will notice. So write the premise into
+  the concession, in the same sentence, and treat a change in project configuration as a sweep of
+  every sentence that named the old one. The cheap version of that sweep is to grep the
+  documentation for the configuration word itself; here, `private` returned five live claims and
+  the API returned `public`.
+- `kaizen-a-workflow-command-is-only-a-command-where-something-is-listening` &middot; **A line
+  whose safety depends on being intercepted is a plain `echo` everywhere the interceptor is
+  absent, and the place it is absent is usually a developer's terminal.**
+  `scripts/ci_register.sh` emitted `::add-mask::` over the salt, which is exactly right inside
+  Actions, where the runner consumes the line so it never reaches the log, and which is an
+  ordinary print of the secret anywhere else. The first local run of the script disclosed the
+  value and cost a rotation. The same shape covers `::error::`, `::group::`, `$GITHUB_ENV` and
+  every other runner affordance: they are protocol, not behaviour, and protocol with no listener
+  degrades to whatever the raw bytes do. **Guard on the environment that provides the listener,
+  and pick the failure direction on purpose:** guard a masking line so it is silent off-runner,
+  and let a diagnostic line print plainly. The test that catches this is running the script
+  outside CI and reading its output, which is the same discipline as running a gate on a machine
+  that does not have what CI has.

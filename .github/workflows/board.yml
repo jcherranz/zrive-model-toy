@@ -110,6 +110,17 @@ jobs:
         with:
           node-version: "20"
 
+      # The register, before anything reads it. Issue 164. This workflow needs it twice over:
+      # scripts/sync_board.mjs applies the name rule to every issue title BEFORE writing the
+      # board, and scripts/check_repo.sh reads the rendered bytes afterwards. Both are matchers,
+      # and a matcher with no register matches nothing and passes a title carrying a real name
+      # straight onto a public page. This step failing is the only acceptable alternative.
+      - name: Materialise the name register
+        env:
+          FORBIDDEN_SALT: ${{ secrets.FORBIDDEN_SALT }}
+          FORBIDDEN_NAMES_SHA256: ${{ secrets.FORBIDDEN_NAMES_SHA256 }}
+        run: bash scripts/ci_register.sh
+
       # Prove the gate fires before anything is rendered. It is the same self-test verify.sh
       # runs, and it is separated from the scan below because the two answer different
       # questions: this one is "does the gate still refuse what it claims to refuse", and it is

@@ -38,9 +38,9 @@ invented set.
 takes its file list from `site/`, fetches each of those paths from the public origin over HTTP,
 and fails the job on a real name, a euro-formatted figure other than the two invented ones,
 `collection://`, a UUID, an email address, or any of the words that would name a vendor
-architecture. It holds no names: `scripts/forbidden_names.sha256` carries salted hashes, and
-`scripts/gen_forbidden_hashes.sh` regenerates them locally from the register. Run
-`scripts/check_forbidden.sh --self-test` to see it fire on one synthetic case per rule.
+architecture. It holds no names: it matches against a register of salted hashes, described under
+"The name register" below. Run `scripts/check_forbidden.sh --self-test` to see it fire on one
+synthetic case per rule.
 
 `scripts/check_repo.sh` runs in CI on every push and every pull request and scans **every
 tracked file**, which is the half the deployed-bytes gate cannot reach: Pages publishes `site/`
@@ -53,8 +53,72 @@ excused files, and an entry that stops matching fails the run rather than linger
 checks the documentation's citations: `HANSEI.md` and `KAIZEN.md` entries carry slugs, everything
 that cites one names the slug, and a citation naming a slug no entry carries fails the build.
 
-The repository is private and the site is public. That is deliberate. Read `HANSEI.md` first if
-that combination looks like an accident.
+## The name register
+
+The three gates above recognise a real teacher's name by folding the bytes into tokens, hashing
+each token with a salt, and looking the hash up in a register. The register is
+`scripts/forbidden_names.sha256`, it holds nothing but hashes, and **it is not in this
+repository.**
+
+It was, until issue 164, and what it looked like then is the reason for everything in this
+section. It was a tracked file on a public repository, and its own third line printed the salt
+that protects it and a count of the real people it covers. Hashing was never claimed to be
+secrecy, and the generator said so; it said so about a private repository, and this one is
+public. With the salt in hand the construction is a dictionary attack that finishes before you
+can read the sentence describing it: measured single-threaded, in pure Python, on an ordinary
+laptop, a little over eight hundred thousand hashes a second, so a hundred thousand candidate
+Spanish given names and surnames run against the whole register in about a tenth of a second.
+
+So, in order:
+
+- **The register is untracked and ignored.** `scripts/gen_forbidden_hashes.sh` writes it, and it
+  can only run on a machine that holds the vault the names live in.
+- **The salt is random and lives in a secret.** It is not a readable slug any more and it is
+  written down nowhere in this tree. `scripts/forbidden_lib.sh` resolves it from
+  `FORBIDDEN_SALT`, or from a line `FORBIDDEN_SALT=<value>` in
+  `~/.config/zrive-model-toy/forbidden.env`, and **refuses to load if neither answers.**
+- **The header names no headcount and no salt.** A count of real people is a disclosure whether
+  or not anyone can be named. What it carries instead is a salt-check, which binds the file to
+  the salt that built it.
+- **CI has no vault**, so it cannot generate the register and gets the same bytes from the
+  `FORBIDDEN_NAMES_SHA256` repository secret. `scripts/ci_register.sh` writes them outside the
+  working tree, where they cannot be committed or swept into the published artifact, and exports
+  the path. Every workflow that runs a content gate calls it first.
+
+**What happens if you do not have it.** Everything that reads the register refuses, loudly, and
+names what is missing and what to do. `scripts/verify.sh` refuses the whole run before its first
+step rather than skipping six of thirteen and printing a ratio that means nothing. Nothing
+degrades, nothing defaults and nothing goes quietly green: a gate that cannot hash matches
+nothing, and a gate that matches nothing calls every file clean, which is the one failure this
+machinery exists to prevent. You can read and edit this repository without the register. You
+cannot run its content gates, and you will be told that rather than shown a green tick.
+
+**One operational wrinkle, found by hitting it.** A checkout that crosses the commit which
+untracked the register destroys your local copy: git restores the old tracked file on the way past
+and then deletes it, and an ignored file is not protected from that. A rebase of a branch based
+before that commit is enough. Nothing is lost that a rerun of the generator does not replace, and
+the preflight says exactly what happened rather than letting six steps fail one at a time.
+
+**Rotation.** Regenerate with `scripts/gen_forbidden_hashes.sh`, then set both secrets together;
+the script prints the two commands when it finishes. Setting one without the other is caught
+rather than tolerated: the salt-check in the header will not match the salt in force, and every
+gate aborts instead of scanning happily against a register that can no longer match anything.
+`scripts/gen_forbidden_hashes.sh --salt-check` answers "do this machine's salt and register
+agree" without printing either.
+
+**And what rotation does not do.** The register as it stood, and the salt it was built under, are
+in this repository's git history and stay there until somebody rewrites it. Rotating stops the
+file being a live oracle from today; it does not reach backwards. That is recorded in `HANSEI.md`
+and the decision about the history is the owner's.
+
+The repository and the site are both public. This line said the repository was private, and so
+did lines in TPS.md and HANSEI.md; issue 164 asked the API and corrected all five. It was private
+once, and most of the machinery above was designed under that premise, which is the part worth
+knowing: a gate built for a private tree is now the whole barrier rather than the second one.
+Read `HANSEI.md` first. Its entry `2026-08-09-private-repo-public-pages` is about a different
+repository and its lesson holds here unchanged, that the visibility of a repository and the
+visibility of the site it publishes are two settings and neither one is evidence about the other.
+Whether this repository stays public is the owner's decision and it is open.
 
 ## Reading the diagram
 
@@ -278,9 +342,36 @@ The `feedback` button in the header opens a small popover: a note and a category
 filing paths and which one runs depends on the visitor, not on the page.
 
 **With no token stored, which is the state of every visitor by default,** submitting opens a
-prefilled `github.com` issue URL in a new tab. No POST, no API call, no credential. The
-repository is private, so only someone already signed in with access can file, and a prefilled
-URL needs none.
+prefilled `github.com` issue URL in a new tab. No POST, no API call, no credential, and a
+prefilled URL needs none. What it does need is a GitHub account, and that is the whole of the
+barrier: this paragraph used to add that the repository is private, so only someone already
+granted access could file. It is public and its issue tracker is enabled, so any signed-in GitHub
+user can file. Issue 164.
+
+**Which means the board is writable by strangers, and the honest description of that is below.**
+`.github/workflows/board.yml` runs on every issue event, `scripts/sync_board.mjs` renders the
+tracker into `site/board.json`, and `site/board.js` draws it. An open issue carrying no status
+label lands in Raw, and Raw draws every card it holds, so a person nobody invited can put a line
+of their own text on the board this project is managed from and on the published page.
+
+That is the exposure. It is a text exposure and it is bounded, and each bound is something a
+file does rather than something this paragraph hopes:
+
+- The title is written with `textContent` in `site/board.js`, so it is inserted as text. No
+  markup is parsed, no script runs, no attribute is reachable from it.
+- Before the board is written at all, every title goes through the name rule in
+  `scripts/forbidden_lib.sh`, invoked from `scripts/sync_board.mjs`; a title carrying a token the
+  faculty register holds is replaced by a placeholder and the substitution is counted and
+  logged. A run where that rule cannot be executed writes no board rather than an ungated one.
+- The rendered board is then read by `scripts/check_repo.sh` before the workflow commits it, in
+  the same step and with nothing re-rendering in between, so a banned word, a euro-formatted
+  figure, an email address, a UUID or a corpus link arriving in a title turns the run red instead
+  of reaching the page.
+
+What survives all of that is arbitrary clean text in a card, plus the ordinary running cost of an
+open tracker: noise, and a column that anyone can lengthen. No credential is reachable this way
+and no code executes; calling it an injection would overstate it. It is the front door being a
+front door, and the thing worth writing down is that the door was described as locked.
 
 **A visitor may connect their own fine grained personal access token** through the popover. It
 is stored in that browser's `localStorage` under `zmt.gh.token` and nowhere else. When such a

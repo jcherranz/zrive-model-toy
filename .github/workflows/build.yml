@@ -102,6 +102,17 @@ jobs:
       - name: Name the interpreter this run used
         run: python3 --version
 
+      # The name register. Issue 164. This workflow is not obviously a content gate and it holds
+      # one: build/model.py hashes every string the model ships and refuses the build on a
+      # collision with the register, and it runs at import, so every step below that imports the
+      # model needs it. The model aborts loudly without it rather than passing a roster it never
+      # checked, which is what this step exists to prevent it having to do.
+      - name: Materialise the name register
+        env:
+          FORBIDDEN_SALT: ${{ secrets.FORBIDDEN_SALT }}
+          FORBIDDEN_NAMES_SHA256: ${{ secrets.FORBIDDEN_NAMES_SHA256 }}
+        run: bash scripts/ci_register.sh
+
       # Jidoka. Prove the check refuses a bad drawing before believing it when it says clean.
       # A gate that cannot be shown to fire is not a gate. Both other gates in this repository
       # are run this way and this one is no different.

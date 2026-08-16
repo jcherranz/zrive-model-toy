@@ -1,2 +1,7 @@
 __pycache__/
 *.pyc
+
+# The name register. Generated locally by scripts/gen_forbidden_hashes.sh on a machine that
+# holds the vault, read on CI out of a repository secret, and tracked nowhere. Issue 164: it
+# was a tracked file whose own header printed the salt that protects it.
+scripts/forbidden_names.sha256

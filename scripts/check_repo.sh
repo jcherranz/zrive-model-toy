@@ -664,6 +664,22 @@ scan_contrast() {
 scan_repo() {
   local n_files n_hashes bytes f
 
+  # THE REGISTER IS CHECKED BEFORE THE SCAN, NOT DURING IT. Issue 164. It is untracked now and
+  # arrives either from scripts/gen_forbidden_hashes.sh on a machine holding the vault or from
+  # scripts/ci_register.sh out of a repository secret, so it can be missing, and it can be
+  # present and built under a salt this run does not hold. Either way every token hashes to
+  # something the register does not carry, nothing matches, and this gate reports a clean
+  # repository. assert_scan_inputs below already refuses an EMPTY register; it cannot see a full
+  # one that was built under the wrong salt, which looks identical from inside the loop.
+  [ -s "$HASHES" ] || {
+    echo "ASSERTION FAILED: no name register at $HASHES" >&2
+    echo "  This gate cannot recognise a name without one, and a gate that recognises nothing" >&2
+    echo "  reports clean. In CI, run scripts/ci_register.sh first. Locally, generate it with" >&2
+    echo "  scripts/gen_forbidden_hashes.sh on a machine that holds the vault." >&2
+    exit 2
+  }
+  assert_register_bound "$HASHES"
+
   n_files="$(git ls-files | wc -l)"
   n_hashes="$(grep -cv '^#' "$HASHES" || true)"
   # Summed file by file rather than through xargs. A tracked path deleted from the disk makes
@@ -678,7 +694,11 @@ scan_repo() {
   done < <(git ls-files)
   assert_scan_inputs "$n_files" "$bytes" "$n_hashes"
 
-  echo "scanning $n_files tracked files, $bytes bytes, against $n_hashes name hashes"
+  # The register's size is not printed, for the reason check_forbidden.sh gives at the same line:
+  # it is a fact about a group of real people, this log is public, and the only thing the verdict
+  # rests on is that the register was not empty, which assert_scan_inputs has just established.
+  # The count is still computed and still has to be positive.
+  echo "scanning $n_files tracked files, $bytes bytes, against a register assert_scan_inputs found non-empty"
   echo "declared self-matches: ${#FORBIDDEN_EXEMPT[@]}"
   echo "declared contrast exceptions: ${#CONTRAST_EXEMPT[@]}"
   echo
@@ -730,7 +750,7 @@ raise SystemExit(1)' "$1" "$2" 2>/dev/null || true
 # distinction smoke.mjs draws between "the page has regressed" and "the suite could not answer".
 # A run that ALSO recorded a real MISS reports the MISS and exits 1, because evidence about the
 # gate beats a complaint about the harness.
-EXPECTED_PROBES=120
+EXPECTED_PROBES=126
 
 # How many cases build/model.py's stylesheet reader emits into the block below. Same argument,
 # and it lives here rather than in the emitter because here is where the cases are judged and
@@ -1293,6 +1313,86 @@ Probe|Probe|dark|#9d3f9d|#252a31|2.4972|#1c2127|2.8015
     echo "  [MISS] a register holding no hashes answered clean (exit $rc)"
   fi
 
+  # THE OTHER WAY A FULL REGISTER MATCHES NOTHING. Issue 164. The salt and the register are two
+  # secrets now, so one of them can be rotated without the other, and a register hashed under
+  # the previous salt is a file full of hashes none of which this run can produce. Every gate
+  # then scans every file, matches nothing and reports a clean tree, which is indistinguishable
+  # from a clean tree. The register carries a salt-check for this and the library refuses a
+  # mismatch; the probes below are what make that a claim rather than a comment.
+  #
+  # Both registers are BUILT and neither is typed: one is a real register's shape with the
+  # binding line removed, and the other carries a binding line that is well formed and belongs
+  # to a different salt. A literal would be a payload this gate then finds in this file.
+  total=$((total + 1))
+  rc=0
+  { echo "# a register from before the binding existed"; hash_token "kestrelvane"; } > "$tmp/unbound"
+  ( bash "$ROOT/scripts/forbidden_lib.sh" --assert-bound "$tmp/unbound" >/dev/null 2>&1 ) || rc=$?
+  if [ "$rc" -eq 2 ]; then
+    echo "  [OK]   a register that names no salt aborted instead of being trusted"
+    pass=$((pass + 1))
+  else
+    echo "  [MISS] a register that names no salt was accepted (exit $rc)"
+  fi
+
+  total=$((total + 1))
+  rc=0
+  {
+    echo "# a register built under some other salt"
+    printf '%s%s\n' "$SALT_CHECK_TAG" \
+      "$(printf 'zrive-model-toy salt-check\n%s' "not the salt in force" | sha256sum | cut -c1-16)"
+    hash_token "kestrelvane"
+  } > "$tmp/othersalt"
+  ( bash "$ROOT/scripts/forbidden_lib.sh" --assert-bound "$tmp/othersalt" >/dev/null 2>&1 ) || rc=$?
+  if [ "$rc" -eq 2 ]; then
+    echo "  [OK]   a register built under another salt aborted instead of matching nothing quietly"
+    pass=$((pass + 1))
+  else
+    echo "  [MISS] a register built under another salt was accepted (exit $rc)"
+  fi
+
+  # And the control that keeps the two above from being a gate that refuses everything. A
+  # register this machine's own salt built has to be accepted, or the assertion is not a binding
+  # check, it is an off switch.
+  total=$((total + 1))
+  rc=0
+  { echo "${SALT_CHECK_TAG}$(salt_check)"; hash_token "kestrelvane"; } > "$tmp/bound"
+  ( bash "$ROOT/scripts/forbidden_lib.sh" --assert-bound "$tmp/bound" >/dev/null 2>&1 ) || rc=$?
+  if [ "$rc" -eq 0 ]; then
+    echo "  [OK]   a register built under the salt in force was accepted"
+    pass=$((pass + 1))
+  else
+    echo "  [MISS] a register built under the salt in force was refused (exit $rc)"
+  fi
+
+  # And the salt itself, which is the input every one of those turns on. A gate with no salt
+  # cannot hash, so it recognises nothing and calls everything clean; the library refuses to
+  # load at all rather than reaching that state. Proved by running it with the salt cleared and
+  # the config file pointed at a path that does not exist, so neither resolution path can answer.
+  total=$((total + 1))
+  rc=0
+  ( FORBIDDEN_SALT="" FORBIDDEN_SALT_FILE="$tmp/no-salt-file-here" \
+      bash "$ROOT/scripts/forbidden_lib.sh" --salt-check >/dev/null 2>&1 ) || rc=$?
+  if [ "$rc" -eq 2 ]; then
+    echo "  [OK]   no salt anywhere refused to load instead of hashing with nothing"
+    pass=$((pass + 1))
+  else
+    echo "  [MISS] no salt anywhere still loaded (exit $rc)"
+  fi
+
+  # The other direction of the same switch: the file path is a real resolution route and not
+  # decoration, so a salt reachable ONLY through it has to work.
+  total=$((total + 1))
+  rc=0
+  printf 'FORBIDDEN_SALT=%s\n' "a salt only this file knows" > "$tmp/saltfile"
+  ( FORBIDDEN_SALT="" FORBIDDEN_SALT_FILE="$tmp/saltfile" \
+      bash "$ROOT/scripts/forbidden_lib.sh" --salt-check >/dev/null 2>&1 ) || rc=$?
+  if [ "$rc" -eq 0 ]; then
+    echo "  [OK]   a salt reachable only through the config file resolved"
+    pass=$((pass + 1))
+  else
+    echo "  [MISS] a salt in the config file did not resolve (exit $rc)"
+  fi
+
   # The caller, end to end. A fake `gh` stands in for the tracker, so no network and no real
   # issue is involved; BOARD_PATH sends the render to a throwaway file, so a probe can never
   # touch site/board.json; the register is synthetic.
@@ -1342,12 +1442,28 @@ print([i["title"] for i in issues if i["number"] == 1][0])' "$tmp/issues.json")"
 
   # And the string the caller writes instead must be clean against the register that is really
   # in use, not only against the synthetic one this self-test hands it.
+  #
+  # THE EXIT STATUS IS PART OF THE ANSWER, AND THIS PROBE USED TO THROW IT AWAY. Issue 164. The
+  # command substitution ended `|| true` and the verdict was "no output". Those are two different
+  # states wearing one face: the rule ran and found nothing, which is the pass this probe is
+  # about, and the rule ABORTED, which prints nothing to stdout either. Abort became likelier
+  # with this card, because the register is untracked now and a machine can legitimately not
+  # have one, but the defect was there the whole time: on a machine with no register this probe
+  # printed [OK] and had asked nothing. That is the eighth dead instrument found in this project
+  # and it was found by a reviewer reading for exactly this shape.
+  #
+  # So the status is captured and demanded, and a probe that cannot be run is a MISS rather than
+  # a pass. stderr is kept out of the value, not out of existence.
   total=$((total + 1))
+  rc=0
   nl_out="$(printf '%s\n' "$withheld" \
-              | bash "$ROOT/scripts/forbidden_lib.sh" --name-lines "$HASHES" 2>/dev/null || true)"
-  if [ -n "$withheld" ] && [ -z "$nl_out" ]; then
+              | bash "$ROOT/scripts/forbidden_lib.sh" --name-lines "$HASHES" 2>/dev/null)" || rc=$?
+  if [ "$rc" -eq 0 ] && [ -n "$withheld" ] && [ -z "$nl_out" ]; then
     echo "  [OK]   what the caller writes instead is clean against the register in use"
     pass=$((pass + 1))
+  elif [ "$rc" -ne 0 ]; then
+    echo "  [MISS] the name rule could not be run against the register in use (exit $rc), so this"
+    echo "         probe asked nothing. That is not a pass."
   else
     echo "  [MISS] what the caller writes instead is not clean against the register in use"
   fi
@@ -1534,6 +1650,28 @@ print([i["title"] for i in issues if i["number"] == 1][0])' "$tmp/issues.json")"
   # failure than the one it closes. Recorded on issue 117 rather than repaired here.
   gate_diff "declared: only the local gate reads a figure whose digits are not ASCII" \
         pass trip 'a fee of ١٢٣ EUR per session'
+
+  # A THIRD COPY OF A RULE, AND THE SAME TREATMENT. Issue 164 took the salt out of the library
+  # and left build/model.py, which hashes every string the model ships, needing to find it
+  # without a literal to read. It is Python, it cannot source the library, so it resolves the
+  # salt itself: environment first, then the same config file, by the same precedence. That is
+  # two implementations of one resolution, which is the shape this whole section exists for.
+  #
+  # They are compared through the one value both can say out loud. A salt-check is one way over
+  # the salt under its own prefix, so neither side has to print the secret to prove it resolved
+  # the same one, and a disagreement means the model would hash with a salt the register was not
+  # built under, find nothing, and pass a roster it never checked.
+  total=$((total + 1))
+  local sc_sh sc_py
+  sc_sh="$(bash "$ROOT/scripts/forbidden_lib.sh" --salt-check 2>/dev/null || true)"
+  sc_py="$(cd "$ROOT" && python3 build/model.py --salt-check 2>/dev/null || true)"
+  if [ -n "$sc_sh" ] && [ "$sc_sh" = "$sc_py" ]; then
+    echo "  [OK]   the shell and Python resolutions of the salt agree, salt-check $sc_sh"
+    pass=$((pass + 1))
+  else
+    echo "  [MISS] the shell and Python resolutions of the salt disagree or one did not answer"
+    echo "         shell: ${sc_sh:-<no answer>}   python: ${sc_py:-<no answer>}"
+  fi
 
   echo
   echo "self-test: $pass/$total, of $EXPECTED_PROBES intended"

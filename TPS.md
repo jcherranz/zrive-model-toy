@@ -11,14 +11,16 @@ gets a row and no more.
 Status markers: `[OK]` implemented and traceable to a file, `[OPEN]` unvalidated or not built,
 `[FLAG]` a deliberate rejection, recorded so it reads as a choice rather than an omission.
 
-The repository is private and the site is public. That is the arrangement, deliberately, and it
-is the reason most of what follows exists. Only `site/` is deployed; the documentation, `build/`
-and `scripts/` are not.
+The repository and the site are both public. This line said the repository was private until
+issue 164 asked the API; the arrangement it described was real once and is not the arrangement
+now, and most of what follows was designed under the old one. Only `site/` is deployed, which is
+why the repository gate exists at all: the documentation, `build/` and `scripts/` reach no
+deployment and are readable by anyone regardless.
 
 | Pillar | Status | Where |
 |---|---|---|
 | Jidoka, stop the line | `[OK]` best developed | `scripts/check_forbidden.sh`, `scripts/check_repo.sh`, `scripts/smoke.mjs`, and the four workflows that deploy or gate. `issue-status.yml` runs no check and is the one workflow that writes no file and publishes nothing |
-| Poka-Yoke, mistake-proofing | `[OK]` | `scripts/check_forbidden.sh`, `scripts/check_repo.sh`, `scripts/forbidden_names.sha256`, `scripts/sync_board.mjs`, `scripts/verify.sh` |
+| Poka-Yoke, mistake-proofing | `[OK]` | `scripts/check_forbidden.sh`, `scripts/check_repo.sh`, `scripts/forbidden_lib.sh`, `scripts/ci_register.sh`, `scripts/sync_board.mjs`, `scripts/verify.sh` |
 | Genchi Genbutsu, go and see | `[OK]` learned the hard way | `~/bin/shot`, `scripts/smoke.mjs`, KAIZEN.md acceptance rule |
 | Standard work | `[OK]` | `build/build_layout.py`, `build/model.py` |
 | Heijunka, level the work | `[OK]` | GitHub Issues, `scripts/sync_board.mjs` |
@@ -89,12 +91,24 @@ Six places where the mistake is made hard rather than remembered against.
   It scans its own source, so it carries a table of declared self-matches; each is an exact triple
   of rule, path and string, an entry that stops matching fails the run, and the real-name rule
   cannot be declared at all, but a table is still a place where something could be parked.
-- **The gate holds no names.** `scripts/forbidden_names.sha256` holds one salted, truncated hash
-  per name token; the checker folds the deployed bytes the same way and compares.
-  `scripts/gen_forbidden_hashes.sh` runs locally against the vault and is the only thing that ever
-  sees the register. `[OPEN]` This buys obscurity, not secrecy: the salt is committed, and Spanish
-  given names and surnames are a short dictionary. It stops a casual read and a search engine. It
-  does not stop somebody who wants the list.
+- **The gate holds no names, and no longer holds the key to them either.** `[OK]`
+  `scripts/forbidden_names.sha256` holds one salted, truncated hash per name token; the checker
+  folds the bytes the same way and compares. `scripts/gen_forbidden_hashes.sh` runs locally
+  against the vault and is the only thing that ever sees the names. The row above this one said
+  the rest bought obscurity rather than secrecy, because the salt was committed and Spanish given
+  names and surnames are a short dictionary. It was right and it was not enough: the salt was
+  committed **in the header of the file it protects**, next to a count of the real people covered,
+  on a repository that had become public, and the whole construction runs at a rate that finishes
+  a hundred thousand candidates in a fraction of a second. Issue 164. The register is untracked
+  now, the salt is random and lives in a repository secret, the header names neither, and a
+  register that cannot match aborts every gate rather than passing everything. README.md, "The
+  name register", is the procedure.
+- **A gate that cannot get its list stops.** `[OK]` Untracking the register created a state that
+  did not exist before, a complete checkout that cannot run the gates, and the wrong answer to it
+  is a skip. `scripts/forbidden_lib.sh` refuses to load with no salt, both gates refuse to scan
+  with no register or a register built under another salt, and `scripts/verify.sh` refuses the
+  whole run rather than reporting eleven of thirteen. Every one of those is proved by a probe in
+  `scripts/check_repo.sh --self-test`, in both directions.
 - **An empty input aborts instead of reporting clean.** `scan_dir` asserts a non-zero file count,
   a non-zero byte count and a non-empty hash list, and exits 2 if any of the three fails. A gate
   handed nothing to scan and reporting clean is the loudest lie it can tell, and this project has
