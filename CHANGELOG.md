@@ -48,6 +48,65 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- **NOTHING HELD `build/build_layout.py`'S OWN `text_w()` CALL SITES AGAINST ANYTHING, #217.**
+  A reserve comes out of a row of `build/label_widths.json`, and which row is decided by a key
+  `text_w()` composes at `build_layout.py:165` out of a size, a weight, an italic flag and a caps
+  flag **typed at the call site**. `check_widths_cover` holds the table against the job that writes
+  it; #206 holds the painted page against the table. The arguments were on neither side of either
+  comparison, and the card traced four one-line edits to them through the code, every one green
+  under every gate in the repository: drop the bold term from `reserve()` and every label box is
+  reserved at the regular width while `.node.sel .lbl` paints it bold, which is **#203's harm
+  reintroduced from the build side**; pass `False` for a ghost chip's italic flag and 56 painted
+  italic chips are reserved from the upright row; ask a mark at weight 600, or a caption without
+  the caps flag, and the key names a context that does not exist, at which point the width is the
+  hand written estimate and the build says so on stderr and **exits 0**
+  (`build_layout.py:1074-1085`).
+  **The new gate, `check_widths_asked`, section 3 of `scripts/check_build.sh`.** It runs the real
+  builder over the fourteen drawings into a throwaway directory and reads back every
+  `(context, string)` its `text_w()` was asked for from the two lists the function already keeps,
+  `_errors` for a lookup that hit and `_fellback` for one that missed; every call appends to
+  exactly one of them before returning, so together they are the complete record and reading them
+  costs the builder nothing. **1349 lookups over 14 drawings in 7 contexts**, inside the 5115
+  pairs `collect()` declares in the same 7. Five assertions: nothing fell back; every context
+  asked for is one the job declares, and every pair with it; **every context the job declares is
+  asked for, with a population**, which is the one that sees a whole term go missing; every string
+  the fourteen drawings paint was measured, counted by kind (**38 caption lines, 377 label lines,
+  1 mark, 39 tails, 17 verbs, 472 distinct strings**) and read off the two documents the builder
+  just wrote rather than off its arguments; and every drawn label line was measured in **both**
+  faces the page paints it in, at rest and selected, with the keys composed from `.node .lbl`,
+  `.node.sel .lbl` and `.lbl-ghost` rather than from the literals at the call site.
+  **The expectation is not derived from the subject**, which is the trap #206 records: the
+  comparison's other side is `collect()`, which reads its sizes and weights out of `site/app.css`
+  and its strings out of `build/model.py`, and the documents the page loads. What it does **not**
+  say is stated in its own header: it holds the arguments and not the arithmetic, so a `reserve()`
+  returning half the maximum it computes would ask for everything this gate wants asked and pass.
+  **Six mutations proved red by making them, 119 probes to 131.** The four the card lists, plus two
+  the card does not: the same `reserve()` asking the bold width of **only the first line** of a
+  wrapped label, which leaves both contexts populated and is caught by the per-line assertion
+  instead; and the tail term dropped from `:456`, which empties no context and strays into none,
+  and is caught only by the painted-string population. Each runs against a copy of the builder
+  carrying one changed line, behind an overlay of symlinks to the real bands, model, stylesheet and
+  table, so nothing under `build/` is written to. **Two controls, not one**: the same builder
+  copied through the fixture unchanged still passes, and an edit whose search string matches no
+  line answers 9, which no probe expects, so a probe gone stale goes red as a broken probe rather
+  than silently testing nothing.
+  **Assertion D is about the string and not the context it was asked in, deliberately.** The
+  stylesheet paints a mark at nine pixels **italic** and the builder still measures it upright;
+  that is the disagreement #206 pinned in `FACE_KNOWN` and **#215** repairs. Making D
+  context-precise today would go red on another card's defect. When #215 moves `:454` and `:456`
+  to the italic context, this gate goes red until `collect()` measures them there too, which is
+  the correct end state and not a fight: a width asked for in a context the job never declared is
+  a width nothing measured.
+  **The second half of the card, the table never being re-measured, is left open with the
+  measurement rather than closed badly.** `python3 build/measure_labels.py --check` on this machine
+  at `e3899b5`: **5118 entries, zero value changes, zero missing, three surplus rows** the layout no
+  longer asks for, and it exits 1 on those three alone. `check_widths_cover` already reports the
+  same three and already decided they are dead weight and not a defect, so a naive `--check` in CI
+  would go red for a reason this repository has ruled is not one, and it would go red again on any
+  runner whose resolvable font set differs from the author's, which is the reason check 2 is a
+  coverage test and not a byte diff in the first place. **A check that cannot tell a surplus row
+  from a shaping difference is too coarse to gate on**, and building one that can is a card, not a
+  line.
 - **NO GATE HELD A RESERVED WIDTH AGAINST THE STYLE RULE THAT ACTUALLY PAINTS THE STRING, #206.**
   A context in `build/label_widths.json` **is** a face: `9/400` is nine pixels at the regular weight,
   `10/600i` is ten bold in italic, `9/600+caps` is the band captions' spaced upper case. Every
