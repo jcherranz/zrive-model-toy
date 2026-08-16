@@ -335,7 +335,10 @@ const PHASES = {
   // viewport now, and that the month grid beside it is the same box at two widths.
   'the outline':          { count: 10, when: 'behavioural' },
   'canvas':               { count: 7, when: 'behavioural' },
-  'capture':              { count: 15, when: 'behavioural' },
+  // 15 until issue 199 item 1, which adds four here and to no other phase: the keyboard half of
+  // capture mode, which did not exist on the drawing. Three claims about the press and one
+  // negative control, the same press with the mode off, which runs first.
+  'capture':              { count: 19, when: 'behavioural' },
   'board':                { count: 13, when: 'behavioural' },
   'the load':             { count: 1, when: 'behavioural' },
   // Issue 170, R7. Two claims at every width, because both are about a number that is different
@@ -705,7 +708,16 @@ const PHASES = {
 // narrowed to one week by a finger can be widened by one, which no x on the track could do; and
 // that a calendar chip's five facts are in the document rather than in a title a phone cannot
 // raise, with the no-instructor mark carried by something that is not a colour.
-const EXPECTED_ASSERTIONS = 336;
+// 336 until issue 199 item 1, which adds four to `capture` and to no other phase. Capture mode was
+// mouse only on the drawing, so a keyboard reader could file about the chrome and about none of
+// the primary view. Three of the four are the press itself, read in three states rather than two
+// because the defect produced a SELECTED NODE and not silence: that Enter with the mode on opens
+// the popover and selects nothing, that the popover it opens names the node the focus was on, and
+// that Space does the same. The fourth runs first and is the negative control, the same press with
+// the mode off, which must select the node and open no popover: it pairs with the mouse half's
+// `a pan in capture mode opens no popover`, it is the regression guard on render.js's own keydown,
+// and it is what stops a dispatch that never reached the page from reading as a repair.
+const EXPECTED_ASSERTIONS = 340;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -10929,6 +10941,8 @@ async function checkCapture(page, base) {
   await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
   await page.waitFor(`!document.body.classList.contains('fb-mode')`, 'capture mode to turn off');
 
+  await captureFromTheKeyboard(page);
+
   await checkCaptureOverASheet(page);
 
   const net = await page.evaluate('JSON.stringify(window.__smoke)');
@@ -10939,6 +10953,189 @@ async function checkCapture(page, base) {
     `calls ${JSON.stringify(rec.calls)}, opens ${JSON.stringify(rec.opens)}`);
 
   await checkItCanFile(page, base);
+}
+
+// ---- and that a reader with no mouse can file about the drawing -------------------------------
+// ISSUE 199's FIRST ITEM. Everything the phase above drives, it drives with a pointer. feedback.js
+// binds capture to `click`, and an HTML button synthesises a click from Enter, so the header, the
+// toggle and the footer were always capturable from the keyboard and nobody noticed that the
+// drawing was not: an SVG `g` with `tabindex` synthesises nothing, render.js answers Enter and
+// Space on a node with its own listener, and in capture mode that listener SELECTED THE NODE.
+// The primary view of this page is the drawing, and the only route this page has for reporting a
+// defect could not be pointed at any of it without a mouse.
+//
+// THREE STATES AND NOT TWO, WHICH IS THE WHOLE DESIGN OF THIS CHECK. The defect does not produce
+// silence; it produces a DIFFERENT correct-looking outcome, a selected node. A check that read
+// only `is there a popover` would call the repair green the moment a popover appeared for any
+// other reason at all, and would say nothing about the thing that actually happened. So every
+// press below is read as one of: the popover opened, the node was selected, nothing happened at
+// all, and the fourth that should be impossible, both at once. The outcome is NAMED in the
+// failure text rather than printed as two booleans, because the difference between the second
+// and the third is the difference between this defect and a dead harness.
+//
+// AND IT DISPATCHES A REAL keydown. `pressByText` and every other press helper in this file end
+// in `.click()`, which fires on an element that is covered, clipped, of zero size or display:none
+// and, worse here, IS THE VERY THING THE PAGE DOES NOT DO FOR AN SVG `g`. A keyboard claim proved
+// with a synthetic click would be proving the opposite of the claim. These are
+// Input.dispatchKeyEvent, the same route the phase above leaves the mode by.
+//
+// THE NEGATIVE CONTROL IS THE SAME PRESS WITH THE MODE OFF, AND IT RUNS FIRST. It pairs with the
+// mouse half's own negative, `a pan in capture mode opens no popover`: there, the gesture that
+// must NOT open a box; here, the state in which the key must NOT open one. Running it first is
+// what makes it an instrument check as well as a claim. If the key never reaches the page, this
+// assertion goes red naming `nothing happened at all` before any positive claim is made, so a
+// dead dispatch can never be read as a repair. It is also the regression guard on render.js:
+// with capture mode off, Enter on a node must still open the node.
+async function captureFromTheKeyboard(page) {
+  await page.evaluate('window.ZT.fit()');
+  await viewSettled(page);
+  await clearSelectionIfAny(page);
+
+  // TWO NODES AND NOT ONE, AND THE SECOND IS THERE FOR THE PLANT RATHER THAN FOR THE PAGE.
+  // selection.js's select() TOGGLES: `if (current === id) { clear(); return; }`, at
+  // site/selection.js:296. So a run in which the repair is absent selects the node on the first
+  // press and DESELECTS it on the second, and a second press on the same node would be read as
+  // `nothing happened at all`, which is this file's own name for a dead harness. Pressing the
+  // second key on a different node keeps every failure legible as the state it actually is.
+  // Both are read off the drawing and neither is named here. The second is CHOSEN BY TAKING THE
+  // FOCUS rather than by being the far end of an edge, which is what the first draft did and what
+  // the run refused: the employer at the other end of that edge would not take focus at all, so
+  // the phase threw on its own setup. A node picked because it answered focus() is a node every
+  // press below can reach, and the first one in document order that is not the node already in
+  // hand is the same node on every run.
+  const node = await someInstructor(page);
+  const other = await page.evaluate(`(function () {
+    var gs = Array.prototype.slice.call(document.querySelectorAll('#graph g[data-node]'));
+    for (var i = 0; i < gs.length; i++) {
+      var id = gs[i].getAttribute('data-node');
+      if (id === ${JSON.stringify(node)} || !gs[i].focus) continue;
+      gs[i].focus();
+      if (document.activeElement === gs[i]) { gs[i].blur(); return id; }
+    }
+    return '';
+  })()`);
+  if (!other) throw new Error('no second node on the drawing would take focus, so the press ' +
+                              'that must land on one cannot be made');
+
+  // Focus put on the `g` itself, and READ BACK. A node that would not take focus makes every
+  // press below land on `<body>`, where nothing selects and nothing captures, and the phase would
+  // then report `nothing happened at all` three times over as if it had found a defect. This is
+  // the same guard `brushFocus` puts on the term strip and for the same reason.
+  const focusNode = async (id) => {
+    const ok = await page.evaluate(`(function () {
+      var g = document.querySelector('[data-node="' + ${JSON.stringify(id)} + '"]');
+      if (!g || !g.focus) return 'no such node on the drawing: ' + ${JSON.stringify(id)};
+      g.focus();
+      return document.activeElement === g ? true : 'the node would not take focus';
+    })()`);
+    if (ok !== true) throw new Error(`${ok}, so no key press below can reach it`);
+  };
+
+  // What happened, in the three terms the check is written in. Read after a bounded settle
+  // rather than after a waitFor, because two of the three outcomes are the absence of the thing
+  // a waitFor would be waiting for and a twenty second timeout is not a measurement.
+  //
+  // AND IT DOES NOT RETURN ON THE FIRST THING IT SEES. Returning the instant either half of the
+  // state was non-empty would make the fourth outcome, BOTH, unobservable in one direction: a
+  // page that opened the popover and then selected the node a tick later would be read as the
+  // clean `the popover opened` and the selection would never be looked for. So the first
+  // non-empty reading is a signal to look ONCE MORE after a settle, and the later reading is the
+  // one returned. Both halves are synchronous on the page today; this is here so that a page
+  // where they stop being synchronous is reported and not smoothed over.
+  const readState = () => page.evaluate(`(function () {
+    var p = document.querySelector('.fb-popover .fb-el');
+    var s = window.ZT.selected();
+    return JSON.stringify({ popover: !!p, descriptor: p ? p.textContent : null,
+                            selected: s ? s.id : null });
+  })()`).then(JSON.parse);
+  const outcome = async () => {
+    for (let i = 0; i < 40; i++) {
+      const st = await readState();
+      if (st.popover || st.selected) { await sleep(80); return readState(); }
+      await sleep(25);
+    }
+    return { popover: false, descriptor: null, selected: null };
+  };
+  const name = st => (st.popover && st.selected)
+    ? `BOTH: the popover opened AND ${st.selected} was selected`
+    : st.popover ? 'the popover opened'
+    : st.selected ? `the node was selected (${st.selected}) and no popover opened`
+    : 'nothing happened at all';
+
+  const press = async (key, code, vk) => {
+    const p = { key, code, windowsVirtualKeyCode: vk };
+    await page.send('Input.dispatchKeyEvent', Object.assign({ type: 'rawKeyDown' }, p));
+    await page.send('Input.dispatchKeyEvent', Object.assign({ type: 'keyUp' }, p));
+  };
+  const ENTER = ['Enter', 'Enter', 13], SPACE = [' ', 'Space', 32];
+
+  // 1. THE NEGATIVE CONTROL. Capture mode is off here, because the phase above left it off.
+  await focusNode(node);
+  await press(...ENTER);
+  const off = await outcome();
+  assert('with capture mode off, Enter on a focused node selects it and opens no popover',
+    off.selected === node && off.popover === false,
+    `${node} selected and no .fb-popover, which is also what proves the press reaches the page`,
+    name(off));
+  await clearSelectionIfAny(page);
+
+  // 2. THE MODE ON, through the toggle a reader uses rather than by calling setMode.
+  const toggle = await stableRect(page, '#fbtoggle');
+  await click(page, Math.round(toggle.cx), Math.round(toggle.cy));
+  await page.waitFor(`document.body.classList.contains('fb-mode')`,
+    'capture mode to turn on for the keyboard pass');
+
+  await focusNode(node);
+  await press(...ENTER);
+  const onEnter = await outcome();
+  assert('with capture mode on, Enter on a focused node opens the capture popover and selects nothing',
+    onEnter.popover === true && onEnter.selected === null,
+    'a .fb-popover in the document and window.ZT.selected() still null',
+    name(onEnter));
+
+  // 3. AND IT IS ABOUT THE NODE THE FOCUS WAS ON. Separate from the claim above on purpose: a
+  // popover that opened over the body, the toggle or whatever the previous press left behind
+  // would satisfy `a popover is present` and would be the wrong report filed about the wrong
+  // thing. The descriptor is feedback.js's own, and the node key is what it puts in it.
+  assert('and the popover it opens names the node the focus was on',
+    typeof onEnter.descriptor === 'string' && onEnter.descriptor.indexOf(node) !== -1,
+    `a descriptor containing ${JSON.stringify(node)}`,
+    JSON.stringify(onEnter.descriptor));
+
+  // 4. SPACE, WHICH IS THE OTHER HALF render.js ANSWERS. Repairing Enter alone would leave Space
+  // selecting the node under a mode that is meant to intercept everything, so the two keys are
+  // asserted rather than the one the card happened to name.
+  await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: '3', code: 'Digit3', windowsVirtualKeyCode: 51 });
+  await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: '3', code: 'Digit3', windowsVirtualKeyCode: 51 });
+  await page.waitFor(`!document.querySelector('.fb-popover')`, 'the keyboard popover to close');
+  await focusNode(other);
+  await press(...SPACE);
+  const onSpace = await outcome();
+  // THE DESCRIPTOR IS IN THE CONDITION HERE AND NOT IN AN ASSERTION OF ITS OWN, which is the one
+  // difference from the Enter pair above and is deliberate. Without it this claim reads `some
+  // popover is open`, and a Space path that always captured `<body>`, the toggle, or the node the
+  // PREVIOUS press left focus on would satisfy it exactly. That is the same two-state hole the
+  // whole block is written against, one level down. It is folded into this assertion rather than
+  // added beside it because it is not a separate claim about the page: Space opening a box about
+  // the wrong thing is Space not working.
+  const spaceNames = typeof onSpace.descriptor === 'string' &&
+    onSpace.descriptor.indexOf(other) !== -1;
+  assert('and Space does the same, rather than selecting the node under a mode that intercepts',
+    onSpace.popover === true && onSpace.selected === null && spaceNames,
+    `a .fb-popover naming ${JSON.stringify(other)}, and window.ZT.selected() still null`,
+    `${name(onSpace)}; descriptor ${JSON.stringify(onSpace.descriptor)}`);
+
+  // Out the way the phase above goes out, and back to nothing selected on a fitted plane, which
+  // is the state checkCaptureOverASheet is written against.
+  await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: '3', code: 'Digit3', windowsVirtualKeyCode: 51 });
+  await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: '3', code: 'Digit3', windowsVirtualKeyCode: 51 });
+  await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+  await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+  await page.waitFor(`!document.body.classList.contains('fb-mode')`,
+    'capture mode to turn off after the keyboard pass');
+  await page.evaluate('window.ZT.fit()');
+  await viewSettled(page);
+  await clearSelectionIfAny(page);
 }
 
 // ---- and that it CAN file, which is the control this phase never had --------------------------

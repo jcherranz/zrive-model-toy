@@ -502,18 +502,84 @@
     if (!fbMode) return;
     // Normal clicks inside the popover itself (the note, the buttons, the board link) and on
     // the toggle (so a second click turns the mode back off) are left alone.
-    if (popoverEl && popoverEl.contains(e.target)) return;
-    if (e.target.closest && e.target.closest('#' + TOGGLE_ID)) return;
+    if (exemptFromCapture(e.target)) return;
     e.preventDefault();
     e.stopPropagation();
     openPopover(e.target, e.clientX, e.clientY);
+  }
+
+  // The two exemptions, in one place because the click half and the keyboard half below must
+  // never disagree about what capture mode leaves alone. An element inside the popover keeps
+  // its own behaviour, so the note types, the selects open and the buttons press; the toggle
+  // keeps its own behaviour because it is the way out of the mode.
+  function exemptFromCapture(target) {
+    if (!target) return true;
+    if (popoverEl && popoverEl.contains(target)) return true;
+    if (target.closest && target.closest('#' + TOGGLE_ID)) return true;
+    return false;
+  }
+
+  // WHERE THE POPOVER GOES WHEN NOTHING WAS POINTED AT. A key event carries no clientX/clientY
+  // (they read 0), and 0,0 is a real place on the screen, so a keyboard capture would have put
+  // every box in the top left corner regardless of what it was about. The element's own rect is
+  // the honest answer: the box comes up beside the thing the report names.
+  //
+  // Clamped into the viewport rather than trusted. This page is a canvas the reader can pan, so
+  // a focused node can sit far off the left edge or below the fold with a perfectly valid rect,
+  // and positionNear() clamps the BOX but anchors it from the point it is handed. An element
+  // with no rect at all (a zero-size hit target, a detached node) falls back to the middle of
+  // the viewport, which is visible, rather than to a corner that looks like a bug.
+  function elementPoint(el) {
+    var r = el && el.getBoundingClientRect ? el.getBoundingClientRect() : null;
+    var x = r && (r.width || r.height) ? r.left + r.width / 2 : NaN;
+    var y = r && (r.width || r.height) ? r.top + r.height / 2 : NaN;
+    if (!isFinite(x)) x = window.innerWidth / 2;
+    if (!isFinite(y)) y = window.innerHeight / 2;
+    x = Math.max(8, Math.min(x, Math.max(8, window.innerWidth - 8)));
+    y = Math.max(8, Math.min(y, Math.max(8, window.innerHeight - 8)));
+    return { x: x, y: y };
+  }
+
+  // ISSUE 199. CAPTURE MODE WAS MOUSE ONLY ON THE DRAWING, AND THE DRAWING IS THE PAGE'S WHOLE
+  // PRIMARY VIEW. onCapture is bound to `click`, and an HTML button synthesises a click from
+  // Enter, so every control in the page chrome could always be captured from the keyboard. An
+  // SVG `g` with `tabindex` synthesises nothing. render.js gives its nodes and its cap buttons
+  // their own `keydown` listeners answering Enter and Space with onSelect (render.js:426 and
+  // render.js:833), so in capture mode Enter on a focused node SELECTED THE NODE instead of
+  // opening the popover: a keyboard reader could file about the header, the toggle and the
+  // footer, and about nothing on the drawing. The page's only route for reporting a defect was
+  // the one route unreachable for the thing most likely to carry one.
+  //
+  // WHY IT IS A BRANCH HERE AND NOT A SECOND LISTENER. onKey is already `document`, capture
+  // phase, which the DOM dispatch algorithm runs before any listener on the target itself. So
+  // stopPropagation() from here is enough: render.js's listener is on the `g`, in the target
+  // phase, and is never invoked. preventDefault() is the other half and stops the key's own
+  // default: Space scrolling the page, and the synthetic click that Enter (and Space, at keyup)
+  // would otherwise raise on a real HTML button, which would arrive at onCapture and open a
+  // second box over the first. One press, one popover, on every kind of element.
+  //
+  // ENTER AND SPACE, AND ONLY BARE. render.js answers both, so answering only Enter would leave
+  // Space still selecting. Any modifier at all stands the branch down, which is what keeps
+  // Shift+Enter filing (below) exactly as it was.
+  function onCaptureKey(e) {
+    if (!fbMode) return false;
+    if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return false;
+    if (e.shiftKey || e.metaKey || e.ctrlKey || e.altKey) return false;
+    if (exemptFromCapture(e.target)) return false;
+    e.preventDefault();
+    e.stopPropagation();
+    var at = elementPoint(e.target);
+    openPopover(e.target, at.x, at.y);
+    return true;
   }
 
   // Shortcuts while the popover is open: 1 copy, 2 copy all, 3 close, 4 file. They stand down
   // while the note or the token field has focus, so digits typed into a note are safe.
   // Shift+Enter is the one exception and fires filing from anywhere in the popover, so a note
   // can be written and filed without reaching for the mouse. Plain Enter is left untouched
-  // everywhere, which is the point: a stray Enter in the note or the token field never files.
+  // INSIDE THE POPOVER, which is the point: a stray Enter in the note or the token field never
+  // files. Outside it, and only while capture mode is on, a plain Enter or Space is the
+  // keyboard's own version of the click that opens a box: see onCaptureKey above, issue 199.
   //
   // Registered in the capture phase, unlike monetary-lab's, because app.js clears the diagram
   // selection on Escape and that selection is what the note is about.
@@ -523,6 +589,10 @@
       setMode(false);
       return;
     }
+    // ABOVE THE `!popoverEl` RETURN, WHICH IS THE WHOLE POINT OF ITS POSITION. The case this
+    // repairs is the FIRST capture of a session, when no popover is open yet, so a branch below
+    // that guard would have gone on doing nothing at all.
+    if (onCaptureKey(e)) return;
     if (!popoverEl || !popoverEl._actions) return;
     if (e.key === 'Enter' && e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey) {
       e.preventDefault();

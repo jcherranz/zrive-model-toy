@@ -108,6 +108,35 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- **CAPTURE MODE WAS MOUSE ONLY ON THE DRAWING, WHICH IS THE PAGE'S WHOLE PRIMARY VIEW, #199.**
+  `site/feedback.js` bound capture to `click`, in the capture phase. An HTML button synthesises a
+  click from Enter, so the header, the toggle and the footer were always capturable from the
+  keyboard; an SVG `g` with `tabindex` synthesises nothing, and `site/render.js` answers Enter and
+  Space on a node with its own `keydown` listener. So in capture mode Enter on a focused node
+  **selected the node** and opened no popover. A reader with no mouse could file a card about the
+  chrome and about nothing on the drawing, which makes the page's only route for reporting a
+  defect the one route unreachable for the thing most likely to carry one.
+  **The repair is a `keydown` branch in the same document-level capture listener**, above the
+  `!popoverEl` return, because the case being repaired is the first capture of a session, when no
+  popover is open yet. It answers Enter and Space, bare only, so `Shift+Enter` still files and the
+  `1/2/3/4` shortcuts are untouched; it takes the same two exemptions the click half takes, the
+  popover and the toggle, now read from one function so the two halves cannot disagree; and it
+  anchors the box on the element's own `getBoundingClientRect`, clamped into the viewport, because
+  a key event carries no coordinates and `0,0` is a real place on the screen.
+  `stopPropagation()` from `document` in the capture phase is what keeps `render.js`'s listener from
+  ever running, and `preventDefault()` is what stops the synthetic click a real button would raise
+  from opening a second box. Ordering is the DOM's rather than a delay's, and it is now written
+  down at both ends.
+  **Four assertions in `scripts/smoke.mjs`, read in three states rather than two.** The defect does
+  not produce silence, it produces a selected node, so every press is reported as one of `the
+  popover opened`, `the node was selected`, `nothing happened at all`, or the fourth that should be
+  impossible. They dispatch a real `keydown` and not `.click()`, which is the very thing the page
+  does not do for a `g`. **The plant:** the branch deleted from `onKey` and the suite re-run, twice.
+  The three positive assertions went red naming `the node was selected (t1) and no popover opened`
+  and `the node was selected (st1) and no popover opened`; the negative control, the same press
+  with the mode off, stayed green, which is what proves the dispatch reaches the page and that a
+  dead harness cannot be read as a repair. `capture` 15 to 19, the suite 336 to 340.
+
 - **THE SHEET CAPPED ITS CONTENT AT 1240 AND THE WEEK GRID SAT AT ITS OWN FLOOR INSIDE IT, #186.**
   The card asked whether the cap is a prose reading measure or inertia, and it is neither. It is
   issue 149's TABLE ceiling, derived from the widest table this sheet can be asked to draw, and the
