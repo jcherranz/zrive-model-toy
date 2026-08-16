@@ -1116,7 +1116,7 @@ verdict() {  # clean|bad ; reads BASELINE_ORIGIN, CENSUS_UNVERIFIED and CENSUS_N
 # probe at a time prints a clean ratio all the way down to 0/0. A count taken from the run cannot
 # notice a probe that did not run. A short run exits 2, "the suite could not answer"; a run that
 # also recorded a failure reports it and exits 1.
-EXPECTED_PROBES=111
+EXPECTED_PROBES=119
 PASS=0
 TOTAL=0
 probe() {
@@ -1264,18 +1264,86 @@ blind_build_no_reading() {  # dir           takes the attestation away entirely
 # is a gate that cannot see that column, and it fails in the direction that costs nothing. So
 # every field either attestation covers is mutated on its own and the digest must move, with a
 # negative control mutating nothing that must report it did not.
+#
+# AND IT ANSWERS IN THREE STATES, WHICH THE FIRST DRAFT DID NOT AND WHICH COST IT ITS CONTROLS.
+# Codex, reviewing this diff: the first version let an exception fall out, so an import that
+# failed and a digest that did not move both exited 1, and the three negative controls, which are
+# the probes that expect 1, went on printing OK over a model that would not load. That is a dead
+# control inside the machinery written to prove nothing else is dead. 0 moved, 1 did not move,
+# 3 the question could not be asked, and no probe expects 3.
+# ---- the states only a machine holding the corpus can be in --------------------------------
+# No runner is one and every doctored copy above is corpus-less, so these four cells of the state
+# table have no end-to-end plant available anywhere the suite runs. They are driven through the
+# two seams on recorded_verdict instead, over a reading this probe writes and a date it chooses,
+# and the reading goes through the real loader on its way in so the parse is exercised too. The
+# ageing hole Codex found lived in one of these cells and nothing could have reached it.
+#
+# It prints the token and exits 0, or prints the refusal and exits 1. Anything else is 3.
+verdict_case() {  # dir  present|absent  sed-expr-over-the-reading  YYYY-MM-DD
+  local d="$1" present="$2" expr="$3" today="$4"
+  mkdir -p "$d" || return 3
+  cp "$ROOT/build/corpus_reading.txt" "$d/reading.txt" || return 3
+  [ -z "$expr" ] || sed -i "$expr" "$d/reading.txt" || return 3
+  ZRIVE_READING="$d/reading.txt" ZRIVE_PRESENT="$present" ZRIVE_TODAY="$today" \
+  python3 - <<'PY'
+import contextlib
+import datetime
+import io
+import os
+import pathlib
+import sys
+
+sys.path.insert(0, "build")
+# THE IMPORT'S OWN NOTICES ARE SWALLOWED AND THE PROBE'S ANSWER IS NOT. Every other gate in the
+# module prints [verified] on its way past, and a probe asserting that this one did NOT print
+# that token would otherwise read three other gates' notices and fail. It did exactly that once
+# here, which is a probe failing for the wrong reason and is the same family as a probe passing
+# for one.
+buf = io.StringIO()
+try:
+    with contextlib.redirect_stderr(buf):
+        import model  # noqa: E402
+except BaseException as exc:  # noqa: BLE001
+    print(f"the model would not import: {type(exc).__name__}: {exc}")
+    sys.exit(3)
+try:
+    rec = model.load_recorded_reading(pathlib.Path(os.environ["ZRIVE_READING"]))
+    token, why = model.recorded_verdict(
+        "syllabus-totals", model.syllabus_totals_digest(),
+        corpus_present=os.environ["ZRIVE_PRESENT"] == "present",
+        reading=rec, today=datetime.date.fromisoformat(os.environ["ZRIVE_TODAY"]))
+except SystemExit as exc:
+    print(f"REFUSED {exc}")
+    sys.exit(1)
+except BaseException as exc:  # noqa: BLE001
+    print(f"nothing was measured: {type(exc).__name__}: {exc}")
+    sys.exit(3)
+print(f"[{token}] {why}")
+PY
+}
+
 digest_moves() {  # python-statement-over-`model`  digest-function-name
   ZRIVE_MUT="$1" ZRIVE_FN="$2" python3 - <<'PY'
 import os
 import sys
 
 sys.path.insert(0, "build")
-import model  # noqa: E402
-
-fn = getattr(model, os.environ["ZRIVE_FN"])
-before = fn()
-exec(os.environ["ZRIVE_MUT"])  # noqa: S102
-sys.exit(0 if fn() != before else 1)
+try:
+    import model  # noqa: E402
+except BaseException as exc:  # noqa: BLE001  (SystemExit is a BaseException and is the usual one)
+    print(f"the model would not import, so nothing was measured: "
+          f"{type(exc).__name__}: {exc}")
+    sys.exit(3)
+try:
+    fn = getattr(model, os.environ["ZRIVE_FN"])
+    before = fn()
+    exec(os.environ["ZRIVE_MUT"])  # noqa: S102
+    after = fn()
+except BaseException as exc:  # noqa: BLE001
+    print(f"the digest could not be taken on both sides of the change, so nothing was measured: "
+          f"{type(exc).__name__}: {exc}")
+    sys.exit(3)
+sys.exit(0 if after != before else 1)
 PY
 }
 
@@ -1767,6 +1835,12 @@ model.ROUTES[cid]["source"] = model.ROUTES[cid]["source"] + ", one more locator"
         in_dir "$tb" digest_moves 'model.ONTOLOGY_ENTITIES += 1' ontology_citation_digest
   probe 1 "negative control: the citations untouched leave that digest where it was" \
         in_dir "$tb" digest_moves 'pass' ontology_citation_digest
+  # AND THE CONTROL OVER THE CONTROLS. Three probes above expect exit 1, and a harness that
+  # answered 1 when it could not run at all would let all three pass over a model that does not
+  # load. This one asks for a digest function that is not there and requires the answer to be
+  # "could not measure" rather than "did not move".
+  probe 3 "a coverage probe that could not take a digest says so instead of saying unmoved" \
+        in_dir "$tb" digest_moves 'pass' no_such_digest_function
 
   echo
   echo "self-test: a build with no corpus, which is every CI run, over a doctored table"
@@ -1793,6 +1867,29 @@ model.ROUTES[cid]["source"] = model.ROUTES[cid]["source"] + ", one more locator"
         blind_build_no_reading "$bd"
   probe_says "[unverified]" "in that word, which is the state this repository was in before" \
         blind_build_no_reading "$bd"
+
+  echo
+  echo "self-test: the four cells only a machine holding the corpus reaches"
+  # Codex, reviewing this diff, found the second of these: the ageing refusal was written into
+  # the no-corpus path alone, so a machine holding the corpus reported [verified] over an
+  # attestation every runner would refuse, and the one machine that could regenerate the file was
+  # the one machine never told. A committed artefact no runner will accept is a defect wherever
+  # it is noticed.
+  local vc="$dir/verdict"
+  probe_says "[verified]" "corpus here, attestation current: the gate is simply verified" \
+        in_dir "$tb" verdict_case "$vc" present '' 2026-08-16
+  probe_says "[stale-record]" "corpus here, attestation past the ageing window: stale, not verified" \
+        in_dir "$tb" verdict_case "$vc" present '' 2030-01-01
+  probe_says "[stale-record]" "corpus here, attestation of other tables: stale" \
+        in_dir "$tb" verdict_case "$vc" present 's/^\(reading syllabus-totals *\)./\1a/' 2026-08-16
+  probe_says_not "[verified]" "and none of those three stale states can print the good token" \
+        in_dir "$tb" verdict_case "$vc" present '' 2030-01-01
+  probe 1 "no corpus and an attestation past the window: refused outright" \
+        in_dir "$tb" verdict_case "$vc" absent '' 2030-01-01
+  probe 0 "control: no corpus and a current attestation is not refused" \
+        in_dir "$tb" verdict_case "$vc" absent '' 2026-08-16
+  probe_says "[recorded]" "and it is the recorded state, naming the date it is quoting" \
+        in_dir "$tb" verdict_case "$vc" absent '' 2026-08-16
 
   echo
   echo "self-test: and the attestation itself is refused when it cannot be evidence"

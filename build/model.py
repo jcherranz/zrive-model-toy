@@ -514,7 +514,10 @@ def reading_lower_bracket(sources=None):
     return max(s["read_on"] for s in sources.values())
 
 
-def recorded_verdict(key, declared, corpus_present, today=None, reading=False):
+_NO_ARG = object()
+
+
+def recorded_verdict(key, declared, corpus_present, reading=_NO_ARG, today=None):
     """What a corpus-reading gate may say, given the corpus it found and the reading on disk.
 
     Four answers, and every one of them is a state some real machine is in:
@@ -542,7 +545,16 @@ def recorded_verdict(key, declared, corpus_present, today=None, reading=False):
     one level up. And it must not raise HERE, because scripts/gen_corpus_reading.sh imports this
     module in order to rewrite that very file: a raise would lock the only thing that repairs it.
     """
-    rec = RECORDED_READING if reading is False else reading
+    # THE TWO SEAMS EXIST BECAUSE TWO BRANCHES ARE OTHERWISE UNREACHABLE FROM A PROBE, and the
+    # first version of this function had neither, on the argument that a parameter no probe
+    # passes is an untested branch. The argument is right and it pointed the wrong way here: the
+    # states where the corpus IS present and the recording is stale or aged out can only be
+    # reached on a machine holding the corpus, no runner is one, and the doctored copies the
+    # plants use are all corpus-less by construction. Codex found the ageing hole in exactly that
+    # branch, which nothing could have driven. Both seams are passed by probes in
+    # scripts/check_build.sh, and `today` is a date rather than a clock so no probe can be
+    # written that only passes today.
+    rec = RECORDED_READING if reading is _NO_ARG else reading
     today = datetime.date.today() if today is None else today
     # THE TWO BRACKETS ON THE DATE, both computed here rather than in the loader. The lower one
     # is clock-free and comes off VALUE_SOURCES; the upper one is the clock and refuses a reading
@@ -562,6 +574,16 @@ def recorded_verdict(key, declared, corpus_present, today=None, reading=False):
                        f"is in the future. Nothing has been read on a day that has not happened, "
                        f"and a date ahead of the clock is how an attestation would buy itself "
                        f"immunity from the ageing rule.")
+    # THE AGE IS COMPUTED FOR BOTH PATHS AND NOT ONLY FOR THE ONE THAT REFUSES ON IT, which the
+    # first draft got wrong and Codex found: the refusal sat in the no-corpus branch alone, so a
+    # machine holding the corpus reported [verified] over an attestation every runner would
+    # refuse, and the one machine that can regenerate the file was the one machine never told.
+    # A committed artefact that no runner will accept is a defect wherever it is noticed.
+    aged = None
+    if rec is not None and not problem:
+        days = (today - rec["date"]).days
+        if days > AGING_DAYS:
+            aged = days
     if corpus_present:
         if rec is None:
             return ("stale-record", f"and no recorded reading is committed at "
@@ -570,6 +592,13 @@ def recorded_verdict(key, declared, corpus_present, today=None, reading=False):
                                     f"one with scripts/gen_corpus_reading.sh.")
         if problem:
             return ("stale-record", "and the recorded reading cannot be used: " + problem)
+        if aged is not None:
+            return ("stale-record",
+                    f"and the recorded reading in {CORPUS_READING_PATH.name} was taken "
+                    f"{aged} days ago, past the {AGING_DAYS} this build accepts. It agrees with "
+                    f"these tables and a runner will refuse it anyway, so it is stale here even "
+                    f"though nothing on this machine depended on it. Regenerate it with "
+                    f"scripts/gen_corpus_reading.sh.")
         if rec["readings"][key] != declared:
             return ("stale-record",
                     f"and the recorded reading in {CORPUS_READING_PATH.name} is of different "
@@ -602,11 +631,10 @@ def recorded_verdict(key, declared, corpus_present, today=None, reading=False):
             f"screen.\n"
             f"  Either restore the tables, or re-read the corpus on a machine that has it and "
             f"regenerate the attestation with scripts/gen_corpus_reading.sh in the same commit.")
-    age = (today - rec["date"]).days
-    if age > AGING_DAYS:
+    if aged is not None:
         raise SystemExit(
             f"[model] the recorded reading in {CORPUS_READING_PATH.name} was taken on "
-            f"{rec['read_on']}, which is {age} days ago, and this build accepts one no older "
+            f"{rec['read_on']}, which is {aged} days ago, and this build accepts one no older "
             f"than {AGING_DAYS} days.\n"
             f"  It still agrees with the {key} tables, and that is exactly the point: what it "
             f"cannot see is a corpus that moved after it was written, and the longer it stands "
@@ -616,7 +644,8 @@ def recorded_verdict(key, declared, corpus_present, today=None, reading=False):
             f"scripts/gen_corpus_reading.sh.")
     return ("recorded",
             f"the tables are byte for byte the ones a machine holding the corpus verified on "
-            f"{rec['read_on']}, {age} day(s) ago, recorded in {CORPUS_READING_PATH.name}. What "
+            f"{rec['read_on']}, {(today - rec['date']).days} day(s) ago, recorded in "
+            f"{CORPUS_READING_PATH.name}. What "
             f"that cannot see is a corpus that moved since")
 
 
@@ -1811,17 +1840,27 @@ def check_ontology_registry(routes=None, root=None, vault=None, read_on=None, en
                     f"route {cid} quotes {loc!r} and {path.name} does not carry that phrase. "
                     f"The passage this route was read from is not there any more.")
             resolved += 1
-    if unchecked:
-        # HALF A CORPUS IS NOT A CORPUS, and this notice keeps the token it carried before issue
-        # 196 rather than claiming the better one. The attestation is a single digest over ALL
-        # the citations and it cannot be split into the ones this machine followed and the ones
-        # it did not, so a machine holding one half of the corpus reports what it has always
-        # reported: it did not look at everything. Under-claiming is the direction this
-        # repository takes when it cannot tell.
+    # HALF A CORPUS IS NOT A CORPUS, and this branch keeps the token it carried before issue 196
+    # rather than claiming the better one. The attestation is a single digest over ALL the
+    # citations and cannot be split into the ones this machine followed and the ones it did not,
+    # so a machine holding one half reports what it has always reported: it did not look at
+    # everything. Under-claiming is the direction this repository takes when it cannot tell.
+    #
+    # AND THE CONDITION IS THE TWO CORPORA AND NOT THE UNFOLLOWED COUNT, which Codex found: with
+    # both roots missing this function has already returned, and `unchecked` is zero whenever
+    # every citation happens to point at the half that IS present. The citation grammar allows a
+    # route to cite the vault alone, so a set of routes citing nothing in the analysis repository
+    # would have reached the verified notice on a machine holding no analysis repository at all,
+    # with the entity count unchecked and inside the digest. The rule is that the gate read
+    # everything it is about, and reading everything means both.
+    if unchecked or not have_root or not have_vault:
+        gone = ", ".join(n for n, ok in (("the analysis repository", have_root),
+                                         ("the vault", have_vault)) if not ok)
         print(f"[model] ontology registry: [unverified] {resolved} citation locators re-read "
-              f"against the corpus on this machine, {unchecked} of them unverified because "
-              f"{'the vault' if have_root else 'the analysis repository'} is not on it. Every "
-              f"one of them was recorded on {read_on}.", file=sys.stderr)
+              f"against the corpus on this machine and {unchecked} of them not, because {gone} "
+              f"is not on it. Half a corpus cannot attest the whole of what this gate covers, so "
+              f"nothing here is checked against {CORPUS_READING_PATH.name} either. Every one of "
+              f"them was recorded on {read_on}.", file=sys.stderr)
         return
     token, why = (("verified", "") if not attest else
                   recorded_verdict("ontology-citations",

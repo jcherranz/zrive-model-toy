@@ -161,10 +161,12 @@ for key in model.READING_KEYS:
             continue
         out.append(f"#     the {sname} source names it, and says its corpus was read on "
                    f"{src['read_on']}:")
+        # rstrip on every line and not only the last one. `git diff --check` refuses trailing
+        # whitespace and the first draft of this wrapper shipped six lines of it.
         words, line = src["corpus"].split(), "#       "
         for w in words:
             if len(line) + len(w) + 1 > 96:
-                out.append(line)
+                out.append(line.rstrip())
                 line = "#       "
             line += (w + " ")
         out.append(line.rstrip())
@@ -179,18 +181,47 @@ PY
 )"
 
 if [ "$MODE" = "--check" ]; then
-  # The date moves every day and the digests do not, so a comparison of whole files would report
-  # a difference on the second day for the one reason that is not a defect. What is compared is
-  # the readings.
-  a="$(printf '%s\n' "$new" | grep '^reading ' | tr -s ' ')"
-  b="$(grep '^reading ' "$DEST" 2>/dev/null | tr -s ' ' || true)"
-  if [ "$a" = "$b" ]; then
-    echo "build/corpus_reading.txt records the tables this build carries."
-    exit 0
-  fi
-  echo "ASSERTION FAILED: build/corpus_reading.txt does not record the tables this build carries." >&2
-  echo "  Run scripts/gen_corpus_reading.sh on this machine and commit the result." >&2
-  exit 1
+  # THE QUESTION IS ASKED OF THE GATES AND NOT OF A TEXT COMPARISON, which the first draft got
+  # wrong and Codex found: it compared only the `reading` lines, so a committed file with the
+  # right digests and a schema this build cannot read, or a date past the ageing window, or a
+  # line of garbage in the middle, printed "records the tables this build carries" about a file
+  # every runner would refuse. Every one of those is a thing build/model.py already decides, and
+  # a second implementation of a decision is a second answer to it. `verified` is the state a
+  # current attestation puts a gate in on a machine holding the corpus, and it is the only one.
+  set +e
+  ZRIVE_ROOT="$ROOT" python3 - <<'PY'
+import contextlib
+import io
+import os
+import pathlib
+import sys
+
+sys.path.insert(0, str(pathlib.Path(os.environ["ZRIVE_ROOT"]) / "build"))
+with contextlib.redirect_stderr(io.StringIO()):
+    import model  # noqa: E402
+
+bad = []
+for key, fn in (("syllabus-totals", model.syllabus_totals_digest),
+                ("module-structure", model.module_structure_digest),
+                ("ontology-citations", model.ontology_citation_digest)):
+    token, why = model.recorded_verdict(key, fn(), corpus_present=True)
+    if token != "verified":
+        bad.append(f"    {key}: [{token}] {why}")
+if bad:
+    print("ASSERTION FAILED: build/corpus_reading.txt is not a reading this build can stand on.",
+          file=sys.stderr)
+    print(file=sys.stderr)
+    print("\n".join(bad), file=sys.stderr)
+    print(file=sys.stderr)
+    print("  Run scripts/gen_corpus_reading.sh on this machine and commit the result.",
+          file=sys.stderr)
+    raise SystemExit(1)
+print("build/corpus_reading.txt records the tables this build carries, in a form this build "
+      "reads, within the ageing window.")
+PY
+  rc=$?
+  set -e
+  exit "$rc"
 fi
 
 printf '%s\n' "$new" > "$DEST"

@@ -163,10 +163,31 @@ jobs:
       - name: The drawing git holds is what the builder produces
         run: |
           set +e
-          bash scripts/check_build.sh
-          rc=$?
+          bash scripts/check_build.sh | tee "$RUNNER_TEMP/build-gate.log"
+          rc="${PIPESTATUS[0]}"
           set -e
-          if [ "$rc" -eq 0 ]; then exit 0; fi
+          if [ "$rc" -eq 0 ]; then
+            # A GREEN JOB MUST STILL SAY WHICH GATES DID NOT OPEN A CORPUS. Issue 196. This runner
+            # exits 0 now, and a summary that said nothing would put the state back where issue
+            # 168 found it, two hundred lines down a log nobody opens. The gate's own verdict is
+            # the source of the sentence; this step only lifts it into the summary.
+            if grep -q "AND READ THIS BEFORE QUOTING THE WORD ABOVE" "$RUNNER_TEMP/build-gate.log"; then
+              echo "::notice title=The build gate read a recording, not a corpus::Gates that re-read a private corpus checked their tables against build/corpus_reading.txt instead. Clean, and it does not establish that the corpus has not moved since that date."
+              {
+                echo "### The build gate: clean, on a recorded reading"
+                echo
+                echo "It exited 0. This runner holds no corpus, so the gates that re-read one"
+                echo "checked their declared tables against the attestation in"
+                echo "\`build/corpus_reading.txt\` and found them unchanged since it was written."
+                echo "What that does NOT establish is that the corpus has not moved since. The"
+                echo "verdict in the step log names each gate and the date it is quoting."
+                echo
+                sed -n '/AND READ THIS BEFORE QUOTING THE WORD ABOVE/,$p' "$RUNNER_TEMP/build-gate.log" \
+                  | sed 's/^/    /'
+              } >> "$GITHUB_STEP_SUMMARY"
+            fi
+            exit 0
+          fi
           if [ "$rc" -ne 3 ]; then exit "$rc"; fi
           echo "::warning title=The build gate ran incomplete::Sub-gates that re-read a corpus could not look at one on this runner. This job did not establish anything they cover. Read the INCOMPLETE verdict in the log above."
           {

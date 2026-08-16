@@ -28,17 +28,17 @@
 #     produced by check_module_structure(), which prints as the `module structure` gate, and which re-read
 #     its corpus on this machine on the date above before this digest was taken
 #     the programme-syllabus source names it, and says its corpus was read on 2026-08-11:
-#       the programme syllabus notes in the owner's private vault, one note per session, 
-#       carrying `module`, `module_name` and `sequence` in their frontmatter. The same corpus 
+#       the programme syllabus notes in the owner's private vault, one note per session,
+#       carrying `module`, `module_name` and `sequence` in their frontmatter. The same corpus
 #       every session title on this page comes from
 #   ontology-citations
 #     produced by check_ontology_registry(), which prints as the `ontology registry` gate, and which re-read
 #     its corpus on this machine on the date above before this digest was taken
 #     the operations-ontology source names it, and says its corpus was read on 2026-08-10:
-#       the operations analysis in the owner's private analysis repository, none of which lives 
-#       here: an ontology of 55 entities in `analysis/ontology/ontology.yaml`, the findings 
-#       register in `analysis/ontology/00_ontology.md`, the workspace reads in 
-#       `analysis/notion/`, and one data-model note in the private vault. The fourth row of 
+#       the operations analysis in the owner's private analysis repository, none of which lives
+#       here: an ontology of 55 entities in `analysis/ontology/ontology.yaml`, the findings
+#       register in `analysis/ontology/00_ontology.md`, the workspace reads in
+#       `analysis/notion/`, and one data-model note in the private vault. The fourth row of
 #       every populate panel is this document's citation into it
 schema 1
 read_on 2026-08-16
