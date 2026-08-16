@@ -108,6 +108,42 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- **THE SHEET CAPPED ITS CONTENT AT 1240 AND THE WEEK GRID SAT AT ITS OWN FLOOR INSIDE IT, #186.**
+  The card asked whether the cap is a prose reading measure or inertia, and it is neither. It is
+  issue 149's TABLE ceiling, derived from the widest table this sheet can be asked to draw, and the
+  argument that holds it there is that a table's columns are content sized, so slack past the
+  demand becomes empty bands inside the table. Sound for the outline, the review and the list.
+  **False for a `repeat(N, minmax(46px, 1fr))` grid**, where an `1fr` track has no demand to be
+  past and every extra pixel goes into a column the reader is comparing against the other twenty
+  three. Measured at 2560 before the change: the box 1240 at left 660 with 660px of screen empty
+  either side, and the twenty four week columns **47.14px** against their own floor of **46**. At
+  1536, **46.52**. The grid was at its floor at both desktop widths.
+- **The opt-out is the week reading's and not the sheet's.** `.term .sheet-box:has(.cal-weekpanel)`
+  takes the full width, scoped on the section `site/term.js` builds for that shape and no other, so
+  the sheet is wide exactly when the wide thing is in it. After: a 2528 box with a **100.19px**
+  column at 2560, a 1504 box at 1536, and 390 by 46 unchanged on a phone. The review, the month
+  grid, the list, both readings of the outline and the roster sheet are untouched at every width,
+  and every viewport from 761 to **1272** is bit identical, which is where `16 + 1240 + 16` falls.
+- **The month grid is the control on that claim rather than a second case of it.** It is a grid
+  too, so `1fr` is not the discriminator. A month cell is 169.86px at 2560 and paints its whole
+  chip title; a week column is at 46 and drops the title to fit. One is out of room and the other
+  is not.
+- **The cost is stated rather than glossed:** the box is centred, so pressing the week control
+  moves the sheet's left edge from 660 to 16 at 2560 and the head goes with it. The alternative,
+  holding the head at the old measure inside a full width box, was built and driven and rejected:
+  measured at 2560 it puts the title at 660 with the panel heading and the first day label at 33,
+  a 627px version of the left edge disagreement issues 113 and 160 spent two cards removing from
+  this sheet. On what shipped, the three read 33, 33 and 33 on the week grid and 677, 677 and 677
+  on the month grid: the sheet moves as one thing at both.
+- **And no second number was typed.** Issue 149's ceiling went red in CI for being fitted to one
+  machine's font metrics; the new column reads 100.19 locally and **100.22** on the runner, because
+  a box asked to be the viewport's carries no font metric at all. `scripts/smoke.mjs` asks whether
+  each shape's box FOLLOWS the viewport rather than comparing it to a literal, and it carries both
+  halves, because a rule that widened the SHEET instead of the reading passes issue 149's own
+  assertion: a wider box makes the outline's table overflow less, not more. Proved to fail in both
+  directions, and on the runner as well as locally: a throwaway branch carrying the stylesheet
+  without the rule was dispatched through the smoke workflow and came back 318 passed and this one
+  failed, reading `week 1240 at 2560 and 1240 at 1536, column 46.55` against 46.52 here.
 - **A PAGE THAT FAILED TO LOAD SHOWED NO ERROR, AND THE FAILURE IT COULD NOT SHOW IS THE ONE THAT
   MATTERS, #166.** `site/app.js` carries ten top level throws whose stated purpose is to turn a
   broken load "into one named error rather than into a page that half draws", and `site/feedback.js`

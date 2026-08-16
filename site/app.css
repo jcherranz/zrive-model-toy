@@ -2875,6 +2875,71 @@ body.hide-unrecorded .sock-unrec { display: none; }
    is what it always was, and 390 is untouched. */
 .term .sheet-box { width: min(1240px, 100%); }
 
+/* ---- ISSUE 186. THE CEILING ABOVE IS A TABLE'S, AND THE WEEK GRID IS NOT A TABLE -------------
+   The card is a question and not a defect: does this sheet cap its content because prose needs a
+   reading measure, or because nothing has ever needed the width. It is neither. The ceiling above
+   is a TABLE ceiling, derived in issue 149 from the widest table this sheet can be asked to draw
+   and held by an assertion because two font stacks report two demands for it. The argument that
+   keeps it at the derived number and no larger is four paragraphs up: a table's columns are sized
+   by their content, so every pixel past the demand is slack the table hands to its own auto
+   columns, and a wider box buys the wide empty bands INSIDE the table that issue 149's triage
+   predicted outside it.
+
+   THAT ARGUMENT IS SOUND FOR A TABLE AND FALSE FOR THIS GRID, and that is the whole answer. The
+   week grid is one column per week of the term under `minmax(46px, 1fr)`, and a `1fr` track has no
+   content demand to be past: every extra pixel goes into a column the reader is comparing against
+   the other twenty three. So the cap is not a measure and it is not inertia. It is a rule about
+   tables, and the week grid is the surface it is wrong about.
+
+   AND THE MONTH GRID IS THE CONTROL ON THAT CLAIM RATHER THAN A SECOND CASE OF IT, which is the
+   distinction to keep: it is a grid too, `repeat(7, minmax(0, 1fr))` above, so `1fr` is not what
+   decides this. What decides it is whether the surface is at its floor. Measured on the page, a
+   month cell is 169.86px at 2560 and paints a chip title 153.84 wide over a scroll width of 154,
+   so it holds its whole content; the week grid's twenty four columns are at 46 and the rule below
+   drops the title because 46 does not hold one. One of them is out of room and the other is not,
+   so one of them gets the opt-out and the other stays where the ceiling is right about it.
+
+   MEASURED ON THE PAGE, BEFORE. At 2560 by 1317, which is the viewport this card and issues 155
+   and 160 were all filed from, the box was 1240 at left 660, so 660px of screen sat empty either
+   side, and the twenty four week columns were 47.14px each against their own floor of 46: the grid
+   was 1.14px off its minimum on the widest screen this page is used at. At 1536 by 839 the column
+   was 46.52. The same 46.52 comes back at 2560 by 839, which the suite drives, because there the
+   rows box carries a vertical scrollbar as well. The grid was at its floor at every desktop
+   reading of it. AND AFTER: 2528 and 100.81 at 2560 by 1317, 2528 and 100.19 at 2560 by 839, 1504
+   at 1536, and 390 and 46 unchanged at 390, where the wrapper still scrolls the grid inside a page
+   that does not.
+
+   AND ON BOTH MACHINES, WHICH IS WHAT ISSUE 149 COST A RED RUN TO ESTABLISH. The column the suite
+   reads is 100.19 on the development machine and 100.22 on the GitHub runner, against the 1145.98
+   and 1160.69 the same table demanded of those two. The three hundredths are the point: a box
+   asked to be the viewport's carries no font metric, so unlike the ceiling above there is nothing
+   here for a second machine to disagree with.
+
+   NO CEILING ON THE OPT-OUT, WHICH IS ISSUE 149'S OWN LESSON AND NOT AN OMISSION. The number this
+   sits beside went red in CI for being fitted to one machine's font metrics. A second number here
+   would be fitted to nothing at all: this grid's only demand is its floor, which the old box
+   already cleared, so any ceiling over it is a preference typed as a measurement. Full width is
+   bounded by the sheet's own padding and by nothing else, and it carries no figure to outgrow.
+
+   WHAT IT COSTS, SAID RATHER THAN GLOSSED. The box is centred, so pressing the week control moves
+   the sheet's left edge from 660 to 16 at 2560 and the whole head goes with it. The alternative was
+   built and driven and rejected: holding the head, the switch and the notice at the old measure
+   inside a full width box does keep the pressed control still, and measured at 2560 it puts the
+   sheet's title at 660 with the panel heading and the first day label at 33, which is a 627px
+   version of exactly the disagreement issues 113 and 160 spent two cards taking off this sheet. On
+   what shipped the three read 33, 33 and 33 on the week grid and 677, 677 and 677 on the month
+   grid, so the sheet moves as one thing at both. A sheet that grows is an event a reader can read;
+   a title and its rows disagreeing about where the left edge is, is not.
+
+   SCOPED BY WHAT IS ON THE SCREEN RATHER THAN BY A FLAG. `.cal-weekpanel` is the section term.js
+   builds for this shape and for no other, so the sheet is wide exactly when the wide thing is in
+   it and there is no second state to keep true. The review, the month grid, the list and both
+   readings of the outline stay at the ceiling above; scripts/smoke.mjs drives the month grid
+   beside the week grid and requires that half as well as this one, and that is the half worth
+   having, because a rule that widened the SHEET rather than the reading passes issue 149's own
+   assertion. A wider box makes the outline's table overflow less, not more. */
+.term .sheet-box:has(.cal-weekpanel) { width: 100%; }
+
 .term-switch {
   flex: none;
   display: flex;
