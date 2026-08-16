@@ -93,6 +93,12 @@ nothing, and a gate that matches nothing calls every file clean, which is the on
 machinery exists to prevent. You can read and edit this repository without the register. You
 cannot run its content gates, and you will be told that rather than shown a green tick.
 
+**One operational wrinkle, found by hitting it.** A checkout that crosses the commit which
+untracked the register destroys your local copy: git restores the old tracked file on the way past
+and then deletes it, and an ignored file is not protected from that. A rebase of a branch based
+before that commit is enough. Nothing is lost that a rerun of the generator does not replace, and
+the preflight says exactly what happened rather than letting six steps fail one at a time.
+
 **Rotation.** Regenerate with `scripts/gen_forbidden_hashes.sh`, then set both secrets together;
 the script prints the two commands when it finishes. Setting one without the other is caught
 rather than tolerated: the salt-check in the header will not match the salt in force, and every
