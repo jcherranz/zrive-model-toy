@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T17:55:41Z",
+  "generated": "2026-08-16T17:57:25Z",
   "columns": [
     {
       "key": "raw",
@@ -67,14 +67,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/206"
         },
         {
-          "id": 207,
-          "title": "site/render.js reserves every node label and caption from a probe measured at 14px, because .node .lbl is a descendant selector and the probe is not inside a .node",
-          "labels": [
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/207"
-        },
-        {
           "id": 208,
           "title": "verify.sh step 9 aborts on any clone older than the last board sync, and the board syncs every quarter hour",
           "labels": [
@@ -98,6 +90,14 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
+        },
+        {
+          "id": 207,
+          "title": "site/render.js reserves every node label and caption from a probe measured at 14px, because .node .lbl is a descendant selector and the probe is not inside a .node",
+          "labels": [
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/207"
         }
       ]
     },
