@@ -92,7 +92,28 @@
            addresses this line said all seven over a sheet holding one. A wrong claim and a
            duplicated one left with the same cut. -->
       <span class="h-calendar">The term, in date order</span>
-      <span class="h-outline">The outline, in curriculum order</span>
+      <!-- ISSUE 152 DELETED THE OUTLINE'S. It read "The outline, in curriculum order" and it was
+           a label rather than a reading: it named the view and explained its ordering, and by
+           #128's rule a sentence that explains how to read the page goes while one that states a
+           measured fact about the data stays. The card asked for two things to be weighed first
+           and both were measured on the running page rather than argued.
+
+           IS THE ORDERING LEGIBLE WITHOUT IT? Yes, and it is the page's own structure that says
+           so: 32 of the 32 module headings on the unscoped outline carry syllabus ordinals that
+           strictly ascend inside them, and 6 of the 6 programmes that name modules carry module
+           codes that strictly ascend down the group. Issue 148 then numbered all three levels off
+           the model's own order, so the document is numbered `1.`, `1.1.`, `1.1.1` in front of the
+           reader. The claim was never invisible; the sentence was restating the shape of the table.
+
+           DOES ANYTHING ELSE NAME THE VIEW? Yes. `.term-switch` inside the sheet carries
+           `calendar` and `outline` as two links with `aria-current` on the one that is up, and the
+           sheet's own h2 says `The outline, 83 of the 260 session templates in curriculum order`
+           two lines under this. The heading was the third copy.
+
+           WHY THE ELEMENT GOES AND NOT JUST ITS WORDS. An h1 that renders nothing is an unnamed
+           heading, which is a worse thing to ship than a redundant one. app.css takes the h1 out
+           of the accessibility tree on this route and keeps its box, because the box is what gives
+           the row its spare width; the argument is over that rule. -->
     </h1>
     <!-- TIME IS AN INTERVAL YOU DRAG AND NOT A NAME YOU PICK. Issue 137. What stood in the box
          after this was `weeks`, a reading whose value was a menu of four presets, and the owner

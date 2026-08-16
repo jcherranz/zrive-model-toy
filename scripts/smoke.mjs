@@ -4022,13 +4022,41 @@ async function checkTerm(page) {
   await page.evaluate(`location.hash = '#/outline'`);
   await page.waitFor('window.ZT.term().scope === null', 'the unscoped outline back');
 
-  // ISSUE 77'S RULE. A route with no heading of its own inherits the one before it, which is the
-  // defect that card was filed for. Three headings, three different sentences.
-  const headings = [headingDiagram, cal.heading.trim(), out.heading.trim()];
-  assert('each reading has a heading of its own rather than the diagram\'s',
-    new Set(headings).size === 3 && headings.every(h => h.length > 0),
-    'three different headings, one per route',
-    headings.map(h => JSON.stringify(h)).join(' | '));
+  // ISSUE 77'S RULE, AND ISSUE 152 CHANGED WHAT SATISFIES IT ON ONE ROUTE. #77's defect was a
+  // route with no heading of its own INHERITING the one before it, and the check for it was three
+  // routes carrying three different non-empty sentences.
+  //
+  // #152 deleted the outline's, on its own rule: it named the view and explained its ordering, and
+  // both are already on the page. So the outline is now the case #77 was filed about with the
+  // opposite answer, and the claim has to say which: it shows NOTHING, not the diagram's sentence
+  // and not the calendar's, and it is named where the naming belongs, on the sheet that is on
+  // screen. Written as "no heading, and named exactly once elsewhere" rather than as "empty",
+  // because an empty heading is a thing this page must not ship either: the h1 is out of the
+  // accessibility tree on that route rather than sitting in it with no name.
+  const outlineNaming = JSON.parse(await page.evaluate(`JSON.stringify((function () {
+    var h = document.querySelector('h1');
+    var r = h.getBoundingClientRect();
+    return { text: h.innerText.trim(),
+             visibility: getComputedStyle(h).visibility,
+             boxKept: r.width > 0,
+             h2: (document.getElementById('termtitle') || {}).textContent || '',
+             switchCurrent: (function () {
+               var a = document.querySelector('.term-switch [aria-current="true"]');
+               return a ? a.textContent : null;
+             })() };
+  })())`));
+  const namedRoutes = [headingDiagram, cal.heading.trim()];
+  assert('each reading is named exactly once, and the one with no heading inherits nobody else\'s',
+    new Set(namedRoutes).size === 2 && namedRoutes.every(h => h.length > 0) &&
+      outlineNaming.text === '' &&
+      outlineNaming.visibility === 'hidden' && outlineNaming.boxKept === true &&
+      outlineNaming.switchCurrent === 'outline' &&
+      /outline/.test(outlineNaming.h2),
+    'the diagram and the calendar carrying two different headings, and the outline carrying no ' +
+      'heading at all, out of the accessibility tree, keeping its box, named by the reading ' +
+      'control and by the sheet\'s own title',
+    `${namedRoutes.map(h => JSON.stringify(h)).join(' | ')}; outline ` +
+      JSON.stringify(outlineNaming));
 
   await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor('window.ZT.term().open === false', 'the term sheet to close');
@@ -5766,7 +5794,16 @@ async function checkCut(page, base) {
       return JSON.stringify({ head: h, lead: lead ? lead.textContent.trim() : null });
     })()`));
     const scoped = /^#\/(calendar|outline)\/(.+)$/.exec(at);
-    if (!seen.head || /\d/.test(seen.head) || /\b(all|seven|every)\b/i.test(seen.head) ||
+    // ISSUE 152 SPLIT THIS BY READING AND THAT MAKES IT STRICTER RATHER THAN LOOSER. The outline's
+    // typed heading is deleted, because it named the view and explained its ordering and the page
+    // already said both; the calendar's is not. So a missing heading is a defect on one reading
+    // and the required state on the other, and this now says WHICH, instead of demanding one
+    // everywhere. Before the split a heading that vanished from the calendar would have been the
+    // same finding as one that vanished from the outline; now only the first is.
+    const wantsHeading = !/^#\/outline/.test(at);
+    if (!wantsHeading) {
+      if (seen.head !== null) headBad.push(at + ' :: has a heading and should have none: ' + seen.head);
+    } else if (!seen.head || /\d/.test(seen.head) || /\b(all|seven|every)\b/i.test(seen.head) ||
         views.some(k => seen.head.indexOf(k.replace(/^Z/, 'Z-')) !== -1)) {
       headBad.push(at + ' :: ' + seen.head);
     }
@@ -5776,7 +5813,8 @@ async function checkCut(page, base) {
   assert('the heading typed into the document names no scope, and the sheet under it names the one the address earns',
     sheetRoutes.length === 16 && headBad.length === 0 && scopeBad.length === 0,
     `over all ${sheetRoutes.length} sheet addresses: no count, no quantifier and no programme ` +
-      'code in the heading, and the scope stated below it in the words each address earns',
+      'code in the calendar\'s heading, no heading at all on the outline\'s, and the scope ' +
+      'stated below both in the words each address earns',
     `${headBad.length} headings claiming a scope ${JSON.stringify(headBad.slice(0, 3))}, ` +
       `${scopeBad.length} sheets stating the wrong one ${JSON.stringify(scopeBad.slice(0, 3))}`);
 
