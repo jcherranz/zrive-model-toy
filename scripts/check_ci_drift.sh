@@ -60,9 +60,15 @@ ROWS
 # verify.sh's own list. It is asked for rather than parsed: see the header. An empty answer is an
 # abort and never an empty relation, because "no steps" and "I could not ask" look identical from
 # here and only one of them is safe to report clean about.
-verify_keys() {
+real_verify_keys() {
   ZMT_LIST_ONLY=1 bash "$ROOT/scripts/verify.sh" 2>/dev/null | sed -n 's/^STEP\t\([^\t]*\)\t.*$/\1/p'
 }
+
+# One level of indirection, and it is here so the self-test can hand `report` a list this machine
+# would never produce and then put the real one back by name. Substituting the reading is the only
+# way to drive a malformed key, and a probe that left the substitution in place would make every
+# probe after it pass or fail for a reason nobody wrote down.
+verify_keys() { real_verify_keys; }
 
 # Every marker in every workflow, as `key<TAB>file`. The marker is a comment, so it survives YAML
 # reformatting and belongs to the step a reader is looking at rather than to a list at the top.
@@ -103,6 +109,33 @@ report() {  # workflows-dir
   if [ -z "$keys" ]; then
     echo "::error::scripts/verify.sh handed over no steps, so there is nothing to join the"
     echo "         workflows against and this run is not evidence that CI covers anything."
+    return 2
+  fi
+
+  # THE KEYS ARE THE LEFT SIDE OF EVERY `sed` BELOW, so a key is checked before it is used as one.
+  # Found by an outside reader: `.*` as a key would match several exemption rows at once and quietly
+  # inherit somebody else's reason, and a key holding `/` or `[` makes sed error out and the row
+  # read as uncovered. Neither is a live defect and both are one careless key away, and a joining
+  # gate whose join can be steered by its own input is the class this whole card is about.
+  local bad_key
+  bad_key="$(printf '%s\n' "$keys" | grep -v '^[A-Za-z0-9_-]\{1,\}$' | head -3 | tr '\n' ' ')"
+  if [ -n "$bad_key" ]; then
+    echo "::error::scripts/verify.sh registered step key(s) that are not plain words: $bad_key"
+    echo "         Keys are matched literally against the workflow markers, so a key carrying a"
+    echo "         regular expression character joins by something other than equality. Nothing"
+    echo "         below would be a reliable reading, so nothing below was read."
+    return 2
+  fi
+
+  # AND NO TWO STEPS SHARE ONE. A duplicate key means one marker covers two steps, so a step that
+  # no workflow runs is reported green because its twin is claimed. The relation has to be a
+  # relation.
+  local dupe
+  dupe="$(printf '%s\n' "$keys" | sort | uniq -d | tr '\n' ' ')"
+  if [ -n "$dupe" ]; then
+    echo "::error::scripts/verify.sh registers more than one step under: $dupe"
+    echo "         One marker would then cover both, and a step nothing runs would be reported as"
+    echo "         covered because its twin is. Give each step its own key."
     return 2
   fi
 
@@ -172,7 +205,7 @@ EOF
 # The self-test. Jidoka: four refusals, each proved to fire, against synthetic workflow
 # directories written under mktemp so the tree is never touched.
 # ---------------------------------------------------------------------------------------------
-EXPECTED_PROBES=9
+EXPECTED_PROBES=12
 PASS=0
 TOTAL=0
 
@@ -236,6 +269,18 @@ self_test() {
         report "$dir/stalexempt"
   probe_says "token-grep" "and the refusal names the row whose reason has gone false" \
         report "$dir/stalexempt"
+
+  # A key that is a regular expression, and a key registered twice. Both are driven by replacing
+  # the list rather than the workflows, because the list is the side they come from.
+  verify_keys() { printf 'syntax\n.*\n'; }
+  probe 2 "a step key that is a regular expression aborts rather than joining by something else" \
+        report "$dir/all"
+  verify_keys() { printf 'syntax\nsyntax\n'; }
+  probe 2 "one key on two steps aborts rather than letting one marker cover both" \
+        report "$dir/all"
+  verify_keys() { real_verify_keys; }
+  # Re-read after restoring, so a probe that left the list broken cannot pass the rest silently.
+  probe 0 "control: with the real list back, the tree still joins" report "$dir/all"
 
   # No markers at all, and no directory at all. Both are "I could not look" and neither is a
   # relation in which nothing is covered.

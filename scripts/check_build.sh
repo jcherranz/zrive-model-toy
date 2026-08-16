@@ -828,18 +828,55 @@ PY
   ZRIVE_GATES="${1:-$EXPECTED_MODEL_GATES}" python3 -c "$script"
 }
 
+# THE TWO HALVES ARE ASKED SEPARATELY, and the first draft of this function did not do that. It
+# ran `model_census_input | census_report` and read one `$?`. Under `pipefail` that is the
+# pipeline's aggregate, so a producer that printed a full set of acceptable notices AND THEN
+# exited non-zero gave a reader that answered 0 and a pipeline that answered 1, and the caller
+# below, which branched only on 2, fell straight through to the clean verdict with no gate marked
+# blind. That is this card's own defect committed by the instrument written to close it, and it
+# was found by an outside reader and reproduced with a shim on PATH before it was believed.
+#
+# So the producer's status is captured on its own through a temporary file, the reader's status is
+# captured on its own, and anything that is not one of the three states this function defines is
+# an abort. There is no fall-through: 0, 3 and 2, and 2 covers everything else by construction.
 run_census() {
-  local out rc
-  out="$(model_census_input | census_report)"
-  rc=$?
-  printf '%s\n' "$out"
+  local raw out prc rrc
   CENSUS_UNVERIFIED=0
   CENSUS_NAMES=""
-  if [ "$rc" -eq 3 ]; then
-    CENSUS_NAMES="$(printf '%s\n' "$out" | sed -n 's/^      - //p')"
-    CENSUS_UNVERIFIED="$(printf '%s\n' "$CENSUS_NAMES" | grep -c .)"
+  raw="$(mktemp)" || {
+    echo "::error::no temporary file for the census, so it was not taken"
+    return 2
+  }
+  model_census_input >"$raw" 2>/dev/null
+  prc=$?
+  if [ "$prc" -ne 0 ]; then
+    rm -f "$raw"
+    echo "::error::build/model.py could not be asked what its gates did (exit $prc). The census"
+    echo "         was not taken, so this run cannot say which of its own gates were evidence."
+    return 2
   fi
-  return "$rc"
+  out="$(census_report <"$raw")"
+  rrc=$?
+  rm -f "$raw"
+  printf '%s\n' "$out"
+  case "$rrc" in
+    0) return 0 ;;
+    3)
+      CENSUS_NAMES="$(printf '%s\n' "$out" | sed -n 's/^      - //p')"
+      CENSUS_UNVERIFIED="$(printf '%s\n' "$CENSUS_NAMES" | grep -c .)"
+      [ "$CENSUS_UNVERIFIED" -gt 0 ] && return 3
+      echo "::error::the census answered 3 and named no gate, so the two halves of its own answer"
+      echo "         disagree and neither is evidence."
+      CENSUS_UNVERIFIED=0
+      return 2
+      ;;
+    2) return 2 ;;
+    *)
+      echo "::error::the census reader exited $rrc, which is not one of the three states it"
+      echo "         defines. Nothing here is evidence."
+      return 2
+      ;;
+  esac
 }
 
 # ---------------------------------------------------------------------------------------------
@@ -869,7 +906,8 @@ verdict() {  # clean|bad ; reads BASELINE_ORIGIN, CENSUS_UNVERIFIED and CENSUS_N
     echo "         and the model it came from carries no repeated id, no dangling edge and no"
     echo "         self-loop. What was NOT established is anything those gates cover, and one of"
     echo "         them is the only check on the declared totals the whole page counts against."
-    echo "         This is not a clean run and the word is deliberately absent from this verdict."
+    echo "         The one word this gate prints over a run where every gate looked is deliberately"
+    echo "         nowhere in these lines, so a reader grepping the log for it finds nothing here."
     if [ "$origin" = "worktree" ]; then
       echo "         READ THAT SNAPSHOT NAME. These bytes were not read out of git, so nothing above"
       echo "         is a statement about what the repository holds or about what a commit"
@@ -907,7 +945,7 @@ verdict() {  # clean|bad ; reads BASELINE_ORIGIN, CENSUS_UNVERIFIED and CENSUS_N
 # probe at a time prints a clean ratio all the way down to 0/0. A count taken from the run cannot
 # notice a probe that did not run. A short run exits 2, "the suite could not answer"; a run that
 # also recorded a failure reports it and exits 1.
-EXPECTED_PROBES=64
+EXPECTED_PROBES=66
 PASS=0
 TOTAL=0
 probe() {
@@ -978,6 +1016,18 @@ census_case() {  # roster  present|absent  gate-name:looked|unverified ...
   local roster="$1" present="$2"; shift 2
   census_fixture "$present" "$@" | census_report "$roster"
   return "${PIPESTATUS[1]}"
+}
+
+# run_census with the producer replaced, which is the only way to drive the producer's own exit
+# code: the real one imports build/model.py and cannot be made to fail on demand without lying to
+# the rest of the run. The roster is one gate, so the substituted notices are a complete answer.
+census_with_producer() {  # shell-fragment-that-prints-the-census-input
+  local body="$1"
+  model_census_input() { eval "$body"; }
+  EXPECTED_MODEL_GATES='syllabus totals' run_census
+  local rc=$?
+  unset -f model_census_input
+  return "$rc"
 }
 
 # A throwaway repository, so the snapshot probes never go near the tree being checked. It carries
@@ -1318,7 +1368,7 @@ PY
   BASELINE_ORIGIN=index
   CENSUS_UNVERIFIED=2
   CENSUS_NAMES="$(printf 'syllabus totals\nmodule structure\n')"
-  probe_says_not "VERDICT: clean" "a verdict over a run with two blind gates does not say clean" \
+  probe_says_not "clean" "a verdict over a run with two blind gates does not print the word at all" \
         verdict clean
   probe_says "INCOMPLETE" "it says INCOMPLETE in that word" verdict clean
   probe_says "syllabus totals" "and it names the gate that could not look" verdict clean
@@ -1326,6 +1376,16 @@ PY
   CENSUS_NAMES=""
   probe_says "VERDICT: clean" "and with every gate having looked the clean verdict is back" \
         verdict clean
+  # The census's own three states, driven through run_census with a producer that prints a full
+  # set of good notices and then fails. Issue 168, found by an outside reader: the first draft
+  # read one exit code off a pipeline under `pipefail`, so this exact case answered 1, fell past a
+  # branch that tested only 2, and reached the clean verdict with no gate marked blind.
+  probe 2 "a census producer that printed good notices and then failed is an abort, not a pass" \
+        census_with_producer 'printf "NOTICE\tsyllabus totals: read again just now\n"; \
+                              printf "CORPUS\tsyllabus\tpresent\n"; return 1'
+  probe 0 "control: the same notices from a producer that succeeded are a clean census" \
+        census_with_producer 'printf "NOTICE\tsyllabus totals: read again just now\n"; \
+                              printf "CORPUS\tsyllabus\tpresent\n"'
   BASELINE_ORIGIN=""
 
   rm -rf "$dir"

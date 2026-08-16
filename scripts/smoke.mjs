@@ -198,6 +198,15 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SITE = path.join(ROOT, 'site');
 const TIMEOUT = Number(process.env.SMOKE_TIMEOUT_MS || 20000);
 
+// The deadline on a single DevTools request, and it is a different number from TIMEOUT because it
+// answers a different question. Issue 168 R4(d). TIMEOUT is how long a claim about the page is
+// waited on before it is false; this is how long the BROWSER is given to answer at all before the
+// suite stops with a verdict instead of being killed without one. Six times TIMEOUT, because the
+// only thing it must never do is fire on a slow runner: an evaluate that legitimately takes two
+// minutes is a fact about the machine, and this suite counts its speed budgets in box comparisons
+// elsewhere for exactly that reason.
+const CDP_DEADLINE = Number(process.env.SMOKE_CDP_DEADLINE_MS || TIMEOUT * 6);
+
 // ---- the viewports ---------------------------------------------------------------------------
 // Each is inner width by inner height, which is what the page reports and what every context
 // block on the six issues this suite is built from carries. `emulate` is not a preference: it is
@@ -276,7 +285,11 @@ const ZOOM_TOLERANCE_PX = 0.5;
 // the total below, and a change that forgets is a red run rather than a quiet one.
 const PHASES = {
   'the viewport opened':  { count: 2, when: 'every' },
-  'every width':          { count: 6, when: 'every' },
+  // 6 until issue 168 R4(c), which adds one: that every control in the header is one a reader
+  // could press where it sits, hit tested at its own centre. It is here and not in a behavioural
+  // phase because the row wraps at the narrow width and a control pushed under another keeps its
+  // box, keeps its height and keeps answering `.click()`.
+  'every width':          { count: 7, when: 'every' },
   // 14 until issue 169, which adds the assertion that the address the sheet's close leaves
   // draws that drawing on a document built from it, which is a different claim from what the bar
   // reads and is the only one that can catch a router resolved once at construction.
@@ -292,7 +305,10 @@ const PHASES = {
   // 56 until issues 146, 158 and 160, which add eight to this phase and to no other and replace
   // one of its own: the two grids and the scope set are all read here, where the sheet's phase already
   // drives them, and the week grid's old assertion went with the shape it was written against.
-  'term':                 { count: 63, when: 'behavioural' },
+  // 63 until issue 168 R4(b), which adds one: that every clause of the sheet sentence names the
+  // population its figures were counted over, on every route the sheet has, against a closed list
+  // of clause shapes. The old claim of that name read two figures on two routes.
+  'term':                 { count: 64, when: 'behavioural' },
   'the sample':           { count: 6, when: 'behavioural' },
   // 6 until issue 167, which adds three: that the sentence over a window with nothing in it says
   // which KIND of nothing, in the words the review's own absence row uses, that over a scope of
@@ -656,7 +672,16 @@ const PHASES = {
 // a box using 1240 of a 2560 screen. The one assertion carries both halves of the repair, because
 // the opt-out is only right while it stays an opt-out: the week reading follows the viewport AND
 // the month grid on the same sheet is the same box at two widths.
-const EXPECTED_ASSERTIONS = 323;
+// AND 327 SINCE ISSUE 168, which adds four more and replaces none. Three are one claim run at each width,
+// that every control in the header is one a reader could press where it sits, hit tested at its
+// own centre: this suite drives every window, shape, theme, grain and scope control with
+// `.click()`, which fires on a covered, clipped, zero size or display:none element, so the whole
+// set was verified as wired and never as pressable. The fourth is in `the sample`, that every clause of
+// the sheet sentence names the population its figures were counted over, on every route the sheet
+// has, against a closed list of clause shapes. The claim of that name checked two figures, in one
+// sentence each, on two routes, and the audit shipped a reworded count past it and past both
+// content gates.
+const EXPECTED_ASSERTIONS = 327;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -848,11 +873,35 @@ class Cdp {
     this.handlers.get(method).push(fn);
   }
 
+  // EVERY REQUEST HAS A DEADLINE, AND UNTIL ISSUE 168 R4(d) NONE OF THEM DID. A pending promise
+  // with nothing behind it means a wedged renderer stops the suite where it stands: no failure,
+  // no harness finding, no count, nothing on stdout, until the CI wall clock kills the job. A
+  // wall-clock kill is not one of the three verdicts this suite defines, so the one outcome the
+  // reader gets is the one the suite has no words for, and "the run was cancelled" reads to a
+  // human like an infrastructure hiccup rather than like a page that stopped answering.
+  //
+  // THE DEADLINE IS DELIBERATELY GENEROUS AND IS NOT A PERFORMANCE BUDGET. Its job is to convert
+  // a hang into a verdict, and nothing else: the placer phases evaluate a search over the whole
+  // seven-programme union inside one Runtime.evaluate, and a shared runner having a slow minute
+  // must not be reported as a page that wedged. The budgets that ARE about speed are counted in
+  // box comparisons elsewhere in this file, precisely so that no timing lives here.
   send(method, params = {}, sessionId) {
     const msg = { id: ++this.id, method, params };
     if (sessionId) msg.sessionId = sessionId;
     return new Promise((resolve, reject) => {
-      this.pending.set(msg.id, { resolve, reject });
+      const timer = setTimeout(() => {
+        this.pending.delete(msg.id);
+        reject(new HarnessFailure(
+          `the browser never answered ${method} in ${CDP_DEADLINE}ms`,
+          'The renderer stopped answering the DevTools protocol. Nothing after this point is ' +
+          'evidence about the page. This is reported rather than waited on because a suite that ' +
+          'waits here is killed by the CI wall clock, and a wall-clock kill is not one of the ' +
+          'three verdicts this suite defines.'));
+      }, CDP_DEADLINE);
+      this.pending.set(msg.id, {
+        resolve: v => { clearTimeout(timer); resolve(v); },
+        reject: e => { clearTimeout(timer); reject(e); }
+      });
       this.ws.send(JSON.stringify(msg));
     });
   }
@@ -972,6 +1021,105 @@ async function launchWithRetry(chrome, width, height, label) {
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+// Wait on something that must happen, and throw with its name when it does not. Issue 168 R4(d).
+// The timer is cleared on the happy path, so a run is never held open by a deadline that has
+// already been beaten.
+function orThrow(promise, what, ms) {
+  const budget = ms || TIMEOUT;
+  let timer = null;
+  const deadline = new Promise((_resolve, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`waiting for ${what}: it had not happened after ${budget}ms`)),
+      budget);
+  });
+  return Promise.race([promise, deadline]).finally(() => clearTimeout(timer));
+}
+
+// =================================================================================================
+// TWO PREDICATES THE PAGE ANSWERS, BECAUSE THE PROXIES FOR THEM WERE NOT ANSWERING THE QUESTION.
+// Issue 168 R4(c). Both are the same defect in two places: an instrument that reads a MECHANISM
+// for hiding or for pressing, and reports the ABSENCE of that one mechanism as the presence of
+// the thing itself.
+//
+// `zmtPainted` replaces `!el.classList.contains('veil-hidden')`. That test is true of an element
+// hidden by opacity, by a fill of none, by an ancestor's display, or by having been moved outside
+// the drawing it belongs to. It is the known luminance instrument's class one file over. What is
+// checked here is a box with area, no display or visibility refusal anywhere up the chain, an
+// effective opacity through the ancestors, a fill that paints, and a box that actually intersects
+// both the drawing and the viewport.
+//
+// WHAT IT STILL DOES NOT COVER, said rather than left for the next audit: a fill the same colour
+// as the ground behind it. That is a contrast measurement, this repository already has one, and
+// duplicating it here badly would be worse than naming the boundary.
+//
+// `zmtPressable` is the other half. `.click()` fires on an element that is covered, clipped, of
+// zero size, outside the viewport or display:none, so every window, shape, theme, grain and scope
+// control in this suite was verified as WIRED and not as PRESSABLE. The comment at the old
+// pressByText gave a rename-resilience reason for driving the page by `.click()` rather than by a
+// synthetic pointer at a coordinate, and that reason is good and is kept: the press is still
+// `.click()` on the element the words identify. What is added is that the element has to be one a
+// reader's finger could have reached, ASSERTED before the click rather than assumed by it.
+//
+// THE HIT TEST ACCEPTS AN ANCESTOR AS WELL AS A DESCENDANT, deliberately. A button whose label is
+// a span returns the span, which is a descendant; an anchor drawn as a group in the SVG can
+// return either. What it refuses is an element that is neither, which is the covering overlay
+// this is about, and it names what was found on top instead of the element asked for.
+const PAGE_PREDICATES = `
+  function zmtPainted(el) {
+    if (!el) return { ok: false, why: 'there is no such element' };
+    var r = el.getBoundingClientRect();
+    if (!(r.width > 0 && r.height > 0)) return { ok: false, why: 'it has no box' };
+    var op = 1, n = el;
+    while (n && n.nodeType === 1) {
+      var cs = getComputedStyle(n);
+      var who = n.id ? '#' + n.id : n.tagName.toLowerCase();
+      if (cs.display === 'none') return { ok: false, why: 'display:none on ' + who };
+      if (cs.visibility === 'hidden' || cs.visibility === 'collapse') {
+        return { ok: false, why: 'visibility:' + cs.visibility + ' on ' + who };
+      }
+      var o = parseFloat(cs.opacity);
+      op *= (o === o ? o : 1);
+      n = n.parentNode;
+    }
+    if (!(op > 0.01)) return { ok: false, why: 'an effective opacity of ' + op.toFixed(3) };
+    var own = getComputedStyle(el);
+    if (own.fill === 'none') return { ok: false, why: 'a fill of none' };
+    var fo = parseFloat(own.fillOpacity);
+    if (fo === fo && !(fo > 0.01)) return { ok: false, why: 'a fill-opacity of ' + fo };
+    var svg = el.ownerSVGElement;
+    if (svg) {
+      var s = svg.getBoundingClientRect();
+      if (r.right <= s.left || r.left >= s.right || r.bottom <= s.top || r.top >= s.bottom) {
+        return { ok: false, why: 'its box lies outside the drawing it belongs to' };
+      }
+    }
+    if (r.right <= 0 || r.left >= innerWidth || r.bottom <= 0 || r.top >= innerHeight) {
+      return { ok: false, why: 'its box lies outside the viewport' };
+    }
+    return { ok: true, why: '' };
+  }
+  function zmtPressable(el) {
+    var seen = zmtPainted(el);
+    if (!seen.ok) return seen;
+    var cs = getComputedStyle(el);
+    if (cs.pointerEvents === 'none') return { ok: false, why: 'pointer-events:none' };
+    if (el.disabled === true) return { ok: false, why: 'it is disabled' };
+    var r = el.getBoundingClientRect();
+    var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    if (cx < 0 || cy < 0 || cx > innerWidth || cy > innerHeight) {
+      return { ok: false, why: 'its centre is off the viewport at ' +
+                              Math.round(cx) + ',' + Math.round(cy) };
+    }
+    var hit = document.elementFromPoint(cx, cy);
+    if (!hit) return { ok: false, why: 'nothing at all is at its centre' };
+    if (hit !== el && !el.contains(hit) && !hit.contains(el)) {
+      return { ok: false, why: 'covered at its centre by ' +
+                              (hit.id ? '#' + hit.id : hit.className || hit.tagName) };
+    }
+    return { ok: true, why: '' };
+  }
+`;
+
 // =================================================================================================
 // One page, wired.
 // =================================================================================================
@@ -1036,19 +1184,38 @@ async function openPage(cdp, viewport) {
 
     // A real reload, waited on properly. Setting location.hash is a same-document navigation and
     // raises no load event, so it must never be waited on as though it were one.
+    //
+    // AND THE TIMEOUT THROWS RATHER THAN CONTINUING. Issue 168 R4(d). Both of these raced the
+    // load event against a sleep and then went on with whatever came back first, so a page that
+    // never loaded was indistinguishable from one that loaded, and every assertion after it was
+    // taken against the previous document or against a blank one. waitFor three lines down has
+    // always thrown on its own deadline and these two did not, which is the same rule applied in
+    // one place and not in the other. A page that did not load is a finding; it is never a
+    // premise.
     async reload() {
       const loaded = new Promise(resolve => { cdp.on('Page.loadEventFired', () => resolve()); });
       await cdp.send('Page.reload', {}, sessionId);
-      await Promise.race([loaded, sleep(TIMEOUT)]);
+      await orThrow(loaded, 'the load event after a reload');
     },
 
+    // A NAVIGATION THAT RAISES NO LOAD EVENT IS TOLD APART FROM ONE THAT NEVER FINISHED, and it
+    // is told apart by the protocol rather than by a guess. Page.navigate answers with a
+    // loaderId when it started a new document and without one when the browser resolved the
+    // request inside the document already open, which is what a bare change of fragment is.
+    // Waiting for a load event in that second case is waiting for something that cannot happen,
+    // so the throw above would fire on a correct navigation; asking which kind it was is the
+    // only way to have both halves.
     async navigate(url) {
       const loaded = new Promise(resolve => {
         const off = p => { if (p) resolve(); };
         cdp.on('Page.loadEventFired', off);
       });
-      await cdp.send('Page.navigate', { url }, sessionId);
-      await Promise.race([loaded, sleep(TIMEOUT)]);
+      const res = await cdp.send('Page.navigate', { url }, sessionId);
+      if (res && res.errorText) {
+        throw new Error(`navigating to ${url} was refused by the browser: ${res.errorText}`);
+      }
+      if (!res || !res.loaderId) return;
+      await orThrow(loaded, `the load event after navigating to ${url}`);
     },
 
     // Wait on a condition the page answers. Returns nothing and throws with the last reason the
@@ -2642,19 +2809,39 @@ async function checkStudents(page) {
   // Three renderings of one fact, all of them text a reader can see: the marker under the card,
   // the panel's link out to the list, and the hint under it. Nothing here holds a copy of 34 or of
   // 30, so a cohort that grew by one and a marker that did not would fail rather than pass quietly.
-  const s = await page.evaluate(`(function () {
+  // AND THE PAINT IS READ AFTER IT HAS SETTLED, WHICH IS WHY THIS IS A POLL. Issue 168 R4(c)
+  // found this the moment the reading became a real one: `.veil` in app.css fades opacity over
+  // 120ms, so a reading taken on the tick after the click finds an effective opacity of zero and
+  // is right about the instant and wrong about the page. The old test could not meet this,
+  // because a class is set before the frame is painted and a paint is not. A bounded poll and not
+  // a fixed sleep: a page that really hid the marker runs the budget out and fails with the
+  // reason it gave, which is the difference between waiting for a claim and asserting one.
+  const readTail = `(function () {
+    ${PAGE_PREDICATES}
     var tail = document.querySelector('[data-node=${JSON.stringify(card)}] text.lbl-tail');
     var link = document.querySelector('#pmore .pmore-link');
     var hint = document.querySelector('#pmore .pmore-hint');
+    var seen = zmtPainted(tail);
     return {
       shown: window.ZT.veiled().shown,
       tailText: tail ? tail.textContent : null,
-      tailPainted: tail ? !tail.classList.contains('veil-hidden') : false,
+      // Issue 168 R4(c). Both readings are kept and both are asserted: the class is the mechanism
+      // the page uses and zmtPainted is whether the reader can see the thing. A page that dropped
+      // the class and hid the marker some other way passed the old test and fails this one.
+      tailUnclassed: tail ? !tail.classList.contains('veil-hidden') : false,
+      tailPainted: seen.ok,
+      tailWhyNot: seen.why,
       linkText: link ? link.textContent : null,
       linkHref: link ? link.getAttribute('href') : null,
       hintText: hint ? hint.textContent : null
     };
-  })()`);
+  })()`;
+  let s = null;
+  for (let turn = 0; turn < 40; turn++) {
+    s = await page.evaluate(readTail);
+    if (s.tailPainted) break;
+    await sleep(25);
+  }
 
   assertEqual('clicking the students card reveals the drawn subset and nothing else',
     s.shown, drawnStudents);
@@ -2674,7 +2861,11 @@ async function checkStudents(page) {
     `${nInPanel} in the cohort less ${drawnInPanel} drawn = ${nInPanel - drawnInPanel}`,
     `the card says ${JSON.stringify(s.tailText)}`);
   assert('and the marker is painted while the members are on screen',
-    s.tailPainted === true, 'the tail line visible beside the four tiles', String(s.tailPainted));
+    s.tailPainted === true && s.tailUnclassed === true,
+    'the tail line drawn where a reader can see it: a box with area, inside the drawing and ' +
+      'inside the viewport, no display, visibility, opacity or fill refusal anywhere above it, ' +
+      'and the hiding class off it',
+    s.tailPainted ? `the hiding class is still on it` : s.tailWhyNot);
   assert('the panel links to the route that holds the whole list',
     s.linkHref === '#/students', '#/students', JSON.stringify(s.linkHref));
 
@@ -3413,15 +3604,33 @@ async function stepWindow(page, dir) {
 
 // Press one of the buttons in the window menu by the words on it, because the words are what a
 // reader presses and an index would survive the button being renamed to something else.
+//
+// AND IT REFUSES A CONTROL A READER COULD NOT HAVE PRESSED. Issue 168 R4(c). `.click()` fires on
+// an element that is covered, clipped, of zero size or display:none, so this helper used to
+// establish that a control is wired and nothing at all about whether it is reachable. The press
+// itself is unchanged, for the rename-resilience reason above; what is added is that the element
+// is put through zmtPressable first and the helper throws with the reason when it is not. A throw
+// here is reported by the enclosing group() as a named failure of that group, which is louder
+// than the silent success it used to be.
 async function pressByText(page, sel, label) {
-  const ok = await page.evaluate(`(function () {
+  const found = await page.evaluate(`(function () {
+    ${PAGE_PREDICATES}
     var bs = Array.prototype.slice.call(document.querySelectorAll(${JSON.stringify(sel)}));
     for (var i = 0; i < bs.length; i++) {
-      if (bs[i].textContent.trim() === ${JSON.stringify(label)}) { bs[i].click(); return true; }
+      if (bs[i].textContent.trim() !== ${JSON.stringify(label)}) continue;
+      var can = zmtPressable(bs[i]);
+      if (!can.ok) return { found: true, ok: false, why: can.why };
+      bs[i].click();
+      return { found: true, ok: true, why: '' };
     }
-    return false;
+    return { found: false, ok: false, why: '' };
   })()`);
-  if (!ok) throw new Error(`no control reading ${JSON.stringify(label)} at ${sel}`);
+  if (!found.found) throw new Error(`no control reading ${JSON.stringify(label)} at ${sel}`);
+  if (!found.ok) {
+    throw new Error(`the control reading ${JSON.stringify(label)} at ${sel} is not one a reader ` +
+                    `could press: ${found.why}. It was not clicked, because a click on it would ` +
+                    `have succeeded and proved nothing.`);
+  }
 }
 
 async function checkTerm(page) {
@@ -3952,10 +4161,21 @@ async function checkTerm(page) {
       await sleep(90);
       // The control offers the shapes the sheet is NOT in, so the list changes under every
       // press. Read again after each one and stop when nothing unpressed is left.
+      //
+      // AND ONLY THE ONES A READER COULD PRESS. Issue 168 R4(c), and this loop is where the
+      // finding was proved rather than argued: two of these stops are `#/` and `#/students`,
+      // where the sheet is not open, `#termnotice` still holds the buttons the last sheet left in
+      // it, and `.click()` on a button with no box succeeds and reports nothing. So the sweep was
+      // pressing stale controls on two of eighteen stops and counting that as having pressed
+      // them. Filtering here rather than in pressByText, because on those two stops the honest
+      // answer is that there is no shape to press, and the document is read at that stop either
+      // way, which is what this sweep is for.
       const offered = `(function () {
-        return JSON.stringify(Array.prototype.map.call(
-          document.querySelectorAll('#termnotice .shape-btn'),
-          function (b) { return b.textContent; }));
+        ${PAGE_PREDICATES}
+        return JSON.stringify(Array.prototype.slice.call(
+          document.querySelectorAll('#termnotice .shape-btn'))
+          .filter(function (b) { return zmtPressable(b).ok; })
+          .map(function (b) { return b.textContent; }));
       })()`;
       const pressed = new Set();
       // ONE TURN PER SHAPE PLUS THE READ THAT FINDS NOTHING LEFT, and it was exactly 5 while there
@@ -5415,6 +5635,92 @@ async function checkSample(page) {
     `outline ${JSON.stringify(dur[0] || null)} over ${outRows.rows} rows, calendar ` +
       `${calSaid.noInstructor} of ${calSaid.noInstructorOf} and ${calSaid.noRecording} of ` +
       `${calSaid.noRecordingOf} over ${calRows.rows} rows`);
+
+  // SEVEN. AND THE SAME CLAIM OVER EVERY SENTENCE THE SHEET HAS, NOT OVER ONE. Issue 168 R4(b).
+  // The assertion above is named "every gap figure in the sentence names the population it was
+  // counted over" and it checks two figures, in one sentence each, on two routes. The audit
+  // proved what that leaves open: app.js was changed so the gaps menu read "38 session templates
+  // in the business have no duration_min", over a page holding 83 of 260, and the whole suite
+  // returned clean, through smoke, the token grep and both content gates. It did the same with a
+  // second reworded sentence elsewhere. A count over a population the page never counted is also
+  // the class behind R3, and a claim checked in one place is a claim about that place.
+  //
+  // SO THE CLAUSE VOCABULARY IS CLOSED AND THE SWEEP IS OVER EVERY ROUTE THE SHEET HAS. The
+  // sentence is a list of clauses joined by one character, and every clause has to match one of
+  // the shapes below. Each shape either carries no figure at all, or carries its figures inside a
+  // form that names what they were counted over: a fraction, an `all N of the`, or a count
+  // followed by the scope it is across. A reworded clause matches nothing and goes red, and that
+  // is the whole mechanism: the sentence cannot acquire a new way of stating a number without
+  // somebody adding the shape here and saying which population that shape names.
+  //
+  // IT IS A CLOSED VOCABULARY AND NOT A DENYLIST, deliberately. A list of forbidden phrases
+  // ("in the business", "in the cohort") catches only the wordings somebody thought of, and the
+  // next plant is the one nobody thought of. A closed list of permitted shapes catches every
+  // wording including that one, at the price of one line here whenever the page legitimately
+  // learns to say something new. That price is the point: a new way of putting a count in front
+  // of a manager is a thing to write down.
+  //
+  // AND EVERY FRACTION IS ARITHMETIC AND NOT ONLY WELL SHAPED. N of M with N greater than M is a
+  // sentence that cannot be true of any population, and saying so here costs nothing.
+  const CLAUSE_SHAPES = [
+    // a count and the scope it was counted across
+    [/^\d+ (?:templates?|sessions?) across .+$/, 'the scope it is across'],
+    // a fraction of the model's own total, in both the sampled and the complete form
+    [/^\d+ of the \d+ (?:sessions|session templates) the model counts$/, 'the model total'],
+    [/^all \d+ of the (?:sessions|session templates) the model counts$/, 'the model total'],
+    // fractions of the rows the sheet drew
+    [/^\d+ of \d+ record no duration$/, 'the rows drawn'],
+    [/^\d+ of \d+ with no instructor named$/, 'the rows drawn'],
+    [/^\d+ of \d+ with no recording$/, 'the rows drawn'],
+    // counts over the rows drawn, whose population is the sentence's own subject
+    [/^\d+ deliveries, at most \d+ to a template$/, 'the rows drawn'],
+    // The breakdown of the rows drawn by the state each is in, in any order and in any subset,
+    // because the sheet prints only the states that are there. Every part is a count and the
+    // population every one of them is over is the rows this sheet drew, which is the clause
+    // beside it.
+    [/^\d+ (?:delivered|confirmed|planned)(?:, \d+ (?:delivered|confirmed|planned))*$/,
+     'the rows drawn'],
+    // a window, a date range and an ordering, which state no count of a population at all
+    [/^inside \d+ weeks?, .+$/, 'no population: it is the window'],
+    [/^\d{4}-\d{2}-\d{2} to \d{4}-\d{2}-\d{2}$/, 'no population: it is a date range'],
+    [/^as a review, unstaffed first$/, 'no population: it is the ordering'],
+    [/^[^0-9]*$/, 'no population: it carries no figure']
+  ];
+  // THE SUBTITLE AND NOT THE HEADING, and the reason is that the two are different kinds of
+  // sentence. The subtitle is a list of clauses the page joins with one character, which is what
+  // makes a closed vocabulary of shapes possible at all; the heading is one whole sentence per
+  // reading and is already asserted verbatim, in both the sampled and the complete form, by the
+  // two assertions above this one.
+  const sheetAll = JSON.parse(await page.evaluate('JSON.stringify(window.ZT.termRoutes())'));
+  const strange = [];
+  let clausesRead = 0;
+  for (const at of sheetAll) {
+    await page.evaluate(`location.hash = ${JSON.stringify(at)}`);
+    await page.waitFor('window.ZT.term().open === true', `the sheet at ${at}`);
+    const said = await page.evaluate(TERM_READ);
+    for (const raw of String(said.sub || '').split('·')) {
+      const clause = raw.trim();
+      if (!clause) continue;
+      clausesRead += 1;
+      if (!CLAUSE_SHAPES.some(shape => shape[0].test(clause))) {
+        strange.push(`${at}: ${JSON.stringify(clause)}`);
+        continue;
+      }
+      const frac = /(\d+) of (?:the )?(\d+)/.exec(clause);
+      if (frac && Number(frac[1]) > Number(frac[2])) {
+        strange.push(`${at}: ${JSON.stringify(clause)} counts more than it counts out of`);
+      }
+    }
+  }
+  assert('every clause of the sheet sentence names the population its figures were counted over, on every route the sheet has',
+    strange.length === 0 && clausesRead > 0 && sheetAll.length > 0,
+    `every clause on all ${sheetAll.length} sheet routes matching one of the ` +
+      `${CLAUSE_SHAPES.length} declared shapes, each of which either carries no figure or says ` +
+      'what its figures were counted over',
+    strange.length ? strange.slice(0, 6).join(' | ') +
+                       (strange.length > 6 ? ` (and ${strange.length - 6} more)` : '')
+                   : `${clausesRead} clauses read over ${sheetAll.length} routes`,
+    `${clausesRead} clauses over ${sheetAll.length} routes`);
 
   await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(startedOn)}`);
   await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(startedOn)}`,
@@ -11111,6 +11417,33 @@ const FRAME_READ = `(function () {
 // is an action in the nav, and nothing in this header is a label beside a value that answers no
 // press. Read as the absence of the plate's own classes rather than as a count of what is left,
 // because a plate with one reading on it is the thing this asserts against.
+// AND BOTH NUMBERS ARE WRITTEN DOWN, WHICH THEY WERE NOT. Issue 187. The redesign is measured in
+// three numbers, GROUPS, READINGS and ELEMENTS, and elements was the one not pinned: the
+// assertion below asserted the DIFFERENCE between the two counts exactly, the unseen element
+// exactly and the plate exactly, and then `count.query.length >= 9` against a live value of 14.
+// A floor five below the value catches the harder case and misses the likely one. Add an
+// ordinary button to the header: the query goes to 15, the press count to 16, the difference is
+// still exactly one, the unseen element is still the strip, the plate is still absent, and 15 is
+// still at least 9. Green, with a control nobody decided to add.
+//
+// THE FLOOR IS UNDERSTOOD AND NOT DISCARDED. It was not a deliberate floor from a card expecting
+// the count to fall: it is the sanity guard that arrived with the row and outlived every number
+// it was written beside, and the assertion one block up still carries it in that role, where it
+// means "the query returned a header and not an empty page" rather than "the header is this
+// size". The terminator is here, once, and there is deliberately not a second copy of it there.
+//
+// The shape is the one this file already uses for addresses, `termRoutes.length === 16 &&
+// wantAll.length === 35`, which has survived every landing by being moved deliberately and named
+// on the card that moved it. If a control is added or removed on purpose, move the number here,
+// say which control and why on the card, and the suite goes green again on the next run. That is
+// the whole point: growing this header has to be written down by somebody.
+//
+// 15 honest and 14 by the query, and both are reported wherever this row is quoted, because the
+// query is the one that cannot see the strip and a number taken off it alone is a number that
+// stopped seeing a control.
+const HEADER_BY_QUERY = 14;
+const HEADER_ANSWERING_A_PRESS = 15;
+
 const HEADER_COUNT = `(function () {
   var q = [];
   document.querySelectorAll('header button, header a').forEach(function (el) {
@@ -11234,15 +11567,79 @@ async function checkWidth(page, base) {
   // At every width, because the row wraps at the narrow one and a control that has fallen off the
   // end of a wrapped row has no box and would leave both counts agreeing about a smaller header.
   const count = JSON.parse(await page.evaluate(HEADER_COUNT));
-  assert('the two ways of counting this header differ by the strip alone, and no reading is left on it',
+  assert('the two ways of counting this header differ by the strip alone, and both counts are the ones written down',
     count.press.length === count.query.length + 1 &&
       count.unseen.length === 1 && count.unseen[0] === 'brush' &&
-      count.plate === false && count.query.length >= 9,
-    'every pressable thing in the header is a button or an anchor except the term strip, and ' +
-      'nothing in it is a label beside a value that answers no press',
+      count.plate === false &&
+      count.query.length === HEADER_BY_QUERY &&
+      count.press.length === HEADER_ANSWERING_A_PRESS,
+    `every pressable thing in the header is a button or an anchor except the term strip, ` +
+      `nothing in it is a label beside a value that answers no press, and there are ` +
+      `${HEADER_BY_QUERY} by the query and ${HEADER_ANSWERING_A_PRESS} answering a press`,
     `${count.query.length} by the query, ${count.press.length} answering a press, the ` +
       `difference being ${JSON.stringify(count.unseen)}, plate ${count.plate}`,
     `${count.query.length} by the query and ${count.press.length} answering a press`);
+
+  // AND EVERY ONE OF THEM IS ONE A READER COULD ACTUALLY PRESS. Issue 168 R4(c). Counting them
+  // says they exist and measuring their boxes says they are big enough; neither says a finger
+  // reaches them. This suite drives every window, shape, theme, grain and scope control with
+  // `.click()`, which fires on an element that is covered, clipped, of zero size or display:none,
+  // so the whole set was verified as WIRED and not as PRESSABLE, and the audit judged that the
+  // wrong side of a considered tradeoff. The tradeoff is kept where it is good, in pressByText,
+  // which still clicks the element the words identify and now refuses one a reader could not have
+  // reached. This is the standing claim over the whole row that makes each of those presses mean
+  // something.
+  //
+  // AT EVERY WIDTH, and that is where it earns its place rather than being a restatement: the row
+  // wraps at the narrow one, and a control pushed under another control or off the edge keeps its
+  // box, keeps its height and keeps answering `.click()`. The hit test at its centre is the only
+  // one of these readings that changes when it happens.
+  //
+  // AND EACH ONE IS BROUGHT UNDER THE FINGER FIRST, WHICH IS WHAT A READER DOES. Measured at 390
+  // before this line existed: three programme chips sat under the two nav segments and a fourth
+  // had its centre at x 409 on a viewport 390 wide. Both are true and neither is the claim: the
+  // chip rail is a horizontal scroller, and a control a reader can scroll to is a control a reader
+  // can press. So each is scrolled to the middle of its own scroller before it is hit tested, and
+  // what stays red is a control that cannot be reached at ANY scroll position, which is the claim
+  // worth making. Every scroller is put back where it was afterwards, because the phases after
+  // this one read boxes and a rail left scrolled is a measurement of this assertion rather than of
+  // the page.
+  const reach = await page.evaluate(`(function () {
+    ${PAGE_PREDICATES}
+    var out = [];
+    var scrolled = [];
+    function remember(el) {
+      for (var n = el.parentNode; n && n.nodeType === 1; n = n.parentNode) {
+        if (n.scrollWidth > n.clientWidth || n.scrollHeight > n.clientHeight) {
+          scrolled.push([n, n.scrollLeft, n.scrollTop]);
+        }
+      }
+    }
+    document.querySelectorAll('header button, header a, header [tabindex]:not([tabindex="-1"])')
+      .forEach(function (el) {
+        var r = el.getBoundingClientRect();
+        if (!r.width || !r.height) return;
+        if (Array.prototype.some.call(
+              document.querySelectorAll('header button, header a'),
+              function (o) { return o !== el && el.contains(o); })) return;
+        remember(el);
+        el.scrollIntoView({ block: 'center', inline: 'center' });
+        var can = zmtPressable(el);
+        if (!can.ok) out.push((el.id || el.className || el.tagName) + ': ' + can.why);
+      });
+    for (var i = scrolled.length - 1; i >= 0; i--) {
+      scrolled[i][0].scrollLeft = scrolled[i][1];
+      scrolled[i][0].scrollTop = scrolled[i][2];
+    }
+    return JSON.stringify(out);
+  })()`);
+  const unreachable = JSON.parse(reach);
+  assert('every control in the header is one a reader could press where it sits',
+    unreachable.length === 0,
+    'no control covered at its centre, clipped out of the viewport, made transparent or told to ' +
+      'take no pointer',
+    unreachable.length ? unreachable.join('; ') : 'none of them refused the hit test',
+    `${count.press.length} controls, each hit tested at its own centre`);
 }
 
 // ---- the load itself, and whether the page says so when it does not finish -----------------------

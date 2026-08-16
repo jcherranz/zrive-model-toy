@@ -28,6 +28,11 @@
 # renders it [SKIP]. The rule the whole file is written around, said once: A CHECK THAT COULD NOT
 # RUN MUST NEVER PRINT THE WORD CLEAN.
 #
+# AND THAT RULE IS APPLIED TO THIS FILE'S OWN LAST LINE, which broke it. The verdict at the foot
+# read "VERDICT: clean, with N step(s) that did not run" over a run in which a step declined. The
+# summary prints [SKIP] in its own shape so it cannot be read as an OK, and then the one line
+# anybody quotes glued them back together. It says INCOMPLETE now and the word is not in it.
+#
 # AND A SKIP THAT CAN MEAN AN ABORT IS A GREEN THAT CAN MEAN RED. Issue 103, and it is this
 # file's own headline doctrine turned on itself. Every step here used to map exit 2 to [SKIP],
 # on the reading that 2 means "I could not answer". It does, but it is ALSO how every gate in
@@ -712,7 +717,10 @@ fi
 step routes "10. the populate registry is complete and every drawn object binds to it" \
      python3 scripts/routes.py
 
-if register_present; then
+# Under list-only the register is not looked for either: the listing has to be takeable on a
+# machine that holds nothing, which is the machine scripts/check_ci_drift.sh runs on. The step is
+# registered under its key in both branches, so the relation is the same list either way.
+if [ -n "$LIST_ONLY" ] || register_present; then
   step token-grep "11. the local token grep, against site/" check_token_grep
 else
   skip token-grep "11. the local token grep, against site/" \
@@ -815,7 +823,16 @@ else
   claim="These bytes serve. No origin was checked, because there is none."
 fi
 if [ "$skips" -gt 0 ]; then
-  echo "VERDICT: clean, with $skips step(s) that did not run. $claim Read the summary before trusting it."
+  # AND THE WORD IS NOT PRINTED HERE EITHER. Issue 168 R4(a), the last layer of it, and it was
+  # found by an outside reader after the two below it were repaired. This line used to read
+  # "VERDICT: clean, with N step(s) that did not run", which is the whole finding said in one
+  # sentence: the summary above prints [SKIP] in a different shape precisely so a skip cannot be
+  # read as an OK, and then the one line a reader quotes put them back together under the word
+  # this file exists to protect. A qualifier after a verdict is not a verdict; it is a verdict
+  # somebody can stop reading.
+  echo "VERDICT: INCOMPLETE. $skips step(s) did not run and nothing here is evidence about what"
+  echo "         they cover. Everything that DID run passed. $claim"
+  echo "         The summary above names each one and why. Read it before pushing on this."
 else
   echo "VERDICT: clean. $claim"
 fi
