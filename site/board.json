@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T00:41:57Z",
+  "generated": "2026-08-16T00:53:27Z",
   "columns": [
     {
       "key": "raw",
@@ -145,36 +145,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
         },
         {
-          "id": 142,
-          "title": "I love this idea (in general of this controler / filter)…",
-          "labels": [
-            "feedback",
-            "layout",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/142"
-        },
-        {
-          "id": 143,
-          "title": "Make this bigger / taller maybe also include a right panel for other…",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/143"
-        },
-        {
-          "id": 145,
-          "title": "The rendering of the diagram when I drag this controller is very…",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/145"
-        },
-        {
           "id": 148,
           "title": "Make the format of this outlines more in line with the style…",
           "labels": [
@@ -309,6 +279,36 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/147"
         },
         {
+          "id": 145,
+          "title": "The rendering of the diagram when I drag this controller is very…",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/145"
+        },
+        {
+          "id": 143,
+          "title": "Make this bigger / taller maybe also include a right panel for other…",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/143"
+        },
+        {
+          "id": 142,
+          "title": "I love this idea (in general of this controler / filter)…",
+          "labels": [
+            "feedback",
+            "layout",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/142"
+        },
+        {
           "id": 139,
           "title": "Absence is one idea with two numbers that never add",
           "labels": [
@@ -323,35 +323,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/138"
-        },
-        {
-          "id": 137,
-          "title": "Time is an interval you drag, not a name you pick",
-          "labels": [
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/137"
-        },
-        {
-          "id": 136,
-          "title": "Scope is a set, and the union is one drawing",
-          "labels": [
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/136"
-        },
-        {
-          "id": 135,
-          "title": "Make a cooler, more structured visually outline",
-          "labels": [
-            "feedback",
-            "layout",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/135"
         }
       ],
-      "hidden": 119,
+      "hidden": 122,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
