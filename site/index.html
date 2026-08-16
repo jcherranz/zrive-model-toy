@@ -16,7 +16,7 @@
      WHY EACH DIRECTIVE. `default-src 'none'` is the floor, so anything not named below is
      refused: this page loads no font, no image, no media, no plugin, no worker and no frame, and
      app.css contains no url() at all, which was counted rather than assumed. `script-src 'self'`
-     is the one that carries the credential: all eleven scripts are external and same origin,
+     is the one that carries the credential: all twelve scripts are external and same origin,
      there is not one inline script, one style attribute or one on-something handler in this
      file, so an injected script is refused and that is the path from an XSS to a stolen token.
      `connect-src` names the two places this page really talks to, its own origin for board.json
@@ -495,9 +495,20 @@
   </section>
 </div>
 
-<!-- The deploy stamp first, because both of the scripts under it can be asked what commit this
-     page is, and feedback.js is asked exactly when app.js has thrown. It is a static file in the
-     repository naming no commit, and the deploy workflow rewrites it with the sha it publishes. -->
+<!-- THE WATCHER FIRST, AND FIRST IS THE WHOLE OF WHAT IT IS FOR. Issue 166. app.js turns a broken
+     load into a named throw and feedback.js registers the listener that reports one, and until
+     this line feedback.js was loaded LAST, which is after every throw it was written to catch. A
+     one node drift between the two generated documents below therefore drew a blank canvas and
+     said nothing, and that drift is the most likely failure a private deployment of this page
+     has. boot.js is ahead of the deploy stamp and of the data because a file that reports what
+     did not load has to be watching before anything can fail to load, and it is a file rather
+     than four lines in the head because the policy at the top of this document refuses an inline
+     script. It draws nothing on a page that came up. -->
+<script src="boot.js"></script>
+<!-- The deploy stamp next, because three of the scripts under it can be asked what commit this
+     page is, and feedback.js and boot.js are asked exactly when app.js has thrown. It is a static
+     file in the repository naming no commit, and the deploy workflow rewrites it with the sha it
+     publishes. -->
 <script src="version.js"></script>
 <!-- Two documents and not one, issue 60 seam 1. instance.js is what the objects are and
      layout.js is where they go; app.js joins them. The published page is public, so real data can
@@ -531,6 +542,12 @@
 <script src="term.js"></script>
 <script src="app.js"></script>
 <script src="board.js"></script>
+<!-- feedback.js STAYS LAST and issue 166 left it there on purpose. The two files divide the page's
+     life between them: boot.js at the top of this list watches the load and answers in three
+     states whether it finished, and feedback.js from down here owns everything a reader does
+     afterwards, which is the half that needs the filing machinery, the token and the popover. The
+     order board.js relies on, that it is loaded before the file publishing window.ZMT and so reads
+     it at call time, is unchanged. -->
 <script src="feedback.js"></script>
 </body>
 </html>

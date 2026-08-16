@@ -48,6 +48,65 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- **A PAGE THAT FAILED TO LOAD SHOWED NO ERROR, AND THE FAILURE IT COULD NOT SHOW IS THE ONE THAT
+  MATTERS, #166.** `site/app.js` carries ten top level throws whose stated purpose is to turn a
+  broken load "into one named error rather than into a page that half draws", and `site/feedback.js`
+  registers the listener that would report one. `site/index.html` loaded feedback.js **last**, after
+  app.js, so every one of those ten fired before there was anything listening. Measured on a working
+  tree: a throw inside a module left thirty nine nodes on screen with no notice, and a **one node**
+  drift between `site/instance.js` and `site/layout.js` drew **zero** nodes with no notice at all.
+  That second row is the destination case, because the two documents are split precisely so that
+  real data on a private deployment can replace the invented data on the public origin, which makes
+  a drift between them the most likely failure this page has.
+- **`site/boot.js`, the first script in the document, and it answers in three states.** `ok`, the
+  page finished and nothing is drawn; `threw`, it did not finish or something failed while it did
+  and there is a cause to name, which the banner names along with the deploy stamp; `blind`, it did
+  not finish and nothing on it can say why, which is the state the page could not previously
+  represent. `window.ZB` carries the reading whether or not anything is painted, so a driver that
+  finds no `window.ZB` has learned that the instrument was never installed rather than that the page
+  is clean. The listener is **capture phase**, which is what lets a script or a stylesheet that never
+  arrived be reported at all, since those errors do not bubble. KAIZEN.md
+  `kaizen-a-watcher-that-loads-after-what-it-watches`.
+- **It is a file rather than an inline bootstrap because of the policy that landed an hour earlier.**
+  `script-src 'self'` carries no `'unsafe-inline'`, so four lines in the head are refused by the
+  browser. Moving `feedback.js` wholesale to the front was the other candidate and was rejected: its
+  listener is bubble phase and would still miss a file that did not load, it is nine hundred lines
+  in front of the page it reports on, and board.js's documented reliance on being loaded before
+  `window.ZMT` is published would have been inverted for an unrelated reason. The banner carries its
+  own style element written through the CSSOM, because a stylesheet that did not load is one of the
+  failures it has to report.
+- **Two measurements that changed the design.** `link.sheet` is **not** null on a stylesheet whose
+  request was refused, so the obvious test called a page with no style a page with style; the check
+  reads `cssRules` and treats a throw as a failure to load. And Chrome reports "ResizeObserver loop
+  completed with undelivered notifications" as an uncaught error, four of them on a page that drew
+  all of its nodes correctly, so that one message is exempted by name and the cost is written down:
+  a genuine observer loop is invisible to this file and goes red in the smoke suite instead.
+- **An adversarial review found a false banner before this shipped, and it was the worst outcome
+  the change could have had.** The deadline that covers a load event which never fires was treated
+  as a verdict, so a slow phone on a slow network would have been told, permanently, that a page
+  still loading normally was broken. The deadline's answer is **provisional** now: it says the page
+  has not finished, which is true when it is said, and the load event withdraws the notice if the
+  page comes up. **Measured** by holding `app.js` back ten seconds behind an eight second deadline:
+  the banner appeared reading "if it is only slow, this notice goes away by itself", and after the
+  load it was gone with `window.ZB` at `ok` and every node drawn. The same review found that a
+  `window.ZT` defined as a throwing getter would take the watcher down and leave its reading at
+  `waiting` forever, which is this file's own defect one level up; the decision is wrapped and a
+  page it cannot read at all now reports that, in the banner, as `blind`.
+- **The suite is 312, up one, and the one is the whole of a new `the load` phase.** Three loads
+  compared as one reading each: healthy, a drift planted in the browser between the two documents,
+  and a completion signal suppressed with nothing thrown. It plants with
+  `Page.addScriptToEvaluateOnNewDocument` rather than by editing the tree, so it means the same
+  thing against the deployed origin, and it runs in a browser of its own because `openPage` binds
+  its console recorder by method and not by session, which would have made a planted error fail
+  another phase's assertion. The plant reports whether it landed, because a plant that could not
+  reach the shape it was written for leaves the page coming up perfectly and would have turned the
+  assertion red naming the page: a check that cannot tell "the page failed to report" from "I
+  failed to break it" is the defect this phase exists to end. And "shown" means the banner has a
+  box on screen rather than an element in the document, since the style it carries is written
+  through the CSSOM and an element with no height is what a refusal of that write would look like.
+  Half (a) of the card, that `site/index.html` leaves a literal `0` on
+  screen as the headline number, **is dead and was not rebuilt**: `gapsval` does not occur anywhere
+  in the repository, the panel redesign in #136, #137 and #139 having deleted that readout.
 - **THE WEEK GRID COMPARED NOTHING AND THE MONTH GRID DREW SOME DAYS TWICE, #158.** His words:
   "In calendar view 'week' please make monday to sunday vertical and weeks horizontal so it is a
   grid that adds value + in months view do not duplicate days in two month grids." The week grid

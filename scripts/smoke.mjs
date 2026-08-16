@@ -42,6 +42,12 @@
 //                     a closed issue goes to Done, a NOT_PLANNED closure appears in no column,
 //                     Done is drawn newest first and capped at 8, and drawn plus hidden equals
 //                     every closed issue.
+//   the load          #166. The one phase here about a page that is meant to be broken. app.js
+//                     throws by name on a broken load and feedback.js, which registers the
+//                     listener that would report one, was loaded after it, so all ten of those
+//                     throws fired unwatched. site/boot.js is the first script now and answers in
+//                     three states; this phase drives a healthy load and two planted ones and
+//                     compares the three readings whole.
 //   every width       1536x839 is the viewport every one of those six issues was filed at, and
 //                     is on each of them in the context block. 1440x900 is the size README
 //                     claims the whole drawing fits without scrolling. 390x844 is the narrow
@@ -294,6 +300,7 @@ const PHASES = {
   'canvas':               { count: 7, when: 'behavioural' },
   'capture':              { count: 15, when: 'behavioural' },
   'board':                { count: 13, when: 'behavioural' },
+  'the load':             { count: 1, when: 'behavioural' },
   'the gutter on a phone': { count: 2, when: 'narrow' },
   'console and requests': { count: 3, when: 'every' },
   'two artefacts':        { count: 4, when: 'grain' },
@@ -605,7 +612,12 @@ const PHASES = {
 // Four cards landed between this file being read and this commit being merged onto them, and every
 // increment is kept: issue 156 owns the two in `well formed`, issue 172 the three in `console and
 // requests`, issue 155 the one in `absence`, and these three the seven in `term`.
-const EXPECTED_ASSERTIONS = 311;
+// 312 since issue 166, whose one assertion is the whole of the new `the load` phase: three loads
+// of the page, one of them healthy and two of them broken on purpose, compared as one reading
+// each. It is one assertion rather than three because the claim is that the three states are told
+// apart from each other, and a comparison of the three together is the only form of that claim
+// which a page answering two of them correctly cannot pass.
+const EXPECTED_ASSERTIONS = 312;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -10511,6 +10523,177 @@ async function checkWidth(page, base) {
     `${count.query.length} by the query and ${count.press.length} answering a press`);
 }
 
+// ---- the load itself, and whether the page says so when it does not finish -----------------------
+// ISSUE 166. Every other phase in this file drives a page that came up. This one is about the page
+// that did not, which until site/boot.js was the one thing this site could not report: app.js
+// throws by name on a broken load, feedback.js registers the listener that would show it, and
+// index.html loaded feedback.js last, which is after all ten of those throws. A one node drift
+// between site/instance.js and site/layout.js drew a blank canvas and said nothing at all, and
+// that drift is the most likely failure a private deployment of this page has, since the two
+// documents are split precisely so that real data can replace the invented data on one of them.
+//
+// THE ASSERTION IS ONE COMPARISON OF THREE READINGS AND NOT A WAIT. A wait for a banner can only
+// ever time out, which is the subtlest dead instrument this project has found: it cannot tell a
+// page that answered wrongly from a page that did not answer. So each run produces a sentence
+// describing what the page did, whatever it did, and the three sentences are compared whole. A
+// healthy page saying nothing is part of the same comparison as a broken page speaking, which is
+// what makes "no banner" evidence rather than an absence of evidence.
+//
+// AND window.ZB IS READ ALONGSIDE THE BANNER FOR THE REASON checkCsp READS window.__csp. A run
+// with no window.ZB has not found a clean page, it has found that the instrument was never
+// installed, and the reading says so in those words rather than passing on it.
+//
+// PLANTED IN THE BROWSER AND NOT IN THE TREE, so that this phase means the same thing against a
+// deployed origin as against site/ on this machine, and so that nothing on disk is edited by a
+// test run. Page.addScriptToEvaluateOnNewDocument lands before the page's own scripts, which is
+// the only place a plant can sit if it is to reach the documents before app.js joins them.
+//
+// TWO PLANTS AND NOT FIVE. A run costs about four minutes and every plant is a browser load. The
+// two below are the two that separate the three states from each other; the other failures this
+// file's author measured by hand, a script blocked at the network layer and a stylesheet that
+// never arrived, are reported by the same code path and prove nothing here that these two do not.
+//
+// ITS OWN BROWSER, WHICH IS NOT AN EXTRAVAGANCE. openPage registers its console and request
+// recorders on the CDP connection by method name and not by session, so a second page opened on
+// the same browser would push its exceptions into the first page's record, and `console and
+// requests` allows nothing on that channel but a favicon 404. A phase that plants two uncaught
+// errors would then fail another phase's assertion, which is the one thing a plant must never do.
+const PLANT_DRIFT = `(function () {
+  // ONE NODE OUT OF STEP, which is the third row of the experiment that filed this card. The
+  // layout document is intercepted on its way to the window so that one of its nodes takes the id
+  // of its neighbour, and app.js's join then finds a node whose coordinates belong to another
+  // node and throws by name. It is the shape a private instance.js built against a stale layout
+  // would have, reproduced without touching either file.
+  // AND IT SAYS WHETHER IT LANDED, which is this file's own doctrine applied to its own plant. A
+  // plant that could not reach the shape it was written for does nothing, the page comes up
+  // perfectly, and the assertion goes red naming the page. That is a check that cannot tell "the
+  // page failed to report" from "I failed to break it", which is the class of defect this phase
+  // exists to end. window.__zbPlant carries the answer and the reading below prints it.
+  var held;
+  window.__zbPlant = 'armed, and layout.js never assigned window.GL';
+  Object.defineProperty(window, 'GL', {
+    configurable: true,
+    get: function () { return held; },
+    set: function (v) {
+      try {
+        var ns = v.views[0].drawing.nodes;
+        ns[2].id = ns[3].id;
+        window.__zbPlant = ns[2].id === ns[3].id ? 'applied' : 'inert, the write did not take';
+      } catch (e) {
+        window.__zbPlant = 'inert, the layout document is not the shape this plant expects: ' +
+                           (e && e.message ? e.message : e);
+      }
+      held = v;
+    }
+  });
+}())`;
+
+const PLANT_SILENT = `(function () {
+  // THE PAGE STOPS AND NOTHING SAYS SO, which is the state the old page could not represent at
+  // all. window.ZT is given a setter that discards, so app.js runs to the end, assigns, throws
+  // nothing, and the readiness signal never appears. That is the observable shape of a script
+  // that was never fetched or never executed, and the difference between this state and the one
+  // above is the whole reason the notice has three of them.
+  Object.defineProperty(window, 'ZT', {
+    configurable: true,
+    get: function () { return undefined; },
+    set: function () { /* discarded */ }
+  });
+}())`;
+
+// What the page did, in its own terms. Every branch returns a sentence, including the branches
+// where the page is fine and where the instrument is missing.
+const BOOT_READ = `(function () {
+  var zb = window.ZB;
+  if (!zb) return 'no window.ZB at all: site/boot.js never ran, so this run is evidence about ' +
+                  'the instrument and not about the page';
+  // The plant's own answer first, where there is one. A run that reports the page came up when
+  // the plant never landed is reporting on nothing, and it must not read as a finding about the
+  // page. See the plant above.
+  if (typeof window.__zbPlant === 'string' && window.__zbPlant !== 'applied') {
+    return 'the plant did not land (' + window.__zbPlant + '), so this run says nothing';
+  }
+  var el = document.querySelector('.zb-notice');
+  var text = el ? el.textContent.replace(/\\s+/g, ' ') : '';
+  // SHOWN MEANS IT HAS A BOX, not that a node exists. The banner carries its own style element
+  // written through the CSSOM, which is the part of it a policy could refuse and a rule could
+  // collide with, and an element in the document with no height is exactly what that refusal
+  // would look like from here.
+  var box = el ? el.getBoundingClientRect() : null;
+  var seen = !el ? 'absent'
+    : (box.height > 0 && box.width > 0 && getComputedStyle(el).visibility !== 'hidden')
+      ? 'shown' : 'in the document with no box';
+  var says = [];
+  if (/has the coordinates of/.test(text)) says.push('names the throw');
+  if (/\\(app\\.js:[0-9]+\\)/.test(text)) says.push('and where it came from');
+  if (/nothing on this page can say why/i.test(text)) says.push('says nothing on it can say why');
+  if (el && el.getAttribute('data-zb') !== zb.state) says.push('and disagrees with window.ZB');
+  if (el && zb.painted !== true) says.push('and window.ZB does not know it painted');
+  return zb.state + ', banner ' + seen + (says.length ? ', ' + says.join(', ') : '');
+})()`;
+
+const BOOT_WANTED = [
+  'healthy: ok, banner absent',
+  'the drift: threw, banner shown, names the throw, and where it came from',
+  'the silent stop: blind, banner shown, says nothing on it can say why'
+];
+
+// A distinct url per run, because setting a hash on the same document is not a load and this
+// phase is about loads. The query is ignored by the local server and by Pages alike.
+async function bootReadings(cdp, base) {
+  const page = await openPage(cdp, { w: 1280, h: 900, emulate: true, pointer: false });
+  const runs = [['healthy', null], ['the drift', PLANT_DRIFT], ['the silent stop', PLANT_SILENT]];
+  const out = [];
+  let n = 0;
+  for (const [label, plant] of runs) {
+    let planted = null;
+    if (plant) {
+      planted = (await page.send('Page.addScriptToEvaluateOnNewDocument', { source: plant })).identifier;
+    }
+    await page.navigate(new URL('?load=' + (++n) + '#/', base).toString());
+    // boot.js answers on the load event, and the browser reports that event to this process after
+    // dispatching it, so the reading is normally there already. Polled rather than waited on: a
+    // deadline that expires returns whatever the page says, which is a reading the comparison can
+    // judge, where a wait would throw and take the assertion with it.
+    let reading = 'no answer';
+    for (let i = 0; i < 40; i++) {
+      reading = await page.evaluate(BOOT_READ);
+      if (!/^waiting/.test(reading)) break;
+      await sleep(50);
+    }
+    out.push(label + ': ' + reading);
+    if (planted) await page.send('Page.removeScriptToEvaluateOnNewDocument', { identifier: planted });
+  }
+  return out;
+}
+
+async function checkLoad(chrome, base) {
+  let b = null;
+  let readings;
+  try {
+    b = await launchWithRetry(chrome, 1280, 900, 'the load');
+  } catch (err) {
+    // No browser is not a finding about the page. The count audit reports this phase short and the
+    // run ends at "the suite could not answer", which is the honest verdict when the one phase
+    // about a broken page never ran.
+    harnessFail('the load phase never got a browser of its own, so it did not run',
+      (err && err.detail) || (err && err.message) || String(err));
+    return;
+  }
+  try {
+    readings = await bootReadings(b.cdp, base);
+  } catch (err) {
+    readings = ['the phase threw before it could read the page: ' +
+                (err && err.message ? err.message : String(err))];
+  } finally {
+    b.close();
+  }
+  assertEqual('a load that fails says so, in three states, and a load that does not stays silent',
+    readings, BOOT_WANTED,
+    'the healthy page draws no notice, the drift between the two documents names the throw, and ' +
+    'a page that stops with nothing on the error channel says that nothing on it can say why');
+}
+
 // ---- the gutter, at the width where it is declared a second time --------------------------------
 // ISSUE 113 AT THE PHONE BREAKPOINT, WHICH IS ISSUE 115's F22. The two gutter assertions in the
 // `term` phase are the same relationships as these and they run at 1536 only, because that is the
@@ -11959,6 +12142,14 @@ async function runViewport(chrome, viewport, base, full, narrow) {
       await group('canvas', () => checkCanvas(page));
       await group('capture', () => checkCapture(page, base));
       await group('board', () => checkBoard(page, base));
+      // LAST OF THE BEHAVIOURAL PHASES AND IN A BROWSER OF ITS OWN. It is the only phase that
+      // drives a page which is meant to be broken, so it touches neither this browser's page nor
+      // its console record, and it runs after everything that reads either. Outside group()
+      // because a browser it never got is a harness finding and not a regression, which is a
+      // distinction group() cannot make. Issue 166.
+      setPhase('the load');
+      if (!phaseIsSkipped('the load')) await checkLoad(chrome, base);
+      setPhase('-');
     }
 
     if (narrow) {
