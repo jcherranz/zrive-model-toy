@@ -788,7 +788,8 @@
     // on the drawing and on the calendar's rows at once, and #86 made every header control
     // hit-testable over a sheet, so one control serves both without a second copy of it.
     var brushEl = document.getElementById('brush');
-    var brushTrack = null, brushBand = null, brushLabel = null, brushCols = [];
+    var brushTrack = null, brushBand = null, brushVal = null, brushCols = [];
+    var brushValFrom = null, brushValTo = null;
     var brushCapL = null, brushCapR = null, brushNow = null;
     var onWindow = opts.onWindow;
 
@@ -912,11 +913,42 @@
       brushBand.appendChild(el('span', 'brush-grip brush-grip-l'));
       brushBand.appendChild(el('span', 'brush-grip brush-grip-r'));
       brushTrack.appendChild(brushBand);
-      brushLabel = el('span', 'brush-label');
-      brushTrack.appendChild(brushLabel);
       brushEl.appendChild(brushTrack);
       brushCapR = el('span', 'brush-cap brush-cap-r');
       brushEl.appendChild(brushCapR);
+      brushVal = el('span', 'brush-val');
+      brushValFrom = el('span', 'brush-val-d');
+      brushValTo = el('span', 'brush-val-d');
+      brushVal.appendChild(brushValFrom);
+      brushVal.appendChild(brushValTo);
+      brushEl.appendChild(brushVal);
+      sizeValue();
+    }
+
+    // THE SLOT IS AS WIDE AS THE WIDEST INTERVAL THIS TERM CAN NAME, MEASURED ONCE. Issue 142.
+    // The dates are what the value slot holds and they are not all the same width: `9 Mar` is
+    // narrower than `28 Sept` even under `tabular-nums`, which equalises digits and not letters.
+    // A slot sized by its own content would therefore change width as the reader dragged, and the
+    // track is to its left, so the track's right edge and its pixels per week would move under the
+    // pointer that was dragging it. That is the defect #137 chose this slot in the row to avoid,
+    // met one level down. So the slot is pinned to the widest string the term can produce, which
+    // is measured off the real font in this element rather than declared in the stylesheet: a
+    // number typed there is right for one term and one type ramp.
+    //
+    // 48 STRINGS AND ONE STARTUP, which is every Monday of the term and every Sunday after it. It
+    // is 24 weeks, so this is 48 reads of offsetWidth on one small element, once, before anything
+    // is drawn, and never again: nothing in a drag measures anything now.
+    function sizeValue() {
+      if (!brushVal || !TERM) return;
+      var was = brushValFrom.textContent, w = 0, i;
+      for (i = 0; i < TERM.weeks; i++) {
+        brushValFrom.textContent = shortDate(mondayAt(i));
+        w = Math.max(w, brushValFrom.offsetWidth);
+        brushValFrom.textContent = shortDate(addDays(mondayAt(i), 6));
+        w = Math.max(w, brushValFrom.offsetWidth);
+      }
+      brushValFrom.textContent = was;
+      brushVal.style.width = w + 'px';
     }
 
     // `24 Feb`, and it is back after #106 deleted its predecessor as uncalled. That deletion was
@@ -933,33 +965,34 @@
       return shortDate(r.from) + ' to ' + shortDate(r.to);
     }
 
-    // WHERE THE LABEL GOES, AND IT IS ARITHMETIC RATHER THAN A PREFERENCE. The band is the
-    // window's width as a fraction of the term, so three weeks of twenty four is an eighth of the
-    // track: 42 CSS px at the strip's designed width against about 78 for `24 Feb to 16 Mar`. A
-    // label forced inside would be clipped, and a label painted over the band regardless would
-    // cover eight weeks of the density the strip exists to show. So it sits on the band while the
-    // band can hold it and steps to whichever side has room while it cannot, which is what a
-    // progress bar's own figure does and is one comparison of two measured widths.
+    // THE LABEL LEFT THE TRACK, AND THE TWO BEHAVIOURS WENT WITH IT. Issue 142, and it is the
+    // owner's own question answered with a measurement: he asked whether the label belongs on the
+    // band at all, given that it steps beside the band when the band cannot hold it.
     //
-    // THIS IS THE ONE PLACE THE DESIGN'S SKETCH COULD NOT BE FOLLOWED AS DRAWN. That sketch gives
-    // the strip a full width row of its own, where twenty four weeks are sixty pixels each and
-    // three of them hold the label comfortably. This header is one row at every width from 1536
-    // down to 981 and this card was told to keep it that way, so the strip is 380 and the label
-    // goes where it fits.
-    function placeLabel() {
-      if (!brushLabel || !brushBand || !brushTrack) return;
-      var tw = brushTrack.clientWidth;
-      var bl = brushBand.offsetLeft, bw = brushBand.offsetWidth;
-      var lw = brushLabel.offsetWidth;
-      var inside = lw + 6 <= bw;
-      var x;
-      if (inside) x = bl + (bw - lw) / 2;
-      else if (bl + bw + 2 + lw <= tw) x = bl + bw + 2;
-      else if (bl - 2 - lw >= 0) x = bl - 2 - lw;
-      else x = Math.max(0, Math.min(tw - lw, bl + (bw - lw) / 2));
-      brushLabel.className = 'brush-label' + (inside ? '' : ' brush-label-out');
-      brushLabel.style.left = Math.round(x) + 'px';
-    }
+    // WHAT WENT. `placeLabel()`, thirteen lines and a class, which centred the label on the band
+    // while it fitted and stepped it to whichever side had room while it did not. The rule was
+    // sound and the case it was written for was the wrong way round: the label measures 75.61 CSS
+    // px and the band is the window's share of the track, so at the strip's own 12.83 px week the
+    // label fitted inside from SIX weeks up. Of the 24 window widths a reader can set, nineteen
+    // put it outside, over about six columns of the density the strip is worth its width for. The
+    // exception was the rule.
+    //
+    // AND IT WAS THE MOST EXPENSIVE THING IN A DRAG, which is issue 145 arriving at the same
+    // place from the other side. It read `clientWidth`, two `offsetLeft`/`offsetWidth` pairs and
+    // its own `offsetWidth` on every repaint, each of them a forced synchronous layout of a
+    // document holding the drawing, and it was also wired to a ResizeObserver. Chrome's sampling
+    // profiler put it at 289ms of the 1470ms of script that three drags at `#/p/ALL` on a 2560
+    // viewport cost, the largest single frame in the profile. Deleting it takes the measuring out
+    // of the gesture entirely: nothing on this strip measures anything during a drag now.
+    //
+    // WHERE IT WENT AND WHY THAT END. The value is a slot of its own after the right cap, pinned
+    // to the widest interval the term can name by sizeValue() above. It never moves, it never
+    // covers a column, it has one behaviour, and it is the strip saying what it is set to, which
+    // is what the chips beside it and the altitude in the nav already do. It is at the TRAILING
+    // end and not the leading one, and that is the same measurement twice: a slot whose width can
+    // change sits between the reader and nothing at the right hand end, while at the left hand end
+    // it would sit between the reader and the track, and the track's left edge moving is exactly
+    // what #137 chose this slot in the row to prevent.
 
     // ---- what the strip says, restated on every change ------------------------
     // ISSUE 111'S ORDER IS LOAD BEARING AND IS KEPT: the title quotes how many tiles the window
@@ -983,8 +1016,9 @@
       var start = bandStart(), span = bandSpan();
       brushBand.style.left = (start / TERM.weeks * 100) + '%';
       brushBand.style.width = (span / TERM.weeks * 100) + '%';
-      brushLabel.textContent = bandWords();
-      placeLabel();
+      var r = winRange();
+      brushValFrom.textContent = shortDate(r ? r.from : TERM.first);
+      brushValTo.textContent = shortDate(r ? r.to : TERM.last);
       // The now marker, drawn only where the reader's own day falls inside the term. It is 0 of 83
       // sessions on or after today on this snapshot, so there is nothing to mark and nothing is
       // marked; a page that drew a line at the edge would be marking a today the term does not
@@ -1040,11 +1074,52 @@
     // tiles the window has taken off the drawing, which is an answer only render.js can give and
     // only after it has been told. Restating before telling would print the effect of the window
     // the reader just left, one press behind, for ever.
-    function windowChanged() {
+    // AND IT IS COALESCED TO ONE ANIMATION FRAME, WHICH IS ISSUE 145. He said dragging this
+    // control renders the diagram very, very slowly, and asked for the answer Monetary Lab already
+    // uses. Measured first, on the page he filed it from: a 40 move drag of an eight week band at
+    // `#/p/ALL` on a 2560 viewport crossed nine week boundaries and rebuilt the drawing nine times,
+    // 51.4ms on average and 92.7ms at worst, which is eleven to nineteen frames a second under the
+    // pointer. A one programme three week window costs 10.1ms a rebuild, so the cost scales with
+    // the union rather than being a constant.
+    //
+    // THE SHAPE IS THE ONE THAT WAS PROVED THERE: keep one booked job, cancel nothing, let the
+    // latest state win, guarantee the trailing call, and run synchronously where
+    // requestAnimationFrame is not a function. Nothing is captured when the job is booked and the
+    // job reads the state at the moment it runs, so a window that moved three times inside one
+    // frame is drawn once, at where it ended, and never at where it passed through. A drag that
+    // outruns the frame rate now costs one rebuild per frame instead of one per week crossed, and
+    // the ones it skips are frames nobody could have seen.
+    //
+    // AND THE ORDER INSIDE THE JOB IS ISSUE 111's, UNCHANGED AND STILL LOAD BEARING. The whole of
+    // windowChanged is inside the coalesced job rather than the render half of it, precisely so
+    // that the drawing is told before the control restates what the drawing did: splitting them
+    // across a frame boundary is how the strip's title would come to quote the window the reader
+    // just left.
+    //
+    // WHAT A DRIVER READS. `pending` on brushState() is true between a change and the frame that
+    // draws it, and false otherwise, so a wait on it is satisfied by both of the answers the page
+    // can give. A wait that could only ever be satisfied by the right answer is a wait that times
+    // out instead of failing, and that hid an assertion completely on issue 137.
+    var winTicket = 0, winDrawn = 0, winBooked = false;
+
+    function pendingWindow() { return winTicket !== winDrawn; }
+
+    function drawWindow() {
+      winBooked = false;
+      var at = winTicket;
       built = null;
       if (reading) { buildRows(); describe(); }
       if (onWindow) onWindow(windowSpec());
       restateWindow();
+      winDrawn = at;
+    }
+
+    function windowChanged() {
+      winTicket++;
+      if (typeof window.requestAnimationFrame !== 'function') { drawWindow(); return; }
+      if (winBooked) return;
+      winBooked = true;
+      window.requestAnimationFrame(drawWindow);
     }
 
     // The same restatement, for a caller that changed the drawing rather than the window. A change
@@ -1252,12 +1327,12 @@
       brushEl.addEventListener('pointerup', brushUp);
       brushEl.addEventListener('pointercancel', brushUp);
       brushEl.addEventListener('keydown', brushKey);
-      // The label is the one thing on this strip that is placed rather than laid out, so it is the
-      // one thing a change of width can leave wrong. Everything else is flex children and per cent
-      // offsets and is right at any size without being told.
-      if (window.ResizeObserver) {
-        new window.ResizeObserver(function () { placeLabel(); }).observe(brushEl);
-      }
+      // AND NO ResizeObserver, WHICH IS ISSUE 142 TAKING THE LAST MEASUREMENT OFF THIS CONTROL.
+      // One stood here calling placeLabel() on every change of the strip's width, because the
+      // label was the one thing on the strip that was placed rather than laid out. Nothing is
+      // placed now: the columns are flex children, the band is a pair of per cents, and the value
+      // is a slot pinned once at startup. The strip is right at 2560, at 1536 and at 390 without
+      // anything measuring anything, which is what it always claimed and is now true of all of it.
     }
 
     // ---- what the sheet no longer says about itself ---------------------------
@@ -2743,9 +2818,26 @@
           caps: { left: box(brushCapL), right: box(brushCapR),
                   leftOff: /brush-cap-off/.test(brushCapL.className),
                   rightOff: /brush-cap-off/.test(brushCapR.className) },
-          label: { text: brushLabel.textContent,
-                   inside: !/brush-label-out/.test(brushLabel.className),
-                   box: box(brushLabel) },
+          // The value slot, and the two things a driver has to be able to check about it after
+          // issue 142: what it says, and that its box is outside the track rather than over it.
+          // `inside` is gone with the branch it reported. What replaces it is the claim that the
+          // old arrangement could not make at all, which is that no part of the value is ever
+          // painted over a column.
+          value: { text: brushValFrom.textContent + ' to ' + brushValTo.textContent,
+                   from: brushValFrom.textContent, to: brushValTo.textContent,
+                   box: box(brushVal), width: brushVal.style.width },
+          // A week of the track in pixels, so a driver reads the sizing rule off the page rather
+          // than dividing two numbers it also read off the page. Issues 142 and 143.
+          week: +(brushTrack.getBoundingClientRect().width / TERM.weeks).toFixed(3),
+          // Whether a change has been made that the page has not drawn yet. Issue 145: the rebuild
+          // is coalesced to one animation frame, so a driver that read the strip the instant a
+          // gesture landed would be reading the frame before it. Both answers are answers, which
+          // is what makes this waitable without the wait encoding its own assertion.
+          pending: pendingWindow(),
+          // How many times the drawing has been rebuilt since the page loaded, which is what makes
+          // "several week crossings in one frame cost one rebuild" a claim about the page rather
+          // than about a stopwatch.
+          rebuilds: opts.rebuilds ? opts.rebuilds() : null,
           now: !brushNow.hidden,
           focused: document.activeElement === brushEl,
           valuenow: Number(brushEl.getAttribute('aria-valuenow')),

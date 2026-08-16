@@ -282,7 +282,7 @@ const PHASES = {
   'the worklist':         { count: 7, when: 'behavioural' },
   'the cut':              { count: 8, when: 'behavioural' },
   'the modified drag':    { count: 6, when: 'behavioural' },
-  'the brush':            { count: 8, when: 'behavioural' },
+  'the brush':            { count: 11, when: 'behavioural' },
   'absence':              { count: 10, when: 'behavioural' },
   'the view selector':    { count: 6, when: 'behavioural' },
   'the control panel':    { count: 9, when: 'behavioural' },
@@ -565,7 +565,7 @@ const PHASES = {
 // assertion is repaired in the same commit rather than counted again: its three arrivals were
 // fragment navigations that built no document, so the union it called `read cold` was the scope the
 // page had been constructed with, and it reloads now.
-const EXPECTED_ASSERTIONS = 288;
+const EXPECTED_ASSERTIONS = 291;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -2979,16 +2979,49 @@ async function setWindowAt(page, weeks, anchor) {
   await brushFocus(page);
   await brushKey(page, 'Home', true);
   await page.waitFor('window.ZT.term().window.weeks === 0', 'the band over the whole term');
-  if (!weeks) { await sleep(60); return; }
+  if (!weeks) { await settled(page); return; }
   for (let i = w0.termWeeks; i > weeks; i--) await brushKey(page, 'ArrowLeft', true);
   const idx = weekIndexIn(want, w0.firstMonday);
   for (let i = 0; i < idx; i++) await brushKey(page, 'ArrowRight', false);
   await page.waitFor(`window.ZT.term().window.weeks === ${weeks}`,
     `a ${weeks} week window on the strip`);
-  await sleep(60);
+  // AND THEN THE FRAME THAT DRAWS IT, since issue 145. `window.weeks` is the state and is true the
+  // instant the key lands; the drawing, the strip's own columns and every box on it are the frame
+  // after. Every phase below this helper reads boxes.
+  await settled(page);
 }
 
 async function setWindow(page, weeks) { await setWindowAt(page, weeks, null); }
+
+// THE PAGE HAS DRAWN WHAT THE READER ASKED FOR. Issue 145 coalesced the rebuild to one animation
+// frame, so a reading taken the instant a gesture lands is a reading of the frame before it, and
+// this suite's own history says what that becomes: an assertion that passes on a stale frame is a
+// dead instrument, and there are six of those on the board already.
+//
+// IT IS A WAIT ON A CONDITION THE PAGE ANSWERS BOTH WAYS. `pending` is true between a change and
+// the frame that draws it and false otherwise, so both of the answers the page can give satisfy
+// this call in the sense that matters: it returns on false and it keeps asking on true, and it
+// never encodes what the frame OUGHT to contain. A wait that named the right window would time out
+// where the page landed on the wrong one, which is how issue 137 hid an assertion completely.
+async function settled(page) {
+  await page.waitFor('window.ZT.brush().pending === false', 'the strip to draw what it was told');
+}
+
+// An ISO date to the `9 Mar` shape, which is what the value slot shows, recomputed here rather
+// than read back off the element that wrote it. The month names are this file's own, so a term.js
+// that started spelling March `Mar.` fails rather than agreeing with itself.
+//
+// AND THE EXAMPLE IS DESCRIBED RATHER THAN QUOTED, WHICH IS A GATE AND NOT A STYLE. This comment
+// first spelled the worked example as a backticked year-month-day, the window start off the
+// owner's own card. scripts/check_repo.sh reads a backticked year-month-day as a CITATION of a
+// dated entry in HANSEI.md or KAIZEN.md, so the gate went red on this file for a slug that does
+// not exist and never could. It is the same family as the rule that reads a dot-grouped number as
+// a money figure: the repair is the text and never the rule.
+const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function shortDateOf(iso) {
+  return String(Number(iso.slice(8, 10))) + ' ' + SHORT_MONTHS[Number(iso.slice(5, 7)) - 1];
+}
 
 // One week along, which is what an end cap does with a press and what an arrow does with a key.
 async function stepWindow(page, dir) {
@@ -6848,35 +6881,79 @@ async function checkBrush(page, base) {
       `at ${wantCentred}`,
     `start ${centre.start} to ${centred.start}, wanted ${wantCentred}, span ${centred.span}`);
 
-  // SEVEN. THE LABEL SITS ON THE BAND WHEN THE BAND CAN HOLD IT AND BESIDE IT WHEN IT CANNOT, and
-  // this is the one place the design's own sketch could not be followed as drawn. That sketch gives
-  // the strip a full width row, where twenty four weeks are sixty pixels each and three of them
-  // hold `24 Feb to 16 Mar` comfortably. This header is one row at every width from 1536 down to
-  // 981 and this card was told to keep it that way, so the band at three weeks is an eighth of a
-  // 332px track and the label is 78. A label forced inside would be clipped; a label painted over
-  // the band regardless would cover eight weeks of the density the strip exists to show. Both
-  // branches are driven, and the rule is recomputed here off the two rendered widths rather than
-  // read off the class the page set.
-  const labels = [];
-  for (const span of [3, 14]) {
+  // SEVEN. THE VALUE IS A SLOT OF ITS OWN: IT NEVER MOVES AND IT NEVER COVERS A COLUMN. Issue 142,
+  // and it replaces the claim that the label sits on the band where the band can hold it and beside
+  // it where it cannot. That rule was sound and its exception was the rule: `9 Mar to 12 Apr`
+  // measures 75.61 CSS px, the band is the window's share of the track, and at the 12.83 px week
+  // the strip had, the label fitted inside from SIX weeks up, so nineteen of the twenty four window
+  // widths a reader can set painted an opaque ground over about six columns of the density the
+  // strip is worth its width for. The label is a slot after the right cap now, and what is asserted
+  // is the two things the old arrangement could not say at all.
+  //
+  // DRIVEN ACROSS THE WHOLE RANGE AND NOT AT TWO POINTS. One week, three, five, fourteen and the
+  // whole term, which are both ends and the middle, because "it never moves" is a claim about every
+  // width of window and a two point sample is where a rule that held at two points and nowhere else
+  // would hide. The dates are recomputed here from the term the page publishes rather than read
+  // back off the element that wrote them.
+  const vals = [];
+  for (const span of [1, 3, 5, 14, 0]) {
     await setWindowAt(page, span, null);
-    await sleep(160);
+    await settled(page);
     const st = await page.evaluate('window.ZT.brush()');
-    labels.push({ span: st.span, fits: st.label.box.w + 6 <= st.band.w, inside: st.label.inside,
-                  lw: st.label.box.w, bw: st.band.w, lx: st.label.box.x,
-                  br: st.band.x + st.band.w, bx: st.band.x, tx: st.track.x,
-                  tr: st.track.x + st.track.w, text: st.label.text });
+    const w = await page.evaluate('window.ZT.term().window');
+    vals.push({ span: st.span, x: st.value.box.x, w: st.value.box.w,
+                trackRight: +(st.track.x + st.track.w).toFixed(2),
+                capRight: +(st.caps.right.x + st.caps.right.w).toFixed(2),
+                from: st.value.from, to: st.value.to,
+                wantFrom: shortDateOf(w.from), wantTo: shortDateOf(w.to),
+                text: st.value.text, valuetext: st.valuetext });
   }
-  const labelWrong = labels.filter(l => l.inside !== l.fits ||
-    (l.inside && (l.lx < l.bx - 0.5 || l.lx + l.lw > l.br + 0.5)) ||
-    (!l.inside && l.lx + l.lw > l.br + 0.5 && l.lx < l.bx - 0.5) ||
-    l.lx < l.tx - 0.5 || l.lx + l.lw > l.tr + 0.5 || !l.text);
-  assert('the label is on the band where the band can hold it and beside it where it cannot',
-    labels.length === 2 && labelWrong.length === 0 &&
-      labels[0].inside === false && labels[1].inside === true,
-    'a three week band too narrow for its own dates and a fourteen week band wide enough, the ' +
-      'label outside the first and inside the second, and inside the track in both',
-    JSON.stringify(labels));
+  const movedBy = Math.max.apply(null, vals.map(v => Math.abs(v.x - vals[0].x)));
+  const widthBy = Math.max.apply(null, vals.map(v => Math.abs(v.w - vals[0].w)));
+  const overTrack = vals.filter(v => v.x < v.trackRight - 0.5 || v.x < v.capRight - 0.5);
+  const wrongWords = vals.filter(v => v.from !== v.wantFrom || v.to !== v.wantTo ||
+    String(v.valuetext).indexOf(v.wantFrom + ' to ' + v.wantTo) === -1);
+  assert('the value is a slot of its own: it never moves, and no window width paints it over a column',
+    vals.length === 5 && movedBy < 0.5 && widthBy < 0.5 && overTrack.length === 0 &&
+      wrongWords.length === 0 && vals[0].w > 0,
+    'one left edge and one width at every window width from one week to the whole term, all of ' +
+      'them clear of the track, and the two dates the term itself says',
+    JSON.stringify({ movedBy: +movedBy.toFixed(2), widthBy: +widthBy.toFixed(2),
+                     overTrack: overTrack.length, wrongWords: wrongWords.length, vals }),
+    `slot ${vals[0].w} wide, still to ${movedBy.toFixed(2)}px over 5 window widths`);
+
+  // SEVEN B. AND THE STRIP TAKES THE ROW'S SURPLUS, TO A 24 PX WEEK AND NO FURTHER. Issues 142 and
+  // 143, which are one defect at two distances: `.brush` had a flex-grow of 0 and the highest
+  // breakpoint in app.css is 980, so the strip was 356 CSS px and the week 12.83 at 2560 by 1317
+  // and at 1536 by 839 alike, while 48 per cent of the row at 2560 was space. The rule is that the
+  // week reaches 24, which is the target a one week slide has, since term.js rounds the pointer
+  // travel over the week width, and is the minimum target size issue 77 holds every control in this
+  // header to.
+  //
+  // THE WEEK IS RECOMPUTED HERE off the track the driver measured, and compared against the number
+  // the page publishes, so this is two implementations of the same division rather than the page
+  // marking its own work. Driven at the width he filed from and at the width this suite drives,
+  // and the two are required to DIFFER, because a strip that ignored the screen would give the same
+  // week at both and that is the whole of what was wrong.
+  const weeks = [];
+  await atWidths(page, [2560, 1536], async width => {
+    await setWindowAt(page, 5, null);
+    await settled(page);
+    const st = await page.evaluate('window.ZT.brush()');
+    weeks.push({ width, box: st.box.w, track: st.track.w, week: st.week,
+                 mine: +(st.track.w / st.termWeeks).toFixed(3),
+                 band: st.band.w, span: st.span });
+  });
+  const atHis = weeks.find(w => w.width === 2560), atOurs = weeks.find(w => w.width === 1536);
+  assert('the strip takes the row surplus, and the week reaches the 24px a one week slide is aimed at',
+    weeks.length === 2 && weeks.every(w => Math.abs(w.week - w.mine) < 0.01) &&
+      atHis.week >= 24 && atHis.week < 24.5 && atHis.box > atOurs.box &&
+      atOurs.week > 13 && atHis.week > atOurs.week + 8 &&
+      Math.abs(atHis.band - atHis.week * 5) < 1,
+    'a 24px week at 2560 and a wider strip there than at 1536, both recomputed off the rendered ' +
+      'track, with a five week band five weeks wide',
+    JSON.stringify(weeks),
+    `week ${atHis.week} at 2560 and ${atOurs.week} at 1536, strip ${atHis.box} and ${atOurs.box}`);
 
   // EIGHT. WIDENING THE BAND PAST THE NODE BUDGET LANDS ON THE REFUSAL THE BUDGET ALREADY PRINTS,
   // AND NEVER ON A BROKEN DRAWING. The budget is 72, set by measurement in issue 136, and what it
@@ -6928,8 +7005,109 @@ async function checkBrush(page, base) {
     `narrow ${JSON.stringify(narrow)}, wide ${JSON.stringify(wide)}, ` +
       `${noise.length} console error(s) ${JSON.stringify(noise.slice(0, 2))}`);
 
+  // NINE. THE POINTER HANDLER REBUILDS NOTHING, WHICH IS WHERE ISSUE 145's COST WENT. He said
+  // dragging this control renders the diagram very, very slowly, and the measurement on the page he
+  // filed from was that a 40 move drag of an eight week band at `#/p/ALL` on a 2560 viewport crossed
+  // nine week boundaries, rebuilt the drawing nine times INSIDE THE POINTER HANDLER, and cost 47ms
+  // on average and 132ms at worst for each of them. Every one of those milliseconds was a pointer
+  // event the browser could not deliver, so the band lagged the cursor by however far the cursor had
+  // gone.
+  //
+  // ASSERTED ON THE HANDLER AND NOT ON A STOPWATCH. What the coalescer changes is WHERE the rebuild
+  // happens, and that is a fact about the document rather than about how fast this machine is:
+  // paint() replaces the svg wholesale, so the identity of its first child is read once before the
+  // strip's own pointermove listener and once after it, in the page, on every move. A window that
+  // moved is required among them, so a drag that did nothing cannot pass this, and the rebuild
+  // count from the page's own counter is required to have risen by the frame the drag settled on.
+  //
+  // THE TWO LISTENERS ARE ORDERED BY THE DOM AND NOT BY A DELAY. A capture listener on window runs
+  // before any listener on the strip, and a bubble listener added to the strip after term.js added
+  // its own runs after it, so what is measured between them is exactly the strip's handler.
+  await page.evaluate(`location.hash = ${JSON.stringify(allRoute)}`);
+  await page.waitFor('window.ZT.scope().n === window.ZT.scope().of', 'all seven for the drag');
+  await setWindowAt(page, 8, plusDays(firstMonday, 49));
+  await viewSettled(page);
+  await page.evaluate(`(function () {
+    var svg = document.getElementById('graph');
+    var brush = document.getElementById('brush');
+    window.__drag = { moves: 0, inHandler: 0, first: null };
+    window.addEventListener('pointermove', function () {
+      window.__drag.first = svg.firstChild;
+    }, true);
+    brush.addEventListener('pointermove', function () {
+      window.__drag.moves++;
+      if (svg.firstChild !== window.__drag.first) window.__drag.inHandler++;
+    }, false);
+  })()`);
+  const dragStart = await page.evaluate('window.ZT.brush()');
+  const rebuilds0 = dragStart.rebuilds;
+  const dcw = dragStart.track.w / dragStart.termWeeks;
+  await dragBy(page, Math.round(dragStart.band.x + dragStart.band.w / 2), brushY(dragStart),
+    Math.round(dcw * 6), 0, 24);
+  await page.waitFor(`window.ZT.brush().start !== ${dragStart.start}`, 'the band to move at all');
+  await settled(page);
+  const dragEnd = await page.evaluate('window.ZT.brush()');
+  const cost = await page.evaluate('JSON.stringify(window.__drag)');
+  const c = JSON.parse(cost);
+  assert('a drag rebuilds the drawing on a frame of its own and never inside the pointer handler',
+    c.moves >= 20 && c.inHandler === 0 &&
+      dragEnd.start === dragStart.start + 6 && dragEnd.rebuilds > rebuilds0 &&
+      dragEnd.rebuilds - rebuilds0 <= 6 && dragEnd.pending === false,
+    `${c.moves} pointer moves carrying the band six weeks, none of them rebuilding the drawing ` +
+      'inside the handler, and at most one rebuild per week crossed',
+    JSON.stringify({ moves: c.moves, inHandler: c.inHandler,
+                     start: [dragStart.start, dragEnd.start],
+                     rebuilds: dragEnd.rebuilds - rebuilds0 }),
+    `${c.moves} moves, ${c.inHandler} rebuilding in the handler, ` +
+      `${dragEnd.rebuilds - rebuilds0} rebuilds over 6 weeks crossed`);
+
+  // TEN. AND A WINDOW COME BACK TO IS NOT LAID OUT AGAIN, WITH THE TRAP THE PRECEDENT WROTE DOWN.
+  // Monetary Lab's audit log records a memo keyed on a link set that handed the first drawing's
+  // geometry to a later call with the same SHAPE and different numbers, and calls it a correctness
+  // bug that looks like a speed win. So both halves are asserted here: a window whose kept tiles are
+  // the same set is the same composed drawing, read as OBJECT IDENTITY inside the page, and a window
+  // whose kept tiles are a different set is a different one. Identity is what makes the first half a
+  // claim about the memo rather than about two objects that happen to look alike.
+  //
+  // `window.ZT.filtered()` IS THE REPORT THE COMPOSER WRITES, so holding it and comparing it later
+  // is holding the composer's own output. It is compared in the page because identity does not
+  // survive a trip over the socket.
+  await setWindowAt(page, 4, plusDays(firstMonday, 70));
+  await settled(page);
+  await page.evaluate('window.__w1 = window.ZT.filtered()');
+  const away = await page.evaluate('window.ZT.brush()');
+  await setWindowAt(page, 4, plusDays(firstMonday, 21));
+  await settled(page);
+  const other = await page.evaluate(`JSON.stringify({
+    same: window.__w1 === window.ZT.filtered(),
+    shown: window.ZT.filtered().shown.length
+  })`);
+  await setWindowAt(page, 4, plusDays(firstMonday, 70));
+  await settled(page);
+  const back = await page.evaluate(`JSON.stringify({
+    same: window.__w1 === window.ZT.filtered(),
+    shown: window.ZT.filtered().shown.length
+  })`);
+  const memoAway = JSON.parse(other), memoBack = JSON.parse(back);
+  assert('a window come back to is the same composed drawing, and a different one never is',
+    memoBack.same === true && memoAway.same === false &&
+      memoAway.shown !== memoBack.shown && memoBack.shown > 0 && memoAway.shown > 0 &&
+      away.span === 4,
+    'the composer run once for a set of tiles and never again for the same set, and never reused ' +
+      'for a different set',
+    JSON.stringify({ away: memoAway, back: memoBack }),
+    `${memoBack.shown} tiles on the window returned to against ${memoAway.shown} on the one between`);
+
+  // AND THE WINDOW GOES BACK OVER THE WHOLE TERM BEFORE THIS PHASE HANDS THE PAGE ON. The phase
+  // after this one counts what is absent from each of the seven drawings against the whole term,
+  // and a phase that left a four week window on it would hand it a page reporting four weeks of
+  // seven programmes and a suite reporting a regression that is its own setup. Restored here
+  // rather than asserted around, and it is what this phase always did: issue 145 added two
+  // assertions after the one that used to be last, and the reset went with it.
+  await setWindow(page, 0);
   await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor(`window.ZT.scope().n === 1`, 'the drawing this suite drives');
+  await settled(page);
   await viewSettled(page);
 }
 
@@ -7479,12 +7657,36 @@ async function checkPanel(page) {
     await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(key)}`);
     await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(key)}`, `the ${key} drawing`);
     const g = JSON.parse(await page.evaluate(PANEL_GEO));
-    perView.push({ key, plateR: g.plate.r, vselX: g.vsel.x, pgW: g.pg.w, plateW: g.plate.w });
+    const said = await page.evaluate(
+      `document.getElementById('absworkv').textContent + ' ' + ` +
+      `document.getElementById('absunrecv').textContent`);
+    perView.push({ key, plateR: g.plate.r, vselX: g.vsel.x, pgW: g.pg.w, plateW: g.plate.w,
+                   said: said,
+                   digest: await page.evaluate('window.ZT.programme().digest') });
   }
   const plateRights = new Set(perView.map(v => v.plateR));
   const vselLefts = new Set(perView.map(v => v.vselX));
-  const names = new Set(perView.map(v => v.pgW));
-  const widths = new Set(perView.map(v => v.plateW));
+  // AND WHAT SAYS THE DRAWING UNDER THEM REALLY CHANGED IS THE DRAWING'S OWN DIGEST. Issue 142.
+  // The conjunct here was `names.size > 1`, the heading's box being of different widths over the
+  // seven, written for #131 when the heading was a programme NAME and its length was the thing
+  // moving the row. #136 replaced that name with a rail of eight chips which is the same eight
+  // chips at every scope, so what this had been reading since is not the heading at all: it is the
+  // h1's flex leftover, which varied only because the nav's own digits did. This card froze those
+  // digits on purpose, so the leftover is constant and the conjunct is 1 while nothing it was
+  // written about has changed. It is replaced by the premise it was standing in for, taken from
+  // the page's own report: seven addresses, seven different drawings.
+  const digests = new Set(perView.map(v => v.digest));
+  // WHAT THE TWO SWITCHES SAY, AND NOT HOW WIDE SAYING IT MAKES THEM. Issue 142 replaced the
+  // second half of this claim with the thing that half was standing in for. The conjunct here was
+  // `widths.size > 1`, the absence control's own box being of different widths over the seven
+  // drawings, written so that a card freezing the box would be caught having frozen the count. The
+  // box is frozen now, deliberately: it reserves the widest fraction it can ever hold, because the
+  // nav is `flex: none` and its width was carrying the term strip beside it 6.76 CSS px sideways
+  // every time a number gained a digit. So the proxy has stopped tracking its claim while the claim
+  // is untouched, and what is read is the claim: the two counts SAY seven different things over the
+  // seven drawings. That is strictly stronger than the width was, since a page that painted one
+  // fraction at seven widths would have passed the old conjunct and fails this one.
+  const said = new Set(perView.map(v => v.said));
   // #131's finding restated on the instrument this card left in the row: `space-between` over
   // three items put the middle one where the FIRST one's width left it, and the first one names
   // the programme, so the one box on this page whose job is to be read jumped 43px sideways every
@@ -7494,15 +7696,15 @@ async function checkPanel(page) {
   // instrument's own width genuinely moves, because `work 2/22` and `work 11/22` are different
   // numbers, and a card that had frozen that would have frozen the count.
   assert('the absence control and the view selector hold their place while the drawing under them changes',
-    perView.length === 7 && plateRights.size === 1 && vselLefts.size === 1 && names.size > 1 &&
-      widths.size > 1,
+    perView.length === 7 && plateRights.size === 1 && vselLefts.size === 1 &&
+      digests.size === 7 && said.size > 1,
     'one right edge for the absence control and one left edge for the view selector across all ' +
-      'seven drawings, whose headings and whose counts are of different widths',
+      'seven drawings, which are seven different drawings whose counts say different things',
     `absence right edges ${JSON.stringify([...plateRights])}, view selector left edges ` +
-      `${JSON.stringify([...vselLefts])}, ${names.size} distinct heading widths, ` +
-      `${widths.size} distinct instrument widths`,
+      `${JSON.stringify([...vselLefts])}, ${digests.size} distinct drawings, ` +
+      `${said.size} distinct pairs of counts ${JSON.stringify([...said].slice(0, 3))}`,
     `absence right ${[...plateRights][0]}, view selector left ${[...vselLefts][0]}, over ` +
-      `${names.size} heading widths and ${widths.size} instrument widths`);
+      `${digests.size} drawings and ${said.size} distinct pairs of counts`);
   await page.evaluate('location.hash = ' + JSON.stringify(ONE));
   await page.waitFor('window.ZT.term().open === false', 'the diagram again');
 

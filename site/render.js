@@ -258,6 +258,11 @@
     // no window and the transform of CANON below when there is one; either way it is G, so the
     // viewport frames what is painted and not what was generated.
     var CANON = null, WIN = null, WINFO = null;
+    // HOW MANY TIMES THE DRAWING HAS BEEN REBUILT, which is the one number that makes issue 145's
+    // claim checkable rather than felt. paint() replaces the whole of the svg, so this counts the
+    // expensive thing and not the cheap one, and a driver comparing it across a drag is reading
+    // the page's own count rather than timing it with a stopwatch on the other side of a socket.
+    var PAINTS = 0;
     // Issue 84. The counter-scaled caption controls, and the last scale they were told about, so
     // that a repaint puts them back at the size the reader was already looking at rather than at
     // the size they were built with.
@@ -413,6 +418,7 @@
     // there are, which one is on screen, or that the reader can change it.
     function paint(g) {
       G = g;
+      PAINTS++;
       svg.textContent = '';
       // The viewBox is not set here. It is the view, and the view moves: viewport.js owns it and
       // writes it on every pan, every zoom and every resize. Issue 46. What is still fixed is the
@@ -1132,6 +1138,33 @@
     // week and is the picture #111 asked for. The header does not empty with it: the programme's
     // own name and its cohort are chrome described from the canonical drawing, and the window
     // control states in that same row how many tiles the window has taken off.
+    // ---- the filtered drawing, and the memo over it, issue 145 --------------------------------
+    // A WINDOW THAT LEAVES THE SAME TILES ON SCREEN IS THE SAME DRAWING, so the second time it is
+    // asked for it is not laid out again. Everything below the cascade is a pure function of the
+    // canonical drawing and the set of nodes the window kept: the pack down each column, the two
+    // edge shapes, the greedy chip slide along every arc, the extent, the lane counts and WINFO
+    // itself. Nothing in this file writes to a composed drawing after it is made, which is what
+    // makes handing the same object back safe rather than merely cheap.
+    //
+    // AND THE KEY IS THE VALUES AND NOT THE SHAPE, which is the trap Monetary Lab's own audit log
+    // wrote down after a memo keyed on a link set returned the first drawing's geometry for a
+    // later call with the same shape and different numbers. Two things are keyed on here. The
+    // canonical drawing is keyed on by OBJECT IDENTITY, in a WeakMap, so a different scope or a
+    // different altitude can never collide however similar its node set; and within one canonical
+    // drawing the key is the exact ordered list of kept ids, which is what the composer's whole
+    // output is a function of.
+    //
+    // EXCEPT WHEN NOTHING IS KEPT, which is the one case the id list does not determine: an empty
+    // window draws the sentence the SPEC carries, and two empty windows are two different
+    // sentences. That case is not memoised at all, and it is the cheap one.
+    //
+    // 32 PER DRAWING, which is a window's worth: the term is 24 weeks and a reader dragging a band
+    // across it visits at most 24 positions, so a pass over the term and back is served from here
+    // after the first. Measured at `#/p/ALL` on a 2560 viewport, a rebuild is about 44ms and a hit
+    // is under one.
+    var MEMO = typeof WeakMap === 'function' ? new WeakMap() : null;
+    var MEMO_MAX = 32;
+
     function filtered(g, spec) {
       var i, gone = {}, gov = {}, adj = {};
       g.nodes.forEach(function (n) { adj[n.id] = []; });
@@ -1190,11 +1223,25 @@
       // captions are the three lines the build wrote rather than four. The line of headroom the
       // fourth caption needed went with it, which is why `topOf(g)` and `g.bandTop` are taken
       // bare here where they used to be offset by one caption line.
-      return compose(g, keep, out, {
+      var key = keep.length ? keep.map(function (n) { return n.id; }).join(',') : null;
+      var per = null;
+      if (MEMO && key) {
+        per = MEMO.get(g);
+        if (!per) { per = { order: [], by: {} }; MEMO.set(g, per); }
+        var hit = per.by[key];
+        if (hit) { WINFO = hit.info; return hit.g; }
+      }
+      var made = compose(g, keep, out, {
         hidden: hidden,
         off: { tiles: hidden.length, relationships: offRel, lines: offLines },
         emptyOn: true, spec: spec
       });
+      if (per) {
+        per.by[key] = { g: made, info: WINFO };
+        per.order.push(key);
+        if (per.order.length > MEMO_MAX) delete per.by[per.order.shift()];
+      }
+      return made;
     }
 
     // ---- one composer, two callers, issue 136 ---------------------------------------------------
@@ -1244,7 +1291,16 @@
         var labH = h - g.tile - g.gapLabel;
         blocked.push([n.x, y + g.tile / 2 + g.gapLabel + labH / 2, lw + 6, labH + 2]);
       });
-      var chips = [];
+      // ONE ARRAY THAT GROWS RATHER THAN TWO JOINED ON EVERY CANDIDATE. Issue 145, and it is a
+      // repair to the cost and not to the picture: `blocked.concat(chips)` stood inside the
+      // innermost loop below, which runs once per slide per perpendicular offset per edge, and
+      // built a fresh array of every tile, every label and every chip placed so far each time.
+      // Measured on a drag at `#/p/ALL` on a 2560 viewport, `overlapDepth` and the closure around
+      // it were 372ms of the 1470ms of script three drags cost. The sum overlapDepth returns is
+      // over every box and is order independent, and a chip is pushed only after its own placement
+      // is decided, so appending to the same array is the same set at every candidate it was
+      // before: the drawing is identical, which is what check_build.sh's fourteen digests say.
+      var boxes = blocked;
       // THE ORDER IS THE BUILD'S, DOWN TO THE LAST TIEBREAK, AND THAT LAST ONE WAS MISSING.
       // Issue 106. build_layout.py sorts these `(-span, s, t)`; this sorted `(-span, s)` and
       // stopped, which is a difference only where two lines leave the same node with the same
@@ -1271,14 +1327,14 @@
           var s = atS(tab, L / 2 + ds);
           [0, CHIP_PERP / 2, -CHIP_PERP / 2, CHIP_PERP, -CHIP_PERP].forEach(function (perp) {
             var x = s.p[0] - s.t[1] * perp, y = s.p[1] + s.t[0] * perp;
-            var cost = W_OVER * overlapDepth(x, y, e.cw + 4, blocked.concat(chips)) +
+            var cost = W_OVER * overlapDepth(x, y, e.cw + 4, boxes) +
                        Math.abs(ds) + W_PERP * Math.abs(perp);
             if (bestCost === null || cost < bestCost) { best = [x, y]; bestCost = cost; }
           });
           return bestCost === 0 && ds === 0;
         });
         e.cx = r1(best[0]); e.cy = r1(best[1]);
-        chips.push([e.cx, e.cy, e.cw + 4, CH]);
+        boxes.push([e.cx, e.cy, e.cw + 4, CH]);
       });
 
       // ---- the extent, and the lane captions -----------------------------------------
@@ -1595,6 +1651,8 @@
       // Read off the transform rather than off the painted classes, since after this card there is
       // nothing painted to read: what is not in the window is not in the document.
       windowState: function () { return WINFO; },
+      // Issue 145. See PAINTS above.
+      paints: function () { return PAINTS; },
       reflowCheck: function () { return faithful(CANON); },
       // The canonical drawing, as the build wrote it, whatever the window is doing. The digest
       // belongs to THIS and not to what is on screen, which is why a capture filed off a filtered

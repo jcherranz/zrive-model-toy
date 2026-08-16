@@ -754,6 +754,35 @@ h1 {
   h1 { flex: 1 1 100%; }
 }
 
+/* ---- the strip's ladder, issues 142 and 143 --------------------------------
+   THE FIRST BREAKPOINTS THIS FILE HAS EVER HAD ABOVE 980, and that absence WAS the defect. He
+   filed both cards from 2560 by 1317 and nothing in this header answered a screen wider than the
+   1536 it was drawn on: the strip was 356 CSS px and the week 12.83 at both widths, while 48 per
+   cent of a 2520px row was space.
+
+   THE RUNGS ARE WHAT THE ROW CAN HOLD AT THE BOTTOM OF EACH BAND, not round numbers. Everything
+   else in the row is content sized: the eight chips are 425.69, the nav is 370.45 at its widest,
+   which is with no window on it, the view selector is 113.58 and the three gaps are 60. So the
+   row's own width less 40 of padding less 969.72 is what is free, and each basis below is under
+   it with room left for the heading:
+
+     1500  490 free, basis 452, track 360, week 15.1
+     1700  690 free, basis 560, track 468, week 19.5
+     1900  890 free, basis 668, track 576, week 24.0
+
+   AND 24 IS WHERE IT STOPS, which is the argument on `.brush` itself: the target for a one week
+   slide is exactly one week wide, and 24 is the minimum target this repository has held every
+   control to since issue 77. Past it the strip would buy gutter rather than shape, and the surplus
+   goes back to the heading, which is #131's arrangement: the space between the subject and the
+   instruments is the space that varies, and it is what keeps the nav a fixed distance from the
+   right edge while the subject changes under it. */
+/* THE THREE RULES THEMSELVES ARE FURTHER DOWN, IMMEDIATELY AFTER `.brush`, AND THAT IS NOT A
+   FILING PREFERENCE. They and the base rule have the same specificity, so the later one wins, and
+   written here they lost to the `flex` shorthand below and the strip stayed 356 at every width.
+   Caught by driving the page rather than by reading the file: the sweep reported 11.08 px per week
+   at 2560 and at 1366 alike, which is the defect this card is about, still there under a
+   stylesheet that says otherwise. */
+
 /* ---- the scope rail, issue 136 --------------------------------------------
    EIGHT CHIPS WHERE ONE CONTROL AND ITS MENU USED TO BE, and the row is exactly as tall. Every
    chip is 26 CSS px, which is what issue 77 took every control on this page to and what the width
@@ -870,7 +899,59 @@ h1 {
    together, so a strip wider than 367 clips a chip the moment a reader sets a window: at 380 the
    rail measured 420 against the 426 it wants and the last fraction was six pixels short of whole.
    The rail is still the item that gives way when there is genuinely not enough row, which is what
-   it does below about 1100; it should not have to give way at the width the tool is read at. */
+   it does below about 1100; it should not have to give way at the width the tool is read at.
+
+   ---------------------------------------------------------------------------------------------
+   AND THE GROW WAS ZERO, WHICH IS ISSUES 142 AND 143 AND IS ONE DEFECT SEEN TWICE. Measured on
+   the running page at the viewport he filed all three cards from: the strip was 356 CSS px at
+   2560 by 1317 and 356 at 1536 by 839, the track inside it 308 in both, and the week 12.83 px in
+   both. The highest breakpoint in this file was 980, so NOTHING in this header answered a screen
+   wider than the one it was drawn on: at 2560 the row was 2520 wide, the eight chips, the strip,
+   the nav and the view selector came to 1252 of it, and 1208 px, 48 per cent of the row, was
+   space. One instrument in that row can use width and it was the one thing capped.
+
+   THE WEEK IS 24 CSS PX AND THAT IS A MEASUREMENT AND NOT A ROUND NUMBER. term.js maps a drag to
+   weeks as `Math.round(dx / cw)`, so the pointer travel that lands exactly one week is the
+   half-open interval from half a week to one and a half weeks: THE TARGET FOR A ONE WEEK SLIDE IS
+   EXACTLY ONE WEEK WIDE. At 12.83 that target was 12.83 px, about half the 24 by 24 minimum this
+   repository has held every control to since issue 77 and that WCAG 2.2 SC 2.5.8 names. 24 is
+   also, independently, the width at which `HANDLE * 3` in term.js stops suppressing the two
+   handles on the narrowest band the control can express: below it a one week band has no ends to
+   grab and a two week band is two resize zones with 10 px of move between them. Two different
+   arguments, one number, so it is the number.
+
+   AND IT STOPS THERE, WHICH IS THE OTHER HALF OF THE DECISION. 24 weeks at 24 px is 576 of track,
+   and the strip is that plus its two 24 px caps and the value slot the label moved into: past it
+   nothing measured improves. The target is already at the floor the standard names, and a column
+   is 60 per cent of its week, so further width buys gutter rather than shape. The surplus beyond
+   the ceiling goes back to the heading, which is #131's arrangement unchanged: the space between
+   the subject and the instruments is the space that varies, and it is what keeps the nav a fixed
+   distance from the right edge while the subject changes under it.
+
+   AND IT IS A LADDER OF WIDTHS AND NOT A SHARE OF THE FREE SPACE, WHICH IS A DEFECT THIS CARD
+   BUILT AND THEN MEASURED. The first draft gave the strip `flex-grow: 1` beside the heading's own,
+   so the two split whatever the row had spare. It works, and it reintroduces exactly what #137
+   chose this slot in the row to prevent: free space is what is left after everything else, so
+   anything else in the row changing width changes the strip's. The nav does change width, because
+   `work 0/22` and `work 10/22` are not the same string, and the suite caught it at once: the
+   strip's own value slot moved 6.76 CSS px between a one week window and a fourteen week one, and
+   the track's right edge and its pixels per week moved with it. A direct manipulation control
+   whose scale changes when a number beside it gains a digit is the defect one level down from the
+   one #137 fixed.
+
+   SO THE GROW IS STILL ZERO AND THE BASIS CLIMBS INSTEAD. Three rungs, each a measurement of what
+   the row can hold at the bottom of its own band, so the strip's width is a function of the
+   VIEWPORT and of nothing else, and every reader at a given width has the same instrument whatever
+   their window is set to. Measured with the eight chips at 425.69, the nav at its widest 370.45,
+   the view selector at 113.58 and the three 20px gaps:
+
+     under 1500   356, which is what it was, and the week is 12.8
+     1500 to 1699 452, of the 490 a 1500px row can hold, and the week is 15.1
+     1700 to 1899 560, of the 690 a 1700px row can hold, and the week is 19.5
+     1900 and up  668, of the 890 a 1900px row can hold, and the week is 24.0
+
+   Below about 1300 the row has no surplus at all and the shrink that was already here is what
+   runs, unchanged by this card and still dependent on the rest of the row, which it always was. */
 .brush {
   flex: 0 1 356px;
   min-width: 180px;
@@ -888,6 +969,14 @@ h1 {
   -webkit-user-select: none;
   user-select: none;
 }
+
+/* THE LADDER, AND IT HAS TO SIT AFTER THE RULE IT RAISES. Same specificity, so the later
+   declaration wins; up beside the other breakpoints these three lost to the `flex` shorthand above
+   and the strip stayed 356 at 2560. The measurement for each rung is in the scope-rail block's
+   neighbour above. */
+@media (min-width: 1500px) { .brush { flex-basis: 452px; } }
+@media (min-width: 1700px) { .brush { flex-basis: 560px; } }
+@media (min-width: 1900px) { .brush { flex-basis: 668px; } }
 
 .brush:focus-visible {
   outline: 2px solid var(--i-primary);
@@ -951,6 +1040,39 @@ h1 {
   height: 100%;
 }
 
+/* THE TWENTY FOUR WEEKS ARE THERE WHETHER OR NOT ANYTHING HAPPENED IN THEM, and this rule is what
+   says so. Issue 142, and it is the owner's own question answered: he asked what the strip looks
+   like when the scope is one programme with six drawn sessions. Measured on Z-CFA at the ceiling
+   width, SIX of the twenty four columns carry a session and eighteen are nothing, and at 24 px a
+   week that is 432 CSS px of blank. A bar chart with most of its bars missing reads as an
+   instrument that failed rather than as a term with nothing in most of it.
+
+   MOST OF THE WORK WAS ALREADY BEING DONE AND THIS FINISHES IT, which is worth saying plainly
+   rather than claiming more. An empty week is not blank today: `.brush-col-all` is drawn at zero
+   height with a border, so it renders as a dash 60 per cent of the week wide, and the eighteen
+   empty weeks on Z-CFA are eighteen dashes. What they are not is JOINED, so at the ceiling width
+   they read as a row of ticks with 40 per cent of each week missing between them. This rule is the
+   line under them, so the twenty four weeks read as one term with six things in it.
+
+   AND A FILLED EMPTY COLUMN WOULD NOT BE HONEST, which is why this is a line and not a height. The
+   strip is over the sessions these documents DRAW, and the 177 they do not draw carry no date
+   anywhere in the model, so there is no height an empty week could be given that would not be an
+   invention. What the line claims is only that the week exists and is part of the term, which is
+   true of all twenty four of them, and it costs no character and no height.
+
+   IT IS A PSEUDO-ELEMENT AND NOT A CHILD, so it is not an element `elementFromPoint` can answer
+   with and no gesture on this strip can land on it. It sits inside the track's own 3px padding, at
+   the foot, where the band's own box does not reach. */
+.brush-track::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 3px;
+  height: 1px;
+  background: var(--rule-muted);
+}
+
 /* SOLID AGAINST HOLLOW IS THE CHIPS' OWN GRAMMAR IN ANOTHER GEOMETRY. The outline is every
    session the scope holds that week; the fill is the part of it the model holds a complete record
    for. So a week the records barely cover is a tall empty box and a week they cover is a solid
@@ -964,7 +1086,13 @@ h1 {
   transform: translateX(-50%);
   width: 60%;
   min-width: 2px;
-  max-width: 9px;
+  /* 14 AND NOT 9 SINCE ISSUE 142. The column is 60 per cent of its week and the cap was set when a
+     week was 12.83 CSS px, where 60 per cent is 7.7 and the cap never bound. The week reaches 24 at
+     the strip's new ceiling, where 60 per cent is 14.4, and a 9px bar in a 24px week is a hairline
+     in a field: the shape the reader is meant to read comes from the bars, so the bar has to keep
+     its share of the week it stands in. It still binds nothing below a 15px week, which is every
+     width under about 1400 and the phone. */
+  max-width: 14px;
 }
 
 .brush-col-all {
@@ -1022,37 +1150,60 @@ h1 {
 .brush-grip-l { left: 2px; }
 .brush-grip-r { right: 2px; }
 
-/* THE LABEL SITS ON THE BAND WHEN THE BAND CAN HOLD IT AND BESIDE IT WHEN IT CANNOT, which is
-   arithmetic and not a preference. The band is the window's width as a fraction of the term, so
-   three weeks of twenty four is an eighth of the track: 42 CSS px at the strip's designed width,
-   against 78 for `24 Feb to 16 Mar`. A label forced inside would either be clipped or would cover
-   eight weeks of the density the strip exists to show. So it is centred on the band while it
-   fits, and it steps to whichever side of the band has room while it does not, and it is
-   positioned by term.js off the two measured widths rather than guessed at here. */
-.brush-label {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  padding: 0 3px;
-  font-size: 10px;
-  line-height: 14px;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  pointer-events: none;
+/* THE VALUE, AND IT IS OFF THE TRACK NOW, WHICH IS ISSUE 142 AND THE OWNER'S OWN QUESTION. What
+   stood here was `.brush-label` and `.brush-label-out`: an absolutely positioned label centred on
+   the band while the band could hold it and stepped beside the band while it could not, with an
+   opaque ground under the words because the columns run the whole length of the track and it was
+   over them wherever it went.
+
+   THE EXCEPTION WAS THE RULE, MEASURED. `9 Mar to 12 Apr` renders at 75.61 CSS px and the band is
+   the window's share of the track, so at the strip's own 12.83 px week the label fitted inside the
+   band from SIX weeks up. Nineteen of the 24 window widths a reader can set put it outside, with
+   its ground over about six columns of the density this strip is worth its width for. Two
+   behaviours for one thing, and the reader met the ugly one almost every time.
+
+   SO IT IS A SLOT AFTER THE RIGHT CAP AND NOT A THING ON THE TRACK. It never moves, it covers no
+   column, it has one behaviour, and it is the strip stating what it is set to, which is exactly
+   what a chip's `25/25` and the altitude's `sessions` already do in this row. It adds no reading
+   to the header: it is inside the control, inside its one focus stop, and the control answers a
+   press, so the two counts of this row are the 14 the suite's query sees and the 15 that answer a
+   press, unchanged.
+
+   NOTHING HERE SETS ITS WIDTH. term.js pins it once at startup to the widest interval this term
+   can name, measured against the real font in the element itself, because a slot sized by its
+   content would change width as the dates changed and the track is to its left: the track's right
+   edge, and its pixels per week, would move under the pointer dragging it.
+
+   AND NO GROUND, which is the other half of the deletion. The ground existed because the label was
+   over the columns. It is not over anything now, so it takes the strip's own recessed surface like
+   the caps beside it.
+
+   AND IT IS THE TWO DATES STACKED AND NOT THE SENTENCE, WHICH IS A MEASUREMENT AND NOT A STYLE.
+   `9 Mar to 12 Apr` on one line is 74 CSS px of slot, and every pixel of the slot comes off the
+   track: measured across the widths a reader has, a one line slot took the week BELOW what it was
+   before this card everywhere under about 1650, from 12.83 to 9.34 at 1366. The strip is 26 tall
+   and a 10px date on a 12px line is 24 of it, so the interval goes on two lines, which is 34 of
+   slot instead of 74 and reads as a from and a to rather than as a phrase. It also spends two
+   visible characters fewer than the sentence it replaces, because the word between the dates is
+   gone; `aria-valuetext` and the control's own title still say the whole phrase, so nothing a
+   screen reader is given changed. */
+.brush-val {
+  flex: none;
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 0 6px 0 4px;
   color: var(--fg-body);
-  border-radius: 2px;
-  /* THE GROUND UNDER THE WORDS IS NOT OPTIONAL. The columns run the whole length of the track, so
-     the label is over them wherever it goes, inside the band and out; the first draft gave it a
-     ground only outside and `12 Jan to 28 Jun` was painted through twenty four bars. It is the
-     header's own ground rather than the plate's, so the label reads as a value sitting on the
-     track in both places, which is what it is. */
-  background: var(--bg-panel);
 }
 
-/* The class is the state and not the paint since the ground moved up: term.js sets it when the
-   band is too narrow to hold the label, and window.ZT.brush() reports it, so an assertion about
-   where the label went is reading the page's own answer. */
-.brush-label-out { box-shadow: 0 0 0 1px var(--rule-muted); }
+.brush-val-d {
+  font-size: 10px;
+  line-height: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 
 /* ---- the altitude, issue 89 --------------------------------------------- */
 /* THE SECOND BOX TO HANG OFF A CONTROL IN THIS HEADER AND THE SECOND COPY OF ONE IDIOM: the
@@ -2160,6 +2311,11 @@ body.fb-mode .fb-popover select { cursor: pointer; }
 
      `flex: 1 1 100%` FOR .hnav's REASON, restated: a flex item sized to its own content never
      meets an edge to wrap at, so the line has to be given rather than left to be taken. */
+  /* The desktop ladder is three `min-width` rules starting at 1500 and none of them is live here,
+     so the strip is the line it is given: 366 less the two caps and the value slot is 276 of track
+     and an 11.5px week, where before issue 142 it was 318 of track and a 13.25px week with the
+     label's own ground painted over about six of the twenty four columns. All twenty four are
+     visible now, which is the trade this card took at every width and took here too. */
   .brush { flex: 1 1 100%; min-width: 0; }
   /* The altitude's box is anchored to the viewport under the header, and this is a measured repair
      rather than a precaution. Issue 89, and the measurement is #98's: a box hung off a control in a
