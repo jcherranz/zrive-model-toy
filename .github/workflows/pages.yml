@@ -269,6 +269,21 @@ jobs:
           fetch-depth: 0
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
 
+      # The name register, and it is HERE rather than beside the gate that uses it. Issue 164.
+      # The forbidden-content gate runs after the deploy, by design, because the question it
+      # answers is what the origin is serving. So a register that turns out to be missing would
+      # be discovered after publication, which is the andon cord being pulled on bytes that are
+      # already public. This step is before the artifact is built, so a job that cannot gate what
+      # it is about to publish never publishes it.
+      #
+      # It writes outside the working tree, so nothing it produces can reach the artifact
+      # uploaded below, which is site/ and nothing else.
+      - name: Materialise the name register
+        env:
+          FORBIDDEN_SALT: ${{ secrets.FORBIDDEN_SALT }}
+          FORBIDDEN_NAMES_SHA256: ${{ secrets.FORBIDDEN_NAMES_SHA256 }}
+        run: bash scripts/ci_register.sh
+
       # THE DEPLOY STAMP. Issue 47. A feedback report has to name the code the reporter saw, and
       # it used to carry a seven character digest of the drawing under the name "build", which
       # reads as an abbreviated commit, is not one, and moved only when the layout was rebuilt.

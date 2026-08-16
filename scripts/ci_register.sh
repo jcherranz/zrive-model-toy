@@ -71,11 +71,19 @@ if [ -n "$missing" ]; then
   exit 2
 fi
 
-# Belt for the braces. Actions already masks a value it handed out as a secret, and this costs
-# one line and covers a value that arrived some other way. The register's own lines are hashes
-# and are not masked: masking a hundred and something short hex strings would redact ordinary
-# output all over the log for no gain, and the file is written rather than printed.
-echo "::add-mask::${FORBIDDEN_SALT}"
+# Belt for the braces. Actions already masks a value it handed out as a secret; this covers a
+# value that arrived some other way. The register's own lines are hashes and are not masked:
+# masking a hundred and something short hex strings would redact ordinary output all over the log
+# for no gain, and the file is written rather than printed.
+#
+# GUARDED, BECAUSE THE UNGUARDED VERSION IS A DISCLOSURE. `::add-mask::<value>` is a workflow
+# command: inside Actions the runner consumes the line and it never reaches the log, which is the
+# whole mechanism. Outside Actions nothing consumes it and it is an ordinary echo of the secret
+# to a terminal. This script is runnable anywhere, and the first local run of it printed the salt
+# in clear and cost a rotation. So the line is emitted only where something is listening for it.
+if [ -n "${GITHUB_ACTIONS:-}" ]; then
+  echo "::add-mask::${FORBIDDEN_SALT}"
+fi
 
 DEST_DIR="${RUNNER_TEMP:-$(mktemp -d)}"
 DEST="${DEST_DIR}/forbidden_names.sha256"
