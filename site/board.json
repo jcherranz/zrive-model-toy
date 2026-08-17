@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T07:36:12Z",
+  "generated": "2026-08-17T07:40:53Z",
   "columns": [
     {
       "key": "raw",
@@ -74,15 +74,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/228"
         },
         {
-          "id": 235,
-          "title": "The build gate's run headings are a fourth statement of its section list, and they already disagree with it",
-          "labels": [
-            "limitation",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/235"
-        },
-        {
           "id": 237,
           "title": "build.yml's build-gate step name quotes the gate's first run heading and nothing holds it there",
           "labels": [
@@ -97,6 +88,15 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 235,
+          "title": "The build gate's run headings are a fourth statement of its section list, and they already disagree with it",
+          "labels": [
+            "limitation",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/235"
+        },
         {
           "id": 231,
           "title": "The smoke workflow's header still explains exit 2 with the old two-cause list, twenty lines above the corrected message",
@@ -160,18 +160,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/217"
-        },
-        {
-          "id": 216,
-          "title": "A stylesheet that never loaded is reported as twelve assertions about the page, and the run says the page has regressed",
-          "labels": [
-            "limitation",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/216"
         }
       ],
-      "hidden": 165,
+      "hidden": 166,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
