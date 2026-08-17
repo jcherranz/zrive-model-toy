@@ -338,6 +338,13 @@
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'preg-row';
+      // WHERE THE PRESS GOES, IN THE DOCUMENT, AND NOT ONLY IN THE CLOSURE ABOVE. `data-to` is the
+      // instance key of the object this row leads to, and it is the counterpart of the `data-node`
+      // the drawing puts on a tile: without it a driver could only compare the words on the row,
+      // and a row whose label is right and whose press goes somewhere else is precisely the defect
+      // #157 wrote its identity check for. It is `data-to` and not `data-node` because feedback.js
+      // reads `data-node` to say which tile a capture landed on, and a panel row is not a tile.
+      b.setAttribute('data-to', id);
       parts.forEach(function (p) {
         var s = document.createElement('span');
         s.className = p.c;

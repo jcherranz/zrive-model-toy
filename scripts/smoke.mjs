@@ -357,6 +357,16 @@ const PHASES = {
   // 9 until issue 157, which adds four here and to no other phase: the panel is where a way to
   // reach an object is handed to the reader, so it is where the claim about it belongs.
   'the control panel':    { count: 13, when: 'behavioural' },
+  // Issue 132. Seven, and they fail on seven different things: that a relationship is a row per
+  // edge in the model's own order and in the model's own words; that a press moves the selection
+  // and moves neither the scope nor the drawing; that the lane region is the band the drawing
+  // draws the object in, with its membership top to bottom and the reader's own row the one that
+  // is not a press; that a template's outline is its own beats with no badge on any of them;
+  // that a session nobody is teaching names the instructors THIS DRAWING holds and, where it
+  // holds none, says so without ever claiming nobody teaches the programme; and the two halves
+  // of the growth pin the card ships with, an exact count of the regions and an exact count of
+  // everything in the panel that answers a press, summed over two whole drawings.
+  'the way in':           { count: 7, when: 'behavioural' },
   'the plate':            { count: 6, when: 'behavioural' },
   // 9 until issue 186, which adds the other half of issue 149's ceiling to the phase that
   // already holds it: that the reading of this sheet which was at its own track floor follows the
@@ -917,7 +927,7 @@ const PHASES = {
 // font stack, where the paint runs from 0.7767 to 1.0578 of the table's number for the same string;
 // a `--font-ui` family swap is the other way round, and while that swap does redden three other
 // assertions here, this is the only thing anywhere that would say a LANE had been left.
-const EXPECTED_ASSERTIONS = 364;
+const EXPECTED_ASSERTIONS = 371;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -10707,6 +10717,403 @@ async function checkPanel(page) {
   await page.evaluate('window.ZT.fit()');
 }
 
+
+// ---- the way in, issue 132 ----------------------------------------------------------------------
+// THE PANEL STOPPED BEING A READOUT AND BECAME A WAY IN, AND THIS PHASE IS BOTH HALVES OF THAT: what
+// the six regions say, and a pin on how many of them there are.
+//
+// WHY THE PIN IS NOT OPTIONAL AND WHY IT LANDS WITH THE FEATURE. Measured at `09a449b`, this suite
+// pinned 74 exact constants and not one of them was about the detail panel's contents; the four
+// `PANEL_` constants above are header geometry across a list of viewport widths. Both instruments
+// this repository has against a control appearing because somebody thought it would be handy,
+// HEADER_BY_QUERY and HEADER_ANSWERING_A_PRESS, query `header button, header a` and see the header
+// and nothing else. So the surface issue 132 fills was the one surface in this page with no growth
+// control at all. Six regions is defensible because each of them is argued on the card and two are
+// conditional; the seventh is the risk, added in six months by somebody who never read that thread,
+// with nothing going red. A pin added later pins whatever had already accumulated by then, which is
+// why it is here rather than on a card of its own.
+//
+// TWO CONSTANTS AND THEY COUNT TWO DIFFERENT THINGS. PANEL_REGIONS is the panel's DESIGN, read off
+// `[data-region]` in the document, and it does not move with what is selected. PANEL_PRESSABLE is
+// the panel's CONTENT summed over a fixed population, every node of two whole drawings, so a row
+// added anywhere in either of them moves it. Neither can be derived from the other and neither
+// catches what the other catches: a seventh region that builds no row is invisible to the second,
+// and a seventh row inside an existing region is invisible to the first.
+const PANEL_REGIONS = 6;
+const PANEL_REGION_KEYS = ['head', 'relationships', 'in this lane', 'its outline',
+                           'the instructors this drawing holds', 'what it holds'];
+// The sweep's own population, named here rather than discovered, for the reason every count in this
+// file is: a total taken over whatever the page happened to offer cannot notice a drawing that
+// stopped being walked. Z-IB because it holds instructors with and without a way to be reached, six
+// templates with agendas and a company sitting in the sessions lane; Z-CFA because it holds no
+// instructor at all, which is the branch of the absence region that says so.
+const PANEL_SWEEP = ['ZIB', 'ZCFA'];
+const PANEL_SWEEP_NODES = 66;
+const PANEL_PRESSABLE = 595;
+
+// Everything the panel is showing right now, read off the rendered document and never off the model.
+// `press` is every element in the panel that answers a press, which is the same question
+// HEADER_ANSWERING_A_PRESS asks of the header: the close button, the rows this card added, #157's
+// reach anchors and the way out at the bottom.
+const PANEL_STATE = `(function () {
+  var p = document.getElementById('panel');
+  function rows(key) {
+    var host = p.querySelector('[data-region="' + key + '"]');
+    if (!host) return null;
+    return Array.prototype.map.call(host.querySelectorAll('li'), function (li) {
+      var b = li.querySelector('button');
+      var spans = Array.prototype.map.call(li.querySelectorAll('span'), function (s) {
+        return s.textContent;
+      });
+      return { press: !!b, to: b ? b.getAttribute('data-to') : null,
+               words: spans.join(' '),
+               here: !!li.querySelector('[aria-current="true"]'),
+               flags: li.querySelectorAll('.flag').length,
+               w: b ? +b.getBoundingClientRect().width.toFixed(2) : 0,
+               h: b ? +b.getBoundingClientRect().height.toFixed(2) : 0 };
+    });
+  }
+  var regions = Array.prototype.map.call(p.querySelectorAll('[data-region]'), function (e) {
+    return { key: e.getAttribute('data-region'), on: !e.hasAttribute('hidden') };
+  });
+  // Which of the objects a row leads to the drawing is actually painting. A press onto a tile
+  // nobody can see is the defect the tab-order guard in site/selection.js exists to prevent,
+  // arriving through a door that guard does not watch.
+  var unpainted = [];
+  Array.prototype.forEach.call(p.querySelectorAll('button[data-to]'), function (b) {
+    var g = document.querySelector('[data-node="' + b.getAttribute('data-to') + '"]');
+    if (!g || g.classList.contains('veil-hidden')) unpainted.push(b.getAttribute('data-to'));
+  });
+  return JSON.stringify({
+    open: p.classList.contains('open'),
+    regions: regions,
+    press: p.querySelectorAll('button, a').length,
+    unpainted: unpainted,
+    laneTitle: (function () {
+      var t = document.getElementById('planet');
+      return t ? t.textContent : null;
+    })(),
+    none: (function () {
+      var t = document.getElementById('pholdsnone');
+      return t ? t.textContent : null;
+    })(),
+    relationships: rows('relationships'),
+    lane: rows('in this lane'),
+    outline: (function () {
+      var host = p.querySelector('[data-region="its outline"]');
+      return Array.prototype.map.call(host.querySelectorAll('li'), function (li) {
+        return { words: li.textContent, flags: li.querySelectorAll('.flag').length,
+                 press: li.querySelectorAll('button, a').length };
+      });
+    })(),
+    holds: rows('the instructors this drawing holds')
+  });
+})()`;
+
+// Selecting a node without a pointer, because the sweep visits every node of two drawings and two
+// of the kinds it has to visit are laid out and painted only on demand. clickNode() is the right
+// instrument for a claim about where a tile IS; nothing in this phase is such a claim, and a
+// hit test on an employer the drawing is not painting would refuse before it could be asked what
+// the panel says about one.
+async function selectNode(page, id) {
+  await page.evaluate(`document.querySelector('[data-node=${JSON.stringify(id)}]')
+    .dispatchEvent(new MouseEvent('click', { bubbles: true }))`);
+  await page.waitFor(`window.ZT.selected() && window.ZT.selected().id === ${JSON.stringify(id)}`,
+    `the panel to be about ${id}`);
+}
+
+async function atProgramme(page, key) {
+  await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(key)}`);
+  await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(key)}`,
+    `the ${key} drawing`);
+}
+
+async function panelState(page) {
+  return JSON.parse(await page.evaluate(PANEL_STATE));
+}
+
+// The two documents, read here so that everything below is a comparison against the artefacts and
+// not against the page's own opinion of them. A scope of one is the artefact the build wrote, node
+// for node and path for path, which this suite already asserts as an identity, so the edges, the
+// bands and the coordinates of `#/p/ZIB` are exactly what layout.js and instance.js carry.
+const PANEL_ORACLE = `(function (want) {
+  var out = {};
+  want.forEach(function (key) {
+    var iv = null, lv = null;
+    window.GI.views.forEach(function (v) { if (v.key === key) iv = v; });
+    window.GL.views.forEach(function (v) { if (v.key === key) lv = v; });
+    var label = {}, type = {}, at = {};
+    iv.nodes.forEach(function (n, i) {
+      label[n.id] = n.label; type[n.id] = n.type;
+      at[n.id] = { x: lv.drawing.nodes[i].x, y: lv.drawing.nodes[i].y };
+    });
+    // One row per edge, in the order the drawing declares its edges, and the words the panel
+    // printed as one sentence before this card: an edge that LEAVES this object reads verb then
+    // name, and one that ENDS on it reads name then verb then the word this. No backtick in this
+    // comment: the driver around it is a template literal and one would end it.
+    function relationships(id) {
+      var rows = [];
+      iv.edges.forEach(function (e) {
+        if (e.s === id) rows.push({ to: e.t, words: e.v + ' ' + label[e.t] });
+        else if (e.t === id) rows.push({ to: e.s, words: label[e.s] + ' ' + e.v + ' this' });
+      });
+      return rows;
+    }
+    // The band a node is drawn in, and that band's membership top to bottom, which is the same
+    // interval test build_layout.py writes the lane rects from.
+    function lane(id) {
+      var band = null;
+      lv.drawing.bands.forEach(function (b) {
+        if (band) return;
+        if (at[id].x >= b.x && at[id].x <= b.x + b.w) band = b;
+      });
+      if (!band) return null;
+      var members = iv.nodes.filter(function (n) {
+        return at[n.id].x >= band.x && at[n.id].x <= band.x + band.w;
+      }).slice().sort(function (a, b) {
+        return at[a.id].y - at[b.id].y || at[a.id].x - at[b.id].x;
+      }).map(function (n) { return { id: n.id, words: n.label, here: n.id === id }; });
+      return { key: band.key, members: members };
+    }
+    out[key] = {
+      nodes: iv.nodes.map(function (n) { return n.id; }),
+      label: label,
+      // Every cohort session on this drawing that nobody is teaching, off the row the model wrote.
+      unstaffed: iv.nodes.filter(function (n) {
+        return n.type === 'CohortSession' && n.props.some(function (p) {
+          return p.k === 'teacher_assigned' && p.v === 'no';
+        });
+      }).map(function (n) { return n.id; }),
+      instructors: iv.nodes.filter(function (n) { return n.type === 'Instructor'; })
+                           .map(function (n) { return n.id; }),
+      templates: iv.nodes.filter(function (n) { return n.type === 'SessionTemplate'; })
+                         .map(function (n) { return n.id; }),
+      counts: iv.counts.CohortSession,
+      code: iv.code,
+      rel: relationships,
+      lane: lane,
+      agenda: window.GI.agenda.by_template
+    };
+  });
+  // Functions cannot cross the protocol, so the two that are functions are applied here for the
+  // handful of ids this phase asks about and the rest is data.
+  return out;
+})`;
+
+async function oracleFor(page, key, ids) {
+  return JSON.parse(await page.evaluate(`(function () {
+    var o = (${PANEL_ORACLE})(${JSON.stringify([key])})[${JSON.stringify(key)}];
+    var rel = {}, lane = {};
+    ${JSON.stringify(ids)}.forEach(function (id) { rel[id] = o.rel(id); lane[id] = o.lane(id); });
+    return JSON.stringify({ nodes: o.nodes, label: o.label, unstaffed: o.unstaffed,
+                            instructors: o.instructors, templates: o.templates,
+                            counts: o.counts, code: o.code, rel: rel, lane: lane,
+                            agenda: o.agenda });
+  })()`));
+}
+
+async function checkWayIn(page) {
+  const startedOn = await page.evaluate('window.ZT.programme().key');
+  await page.evaluate('location.hash = ' + JSON.stringify(ONE));
+  await page.waitFor('window.ZT.term().open === false', 'the diagram to be on screen');
+  await clearSelectionIfAny(page);
+
+  // ---- ONE. EVERY RELATIONSHIP IS A ROW AND EVERY ROW IS A PRESS ------------------------------
+  // The single biggest change on this card. Before it the panel printed
+  // `3 relationships: <name> teaches this; instance of <title>; scheduled for <cohort>` as one
+  // sentence, and not one of those three names could be reached from it: zero `button` and zero
+  // `a` were built anywhere in render.js, app.js or selection.js, so the whole panel offered the
+  // close button and, since #157, three anchors on the objects carrying a way to be reached.
+  //
+  // ASSERTED AGAINST THE ARTEFACT AND NOT AGAINST THE PAGE'S OWN LIST. The rows the driver expects
+  // are rebuilt from instance.js here, in this file, in the order that document declares its
+  // edges, so a panel that dropped an edge, reordered them or turned `<name> teaches this` into
+  // `teaches <name>` fails. The last of those three is the one worth naming: it is the same words
+  // in the same row and it states the relationship backwards.
+  await atProgramme(page, 'ZIB');
+  const ibOracle = await oracleFor(page, 'ZIB', ['cs1', 't1', 'st1']);
+  await selectNode(page, 'cs1');
+  const onCs1 = await panelState(page);
+  const wantRel = ibOracle.rel.cs1;
+  const gotRel = (onCs1.relationships || []).map(r => ({ to: r.to, words: r.words }));
+  const small = (onCs1.relationships || []).filter(r => Math.min(r.w, r.h) < 24);
+  assert('every relationship is a row of its own, in the model\'s order and in the words the ' +
+         'panel used to print as one sentence, and every row is a press onto the object it names',
+    JSON.stringify(gotRel) === JSON.stringify(wantRel) &&
+      (onCs1.relationships || []).every(r => r.press) && small.length === 0 &&
+      wantRel.length > 1,
+    `${wantRel.length} rows, ${JSON.stringify(wantRel)}, each a press at least 24 by 24`,
+    small.length ? small.map(r => `${r.words} ${r.w}x${r.h}`).join('; ') : JSON.stringify(gotRel),
+    `cs1: ${gotRel.map(r => r.words + ' -> ' + r.to).join(', ')}`);
+
+  // ---- TWO. AND A PRESS MOVES THE SELECTION AND NOTHING ELSE ----------------------------------
+  // The one thing this card was told not to build is a second scope control. A row moves the
+  // SELECTION, which is exactly one object and does not live in the address; the scope is the set
+  // in the address and stays where it was, the drawing keeps its digest, and the panel that comes
+  // back is about the object the row named. Read all four before and after, because a page that
+  // moved the scope would still have moved the selection and would still look right in a
+  // screenshot of the panel.
+  const before = JSON.parse(await page.evaluate(
+    'JSON.stringify({ scope: window.ZT.scope().route, digest: window.ZT.programme().digest })'));
+  const target = gotRel[0].to;
+  await page.evaluate(`document.querySelector('#prel button[data-to=${JSON.stringify(target)}]')
+    .click()`);
+  await page.waitFor('window.ZT.selected() !== null', 'the selection to answer the press');
+  const after = JSON.parse(await page.evaluate(
+    'JSON.stringify({ scope: window.ZT.scope().route, digest: window.ZT.programme().digest, ' +
+    'sel: window.ZT.selected(), focus: document.activeElement.id })'));
+  assert('a press moves the selection to the object the row names, and moves nothing else',
+    after.sel && after.sel.id === target && after.scope === before.scope &&
+      after.digest === before.digest && after.focus === 'pname',
+    `the selection at ${target}, the scope still ${before.scope}, the drawing still ` +
+      `${before.digest} and the keyboard on the name of what it walked to`,
+    `selection ${after.sel && after.sel.id}, scope ${after.scope}, drawing ${after.digest}, ` +
+      `focus ${JSON.stringify(after.focus)}`,
+    `${gotRel[0].words} -> ${after.sel && after.sel.id}, scope unmoved at ${after.scope}`);
+
+  // ---- THREE. THE LANE REGION IS THE BAND THE DRAWING DRAWS IT IN ------------------------------
+  // Named as the build names the column, which is the vocabulary `windowState().lanes` publishes
+  // and the one term.js keys its two lane links off, so the panel invents no second word for a
+  // column a reader is looking at. The membership is rebuilt here from layout.js's own band
+  // intervals and node coordinates, top to bottom, and the row the reader is standing on is
+  // required to be the one row in the list that is NOT a press: a row leading back to where you
+  // already are is not a way in.
+  await selectNode(page, 'cs1');
+  const laneWant = ibOracle.lane.cs1;
+  const onLane = await panelState(page);
+  const laneGot = (onLane.lane || []).map(r => ({ id: r.to, words: r.words, here: r.here }));
+  const laneExpect = laneWant.members.map(m => ({ id: m.here ? null : m.id, words: m.words,
+                                                  here: m.here }));
+  assert('the lane region names the lane the drawing draws this object in, and holds that lane\'s ' +
+         'membership in the order the drawing paints it',
+    onLane.laneTitle === 'in the ' + laneWant.key + ' lane' &&
+      JSON.stringify(laneGot) === JSON.stringify(laneExpect) &&
+      (onLane.lane || []).filter(r => r.here).length === 1 &&
+      (onLane.lane || []).filter(r => !r.press).length === 1 &&
+      laneWant.members.length > 2,
+    `"in the ${laneWant.key} lane" over ${laneWant.members.length} rows, ` +
+      `${JSON.stringify(laneExpect.map(m => m.words))}, exactly one of them the row the reader ` +
+      'is on and exactly that one not a press',
+    `${JSON.stringify(onLane.laneTitle)} over ${JSON.stringify(laneGot)}`,
+    `${onLane.laneTitle}: ${laneGot.map(r => r.words + (r.here ? ' (here)' : '')).join(', ')}`);
+
+  // ---- FOUR. A TEMPLATE'S OUTLINE IS ITS OWN BEATS AND WEARS NO BADGE --------------------------
+  // The outline sits on the session template and not on the cohort session, because a fact belongs
+  // on the thing it is about and a cohort session carries no agenda in the model; from a session
+  // it is one press through the `instance of` row asserted above.
+  //
+  // AND NO CHIP ON ANY OF IT, WHICH IS #110 AND NOT AN OVERSIGHT. That instruction took the flag
+  // chip off every row in this panel and named the outline in the same breath. #157's three reach
+  // rows are the declared exception and they are an exception because a reader ACTS on those. So
+  // the assertion is two sided: the beats are the model's beats in the model's order, and the
+  // count of chips in the region is zero.
+  await selectNode(page, 'st1');
+  const onSt1 = await panelState(page);
+  const beats = ibOracle.agenda.st1;
+  const beatWant = beats.map(b => b.k + ' ' + b.v);
+  const beatGot = onSt1.outline.map(r => r.words.trim());
+  assert('a session template\'s outline is its own beats, in the model\'s order, and not one of ' +
+         'them carries a badge or a press',
+    JSON.stringify(beatGot) === JSON.stringify(beatWant) &&
+      onSt1.outline.every(r => r.flags === 0 && r.press === 0) &&
+      beats.length > 2,
+    `${beats.length} beats, ${JSON.stringify(beats.map(b => b.k))}, no chip and nothing pressable`,
+    JSON.stringify(beatGot) + ' chips ' +
+      onSt1.outline.reduce((n, r) => n + r.flags, 0) + ' presses ' +
+      onSt1.outline.reduce((n, r) => n + r.press, 0),
+    `st1: ${beats.map(b => b.k).join(', ')}, ${beats.length} beats and no chip on any of them`);
+
+  // ---- FIVE. AN ABSENCE IS NEVER RENDERED AS A FACT --------------------------------------------
+  // The one place the owner's own brief changed shape. He asked for a teacher fallback; of the
+  // eleven cohort sessions nobody is teaching, exactly one belongs to a module carrying any other
+  // named instructor, and nothing in the corpus records who CAN teach a module, so the obvious
+  // feature renders an empty region ten times out of eleven and the honest one cannot be computed
+  // at all. What ships is the instructors THIS DRAWING holds.
+  //
+  // BOTH BRANCHES IN ONE ASSERTION, BECAUSE EITHER ALONE WOULD PASS ON HALF A FEATURE. On Z-DS the
+  // region is the drawing's own instructors lane and every row is a press onto a tile. On Z-CFA
+  // the drawing holds none, and the sentence is compared against a string built HERE out of that
+  // view's own counts: an exact equality rather than a search for a forbidden phrase, so any
+  // rewording into a claim about who teaches the programme fails rather than being hunted for.
+  await atProgramme(page, 'ZDS');
+  const dsOracle = await oracleFor(page, 'ZDS', []);
+  await selectNode(page, dsOracle.unstaffed[0]);
+  const onDs = await panelState(page);
+  const dsRows = (onDs.holds || []).map(r => r.to);
+  await atProgramme(page, 'ZCFA');
+  const cfaOracle = await oracleFor(page, 'ZCFA', []);
+  await selectNode(page, cfaOracle.unstaffed[0]);
+  const onCfa = await panelState(page);
+  const cfaWant = 'this drawing holds none. it draws ' + cfaOracle.counts.drawn + ' of the ' +
+                  cfaOracle.counts.total + ' sessions ' + cfaOracle.code + ' has';
+  assert('a session nobody is teaching names the instructors this drawing holds, and where it ' +
+         'holds none it says that and how much of the programme it draws, and never that nobody ' +
+         'teaches the programme',
+    JSON.stringify(dsRows) === JSON.stringify(dsOracle.instructors) &&
+      (onDs.holds || []).every(r => r.press) && dsOracle.instructors.length > 0 &&
+      onDs.none === '' &&
+      (onCfa.holds || []).length === 0 && cfaOracle.instructors.length === 0 &&
+      onCfa.none === cfaWant &&
+      dsOracle.unstaffed.length > 0 && cfaOracle.unstaffed.length > 0,
+    `on Z-DS the ${dsOracle.instructors.length} instructors the drawing holds, each a press, and ` +
+      `on Z-CFA the sentence "${cfaWant}"`,
+    `Z-DS rows ${JSON.stringify(dsRows)} against ${JSON.stringify(dsOracle.instructors)}; ` +
+      `Z-CFA rows ${(onCfa.holds || []).length} and the sentence ${JSON.stringify(onCfa.none)}`,
+    `Z-DS: ${dsRows.map(id => dsOracle.label[id]).join(', ')}; Z-CFA: ${onCfa.none}`);
+
+  // ---- SIX. THE PIN ON THE PANEL'S DESIGN ------------------------------------------------------
+  // See PANEL_REGIONS above for why this exists at all. Read off `[data-region]` in the rendered
+  // document rather than off a table the page publishes, so it is a count of what is there.
+  const regionKeys = onCfa.regions.map(r => r.key);
+  assert('the panel is exactly six regions and they are these six',
+    regionKeys.length === PANEL_REGIONS &&
+      JSON.stringify(regionKeys) === JSON.stringify(PANEL_REGION_KEYS),
+    `${PANEL_REGIONS} regions, ${JSON.stringify(PANEL_REGION_KEYS)}`,
+    `${regionKeys.length}, ${JSON.stringify(regionKeys)}`,
+    `${regionKeys.length} regions: ${regionKeys.join(', ')}`);
+
+  // ---- SEVEN. AND THE PIN ON WHAT IS INSIDE THEM -----------------------------------------------
+  // Every node of two whole drawings, selected in turn, and the total of everything in the panel
+  // that answers a press. A total over a fixed population is the shape this suite already uses for
+  // the addresses, `termRoutes.length === 16 && wantAll.length === 35`: it cannot notice a drawing
+  // that stopped being walked, which is why the population is pinned beside it, and it moves the
+  // moment a row is added to any region on any of the sixty six objects.
+  //
+  // AND IT CARRIES THE OTHER CLAIM A SWEEP IS THE ONLY PLACE TO MAKE: that no row anywhere offers
+  // a press onto a tile the drawing is not painting. site/selection.js guards the tab order and
+  // the accessibility tree against exactly that and a panel row is a door that guard does not
+  // watch.
+  let pressed = 0, visited = 0;
+  const blind = [];
+  for (const key of PANEL_SWEEP) {
+    await atProgramme(page, key);
+    const o = await oracleFor(page, key, []);
+    for (const id of o.nodes) {
+      await selectNode(page, id);
+      const st = await panelState(page);
+      visited++;
+      pressed += st.press;
+      if (st.unpainted.length) blind.push(id + ' -> ' + st.unpainted.join(','));
+      if (!st.open) blind.push(id + ' left the panel shut');
+    }
+  }
+  assert('the panel answers exactly this many presses over the two drawings it is swept across, ' +
+         'and never offers one onto a tile the drawing is not painting',
+    pressed === PANEL_PRESSABLE && visited === PANEL_SWEEP_NODES && blind.length === 0,
+    `${PANEL_PRESSABLE} presses over ${PANEL_SWEEP_NODES} objects on ${PANEL_SWEEP.join(' and ')}`,
+    blind.length ? blind.slice(0, 4).join('; ')
+                 : `${pressed} presses over ${visited} objects`,
+    `${pressed} presses over ${visited} objects on ${PANEL_SWEEP.join(' and ')}`);
+
+  await clearSelection(page);
+  await page.evaluate(`location.hash = '#/p/' + ${JSON.stringify(startedOn)}`);
+  await page.waitFor(`window.ZT.programme().key === ${JSON.stringify(startedOn)}`,
+    'the drawing this phase started on');
+  await page.evaluate('location.hash = ' + JSON.stringify(ONE));
+  await page.waitFor('window.ZT.term().open === false', 'the diagram to come back');
+  await page.evaluate('window.ZT.fit()');
+}
+
 // ---- the lane plate, issue 133 ------------------------------------------------------------------
 // HE ASKED FOR THE CARDS TO BE MORE TRANSPARENT AND THE CARDS ARE THE LANE PLATES. `rect.band` is
 // the only rect in the drawing whose capture descriptor reads `ancestor #graph`, which is the
@@ -18312,6 +18719,11 @@ async function runViewport(chrome, viewport, base, full, narrow) {
       // After `the control panel`, which leaves the page on the diagram with the drawing fitted,
       // and before `canvas`, which refits it: this one drives the theme to both of its explicit
       // values, reads the plate under each, and puts the choice back on `system`. Issue 133.
+      // After `the control panel`, which leaves the page on the diagram at the address this
+      // suite calls ONE, and before `the plate`, which drives the theme: this one walks four
+      // programmes and every node of two of them, and puts the address and the fit back.
+      // Issue 132.
+      await group('the way in', () => checkWayIn(page));
       await group('the plate', () => checkPlate(page));
       // After `the plate`, which leaves the theme on `system` and the page on the diagram, and
       // before `canvas`, which refits the drawing: this one drives both explicit themes, four
