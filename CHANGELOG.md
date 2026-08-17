@@ -707,6 +707,22 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- **THE SMOKE WORKFLOW'S HEADER EXPLAINED EXIT 2 WITH THE OLD TWO-CAUSE LIST, TWENTY LINES ABOVE
+  THE CORRECTED MESSAGE, #231.** #223 fixed the `2)` arm of the exit-code case in
+  `.github/workflows/smoke.yml` and left the header comment that argues for those codes carrying
+  the list the arm had just stopped printing: "a browser that never started after its retry, or a
+  run that recorded fewer assertions than it says it intends". Both fell out of date the same way,
+  because #216 added a third cause and neither was written to notice; #223's file boundary covered
+  the arm and not the header, so the reader who opened the file to learn what the codes mean met
+  the stale explanation before the corrected output. **The header now names the same three causes
+  the arm prints**, in the arm's own words, "a resource the page needs that did not arrive"
+  included, **and says there that the three do not share a remedy**: the first two are worth
+  re-running, a resource that did not arrive is missing again on the next run, and the refusal
+  names it. **Nothing outside that comment changed**: the exit codes, the `case` structure, every
+  other comment and every YAML key are byte-identical, and the workflow was loaded with a YAML
+  parser to prove the comment edit did not disturb the indentation around it. No suite was run,
+  because a comment has no runtime behaviour to force; the claim is that two lists match, and it
+  is checkable by reading them side by side.
 - **THE SMOKE WORKFLOW'S REFUSAL MESSAGE TOLD THE READER TO RE-RUN A FAULT THAT COMES BACK EVERY
   TIME, #223.** The `2)` arm of the exit-code case in `.github/workflows/smoke.yml` listed two
   causes of a refusal, "a browser that never started, or a run that recorded fewer assertions than
