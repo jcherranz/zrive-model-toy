@@ -177,7 +177,7 @@ jobs:
       # scripts/verify.sh each print `== $name` before running, and the summary prints the same
       # string again, so every one of that file's step labels is a line a gate prints. The rule is
       # stated once, here, and it is the whole of the rule; nothing mechanical holds it, and the
-      # measurement of what a mechanical version would have to decide is on #241.
+      # measurement of what a mechanical version would have to decide is on #244.
       #
       # AND THE RULE IS ABOUT STATING A CLAIM, NOT ABOUT MATCHING A STRING, which is the line a
       # guard could not have drawn. Measured over the whole workflow directory at `bac826e`: eight
@@ -187,9 +187,10 @@ jobs:
       # outcome and are gone under #240 and #241. The other five are of the form `Prove the
       # repository gate fires`, which names the job the step runs; they equal a verify.sh label
       # because verify.sh names the same job the same way, and rewording either side leaves both
-      # sentences true. **Do not name a step after a claim. Naming it after its own job is the
-      # repair, and two honest job names converging is not the defect.** A guard keyed on string
-      # equality cannot tell the two apart, so there is no guard; #241 carries the numbers.
+      # sentences true. DO NOT NAME A STEP AFTER A CLAIM. Naming it after its own job is the
+      # repair, and two honest job names converging is not the defect. A guard keyed on string
+      # equality cannot tell the two apart, so there is no guard; #244 carries the numbers and
+      # what a full one would need.
       # verify-step: build-gate
       - name: Run the build gate, and report the state it exits in
         run: |
@@ -241,6 +242,7 @@ jobs:
       # It runs AFTER the rebuild above and not before, deliberately: the bytes it reads are then
       # the bytes the builder just produced and compared, so a registry that is complete in the
       # committed file and incomplete in the rebuilt one cannot pass here.
+      #
       # AND THE NAME BELOW DESCRIBES THE JOB RATHER THAN RESTATING THE CLAIM. Issue 241. It used to
       # be `The populate registry is complete and every drawn object binds to it`, which is
       # scripts/verify.sh's step 10 label word for word. The `verify-step: routes` marker on the

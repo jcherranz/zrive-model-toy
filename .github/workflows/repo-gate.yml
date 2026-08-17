@@ -117,7 +117,7 @@ jobs:
       # it matches a verify.sh label because verify.sh names the same job the same way, and if
       # either side is reworded both sentences stay true. The three names #240 and #241 removed
       # stated a CLAIM about an outcome, and one of them had already gone false. build.yml carries
-      # the rule and the measurement.
+      # the rule, and #244 the measurement.
       # verify-step: repo-gate-armed
       - name: Prove the repository gate fires
         run: bash scripts/check_repo.sh --self-test
