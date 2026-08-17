@@ -82,12 +82,27 @@ of what changed and when, and it is meant to be scannable.
   not read as a section.
 - **It is a self-test instrument and not a ninth numbered section, deliberately.** Making it one
   would oblige the label to name the check that reads the label.
-- **Sixteen probes, `EXPECTED_PROBES` 238 to 254 in the same commit, and the probe is proved red in
+- **Hardened against an adversary that was asked to pass the check while the label was wrong**, and
+  three of what it found are closed. The label is now taken from the `step_three_state build-gate`
+  **call at column one, matched exactly once**, and not from any quoted string that looks like the
+  label: a comment quoting the correct text, over a live label reverted to its stale one, made the
+  old pattern answer for a sentence the run does not print, which is this card's own defect
+  reproduced verbatim and green. **A line that looks like a banner and does not conform is now
+  reported**, because the regex defines its own population, so six ways of typing a ninth banner
+  wrong put a section outside it and the label never had to name it. **A token matches at the start
+  of a word**, so `rows` no longer stands in for `browser`.
+- **And what it cannot establish is written down over the function**, because a gate quiet about its
+  own limits is how the next reader over-reads it. It compares the label to banners and not to
+  checks. A token constrains spelling and never subject, so a section rewritten around a different
+  check, a clause negated, or a label reduced to the bare tokens all pass. A clause can over-claim
+  inside itself, since only commas separate clauses.
+- **Twenty probes, `EXPECTED_PROBES` 238 to 258 in the same commit, and the probe is proved red in
   both directions.** A ninth banner appended to a scratch copy of the gate with the label untouched
   exits 1 naming `ninthly`; clause 4 reworded away from `reserved` in a scratch copy of
   `scripts/verify.sh` exits 1 naming `reserved`. Also red on a deleted section, an out-of-order
-  label, a non-distinctive token and an undeclared token; abort at 2 on a gate with no sections and
-  on a verify file with no label.
+  label, a non-distinctive token, an undeclared token, a mistyped banner, a fragment token and a
+  decoy label in a comment; abort at 2 on a gate with no sections, on a verify file with no label,
+  and on one carrying two.
 - **A SELECTED LABEL LEAVING ITS LANE WAS MEASURABLE ON THE PAGE AND NOTHING MEASURED IT, #224.**
   `reserve()` at `build/build_layout.py:427-432` says in a comment what the reserved box is for: it
   has to hold the state a **click** puts the page into, because `.node.sel .lbl` turns a label bold.

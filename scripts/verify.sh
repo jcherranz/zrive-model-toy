@@ -733,9 +733,10 @@ step_may_decline untracked "2. nothing is untracked, so the gates see everything
 # So this is no longer prose that nothing can check. `scripts/check_build.sh --self-test` reads its
 # own `# N.` section banners and holds them against this label: one comma-separated clause per
 # section, in the gate's order, each clause carrying the distinctive token that section declares in
-# a `[label: token]` marker on its banner line. Adding a section now fails step 4 until this line
-# names it, and deleting one fails until this line stops naming it. Keep the clauses
-# comma-separated and keep them in the gate's order; the reasoning is written out over that
+# a `[label: token]` marker on its banner line. Adding a section now fails the build gate's
+# self-test, the step directly below this one, until this line names it, and deleting one fails
+# until this line stops naming it. Keep the clauses comma-separated and keep them in the gate's
+# order; the reasoning, and what the check deliberately cannot establish, is written out over that
 # function, under the heading that cites this card.
 step_three_state build-gate "3. the build gate: both documents reproduce, the widths cover, the widths the builder asks for are the widths the job declares, the width it got back is the width it reserved, the numbers in that table are ones a browser could have produced, the model is well formed, the fourteen digests are the ones these bytes produce, and the gates that could not look say so" \
      bash scripts/check_build.sh

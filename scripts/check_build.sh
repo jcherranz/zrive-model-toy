@@ -2573,6 +2573,26 @@ verdict() {  # clean|bad ; reads BASELINE_ORIGIN, CENSUS_UNVERIFIED and CENSUS_N
 #   test vacuously, so the instrument refuses tokens that are not distinctive rather than
 #   trusting whoever picked them.
 #
+# AND HERE IS WHAT IT DOES NOT ESTABLISH, written down because a gate that is quiet about its own
+# limits is how the next reader over-reads it. Every one of these was found by pointing an
+# adversary at the code and asking it to pass the check while the label was wrong.
+#
+#   IT COMPARES THE LABEL TO BANNERS AND NOT TO CHECKS. Delete the body of a section and leave its
+#   banner, and the label still "names all eight". The relation is between two pieces of text; the
+#   claim that a banner has a check under it is held by the probes over that check, not here.
+#
+#   A TOKEN CONSTRAINS SPELLING AND NEVER SUBJECT. Rewrite a section's title around a different
+#   check and keep its token, or negate its clause in the label, and this passes. A label reduced
+#   to the eight bare tokens and no prose passes too. What is mechanically checkable is that the
+#   label names each section; whether the sentence beside the name is true stays a reading.
+#
+#   A CLAUSE CAN OVER-CLAIM INSIDE ITSELF. Three checks the gate does not run, appended to one
+#   clause with no comma, are one clause and pass.
+#
+# Those are limits of any textual check, and the alternative is not a better instrument, it is no
+# instrument. What matters is that they are the DIRECTIONS this cannot see, while the direction it
+# was written for, a section added or removed with the label untouched, it cannot miss.
+#
 # A SECTION THAT DECLARES NO TOKEN IS A FAILURE AND NOT A SKIP, same reason the census aborts on
 # a gate that stops saying which state it is in: the omission this whole card is about is exactly
 # an author adding a section and touching nothing else, and absorbing that into a default would
@@ -2612,18 +2632,33 @@ gate = open(gate_path, encoding="utf-8").read().split("\n")
 # The banner convention: a `# N. ...` line whose next line is the dashed rule. Both halves are
 # required so that an ordinary comment that happens to start with a number is not read as a
 # section, and so that a section is not read past the one place it is declared.
+#
+# AND A NEAR MISS IS A FAILURE, NOT A SILENT OMISSION. The regex defines its own population, so
+# without this the instrument inherits the defect it was written to close one level down: a
+# section written `#9.` instead of `# 9.`, or indented by one space, would simply not be in the
+# population, the label would not have to name it, and the run would be green. So a line that
+# LOOKS like a banner and does not conform, next to a rule, is reported. Loose enough to catch a
+# typed banner and tight enough to leave the numbered list in this file's own header alone, which
+# is indented three spaces and sits next to prose rather than next to a rule.
 BANNER = re.compile(r"^# (\d+)\. (.*)$")
-RULE = re.compile(r"^# -{10,}\s*$")
+LOOSE = re.compile(r"^ {0,3}#\s*\d+\.")
+RULE = re.compile(r"^ {0,3}# -{3,}\s*$")
 MARK = re.compile(r"\s*\[label: ([^\]]+)\]\s*$")
 
 sections = []  # (number, title, token or None)
-for i, line in enumerate(gate[:-1]):
+near_misses = []
+for i, line in enumerate(gate):
+    nxt = gate[i + 1] if i + 1 < len(gate) else ""
     m = BANNER.match(line)
-    if not m or not RULE.match(gate[i + 1]):
-        continue
-    number, title = int(m.group(1)), m.group(2)
-    mark = MARK.search(title)
-    sections.append((number, MARK.sub("", title), mark.group(1).strip() if mark else None))
+    if m and RULE.match(nxt):
+        number, title = int(m.group(1)), m.group(2)
+        mark = MARK.search(title)
+        sections.append((number, MARK.sub("", title), mark.group(1).strip() if mark else None))
+    elif LOOSE.match(line) and any(RULE.match(gate[j]) for j in (i - 2, i - 1, i + 1, i + 2)
+                                   if 0 <= j < len(gate)):
+        # Two lines either side, so a banner separated from its rule by a stray comment line, or
+        # one whose marker wrapped onto the next line, is a near miss and not an invisible section.
+        near_misses.append((i + 1, line))
 
 if not sections:
     abort(f"{gate_path} declares no numbered sections, so this check enumerated nothing and "
@@ -2633,6 +2668,12 @@ if not sections:
 print(f"    the gate declares {len(sections)} numbered sections")
 
 bad = []
+
+for lineno, line in near_misses:
+    bad.append(f"{gate_path}:{lineno} looks like a section banner and is not one: {line!r}. A "
+               "banner is `# N. Title.  [label: token]` at column one with the dashed rule on the "
+               "next line. A near miss is reported rather than skipped, because a section this "
+               "reader cannot see is a section the label is never made to name.")
 
 for pos, (number, title, token) in enumerate(sections, start=1):
     if number != pos:
@@ -2652,15 +2693,27 @@ for t in dupes:
 
 # The label. Read out of the source rather than passed in, because the thing under test is the
 # text scripts/verify.sh actually prints.
+#
+# ANCHORED ON THE CALL AND NOT ON THE WORDS, and matched EXACTLY ONCE. A pattern that hunted for
+# any quoted string beginning `3. the build gate:` would be satisfied by a comment quoting the
+# label, and the comment sitting directly over this very call is a standing invitation to write
+# one: the live label could then be reverted to its stale text and the decoy in the comment would
+# answer for it. So the string is taken from the `step_three_state build-gate "..."` call at
+# column one, it may not run past the end of its line, and two such calls are an ABORT rather
+# than a first match, because which of them the run prints is then not a thing this reader knows.
 verify = open(verify_path, encoding="utf-8").read()
-found = re.search(r'"(3\. the build gate: [^"]*)"', verify)
-if not found:
-    abort(f"{verify_path} carries no `\"3. the build gate: ...\"` label, so there is nothing to "
-          "hold the gate's sections against. Either the step was renamed, in which case this "
-          "reader follows it, or the label is gone, in which case a reader saying nothing is "
-          "wrong would be saying it about a sentence that no longer exists.")
+found = re.findall(r'^step_three_state build-gate "([^"\n]*)"', verify, re.MULTILINE)
+if len(found) != 1:
+    abort(f"{verify_path} carries {len(found)} `step_three_state build-gate \"...\"` call(s) at "
+          "column one and this reader needs exactly one. With none there is no label to hold the "
+          "gate's sections against, and a reader saying nothing is wrong would be saying it about "
+          "a sentence that is not printed. With more than one, which label the run prints is not "
+          "something this reader can know, and it must not guess.")
 
-label = found.group(1)
+label = found[0]
+if ": " not in label:
+    abort(f"the step 3 label {label!r} carries no `: `, so it has no list of clauses to read. The "
+          "label is a heading and then the sections, in the gate's own order.")
 body = label.split(": ", 1)[1]
 clauses = [c.strip() for c in body.split(", ")]
 
@@ -2668,8 +2721,17 @@ clauses = [c.strip() for c in body.split(", ")]
 # say different things to whoever reads the refusal. A section added without the label moving
 # fails BOTH, and a refusal that reported only the arithmetic would tell an author the counts
 # differ without telling them which section went unnamed, which is most of the work.
+# A TOKEN MATCHES AT THE START OF A WORD AND NOT MID-WORD. A bare substring test lets a fragment
+# stand in for a word: `rows` is inside `browser`, `clar` is inside `declares`. A section about
+# table rows would then be certified by a clause about a browser, which is the vacuous match this
+# instrument exists not to make. A trailing boundary is deliberately NOT required, so a token
+# declared `digest` is named by a clause saying `digests`.
+def names(token, text):
+    return re.search(r"\b" + re.escape(token), text, re.IGNORECASE) is not None
+
+
 for number, title, token in sections:
-    if token and token.lower() not in body.lower():
+    if token and not names(token, body):
         bad.append(f"section {number} ({title!r}) declares the token {token!r} and the label "
                    "does not carry it anywhere. The label is the sentence the run prints for "
                    "this gate, so a section it never names is a check the reader is not told "
@@ -2679,19 +2741,20 @@ if len(clauses) != len(sections):
     bad.append(f"the label carries {len(clauses)} comma-separated clauses and the gate runs "
                f"{len(sections)} sections. one clause per section, in the gate's own order: a "
                "spare clause is the label claiming a check that is not there, and a missing one "
-               "is a section the run never tells the reader about.")
+               "is a section the run never tells the reader about. If the counts look right to "
+               "you, look for a comma INSIDE a clause: the label is split on commas and a clause "
+               "that contains one reads as two.")
 else:
     for idx, (number, title, token) in enumerate(sections):
         if not token:
             continue
         clause = clauses[idx]
-        low = token.lower()
-        if low not in clause.lower():
+        if not names(token, clause):
             bad.append(f"section {number} ({title!r}) declares the token {token!r} and clause "
                        f"{idx + 1} of the label, {clause!r}, does not carry it. The label must "
                        "name every section the gate runs, in the gate's order.")
         elsewhere = [j + 1 for j, other in enumerate(clauses)
-                     if j != idx and low in other.lower()]
+                     if j != idx and names(token, other)]
         if elsewhere:
             bad.append(f"section {number}'s token {token!r} also occurs in clause(s) "
                        f"{elsewhere}. A token that is not distinctive proves nothing about which "
@@ -2724,7 +2787,7 @@ PYLABEL
 # probe at a time prints a clean ratio all the way down to 0/0. A count taken from the run cannot
 # notice a probe that did not run. A short run exits 2, "the suite could not answer"; a run that
 # also recorded a failure reports it and exits 1.
-EXPECTED_PROBES=254
+EXPECTED_PROBES=258
 PASS=0
 TOTAL=0
 probe() {
@@ -4166,8 +4229,10 @@ model.ROUTES[cid]["source"] = model.ROUTES[cid]["source"] + ", one more locator"
   local gate_src="$ROOT/scripts/check_build.sh" verify_src="$ROOT/scripts/verify.sh"
   local g_ninth="$dir/gate_ninth.sh" g_untokened="$dir/gate_untokened.sh"
   local g_none="$dir/gate_none.sh" g_deleted="$dir/gate_deleted.sh" g_vague="$dir/gate_vague.sh"
+  local g_typo="$dir/gate_typo.sh" g_fragment="$dir/gate_fragment.sh"
   local v_reworded="$dir/verify_reworded.sh" v_dropped="$dir/verify_dropped.sh"
   local v_reordered="$dir/verify_reordered.sh" v_nolabel="$dir/verify_nolabel.sh"
+  local v_decoy="$dir/verify_decoy.sh" v_twice="$dir/verify_twice.sh"
   local rule='# ---------------------------------------------------------------------------------------------'
 
   probe 0 "the label this repository ships names every section this gate runs" \
@@ -4231,14 +4296,40 @@ model.ROUTES[cid]["source"] = model.ROUTES[cid]["source"] + ", one more locator"
   probe 1 "a token that is not distinctive is refused rather than trusted" \
         label_covers_sections "$g_vague" "$verify_src"
 
+  # A banner the pattern cannot see would put a section outside the population, and the label
+  # would never have to name it. That is this card's own defect one level down, so a near miss
+  # next to a rule is reported rather than skipped.
+  cp "$gate_src" "$g_typo"
+  printf '%s\n%s\n' '#9. A ninth section whose banner is typed one character wrong.  [label: ninthly]' \
+         "$rule" >>"$g_typo"
+  probe 1 "a banner typed one character wrong is reported and not quietly dropped" \
+        label_covers_sections "$g_typo" "$verify_src"
+
+  # And a token that is a fragment of some other word would satisfy the relation without naming
+  # anything: `rows` sits inside `browser`.
+  sed 's/^# 5\. \(.*\)\[label: browser\]$/# 5. \1[label: rows]/' "$gate_src" >"$g_fragment"
+  probe 1 "a token that is only a fragment of another word is refused" \
+        label_covers_sections "$g_fragment" "$verify_src"
+
+  # The label is taken from the call and not from any quoted string that looks like it. A comment
+  # quoting the correct label, over a live label reverted to its stale text, is the exact way this
+  # instrument could have been made to answer for a sentence the run does not print.
+  { printf '%s\n' '# For the record the label reads "3. the build gate: both documents reproduce, the widths cover, the widths the builder asks for are the widths the job declares, the width it got back is the width it reserved, the numbers in that table are ones a browser could have produced, the model is well formed, the fourteen digests are the ones these bytes produce, and the gates that could not look say so".'
+    sed 's/the width it got back is the width it reserved, the numbers in that table are ones a browser could have produced, //' "$verify_src"; } >"$v_decoy"
+  probe 1 "a comment quoting the right label does not answer for a live label that is wrong" \
+        label_covers_sections "$gate_src" "$v_decoy"
+  { cat "$verify_src"; grep '^step_three_state build-gate "' "$verify_src"; } >"$v_twice"
+  probe 2 "two step 3 labels abort rather than the first one being read as the label" \
+        label_covers_sections "$gate_src" "$v_twice"
+
   # And the population, because a reader that enumerates nothing reports no mismatch and prints
   # clean over any label at all. Both halves of the pair get the same treatment.
-  grep -v '^# [0-9]\+\. ' "$gate_src" >"$g_none"
+  grep -vE '^# [0-9]+\. ' "$gate_src" >"$g_none"
   probe 2 "a gate with no numbered sections aborts rather than reporting clean" \
         label_covers_sections "$g_none" "$verify_src"
   probe_says "enumerated nothing" "and it says that is why it cannot answer" \
         label_covers_sections "$g_none" "$verify_src"
-  sed '/3\. the build gate:/d' "$verify_src" >"$v_nolabel"
+  sed '/^step_three_state build-gate "/d' "$verify_src" >"$v_nolabel"
   probe 2 "a verify file with no step 3 label aborts rather than reporting clean" \
         label_covers_sections "$gate_src" "$v_nolabel"
 
