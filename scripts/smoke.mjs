@@ -15688,6 +15688,13 @@ function coverage(got, ground, ink) {
   return sq > 0 ? dot / sq : 0;
 }
 
+// Two photographs, byte for byte. Used to tell "the state this run wrote did not reach the screen"
+// from "the state this run wrote changed nothing", which are the two readings of one picture and
+// are opposite verdicts: the first is a fault of the runner and the second is a finding.
+function sameImage(a, b) {
+  return a.w === b.w && a.h === b.h && a.ch === b.ch && a.data.equals(b.data);
+}
+
 // =================================================================================================
 // WHAT A KEYBOARD CAN SEE AND WHAT A FINGER CAN REACH. Issue 170.
 // =================================================================================================
@@ -15778,6 +15785,15 @@ const RING_READ = `(function () {
 // has to COLLAPSE, because the matrix is back in it. If it does not collapse, the reading above was
 // not measuring the matrix at all and the pass it produced means nothing, which is a third state
 // and is reported as one rather than as a green.
+//
+// AND IT WAS DEAD FROM THE DAY IT WAS WRITTEN, WHICH AN ADVERSARIAL READ ON ISSUE 202 FOUND. The
+// width below was `parseFloat(cs.strokeWidth) * m.a`, which reads the declared width and the
+// matrix and never reads `vectorEffect` at all, so it did not depend on the write two lines above
+// it: `declared * scale < declared` is true at every canvas scale under 1, whether or not the
+// write landed, and deleting the write left the control still "biting". It reads the same
+// expression RING_READ reads, off the same property, so the collapse is now the write's doing.
+// The photographed control in measureTheRing() below was live from the start and is what the
+// assertion leans on; this one is a second implementation of that claim and now says something.
 const RING_UNDO = `(function () {
   var n = document.querySelector('#graph .node');
   var f = n && n.querySelector('.focus-frame');
@@ -15786,9 +15802,11 @@ const RING_UNDO = `(function () {
   f.style.vectorEffect = 'none';
   var cs = getComputedStyle(f);
   var m = f.getScreenCTM();
-  var w = parseFloat(cs.strokeWidth) * (m ? m.a : 0);
+  var effect = cs.vectorEffect;
+  var declared = parseFloat(cs.strokeWidth);
+  var w = effect === 'non-scaling-stroke' ? declared : declared * (m ? m.a : 0);
   f.style.vectorEffect = had;
-  return JSON.stringify({ why: '', painted: +w.toFixed(4) });
+  return JSON.stringify({ why: '', painted: +w.toFixed(4), effect: effect });
 })()`;
 
 // WHAT THE RAIL SAYS ABOUT ITSELF, READ AT THREE SCROLL POSITIONS AND PUT BACK. The claim is not
@@ -15870,6 +15888,14 @@ const RING_CLIP_PAD = 4;
 // enough that the faintest wash over the drawing would.
 const RING_HUE_SLACK = 12;
 
+// How many times the lit and unlit pair is retaken when the two come back identical, and it is
+// LAUNCH_ATTEMPTS' argument in another place: the evidence supports a retry and not a budget. The
+// adversarial read that found this saw it once in three runs and never twice in one, and every
+// attempt is counted into the line the assertion prints, so a retry that keeps saving a run shows
+// up as a number a reader can see rather than as a silence. A page whose ring is genuinely absent
+// spends all three and then fails, which is the right answer and costs two photographs.
+const RING_FRAME_ATTEMPTS = 3;
+
 // The rectangle to photograph, the state to photograph it in, and the colour the cascade says the
 // ring should be. Taken once so that the three photographs are of one rectangle.
 const RING_FRAME_READ = `(function () {
@@ -15902,83 +15928,132 @@ function ringStyle(prop, value) {
   })()`;
 }
 
-// One edge of the ring, measured across a scanline. The window is half the photograph, so the left
-// reading cannot see the right stroke and neither can see the other two, which run along the top
-// and the bottom and cross no horizontal line. The ring's own colour is the pixel that changed
-// most, and every coverage on the edge is taken against THAT colour and against the unlit
-// photograph's own pixel for the ground, so the sum is a width in CSS px and not a count of
-// pixels the stroke tinted.
-function ringEdge(lit, unlit, y, from, to) {
-  let peak = -1, peakX = -1;
-  for (let x = from; x < to; x++) {
-    const d = Math.max(...[0, 1, 2].map(c => Math.abs(pxAt(lit, x, y)[c] - pxAt(unlit, x, y)[c])));
-    if (d > peak) { peak = d; peakX = x; }
+// One edge of the ring, measured across a line of pixels. `walk` hands back the pixel at step i
+// from each of the two photographs, so the same arithmetic reads a horizontal scanline for the
+// two vertical strokes and a vertical one for the two horizontal strokes.
+//
+// THE COLOUR THE COVERAGES ARE TAKEN AGAINST IS THE ONE THE CASCADE DECLARES, and it was the
+// brightest pixel on the line until an adversarial read on issue 202 measured what that costs. A
+// peak pixel is 1.0 by construction whatever fraction of it the stroke actually covered, so the
+// sum was the true width divided by the peak's own coverage and could only overstate: driven to a
+// stroke of 1.6 CSS px at a subpixel offset, that reading answered 2.0877. Against the declared
+// colour the same drive answers the width that is there. What the peak pixel is used for now is
+// the hue and the contrast, which are questions about the paint and not about the geometry.
+function ringEdge(lit, unlit, ink, n, walk) {
+  let peak = -1, peakAt = -1;
+  for (let i = 0; i < n; i++) {
+    const a = walk(lit, i), b = walk(unlit, i);
+    const d = Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]), Math.abs(a[2] - b[2]));
+    if (d > peak) { peak = d; peakAt = i; }
   }
-  if (peakX < 0 || peak <= 0) return { width: 0, peak, peakX, run: 0, ink: null, ground: null };
-  const ink = pxAt(lit, peakX, y), ground = pxAt(unlit, peakX, y);
+  if (peakAt < 0 || peak <= 0) return { width: 0, peak, run: 0, ink: null, ground: null };
   let width = 0, run = 0;
   for (const step of [0, -1, 1]) {
-    for (let x = peakX + (step || 0); x >= from && x < to; x += (step || 1)) {
-      const c = coverage(pxAt(lit, x, y), pxAt(unlit, x, y), ink);
+    for (let i = peakAt + (step || 0); i >= 0 && i < n; i += (step || 1)) {
+      const c = coverage(walk(lit, i), walk(unlit, i), ink);
       if (c <= 0.01) break;
       width += c;
       run++;
       if (!step) break;
     }
   }
-  return { width: +width.toFixed(4), peak, peakX, run, ink, ground };
+  return { width: +width.toFixed(4), peak, run, ink: walk(lit, peakAt), ground: walk(unlit, peakAt) };
 }
 
-// The same edge measured in a state the ring is NOT expected to survive, against the colour and
-// the ground the lit reading found. The denominator has to be the lit reading's, or a stroke a
-// tenth as wide would normalise itself back to its own peak and measure two pixels again, which is
-// the shape of every dead instrument in this repository.
-function ringEdgeAgainst(other, unlit, y, from, to, ink) {
+// The same line measured in a state the ring is NOT expected to survive, against the same declared
+// colour. The denominator has to be the same one, or a stroke a tenth as wide would normalise
+// itself back to its own peak and measure two pixels again, which is the shape of every dead
+// instrument in this repository.
+function ringEdgeAgainst(other, unlit, ink, n, walk) {
   let width = 0;
-  for (let x = from; x < to; x++) {
-    const c = coverage(pxAt(other, x, y), pxAt(unlit, x, y), ink);
+  for (let i = 0; i < n; i++) {
+    const c = coverage(walk(other, i), walk(unlit, i), ink);
     if (c > 0.01) width += c;
   }
   return +width.toFixed(4);
 }
 
+// A FRAME IS FORCED AND WAITED ON BETWEEN EVERY WRITE AND THE PHOTOGRAPH THAT FOLLOWS IT, and this
+// is not belt and braces. An adversarial read on issue 202 ran the suite four times against an
+// unmodified tree and one run in three reported `VERDICT: the page has regressed` at 1536: all
+// three photographs came back identical, 0 pixels moved, and the assertion said the ring was not
+// painted. The write had landed and the surface had not: `Page.captureScreenshot` handed back a
+// composited frame from before it. Two frames, because one rAF fires before the style change is
+// composited and the second cannot run until it has been.
+const NEXT_FRAME =
+  'new Promise(function (r) { requestAnimationFrame(function () { requestAnimationFrame(r); }); })';
+
 async function measureTheRing(page) {
   const g = JSON.parse(await page.evaluate(RING_FRAME_READ));
   if (g.why) return { why: g.why };
   if (!g.inViewport) {
-    return { why: `the focus frame is not wholly on the screen, so it cannot be photographed whole` };
+    return { why: 'the focus frame is not wholly on the screen, so it cannot be photographed whole' };
   }
+  // The colour the cascade declares for the stroke, read before anything is written, and the
+  // oracle every coverage below is taken against. A declared stroke this suite cannot read is a
+  // reading it cannot take, and it says so rather than throwing: a throw out of here is caught by
+  // group() as a phase that did not finish, which loses the OTHER assertion in this phase as well
+  // and reports the loss as an arithmetic failure two screens later.
+  let want;
+  try { want = parsePaint(g.stroke); } catch (err) { return { why: err.message }; }
+  const ink = [want.r, want.g, want.b];
   const clip = { x: g.x + g.scrollX - RING_CLIP_PAD, y: g.y + g.scrollY - RING_CLIP_PAD,
                  width: g.w + RING_CLIP_PAD * 2, height: g.h + RING_CLIP_PAD * 2 };
-  // AS PAINTED FIRST, because everything after it is a state this driver put the page in. The two
-  // states below are written and put back inside a finally, so a capture that refuses part way
-  // through does not leave the page with a stroke taken off it: a HarnessFailure ends this
-  // viewport, and a viewport that ended is not a place to leave a plant lying.
-  const lit = await shoot(page, clip, 'the focus ring as painted');
-  let unlit, matrix;
-  // THE GROUND, which is the same rectangle with the stroke taken off and nothing else moved. It
-  // is the ring's negative and it is also the denominator: every coverage below is against this.
-  try {
-    await page.evaluate(ringStyle('stroke', 'none'));
-    unlit = await shoot(page, clip, 'the focus ring with the stroke taken off');
-  } finally {
-    await page.evaluate(ringStyle('stroke', ''));
+
+  // Three photographs of one rectangle, and the pair that decides is retaken rather than believed
+  // where the two came back the same. A lit picture identical to an unlit one is either a ring
+  // that is not painted or a frame that did not arrive, and those are opposite verdicts: the
+  // second is a fault of this runner and must not be reported as a page. The attempts are counted
+  // and printed, so a retry that keeps saving a run is visible in the log rather than silent,
+  // which is what LAUNCH_ATTEMPTS above does for the same reason.
+  let lit, unlit, matrix, tries = 0;
+  for (; tries < RING_FRAME_ATTEMPTS; tries++) {
+    await page.evaluate(NEXT_FRAME);
+    lit = await shoot(page, clip, 'the focus ring as painted');
+    // THE GROUND, which is the same rectangle with the stroke taken off and nothing else moved. It
+    // is the ring's negative, and it is the ground every contrast below is read against.
+    try {
+      await page.evaluate(ringStyle('stroke', 'none'));
+      await page.evaluate(NEXT_FRAME);
+      unlit = await shoot(page, clip, 'the focus ring with the stroke taken off');
+    } finally {
+      await page.evaluate(ringStyle('stroke', ''));
+    }
+    if (!sameImage(lit, unlit)) break;
   }
   // THE CONTROL, AND IT IS RING_UNDO's CONTROL PHOTOGRAPHED. `vector-effect` goes back to `none`,
   // which puts the canvas matrix back into the stroke, and the painted width has to COLLAPSE. A
   // page where taking `non-scaling-stroke` off changes nothing in the PAINT is a page this
-  // instrument cannot see, whatever the declarations say.
+  // instrument cannot see, whatever the declarations say. It is one implementation of a correct
+  // ring and not the only one: a frame moved inside a `scale(1/k)` group, which render.js already
+  // does for `.capbtn-frame`, would paint two CSS px and not collapse here. That is a red on a
+  // correct page and it is the trade this control makes, said rather than left to be discovered.
   try {
     await page.evaluate(ringStyle('vectorEffect', 'none'));
+    await page.evaluate(NEXT_FRAME);
     matrix = await shoot(page, clip, 'the focus ring with the canvas matrix put back');
   } finally {
     await page.evaluate(ringStyle('vectorEffect', ''));
   }
 
+  // FOUR EDGES AND NOT TWO. Issue 202, and it is an adversarial read's finding: a horizontal
+  // scanline crosses the two vertical strokes and nothing else, so a ring painted down its sides
+  // and not across its top and bottom satisfied every word of the assertion. The two horizontal
+  // strokes are read down a column at the frame's own centre, by the same arithmetic.
   const y = Math.min(lit.h - 1, Math.max(0, Math.round(lit.h / 2)));
-  const half = Math.floor(lit.w / 2);
-  const left = ringEdge(lit, unlit, y, 0, half);
-  const right = ringEdge(lit, unlit, y, half, lit.w);
+  const x = Math.min(lit.w - 1, Math.max(0, Math.round(lit.w / 2)));
+  const halfW = Math.floor(lit.w / 2), halfH = Math.floor(lit.h / 2);
+  const row = (off, len) => (img, i) => pxAt(img, off + i, y);
+  const col = (off, len) => (img, i) => pxAt(img, x, off + i);
+  const lines = {
+    left:   { n: halfW, walk: row(0, halfW) },
+    right:  { n: lit.w - halfW, walk: row(halfW, lit.w - halfW) },
+    top:    { n: halfH, walk: col(0, halfH) },
+    bottom: { n: lit.h - halfH, walk: col(halfH, lit.h - halfH) }
+  };
+  const read = {};
+  for (const [name, l] of Object.entries(lines)) read[name] = ringEdge(lit, unlit, ink, l.n, l.walk);
+
   // The population. A pixel check that sampled no pixels reports no disagreements, so the count is
   // taken and asserted rather than assumed from the fact that a rectangle was photographed.
   let painted = 0;
@@ -15988,20 +16063,25 @@ async function measureTheRing(page) {
       if (Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]), Math.abs(a[2] - b[2])) > 8) painted++;
     }
   }
+  const names = Object.keys(lines);
   const out = {
+    // `tries` is the index the loop left off on, so a pair that came back on the first attempt is
+    // one and an exhausted budget is the budget, not one past it.
     why: '', clip: `${lit.w}x${lit.h}`, pixels: lit.w * lit.h * 3, painted,
-    left: left.width, right: right.width, y,
-    declared: g.stroke, hue: null, ratio: null, control: null, samples: left.run + right.run
+    tries: Math.min(tries + 1, RING_FRAME_ATTEMPTS),
+    edges: names.map(k => read[k].width),
+    worst: Math.min(...names.map(k => read[k].width)),
+    samples: names.reduce((a, k) => a + read[k].run, 0),
+    declared: g.stroke, hue: null, ratio: null, control: null
   };
-  if (left.ink && right.ink) {
-    out.control = Math.max(ringEdgeAgainst(matrix, unlit, y, 0, half, left.ink),
-                           ringEdgeAgainst(matrix, unlit, y, half, lit.w, right.ink));
+  const found = names.filter(k => read[k].ink);
+  if (found.length === names.length) {
+    out.control = Math.max(...names.map(k => ringEdgeAgainst(matrix, unlit, ink, lines[k].n, lines[k].walk)));
     // The hue and the contrast are read off the edge whose peak pixel changed LEAST, which is the
-    // conservative one of the two: a ring half covered on one edge is judged on that edge.
-    const worse = left.peak <= right.peak ? left : right;
+    // conservative one of the four: a ring half covered on one edge is judged on that edge.
+    const worse = names.map(k => read[k]).reduce((a, b) => (a.peak <= b.peak ? a : b));
     out.ink = worse.ink;
     out.ground = worse.ground;
-    const want = parsePaint(g.stroke);
     out.hue = Math.max(Math.abs(worse.ink[0] - want.r), Math.abs(worse.ink[1] - want.g),
                        Math.abs(worse.ink[2] - want.b));
     out.ratio = ratio4({ r: worse.ink[0], g: worse.ink[1], b: worse.ink[2] },
@@ -16011,11 +16091,23 @@ async function measureTheRing(page) {
 }
 
 // How much of a column's ink survives before it counts as faded, and how much has to survive
-// before it counts as untouched. Measured on this tree: a column under the outer six pixels of the
-// stylesheet's own gradient keeps between 0.16 and 0.40 of its ink, a column clear of both edges
-// keeps between 0.92 and 1.03, and the mask's own layer promotion is what puts that band either
-// side of one rather than on it.
-const RAIL_FADED_MAX = 0.40;
+// before it counts as untouched.
+//
+// THE FADED FIGURE IS DERIVED AND NOT TUNED, and it is derived because the measured one moves with
+// the fonts. The stylesheet's ramp is linear over its own 22px, so a column d px in from the edge
+// keeps d/22 of its ink and the six outermost INKED columns average (k + 5.5) / 22, where k is how
+// far short of the edge the last chip's ink stops. k is a font metric: this tree ends its last chip
+// about 3.4 px short and averages 0.2780, the CI runner about 4.6 and averages 0.3293. Half admits a
+// k of five and a half, which is half as much dead margin again as the wider of those two, and the
+// defect this has to catch gives 1: a gradient that resolves and does not fade takes nothing down
+// at all. The claim that it is a GRADIENT rather than a step is carried by RAIL_STEP_MIN below and
+// not by this figure, so loosening it costs that claim nothing.
+//
+// The flat figure is the same reading from the other side. Measured at 390, the middle of the rail
+// keeps 0.97 and a single column clear of both edges runs between 0.92 and 1.03; the mask's own
+// layer promotion is what puts that band either side of one rather than on it, which is why every
+// reading here is a band mean and not a floor under each column.
+const RAIL_FADED_MAX = 0.50;
 const RAIL_FLAT_MIN = 0.85;
 const RAIL_STEP_MIN = 0.10;
 
@@ -16060,6 +16152,56 @@ function railStyle(value) {
     var r = document.getElementById('pgrail');
     if (!r) return 'no rail';
     r.style.maskImage = ${JSON.stringify(value)};
+    return '';
+  })()`;
+}
+
+// THE UNFADED REFERENCE, AND IT IS WIDER THAN THE RAIL BECAUSE AN ADVERSARIAL READ ON ISSUE 202
+// SHOWED WHY IT HAS TO BE. Every reading below is a quotient whose denominator is a photograph of
+// the rail with the fade taken off, and the first version took it off the rail's OWN `mask-image`
+// and nothing else. A fade painted from anywhere else is in both photographs, divides out to
+// exactly 1, and passes: demonstrated live, a 40px gradient on the rail's PARENT went green at
+// every width and on both edges, including the `and nowhere else` half of this assertion's own
+// title. The mask moving one element up in a refactor is the ordinary way in.
+//
+// So the suppression walks from the rail to the document and clears, on each ancestor and on the
+// rail itself, every property that can take a strip of an element's edge down: the mask under both
+// spellings, a filter, and an opacity. Written through the CSSOM and put back from what was there,
+// which is a value and not a guess, so an element that carried an inline mask keeps it.
+//
+// WHAT IT STILL CANNOT SEE, said rather than left for the next audit: an element PAINTED OVER the
+// edge, including a `::before` or a `::after` on the rail. Reaching those needs a rule rather than
+// a property, and a rule needs a stylesheet this page's policy would have to be asked about. What
+// this assertion claims is therefore that nothing is taking the rail's edges down by a mask, a
+// filter or an opacity, anywhere between the rail and the document, on an instrument the control
+// below shows can see a fade.
+const RAIL_FADE_PROPS = ['maskImage', 'webkitMaskImage', 'filter', 'opacity'];
+
+function railSuppress(on) {
+  return `(function () {
+    var r = document.getElementById('pgrail');
+    if (!r) return 'no rail';
+    var props = ${JSON.stringify(RAIL_FADE_PROPS)};
+    if (!window.__railWas) window.__railWas = null;
+    if (${on ? 'true' : 'false'}) {
+      var saved = [];
+      for (var el = r; el && el.nodeType === 1; el = el.parentElement) {
+        var one = { el: el, v: [] };
+        for (var i = 0; i < props.length; i++) {
+          one.v.push(el.style[props[i]]);
+          el.style[props[i]] = props[i] === 'opacity' ? '1' : 'none';
+        }
+        saved.push(one);
+      }
+      window.__railWas = saved;
+      return String(saved.length);
+    }
+    var was = window.__railWas;
+    if (!was) return 'nothing to put back';
+    for (var j = 0; j < was.length; j++) {
+      for (var k = 0; k < props.length; k++) was[j].el.style[props[k]] = was[j].v[k];
+    }
+    window.__railWas = null;
     return '';
   })()`;
 }
@@ -16119,13 +16261,25 @@ async function measureTheRail(page) {
   let bare, control;
   // Both written states are put back in a finally, for the reason measureTheRing states: a capture
   // that refuses must not leave a mask this file declared on a rail the run is finished with.
+  let suppressed = '';
   try {
-    await page.evaluate(railStyle('none'));
-    bare = await shoot(page, clip, 'the scope rail with no mask on it');
+    suppressed = await page.evaluate(railSuppress(true));
+    bare = await shoot(page, clip, 'the scope rail with nothing fading it');
+  } finally {
+    await page.evaluate(railSuppress(false));
+  }
+  try {
     await page.evaluate(railStyle(RAIL_CONTROL_MASK));
     control = await shoot(page, clip, 'the scope rail under a fade this run declared');
   } finally {
     await page.evaluate(railStyle(''));
+  }
+  // The suppression has to have reached something, or `bare` is the page again and every quotient
+  // below is 1 by construction. It returns the number of elements it wrote, the rail included, so
+  // one is the rail alone and anything less is a walk that did not happen.
+  if (!(Number(suppressed) >= 2)) {
+    return { why: `the fade suppression wrote ${JSON.stringify(suppressed)} elements, and the ` +
+                  'reference it produces is the page itself' };
   }
 
   const f = railColumns(found, bare, ground);
@@ -16171,48 +16325,53 @@ async function checkRingAndRail(page) {
   // AND NOW THE PHOTOGRAPH, which is the whole of issue 202 on this assertion. Everything above is
   // the model: it reads the declarations and the matrix and multiplies. Everything below is the
   // paint: three pictures of the same rectangle, and a width in CSS px summed out of the coverage
-  // of the pixels the stroke actually moved. The model cannot see a ring that is right in the
-  // cascade and clipped, covered or dropped on the way to the screen; the photograph cannot see
-  // the reason a ring is wrong. Both are conjuncts here, so a repair has to satisfy the two.
+  // of the pixels the stroke actually moved, on all four sides of the frame. The model cannot see
+  // a ring that is right in the cascade and clipped, covered or dropped on the way to the screen;
+  // the photograph cannot see the reason a ring is wrong. Both are conjuncts here, so a repair has
+  // to satisfy the two.
   const shot = await measureTheRing(page);
   const floor = RING_MIN_PX - RING_PIXEL_SLACK;
   // The population, asserted rather than assumed. A rectangle photographed and never sampled
-  // reports no disagreement, and so does one where the ring fell outside the window.
-  const sampled = !shot.why && shot.painted > 0 && shot.samples > 0 && shot.pixels > 0;
+  // reports no disagreement, and so does one where the ring fell outside every window.
+  const sampled = !shot.why && shot.painted > 0 && shot.samples > 0 && shot.pixels > 0 &&
+                  Array.isArray(shot.edges) && shot.edges.length === 4;
   // The control, photographed. RING_UNDO's claim is that the width collapses when the matrix goes
   // back into the stroke; this is that claim about the picture rather than about the arithmetic,
-  // and it is measured against the lit reading's own colour so a thin stroke cannot renormalise
-  // itself back to two pixels.
+  // and both readings are now against the colour the cascade declares, so neither a thin stroke
+  // nor a faint one can renormalise itself back to two pixels.
   const shotControl = !shot.why && shot.control !== null && shot.control < floor &&
-                      shot.control < Math.min(shot.left, shot.right) - 1;
+                      shot.control < shot.worst - 1;
   const painted = !shot.why && sampled &&
-                  shot.left >= floor && shot.right >= floor &&
+                  shot.edges.every(w => w >= floor) &&
                   shot.hue !== null && shot.hue <= RING_HUE_SLACK &&
                   shot.ratio !== null && shot.ratio >= RING_MIN_RATIO && shotControl;
-  assert('the keyboard\'s mark on a node is two CSS px of paint at 3 to 1, photographed and not modelled',
+  assert('the keyboard\'s mark on a node is two CSS px of paint on all four sides at 3 to 1, photographed and not modelled',
     !ring.why && ring.focused === true && ring.visible === true &&
       ring.painted >= RING_MIN_PX && ratio !== null && ratio >= RING_MIN_RATIO && controlBit &&
       painted,
     `a ring of at least ${RING_MIN_PX} CSS px at ${RING_MIN_RATIO} or better in the declarations ` +
-      `AND in the pixels, its colour within ${RING_HUE_SLACK} of the declared stroke, and a ` +
-      'control that puts the canvas matrix back and sees the painted width collapse',
+      'AND on every one of the four sides in the pixels, its colour within ' +
+      `${RING_HUE_SLACK} of the declared stroke, and a control that puts the canvas matrix back ` +
+      'and sees the painted width collapse',
     ring.why
       ? ring.why
       : `modelled ${ring.painted} CSS px (${ring.declared} declared, ${ring.effect}, canvas scale ` +
         `${ring.scale}) at ${ratio === null ? 'a contrast this suite could not read' : ratio} to 1` +
-        (controlBit ? '' : `; the modelled control read ${undo.painted} and did not collapse the ` +
-                           'width, so that reading is not measuring the matrix') +
+        (controlBit ? '' : `; the modelled control read ${undo.painted} under ${undo.effect} and ` +
+                           'did not collapse the width, so that reading is not measuring the matrix') +
         '; ' + (shot.why
           ? `and the page could not be photographed: ${shot.why}`
-          : `photographed ${shot.left} and ${shot.right} CSS px on the two edges of a ` +
-            `${shot.clip} picture, ${shot.painted} pixels moved, hue ${shot.hue} off the declared ` +
-            `${shot.declared}, ${shot.ratio} to 1 off the pixels, control ${shot.control}` +
+          : `photographed ${shot.edges.join(', ')} CSS px on the left, right, top and bottom of a ` +
+            `${shot.clip} picture in ${shot.tries} attempt(s), ${shot.painted} pixels moved, hue ` +
+            `${shot.hue} off the declared ${shot.declared}, ${shot.ratio} to 1 off the pixels, ` +
+            `control ${shot.control}` +
             (sampled ? '' : ' — and it sampled nothing, so it agreed with everything')),
     shot.why
       ? `modelled only: ${ring.painted} CSS px at ${ratio} to 1`
-      : `${shot.left} and ${shot.right} CSS px photographed against ${ring.painted} modelled, ` +
-        `${shot.ratio} to 1 off ${shot.painted} moved pixels of ${shot.clip}, control ` +
-        `${shot.control}, canvas scale ${ring.scale}`);
+      : `${shot.edges.join('/')} CSS px photographed on four sides against ${ring.painted} ` +
+        `modelled, ${shot.ratio} to 1 off ${shot.painted} moved pixels of ${shot.clip}, control ` +
+        `${shot.control}, canvas scale ${ring.scale}` +
+        (shot.tries > 1 ? `, after ${shot.tries} attempts at a frame` : ''));
 
   // TWO. THE RAIL SAYS WHICH WAY IT CONTINUES, AND SAYS NOTHING WHERE IT DOES NOT. At 390 the eight
   // chips are 426 px of content in a 256 px box and three programmes are off the right of it at
@@ -16260,14 +16419,15 @@ async function checkRingAndRail(page) {
   const fadeAgrees = fits || (typeof rail.maskText === 'string' &&
                               rail.maskText.includes(`${RAIL_FADE_PX}px`));
   const railPainted = seen && controlSees && (fits
-    // A rail that fits is a rail nothing is fading, at either end. SAID PLAINLY, BECAUSE IT IS THE
-    // weakest reading in this phase: where the page carries no mask, the photograph as found and
-    // the photograph with the mask forced off are two pictures of one DOM state, so this branch's
-    // three numbers are 1 by construction and the force of the reading is entirely in the control
-    // above it, which puts a fade of this run's own on the same rail at the same width and watches
-    // the same arithmetic collapse to 0.14. What it therefore says is that nothing at these widths
-    // is taking the rail's edges down BY A MASK, on an instrument shown to see one. An element
-    // painted over the edge is a different claim and this does not make it.
+    // A rail that fits is a rail nothing is fading, at either end, and the same claim is the
+    // `nowhere else` half of the overflow branch below. SCOPED PLAINLY, because an adversarial read
+    // on issue 202 found the first version of it claiming more than it could see: the reference is
+    // the rail with every mask, filter and opacity cleared from the rail UP TO THE DOCUMENT, so
+    // what these numbers rule out is a fade painted by any of those three, anywhere on that chain.
+    // An element painted OVER the edge, a `::before` or a `::after` among them, is a different
+    // claim and this does not make it. The control beside it is what says the arithmetic could have
+    // shown a fade at all: it puts one of this run's own on the same rail at the same width and
+    // watches the same numbers collapse to 0.14.
     ? railShot.outL.mean >= RAIL_FLAT_MIN && railShot.outR.mean !== null &&
       railShot.outR.mean >= RAIL_FLAT_MIN && railShot.middle.mean >= RAIL_FLAT_MIN
     // A rail with more to the right of it fades there and nowhere else, and it fades as a gradient

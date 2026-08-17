@@ -62,14 +62,15 @@ of what changed and when, and it is meant to be scannable.
   way to sample a rectangle.
 - **Both assertions keep the reading they had and gain the photograph, so the count is unchanged at
   354.** The claim is the same claim and it now has to hold in the cascade and in the paint at once.
-  The ring is measured as **coverage summed across a scanline**, which lands on the stroke's own
-  width rather than on the count of pixels it tinted: **2.0048 and 2.0116 CSS px on the two edges at
-  1536 against a declared 2**, its contrast read off the pixels at **4.5475 to 1 against the 4.5558
-  the model composites in JavaScript**, and its colour held to within 12 counts of the declared
-  stroke, which is the conjunct that catches a ring painted UNDER something. The rail is measured as
-  **the fraction of each column's own ink that survived**, against a photograph of the same rail
-  with no mask on it: at 390 the outer band of the fade keeps 0.28 of its ink, the band inside it
-  0.64, and the middle of the rail 0.97.
+  The ring is measured as **coverage summed along a line of pixels, on all four sides of the frame**,
+  which lands on the stroke's own width rather than on the count of pixels it tinted:
+  **2.0048/2.0116/2.0081/1.9908 CSS px at 1536 against a declared 2**, its contrast read off the
+  pixels at **4.5185 to 1 against the 4.5558 the model composites in JavaScript**, and its colour
+  held to within 12 counts of the declared stroke, which is the conjunct that catches a ring painted
+  UNDER something. The rail is measured as **the fraction of each column's own ink that survived**,
+  against a photograph of the same rail with every mask, filter and opacity cleared from the rail up
+  to the document: at 390 the outer band of the fade keeps 0.2780 of its ink, the band inside it
+  0.6519, and the middle of the rail 0.97.
 - **The decoder is proved against bytes whose pixels are written down beside it, before it is
   believed about a page.** A decoder that silently returns zeros is the perfect dead instrument,
   because a black pixel is a plausible answer. Two fixtures of six by five, **thirty pixels and 210
@@ -98,6 +99,33 @@ of what changed and when, and it is meant to be scannable.
   footing as `SMOKE_SKIP_PHASE` and `SMOKE_BREAK_RESOURCE`, and carries its own terminator: a label
   that matched no capture broke nothing, and a clean verdict from that run would say the refusal
   works on the strength of a run in which it was never reached.
+- **Six defects came from an adversarial read of this card and not from the author**, and two of
+  them were the kind that ships green.
+  - **The ring photograph was nondeterministic and one run in three called an unmodified page
+    regressed.** All three pictures came back identical, 0 pixels moved, and the assertion reported
+    the ring as absent: the CSSOM write had landed and the composited surface had not.
+    `Page.captureScreenshot` is now given a frame to work with, two `requestAnimationFrame`s awaited
+    after every write, and the deciding pair is **retaken up to three times** where the two come back
+    the same, with the attempt count printed on the pass line.
+  - **The rail's unfaded reference only took the mask off the rail itself**, so a fade painted from
+    anywhere else was in both photographs and divided out to exactly 1. Demonstrated live: a 40px
+    gradient on the rail's **parent** went green at every width and on both edges. The reference now
+    clears the mask, the filter and the opacity from the rail **up to the document**, and the same
+    plant is refused at 0.0657 on the left. What it still cannot see, said in the file rather than
+    left for the next audit, is an element painted OVER the edge.
+  - **`ringEdge` measured Σcoverage ÷ peak coverage**, so it could only overstate: driven to a stroke
+    of 1.6 CSS px it answered 2.0877. Every coverage is taken against the colour the cascade declares
+    now, so the number is the width that is there.
+  - **A horizontal scanline crosses the two vertical strokes and nothing else**, so a ring painted
+    down its sides and not across its top and bottom satisfied every word of the assertion. Four
+    sides are read.
+  - **#170's own modelled control was dead from the day it was written.** `RING_UNDO` computed
+    `declared * matrix` without reading `vectorEffect`, so it did not depend on the write it was
+    controlling: `declared * scale < declared` at every canvas scale under 1, whether or not the
+    write landed. It reads the property now.
+  - **`RAIL_FADED_MAX` is derived rather than measured.** The old figure absorbed a font metric, how
+    far short of the edge the last chip's ink stops, which moves between machines: 0.2780 here and
+    0.3293 on the runner against a threshold of 0.40.
 - **No page bytes change.** Zero-line diff under `site/`.
 
 - **NOTHING PROVED A RESERVED WIDTH WAS USED, ONLY THAT IT WAS ASKED FOR, #220.** #217 named this
