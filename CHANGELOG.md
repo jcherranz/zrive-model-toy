@@ -48,6 +48,46 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- **THE BUILD GATE'S SECTION LIST WAS THE ONE ENUMERATION IN THE APPARATUS WITH NO PIN, AND THE
+  LABEL THAT COPIED IT WENT STALE THREE TIMES IN ONE NIGHT, #229.** `scripts/verify.sh` step 3
+  prints one sentence enumerating what `scripts/check_build.sh` checks, and it is the line a reader
+  meets first, because it is the line the run prints. #216 corrected it to the six sections the gate
+  had that hour. #220 added section 4 and #221 added section 5, **neither card touched the label**,
+  because `scripts/verify.sh` was outside both file sets, and the sentence was wrong again within
+  hours. Nobody did anything wrong: there were two statements of one list with nothing joining them,
+  which is exactly the **COPY** failure the section 8 note in `check_build.sh` already names, against
+  the **TERMINATOR** discipline every other count here uses.
+- **The label is corrected and now names all eight sections in the gate's own order**, gaining `the
+  width it got back is the width it reserved` (#220) and `the numbers in that table are ones a
+  browser could have produced` (#221).
+- **`label_covers_sections()` holds the label against the gate's own `# N.` section banners**, read
+  on every run of `scripts/check_build.sh --self-test`. **Not against a count:** "the label mentions
+  eight things" would be a second hand-maintained number and would rot in the way the label rotted.
+  **Not against whole titles either:** an exact substring match on a heading goes red on any
+  reasonable rewording, and a gate that punishes editing prose is a gate somebody deletes. Each
+  section declares **one distinctive token** in a `[label: token]` marker on its banner line, which
+  is the line an author writes when adding a section, so there is nothing separate to remember.
+- **Three relations, each about the pair and not about either side alone.** Every declared token
+  occurs somewhere in the label, so a refusal **names the unnamed section** instead of only
+  reporting arithmetic. The label carries **one comma-separated clause per section and section N's
+  token is in clause N**: the count catches a section **deleted** with its clause left behind, which
+  is the over-claiming direction and the worse one, and the position catches a section **added** and
+  makes order part of the claim. And a token occurs in **no clause but its own**, so a token
+  matching everywhere cannot satisfy the test vacuously.
+- **A section that declares no token FAILS rather than being skipped**, because absorbing the
+  omission this card is about into a default would be the defect reappearing inside the instrument
+  written to close it. **Zero sections, or no label found, ABORTS at exit 2** and says it enumerated
+  nothing: a reader with no population reports no mismatch and would print clean over any label.
+  The banner pattern requires the dashed rule on the next line, so an ordinary numbered comment is
+  not read as a section.
+- **It is a self-test instrument and not a ninth numbered section, deliberately.** Making it one
+  would oblige the label to name the check that reads the label.
+- **Sixteen probes, `EXPECTED_PROBES` 238 to 254 in the same commit, and the probe is proved red in
+  both directions.** A ninth banner appended to a scratch copy of the gate with the label untouched
+  exits 1 naming `ninthly`; clause 4 reworded away from `reserved` in a scratch copy of
+  `scripts/verify.sh` exits 1 naming `reserved`. Also red on a deleted section, an out-of-order
+  label, a non-distinctive token and an undeclared token; abort at 2 on a gate with no sections and
+  on a verify file with no label.
 - **A SELECTED LABEL LEAVING ITS LANE WAS MEASURABLE ON THE PAGE AND NOTHING MEASURED IT, #224.**
   `reserve()` at `build/build_layout.py:427-432` says in a comment what the reserved box is for: it
   has to hold the state a **click** puts the page into, because `.node.sel .lbl` turns a label bold.
