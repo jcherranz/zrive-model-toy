@@ -73,6 +73,52 @@ of what changed and when, and it is meant to be scannable.
   still passes twelve of twelve intended probes, and deleting the marker on purpose turns the check
   red naming `build-gate`. That pair is the evidence the relation this card was told not to weaken
   still binds.
+- **THREE MORE STEP NAMES STATED A CLAIM SOMEBODY ELSE OWNS, AND THE WHOLE CLASS WAS MEASURED
+  RATHER THAN GUESSED AT, #240 AND #241.** `.github/workflows/repo-gate.yml` named its drift step
+  `Every step scripts/verify.sh runs is run by a workflow`, a word-for-word PREFIX of the heading
+  `scripts/check_ci_drift.sh` prints; `.github/workflows/build.yml` named its registry step `The
+  populate registry is complete and every drawn object binds to it`, which is `scripts/verify.sh`'s
+  step 10 label verbatim; and `repo-gate.yml`'s syntax step was `Every shipped script parses`,
+  which is that file's step 1 label verbatim and was found by measurement rather than filed. All
+  three are now named for the job they run, which is #237's repair applied three more times.
+- **The truncation on the drift step was not merely unheld, it was false.** The heading ends `, or
+  is named as one CI cannot`, and the check does exactly that: three exempt steps report `[SKIP]`
+  and it still exits 0. A name one clause short claimed the check refuses what it excuses. That is
+  the one of the three that had drifted, and it drifted in the direction #237 predicted.
+- **#241's question is answered and the answer needed no new rule.** The card asked whether the
+  rule #237 wrote into `build.yml`, `DO NOT NAME THIS STEP, OR ANY OTHER, AFTER A LINE A GATE
+  PRINTS`, covers a `scripts/verify.sh` step LABEL or only a gate's printed heading. It covers it:
+  `step`, `step_may_decline`, `step_three_state` and `skip` each print `== $name` before running
+  and the summary prints the same string again, so every step label in that file is a line a gate
+  prints. **Narrowing the rule instead was weighed and refused**, because the `# verify-step:`
+  marker joins two keys and therefore makes the coverage relation real while saying nothing about
+  either sentence, so a rule licensing the copy would license a sentence nothing holds.
+- **THE MECHANICAL GUARD #240 DESIGNED IS NOT SHIPPED, AND THE MEASUREMENT IS THE REASON.**
+  **Measured at `bac826e`**, over three populations, being every literal `echo "== "` run heading
+  in `scripts/`, every `scripts/verify.sh` step label taken through the `ZMT_LIST_ONLY` handover
+  the drift check already uses, and every `# N.` section banner in `scripts/check_build.sh`: 37
+  population lines against 29 workflow step names, **8 copies in 4 workflows**, where a copy is
+  equality or a word-boundary prefix after normalisation. **Five of the eight are not defects.**
+  They are `Prove the repository gate fires` twice, `Prove the CI drift check fires`, `Prove the
+  forbidden-content gate fires` and `Repository gate, over every tracked file`, each of which
+  names the job its step runs and equals a verify.sh label because verify.sh names the same job
+  the same way; reword either side and both sentences stay true. **A guard keyed on string
+  equality fires on all eight and cannot tell a restated claim from two honest job names
+  converging**, so shipping it would buy three removals at the price of five names deliberately
+  worded away from the obvious one, in two workflows neither card names. The rule stays prose,
+  stated once in `build.yml`, and `repo-gate.yml` carries the reason its three survivors are not
+  the same defect, so the next reader does not read the rule as decorative.
+  KAIZEN.md `kaizen-a-name-that-states-a-claim-is-a-copy-and-a-name-that-states-a-job-is-not`.
+- **Nothing else in either workflow moved, and the marker relation still binds in both
+  directions.** Loading both files with a YAML parser before and after gives the same eight and
+  seven steps, every key identical except three `name:` values; the triggers, permissions,
+  concurrency groups, markers and `run:` blocks are unchanged. `scripts/check_ci_drift.sh` exits 0
+  reporting `[OK] syntax repo-gate.yml`, `[OK] ci-drift repo-gate.yml` and `[OK] routes build.yml`,
+  and its self-test still passes **twelve of twelve** intended probes with `EXPECTED_PROBES` at 12.
+  In a COPY of the tree, deleting each of those three markers turns the check red naming the step,
+  and misspelling each turns it red twice, once for the uncovered step and once for the stale
+  marker; the copy compares byte-identical to the branch afterwards, because a control mutation is
+  never run in the file itself. `scripts/verify.sh` is untouched and `EXPECTED_STEPS` stays 15.
 
 ### Added
 

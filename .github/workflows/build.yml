@@ -169,6 +169,28 @@ jobs:
       # exactly as unheld, so the copy is gone instead of re-synced: a name that describes what the
       # step does cannot drift from a heading it does not quote. DO NOT NAME THIS STEP, OR ANY
       # OTHER, AFTER A LINE A GATE PRINTS.
+      #
+      # AND THAT RULE ALREADY REACHED FURTHER THAN IT LOOKED, WHICH IS WHY IT NEEDED NO WIDENING.
+      # Issue 241. The step at the bottom of this file was named after scripts/verify.sh's step 10
+      # label, and the card asked whether the rule above covers a verify.sh LABEL or only a gate's
+      # printed heading. It covers it: `step`, `step_may_decline`, `step_three_state` and `skip` in
+      # scripts/verify.sh each print `== $name` before running, and the summary prints the same
+      # string again, so every one of that file's step labels is a line a gate prints. The rule is
+      # stated once, here, and it is the whole of the rule; nothing mechanical holds it, and the
+      # measurement of what a mechanical version would have to decide is on #244.
+      #
+      # AND THE RULE IS ABOUT STATING A CLAIM, NOT ABOUT MATCHING A STRING, which is the line a
+      # guard could not have drawn. Measured over the whole workflow directory at `bac826e`: eight
+      # of twenty nine step names were a normalised copy of a line in one of the three populations,
+      # which are this file's `== ` headings, scripts/verify.sh's step labels and
+      # scripts/check_build.sh's `# N.` section banners. Three of the eight stated a CLAIM about an
+      # outcome and are gone under #240 and #241. The other five are of the form `Prove the
+      # repository gate fires`, which names the job the step runs; they equal a verify.sh label
+      # because verify.sh names the same job the same way, and rewording either side leaves both
+      # sentences true. DO NOT NAME A STEP AFTER A CLAIM. Naming it after its own job is the
+      # repair, and two honest job names converging is not the defect. A guard keyed on string
+      # equality cannot tell the two apart, so there is no guard; #244 carries the numbers and
+      # what a full one would need.
       # verify-step: build-gate
       - name: Run the build gate, and report the state it exits in
         run: |
@@ -220,6 +242,20 @@ jobs:
       # It runs AFTER the rebuild above and not before, deliberately: the bytes it reads are then
       # the bytes the builder just produced and compared, so a registry that is complete in the
       # committed file and incomplete in the rebuilt one cannot pass here.
+      #
+      # AND THE NAME BELOW DESCRIBES THE JOB RATHER THAN RESTATING THE CLAIM. Issue 241. It used to
+      # be `The populate registry is complete and every drawn object binds to it`, which is
+      # scripts/verify.sh's step 10 label word for word. The `verify-step: routes` marker on the
+      # next line binds this step to that step BY KEY and reads nothing about the name beside it,
+      # so the two sentences were joined by nothing, exactly as in #237. This copy had not drifted;
+      # #237's had, within hours of #235 rewording the heading it quoted, and the argument there was
+      # never that the drift had happened but that nothing would catch it when it did.
+      #
+      # WHAT WAS WEIGHED AND REFUSED. Keeping it and narrowing the rule to say that a step may
+      # restate the verify.sh step its marker binds it to was the other repair on the card, and it
+      # fails on what the marker actually is: the marker joins two KEYS, so it makes the coverage
+      # relation real and says nothing at all about either sentence. A rule licensing the copy would
+      # license a sentence nothing holds.
       # verify-step: routes
-      - name: The populate registry is complete and every drawn object binds to it
+      - name: Read the populate registry back out of the shipped bytes
         run: python3 scripts/routes.py
