@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T08:06:40Z",
+  "generated": "2026-08-17T08:07:44Z",
   "columns": [
     {
       "key": "raw",
@@ -88,15 +88,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/228"
-        },
-        {
-          "id": 237,
-          "title": "build.yml's build-gate step name quotes the gate's first run heading and nothing holds it there",
-          "labels": [
-            "limitation",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/237"
         }
       ]
     },
@@ -104,6 +95,15 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 237,
+          "title": "build.yml's build-gate step name quotes the gate's first run heading and nothing holds it there",
+          "labels": [
+            "limitation",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/237"
+        },
         {
           "id": 235,
           "title": "The build gate's run headings are a fourth statement of its section list, and they already disagree with it",
@@ -167,18 +167,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/220"
-        },
-        {
-          "id": 217,
-          "title": "Nothing holds build_layout.py's own text_w() call sites, and nothing re-measures the width table",
-          "labels": [
-            "limitation",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/217"
         }
       ],
-      "hidden": 166,
+      "hidden": 167,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
