@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T04:08:10Z",
+  "generated": "2026-08-17T04:24:05Z",
   "columns": [
     {
       "key": "raw",
@@ -101,15 +101,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/204"
-        },
-        {
-          "id": 221,
-          "title": "build/label_widths.json is never re-measured, and --check is too coarse to gate on",
-          "labels": [
-            "limitation",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/221"
         }
       ]
     },
@@ -117,6 +108,15 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 221,
+          "title": "build/label_widths.json is never re-measured, and --check is too coarse to gate on",
+          "labels": [
+            "limitation",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/221"
+        },
         {
           "id": 220,
           "title": "Nothing proves a reserved width was USED, only that it was asked for",
@@ -178,17 +178,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/207"
-        },
-        {
-          "id": 206,
-          "title": "No gate holds a reserved width against the style rule that actually paints the string",
-          "labels": [
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/206"
         }
       ],
-      "hidden": 159,
+      "hidden": 160,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
