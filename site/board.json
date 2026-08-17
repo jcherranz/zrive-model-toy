@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T12:05:25Z",
+  "generated": "2026-08-17T12:21:03Z",
   "columns": [
     {
       "key": "raw",
@@ -52,6 +52,15 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
         },
         {
+          "id": 215,
+          "title": "The missing-key caption is painted italic and its line is reserved upright",
+          "labels": [
+            "limitation",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/215"
+        },
+        {
           "id": 247,
           "title": "The grain control stays, by the owner's decision, and nothing written down says what it is for",
           "labels": [
@@ -65,17 +74,7 @@
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": [
-        {
-          "id": 215,
-          "title": "The missing-key caption is painted italic and its line is reserved upright",
-          "labels": [
-            "limitation",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/215"
-        }
-      ]
+      "cards": []
     },
     {
       "key": "done",
