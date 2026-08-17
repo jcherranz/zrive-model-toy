@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T09:22:53Z",
+  "generated": "2026-08-17T09:37:23Z",
   "columns": [
     {
       "key": "raw",
@@ -69,31 +69,30 @@
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": [
-        {
-          "id": 240,
-          "title": "repo-gate.yml's drift step is named after the check's own run heading, and the sentence is stated four times unheld",
-          "labels": [
-            "limitation",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/240"
-        },
-        {
-          "id": 241,
-          "title": "A workflow step is named after verify.sh's step 10 label, and the rule #237 just added forbids the same shape one file over",
-          "labels": [
-            "limitation",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/241"
-        }
-      ]
+      "cards": []
     },
     {
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 241,
+          "title": "A workflow step is named after verify.sh's step 10 label, and the rule #237 just added forbids the same shape one file over",
+          "labels": [
+            "limitation",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/241"
+        },
+        {
+          "id": 240,
+          "title": "repo-gate.yml's drift step is named after the check's own run heading, and the sentence is stated four times unheld",
+          "labels": [
+            "limitation",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/240"
+        },
         {
           "id": 237,
           "title": "build.yml's build-gate step name quotes the gate's first run heading and nothing holds it there",
@@ -148,27 +147,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/224"
-        },
-        {
-          "id": 223,
-          "title": "The smoke workflow's exit-2 message lists two causes of a refusal and tells the reader to re-run, which is wrong for the third",
-          "labels": [
-            "limitation",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/223"
-        },
-        {
-          "id": 221,
-          "title": "build/label_widths.json is never re-measured, and --check is too coarse to gate on",
-          "labels": [
-            "limitation",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/221"
         }
       ],
-      "hidden": 169,
+      "hidden": 171,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
