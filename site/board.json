@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T10:08:03Z",
+  "generated": "2026-08-17T10:22:01Z",
   "columns": [
     {
       "key": "raw",
@@ -57,21 +57,22 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/215"
-        },
-        {
-          "id": 245,
-          "title": "Three workflow step names state a claim and are not copies, so the #244 search could never see them",
-          "labels": [
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/245"
         }
       ]
     },
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": []
+      "cards": [
+        {
+          "id": 245,
+          "title": "Three workflow step names state a claim and are not copies, so the #244 search could never see them",
+          "labels": [
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/245"
+        }
+      ]
     },
     {
       "key": "done",
