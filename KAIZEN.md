@@ -776,3 +776,23 @@ build on a cited slug that resolves to nothing.
   the cheap tell against that was available to both: the changelog records the same header height,
   107, beside two different phone chrome figures, 23.7 per cent and 17.3 per cent, and one quantity
   cannot take two values while its stated component does not move.
+- `kaizen-a-justification-written-from-the-motivating-case-is-false-on-the-rest` &middot; **A reason
+  written beside a thing at the moment it was built is a reason about the case that made somebody
+  build it, and measured over the whole population it is usually true of a minority, which is how a
+  well-argued feature comes to look unjustified.** Issue 89 built the `grain` control because two of
+  the seven drawings are 2578 and 2470 units tall, and the sentence beside it says so. Measured over
+  all seven at `2e7563a`, height is what it does on two of them: the fit moves 0.3088 to 1.1317 on
+  Z-BL and 0.3223 to 1.1317 on Z-SC at 1440 by 900 and does not move at all on the other five, at 390
+  by 844 it is bound by a width that is the same 1230 at both altitudes so it barely moves on any of
+  them, and on one union it goes DOWN, 0.6774 to 0.6399. **So a reader meeting the control on five
+  sevenths of the corpus meets something the written reason does not describe**, which is why it kept
+  returning to the list of things to re-examine and why three redesigns passed over it without
+  anybody being able to argue it either way: there was nothing to argue with. What it actually does
+  on all seven is exchange a class of object for another, 166 tiles in the two syllabus lanes at one
+  altitude against 76 at the other and not one Module tile anywhere at the first. **The general form:
+  a justification is a claim about a population, so state the population it was measured over, and
+  when a thing survives a review by not being questioned, the cheap first move is to re-measure the
+  reason rather than to re-argue the thing.** The corollary is that the reason then carries counts,
+  and a count in a comment cannot go red: it belongs in an assertion, which is
+  `kaizen-a-comment-that-outlives-the-code-it-describes-is-worse-than-no-comment` met before the
+  comment has had time to rot rather than after.
