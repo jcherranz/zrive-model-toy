@@ -159,8 +159,18 @@ jobs:
       # recording rather than a corpus. Exit 3 stays handled because the state it names is still
       # reachable: delete that file and the gates go back to looking at nothing. That is the one
       # thing this branch is now for, and it is why the branch is not deleted.
+      #
+      # AND THE NAME BELOW DESCRIBES THE JOB RATHER THAN QUOTING THE GATE. Issue 237. It used to be
+      # a verbatim copy of scripts/check_build.sh's first run heading, and nothing joined the two.
+      # The `verify-step:` marker on the next line is the only pinned relation here and it binds
+      # this step to a scripts/verify.sh step, not to a sentence. #235 reworded that heading and
+      # the copy stayed where it was, wrong by one word within hours, with nobody at fault. Editing
+      # it back to equality would restore the appearance of a maintained relation and leave it
+      # exactly as unheld, so the copy is gone instead of re-synced: a name that describes what the
+      # step does cannot drift from a heading it does not quote. DO NOT NAME THIS STEP, OR ANY
+      # OTHER, AFTER A LINE A GATE PRINTS.
       # verify-step: build-gate
-      - name: The drawing git holds is what the builder produces
+      - name: Run the build gate, and report the state it exits in
         run: |
           set +e
           bash scripts/check_build.sh | tee "$RUNNER_TEMP/build-gate.log"
