@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T14:26:53Z",
+  "generated": "2026-08-17T14:27:54Z",
   "columns": [
     {
       "key": "raw",
@@ -32,16 +32,6 @@
       "title": "Backlog",
       "cards": [
         {
-          "id": 132,
-          "title": "Let's go and try once again with the panel of control header, I need…",
-          "labels": [
-            "bug",
-            "feedback",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
-        },
-        {
           "id": 144,
           "title": "I LOVED this kind of implementations is the kind of things I need YOU…",
           "labels": [
@@ -66,6 +56,16 @@
       "key": "in_progress",
       "title": "In progress",
       "cards": [
+        {
+          "id": 132,
+          "title": "Let's go and try once again with the panel of control header, I need…",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
+        },
         {
           "id": 248,
           "title": "The phone chrome ceiling this repository holds itself to is 0.1730 and the only ceiling enforced is 0.2370",
