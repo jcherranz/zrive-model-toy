@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T05:05:14Z",
+  "generated": "2026-08-17T06:40:45Z",
   "columns": [
     {
       "key": "raw",
@@ -74,16 +74,6 @@
       "title": "In progress",
       "cards": [
         {
-          "id": 224,
-          "title": "A selected label leaving its lane is measurable on the page and nothing measures it",
-          "labels": [
-            "layout",
-            "limitation",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/224"
-        },
-        {
           "id": 229,
           "title": "verify.sh step 3's label enumerates the build gate's sections by hand, and nothing holds it against them",
           "labels": [
@@ -106,6 +96,16 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/231"
+        },
+        {
+          "id": 224,
+          "title": "A selected label leaving its lane is measurable on the page and nothing measures it",
+          "labels": [
+            "layout",
+            "limitation",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/224"
         },
         {
           "id": 223,
@@ -160,18 +160,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/213"
-        },
-        {
-          "id": 211,
-          "title": "The forbidden-content gate guards one of two network-reaching git calls, and the unguarded one is the list it checks",
-          "labels": [
-            "limitation",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/211"
         }
       ],
-      "hidden": 163,
+      "hidden": 164,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
