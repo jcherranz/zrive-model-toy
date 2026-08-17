@@ -131,6 +131,21 @@ repoints the moment a lesson is added or removed: two changelog entries citing "
 entry" already meant two different lessons, which is issue 54. `scripts/check_repo.sh` fails the
 build on a cited slug that resolves to nothing.
 
+- `kaizen-a-green-suite-over-a-large-diff-is-a-reading-and-not-a-reassurance` &middot; **A suite
+  whose intended total is written by hand turns "this change asserted nothing" into something a
+  reader can take off the diff, and the reading runs the opposite way to the one the constant was
+  built for.** `EXPECTED_ASSERTIONS` exists so that a phase which stopped running cannot come out
+  clean. Read the other way it says something sharper: an assertion cannot be added without moving
+  that number, so **a branch that adds hundreds of lines of page behaviour and leaves the constant
+  where it was is green BY CONSTRUCTION**, and its green is evidence that nothing in the suite
+  touches the new behaviour rather than evidence about the behaviour. Issue 132's first push was
+  exactly that shape, 475 lines across six site files with the suite at 364 of 364, and a reader of
+  the diff named it before any of it was driven. **Two things follow.** The first is that the pair
+  to look at is the diff's size against the constant's movement, and neither number alone says
+  anything: a small change may honestly add no assertion, and a moved constant may have been moved
+  for a phase somewhere else. The second is the reason a growth pin lands in the same change as the
+  surface it guards rather than in the card after it: a pin added later pins whatever had already
+  accumulated by then, and until it exists the same green means the same nothing.
 - `kaizen-a-control-mutation-runs-in-a-copy` &middot; **A control that proves a check can fail must
   be applied to a copy of the tree and never to the working tree, because the revert is the step
   that does not run when the run is interrupted.** #228's controls mutated `site/render.js` in place

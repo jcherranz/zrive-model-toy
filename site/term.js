@@ -3330,6 +3330,13 @@
         route();
       },
       linkFor: linkFor,
+      // Issue 132. The panel shows a session template's own beats, and the beats are read HERE
+      // rather than a second time out of the instance document: this file is already the one
+      // reader of the agenda block, `agendaFor` is already the accessor the sheet uses, and it
+      // keys off nothing but `t.id`, so the node the panel holds is a valid argument as it stands.
+      // A second lookup in app.js would be a second place one dictionary is read from, which is
+      // the shape this repository calls drift.
+      agendaFor: agendaFor,
       capLink: capLink,
       isOpen: isOpen,
       // Issue 125. The address of one worklist, built by the same function that builds every other

@@ -2749,6 +2749,120 @@ body.hide-unrecorded .sock-unrec { display: none; }
   color: var(--fg-muted);
 }
 
+/* ---- the panel's regions, issue 132 ------------------------------------------
+   THE PANEL BECAME A WAY IN AND STOPPED BEING A READOUT, AND THIS BLOCK IS THE WHOLE OF WHAT THAT
+   COST THE STYLESHEET. Before this card the panel had two things a reader could press, the close
+   button and, since #157, the reach rows on the twenty nine objects that carry one; a relationship
+   was a sentence naming an object that could not be reached from it. It is one row per edge now
+   and every row is a press.
+
+   AFTER `.linkbtn` AND AFTER `#panel dd`, DELIBERATELY. Both of those are base rules this block
+   builds on, and a later rule at equal specificity wins: the repairs #131 measured were lost once
+   already by a control that moved into a container whose rules were written above it, and once
+   again by three breakpoints written above the shorthand they were raising. This block is at the
+   bottom of the panel's own section, below every rule it has to beat, and it reaches for no
+   specificity hack to get there.
+
+   THE ROW IS A BUTTON AND NOT A LINK, AND THAT IS A STATEMENT ABOUT WHAT IT DOES. Selection is one
+   object and it does not live in the address; the two things in this panel that ARE addresses, the
+   reach rows and the way out at the bottom, are anchors and stay anchors. So a row that moves the
+   selection is a `button` and takes the 26px floor #77 put on every control from `.linkbtn`
+   rather than from a number typed again here. */
+.preg { margin-top: 16px; }
+
+/* WHERE THE KEYBOARD GOES WHEN A ROW IS PRESSED, AND BOTH SELECTORS ARE NAMED. Pressing a row
+   removes the element focus was on, so selection.js puts focus on the name of the object the
+   reader walked to. Left alone that draws the engine's own ring, which is a colour nothing on this
+   page has ever painted, and it draws it on `:focus` or on `:focus-visible` depending on how the
+   press arrived: a rule written against one of the two runs for half the readers and looks correct
+   in the file, which is exactly how every selected node on this page wore a black box for months.
+   So both are declared, the ring is this page's own, and the name is not a tab stop. */
+#panel h2:focus { outline: none; }
+
+#panel h2:focus-visible {
+  outline: 2px solid var(--i-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius);
+}
+
+/* Every region wears the same caption as the type caption over the name, because they are the same
+   kind of thing: a word naming what is under it. Nothing here is painted in a type colour. */
+.preg-t {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+
+.preg-rows { margin: 0; padding: 0; list-style: none; }
+
+/* THE ROW PACKS LEFT AND WRAPS, which is the opposite of `#panel dd`'s justify-between and is
+   right for the same reason it was right on the reach rows: a key and a value are two things at
+   two ends of a line, and a verb followed by the name it points at is one sentence that must not
+   be pulled apart. A name in this panel can be longer than 320px, so the row wraps rather than
+   eliding: an elided name is a name a reader cannot check against the tile. */
+.preg-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  width: 100%;
+  min-height: 26px;
+  padding: 3px 6px 3px 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: none;
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--fg-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.preg-row:hover { background: var(--tint-hover); }
+
+.preg-row:focus-visible {
+  outline: 2px solid var(--i-primary);
+  outline-offset: -2px;
+}
+
+/* The verb, in the mono treatment every key in this panel already takes, so a reader scanning the
+   list meets the relationship before the name it points at. It is the model's own verb: the same
+   string the drawing paints on the line. */
+.preg-v {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--fg-muted);
+}
+
+.preg-n { color: var(--i-primary); }
+
+/* The row a reader is already on. It is not a press, because pressing it would be a way back to
+   where they are, so it is a plain item and says which one it is by weight rather than by a mark
+   that would be a seventh thing to explain. */
+.preg-here {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-height: 26px;
+  padding: 3px 6px 3px 0;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--fg-body);
+}
+
+/* The sentence a region says when it holds nothing. It is a sentence and never a count on its own:
+   an empty region would be an absence rendered as a fact. */
+.preg-none {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--fg-muted);
+}
+
 /* ---- a sheet over the canvas -------------------------------------------------
    A view of its own on its own route, and the reason it is an overlay rather than a main of its
    own is that the board already takes that path: swapping the diagram out takes the canvas off
@@ -3884,4 +3998,8 @@ body.outline .term-table .term-no {
   margin-bottom: 8px;
 }
 
-#panel .pnote-rel { display: block; }
+/* AND NO `.pnote-rel` BESIDE IT ANY MORE. Issue 132 replaced the sentence that class was written
+   for, `3 relationships: <name> teaches this; ...`, with one row per edge in the relationships
+   region, and a rule left behind for an element nothing builds is the shape this repository has
+   twice caught reassuring a reader: a comment that outlives its mechanism, and a device counted in
+   prose that a grep for it returns zero of. `pnote-rel` returns zero across site/. */

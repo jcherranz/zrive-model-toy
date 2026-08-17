@@ -411,12 +411,64 @@
   <div id="bbody"></div>
 </main>
 
+<!-- THE PANEL IS SIX REGIONS AND EVERY ONE OF THEM CARRIES ITS OWN NAME IN THE DOCUMENT. Issue
+     132, and the names are here rather than in selection.js because a count of them is the
+     growth control this surface did not have: the suite pins the number of `[data-region]`
+     elements in this panel and the number of things inside it that answer a press, exactly as
+     HEADER_BY_QUERY pins the header. A seventh region added by somebody who has not read that
+     card has to move a constant in front of a reader.
+
+     FOUR ARE ALWAYS THERE AND TWO ARE CONDITIONAL. `its outline` is on a session template, since
+     that is the object the model hangs an agenda on, and `the instructors this drawing holds` is
+     on a cohort session nobody is teaching. Both are marked `hidden` here and unhidden by
+     selection.js only where they have something to say; the ELEMENT is always in the document so
+     that the count above is a count of the panel's design rather than of whatever happened to be
+     selected when somebody looked. -->
 <aside id="panel" aria-live="polite">
   <button id="close" aria-label="Close">&times;</button>
-  <div class="ptype" id="ptype"></div>
-  <h2 id="pname"></h2>
-  <p class="pnote" id="pnote"></p>
-  <dl id="pprops"></dl>
+  <div class="preg" data-region="head">
+    <div class="ptype" id="ptype"></div>
+    <!-- tabindex="-1" AND NOT A TAB STOP. Issue 132. A row in this panel replaces the panel when
+         it is pressed, so the element the keyboard was on is removed from the document and focus
+         falls to the body, which is the reader losing their place at the exact moment they moved
+         it. Pressing a row puts focus here instead, on the name of the object they just walked
+         to, which is what a screen reader would read out anyway. -1 rather than 0 because it is
+         not a control and must not be reached by tabbing. -->
+    <h2 id="pname" tabindex="-1"></h2>
+    <p class="pnote" id="pnote"></p>
+  </div>
+  <!-- One row per edge, in the model's own order, each row a press onto the object at the other
+       end. The words are the words the panel already printed as one sentence. -->
+  <section class="preg" data-region="relationships" id="prel" hidden>
+    <h3 class="preg-t">relationships</h3>
+    <ul class="preg-rows" id="prelrows"></ul>
+  </section>
+  <!-- The membership of the band this object is drawn in, under the scope and the window in
+       force, in the order the drawing paints them. The heading names the lane as the build names
+       it, which is the same vocabulary the lane counts are published under. -->
+  <section class="preg" data-region="in this lane" id="plane" hidden>
+    <h3 class="preg-t" id="planet"></h3>
+    <ul class="preg-rows" id="planerows"></ul>
+  </section>
+  <!-- A session template's own agenda beats. The outline sheet is not redrawn here and this is
+       not a second copy of it: the sheet stays the sheet and this is the object's own rows. -->
+  <section class="preg" data-region="its outline" id="pout" hidden>
+    <h3 class="preg-t">its outline</h3>
+    <ul class="agenda-lines" id="poutrows"></ul>
+  </section>
+  <!-- NEVER AN ABSENCE RENDERED AS A FACT. On a cohort session nobody is teaching, this names the
+       instructors the drawing in front of the reader actually holds, each a press onto their
+       tile. On a drawing that holds none it says so and says how much of the programme it draws.
+       It never says nobody teaches the programme, because nothing in the model records who can
+       teach anything. -->
+  <section class="preg" data-region="the instructors this drawing holds" id="pholds" hidden>
+    <h3 class="preg-t">the instructors this drawing holds</h3>
+    <ul class="preg-rows" id="pholdsrows"></ul>
+    <p class="preg-none" id="pholdsnone"></p>
+  </section>
+  <div class="preg" data-region="what it holds">
+    <dl id="pprops"></dl>
+  </div>
   <!-- Written by app.js for the one node that stands for a list, and empty for every other. -->
   <div class="pmore" id="pmore"></div>
 </aside>

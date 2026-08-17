@@ -2083,6 +2083,42 @@
       // The drawing on screen, which is what the viewport frames and the router describes. Taken
       // through a call rather than handed out once, because draw() replaces it.
       drawing: function () { return G; },
+      // ---- which lane a node is drawn in, and who else is in it. Issue 132 -------------------
+      // THE PREDICATE ALREADY EXISTED FOUR TIMES IN THIS FILE AND WAS NEVER NAMED. `n.x >= b.x &&
+      // n.x <= b.x + b.w` is written out in compose()'s lane counter, in repaint()'s unfiltered
+      // copy of the same counter, and it is what the band rects are drawn from. Issue 132 wants a
+      // fifth reader, the panel, and a fifth copy of a one line rule in a file that already has
+      // four is the shape this repository calls drift, so the rule gets a name here rather than a
+      // fifth home somewhere else.
+      //
+      // IT ANSWERS ABOUT THE DRAWING ON SCREEN AND NOT ABOUT THE ARTEFACT. `G` is what the window
+      // left, so a lane under a three week window holds the tiles that window kept, which is what
+      // a reader looking at the panel beside it is looking at. `laneOf` answers the band KEY the
+      // build gave the column, which is the same vocabulary `windowState().lanes` publishes and
+      // the same one term.js keys its two lane links off, so nobody downstream invents a second
+      // name for a column.
+      //
+      // MEMBERS COME BACK IN THE READING ORDER THE DRAWING PAINTS THEM IN, which for a column is
+      // top to bottom, and NOT in the order the build declares its nodes. What a reader is being
+      // offered is the next tile down the lane they are looking at.
+      laneOf: function (n) {
+        var out = null;
+        (G && G.bands || []).forEach(function (b) {
+          if (out) return;
+          if (n.x >= b.x && n.x <= b.x + b.w) out = b.key;
+        });
+        return out;
+      },
+      lane: function (key) {
+        var band = null;
+        (G && G.bands || []).forEach(function (b) { if (b.key === key) band = b; });
+        if (!band) return null;
+        var members = (G.nodes || []).filter(function (n) {
+          return n.x >= band.x && n.x <= band.x + band.w;
+        }).slice().sort(function (a, b) { return a.y - b.y || a.x - b.x; });
+        return { key: band.key, label: (band.lines && band.lines[0]) || band.label || band.key,
+                 members: members };
+      },
       tile: TILE,
       typeLabel: function (k) { return TLABEL[k]; },
       // The two paints a swatch of a type is drawn with, and THERE IS DELIBERATELY NO

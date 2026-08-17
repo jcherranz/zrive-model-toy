@@ -244,6 +244,49 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- **THE LATERAL PANEL IS A WAY IN AND NO LONGER A READOUT, SIX REGIONS AND EVERY RELATIONSHIP A
+  PRESS, #132.** The card the owner rejected twice, approved on four precise terms: the lateral
+  panel that already exists and no header element, the six regions as proposed, the teacher
+  fallback replaced by the instructors the drawing actually holds, and a growth pin shipping with
+  it. **Measured before anything was built:** the panel printed its relationships as one dead
+  sentence, `3 relationships: <name> teaches this; instance of <title>; scheduled for <cohort>`,
+  and zero `button` and zero `a` were built anywhere in `site/render.js`, `site/app.js` or
+  `site/selection.js`, so the whole panel offered the close button plus, since #157, three anchors
+  on the twenty nine objects carrying a way to be reached.
+- **The six regions:** head, relationships, in this lane, its outline, the instructors this drawing
+  holds, what it holds. Four are always there; the outline is on a session template, where the
+  model hangs an agenda, and the instructors region is on a cohort session nobody is teaching.
+  Every one carries `data-region` in `site/index.html`, which is what the pin counts.
+- **Same words, same verbs, same order.** One row per edge in the order the document declares them,
+  and an edge that ENDS on the selected object keeps `this` on it, so `<name> teaches this` is not
+  quietly turned into `teaches <name>`, which is the same words in the same row stating the
+  relationship backwards.
+- **An absence is never rendered as a fact.** Of the 11 cohort sessions nobody is teaching, exactly
+  one belongs to a module carrying any other named instructor, and `can_teach`, `qualified`,
+  `eligible`, `fallback` and `standby` all return zero in `build/model.py`, so a computed fallback
+  list renders empty ten times out of eleven and could not be computed honestly where it would not.
+  What ships names the instructors the drawing in front of the reader holds. On a drawing holding
+  none, and Z-CFA draws no instructor at all, it says **that** and how much of the programme it
+  draws; it never says nobody teaches the programme.
+- **The pin, and it is the condition the card was approved on.** Measured at `09a449b`: the suite
+  pinned 74 exact constants and **not one was about the detail panel's contents**, the four
+  `PANEL_` constants being header geometry across viewport widths, and both growth instruments,
+  `HEADER_BY_QUERY` and `HEADER_ANSWERING_A_PRESS`, query `header button, header a`. So this was
+  the one surface in the page with no growth control. Two constants now: `PANEL_REGIONS = 6`, the
+  design, read off `[data-region]`; and `PANEL_PRESSABLE = 595`, the content, everything answering
+  a press summed over every node of two whole drawings, with `PANEL_SWEEP_NODES = 66` pinning the
+  population beside it. Neither implies the other: a seventh region that builds no row is invisible
+  to the second, a seventh row inside an existing region is invisible to the first.
+- **Seven assertions in one new phase, `the way in`. `EXPECTED_ASSERTIONS` from 364 to 371**, at
+  `8787c9d`, and none replaced. Each expectation is rebuilt in the driver out of `site/instance.js`
+  and `site/layout.js` rather than compared against the page's own opinion, including the lane's
+  band interval and the absence sentence, the second as an exact equality so a rewording into a
+  claim about who teaches a programme fails rather than being hunted for.
+- **What the panel did not gain**, because it is what he rejected twice: no header element, and
+  `HEADER_BY_QUERY` is still 14 and `HEADER_ANSWERING_A_PRESS` still 15, measured; no count,
+  fraction or total; no second time control; no directory of people; nothing written anywhere; and
+  selection is still exactly one object while the scope is still the set in the address. The
+  fourteen `drawingDigest` entries and `site/layout.js` are byte-identical.
 - **THE RESERVE COULD NOT BE HELD AGAINST THE PAINT BECAUSE THE TWO WERE READ AT TWO ZOOMS, AND IT
   CAN NOW, AS AN EQUALITY, #228.** #204 wrote that comparison, drove it, and **withdrew it rather
   than tuning it into a pass**: it went red on 555 of 863 on a clean tree, because
