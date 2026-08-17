@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T15:54:30Z",
+  "generated": "2026-08-17T16:22:11Z",
   "columns": [
     {
       "key": "raw",
@@ -40,22 +40,23 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
-        },
-        {
-          "id": 247,
-          "title": "The grain control stays, by the owner's decision, and nothing written down says what it is for",
-          "labels": [
-            "limitation",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/247"
         }
       ]
     },
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": []
+      "cards": [
+        {
+          "id": 247,
+          "title": "The grain control stays, by the owner's decision, and nothing written down says what it is for",
+          "labels": [
+            "limitation",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/247"
+        }
+      ]
     },
     {
       "key": "done",
