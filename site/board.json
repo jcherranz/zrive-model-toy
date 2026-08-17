@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T04:50:13Z",
+  "generated": "2026-08-17T04:56:51Z",
   "columns": [
     {
       "key": "raw",
@@ -91,15 +91,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/229"
-        },
-        {
-          "id": 231,
-          "title": "The smoke workflow's header still explains exit 2 with the old two-cause list, twenty lines above the corrected message",
-          "labels": [
-            "limitation",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/231"
         }
       ]
     },
@@ -107,6 +98,15 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 231,
+          "title": "The smoke workflow's header still explains exit 2 with the old two-cause list, twenty lines above the corrected message",
+          "labels": [
+            "limitation",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/231"
+        },
         {
           "id": 223,
           "title": "The smoke workflow's exit-2 message lists two causes of a refusal and tells the reader to re-run, which is wrong for the third",
@@ -169,18 +169,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/211"
-        },
-        {
-          "id": 208,
-          "title": "verify.sh step 9 aborts on any clone older than the last board sync, and the board syncs every quarter hour",
-          "labels": [
-            "bug",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/208"
         }
       ],
-      "hidden": 162,
+      "hidden": 163,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
