@@ -128,6 +128,75 @@ of what changed and when, and it is meant to be scannable.
     0.3293 on the runner against a threshold of 0.40.
 - **No page bytes change.** Zero-line diff under `site/`.
 
+- **NOTHING RE-MEASURED THE WIDTH TABLE, AND THE TOOL THAT COULD WAS TOO COARSE TO GATE ON, #221.**
+  The second half of #217. `build/measure_labels.py --check` existed and **nothing called it**:
+  over the 28 files under `scripts/`, `.github/` and `build/`, `measure_labels` occurs 40 times and
+  exactly two mention `--check`, its own usage line and a comment #220 added recording this gap.
+  So a value in `build/label_widths.json` edited by hand **passed every gate in the repository**.
+  Halve every entry under `widths["9/400"]`, or exchange `widths["10/400i"]` with
+  `widths["10/600i"]` wholesale: the build reproduces, `check_widths_cover` holds, the arguments are
+  unchanged and `check_reserve_used` agrees, because **all four read the same doctored number the
+  builder read**. That file's own `_readme` telling a reader not to hand write a width was the only
+  thing in the repository that said so.
+  **The obvious repair was priced and refused, measured rather than assumed.** `--check` on the
+  machine that wrote the table: **5118 entries, zero value changes, zero missing, three surplus
+  rows** (`9/400i 'hosts visit'` and two `9/600+caps` captions), **and it exited 1 on those three
+  alone**, because it was a byte comparison of the whole rendered document. Check 2 reports the same
+  three and has already ruled on them in as many words, "dead weight, not a wrong coordinate". So
+  wiring it would have gone red for a state this repository has decided is not a defect, **red a
+  second way on any runner whose resolvable font set differs from the author's**, and red a third
+  way on nothing but a browser upgrade, since the document carries the engine's user-agent string.
+  **A gate that goes red for reasons that are not defects teaches its reader to skip it.**
+  **`--check` now separates the states it used to add up**, and its exit code says which: `0`
+  agreement; `1` a defect, meaning a value that differs on the **same** envelope, a string the job
+  asks for that the table lacks, or a context measured under CSS `site/app.css` no longer declares;
+  `2` **the run established nothing**, no browser, no table, or a job that enumerated nothing; `3`
+  measured on a **different envelope**, so membership was judged and the values were not. A surplus
+  row is reported and is never a failure. The fingerprint is `font_stack`, `envelope` and `probes`
+  and **not** the engine string: two machines whose probe row agrees resolve the same faces to the
+  same advances, and a browser upgrade with every value unmoved is not a defect. **The two "could
+  not measure" paths were `sys.exit(str)`, which is exit 1, which is what `--check` returned for
+  drift**: a machine with no browser reported disagreement, in the code a caller reads. No caller
+  existed yet, so nothing was misled; it is the shape this repository has found seventeen times and
+  it is closed before a caller exists rather than after.
+  **It is still not wired into CI, and that is the finding rather than an omission.** The envelope
+  is the measuring machine's resolvable font set and a runner's is not the author's, so a runner
+  reaches exit 3 with a browser and exit 2 without one. **A gate that can only ever answer "I could
+  not look" is worse than no gate.**
+  **What is gateable everywhere is `check_widths_sane`, section 5 of `scripts/check_build.sh`**,
+  browser-free, over the committed table and the committed stylesheet, so it is deterministic on
+  every machine. Two halves. **The table still says what it was measured under**: `font_stack`,
+  `envelope`, `probes`, `distinct_faces` and each context's CSS are held against `site/app.css`
+  through `measure_labels.py`'s own readers, which catches a stylesheet whose font stack moved under
+  a table nobody re-measured, with no browser and none of the author's fonts. **And its numbers are
+  numbers a browser could have produced**: `R1` positive and finite, 5118 values from 3.35 to
+  382.38; `R2` the heavier weight of a face is never narrower, 2495 pairs, one equal and the rest
+  strictly wider; `R3` a run is never narrower than a contiguous sub-run of itself, 35460 pairs;
+  `R4` a band against `estimate_w()`, the hand written per character model, **read out of the
+  builder rather than copied**, because a second copy of an oracle is not an oracle. Every relation
+  prints the count of pairs it compared and **refuses when it compared none**.
+  **Three things it deliberately cannot say, written where they are made.** One plausible number
+  nudged by a few per cent. **The 400 block copied over the 600 block**, because `R2` is `>=` and
+  `estimate_w()` takes no weight argument, and that is **not** repaired by tightening `R2` into a
+  ratio band: a machine holding no real bold face synthesises one, and this tree's own table proves
+  synthesis preserves advances here, since all four strings the ghost contexts share with the
+  upright ones are identical to the hundredth in italic and upright. A floor above one would refuse
+  such a machine for being itself. And **the cross-size relation #221 lists**,
+  `widths["10/400"][s] > widths["9/400"][s]`, which on this table shares **zero** strings, because
+  the 9px row holds verbs, marks and tails and the 10px rows hold node labels: measured, recorded,
+  and left out rather than wired as a silent pass.
+  **53 probes, and both directions on every instrument.** Refused: a width of zero, the italic pair
+  exchanged wholesale, a run narrower than its own sub-run, a whole context halved, one grossly
+  wrong number, a moved font stack, a face count disagreeing with its own probe row, a shortened
+  envelope, a context measured at the wrong size, a context whose CSS is not recorded, an empty
+  table, an unreadable table, no builder to read `estimate_w()` from, and each pair relation emptied
+  so that it compares nothing. **Not refused, which is the other half of this card**: a reworded
+  note beside a context, a moved engine string, and a surplus row. `check()` is driven with two
+  documents and no browser, so all four states are probed on a runner; the two exit-2 refusals run
+  the real program with no table and with `$PATH` and the Playwright cache emptied.
+  **Nothing under `site/` moved and `build/label_widths.json` is unchanged**, so the fourteen
+  digests are where they were.
+
 - **NOTHING PROVED A RESERVED WIDTH WAS USED, ONLY THAT IT WAS ASKED FOR, #220.** #217 named this
   gap and left it open. Four things held parts of the width machinery and all four stopped at the
   same place: `check_widths_cover` holds `build/label_widths.json` against the job that writes it,
