@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T09:39:18Z",
+  "generated": "2026-08-17T09:51:26Z",
   "columns": [
     {
       "key": "raw",
@@ -57,22 +57,23 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/215"
-        },
-        {
-          "id": 244,
-          "title": "Five workflow step names copy a verify.sh label and are not defects, which is why the #240 guard did not ship",
-          "labels": [
-            "limitation",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/244"
         }
       ]
     },
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": []
+      "cards": [
+        {
+          "id": 244,
+          "title": "Five workflow step names copy a verify.sh label and are not defects, which is why the #240 guard did not ship",
+          "labels": [
+            "limitation",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/244"
+        }
+      ]
     },
     {
       "key": "done",
