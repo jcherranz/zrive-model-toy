@@ -14344,6 +14344,14 @@ const FACE_READ = `
 // halves of this phase sleep through, the mark widening and the first-line reserve, at 90 of 570 and
 // 38 of 570 by its own measurement.
 //
+// AND THE TWO FLOORS BEHAVE DIFFERENTLY ON A DIFFERENT RUNNER, WHICH IS THE CARD'S OWN WORRY AND IS
+// NOW A READING RATHER THAN A WORRY. The same commit on this machine and on the CI image: the
+// PAINTED floor is 8.6192 units here and 9.1681 there, so it moves with the font stack by about half
+// a unit and neither is near the boundary; the RESERVED floor is 0.0150 on both, to the digit,
+// because no font of the runner's enters it. So the half that can see what the table cannot describe
+// is the half whose margin a runner moves, and the half that reproduces the build's own number is
+// the one that does not. Both are green on both.
+//
 // A BOUND OF ZERO AND NO TOLERANCE ON EITHER CONTAINMENT, which is not strictness for its own sake.
 // A lane boundary is a boundary rather than a budget, the build's own gate at :487 is `< 0`, and the
 // two floors above stand 8.6192 and 0.0150 units clear of it, so there is nothing for a tolerance to

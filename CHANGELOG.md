@@ -88,6 +88,11 @@ of what changed and when, and it is meant to be scannable.
   family swap is the other way round: **four selected labels outside their lanes, worst `sc_st18` by
   1.3955**, with the reserve half silent. **Neither half subsumes the other and neither subsumes
   #220**, whose gate catches two mutations both halves sleep through.
+- **The card expected a browser check of a ten-pixel width to be noisier on a runner with another
+  font stack, and it is, by a measured amount.** Same commit, two machines: the painted floor is
+  **8.6192** units locally and **9.1681** on the CI image, while the reserved floor is **0.0150** on
+  both to the digit. The half that can see what the table cannot describe is the half a runner moves;
+  the half that reproduces the build's own number is the one it does not.
 - **An adversarial read moved five things.** The population constant is this phase's own rather than
   #206's, which was measured over a strictly larger selector; a half-lane that is not a number is a
   refusal rather than a silent pass; the lane count is a min and a max over every reading rather than
