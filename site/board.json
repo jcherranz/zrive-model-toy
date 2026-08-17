@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T00:00:28Z",
+  "generated": "2026-08-17T00:07:27Z",
   "columns": [
     {
       "key": "raw",
@@ -76,6 +76,15 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/221"
+        },
+        {
+          "id": 223,
+          "title": "The smoke workflow's exit-2 message lists two causes of a refusal and tells the reader to re-run, which is wrong for the third",
+          "labels": [
+            "limitation",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/223"
         }
       ]
     },
