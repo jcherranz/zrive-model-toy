@@ -78,12 +78,25 @@
   //                   about the model, and which address holds that set is a fact about the page,
   //                   so the wiring supplies it and nothing here learns a route or a count.
   // opts.onReveal     called with a node once the panel has taken its bite of the screen
+  // opts.laneOf       a node to the key of the lane the drawing draws it in, or null. Issue 132.
+  // opts.lane         a lane key to that lane's label and its members in reading order.
+  // opts.outlineOf    a node to its own agenda beats, or null for every type that has none.
+  // opts.holds        issue 132's absence region, and the shape of the answer is the whole of the
+  //                   card's ruling on it. Null where the region does not apply at all. Otherwise
+  //                   `{ ids: [...], none: '<sentence>' }`: the instructors THIS DRAWING holds,
+  //                   and the sentence to print when it holds none. This file asks and does not
+  //                   answer, for the same reason it does not answer moreLink: which objects a
+  //                   drawing holds and how much of a programme it draws are facts about the
+  //                   document, and a panel that computed them would be a second place they are
+  //                   written down.
   ZM.selection = function createSelection(opts) {
     var svg = opts.svg, panel = opts.panel;
     var ROSTER_ROUTE = opts.rosterRoute;
     var typeLabel = opts.typeLabel, typeSwatch = opts.typeSwatch;
     var moreLink = opts.moreLink;
     var onReveal = opts.onReveal;
+    var laneOf = opts.laneOf, laneNamed = opts.lane;
+    var outlineOf = opts.outlineOf, holds = opts.holds;
 
     var G = null, nodeById = {}, edgesOf = {}, gfxNode = {}, gfxEdge = [];
     // id -> { by: {id: true}, edges: [index], group: id or null }. Rebuilt by bind().
@@ -292,7 +305,172 @@
       host.appendChild(h);
     }
 
-    function select(id) {
+    // ---- the regions, issue 132 -------------------------------------------------
+    // THE ONE CHANGE THIS CARD IS ABOUT IS THAT A RELATIONSHIP CAN BE PRESSED. Before it, the
+    // panel printed `3 relationships: <name> teaches this; instance of <title>; scheduled for
+    // <cohort>` as one dead sentence, and not one of those three names could be reached from it:
+    // counting the close button, the whole panel offered two things a reader could click, and
+    // since #157 three more on the twenty nine objects that carry a way to be reached. The words
+    // below are the same words, the verbs are the same verbs and the order is the same order. What
+    // changed is that each of them is now a row and each row is a press.
+    //
+    // NOTHING HERE IS A SECOND SCOPE CONTROL. A press moves the SELECTION, which is exactly one
+    // object and does not live in the address; the scope is the set in the address and no row here
+    // touches it. Blurring those two is how a panel quietly becomes a second way to choose what is
+    // drawn, and it is the thing this card was told not to build.
+    //
+    // AND NOTHING HERE IS WRITTEN. A press selects. There is no assign, no confirm and no book,
+    // and the two rows that hand the reader an act are still #157's anchors, handed to their own
+    // client by the browser.
+    function clearHost(el) { el.textContent = ''; return el; }
+
+    // A row that is a press. `parts` is the row's words in the order they are read, each one a
+    // class and a string; `id` is the object the press moves the selection to.
+    //
+    // THE PARTS ARE ORDERED BY THE CALLER AND NEVER BY THIS FUNCTION, which is what keeps a
+    // relationship row saying what the old sentence said. `<name> teaches this` and `instance of
+    // <title>` are two different orderings of a verb and a name, and they are two different
+    // orderings because the arrow points two different ways. A row that put the verb first in both
+    // cases would read `teaches <name>` off an edge that ends here, which is the relationship
+    // stated backwards.
+    function pressRow(host, parts, id) {
+      var li = document.createElement('li');
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'preg-row';
+      parts.forEach(function (p) {
+        var s = document.createElement('span');
+        s.className = p.c;
+        s.textContent = p.t;
+        b.appendChild(s);
+      });
+      b.addEventListener('click', function () { select(id, true); });
+      li.appendChild(b);
+      host.appendChild(li);
+    }
+
+    // The row a reader is already standing on. Not a press, because it leads where they are.
+    function hereRow(host, name) {
+      var li = document.createElement('li');
+      var s = document.createElement('span');
+      s.className = 'preg-here';
+      s.setAttribute('aria-current', 'true');
+      s.textContent = name;
+      li.appendChild(s);
+      host.appendChild(li);
+    }
+
+    // Whether the drawing is painting a tile at all. A lane's membership is what is on the canvas
+    // under the scope and the window in force, so an employer the drawing lays out and does not
+    // paint is not offered as a row: a press onto a tile nobody can see is the same defect the
+    // tab order guard above exists to prevent, arriving through a different door.
+    function painted(id) {
+      var f = gfxNode[id];
+      return !!f && !f.g.classList.contains('veil-hidden');
+    }
+
+    function showRegion(el, on) {
+      if (on) el.removeAttribute('hidden'); else el.setAttribute('hidden', '');
+    }
+
+    // ONE ROW PER EDGE, IN THE MODEL'S OWN ORDER. `edgesOf` is the order the build declares the
+    // edges in and it is the order the sentence printed them in, so a reader who knew the old
+    // panel meets the same list.
+    function paintRelationships(id) {
+      var host = clearHost(document.getElementById('prelrows'));
+      edgesOf[id].forEach(function (i) {
+        var e = G.edges[i];
+        var other = e.s === id ? e.t : e.s;
+        // The same two sentences the panel printed before this card, split into the verb and the
+        // name it points at. An edge that ends HERE keeps `this` on it, because dropping it would
+        // turn `<name> teaches this` into `teaches <name>` and say the relationship the other way
+        // round.
+        if (e.s === id) {
+          pressRow(host, [{ c: 'preg-v', t: e.v },
+                          { c: 'preg-n', t: nodeById[e.t].label }], other);
+        } else {
+          pressRow(host, [{ c: 'preg-n', t: nodeById[e.s].label },
+                          { c: 'preg-v', t: e.v + ' this' }], other);
+        }
+      });
+      showRegion(document.getElementById('prel'), edgesOf[id].length > 0);
+    }
+
+    // THE MEMBERSHIP OF THE BAND THIS OBJECT IS DRAWN IN, in the order the drawing paints it,
+    // which for a column is top to bottom. The heading names the lane as the build names it.
+    function paintLane(n) {
+      var wrap = document.getElementById('plane');
+      var host = clearHost(document.getElementById('planerows'));
+      var key = laneOf ? laneOf(n) : null;
+      var lane = (key && laneNamed) ? laneNamed(key) : null;
+      var members = lane ? lane.members.filter(function (m) { return painted(m.id); }) : [];
+      // The guard is a guard and not a condition on the region: every node this drawing paints is
+      // in one of its bands, so the region is on for every selection. What it protects against is
+      // a drawing that arrived here with no bands at all, which would otherwise paint a heading
+      // over nothing.
+      if (!lane || !members.length) { showRegion(wrap, false); return; }
+      document.getElementById('planet').textContent = 'in the ' + lane.key + ' lane';
+      members.forEach(function (m) {
+        if (m.id === n.id) hereRow(host, m.label);
+        else pressRow(host, [{ c: 'preg-n', t: m.label }], m.id);
+      });
+      showRegion(wrap, true);
+    }
+
+    // A SESSION TEMPLATE'S OWN BEATS, AND NO BADGE ON THEM. #110 took the flag chip off every row
+    // in this panel on the owner's instruction and named the outline in the same breath; #157's
+    // three rows are the declared exception and they are an exception because a reader CLICKS
+    // those. Nothing here is clicked and nothing here carries a chip.
+    function paintOutline(n) {
+      var wrap = document.getElementById('pout');
+      var host = clearHost(document.getElementById('poutrows'));
+      var beats = outlineOf ? outlineOf(n) : null;
+      if (!beats || !beats.length) { showRegion(wrap, false); return; }
+      beats.forEach(function (r) {
+        var li = document.createElement('li');
+        li.className = 'agenda-line';
+        var k = document.createElement('b');
+        k.className = 'agenda-rung';
+        k.textContent = r.k;
+        li.appendChild(k);
+        li.appendChild(document.createTextNode(' ' + r.v));
+        host.appendChild(li);
+      });
+      showRegion(wrap, true);
+    }
+
+    // NEVER AN ABSENCE RENDERED AS A FACT, WHICH IS THE ONE PLACE THE ORIGINAL BRIEF CHANGED
+    // SHAPE. What was asked for was a teacher fallback. Measured over the whole document, of the
+    // eleven cohort sessions nobody is teaching exactly one belongs to a module carrying any other
+    // named instructor, and nothing anywhere in the corpus records who CAN teach a module, so the
+    // obvious feature renders an empty region ten times out of eleven and the honest one cannot be
+    // built at all until the business records qualification.
+    //
+    // So the region is the instructors lane of the drawing the reader is looking at, each one a
+    // press onto their tile, where #157's rows already are. On a drawing that holds none it says
+    // that and says how much of the programme it draws. It never says nobody teaches the
+    // programme, because the document cannot support that sentence.
+    function paintHolds(n) {
+      var wrap = document.getElementById('pholds');
+      var host = clearHost(document.getElementById('pholdsrows'));
+      var none = clearHost(document.getElementById('pholdsnone'));
+      var h = holds ? holds(n) : null;
+      if (!h) { showRegion(wrap, false); return; }
+      var ids = (h.ids || []).filter(painted);
+      if (ids.length) {
+        ids.forEach(function (i) {
+          pressRow(host, [{ c: 'preg-n', t: nodeById[i].label }], i);
+        });
+      } else {
+        none.textContent = h.none;
+      }
+      showRegion(wrap, true);
+    }
+
+    // `fromRow` is true when the press came from a row of this panel rather than from the drawing,
+    // and it is the whole of the focus handling: the element the keyboard was on has just been
+    // removed, so focus goes to the name of the object the reader walked to.
+    function select(id, fromRow) {
       if (current === id) { clear(); return; }
       if (current) paint(current, false);
       current = id;
@@ -317,11 +495,6 @@
       var n = nodeById[id];
       paintType(n);
       document.getElementById('pname').textContent = n.label;
-      var rel = edgesOf[id].map(function (i) {
-        var e = G.edges[i];
-        return e.s === id ? e.v + ' ' + nodeById[e.t].label
-                          : nodeById[e.s].label + ' ' + e.v + ' this';
-      });
       // A node that carries a note leads with it. On a ghost the note is the whole point of
       // opening the panel, and on the cohort it says which part of a real object is missing.
       var pnote = document.getElementById('pnote');
@@ -332,14 +505,14 @@
         sn.textContent = n.note;
         pnote.appendChild(sn);
       }
-      // A ghost's one relationship is already a property row, so the list is left off there.
-      if (!n.ghost) {
-        var sr = document.createElement('span');
-        sr.className = 'pnote-rel';
-        sr.textContent = rel.length + (rel.length === 1 ? ' relationship: ' : ' relationships: ')
-                         + rel.join('; ');
-        pnote.appendChild(sr);
-      }
+      // AND THE SENTENCE THAT USED TO FOLLOW IT IS GONE. Issue 132. It read `3 relationships:
+      // <name> teaches this; instance of <title>; scheduled for <cohort>`, and it opened with a
+      // COUNT of its own list, which is a reading of something the list under it already shows.
+      // The same three facts are three rows in the region below now, and each of them is a press.
+      paintRelationships(id);
+      paintLane(n);
+      paintOutline(n);
+      paintHolds(n);
 
       var dl = document.getElementById('pprops');
       dl.textContent = '';
@@ -458,6 +631,10 @@
       if (more) addMore(pmore, more.href, more.text, more.hint);
       panel.classList.add('open');
       document.body.classList.add('panel-open');
+      if (fromRow) {
+        var pn = document.getElementById('pname');
+        if (pn.focus) pn.focus();
+      }
       reveal(n);
     }
 

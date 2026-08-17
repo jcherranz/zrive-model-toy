@@ -688,6 +688,65 @@
     }
   });
 
+  // ---- the instructors this drawing holds, issue 132 --------------------------
+  // THE OWNER ASKED FOR A TEACHER FALLBACK AND THE MEASUREMENT REFUSED THE OBVIOUS FEATURE. Of the
+  // eleven cohort sessions with nobody teaching them, exactly one belongs to a module that carries
+  // any other named instructor, so a computed fallback list would render empty ten times out of
+  // eleven; and no field anywhere in build/model.py records who CAN teach a module, so the list
+  // could not be computed honestly even where it would not be empty. He took the honest version:
+  // the panel names the instructors the drawing in front of him actually holds.
+  //
+  // AND IT NEVER SAYS NOBODY TEACHES THE PROGRAMME. On the six Z-CFA sessions the drawing holds no
+  // instructor at all, and what the sentence is allowed to say is that THIS DRAWING holds none and
+  // how much of the programme it draws. That a drawing holds no instructor is a fact about the
+  // drawing; that nobody teaches the programme is a claim about the business and the document
+  // cannot support it.
+  //
+  // ANSWERED HERE AND NOT IN THE PANEL, for the reason moreLink is: which objects a drawing holds
+  // is a question about the lane, and how much of a programme a drawing draws is a question about
+  // the counts block, and neither is a fact the panel should be able to compute for itself.
+  function viewOfNode(g, n) {
+    // On a union each node carries the sector it was drawn into and the drawing carries the
+    // programmes in that order. A cohort session belongs to exactly one programme and is never one
+    // of the shared objects, so the sector is its programme. On a scope of one there is no sector
+    // and the router holds the answer.
+    var pgs = g && g.programmes;
+    var key = (pgs && n.sec !== null && n.sec !== undefined && pgs[n.sec]) ? pgs[n.sec].key : null;
+    if (key) {
+      for (var i = 0; i < VIEWS.length; i++) if (VIEWS[i].key === key) return VIEWS[i];
+      return null;
+    }
+    var sc = router.scope();
+    return sc.length === 1 ? sc[0] : null;
+  }
+
+  function holdsInstructors(n) {
+    if (n.type !== 'CohortSession') return null;
+    // Read off the row rather than off a key this file knows is special: the props are walked and
+    // the one that answers this question is the one whose key the model wrote, so a rename in the
+    // model turns the region off rather than turning it into a wrong answer.
+    var assigned = null, i;
+    for (i = 0; i < (n.props || []).length; i++) {
+      if (n.props[i].k === 'teacher_assigned') assigned = n.props[i].v;
+    }
+    if (assigned !== 'no') return null;
+    var g = render.drawing();
+    var lane = render.lane('instructors');
+    var ids = ((lane && lane.members) || []).filter(function (m) {
+      return m.type === 'Instructor';
+    }).map(function (m) { return m.id; });
+    var v = viewOfNode(g, n);
+    var c = v && v.counts && v.counts.CohortSession;
+    // The sentence is built from the drawing's own sample and the programme's own total, which are
+    // the two numbers the counts block already carries and the same pair every lane caption and
+    // every sheet on this page states its sample with.
+    var none = c
+      ? 'this drawing holds none. it draws ' + c.drawn + ' of the ' + c.total + ' sessions ' +
+        (v.code || v.key) + ' has'
+      : 'this drawing holds none.';
+    return { ids: ids, none: none };
+  }
+
   selection = ZM.selection({
     svg: svg,
     panel: panel,
@@ -707,7 +766,18 @@
     // the counts belong to the view that holds them, so term.js answers and selection.js only
     // asks: a panel that knew '#/calendar' would be a second place the address is written down.
     moreLink: term.linkFor,
-    onReveal: function (n) { viewport.ensureVisible(n); }
+    onReveal: function (n) { viewport.ensureVisible(n); },
+    // Issue 132. The three questions the panel's new regions ask and cannot answer for themselves.
+    // Same split as moreLink: the panel asks, and the file that owns the fact answers.
+    //
+    // The two lane readers are render.js's, because a lane is geometry and that file has held the
+    // predicate that defines one, four times over, since the bands were drawn.
+    laneOf: render.laneOf,
+    lane: render.lane,
+    // The beats are term.js's, because that file already reads the agenda block for the outline
+    // sheet and a second reader of one dictionary is a second place one fact is written down.
+    outlineOf: term.agendaFor,
+    holds: holdsInstructors
   });
 
   // The address has already chosen which of the seven this is, so this draws the reader's
