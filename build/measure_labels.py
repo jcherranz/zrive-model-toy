@@ -154,7 +154,7 @@ def css_text():
 def css_var(name):
     m = re.search(r"--" + re.escape(name) + r":\s*([^;]+);", css_text())
     if not m:
-        sys.exit(f"measure_labels: {CSS} has no --{name}")
+        raise CannotMeasure(f"{CSS} has no --{name}")
     return " ".join(m.group(1).split())
 
 
@@ -162,7 +162,7 @@ def css_rule(selector):
     """Return the declarations of one rule as a dict, so a size cannot drift unnoticed."""
     m = re.search(re.escape(selector) + r"\s*\{([^}]*)\}", css_text())
     if not m:
-        sys.exit(f"measure_labels: {CSS} has no rule for {selector}")
+        raise CannotMeasure(f"{CSS} has no rule for {selector}")
     out = {}
     for decl in m.group(1).split(";"):
         if ":" in decl:
@@ -361,6 +361,14 @@ class CannotMeasure(Exception):
     disagree" from "I never measured" was prose on stderr. Nothing was wiring this file into
     anything yet, so no gate was misled; the shape is the one this repository has found seventeen
     times, and it is closed here before a caller exists rather than after.
+
+    AND IT COVERS THE STYLESHEET READERS TOO, which the first draft of this card left behind. An
+    adversarial read of that draft found `css_var` and `css_rule` still exiting 1 on a stylesheet
+    that declares no --font-ui and no `.node .lbl`. Nothing is measured in that state either, and 1
+    is the code this file's own header reserves for a value that differs on a matching envelope.
+    Two paths repaired and two left is not a repaired contract. The class is declared below the two
+    functions that raise it, which is legal because a name in a function body is resolved when the
+    body runs, and every one of these is called after import.
     """
 
 
@@ -451,6 +459,15 @@ def show(rows, n=10, indent="      "):
         print(f"{indent}... and {len(rows) - n} more")
 
 
+def delta(a, b):
+    """`b - a` when both are numbers, and the reason it is not written inline. A value typed into
+    the table by hand can be a string, which is the very edit this file exists to catch, and a
+    format spec that raises on it reports less than the finding it was about to print."""
+    if isinstance(a, (int, float)) and not isinstance(a, bool):
+        return f"{b - a:+.2f}"
+    return "not a number in the table, so no difference can be taken"
+
+
 def baseline():
     """The committed table, or None with the refusal already printed.
 
@@ -458,15 +475,31 @@ def baseline():
     an answer this file can give on any machine, in the same words, with or without Chrome; read
     after the measurement it would be an answer only a machine holding a browser ever reaches,
     and every other machine would report the missing browser instead. Two states, one message.
+
+    AND IT VALIDATES THE FINGERPRINT AND NOT ONLY THE WIDTHS. An adversarial read of the first
+    draft found every route through a missing or damaged `probes`, `font_stack` or `envelope`
+    landing in exit 3, "the envelope differs, so the values were not judged", which is the one
+    state that judges nothing and is not a failure code. A table that carries no fingerprint is not
+    a table measured on another machine; it is a table this file cannot compare against at all, and
+    that is exit 2 by the same argument as a table that is not there.
     """
     try:
         old = json.loads(OUT.read_text(encoding="utf-8"))
         if not isinstance(old.get("widths"), dict):
             raise ValueError("widths is not an object")
+        for key, kind, what in (("font_stack", str, "a string"),
+                                ("envelope", list, "a list"),
+                                ("probes", dict, "an object"),
+                                ("contexts", dict, "an object")):
+            if not isinstance(old.get(key), kind):
+                raise ValueError(f"{key} is not {what}")
+        for c, d in old["widths"].items():
+            if not isinstance(d, dict):
+                raise ValueError(f"the widths of context {c!r} are not an object")
         return old
     except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
         print(f"::error::measure_labels --check: there is no table to compare against at {OUT} "
-              f"({type(exc).__name__}). This run established nothing, in either direction",
+              f"({type(exc).__name__}: {exc}). This run established nothing, in either direction",
               file=sys.stderr)
         return None
 
@@ -529,9 +562,18 @@ def check(new, old):
     # written in collect() above; comparing it would mean an edit to a comment demanding a browser
     # run to clear, which is a red for something that is not a defect and is the failing this
     # whole card is about.
+    #
+    # AND A CONTEXT THE TABLE HOLDS THAT THE JOB NO LONGER DECLARES IS DEAD WEIGHT, NOT DRIFT,
+    # which the first draft got wrong and an adversarial read caught. Three of the seven contexts
+    # exist only while the model holds a ghost node, so removing the last ghost would have made
+    # this file refuse the committed, correct table and say the STYLESHEET had moved, which it had
+    # not. That is a row-level ruling this repository has already made, applied one level up: a
+    # context nothing asks for is dead weight in exactly the way a string nothing asks for is.
     old_ctx, new_ctx = old.get("contexts") or {}, new["contexts"]
-    css_drift = sorted(k for k in set(old_ctx) | set(new_ctx)
+    css_drift = sorted(k for k in set(old_ctx) & set(new_ctx)
                        if (old_ctx.get(k) or {}).get("css") != (new_ctx.get(k) or {}).get("css"))
+    ctx_absent = sorted(set(new_ctx) - set(old_ctx))
+    ctx_surplus = sorted(set(old_ctx) - set(new_ctx))
 
     print(f"  {len(asked)} (context, string) pair(s) asked by the job, {len(held)} held by "
           f"{OUT}, {len(shared)} compared")
@@ -547,6 +589,10 @@ def check(new, old):
         print(f"    {len(surplus)} row(s) no context asks for. Dead weight, not a wrong "
               f"coordinate, and not a failure here or in check 2:")
         show([f"{c:<12} {s!r}" for c, s in surplus])
+    if ctx_surplus:
+        print(f"    {len(ctx_surplus)} context(s) the job no longer declares: "
+              f"{', '.join(ctx_surplus)}. Dead weight for the same reason a row is, and not a "
+              f"failure: the ghost contexts exist only while the model holds a ghost.")
 
     bad = 0
     if css_drift:
@@ -555,6 +601,11 @@ def check(new, old):
               f"{', '.join(css_drift)}")
         print("  The table was measured under a stylesheet this tree no longer has, so every "
               "width in those contexts is a measurement of something the page does not paint.")
+        bad = 1
+    if ctx_absent:
+        print(f"::error::the job declares {len(ctx_absent)} context(s) {OUT} was never measured "
+              f"for: {', '.join(ctx_absent)}")
+        print("  Every string in them is laid out from the hand written estimate.")
         bad = 1
 
     if missing:
@@ -594,7 +645,11 @@ def check(new, old):
     if changed:
         print(f"::error::{len(changed)} value(s) differ from the committed table on an envelope "
               f"this machine measured identically")
-        show([f"{c:<12} {s!r}  table {a}  here {b}  ({b - a:+.2f})" for c, s, a, b in changed],
+        # `delta` and not `b - a`: a width TYPED IN BY HAND is the shape this whole card exists to
+        # catch, and a typed "27.31" is a string. The first draft printed the ::error:: line and
+        # then died in its own format spec, which reports less than the line it had already
+        # printed. Whatever the value is, it is shown.
+        show([f"{c:<12} {s!r}  table {a!r}  here {b}  ({delta(a, b)})" for c, s, a, b in changed],
              n=20)
         print("  The fingerprint agrees, so this is not a machine difference. Either a number in "
               "the table was written by hand, or the browser now shapes these strings "
@@ -627,16 +682,17 @@ def main():
         if old is None:
             return 2
 
-    stack = css_var("font-ui")
-    families = envelope(stack)
-    job = collect()
-    # Both sides of every comparison below come off this job, and an empty one would report every
-    # table covered, every value unchanged and nothing missing.
-    if not job or not any(v["strings"] for v in job.values()):
-        print("::error::measure_labels: collect() enumerated no strings, so there is nothing to "
-              "measure and nothing this run could establish", file=sys.stderr)
-        return 2
+    # ONE try AROUND EVERY PATH THAT CAN FAIL TO MEASURE, and not around measure() alone. Reading
+    # the stylesheet is part of taking the measurement: a tree whose app.css declares no --font-ui
+    # produces no widths, and that is state 2 exactly as a missing browser is.
     try:
+        stack = css_var("font-ui")
+        families = envelope(stack)
+        job = collect()
+        # Both sides of every comparison below come off this job, and an empty one would report
+        # every table covered, every value unchanged and nothing missing.
+        if not job or not any(v["strings"] for v in job.values()):
+            raise CannotMeasure("collect() enumerated no strings, so there is nothing to measure")
         got = measure(job, families)
     except CannotMeasure as exc:
         print(f"::error::measure_labels: {exc}", file=sys.stderr)

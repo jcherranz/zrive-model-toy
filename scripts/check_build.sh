@@ -1532,17 +1532,44 @@ PY
 #        also crude, which is why the band is wide. Measured on the committed table: every one of
 #        the 5118 ratios lies in [0.5376, 1.6491], and the seven per-context medians lie in
 #        [1.0863, 1.2349]. The bands below are those two ranges with headroom. The per-context
-#        median is what catches a whole context halved: halving widths["9/400"] leaves every
+#        median is what catches ONE context scaled wholesale: halving widths["9/400"] leaves every
 #        per-string ratio inside [0.5050, 0.5752] and inside the per-string band, and takes that
-#        context's median to 0.546.
+#        context's median to 0.5462.
 #
-# WHAT IT CANNOT SAY, AND THIS IS THE HALF THAT MATTERS MOST.
+#        estimate_w() IS READ BY RUNNING THE BUILDER, AND THE BUILDER IS SHOWN THE COMMITTED TABLE
+#        AND NEVER THE ONE UNDER TEST. The first draft let $ZRIVE_LABEL_WIDTHS reach the runpy, so
+#        the builder laid a drawing out from the table being judged and refused a table 12% wide on
+#        a label crossing a lane boundary. That put an undeclared upper tolerance of about +10% on
+#        this check, enforced by lane geometry rather than by any relation stated here, and it made
+#        a malformed table read as "the builder did not finish". estimate_w() is a function of a
+#        string and a size and reads no table, so nothing is lost by pointing the run at the
+#        committed one.
 #
-#   ONE PLAUSIBLE NUMBER. A single width nudged by a few per cent satisfies every relation here.
-#   Only a re-measurement catches that, and a re-measurement cannot run on a runner.
+# WHAT IT CANNOT SAY, AND THIS IS THE HALF THAT MATTERS MOST. Every bound below is measured, and
+# the first draft of this paragraph guessed instead and understated all three by an order of
+# magnitude.
+#
+#   ONE PLAUSIBLE NUMBER, and "plausible" is much wider than it sounds. The per-string band is the
+#   worst case of a crude estimate, so it admits a single width anywhere from 0.35 to 2.60 times
+#   what estimate_w() says, which on the tightest value in the table is -35% to +58%. Shrinking one
+#   label and every wrap candidate of it by 30%, which keeps R3 by construction and cannot move a
+#   median of 2491, is green here and moves site/layout.js.
+#
+#   THE WHOLE TABLE RESCALED, which is the sharpest of the three because R1, R2 and R3 are all
+#   scale invariant and a rescale moves every per-context median together. Measured by bisection
+#   against this check: the accepted window is x0.74 to x1.29, and the probe suite pins x0.75 as a
+#   defect that passes rather than leaving it as a sentence. IT IS NOT CLOSABLE BY TIGHTENING THE
+#   BAND. The legitimate spread inside the envelope is 130.4/109.82, so a machine resolving only
+#   the narrow families measures x0.8422 of this table and must not be refused for it; the floor of
+#   0.80 already sits within an eighth of that. The tolerance is set by how much two honest
+#   machines differ, not by a choice made here.
 #
 #   THE 400 BLOCK COPIED OVER THE 600 BLOCK. R2 is `>=` and holds under equality, and estimate_w()
-#   takes no weight argument, so the medians do not move either. It is NOT repaired by tightening
+#   takes no weight argument, so the medians do not move either. Run rather than argued: that edit
+#   over the committed table exits 0 here, with R2 comparing all 2495 of its pairs and reporting no
+#   violation, and the context it corrupts holds 2492 of the 5118 values. reserve() takes the wider
+#   of the two faces, so every selected label is then reserved at its regular width, which is #203
+#   from the build side. It is NOT repaired by tightening
 #   R2 into a ratio band: a machine holding no real bold face synthesises one, and this tree's own
 #   table proves synthesis preserves advances here, because all four strings the ghost contexts
 #   share with the upright ones are identical to the hundredth in italic and upright. A floor above
@@ -1612,7 +1639,16 @@ except (OSError, ValueError, KeyError, TypeError) as exc:
     sys.exit(1)
 
 # ---- the population, asserted before any verdict is read off it -------------
-values = [(c, s, w) for c, d in table.items() if isinstance(d, dict) for s, w in d.items()]
+# A CONTEXT WHOSE VALUE IS NOT AN OBJECT IS REFUSED HERE rather than skipped. The comprehension
+# below drops it, and every relation would then quantify over the contexts that survived and
+# report no violations, which is the shape this file hunts.
+shapeless = sorted(c for c, d in table.items() if not isinstance(d, dict))
+if shapeless:
+    print(f"::error::{len(shapeless)} context(s) in {path.name} hold something other than an "
+          f"object of widths: {', '.join(shapeless)}. Nothing below could read them, so nothing "
+          f"here is evidence about this table")
+    sys.exit(1)
+values = [(c, s, w) for c, d in table.items() for s, w in d.items()]
 job = ml.collect()
 if not table or not values:
     print(f"::error::{path} holds no widths at all, so every relation below would hold "
@@ -1635,6 +1671,9 @@ if doc.get("envelope") != families:
          f"stylesheet plus measure_labels.EXTRA_FAMILIES come to {len(families)}. The table was "
          f"measured over a different set of faces than the one this tree asks for")
 probes = doc.get("probes")
+if isinstance(probes, dict) and not all(isinstance(v, (int, float)) and not isinstance(v, bool)
+                                        for v in probes.values()):
+    probes = None  # a probe width that is not a number cannot be counted or compared
 if not isinstance(probes, dict) or set(probes) != set(families) | {"sans-serif"}:
     fail(f"{path.name}'s probe row does not cover its own envelope, so which families the "
          f"measuring machine could tell apart cannot be read off it")
@@ -1645,20 +1684,78 @@ elif doc.get("distinct_faces") != len(set(probes.values())):
 
 # The CSS AND NOT the whole context entry: each also carries a `note`, and comparing prose would
 # make a comment edit demand a browser run to clear.
-recorded = {k: (v or {}).get("css") for k, v in (doc.get("contexts") or {}).items()}
-declared = {k: v["css"] for k, v in job.items()}
+#
+# AND THE VALUES ARE NORMALISED BEFORE THEY ARE COMPARED, because a byte comparison of a CSS value
+# refuses edits that change no pixel. Measured on this stylesheet: `.07em` written `0.07em`, or
+# `10px` written `10.0px`, render identically and took the first draft of this check red. A number
+# with an optional unit is compared as a number; anything else is compared as written, so
+# `font-weight: bold` for `600` still refuses, which is right: the table records what it measured
+# and a keyword is not what it recorded.
+NUMERIC = re.compile(r"^([+-]?(?:[0-9]*\.)?[0-9]+)(px|em|rem|%)?$")
+
+
+def css_norm(decls):
+    if not isinstance(decls, dict):
+        return decls
+    out = {}
+    for k, v in decls.items():
+        m = NUMERIC.match(str(v).strip())
+        out[k] = f"{float(m.group(1)):g}{m.group(2) or ''}" if m else v
+    return out
+
+
+ctxs = doc.get("contexts")
+if not isinstance(ctxs, dict):
+    print(f"::error::{path.name} records no per-context CSS this check can read, so nothing in it "
+          f"can be held against site/app.css")
+    sys.exit(1)
+recorded = {k: css_norm((v or {}).get("css")) for k, v in ctxs.items()}
+declared = {k: css_norm(v["css"]) for k, v in job.items()}
 if set(recorded) != set(table):
     fail(f"{path.name} measures {len(table)} context(s) and declares the CSS of "
          f"{len(recorded)}. A context whose CSS the file does not record cannot be held against "
          f"the stylesheet at all")
-drift = sorted(k for k in set(recorded) | set(declared) if recorded.get(k) != declared.get(k))
+# A CONTEXT THE TABLE HOLDS THAT THE JOB NO LONGER DECLARES IS DEAD WEIGHT AND NOT DRIFT, which
+# the first draft got wrong and an adversarial read caught. Three of the seven contexts exist only
+# while the model holds a ghost node, so taking the last ghost out of build/model.py would have
+# made this check refuse the committed, correct table and blame site/app.css, which had not moved.
+# It is the ruling check 2 already makes about a ROW, applied to a context.
+drift = sorted(k for k in set(recorded) & set(declared) if recorded[k] != declared[k])
+ctx_absent = sorted(set(declared) - set(recorded))
+ctx_surplus = sorted(set(recorded) - set(declared))
 if drift:
     fail(f"{len(drift)} context(s) were measured under CSS site/app.css no longer declares: "
          f"{', '.join(drift)}")
     show([f"{k:<12} table {recorded.get(k)}  stylesheet {declared.get(k)}" for k in drift])
+if ctx_absent:
+    fail(f"the stylesheet and the model ask for {len(ctx_absent)} face(s) {path.name} was never "
+         f"measured for: {', '.join(ctx_absent)}. Every string in them is estimated")
+if ctx_surplus:
+    print(f"    {len(ctx_surplus)} context(s) the job no longer declares: "
+          f"{', '.join(ctx_surplus)}. Dead weight, not a wrong coordinate, and not a failure")
+
+# THE POPULATION OF THE TABLE ITSELF, and this is check 2's membership test made a second time,
+# which is the only deliberate duplication in this section. Every relation below is quantified
+# over the numbers the table happens to hold, and the verdict at the foot says "its N numbers
+# satisfy every relation". An adversarial read emptied one context, leaving 2626 of 5118 values,
+# and every relation still reported zero violations over what was left: R2 fell from 2495 pairs to
+# 4 and the sentence at the foot was still printed. Check 2 refuses that table one check earlier,
+# measured, with 2492 strings missing; asserting it here as well is what makes this section's own
+# sentence true rather than true-because-of-its-neighbour.
+asked = {(c, s) for c, v in job.items() for s in v["strings"]}
+held = {(c, s) for c, s, _w in values}
+short = sorted(asked - held)
+if short:
+    fail(f"{path.name} holds no number for {len(short)} (context, string) pair(s) the job asks "
+         f"for, so the relations below are quantified over a table that is not the one this tree "
+         f"lays out from. Check 2 above names them; this check will not call the remainder sane")
+    show([f"{c:<12} {s!r}" for c, s in short])
 
 # ---- half two: the numbers a browser could have produced --------------------
-KEY = re.compile(r"^(?P<size>[0-9.]+)/(?P<weight>[0-9]+)(?P<slant>i?)(?P<caps>\+caps)?$")
+# `\d+(\.\d+)?` and not `[0-9.]+`: the loose form matches "1.2.3", which reaches float() in R4
+# and raises there, so a malformed key crashed the check instead of being named by it.
+KEY = re.compile(r"^(?P<size>[0-9]+(?:\.[0-9]+)?)/(?P<weight>[0-9]+)"
+                 r"(?P<slant>i?)(?P<caps>\+caps)?$")
 parsed = {}
 for c in table:
     m = KEY.match(c)
@@ -1678,9 +1775,12 @@ if nan:
     show([f"{c:<12} {s!r}  {w!r}" for c, s, w in nan])
 print(f"    R1 every width positive and finite: {len(values)} value(s) read, {len(nan)} bad")
 
-# R2, R3 and R4 read this and not `table`. A value R1 has already refused is not a number the
-# relations below can be applied to at all, and comparing one to a float raises rather than
-# reports: a check that crashes on the input it is meant to describe has told the reader nothing.
+# R2, R3 and R4 read this and not `table`, because comparing a hand-typed "24.65" to a float
+# raises rather than reports, and a check that crashes on the input it is meant to describe has
+# told the reader nothing. THE TWO PREDICATES ARE NOT THE SAME ONE and the first draft's comment
+# said they were: R1 refuses a zero, a negative and an infinity as well, and this filter admits
+# all three, deliberately, so that R4 goes on to say how far out of band they are. R1 has already
+# set BAD by then.
 num = {}
 for c, s, w in values:
     if isinstance(w, (int, float)) and not isinstance(w, bool) and w == w:
@@ -1741,8 +1841,18 @@ if not layout_py.is_file():
     print(f"::error::no builder at {layout_py}, so estimate_w() cannot be read and R4 was not "
           f"run. Nothing here is evidence")
     sys.exit(1)
+# AND THE BUILDER IS NOT SHOWN THE TABLE UNDER TEST, which the first draft did by accident and an
+# adversarial read measured. $ZRIVE_LABEL_WIDTHS is set for this whole process so that the table
+# to judge is an argument, and build_layout.py honours the same variable, so runpy handed the
+# builder the doctored table and let it lay a drawing out from it. Two consequences, both bad and
+# neither declared anywhere: a table 12% wide made the builder refuse on a label crossing a lane
+# boundary, so this check reported "estimate_w() could not be read" over a table it was supposed
+# to judge and the real upward tolerance was the LANE GEOMETRY rather than any relation here; and
+# a malformed table came back as "the builder did not finish", blaming the builder for the file
+# under test. estimate_w() is a per character function of a string and a size and reads no table
+# at all, so the builder is run on the committed one and the coupling is gone.
 with tempfile.TemporaryDirectory() as td:
-    saved_argv = sys.argv
+    saved_argv, saved_widths = sys.argv, os.environ.pop("ZRIVE_LABEL_WIDTHS", None)
     sys.argv = [str(layout_py), "--out", td]
     log = io.StringIO()
     try:
@@ -1755,6 +1865,8 @@ with tempfile.TemporaryDirectory() as td:
         sys.exit(1)
     finally:
         sys.argv = saved_argv
+        if saved_widths is not None:
+            os.environ["ZRIVE_LABEL_WIDTHS"] = saved_widths
 estimate_w = built.get("estimate_w")
 if not callable(estimate_w):
     print("::error::build/build_layout.py no longer holds estimate_w(), which is the only "
@@ -2430,7 +2542,7 @@ verdict() {  # clean|bad ; reads BASELINE_ORIGIN, CENSUS_UNVERIFIED and CENSUS_N
 # probe at a time prints a clean ratio all the way down to 0/0. A count taken from the run cannot
 # notice a probe that did not run. A short run exits 2, "the suite could not answer"; a run that
 # also recorded a failure reports it and exits 1.
-EXPECTED_PROBES=216
+EXPECTED_PROBES=237
 PASS=0
 TOTAL=0
 probe() {
@@ -2881,11 +2993,37 @@ sys.exit(ml.check(new, old))
 PY
 }
 
-# The two refusals that need no measurement, and they are the ones a caller reads as an exit code.
-# Both were `sys.exit("...")` before this card, which is exit 1, which is what the old --check
-# returned for "the table differs". A machine with no browser reported drift.
-measure_check_without_table() {
+# The refusals that need no measurement, and they are the ones a caller reads as an exit code.
+# All of them were `sys.exit("...")` before this card, which is exit 1, which is what the old
+# --check returned for "the table differs". A machine with no browser reported drift.
+#
+# The argument is a path, so the same function serves a table that is not there and a table that
+# is there and carries no fingerprint. Both are "this run established nothing" and neither is a
+# difference; an adversarial read of the first draft found the second landing in exit 3, "the
+# envelope differs", which is the one state that judges nothing and is not a failure code.
+measure_check_over() {  # table
   ZRIVE_LABEL_WIDTHS="$1" python3 "$ROOT/build/measure_labels.py" --check
+}
+
+# And the stylesheet readers, which the first draft left exiting 1 while the header it shipped
+# reserved 1 for a value that differs. They cannot be driven through the program's own arguments,
+# because the path to site/app.css is a module constant, so the module is imported and pointed at
+# an empty file. Everything before them still runs for real: the committed table is read as the
+# baseline first, and it is css_var() that refuses.
+measure_check_without_stylesheet() {  # empty-css-file
+  ZRIVE_ROOT="$ROOT" ZRIVE_CSS="$1" python3 - <<'PYCSS'
+import os
+import pathlib
+import sys
+
+root = pathlib.Path(os.environ["ZRIVE_ROOT"])
+sys.path.insert(0, str(root / "build"))
+import measure_labels as ml  # noqa: E402
+
+ml.CSS = pathlib.Path(os.environ["ZRIVE_CSS"])
+sys.argv = ["measure_labels.py", "--check"]
+sys.exit(ml.main())
+PYCSS
 }
 
 # $PATH is emptied and the Playwright cache pointed at an empty directory, because on the author's
@@ -3281,6 +3419,55 @@ PY
         sane_with_mutation 'doc["widths"] = {c: {s: w for s, w in d.items() if len(s.split()) == 1} for c, d in doc["widths"].items()}'
   probe_says "sub-run relation compared nothing" "and the refusal said which relation went empty" \
         sane_with_mutation 'doc["widths"] = {c: {s: w for s, w in d.items() if len(s.split()) == 1} for c, d in doc["widths"].items()}'
+  # AND THE PARTIAL COLLAPSE, which the exact-zero guards above cannot see and an adversarial read
+  # of the first draft found: one context emptied leaves 2626 of 5118 values, R2 falls from 2495
+  # pairs to 4, every relation reports no violation over what is left, and the sentence at the foot
+  # said "its 2626 numbers satisfy every relation". Check 2 refuses that table one check earlier
+  # with 2492 strings missing, which is why it was only ever a misleading sentence rather than a
+  # hole in the gate; the population is asserted here as well so the sentence is true on its own.
+  probe 1 "a table short of what the job asks for was refused rather than judged on the remainder" \
+        sane_with_mutation 'doc["widths"]["10/600"] = {}'
+  probe_says "will not call the remainder sane" "and the refusal said so in those words" \
+        sane_with_mutation 'doc["widths"]["10/600"] = {}'
+  # R1's OWN PREDICATE, which had no probe of its own. The zero above is refused by R4 as well, so
+  # deleting R1 would not have taken that probe red; a value that is not a number at all is R1's
+  # and nothing else's, because every relation below it reads the numeric view.
+  probe 1 "a width typed in as a string, which is the shape a hand edit takes" \
+        sane_with_mutation 'doc["widths"]["10/400"]["Beca"] = "24.65"'
+  probe_says "not a positive finite number" "and R1 named it rather than any other relation" \
+        sane_with_mutation 'doc["widths"]["10/400"]["Beca"] = "24.65"'
+  # The three shapes that used to raise inside this check instead of being reported by it. The
+  # comment above the numeric view sets that standard and these hold it to it.
+  probe 1 "a context holding something other than an object of widths" \
+        sane_with_mutation 'doc["widths"]["10/400"] = 5.0'
+  probe 1 "a context key in no form this check can read" \
+        sane_with_mutation 'doc["widths"]["1.2.3/400"] = {"x": 5.0}'
+  probe 1 "a probe width that is not a number at all" \
+        sane_with_mutation 'doc["probes"]["Arial"] = {}'
+  probe 1 "a contexts block that is not an object" \
+        sane_with_mutation 'doc["contexts"] = [1, 2]'
+  probe 1 "a context measured but never recorded, which no CSS comparison would reach" \
+        sane_with_mutation 'doc["widths"]["11/400"] = {"x": 5.0}'
+  # AND TWO MORE THINGS THAT MUST NOT BE REFUSED.
+  probe 0 "a CSS value rewritten to the same number is not a defect and is not refused" \
+        sane_with_mutation 'doc["contexts"]["9/600+caps"]["css"]["letter-spacing"] = "0.07em"'
+  # The context-level form of the surplus ruling. Three of the seven contexts exist only while the
+  # model holds a ghost node, so this is what taking the last ghost out would look like to a
+  # correct table, and the first draft refused it and blamed the stylesheet.
+  probe 0 "a context the job no longer declares is dead weight and is not refused" \
+        sane_with_mutation 'doc["widths"]["8/400"] = dict(doc["widths"]["9/400"]); doc["contexts"]["8/400"] = {"css": {"font-size": "8px", "font-weight": "400"}, "note": "a face the model no longer holds"}'
+  probe_says "Dead weight" "and said so in the words check 2 uses about a row" \
+        sane_with_mutation 'doc["widths"]["8/400"] = dict(doc["widths"]["9/400"]); doc["contexts"]["8/400"] = {"css": {"font-size": "8px", "font-weight": "400"}, "note": "a face the model no longer holds"}'
+  # AND THE LIMIT, PINNED AS A PROBE RATHER THAN LEFT AS A SENTENCE. This is a defect that passes,
+  # written down so that it is measured rather than asserted: R1, R2 and R3 are all scale
+  # invariant, and a rescale moves every per-context median together, so the whole table multiplied
+  # by three quarters satisfies every relation here. The window is x0.74 to x1.29, and it is not
+  # closable by tightening the median band: a machine resolving only the narrow half of the
+  # envelope measures x0.8422 of this one and must not be refused for it. Only a re-measurement
+  # catches this, and a re-measurement cannot run on a runner. If a later change makes this probe
+  # go red, the limit has moved and the header above has to be re-measured with it.
+  probe 0 "LIMIT: the whole table rescaled by three quarters satisfies every relation here" \
+        sane_with_mutation 'doc["widths"] = {c: {s: round(w * 0.75, 2) for s, w in d.items()} for c, d in doc["widths"].items()}'
 
   echo
   echo "self-test: and the re-measurement tells its four states apart"
@@ -3326,6 +3513,21 @@ PY
         widths_check_state 'new["probes"]["DejaVu Sans"] = 131.4; new["widths"]["10/400"]["Beca"] = 99.0'
   probe 1 "a table measured under CSS the stylesheet no longer declares is a defect" \
         widths_check_state 'new["contexts"]["10/400"]["css"]["font-size"] = "11px"'
+  # THE CONTEXT LEVEL OF THE SURPLUS RULING, both directions. A face the job no longer asks for is
+  # dead weight exactly as a row is; a face it asks for that the table was never measured for is a
+  # whole context of estimated widths.
+  probe 0 "a context the job no longer declares is dead weight, not drift" \
+        widths_check_state 'del new["contexts"]["10/400i"]; del new["widths"]["10/400i"]'
+  probe_says "the job no longer declares" "and the report said which one" \
+        widths_check_state 'del new["contexts"]["10/400i"]; del new["widths"]["10/400i"]'
+  probe 1 "a face the job declares that the table was never measured for is a defect" \
+        widths_check_state 'del old["contexts"]["10/400i"]; del old["widths"]["10/400i"]'
+  # A WIDTH TYPED IN BY HAND IS A STRING, which is the exact edit this file exists to catch, and
+  # the first draft printed the finding and then died formatting it.
+  probe 1 "a width typed into the table as a string is reported and not raised over" \
+        widths_check_state 'old["widths"]["10/400"]["Beca"] = "24.65"'
+  probe_says "no difference can be taken" "and the report said why it could not subtract" \
+        widths_check_state 'old["widths"]["10/400"]["Beca"] = "24.65"'
   # Two more things that must NOT be defects, and the second is the third way the old byte diff
   # went red: the document it compared carries the engine's user-agent string.
   probe 0 "a reworded note beside a context is not a defect" \
@@ -3341,11 +3543,11 @@ PY
   # is the code --check used for "the table differs". They are run through the real program rather
   # than through check() because the code they return is the program's.
   probe 2 "no table to compare against established nothing, in either direction" \
-        measure_check_without_table "$dir/no-such-table.json"
+        measure_check_over "$dir/no-such-table.json"
   probe_says "established nothing" "and said so rather than naming a difference" \
-        measure_check_without_table "$dir/no-such-table.json"
+        measure_check_over "$dir/no-such-table.json"
   probe_says_not "DIFFER" "and did not report drift over a file it never read" \
-        measure_check_without_table "$dir/no-such-table.json"
+        measure_check_over "$dir/no-such-table.json"
   mkdir -p "$dir/no-browsers"
   probe 2 "no browser at all established nothing rather than reporting drift" \
         measure_check_without_browser "$dir/no-browsers"
@@ -3353,6 +3555,20 @@ PY
         measure_check_without_browser "$dir/no-browsers"
   probe_says_not "reproduce exactly" "and did not report agreement over a measurement it never took" \
         measure_check_without_browser "$dir/no-browsers"
+  # AND A TABLE THAT IS THERE AND CARRIES NO FINGERPRINT, which is not a machine with other fonts.
+  # Every route through a missing probes row, font stack or envelope used to land in exit 3.
+  widths_doctored "$dir/no-probes.json" 'del doc["probes"]'
+  probe 2 "a table carrying no probe row established nothing rather than a different envelope" \
+        measure_check_over "$dir/no-probes.json"
+  probe_says_not "envelope differs" "and did not read a damaged file as another machine" \
+        measure_check_over "$dir/no-probes.json"
+  # AND THE STYLESHEET READERS. Nothing is measured when site/app.css declares no font stack, and
+  # 1 is the code this program reserves for a value that differs on a matching envelope.
+  : >"$dir/empty.css"
+  probe 2 "a stylesheet declaring no font stack established nothing rather than a difference" \
+        measure_check_without_stylesheet "$dir/empty.css"
+  probe_says "has no --font-ui" "and the refusal named what it could not read" \
+        measure_check_without_stylesheet "$dir/empty.css"
 
   echo
   echo "self-test: the model is well formed"
