@@ -122,7 +122,14 @@ jobs:
     # always checked. scripts/publish.sh.
     if: vars.PUBLISH == 'on'
     steps:
-      - name: The origin serves what main says
+      # AND THE NAME BELOW DESCRIBES THE JOB RATHER THAN STATING THE OUTCOME. Issue 245. It used to
+      # be `The origin serves what main says`, which is a finite declarative clause asserting the
+      # very thing the run block below computes, and which reads as true on a red run as on a green
+      # one. build.yml carries the rule: DO NOT NAME A STEP AFTER A CLAIM. This one was not a copy
+      # of any line the repository states, which is why the copy-keyed search #240, #241 and #243
+      # ran could not see it; #244 measured that search's coverage of the three names of this shape
+      # at 0 of 3, and #245 is the one-time sweep of the rule itself over all 29 step names.
+      - name: Compare the commit the origin serves against main's head, allowing a deploy in flight
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}

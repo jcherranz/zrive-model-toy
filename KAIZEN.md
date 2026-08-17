@@ -717,3 +717,25 @@ build on a cited slug that resolves to nothing.
   same job. Only the first drifts, and the difference is grammatical rather than textual, which is
   why this one stays prose.** The corollary is the rule that was shipped instead: name a step
   after its job, never after a claim.
+- `kaizen-a-rule-found-by-one-case-is-stated-about-the-case-and-not-the-rule` &middot; **A rule
+  discovered by hitting one instance of it gets written in the vocabulary of that instance, and
+  the wording then outlives the accuracy.** Issue 237 found a step name copied from a gate's
+  printed heading and wrote `DO NOT NAME THIS STEP, OR ANY OTHER, AFTER A LINE A GATE PRINTS`.
+  Issues 240 and 241 found two more of the same shape, and by the time the class was actually
+  measured the real defect had a different name: **stating a CLAIM about an outcome the step's own
+  `run:` block computes**. Both sentences then stood in `.github/workflows/build.yml`, two hundred
+  lines apart, both unconditional, and nobody noticed they disagreed. **Measured at `b9b372f`, the
+  first-approximation wording is wrong in both directions at once.** It over-reaches: `verify.sh`
+  prints `== $name` for every step, so its 15 labels are all lines a gate prints, and 5 workflow
+  step names equal one of them and were deliberately KEPT, because two files naming the same job
+  the same way is a coincidence and not a copy. And it under-reaches: the rule's 3 real violations
+  at that SHA copy nothing at all, so **its coverage of them is 0 of 3**, and the copy-keyed search
+  built on it could not have found any of them however it was tuned.
+  **The general form: when the second instance of a rule arrives, re-read the sentence the first
+  one produced and ask whether it names the defect or the route by which the defect arrived. The
+  route is usually what got written down, because it is what was visible.** Two corollaries. The
+  first is that the repair is to qualify and subsume rather than delete: the old wording carries
+  the reasoning of the case that produced it, which here is why a drifted copy must not be
+  re-synced by hand, and deleting it takes that with it. The second is that two rules in one file
+  must be read together before either is applied, so the widened one has to say so where the
+  narrow one is written, not two hundred lines away.

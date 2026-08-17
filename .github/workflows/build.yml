@@ -168,7 +168,17 @@ jobs:
       # it back to equality would restore the appearance of a maintained relation and leave it
       # exactly as unheld, so the copy is gone instead of re-synced: a name that describes what the
       # step does cannot drift from a heading it does not quote. DO NOT NAME THIS STEP, OR ANY
-      # OTHER, AFTER A LINE A GATE PRINTS.
+      # OTHER, AFTER A LINE A GATE PRINTS; SEE THE QUALIFIED FORM BELOW, WHICH SUPERSEDES THIS
+      # SENTENCE AND IS THE OPERATIVE ONE. Issue 245.
+      #
+      # READ IT AS A RULE ABOUT QUOTING AND NOT AS A TEST ON STRINGS, WHICH IS WHAT IT MEANT AND
+      # NOT WHAT IT SAYS. Taken literally it forbids any step name equal to a line a gate prints,
+      # and scripts/verify.sh prints `== $name` for every step it runs, so all fifteen of its
+      # labels are such lines. Five step names in this directory equal one of them and this
+      # repository decided, under #240 and #241, to KEEP all five. The sentence above condemns them
+      # and was never meant to. Do not act on it alone: the qualification is at the foot of this
+      # comment block, under `THE TWO RULES ABOVE ARE ONE RULE`, with the measurement that forced
+      # it, and it is what decides.
       #
       # AND THAT RULE ALREADY REACHED FURTHER THAN IT LOOKED, WHICH IS WHY IT NEEDED NO WIDENING.
       # Issue 241. The step at the bottom of this file was named after scripts/verify.sh's step 10
@@ -191,6 +201,49 @@ jobs:
       # repair, and two honest job names converging is not the defect. A guard keyed on string
       # equality cannot tell the two apart, so there is no guard; #244 carries the numbers and
       # what a full one would need.
+      #
+      # ---------------------------------------------------------------------------------------
+      # THE TWO RULES ABOVE ARE ONE RULE, AND THIS ONE IS THE ONE THAT DECIDES.
+      # ---------------------------------------------------------------------------------------
+      # Issue 245. As they stood, this file said `DO NOT NAME THIS STEP, OR ANY OTHER, AFTER A LINE
+      # A GATE PRINTS` sixty lines up and `DO NOT NAME A STEP AFTER A CLAIM` here, both
+      # unconditional, about different things, and two hundred lines apart. A reader applying them
+      # in order gets opposite answers on five names, and nobody had noticed.
+      #
+      # MEASURED AT `b9b372f`, WHICH IS THE WHOLE ARGUMENT. Of the 29 `- name:` values in this
+      # directory, 8 copy a line one of the three populations states, and 5 of those 8 are
+      # deliberately correct: they were kept under #240 and #241 and repo-gate.yml carries the
+      # reason. So the copy criterion is wrong 5 times out of 8, and wrong in the direction that
+      # costs something, condemning names this repository chose on purpose. Meanwhile the rule's
+      # three real violations at that SHA, `The origin serves what main says`, `The bytes about to
+      # be published are clean, before they are published` and `The page behaves, at every width
+      # and at both altitudes`, copy nothing at all: exact match against every scripts/verify.sh
+      # label returns 0 for each, with a control confirming a known copy returns 1. THE COPY
+      # CRITERION'S COVERAGE OF THE RULE'S ACTUAL VIOLATIONS IS 0 OF 3. #244 carries that
+      # measurement and #245 the sweep that acted on it.
+      #
+      # SO THE QUALIFIED FORM, WHICH IS THE OPERATIVE ONE. Do not name a step after a claim.
+      # Quoting a line another file owns is one WAY to end up with a claim, and it is the way #237,
+      # #240 and #241 each arrived, which is why the rule was first written about copying: copying
+      # was the symptom the first three instances presented with, and stating a claim is the
+      # defect. A name that coincides with a line a gate prints BECAUSE BOTH NAME THE SAME JOB
+      # violates neither sentence and is not to be reworded. That is the five, and #245 found no
+      # sixth: all 29 names were read against the rule, three were violations and they are the
+      # three above.
+      #
+      # THE COPY FRAMING IS QUALIFIED AND NOT DELETED, BECAUSE ITS REASONING IS WHAT STOPS THE NEXT
+      # REPAIR BEING THE WRONG ONE. When a step name and a line it quotes have drifted apart, the
+      # repair that suggests itself is to edit the name back into agreement. #237 refused that, and
+      # the refusal is the durable half: a hand re-sync restores the APPEARANCE of a maintained
+      # relation and leaves it held by nothing, so it drifts again at the next rewording with
+      # nobody at fault. That is why the rule above stays where it is, as the record of the case
+      # that produced it. What it no longer does is decide on its own.
+      #
+      # NEITHER RULE IS MECHANICAL AND NEITHER IS GOING TO BE. #244 measured eight candidate
+      # handles for separating a claim from a job name; two reach 8 of 8 on the eight copies and
+      # both collapse when asked the same question over the fifteen lines a copy is drawn from.
+      # Both rules are prose, held by a reader, and #245 is what a reader holding them looks like:
+      # one sweep of all 29 names, once.
       # verify-step: build-gate
       - name: Run the build gate, and report the state it exits in
         run: |
