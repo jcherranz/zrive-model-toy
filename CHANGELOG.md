@@ -106,6 +106,16 @@ of what changed and when, and it is meant to be scannable.
   not judged; it is measured on every run and printed beside the pass, at -0.6919 to 1.6129 on this
   tree, which is #204's own pair of figures arriving as a printed number instead of an argument.
   KAIZEN.md `kaizen-record-the-condition-not-the-answer`.
+- **The positive control for the second assertion was executed by accident, in CI, and it is the
+  strongest evidence on the card.** A control mutation writing `compose()`'s `max(regular, bold)` as
+  `min(regular, bold)`, which is #220's mutation one file over, survived a killed control run and
+  reached a pushed commit. While it was live: `scripts/check_build.sh` clean, `scripts/check_repo.sh`
+  clean, the run-time envelope bound green at 4.3423 units of headroom because it is one-sided
+  upward, the run-time search oracle in agreement with the placer because it blocks its own
+  reconstruction with the same narrowed box, and #224's lane phase green. **The only thing anywhere
+  that went red was the new equality**, on 560 of 709 tiles, and it named the mutation rather than
+  reporting a disagreement: the reserve equalled the rest reading to the last bit on every one of
+  them. KAIZEN.md `kaizen-a-control-mutation-runs-in-a-copy` is the other half of that story.
 
 - **THE RUN HEADINGS WERE A FOURTH STATEMENT OF THE BUILD GATE'S SECTION LIST, THE ONE A READER
   ACTUALLY WATCHES, AND THE ONLY ONE STILL UNPINNED, #235.** `scripts/check_build.sh` states its

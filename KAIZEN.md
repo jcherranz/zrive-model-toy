@@ -131,6 +131,21 @@ repoints the moment a lesson is added or removed: two changelog entries citing "
 entry" already meant two different lessons, which is issue 54. `scripts/check_repo.sh` fails the
 build on a cited slug that resolves to nothing.
 
+- `kaizen-a-control-mutation-runs-in-a-copy` &middot; **A control that proves a check can fail must
+  be applied to a copy of the tree and never to the working tree, because the revert is the step
+  that does not run when the run is interrupted.** #228's controls mutated `site/render.js` in place
+  and reverted with `git checkout` after each one. A run was killed between the mutation and the
+  revert, the working tree kept `min` where `max` belongs in `compose()`'s reserve, and the next
+  commit carried it to a pushed branch. Three things did not catch it: `node --check` passes on a
+  valid mutation, `git diff --stat` counts lines rather than reading them, and the mutation is a
+  plausible edit rather than a marker. What caught it was a reader of the diff, one round trip
+  later, and by then it had produced a CI failure that read exactly like a discovery: the run-time
+  reserve short of the bold on 560 of 709 tiles, with every other gate green. **A false finding is
+  the expensive failure here, not a false pass.** The rule is that a control copies `site/`,
+  `scripts/` and `build/` to a scratch directory, mutates the copy, drives the copy and deletes it,
+  so nothing needs to be put back. The second rule is that after any interrupted run the whole
+  working-tree diff is read line by line before it is committed, since the revert that did not run
+  is invisible in a summary.
 - `kaizen-record-the-condition-not-the-answer` &middot; **A measurement taken under ambient state
   cannot be held against a later one unless the state was recorded with it, and what gets recorded
   must be the condition rather than the number.** `getComputedTextLength()` answers in user units
