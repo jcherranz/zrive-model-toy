@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T17:40:56Z",
+  "generated": "2026-08-17T20:21:53Z",
   "columns": [
     {
       "key": "raw",
@@ -40,6 +40,15 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
+        },
+        {
+          "id": 253,
+          "title": "The panel navigates and nothing on the page says so, which is why the owner opened it and saw no change",
+          "labels": [
+            "limitation",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/253"
         }
       ]
     },
