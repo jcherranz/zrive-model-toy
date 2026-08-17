@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T00:07:27Z",
+  "generated": "2026-08-17T00:16:40Z",
   "columns": [
     {
       "key": "raw",
@@ -42,6 +42,15 @@
             "idea"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
+        },
+        {
+          "id": 224,
+          "title": "A selected label leaving its lane is measurable on the page and nothing measures it",
+          "labels": [
+            "layout",
+            "status:raw"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/224"
         }
       ]
     },
