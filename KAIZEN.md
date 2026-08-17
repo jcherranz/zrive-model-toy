@@ -131,6 +131,19 @@ repoints the moment a lesson is added or removed: two changelog entries citing "
 entry" already meant two different lessons, which is issue 54. `scripts/check_repo.sh` fails the
 build on a cited slug that resolves to nothing.
 
+- `kaizen-record-the-condition-not-the-answer` &middot; **A measurement taken under ambient state
+  cannot be held against a later one unless the state was recorded with it, and what gets recorded
+  must be the condition rather than the number.** `getComputedTextLength()` answers in user units
+  and moves with the screen CTM, so `widthOf()`'s cache in `site/render.js` carries the zoom the
+  drawing that first wanted a string composed at, while the paint is read at whatever zoom the fit
+  settled on. Issue 204 wrote the comparison, drove it, found the residual two-sided at 0.6919 under
+  to 1.6129 over, and withdrew it rather than picking a band, which was right. Issue 228 made the
+  same comparison exact by recording the `viewBox`, the box and the CTM each probe stood at, and
+  reading the paint back there. The discipline that makes such a record admissible is that it
+  carries no width: a condition tells a checker WHEN to look and hands it none of the answer, and a
+  condition that lies makes the equality red on every string at once rather than green on any, so it
+  can lose a pass and cannot manufacture one. The general shape is that a two-sided residual with no
+  honest bound is usually a missing variable rather than a tolerance waiting to be chosen.
 - `kaizen-a-control-that-leaves-a-group-leaves-the-groups-rules-behind` &middot; **A control that
   moves out of a group loses every rule that was written against the group, and the loss is
   invisible until somebody presses it.** Issue 139 deleted the readout plate and moved the altitude

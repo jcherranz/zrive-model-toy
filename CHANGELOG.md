@@ -76,6 +76,37 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- **THE RESERVE COULD NOT BE HELD AGAINST THE PAINT BECAUSE THE TWO WERE READ AT TWO ZOOMS, AND IT
+  CAN NOW, AS AN EQUALITY, #228.** #204 wrote that comparison, drove it, and **withdrew it rather
+  than tuning it into a pass**: it went red on 555 of 863 on a clean tree, because
+  `getComputedTextLength()` moves with the screen CTM, `widthOf()` in `site/render.js` caches one
+  answer for the life of the page, and the paint is read later at whatever zoom the fit settled on.
+  The residual was **two-sided**, 0.6919 units under to 1.6129 over, so no honest bound existed.
+- **What was missing was not a tolerance, it was the zoom.** `site/render.js` records, per cache
+  key, the **condition** the measurement was taken under, which is the `viewBox` in force, the box
+  the SVG occupied and the CTM the probe read. **No width.** `scripts/smoke.mjs` restores each
+  condition and reads the **painted** element there, so both sides stand at one zoom and the
+  comparison is an equality to the last bit rather than a band. Measured first: probe and painted
+  element answer the same number to six decimal places of zero over 182 lines at three separate
+  zooms.
+- **Three assertions, `EXPECTED_ASSERTIONS` from 361 to 364**, the run-time placer phase from four
+  to seven. That every painted string names a measurement the page recorded and that its zoom was
+  reached again; that every label box is exactly the widest advance of its own painted lines plus
+  the pad, over 709 tiles; and that every chip rect is exactly its own verb plus two pads, over 903.
+  The second is the direction the envelope bound is **structurally blind** to, a reserve that is too
+  narrow, which is the direction that puts a chip on a label.
+- **The placer did not move, and that is measured rather than argued.** 74 addresses over seven
+  programmes, both grains, all 21 pairs, the seven-way union and a three-week window on each, driven
+  in one order on this tree and on `origin/main`: every painted `#graph` and every packed box
+  **byte-identical**, 58 composed drawings, 4404 tiles and 5600 chips. The card asked for the shape
+  that re-takes the reserve at the reading zoom; that one changes `widthOf()`'s cache and moves the
+  page, so it was not built.
+- **What the equality does not prove is stated where it is made.** It reads the paint at the
+  reserve's own zoom, so it accepts a reserve cached at any zoom. The two-zoom residual is therefore
+  not judged; it is measured on every run and printed beside the pass, at -0.6919 to 1.6129 on this
+  tree, which is #204's own pair of figures arriving as a printed number instead of an argument.
+  KAIZEN.md `kaizen-record-the-condition-not-the-answer`.
+
 - **THE RUN HEADINGS WERE A FOURTH STATEMENT OF THE BUILD GATE'S SECTION LIST, THE ONE A READER
   ACTUALLY WATCHES, AND THE ONLY ONE STILL UNPINNED, #235.** `scripts/check_build.sh` states its
   sections four times: the `# N.` banners, the step 3 label in `scripts/verify.sh`, the
