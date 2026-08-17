@@ -48,6 +48,76 @@ of what changed and when, and it is meant to be scannable.
 
 ### Changed
 
+- **THE PHONE CHROME CEILING THIS REPOSITORY STATES IS A TOTAL AND THE ONLY THING ENFORCED WAS THE
+  HEADER, #248.** `scripts/smoke.mjs` bounded `header.offsetHeight / window.innerHeight` at 0.2370
+  and read no other element. The page has one `<footer>` in `site/index.html` and seven rules for it
+  in `site/app.css` including its own phone padding, and **nothing anywhere in this repository had
+  ever read the footer's height**, at any width, on any route. Eight statements, two in
+  `site/app.css` and six in this file, cite 0.1730 as the ceiling this repository holds itself to,
+  and every one of them quotes a header figure against it.
+- **BOTH CONSTANTS ARE THE SAME QUANTITY AT TWO DATES, and that was settled by driving the old bytes
+  rather than by reading the old commit messages.** The page's total chrome at 390 by 844, off
+  `site/` at each commit, on `#/`: at `1b7bdc2`, where 0.2370 was written on #89, header 107 and
+  footer 93, total 200 of 844, which is 0.2370 to four decimals; at `4b67863`, where 0.1730 comes
+  from on #120, header 107 and footer 39, total 146 of 844, which is 0.1730 to four decimals. **The
+  header is 107 in both**, so neither figure was ever a statement about the header, and the whole of
+  the difference is the footer, 93 to 39, which #120's own constraint list attributes to #110. This
+  file agrees from the other side: header 107 with phone chrome 23.7 per cent on #98, header 107
+  with phone chrome 17.3 per cent on #120, and one quantity cannot take two values while its stated
+  component does not move.
+- **So there was never a disagreement about which number is the ceiling.** There was a stale total
+  wired to a probe that reads a part: 0.2370 was the page's own total on the day it was written and
+  was applied, then and ever since, to the header alone. That is why the number this repository
+  states in eight places went on being cited while nothing could enforce it, and why the enforced
+  one could not go red however tall the footer grew.
+- **The bound is the total now, at the figure this repository already states.** `TOTAL_CHROME_SHARE`
+  is 0.1730 over `header.offsetHeight` plus `footer.offsetHeight`. **It is a tightening and not a
+  relabelling**: a total at or under 0.1730 puts the header at or under 0.1730 as well, so every
+  header the retired bound refused is still refused and a great deal more besides.
+  `EXPECTED_ASSERTIONS` **does not move and is 364 at `09a449b`**, because the assertion is widened
+  rather than added to.
+- **The footer reading answers three states and not two, and the third one refuses.** The obvious
+  probe is `f ? f.offsetHeight : 0`, and it folds a footer that is present and nothing tall, a
+  footer that is present and hidden, and a footer the probe could not find at all into one number.
+  **The fold sends the failure the dangerous way**: an absent footer reports as no chrome, so the
+  total comes out smaller than the page's and the bound passes more easily for it, which is a check
+  reporting a clean answer when it has failed to measure. The absent case answers `null` with a
+  `why`, the total is `NaN` rather than a number on that path so the arithmetic fails in the safe
+  direction whatever order the predicate is ever rewritten in, and the assertion requires a footer
+  it could find before it computes anything. KAIZEN.md
+  `kaizen-a-sweep-needs-three-states-not-two`, met on one element rather than on a sweep.
+- **Measured, and the two machines agree to the pixel.** Header 107, footer 28, total 135 of 844,
+  share 0.1600, at 390 by 844 on `#/p/ZBL/modules`: locally on Chrome 149.0.7827.55 and on the
+  `ubuntu-24.04` runner on Google Chrome 151.0.7922.108, which is the check #149 bought. **That
+  leaves 0.0130, and 11 CSS px**, against the 32 px `site/app.css` prices one header row at, so
+  there is no room for a row and a card that wants one has to give a row's worth back.
+- **The population, because one address at one width is one address at one width.** Nine addresses
+  driven at 390: the footer is 28 on all seven that draw the diagram, on both readings of the term
+  and on `#/students`, and 0 on `#/board`, where it sits inside a `main` the route hides; the header
+  is 107 on the diagram addresses and on both readings, 85 on `#/board` and 75 on `#/students`. The
+  address the assertion drives is the worst of the nine by measurement rather than by choice.
+  Nothing here covers a width above 760 and nothing covers a second viewport height.
+- **The two `site/app.css` comments that decline a header row were understating their own case.**
+  Both priced the row against the header alone, 0.1268 to 0.1647, which reads as room under 0.1730
+  and is not: with the footer in, the same row takes the total from 0.1600 to 0.1979, which is over
+  the ceiling rather than under it. Both are corrected and both refusals stand, harder than they
+  read.
+- **The six lines in this file that quote 0.1268 against 0.1730 are left as they stand**, because
+  they are dated records of what was measured on the day and rewriting a measurement is not
+  correcting a claim. This entry is what they are read against from here.
+- **Six controls, every one of them in a copy of `site/`, `scripts/` and `build/` in a scratch
+  directory outside the repository**, KAIZEN.md `kaizen-a-control-mutation-runs-in-a-copy`: the
+  working tree is never mutated, so no revert has to run. Both mutations sit inside
+  `@media (max-width: 760px)`, so neither reaches the two desk viewports. **On the widened bound**,
+  a clean copy passes 364 of 364 at total 135 of 844, share 0.1600; a **footer-only** change, its
+  phone padding 6 px to 30 px, takes the footer to 76 and reddens it alone at total 183 of 844,
+  share 0.2168; a **header-only** change takes the header to 131 and reddens it alone at total 159
+  of 844, share 0.1884; and **removing the `<footer>` element** reddens it with `footerFound` false
+  and both footer figures reading `not measured`, so it **refuses rather than computing on a
+  substitute**. **On the retired header-only bound at `09a449b`, driven from that commit's own
+  bytes, the footer change and the header change are BOTH silent**, 364 of 364 and `VERDICT: clean`
+  on each, which is the gap this card was filed about and the term nothing tested, shown rather
+  than argued.
 - **THE BUILD WORKFLOW NAMED ITS GATE STEP BY QUOTING THE GATE'S FIRST RUN HEADING, AND NOTHING
   HELD THE TWO TOGETHER, #237.** `.github/workflows/build.yml` called its build-gate step `The
   drawing git holds is what the builder produces`, a verbatim copy of `scripts/check_build.sh`'s

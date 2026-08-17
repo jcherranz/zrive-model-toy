@@ -739,3 +739,25 @@ build on a cited slug that resolves to nothing.
   re-synced by hand, and deleting it takes that with it. The second is that two rules in one file
   must be read together before either is applied, so the widened one has to say so where the
   narrow one is written, not two hundred lines away.
+- `kaizen-a-bound-names-a-quantity-and-the-quantity-can-move-out-from-under-it` &middot; **A number
+  copied out of a measurement into a bound stops being about the thing it was measured off the
+  moment either side moves, and the stale copy and the current figure then read as two opinions
+  rather than as one quantity at two dates.** Issue 248 opened on exactly that pair, an enforced
+  0.2370 in `scripts/smoke.mjs` and a stated 0.1730 cited in eight live sentences, both of them
+  shares of the same phone viewport, and the card asked which of the two is the real ceiling. That
+  is the wrong question and the shape invites it. Driven off `site/` at the commit each figure was
+  written at, at 390 by 844: at `1b7bdc2` the header was 107 and the footer 93, total 200 of 844; at
+  `4b67863` the header was 107 and the footer 39, total 146 of 844. Those are 0.2370 and 0.1730 to
+  four decimals, and **the header is the same 107 in both**, so neither figure was ever a statement
+  about the header, which is the only thing the probe holding one of them reads. The older total had
+  been typed into a probe reading a PART of it, and the part it was not reading then shrank by 54
+  px. **A bound that has dropped a term cannot go red on that term however far it moves**, and the
+  newer figure being quoted in eight places kept the whole arrangement looking supervised. **The
+  general form: before two constants are compared, establish what each one COUNTS by measuring it,
+  and where a constant was fitted to a rendered artefact, drive the artefact at the commit the
+  constant was written at rather than reading the commit message.** A message says what somebody
+  meant to do and the bytes say what the number was taken off. Two readers of this card in a row
+  reasoned from adjacency, that two shares quoted in one sentence must be the same measurement, and
+  the cheap tell against that was available to both: the changelog records the same header height,
+  107, beside two different phone chrome figures, 23.7 per cent and 17.3 per cent, and one quantity
+  cannot take two values while its stated component does not move.

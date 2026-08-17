@@ -16737,25 +16737,106 @@ async function runGrain(chrome, base) {
     console.log(`  actual:    ${page.actual.w} by ${page.actual.h}   via ${page.mechanism}`);
     await group('the header', async () => {
       await goto(base + '#/p/ZBL/modules');
+      // THE PAGE'S CHROME IS THE HEADER AND THE FOOTER, AND UNTIL ISSUE 248 THIS READ THE HEADER.
+      // site/index.html holds one of each and site/app.css sizes both, seven rules for the footer
+      // including its own phone padding, and no assertion anywhere in this file had ever read the
+      // footer's height, at any width, on any route. So the quantity below is the whole of the
+      // chrome now, read on one paint, and the assertion under it is the first thing in this
+      // repository that has an opinion about the footer's contribution to it.
+      //
+      // BOTH CONSTANTS IN THIS CARD ARE THE SAME QUANTITY AT TWO DATES, WHICH IS WHAT SETTLED IT,
+      // and it was settled by driving the old bytes rather than by reading the old messages. The
+      // page's total chrome at 390 by 844, off site/ at each commit, on `#/`:
+      //
+      //   1b7bdc2, issue 89, where 0.2370 was written   header 107, footer 93, total 200 of 844
+      //   4b67863, issue 120, where 0.1730 comes from   header 107, footer 39, total 146 of 844
+      //
+      // 200 of 844 is 0.2370 and 146 of 844 is 0.1730, both exactly. The header is 107 in both, so
+      // neither figure was ever a statement about the header, and the whole of the difference is
+      // the footer, which issue 110 shortened by 54 px between the two. The changelog agrees from
+      // the other side: it records the header at 107 and the phone chrome at 23.7 per cent on
+      // issue 98, and the header at 107 and the phone chrome at 17.3 per cent on issue 120, and
+      // one quantity cannot take two values while its stated component does not move.
+      //
+      // SO THERE WAS NEVER A DISAGREEMENT ABOUT WHICH CEILING IS THE CEILING. There was a stale
+      // figure wired to a probe that reads a part: 0.2370 was the page's own total on the day it
+      // was written and it was applied, then and here, to the header alone. That is why the number
+      // this repository states in eight places went on being cited while nothing could enforce it,
+      // and why the enforced one could not go red however tall the footer grew.
+      //
+      // THIS IS A TIGHTENING AND NOT A RELABELLING, which is the thing to check before reading the
+      // constant as a loosening: a total at or under 0.1730 puts the header at or under 0.1730 as
+      // well, so every header this file used to refuse it still refuses, and it refuses a great
+      // deal more besides. Nothing is permitted now that was refused before.
+      // THREE STATES AND NOT TWO, WHICH IS THE WHOLE OF WHY THIS READS `null`. `f ? f.offsetHeight
+      // : 0` folds three answers into one number: a footer that is present and genuinely nothing
+      // tall, a footer that is present and hidden, and a footer this probe could not find at all.
+      // The first two are heights and the third is a failure to look, and the fold sends the
+      // failure the dangerous way: an absent footer reports as no chrome, so the total comes out
+      // SMALLER than the page's and the bound below passes more easily for it. That is the shape
+      // KAIZEN.md `kaizen-a-sweep-needs-three-states-not-two` is about, met on one element rather
+      // than on a sweep, and it is the same reason `scripts/check_forbidden.sh`'s `scan_dir` aborts
+      // on an empty input instead of calling it clean. So the absent case answers `null` and says
+      // why, the assertion refuses to compute rather than computing on a substitute, and a run
+      // that could not take the measurement says so instead of printing a small one.
       const w = await ev(`
         var m = document.scrollingElement;
+        var f = document.querySelector('footer');
         return { scrollWidth: m.scrollWidth, clientWidth: m.clientWidth,
                  header: document.querySelector('header').offsetHeight,
+                 footer: f ? f.offsetHeight : null,
+                 footerFound: !!f,
+                 why: f ? '' : 'the document served no <footer>, so the total chrome could not be ' +
+                               'taken and no number here is one',
                  inner: window.innerHeight };`);
+      const chrome4 = n => (n / w.inner).toFixed(4);
+      // NaN AND NOT ZERO ON THE ABSENT PATH, so the arithmetic fails in the safe direction whatever
+      // order the predicate below is ever rewritten in: every comparison against NaN is false, and
+      // `null + 107` would have been a number that compares happily.
+      const total = w.footerFound ? w.header + w.footer : NaN;
       // WRITTEN WITH A TRAILING ZERO, which build/model.py's two sRGB constants already are and
       // for the same reason: a digit, a dot and exactly three digits is how a grouped amount is
       // written in Spanish, the repository's safety gate reads every tracked file and says so,
-      // and the repair for that is the number and never the rule. The value is unchanged.
-      const CHROME_SHARE = 0.2370;
-      assert('the collapsed page does not scroll sideways at 390, and the header is 23.7 per cent or less',
-        w.scrollWidth === w.clientWidth && w.header / w.inner <= CHROME_SHARE + 0.0005,
-        'no sideways scroll and header chrome at or under 23.7 per cent',
-        JSON.stringify(Object.assign({}, w, { share: (w.header / w.inner).toFixed(4) })),
+      // and the repair for that is the number and never the rule. This figure is where that was
+      // learned: 40569b1 gave it its trailing zero on issue 130 after CI caught the shorter
+      // spelling, on the desk screen's own copy of this bound, which issue 131 then reverted with
+      // the screen. The value is what site/app.css and CHANGELOG.md already state.
+      //
+      // AND THE MARGIN, PRINTED HERE SO THE NEXT CARD KNOWS WHAT IT HAS TO SPEND. Measured for
+      // issue 248 at 3cd3c12, header 107 and footer 28, total 135 of 844, share 0.1600, on two
+      // machines that agree to the pixel: locally on Chrome 149.0.7827.55 and on the ubuntu-24.04
+      // runner on Google Chrome 151.0.7922.108, which is the check issue 149 bought. That leaves
+      // 0.0130, and 11 CSS px at this viewport. site/app.css prices one extra header row at 32 px,
+      // so THERE IS NO ROOM FOR A ROW, and a card that wants one has to give a row's worth back.
+      // The two site/app.css comments that decline a row cite this ceiling and were understating
+      // their own case: they priced the row against the header alone.
+      //
+      // AND WHAT ONE ADDRESS AT ONE SIZE DOES NOT COVER, said because the population is part of
+      // the claim. This drives `#/p/ZBL/modules` at 390 by 844 and nothing else. Nine addresses
+      // were driven for issue 248 at that size: the footer is 28 on all seven that draw the
+      // diagram, on both readings of the term and on `#/students`, and 0 on `#/board`, where it
+      // sits inside a `main` the route hides; the header is 107 on the diagram addresses and on
+      // both readings, 85 on `#/board` and 75 on `#/students`. So the address below is the worst
+      // of the nine, and it is the worst by measurement rather than by choice. Nothing in this
+      // file holds that, no width above 760 is covered and no second viewport height is, so a card
+      // that makes some other address taller than the diagram falsifies this paragraph rather than
+      // the assertion under it.
+      const TOTAL_CHROME_SHARE = 0.1730;
+      assert('the collapsed page does not scroll sideways at 390, and the header and the footer together are 17.3 per cent or less',
+        w.footerFound && w.scrollWidth === w.clientWidth &&
+          total / w.inner <= TOTAL_CHROME_SHARE + 0.0005,
+        'a footer this probe could find, no sideways scroll, and total chrome, the header plus the ' +
+          'footer, at or under 17.3 per cent',
+        JSON.stringify(Object.assign({}, w, w.footerFound
+          ? { share: chrome4(w.header), footerShare: chrome4(w.footer), totalShare: chrome4(total) }
+          : { share: chrome4(w.header), footerShare: 'not measured', totalShare: 'not measured' })),
         // The measurement on the pass as well as on the failure, since issue 124. A card that is
         // told not to spend a gain somebody else made has to be able to read what the gain is
         // without planting a failure to see it, and the number a run prints is the number a
         // report can quote.
-        `header ${w.header} of ${w.inner}, share ${(w.header / w.inner).toFixed(4)}`);
+        `header ${w.header} of ${w.inner}, share ${chrome4(w.header)}; ` +
+        `footer ${w.footer}, share ${chrome4(w.footer)}; ` +
+        `total chrome ${total} of ${w.inner}, share ${chrome4(total)}`);
     });
   } finally {
     phone.close();
