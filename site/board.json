@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T08:52:14Z",
+  "generated": "2026-08-17T09:00:59Z",
   "columns": [
     {
       "key": "raw",
@@ -42,22 +42,6 @@
             "idea"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
-        },
-        {
-          "id": 240,
-          "title": "repo-gate.yml's drift step is named after the check's own run heading, and the sentence is stated four times unheld",
-          "labels": [
-            "limitation"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/240"
-        },
-        {
-          "id": 241,
-          "title": "A workflow step is named after verify.sh's step 10 label, and the rule #237 just added forbids the same shape one file over",
-          "labels": [
-            "limitation"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/241"
         }
       ]
     },
@@ -79,7 +63,26 @@
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": []
+      "cards": [
+        {
+          "id": 240,
+          "title": "repo-gate.yml's drift step is named after the check's own run heading, and the sentence is stated four times unheld",
+          "labels": [
+            "limitation",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/240"
+        },
+        {
+          "id": 241,
+          "title": "A workflow step is named after verify.sh's step 10 label, and the rule #237 just added forbids the same shape one file over",
+          "labels": [
+            "limitation",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/241"
+        }
+      ]
     },
     {
       "key": "done",
