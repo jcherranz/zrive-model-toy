@@ -427,6 +427,16 @@ const PHASES = {
   // that every face the table measured is a face the drawings paint in, which is the reverse defect
   // the coverage gate reports as dead weight and never as a wrong context.
   'the face a width was reserved in': { count: 4, when: 'grain' },
+  // Issue 224. Three, and they fail on three different things: that every label line was read
+  // beside its own lane in both states AND that the two were read at one scale, which is the
+  // condition issue 228 says this family of comparison usually cannot meet; that no PAINTED label
+  // crosses the lane its card sits in, which is what `reserve()`'s own comment promises and what
+  // nothing anywhere has ever asked the page; and that no RESERVE does either, taken from the width
+  // table over the lines the page painted, which is the same containment in the face the build
+  // bought it in. The two containments are not one claim twice: driven on a copy of the tree, the
+  // `max` to `min` mutation of `reserve()` is red on the second and SILENT on the first, and a
+  // `--font-ui` family swap is red on the first and silent on the second.
+  'a label inside its lane': { count: 3, when: 'grain' },
   'the header':           { count: 3, when: 'grain' }
 };
 
@@ -878,7 +888,20 @@ const PHASES = {
 // The residual runs both ways, 0.6919 units under to 1.6129 over, so there is no honest bound and a
 // band wide enough to hold would be a number chosen to make it pass. RUNTIME_ENV_SLACK's header
 // carries the measurement in full.
-const EXPECTED_ASSERTIONS = 358;
+// 358 until issue 224, which adds three and is the card the paragraph above left open in a
+// different place. That withdrawal was about holding a CACHED reserve against a LATER paint, two
+// readings at two zooms. This holds the PAINTED label against the PAINTED lane, both read off the
+// live document in one pass, so the two sides cannot be at two scales and the phase asserts that
+// rather than assuming it: seven scales per drawing, agreeing to under 0.0000005 on this tree.
+// What it measures is the thing `reserve()`'s own comment promises and nothing has ever asked the
+// page, that the box holds the state a click puts a label into. It is asserted twice over the same
+// lane, once on the paint and once on the envelope the build reserved from, because those two are
+// not the same quantity and it was measured which mutations each of them sees: the `max` to `min`
+// mutation of `reserve()` is caught by the envelope half and is INVISIBLE to the paint half on this
+// font stack, where the paint runs from 0.7767 to 1.0578 of the table's number for the same string;
+// a `--font-ui` family swap is the other way round, and while that swap does redden three other
+// assertions here, this is the only thing anywhere that would say a LANE had been left.
+const EXPECTED_ASSERTIONS = 361;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -14195,6 +14218,273 @@ const FACE_READ = `
   return { rows: rows, cards: cards, selected: selected, refused: refused };
 `;
 
+// =================================================================================================
+// A LABEL INSIDE ITS LANE, ISSUE 224.
+//
+// `reserve()` at build/build_layout.py:427-432 carries a comment saying what the reserved box is
+// for: it has to hold the state the page enters on a CLICK as well as the one it starts in, because
+// `.node.sel .lbl` turns a label bold and the bold face is about a fifth wider. The build acts on
+// that at :459-500: a label whose reserve would cross its lane is re-broken at the bold weight, and
+// a drawing in which one still crosses is refused. Every term in that gate is a number the builder
+// held in memory. NOTHING HAS EVER ASKED THE PAINTED PAGE. This phase asks it.
+//
+// ---- the population, and what it excludes -------------------------------------------------------
+//
+// The fourteen built drawings, seven programmes at two altitudes, in the grain browser's single
+// viewport, in whichever theme the machine prefers, with no window, no filter and both absence
+// switches on. Every card on them is pressed, which is LANE_CARDS of them, and every `text.lbl`
+// under a card is read at rest and again with that card selected, which is LANE_READINGS readings.
+// The population is asserted before it is used, for the reason issue 206's is: a containment over
+// an empty list is vacuously true and prints green.
+//
+// WHAT IS OUTSIDE IT, SAID RATHER THAN LEFT TO BE NOTICED. The numeral inside a counted tile, which
+// carries no class, is not a label line and takes no reserved line; it is drawn inside the tile and
+// the tile is inside the lane by construction. The band caption over a lane is the lane's own text
+// rather than a label in it, and `caption_overflow()` in the build already refuses one wider than
+// the lane it names. A verb chip is on a relationship line, which crosses lanes on purpose. And the
+// ten drawings site/render.js COMPOSES, the five unions and five windows issue 204 judges, are out
+// entirely: `mergeBands()` builds a union's lanes at run time out of the fourteen, so a union's lane
+// is not one of these lanes and would need its own claim.
+//
+// ---- the space the comparison is made in, which is the whole difficulty -------------------------
+//
+// Issue 228 exists because the ideal comparison of this family cannot be made as written:
+// `widthOf()` caches one answer for the life of the page at whatever zoom the drawing first composed
+// at, `getComputedTextLength()` moves with the screen CTM, and one string across four viewBoxes
+// answered 103.3476, 103.3324, 103.1555 and 102.9603. A cached reserve against a later paint is two
+// readings at two zooms and cannot be equal.
+//
+// THIS COMPARISON IS NOT THAT ONE, AND THE DIFFERENCE IS WHAT MAKES THE CARD POSSIBLE. Nothing here
+// is cached and nothing here is the probe: both sides are read off the live document in one
+// synchronous pass, `getBoundingClientRect()` on the lane's own `rect.band` and
+// `getBoundingClientRect()` on the label's `text.lbl`, with no navigation, no class write, no press
+// and no layout between them. THE SPACE IS THE SCREEN, in CSS pixels, which is the space a reader's
+// eye is in. The two are DIFFERENCED there and the quotient is taken afterwards, purely so the
+// figures below can be read against the card's and the build's, which are in drawing units.
+//
+// AND THE ONE SCALE IS ASSERTED RATHER THAN ASSUMED, THOUGH IT IS EVIDENCE ABOUT THE READER RATHER
+// THAN A TERM OF THE VERDICT. Each of the six lanes on a drawing gives a scale of its own, its
+// client width over its `width` attribute, and the SVG gives a seventh through `getScreenCTM().a`.
+// All seven are held together within LANE_SCALE_TOL at every reading; measured on this tree the
+// worst spread over all of them is under 0.0000005. What that conjunct cannot do is change the
+// containment, and an adversarial read was right to say the first draft of this paragraph implied
+// it could: the difference is taken before the division and the divisor is positive, so the sign is
+// scale-free, and the reserve half never leaves attribute space at all. What a disagreement would
+// mean is that the reader had stopped taking the two sides together, which is the whole of what
+// keeps this out of issue 228's wall.
+//
+// WHAT `getBoundingClientRect()` ON AN SVG `text` RETURNS, said exactly rather than as "the paint".
+// It is the laid-out box, the advance and the font's ascent and descent, not the ink: a side bearing
+// paints outside it, which on this page means the italic faces, `.lbl-ghost` and the mark. No label
+// rule declares a stroke or letter spacing, so the difference is a fraction of a unit against a
+// floor of 8.6192, but the quantity is the layout box and this file should not call it the ink.
+//
+// THE TRAP IS REAL AND THIS PHASE'S OWN FIRST DRAFT WALKED INTO IT, WHICH IS WHY THE LANE IS RE-READ
+// FOR EVERY READING RATHER THAN ONCE PER DRAWING. The first press opens the detail panel, `body`
+// takes `panel-open`, and the canvas narrows from 1536 CSS px to 1216. The viewBox does not move and
+// the drawing does not re-lay-out; the fit does. Measured on `#/p/ZIB`: the scale goes 1.2098 to
+// 0.9577, and on `#/p/ZSC` 0.2917 to 0.2309, both of them exactly the 1.2632 the two canvas widths
+// stand in. A draft that read the lanes before the loop and the labels inside it reported 216
+// readings outside their lanes, the worst by 462.0509 units on a 250-unit lane, every one of them an
+// artefact of comparing two scales. So a resting reading taken before the first press is at one
+// scale and every later one is at another, the containment holds at both, and neither is compared
+// against the other.
+//
+// ---- two widths for one string, and both are asserted against the same lane ---------------------
+//
+// A string has two claimed widths and they are not the same quantity. What the runner PAINTS is one
+// face on one machine. What build/label_widths.json holds is an ENVELOPE over the whole `--font-ui`
+// stack, which is what the build reserves from and what the card's own table is written in. Both are
+// held here against the same lane, and they fail on different things, which was MEASURED on this
+// tree rather than argued:
+//
+//   THE PAINT. Clean, 0 of the readings outside, the tightest at 8.6192 units of lane to spare
+//   (`sc_students` on ZSC/sessions, whose card sits off-centre in a 218-unit lane). Under the
+//   `max` to `min` mutation of `reserve()` the card names, STILL 0 OUTSIDE and the floor does not
+//   move: `sc_st14`'s selected label paints 209.3650 against a 250-unit lane, 20.3175 units inside
+//   on the tight side, where the table's `10/600` for the same line is 254.41 and 2.2050 outside.
+//   Over the readings the paint runs from 0.7767 to 1.0578 of the table's number for the same string
+//   in the same context, so on THIS font stack the table is not an upper bound on the paint in
+//   either direction, and it is about a fifth loose on the long strings that are the only ones near
+//   a lane edge. What the paint DOES catch is anything that widens the ink without moving a build
+//   number: swapping `--font-ui` for a single wider family puts four selected labels outside their
+//   lanes, worst `sc_st18` by 1.3955 units, with the reserve half of this phase and issue 206's face
+//   census both silent, the latter because `font-family` is declared out of its five properties in
+//   as many words. THAT SWAP IS NOT INVISIBLE TO THE WHOLE SUITE and this file should not say it is:
+//   the same run also reddened issue 204's envelope assertion and two readings of the term sheet at
+//   1536 and 2560. What it is invisible to is everything that would name a LANE, which before this
+//   phase was everything there is.
+//
+//   THE RESERVE, taken from the table over the lines the PAGE painted and held against the lane the
+//   PAGE painted. Clean, 0 of them outside, and THE TIGHTEST HAS 0.0150 UNITS OF LANE TO SPARE
+//   (`sc_st16` on ZSC/sessions). THAT IS NOT A ROUNDING ARTEFACT AND IT MUST NOT BE READ AS ONE: it
+//   is the design sitting exactly on its limit, because the re-break at :459 fires precisely when
+//   the reserve would cross, so the tightest label in the corpus comes to rest one hundredth of a
+//   unit inside. A card that widens a lane, a label or a face by more than that turns this red, and
+//   that is the intended sensitivity rather than a margin anybody chose. Under the `max` to `min`
+//   mutation it is red at `sc_st14` by 2.2050 and `pe_st4` by 0.6450, which are the card's own two
+//   figures reproduced from the artefact.
+//
+//   AND A FLOOR OF ONE HUNDREDTH RAISES A FAIR QUESTION ABOUT THE QUANTUM OF ITS OWN INPUTS, WHICH
+//   AN ADVERSARIAL READ ASKED AND WHICH IS ANSWERED BY MEASUREMENT RATHER THAN BY ARGUMENT.
+//   build_layout.py writes the band and the tile through `round(., 1)` while its own gate runs on
+//   the unrounded geometry, so in general this phase's half-lane could differ from the build's by up
+//   to 0.15 and a floor of 0.0150 would be finer than its own resolution. On this tree it does not:
+//   every entry of `COLX` and every endpoint of `BAND_X` is an integer, checked by importing the
+//   module, so the rounding is lossless and the number above is the build's own and not a
+//   requantised one. IF A FUTURE COLUMN GEOMETRY STOPS BEING INTEGRAL THAT CEASES TO HOLD, and the
+//   sentence about the design's limit has to be re-measured rather than reprinted.
+//
+// SO NEITHER HALF SUBSUMES THE OTHER AND NEITHER SUBSUMES ISSUE 220, which is the same sentence that
+// card's triage wrote about this one. #220's `check_reserve_used` proves the arithmetic between the
+// width table and the coordinate and says in its own header that it is circular about the widths.
+// The reserve half here is not that claim: its inputs are the strings the browser painted and the
+// band rect the browser painted, so a shipped `site/layout.js` whose wrap or whose lane no longer
+// agrees with the table fails here and passes there. And #220's gate catches two mutations both
+// halves of this phase sleep through, the mark widening and the first-line reserve, at 90 of 570 and
+// 38 of 570 by its own measurement.
+//
+// AND THE TWO FLOORS BEHAVE DIFFERENTLY ON A DIFFERENT RUNNER, WHICH IS THE CARD'S OWN WORRY AND IS
+// NOW A READING RATHER THAN A WORRY. The same commit on this machine and on the CI image: the
+// PAINTED floor is 8.6192 units here and 9.1681 there, so it moves with the font stack by about half
+// a unit and neither is near the boundary; the RESERVED floor is 0.0150 on both, to the digit,
+// because no font of the runner's enters it. So the half that can see what the table cannot describe
+// is the half whose margin a runner moves, and the half that reproduces the build's own number is
+// the one that does not. Both are green on both.
+//
+// A BOUND OF ZERO AND NO TOLERANCE ON EITHER CONTAINMENT, which is not strictness for its own sake.
+// A lane boundary is a boundary rather than a budget, the build's own gate at :487 is `< 0`, and the
+// two floors above stand 8.6192 and 0.0150 units clear of it, so there is nothing for a tolerance to
+// buy that it would not also spend.
+
+// How many lanes a drawing has. Pinned, not counted, because a run that found one lane would find
+// every card in it and every label inside it, and would print green over a drawing with no columns.
+// It is checked as the MIN AND THE MAX over every reading and not as the last one seen: a drawing
+// that grew a seventh band for all but its final card would satisfy a last-sample check. An
+// adversarial read of the first draft found that, where the variable was assigned once per reading
+// and only the survivor was returned.
+const LANE_BANDS = 6;
+
+// How many cards the fourteen drawings carry, and IT IS THIS PHASE'S OWN CONSTANT RATHER THAN
+// FACE_CARDS, which is the same number today. The same adversarial read found the reason and it is
+// exact: FACE_CARDS was measured over `g[data-node], g[data-outside]`, and the second half of that
+// selector is a deliberate tripwire for issue 111's outside tile coming back. This reader enumerates
+// `g[data-node]` alone, so an outside tile that returned carrying a label would turn issue 206's
+// phase red, leave this count untouched at 570, and be a labelled tile nothing here ever looked at.
+// A pinned population borrowed from a strictly larger selector is not a pinned population.
+const LANE_CARDS = 570;
+
+// How many label lines the fourteen drawings paint, read at rest and again selected. It is twice
+// issue 206's own `at rest` rows for the four label faces, 611 labels, 56 ghost labels, 207
+// missing-key captions and 74 count captions, and it moves with the corpus and with the wrap for the
+// reason FACE_CENSUS does: `wrap()` breaks a line against the same table this phase reads.
+const LANE_READINGS = 1896;
+
+// How far the seven scales on one drawing are allowed to differ before this phase says it could not
+// read both sides at one scale. Measured spread on this tree is under 0.0000005, which is four
+// orders under this, so the number is a refusal threshold and not a fitted one.
+const LANE_SCALE_TOL = 0.0001;
+
+// Which contexts of build/label_widths.json bound a painted label line, keyed on the class the page
+// gives it with the fade tokens dropped. It restates build_layout.py's own choice line for line:
+// the label rows take the max of the regular and the bold face, italic on a ghost, and the mark and
+// the tail are reserved from the UPRIGHT nine-pixel row. THE MARK IS PAINTED ITALIC AND RESERVED
+// UPRIGHT, which is the one disagreement this tree ships; it is declared in FACE_KNOWN above with
+// its argument and its repair card, #215, and reading the italic row here instead would be this file
+// inventing a fourth answer where the build, the placer oracle and issue 206 all read the third.
+//
+// IT IS A HAND COPY OF `reserve()` AND WHAT HOLDS IT HONEST IS THE PHASE ABOVE, NOT THIS PHASE.
+// An adversarial read named the shape: a rule that painted a tail at ten pixels, or let
+// `.node.sel .lbl` bold it, would leave this mapping bounding a wider line with the nine-pixel row's
+// narrower numbers, and the containment would print green. That exact mutation is caught by issue
+// 206's third assertion, which holds the face the cascade resolves against the face the context
+// declares, on size, weight, slant, letter spacing and text transform. What issue 206 declares out
+// is `font-family`, and a family that widens a label is what the PAINT half below catches. So the
+// two phases interlock and neither this row nor that one stands on its own.
+const LANE_CTX = {
+  'lbl': ['10/400', '10/600'],
+  'lbl lbl-ghost': ['10/400i', '10/600i'],
+  'ghost lbl lbl-missing': ['9/400'],
+  'lbl lbl-tail': ['9/400']
+};
+
+// One drawing, read. The lane and the label come back as one pair per reading, in drawing units,
+// having been differenced in CSS pixels before either number left the browser.
+const LANE_READ = `
+  var IGNORE = ${JSON.stringify(FACE_IGNORE)};
+  var svg = document.getElementById('graph');
+  // The lane off the painted plate and never off window.GL: the x and the width are the drawing's
+  // own two numbers and the client rect is where the browser put them.
+  function lanesNow() {
+    var out = [];
+    svg.querySelectorAll('rect.band').forEach(function (r) {
+      var c = r.getBoundingClientRect();
+      out.push({ ux: +r.getAttribute('x'), uw: +r.getAttribute('width'),
+                 l: c.left, r: c.right, w: c.width });
+    });
+    return out;
+  }
+  var rows = [], cards = 0, selected = 0, refused = [], spread = 0;
+  var laneLo = Infinity, laneHi = -Infinity;
+  svg.querySelectorAll('g[data-node]').forEach(function (g) {
+    cards++;
+    var tile = g.querySelector('rect.tile-bg');
+    var id = g.getAttribute('data-node');
+    if (!tile) { refused.push(id + ' (no tile to press)'); return; }
+    // The tile's own two attributes, which is where the drawing put the card, and the only number
+    // in this reader that is not a client rect. It is what the lane's spare room is measured from,
+    // because a card is NOT centred in its lane: a lane can hold two columns and the build's own
+    // gate takes the min of the two sides.
+    var ucx = +tile.getAttribute('x') + (+tile.getAttribute('width')) / 2;
+    function readState(state) {
+      // RE-READ, EVERY TIME. The first press opens the detail panel and the canvas narrows, so a
+      // lane read before it is a lane at another scale. The header carries the measurement.
+      var here = lanesNow();
+      laneLo = Math.min(laneLo, here.length);
+      laneHi = Math.max(laneHi, here.length);
+      var tc = tile.getBoundingClientRect(), mid = (tc.left + tc.right) / 2;
+      var lane = null, hits = 0;
+      for (var i = 0; i < here.length; i++) {
+        if (mid >= here[i].l && mid <= here[i].r) { if (!hits) lane = here[i]; hits++; }
+      }
+      // EXACTLY ONE, AND NOT "THE FIRST THAT HOLDS IT". A card in no lane and a card in two are
+      // both states in which "the lane its node sits in" names nothing, and a reader that picked
+      // one would answer about a lane it chose rather than about the one the drawing gives.
+      if (hits !== 1) {
+        refused.push(id + ' ' + state + ' (' + hits + ' lanes hold its tile)');
+        return;
+      }
+      var k = svg.getScreenCTM().a;
+      for (var j = 0; j < here.length; j++) {
+        spread = Math.max(spread, Math.abs(here[j].w / here[j].uw - k));
+      }
+      var scale = lane.w / lane.uw;
+      g.querySelectorAll('text.lbl').forEach(function (t) {
+        var c = t.getBoundingClientRect();
+        var cls = String(t.getAttribute('class') || '').split(/\\s+/)
+          .filter(function (x) { return x && IGNORE.indexOf(x) < 0; }).sort().join(' ');
+        rows.push({ id: id, state: state, cls: cls, s: t.textContent,
+                    out: Math.max(lane.l - c.left, c.right - lane.r) / scale,
+                    pw: c.width / scale,
+                    half: Math.min(ucx - lane.ux, lane.ux + lane.uw - ucx) });
+      });
+    }
+    readState('at rest');
+    tile.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    // A press the page declined is a hole and not a second copy of the resting reading, which is
+    // how issue 203's reader came to report a hole instead of a wrong answer.
+    if (!g.classList.contains('sel')) { refused.push(id + ' (the press did not select it)'); return; }
+    selected++;
+    readState('selected');
+  });
+  // AND THE DRAWING NAMES ITSELF. The address this reading is filed under is a string the driver
+  // built, and the navigation is a fragment change on a document that stays put, so a router that
+  // ignored a hash change would have this phase read one drawing twice and file it under two names.
+  // The digest rides on the drawing, so the fourteen being fourteen is asked of the page.
+  return { rows: rows, cards: cards, selected: selected, refused: refused, spread: spread,
+           laneLo: laneLo, laneHi: laneHi, digest: window.ZT.programme().digest };
+`;
+
 // The curve, flattened the way the placer flattens it. Nothing is shared with build_layout.py but
 // the chord count and the numbers in the `d` attribute the page painted.
 function chipArc(p, n) {
@@ -15439,6 +15729,153 @@ async function runGrain(chrome, base) {
         { contexts: FACE_CONTEXTS, unwitnessed: [], mislabelled: [] },
         'each spelling the same face in its key as in its css block, and each witnessed by at ' +
         'least one string of its own painted in its own face: ' + JSON.stringify(witness));
+    });
+
+    // ---- a label inside its lane, issue 224 --------------------------------
+    await group('a label inside its lane', async () => {
+      const table = chipWidths();
+      const rows = [];
+      let cards = 0, selected = 0, spread = 0;
+      const refused = [], lanes = {}, digests = [];
+      for (const g of ['sessions', 'modules']) {
+        for (const k of KEYS) {
+          await goto(base + '#/p/' + k + (g === 'modules' ? '/modules' : ''));
+          const r = await ev(LANE_READ);
+          cards += r.cards;
+          selected += r.selected;
+          spread = Math.max(spread, r.spread);
+          lanes[k + '/' + g] = [r.laneLo, r.laneHi];
+          digests.push(r.digest);
+          refused.push(...r.refused.map(x => k + '/' + g + ' ' + x));
+          rows.push(...r.rows.map(x => Object.assign({ where: k + '/' + g }, x)));
+        }
+      }
+
+      // ONE. THE POPULATION, AND THAT BOTH SIDES WERE READ AT ONE SCALE. Seven facts and they fail
+      // on seven different things: how many label lines were read, how many cards were pressed,
+      // whether any press was declined or any card left in no lane or in two, whether any line was
+      // laid out at nothing, whether every reading saw the drawing's lanes, whether the fourteen
+      // addresses drew fourteen different drawings, and whether the lane and the label were read at
+      // one scale.
+      //
+      // THE LAST ONE IS EVIDENCE ABOUT THE READER AND NOT A LOAD-BEARING TERM, WHICH IS WORTH SAYING
+      // PRECISELY BECAUSE THE FIRST DRAFT OF THIS COMMENT OVERSTATED IT. `out` is differenced in CSS
+      // pixels and only then divided by a positive scale, so the SIGN of the containment below, its
+      // entire content, is scale-free; `half` is computed in attribute space and touches no scale at
+      // all. What a disagreement between the seven scales would mean is that this reader is no
+      // longer reading the two sides together, which is the design that keeps it out of issue 228's
+      // wall, and the day that stops being true the containment stops meaning what it says.
+      const zeros = rows.filter(r => !(r.pw > 0));
+      const byState = {};
+      for (const r of rows) byState[r.state] = (byState[r.state] || 0) + 1;
+      const wrongLanes = Object.keys(lanes)
+        .filter(k => lanes[k][0] !== LANE_BANDS || lanes[k][1] !== LANE_BANDS).sort();
+      const drawings = new Set(digests).size;
+      assert('every label line on the fourteen drawings was read beside its own lane, in both states, at one scale',
+        rows.length === LANE_READINGS && cards === LANE_CARDS && refused.length === 0 &&
+          zeros.length === 0 && wrongLanes.length === 0 && drawings === digests.length &&
+          spread < LANE_SCALE_TOL,
+        `${LANE_READINGS} readings from ${LANE_CARDS} cards over ${digests.length} drawings of ` +
+          `distinct digest, each pressed once and each answering the press, each sitting in exactly ` +
+          `one of the ${LANE_BANDS} lanes its drawing paints at every reading, none laid out at ` +
+          `zero, and the lane's own scale within ${LANE_SCALE_TOL} of the drawing's at every reading`,
+        `${rows.length} readings ${JSON.stringify(byState)}, ${cards} cards, ${selected} selected, ` +
+          `${drawings} distinct digests, worst scale spread ${spread.toFixed(7)}` +
+          (refused.length ? `, ${refused.length} refused: ${refused.slice(0, 3).join('; ')}` : '') +
+          (zeros.length ? `, ${zeros.length} laid out at zero: ` +
+            zeros.slice(0, 3).map(r => `${r.where} ${r.id}`).join('; ') : '') +
+          (wrongLanes.length ? `, lanes not ${LANE_BANDS} on ` +
+            wrongLanes.map(k => `${k} (${lanes[k][0]} to ${lanes[k][1]})`).join(', ') : ''),
+        `${rows.length} readings over ${cards} cards and ${drawings} drawings, worst spread ` +
+          `between the seven scales on a drawing: ${spread.toFixed(7)}`);
+
+      // TWO. THE PAINT. The claim the card is written for: the label a click gives a reader does
+      // not cross the lane its card sits in. Both states, because the reserve is the max of the two
+      // and a check that read only one of them would be half a claim.
+      //
+      // WHAT IT IS AND IS NOT SENSITIVE TO IS IN THE HEADER, MEASURED. On this font stack it is
+      // silent under the `max` to `min` mutation of `reserve()` and it fires on a `--font-ui` family
+      // swap that every other gate in this repository sleeps through. Both were driven.
+      const paintOut = rows.filter(r => r.out > 0);
+      let paintWorst = -Infinity;
+      for (const r of rows) paintWorst = Math.max(paintWorst, r.out);
+      assert('no painted label crosses the lane its card sits in, at rest or selected',
+        rows.length > 0 && paintOut.length === 0,
+        `every one of the ${LANE_READINGS} laid-out label boxes inside the band rect its own card ` +
+          'stands on, differenced in CSS pixels against that same rect read in the same pass',
+        `${paintOut.length} outside` +
+          (paintOut.length
+            ? `: ${paintOut.slice(0, 4).map(r => `${r.where} ${r.id} ${r.state} by ` +
+                `${r.out.toFixed(4)}`).join(', ')}`
+            : ''),
+        `tightest painted label over ${rows.length} readings: ` +
+          `${(-paintWorst).toFixed(4)} units of lane to spare`);
+
+      // THREE. THE RESERVE, over the same lane. The paint is one machine's face and this is the
+      // envelope the build reserved from, so the two bound the same string from two directions and
+      // only this one is a bound the runner cannot move.
+      //
+      // AND THE HEADROOM IT PRINTS IS ONE HUNDREDTH OF A UNIT, WHICH IS THE DESIGN ON ITS LIMIT AND
+      // NOT A ROUNDING ARTEFACT. The re-break at build_layout.py:459 fires exactly when a reserve
+      // would cross, so the tightest label in the corpus comes to rest just inside. The message
+      // below says so, because the next reader meets the number before they meet this comment.
+      const reserved = new Map();
+      const unread = [];
+      if (!table) unread.push(CHIP_WIDTHS_WHY || 'no width table');
+      for (const r of table ? rows : []) {
+        // ` | ` AND NOT A NUL, WHICH IS WHAT THIS LINE FIRST CARRIED AND WHAT THE REPO GATE CAUGHT.
+        // A raw NUL in a source file makes it binary to `grep`, which is issue 184's whole subject,
+        // and `scripts/check_repo.sh` reads every tracked file as bytes to refuse exactly that. The
+        // separator only has to be one no field holds: `where` and `id` carry neither a space nor a
+        // bar, so the three cannot run together into a key that is two other rows.
+        const key = `${r.where} | ${r.id} | ${r.state}`;
+        if (!reserved.has(key)) {
+          reserved.set(key, { where: r.where, id: r.id, state: r.state, half: r.half, lw: 0 });
+        }
+        const box = reserved.get(key);
+        const ctxs = LANE_CTX[r.cls];
+        // A class with no row and a string the table has never been asked for are both refusals
+        // and neither is a skip: the first is a painted line nothing here bounds, and the second is
+        // a state check_build.sh already refuses, so a guess at it would be an opinion about the
+        // input rather than about the answer.
+        if (!ctxs) { unread.push(`${r.where} ${r.id}: no context for the class ${r.cls}`); continue; }
+        for (const c of ctxs) {
+          const w = chipWidthOf(table, c, r.s);
+          if (w === null) { unread.push(`${r.where} ${r.id}: no ${c} width for a line it paints`); continue; }
+          box.lw = Math.max(box.lw, w);
+        }
+      }
+      const resOut = [];
+      let resWorst = -Infinity;
+      for (const b of reserved.values()) {
+        // A HALF-LANE THAT IS NOT A NUMBER IS A REFUSAL AND NOT A PASS, which an adversarial read
+        // found: `NaN > 0` is false, so a lane or a tile whose geometry stopped parsing as a number
+        // would leave every one of these boxes silently inside its lane and print the floor as
+        // `NaN`. `+"10px"` is NaN and a unit on an SVG geometry attribute is legal, so this is one
+        // stylesheet or emitter edit away rather than hypothetical. The paint half is already
+        // covered, because a scale that is not finite poisons `pw` and the zero filter above sees
+        // it; nothing covered this one.
+        if (!Number.isFinite(b.half) || !Number.isFinite(b.lw)) {
+          unread.push(`${b.where} ${b.id}: its lane or its tile did not read as a number`);
+          continue;
+        }
+        const out = b.lw / 2 - b.half;
+        resWorst = Math.max(resWorst, out);
+        if (out > 0) resOut.push({ b, out });
+      }
+      assert('and neither does the widest face the table measured for the same lines',
+        reserved.size > 0 && unread.length === 0 && resOut.length === 0,
+        `every card's reserve, the max over build/label_widths.json of the faces its own painted ` +
+          `lines are reserved in, inside the half-lane its tile stands in on the tighter side`,
+        `${resOut.length} outside` +
+          (resOut.length
+            ? `: ${resOut.slice(0, 4).map(o => `${o.b.where} ${o.b.id} ${o.b.state} by ` +
+                `${o.out.toFixed(4)}`).join(', ')}`
+            : '') +
+          (unread.length ? `, ${unread.length} unbounded: ${unread.slice(0, 3).join('; ')}` : ''),
+        `tightest reserve over ${reserved.size} cards read in two states: ` +
+          `${(-resWorst).toFixed(4)} units of lane to spare, which is the design on its limit and ` +
+          'not a rounding artefact: the re-break fires exactly when a reserve would cross');
     });
 
     // ---- the count --------------------------------------------------------

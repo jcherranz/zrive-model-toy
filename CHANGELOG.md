@@ -48,6 +48,59 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- **A SELECTED LABEL LEAVING ITS LANE WAS MEASURABLE ON THE PAGE AND NOTHING MEASURED IT, #224.**
+  `reserve()` at `build/build_layout.py:427-432` says in a comment what the reserved box is for: it
+  has to hold the state a **click** puts the page into, because `.node.sel .lbl` turns a label bold.
+  The build acts on that, re-breaking a label whose reserve would cross its lane and refusing a
+  drawing in which one still does. Every term of that gate is a number the builder held in memory.
+  **Nothing had ever asked the painted page.** `scripts/smoke.mjs` gains one grain phase, `a label
+  inside its lane`, of three assertions; `EXPECTED_ASSERTIONS` goes 358 to 361. **Zero-line diff
+  under `site/` and `build/`**, which is what made this a card rather than a wish: each band already
+  emits its own `x` and `w`, so the lane is on the page and no reserve had to be emitted.
+- **The population is the fourteen built drawings, 570 cards pressed, 1896 label lines read at rest
+  and again selected, and it is asserted before it is used.** What it excludes is stated: the count
+  numeral inside a tile, the band caption over a lane, the verb chips on the relationship lines, and
+  the ten drawings `site/render.js` composes at run time, whose lanes are merged at run time and are
+  not these lanes. The fourteen are also required to be **fourteen distinct digests**, because the
+  address a reading is filed under is a string the driver built.
+- **The comparison is made in screen space, in CSS pixels, both sides read in one pass.** That is the
+  whole difficulty of this family: #228 exists because a **cached** reserve against a **later** paint
+  is two readings at two zooms and cannot be equal. Here the lane's own `rect.band` and the label's
+  `text.lbl` are differenced with `getBoundingClientRect()` with no navigation, no class write and no
+  layout between them, and the quotient is taken afterwards only so the figures read in drawing
+  units. The one scale is **asserted**: seven scales per drawing agree to under 0.0000005.
+- **The trap is real and this phase's own first draft walked into it.** The first press opens the
+  detail panel, the canvas narrows from 1536 CSS px to 1216, and the scale drops by exactly that
+  ratio, 1.2632: on `#/p/ZIB` from 1.2098 to 0.9577 and on `#/p/ZSC` from 0.2917 to 0.2309. A draft
+  that read the lanes once per drawing and the labels inside the press loop reported **216 readings
+  outside their lanes, the worst by 462.0509 units on a 250-unit lane**, every one an artefact. The
+  lane is re-read for every reading.
+- **One lane, two widths, and it was measured which mutation each of them sees.** The **paint** is
+  clean with the tightest label at **8.6192 units of lane to spare**; the **reserve**, taken from
+  `build/label_widths.json` over the lines the page painted, is clean with **0.0150 units to spare**.
+  That one hundredth is **not a rounding artefact and the assertion says so in its own words**: the
+  re-break fires exactly when a reserve would cross, so the tightest label in the corpus comes to
+  rest just inside. Driven on copies of the tree, the `max` to `min` mutation of `reserve()` is red
+  on the reserve half at `sc_st14` by **2.2050** and `pe_st4` by **0.6450**, the two figures the card
+  named, and **silent on the paint half**, whose floor does not move: on this font stack the paint
+  runs from **0.7767 to 1.0578** of the table's number for the same string, and `sc_st14`'s selected
+  label paints 209.3650 against a 250-unit lane where the table's `10/600` is 254.41. A `--font-ui`
+  family swap is the other way round: **four selected labels outside their lanes, worst `sc_st18` by
+  1.3955**, with the reserve half silent. **Neither half subsumes the other and neither subsumes
+  #220**, whose gate catches two mutations both halves sleep through.
+- **The card expected a browser check of a ten-pixel width to be noisier on a runner with another
+  font stack, and it is, by a measured amount.** Same commit, two machines: the painted floor is
+  **8.6192** units locally and **9.1681** on the CI image, while the reserved floor is **0.0150** on
+  both to the digit. The half that can see what the table cannot describe is the half a runner moves;
+  the half that reproduces the build's own number is the one it does not.
+- **An adversarial read moved five things.** The population constant is this phase's own rather than
+  #206's, which was measured over a strictly larger selector; a half-lane that is not a number is a
+  refusal rather than a silent pass; the lane count is a min and a max over every reading rather than
+  the last one seen; the claim that the containment depends on the scale check was withdrawn, because
+  the difference is taken before the division and the sign is scale-free; and the floor of one
+  hundredth is now stated against **the quantum of its own inputs**, which the emitter rounds to a
+  tenth: measured by importing the module, every `COLX` entry and every `BAND_X` endpoint is an
+  integer, so the rounding is lossless here and the number is the build's own.
 - **THE SUITE COULD NOT READ A PIXEL, SO TWO ASSERTIONS MODELLED THE PAINTED RESULT INSTEAD OF
   MEASURING IT, #202.** `scripts/smoke.mjs` had no screenshot and no image decoding, and two of its
   claims about paint were models rather than measurements. The **focus ring**'s width came from the
