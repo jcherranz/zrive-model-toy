@@ -48,6 +48,68 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- **THE RUN HEADINGS WERE A FOURTH STATEMENT OF THE BUILD GATE'S SECTION LIST, THE ONE A READER
+  ACTUALLY WATCHES, AND THE ONLY ONE STILL UNPINNED, #235.** `scripts/check_build.sh` states its
+  sections four times: the `# N.` banners, the step 3 label in `scripts/verify.sh`, the
+  `[label: token]` markers, and the `== ` headings it prints as it goes. #229 pinned the first
+  three and the fourth was never in its scope. **Measured at `a13dad4`, where `check_build.sh` is
+  byte-identical to `ca6e378` (sha256 `c6fd51336e4c`): nine headings over eight banners**, with
+  `reproduce`, `declares`, `well formed` and `look` in no heading at all.
+- **The nine-against-eight was a missing banner, not a spare heading, and that was the card's one
+  judgement call.** The ninth heading belonged to `check_structure_armed`: a check that runs in the
+  live gate, prints its own heading, and had no `# N.` banner, so **the step 3 label named eight of
+  the gate's nine live checks**. It is **section 7** now, `[label: refuses]`, and the label carries
+  the clause `the gate that says so refuses the graphs it names`. The digest census and the census
+  of what could look renumber to **8** and **9**. The rejected alternative is written over the new
+  banner: letting one section own several headings needs either a per-section count of them, which
+  is the kind of hand-maintained number #229 removed, or unlimited repeats, which leaves the drift
+  open one level down, since a new check whose heading happens to carry an existing section's token
+  would then oblige nothing to move.
+- **`label_covers_sections()` is `label_and_headings_cover_sections()` and holds both statements
+  against one population of banners.** One parse of the `# N.` lines and one token matcher for the
+  two relations, so the label and the headings cannot come to disagree about what naming a section
+  is. The heading relation is a **bijection and not a count**: every heading carries the token of
+  exactly one section, every section is named by exactly one heading, and heading N names section
+  N. Adding a live check is now a deliberate act in three places, because a heading with no banner
+  is refused, a banner with no heading is refused, and the banner drags the label along behind it.
+- **Four headings were reworded to carry the token their banner declares, and none of the four lost
+  anything it said before.** Section 1 takes the banner's own verb, `is what the builder
+  reproduces`. Section 6 keeps its whole sentence and gains a prefix, `the model is well formed: a
+  graph a drawing can be made of`. Section 9 adopts the word the banner, the verdict, the per-gate
+  `[looked]` notice and the step 3 clause all already use, `say whether they could look`. **Section
+  3 is the one where the token found a real inaccuracy**: the heading said `the faces the page
+  paints in`, which describes relation E alone, while the banner, the label clause and relations B
+  and C are all about the builder's asks against what the measurement job declares. It reads `the
+  faces the job declares and the page paints in` now, which is a superset of the old sentence.
+- **And the check is not satisfiable by rewording the subject, which is proved rather than
+  asserted.** A probe reverts section 6's heading to the exact text this repository shipped before
+  this card, leaves everything else alone, and the relation refuses it, naming the section the
+  revert leaves unannounced. That probe also isolates the shadowing probe beside it, which reverts
+  a heading AND adds a comment: with the plain revert wired, the shadowing refusal is known to come
+  from the revert and not from the extra line.
+- **The population is the line the run prints and nothing that looks like it**, which is #229's own
+  trap pointed at the new relation. A heading is one short line and quoting one in a comment is an
+  ordinary thing to do, so the reader takes `echo "== ..."` **at column one** and nothing else: a
+  comment starts with `#`, and this file's doctored fixtures are built on indented lines. **The
+  control is explicit**: a fixture that reverts the live heading for section 4 and puts the correct
+  one in a comment directly above it is refused, and the refusal names the reverted heading.
+  **A near miss is a failure**, so a heading indented into an `if` cannot drop out of the population
+  and take its section's pin with it.
+- **Fourteen probes, `EXPECTED_PROBES` 258 to 272 in the same commit, and every relation is proved
+  in both directions.** Red: a section whose heading is deleted, a heading no banner declares, a
+  heading carrying two sections' tokens, two headings for one section, headings printed out of the
+  gate's order, a heading reverted to this card's own pre-card text, the comment-shadow fixture, an
+  indented heading. Abort at exit 2: a gate that prints no run headings, because a reader with no
+  population reports no mismatch and would print clean over a run that announces nothing. Silent on
+  the tree as shipped, the positive control.
+- **A fifth copy of the same sentence is left alone and filed, #237.** `build.yml`'s build-gate
+  step is named after run heading 1 and nothing holds it there, so it is a word out now. Editing
+  it back by hand would restore the look of a maintained relation without adding a pin, which is
+  the failure #229 was written about; the card names the two repairs that would actually close it.
+- **What it deliberately does not establish, added to the note over the function.** A heading is
+  tied to its banner and not to the check it sits over: heading N must name section N, and whether
+  the lines between heading N and heading N+1 call the functions section N declares is not
+  something this reader looks at.
 - **THE BUILD GATE'S SECTION LIST WAS THE ONE ENUMERATION IN THE APPARATUS WITH NO PIN, AND THE
   LABEL THAT COPIED IT WENT STALE THREE TIMES IN ONE NIGHT, #229.** `scripts/verify.sh` step 3
   prints one sentence enumerating what `scripts/check_build.sh` checks, and it is the line a reader
