@@ -173,11 +173,32 @@ jobs:
               echo "smoke: **the page has regressed**. See the failures in the log." >> "$GITHUB_STEP_SUMMARY"
               ;;
             2)
+              # THREE CAUSES, AND THEY DO NOT SHARE A REMEDY. Issue 223. This message used to list
+              # two of them and end "Re-run before reading anything into it". Issue 216 added the
+              # third, a resource the page needs that did not arrive, and it is now the commonest:
+              # a stylesheet 404, a stylesheet served as text/plain, an origin answering 200 with a
+              # placeholder, a refused connection. That case is PERSISTENT. A browser that never
+              # started is worth re-running; a 404 refuses the same way on every re-run, so the one
+              # message whose whole purpose is to say "this run is not evidence" was telling the
+              # reader to go and gather the same non-evidence again. The refusal already names the
+              # resource it was waiting for, so the advice for that cause is to read the name.
               echo "::error::THE SMOKE SUITE COULD NOT ANSWER. This is a harness failure and is NOT evidence"
-              echo "::error::about the page: a browser that never started, or a run that recorded fewer"
-              echo "::error::assertions than it intends. The log carries the per-phase count."
-              echo "" >> "$GITHUB_STEP_SUMMARY"
-              echo "smoke: **could not answer** (harness, not the page). Re-run before reading anything into it." >> "$GITHUB_STEP_SUMMARY"
+              echo "::error::about the page. Three things produce it: a browser that never started, a run"
+              echo "::error::that recorded fewer assertions than it intends, or a resource the page needs"
+              echo "::error::that did not arrive. The log carries the per-phase count, and a refusal over a"
+              echo "::error::resource names the resource."
+              echo "::error::THEY DO NOT SHARE A REMEDY. Re-run the first two. Do not just re-run the third:"
+              echo "::error::a resource that did not arrive is missing again on the next run. Read the name"
+              echo "::error::out of the log and fix what serves it."
+              {
+                echo ""
+                echo "smoke: **could not answer** (harness, not the page)."
+                echo ""
+                echo "Read the log first: it says which of three states this is, and they do not share a remedy."
+                echo ""
+                echo "- **a browser that never started**, or **a run that recorded fewer assertions than it intends**: re-run. The log carries the per-phase intended-against-ran count."
+                echo "- **a resource the page needs did not arrive**: do not just re-run. A 404, a stylesheet served under the wrong content type, an origin answering 200 with a placeholder and a refused connection are all persistent, and the re-run refuses the same way. The refusal names the resource; read that name out of the log and fix what serves it."
+              } >> "$GITHUB_STEP_SUMMARY"
               ;;
             *)
               echo "::error::the smoke suite exited $rc, which it has no meaning for."
