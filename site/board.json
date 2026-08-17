@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T04:36:30Z",
+  "generated": "2026-08-17T04:39:03Z",
   "columns": [
     {
       "key": "raw",
@@ -76,6 +76,15 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/228"
+        },
+        {
+          "id": 229,
+          "title": "verify.sh step 3's label enumerates the build gate's sections by hand, and nothing holds it against them",
+          "labels": [
+            "limitation",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/229"
         }
       ]
     },
