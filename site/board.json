@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T00:16:40Z",
+  "generated": "2026-08-17T00:17:37Z",
   "columns": [
     {
       "key": "raw",
@@ -42,15 +42,6 @@
             "idea"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
-        },
-        {
-          "id": 224,
-          "title": "A selected label leaving its lane is measurable on the page and nothing measures it",
-          "labels": [
-            "layout",
-            "status:raw"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/224"
         }
       ]
     },
@@ -94,6 +85,16 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/223"
+        },
+        {
+          "id": 224,
+          "title": "A selected label leaving its lane is measurable on the page and nothing measures it",
+          "labels": [
+            "layout",
+            "limitation",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/224"
         }
       ]
     },
