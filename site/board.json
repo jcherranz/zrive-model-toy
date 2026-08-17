@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T00:20:09Z",
+  "generated": "2026-08-17T00:21:08Z",
   "columns": [
     {
       "key": "raw",
@@ -69,15 +69,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/215"
         },
         {
-          "id": 221,
-          "title": "build/label_widths.json is never re-measured, and --check is too coarse to gate on",
-          "labels": [
-            "limitation",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/221"
-        },
-        {
           "id": 223,
           "title": "The smoke workflow's exit-2 message lists two causes of a refusal and tells the reader to re-run, which is wrong for the third",
           "labels": [
@@ -109,6 +100,15 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/202"
+        },
+        {
+          "id": 221,
+          "title": "build/label_widths.json is never re-measured, and --check is too coarse to gate on",
+          "labels": [
+            "limitation",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/221"
         }
       ]
     },
