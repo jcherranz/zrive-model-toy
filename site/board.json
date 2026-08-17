@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T04:39:03Z",
+  "generated": "2026-08-17T04:40:51Z",
   "columns": [
     {
       "key": "raw",
@@ -93,16 +93,6 @@
       "title": "In progress",
       "cards": [
         {
-          "id": 204,
-          "title": "The run-time chip placer in render.js is judged by nothing, and #195 deliberately refuses to judge it",
-          "labels": [
-            "enhancement",
-            "limitation",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/204"
-        },
-        {
           "id": 223,
           "title": "The smoke workflow's exit-2 message lists two causes of a refusal and tells the reader to re-run, which is wrong for the third",
           "labels": [
@@ -189,7 +179,7 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/207"
         }
       ],
-      "hidden": 160,
+      "hidden": 161,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
