@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T11:38:40Z",
+  "generated": "2026-08-17T11:39:33Z",
   "columns": [
     {
       "key": "raw",
@@ -48,6 +48,15 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/215"
+        },
+        {
+          "id": 247,
+          "title": "The grain control stays, by the owner's decision, and nothing written down says what it is for",
+          "labels": [
+            "limitation",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/247"
         }
       ]
     },
