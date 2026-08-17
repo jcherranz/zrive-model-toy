@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T04:46:00Z",
+  "generated": "2026-08-17T04:50:13Z",
   "columns": [
     {
       "key": "raw",
@@ -76,13 +76,19 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/228"
-        },
+        }
+      ]
+    },
+    {
+      "key": "in_progress",
+      "title": "In progress",
+      "cards": [
         {
           "id": 229,
           "title": "verify.sh step 3's label enumerates the build gate's sections by hand, and nothing holds it against them",
           "labels": [
             "limitation",
-            "status:backlog"
+            "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/229"
         },
@@ -91,16 +97,11 @@
           "title": "The smoke workflow's header still explains exit 2 with the old two-cause list, twenty lines above the corrected message",
           "labels": [
             "limitation",
-            "status:backlog"
+            "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/231"
         }
       ]
-    },
-    {
-      "key": "in_progress",
-      "title": "In progress",
-      "cards": []
     },
     {
       "key": "done",
