@@ -159,8 +159,19 @@ jobs:
       # reason every other phase does: each is a group() that reports its own throw and does not
       # stop the run, and the grain phases get a browser of their own, so a viewport that never
       # opened costs them nothing.
+      #
+      # AND THE NAME BELOW DESCRIBES THE JOB RATHER THAN STATING THE OUTCOME. Issue 245. It used to
+      # be `The page behaves, at every width and at both altitudes`, which asserts the conclusion
+      # the suite below is run to test, and which therefore reads as true in the run list of a red
+      # run. It is the worse case of the three #245 renamed, because this step has an exit code that
+      # means the suite could not answer at all, and a name asserting the page behaves is a sentence
+      # about the page sitting over a step whose whole argument, three paragraphs up, is that a
+      # harness failure must never read as the page having regressed. The name now says what the
+      # step runs and that it sorts the two apart. build.yml carries the rule: DO NOT NAME A STEP
+      # AFTER A CLAIM. The `verify-step: smoke-local` marker on the next line joins two KEYS and
+      # reads nothing about the name beside it, so nothing pinned moves with this edit.
       # verify-step: smoke-local
-      - name: The page behaves, at every width and at both altitudes
+      - name: Run the smoke suite, and tell a page regression from a suite that could not answer
         run: |
           set +e
           node scripts/smoke.mjs

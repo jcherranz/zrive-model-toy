@@ -351,7 +351,20 @@ jobs:
       # the same reason: the gate's file list and rules must be the ones that really run, and its
       # claim is about bytes fetched over HTTP. The gate prints, itself, which of the two things
       # it read, so nothing downstream has to infer that this step is the weaker claim.
-      - name: The bytes about to be published are clean, before they are published
+      #
+      # AND THE NAME BELOW DESCRIBES THE JOB RATHER THAN STATING THE OUTCOME. Issue 245. It used to
+      # be `The bytes about to be published are clean, before they are published`, and the two
+      # paragraphs above call that sentence a claim twice in their own words, so this one was never
+      # a judgement call. build.yml carries the rule: DO NOT NAME A STEP AFTER A CLAIM.
+      #
+      # THE NAME HAS TO SAY LOCAL, WHICH IS THE ONE CONSTRAINT THE OTHER TWO #245 RENAMES DO NOT
+      # HAVE. Everything above turns on this step reading a local server over site/ and the step at
+      # the bottom of this file reading the origin, so a name that said only "the forbidden-content
+      # gate" would leave a reader to infer which, and the whole point of the paragraph above is
+      # that nothing should have to infer it. It is worded to sit beside that far step, `Forbidden-
+      # content gate, against deployed bytes`, so the run list shows the pair and which side of the
+      # upload each is on. `before the upload` is where the step is, not what it found.
+      - name: Forbidden-content gate, against a local server over site/, before the upload
         run: |
           set -euo pipefail
           # One line on purpose. This is a YAML block scalar, so every continuation line keeps the

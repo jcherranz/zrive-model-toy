@@ -119,6 +119,58 @@ of what changed and when, and it is meant to be scannable.
   and misspelling each turns it red twice, once for the uncovered step and once for the stale
   marker; the copy compares byte-identical to the branch afterwards, because a control mutation is
   never run in the file itself. `scripts/verify.sh` is untouched and `EXPECTED_STEPS` stays 15.
+- **THREE STEP NAMES STATED A CLAIM AND WERE COPIES OF NOTHING, SO THE SEARCH THAT FOUND THE FIRST
+  THREE COULD NEVER HAVE SEEN THEM, #245.** The rule `build.yml` shipped in `fe89939` is `DO NOT
+  NAME A STEP AFTER A CLAIM`, stated unconditionally and saying nothing about copying, and the
+  searches #240, #241 and #243 ran were keyed on copying. **Swept by a reader over all 29 `- name:`
+  values in `.github/workflows/` at `b9b372f`, the rule is violated exactly three times**, and
+  each was verified at that SHA before being edited: `origin-freshness.yml:125` `The origin serves
+  what main says`, `pages.yml:354` `The bytes about to be published are clean, before they are
+  published` and `smoke.yml:163` `The page behaves, at every width and at both altitudes`. Each is
+  a finite declarative main clause asserting the outcome its own `run:` block computes, so each
+  reads as true in the run list of a red run. **The sweep found no fourth**, which is a result and
+  not an absence: the other 26 are imperative-headed or bare noun phrases, and the three nearest
+  misses carry a finite clause only in a subordinate position that says when the step runs or why
+  it exists, never what it found.
+- **All three are now named for the job.** `Compare the commit the origin serves against main's
+  head, allowing a deploy in flight`; `Forbidden-content gate, against a local server over site/,
+  before the upload`; `Run the smoke suite, and tell a page regression from a suite that could not
+  answer`. **The middle one carries a constraint the other two do not**: that step reads a local
+  server and not the origin, deliberately, and the comment block above it turns on that being
+  visible, so its name says `a local server over site/` and is worded to sit beside the far step
+  `Forbidden-content gate, against deployed bytes` in the same file. `before the upload` says where
+  the step is, not what it found.
+- **`build.yml` stated two rules that contradicted each other on five names, and they are now one
+  rule.** Line 170, from #237, said `DO NOT NAME THIS STEP, OR ANY OTHER, AFTER A LINE A GATE
+  PRINTS`; line 190, from #241, said `DO NOT NAME A STEP AFTER A CLAIM`. **Measured at `b9b372f`:
+  `scripts/verify.sh` prints `== $name` for every step it runs, so all 15 of its labels are lines a
+  gate prints, and 5 workflow step names equal one of them and were deliberately kept under #240
+  and #241.** Read literally, rule 170 condemns those five, and its coverage of the rule's three
+  real violations is **0 of 3**, because none of the three copies anything: exact match against
+  every `verify.sh` label returns 0 for each, with a control confirming a known copy returns 1.
+  **Rule 170 is qualified in place and subsumed, not deleted.** Quoting a line another file owns is
+  one WAY to arrive at a claim and is the way #237, #240 and #241 each arrived; stating a claim is
+  the defect. A name coinciding with a printed line because both name the same job violates
+  neither sentence. **The copy framing's reasoning is kept because it is what stops the next
+  reader re-syncing a drifted copy by hand**, which restores the appearance of a maintained
+  relation and leaves it held by nothing.
+- **No guard, and that is #244's measurement rather than an omission.** Eight candidate handles for
+  separating a claim from a job name were measured there; two reach 8 of 8 on the eight copies and
+  both collapse over the fifteen lines a copy is drawn from. Both rules stay prose.
+- **Nothing but three `name:` values moved, and the marker relation still binds in both
+  directions.** Loading all seven workflows with a YAML parser before and after gives the same
+  step counts and every key identical except those three; triggers, permissions, concurrency
+  groups, markers and `run:` blocks are unchanged. `scripts/check_ci_drift.sh` exits 0 and its
+  self-test passes **twelve of twelve** intended probes. **In a COPY of the tree, each of the 13
+  `# verify-step:` markers was deleted and then misspelled**: deletion turns the check red naming
+  the step, misspelling turns it red twice, once for the uncovered step and once for the stale
+  marker, and restoring returns exit 0 every time. **The one exception is structural and known**:
+  `provenance-armed` is on two `build.yml` steps, so deleting one marker leaves the key covered and
+  the check stays green, correctly; deleting BOTH turns it red naming `provenance-armed`. The real
+  tree hashes byte-identical before and after the whole control set, because a control mutation is
+  never run in the file itself. `EXPECTED_PROBES` stays 12 and 272, `EXPECTED_STEPS` 15 and
+  `EXPECTED_ASSERTIONS` 364, all at `b9b372f`; nothing under `scripts/`, `site/` or `build/` was
+  touched. KAIZEN.md `kaizen-a-rule-found-by-one-case-is-stated-about-the-case-and-not-the-rule`.
 
 ### Added
 
