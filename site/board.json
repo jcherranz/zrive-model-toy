@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T10:05:30Z",
+  "generated": "2026-08-17T10:08:03Z",
   "columns": [
     {
       "key": "raw",
@@ -71,22 +71,21 @@
     {
       "key": "in_progress",
       "title": "In progress",
+      "cards": []
+    },
+    {
+      "key": "done",
+      "title": "Done",
       "cards": [
         {
           "id": 244,
           "title": "Five workflow step names copy a verify.sh label and are not defects, which is why the #240 guard did not ship",
           "labels": [
             "limitation",
-            "status:in-progress"
+            "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/244"
-        }
-      ]
-    },
-    {
-      "key": "done",
-      "title": "Done",
-      "cards": [
+        },
         {
           "id": 241,
           "title": "A workflow step is named after verify.sh's step 10 label, and the rule #237 just added forbids the same shape one file over",
@@ -149,19 +148,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/228"
-        },
-        {
-          "id": 224,
-          "title": "A selected label leaving its lane is measurable on the page and nothing measures it",
-          "labels": [
-            "layout",
-            "limitation",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/224"
         }
       ],
-      "hidden": 171,
+      "hidden": 172,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
