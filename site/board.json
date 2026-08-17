@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T10:22:01Z",
+  "generated": "2026-08-17T10:44:02Z",
   "columns": [
     {
       "key": "raw",
@@ -63,21 +63,20 @@
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": [
-        {
-          "id": 245,
-          "title": "Three workflow step names state a claim and are not copies, so the #244 search could never see them",
-          "labels": [
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/245"
-        }
-      ]
+      "cards": []
     },
     {
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 245,
+          "title": "Three workflow step names state a claim and are not copies, so the #244 search could never see them",
+          "labels": [
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/245"
+        },
         {
           "id": 244,
           "title": "Five workflow step names copy a verify.sh label and are not defects, which is why the #240 guard did not ship",
@@ -140,18 +139,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/229"
-        },
-        {
-          "id": 228,
-          "title": "The reserve cannot be held against the painted advance, because widthOf() caches at one zoom and the paint is read at another",
-          "labels": [
-            "limitation",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/228"
         }
       ],
-      "hidden": 172,
+      "hidden": 173,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
