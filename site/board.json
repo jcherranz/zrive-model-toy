@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T08:09:31Z",
+  "generated": "2026-08-17T08:12:12Z",
   "columns": [
     {
       "key": "raw",
@@ -58,14 +58,6 @@
             "limitation"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/241"
-        },
-        {
-          "id": 242,
-          "title": "The run-time reserve caches a regular width under the bold key, so a selected label overruns the box the chip placer packed against",
-          "labels": [
-            "bug"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/242"
         }
       ]
     },
@@ -177,7 +169,7 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/220"
         }
       ],
-      "hidden": 167,
+      "hidden": 168,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
