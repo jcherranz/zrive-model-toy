@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T09:00:59Z",
+  "generated": "2026-08-17T09:22:53Z",
   "columns": [
     {
       "key": "raw",
@@ -42,6 +42,12 @@
             "idea"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
+        },
+        {
+          "id": 244,
+          "title": "Five workflow step names copy a verify.sh label and are not defects, which is why the #240 guard did not ship",
+          "labels": [],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/244"
         }
       ]
     },
