@@ -13,10 +13,43 @@ deterministic and works offline; this script is the only thing that needs Chrome
 run by hand when the strings or the styling change.
 
     python3 build/measure_labels.py            # write build/label_widths.json
-    python3 build/measure_labels.py --check     # measure and diff, write nothing, exit 1 on drift
+    python3 build/measure_labels.py --check    # measure and compare, write nothing
 
 The font stack and the sizes are read out of `site/app.css` rather than repeated here, so the
 measurement cannot quietly drift away from what the page draws.
+
+WHAT --check SAYS, AND WHY IT IS NOT A BYTE DIFF ANY MORE. Issue 221. It was one, `old == text`
+over the whole rendered document, and measured on the machine that wrote the table it exited 1
+over three surplus rows, zero value changes and zero missing entries. Those three rows are the
+state scripts/check_build.sh has already ruled on in as many words, "dead weight, not a wrong
+coordinate", so the old --check went red for a state this repository has decided is not a defect,
+and it would go red a second way on any machine whose resolvable font set differs from the one
+that measured the table, and a third way on nothing but a browser upgrade, because the rendered
+document carries the engine's user-agent string. A check that cannot tell those apart from a
+number edited by hand is too coarse to gate on, and wiring it as it stood would have trained a
+reader to ignore it.
+
+So it separates the states it used to add up, and its exit code says which one it is in:
+
+    0  the table agrees with this machine, on an envelope this machine measured the same way
+    1  a defect: a value differs on the SAME envelope, or the job asks for a string the table
+       does not hold, or the table's declared per-context CSS is no longer what the stylesheet
+       says. Every one of those is a table that must be regenerated before it is trusted
+    2  THIS RUN ESTABLISHED NOTHING: no browser, a page that answered nothing, a job that
+       enumerated nothing, or no committed table to compare against. It is neither agreement
+       nor disagreement and it is never reported as either
+    3  measured, and the ENVELOPE differs: this machine resolves a different set of faces than
+       the one that wrote the table, so the values are not comparable and were not compared.
+       Membership was, because it does not depend on a font
+
+A row the table holds that no context asks for is REPORTED AND IS NOT A FAILURE, on its own, in
+any of those states, which is the whole distinction the old --check could not draw.
+
+WHAT THIS CANNOT BE. A CI gate. The envelope is the measuring machine's resolvable font set and
+a runner's is not the owner's, so a runner reaches state 3 when it has a browser at all and state
+2 when it does not, and a gate that can only ever say "I could not look" is a gate a reader learns
+to skip. What IS gateable everywhere is browser-free and lives in scripts/check_build.sh check 5,
+which reads this file's own committed output and holds it against relations no font can change.
 """
 import argparse
 import base64
@@ -45,7 +78,12 @@ from model import ALL_VIEWS, edge_parts  # noqa: E402
 # a coordinate laid out from the hand written estimate, which undershoots by up to a fifth.
 
 CSS = ROOT / "site" / "app.css"
-OUT = HERE / "label_widths.json"
+# $ZRIVE_LABEL_WIDTHS is the variable build/build_layout.py and scripts/check_build.sh already
+# honour, and it is honoured here for the same reason check 2 honours it: it is what lets a probe
+# point --check at a doctored table without going near the committed one. The write path prints
+# the path it wrote, so a variable left set in a shell cannot quietly send a regeneration
+# somewhere else in silence.
+OUT = pathlib.Path(os.environ.get("ZRIVE_LABEL_WIDTHS") or (HERE / "label_widths.json"))
 
 # The headless shell first. It is the same Blink text stack and the same fontconfig as the
 # full browser, so it shapes text identically, and it answers --dump-dom in about a second
@@ -313,15 +351,29 @@ document.getElementById('out').textContent = btoa(bin);
 """
 
 
+class CannotMeasure(Exception):
+    """No measurement was taken at all.
+
+    ITS OWN EXCEPTION AND ITS OWN EXIT CODE, issue 221, and this is the state the card is most
+    insistent about. Both of the paths that raise it used to be `sys.exit("...")`, which exits 1,
+    which is the same code --check used for "the table differs". So a run with no browser on it
+    reported drift, in the exit code a caller reads, and the only thing separating "I measured and
+    disagree" from "I never measured" was prose on stderr. Nothing was wiring this file into
+    anything yet, so no gate was misled; the shape is the one this repository has found seventeen
+    times, and it is closed here before a caller exists rather than after.
+    """
+
+
 def chrome():
     tried = []
     for c in chrome_candidates():
         if pathlib.Path(c).is_file():
             return c
         tried.append(c)
-    sys.exit("measure_labels: no Chrome found. Set $ZRIVE_CHROME to a Chrome or "
-             "chrome-headless-shell binary, or $PLAYWRIGHT_BROWSERS_PATH to the cache holding "
-             "one. Looked at: " + (", ".join(tried) or "nothing, the cache is empty"))
+    raise CannotMeasure(
+        "no Chrome found. Set $ZRIVE_CHROME to a Chrome or chrome-headless-shell binary, or "
+        "$PLAYWRIGHT_BROWSERS_PATH to the cache holding one. Looked at: "
+        + (", ".join(tried) or "nothing, the cache is empty"))
 
 
 def measure(job, families):
@@ -343,30 +395,31 @@ def measure(job, families):
     m = re.search(r'<pre id="out">([A-Za-z0-9+/=]*)</pre>', proc.stdout)
     if not m or not m.group(1):
         sys.stderr.write(proc.stderr[-2000:])
-        sys.exit("measure_labels: the page produced no measurements")
+        raise CannotMeasure("the page produced no measurements")
     return json.loads(base64.b64decode(m.group(1)).decode("utf-8"))
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--check", action="store_true",
-                    help="measure and compare against the committed file, write nothing")
-    args = ap.parse_args()
+def envelope(stack):
+    """The families to shape under, in the order the document records them.
 
-    stack = css_var("font-ui")
-    # The stack as written, then each family in it on its own, then the generic. Whichever of
-    # them this machine holds gets shaped; the rest silently fall through to the generic and
-    # add nothing but a duplicate, which the max absorbs.
+    The stack as written, then each family in it on its own, then the generic. Whichever of
+    them this machine holds gets shaped; the rest silently fall through to the generic and
+    add nothing but a duplicate, which the max absorbs.
+
+    A FUNCTION AND NOT FOUR LINES IN main(), issue 221: the envelope is one side of --check's
+    comparison, so a second copy of this expression is a second opinion about what the envelope
+    is, and the state --check exists to name is exactly a disagreement about that.
+    """
     families = [stack] + [f.strip().strip('"') for f in stack.split(",")] + EXTRA_FAMILIES
-    families = list(dict.fromkeys(families))
-    job = collect()
-    got = measure(job, families)
+    return list(dict.fromkeys(families))
 
+
+def document(job, got, stack, families):
+    """The file this script writes, as a dict. The write path and --check build the same one."""
     distinct = {}
     for fam, w in got["probes"].items():
         distinct.setdefault(w, []).append(fam)
-
-    doc = {
+    return {
         "_readme": ("Measured in a real browser by build/measure_labels.py. Keys under widths "
                     "are font-size/font-weight, with +caps where the stylesheet uppercases and "
                     "letter-spaces the text. A value is the WIDEST width the string takes "
@@ -385,23 +438,231 @@ def main():
         "contexts": {k: {"css": v["css"], "note": v["note"]} for k, v in job.items()},
         "widths": got["widths"],
     }
-    text = json.dumps(doc, ensure_ascii=False, indent=1, sort_keys=True) + "\n"
+
+
+def serialise(doc):
+    return json.dumps(doc, ensure_ascii=False, indent=1, sort_keys=True) + "\n"
+
+
+def show(rows, n=10, indent="      "):
+    for row in rows[:n]:
+        print(f"{indent}{row}")
+    if len(rows) > n:
+        print(f"{indent}... and {len(rows) - n} more")
+
+
+def baseline():
+    """The committed table, or None with the refusal already printed.
+
+    READ BEFORE THE BROWSER RUNS, which is not a micro-optimisation. "There is no table here" is
+    an answer this file can give on any machine, in the same words, with or without Chrome; read
+    after the measurement it would be an answer only a machine holding a browser ever reaches,
+    and every other machine would report the missing browser instead. Two states, one message.
+    """
+    try:
+        old = json.loads(OUT.read_text(encoding="utf-8"))
+        if not isinstance(old.get("widths"), dict):
+            raise ValueError("widths is not an object")
+        return old
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
+        print(f"::error::measure_labels --check: there is no table to compare against at {OUT} "
+              f"({type(exc).__name__}). This run established nothing, in either direction",
+              file=sys.stderr)
+        return None
+
+
+def check(new, old):
+    """Hold a fresh measurement against the committed table, one state at a time.
+
+    Returns the exit code. The four states are separated here rather than added up, and the
+    reason each is where it is:
+
+      A VALUE THAT DIFFERS ON THE SAME ENVELOPE is the dangerous one and the one nothing in this
+      repository catches. It is judged only when the fingerprint below agrees, because on a
+      different font set a different number is the correct number and refusing it would be
+      refusing a machine for being itself.
+
+      A STRING THE JOB ASKS FOR AND THE TABLE LACKS is a defect on any machine: the builder falls
+      through to the hand written estimate, which undershoots by up to a fifth. It does not
+      depend on a font, so it is judged in every state. scripts/check_build.sh check 2 catches it
+      too, browser-free, and this is deliberately a second reading rather than the only one.
+
+      A STRING THE TABLE HOLDS THAT NO CONTEXT ASKS FOR is dead weight, ruled on in those words by
+      check 2, and it is reported and never fails. This is the whole of what the old byte diff
+      could not say: it exited 1 over three of these and nothing else.
+
+      A RUN THAT COULD NOT MEASURE never reaches this function. measure() raises CannotMeasure and
+      main() turns that into exit 2, which is neither agreement nor disagreement.
+
+    THE FINGERPRINT IS THE PROBES, THE STACK AND THE ENVELOPE, and not the engine string. The
+    probe row is one string shaped under every family, so two machines whose probes agree resolve
+    the same faces to the same advances, which is the property the widths depend on; the engine
+    string moves on a browser upgrade that may not move a single width. A value difference under a
+    matching fingerprint but a moved engine is still reported as a defect, because a table that no
+    longer describes what the current browser shapes has to be regenerated whichever of the two
+    caused it, and the finding says so rather than guessing which.
+    """
+    old_w = old["widths"]
+    new_w = new["widths"]
+    asked = {(c, s) for c, d in new_w.items() for s in d}
+    held = {(c, s) for c, d in old_w.items() for s in d}
+    # The population, asserted before any verdict is read off it. A comparison that enumerated no
+    # entries reports no differences, and would print the same clean line as a perfect match.
+    if not asked or not held:
+        print(f"::error::measure_labels --check: the job asks for {len(asked)} (context, string) "
+              f"pair(s) and the table holds {len(held)}. One of them is empty, so this comparison "
+              f"looked at nothing and will not call it agreement")
+        return 2
+
+    missing = sorted(asked - held)
+    surplus = sorted(held - asked)
+    shared = sorted(asked & held)
+    changed = sorted((c, s, old_w[c][s], new_w[c][s]) for c, s in shared
+                     if old_w[c][s] != new_w[c][s])
+
+    same_stack = old.get("font_stack") == new["font_stack"]
+    same_env = old.get("envelope") == new["envelope"]
+    same_probes = old.get("probes") == new["probes"]
+    same_fingerprint = same_stack and same_env and same_probes
+    same_engine = old.get("engine") == new["engine"]
+    # THE CSS AND NOT THE WHOLE CONTEXT ENTRY. Each one also carries a `note`, which is prose
+    # written in collect() above; comparing it would mean an edit to a comment demanding a browser
+    # run to clear, which is a red for something that is not a defect and is the failing this
+    # whole card is about.
+    old_ctx, new_ctx = old.get("contexts") or {}, new["contexts"]
+    css_drift = sorted(k for k in set(old_ctx) | set(new_ctx)
+                       if (old_ctx.get(k) or {}).get("css") != (new_ctx.get(k) or {}).get("css"))
+
+    print(f"  {len(asked)} (context, string) pair(s) asked by the job, {len(held)} held by "
+          f"{OUT}, {len(shared)} compared")
+    print(f"    values that differ on the same envelope : "
+          f"{len(changed) if same_fingerprint else 'not judged, the envelope differs'}")
+    print(f"    asked for and not in the table          : {len(missing)}")
+    print(f"    in the table and asked for by nothing   : {len(surplus)}")
+    print(f"    envelope fingerprint                    : "
+          f"{'the same machine set of faces' if same_fingerprint else 'DIFFERENT'}"
+          f"{'' if same_engine else '; and the engine string has moved'}")
+
+    if surplus:
+        print(f"    {len(surplus)} row(s) no context asks for. Dead weight, not a wrong "
+              f"coordinate, and not a failure here or in check 2:")
+        show([f"{c:<12} {s!r}" for c, s in surplus])
+
+    bad = 0
+    if css_drift:
+        print(f"::error::{OUT} records the CSS each context was measured under and "
+              f"{len(css_drift)} of them is no longer what site/app.css declares: "
+              f"{', '.join(css_drift)}")
+        print("  The table was measured under a stylesheet this tree no longer has, so every "
+              "width in those contexts is a measurement of something the page does not paint.")
+        bad = 1
+
+    if missing:
+        print(f"::error::{OUT} does not hold {len(missing)} string(s) the job measures")
+        show([f"{c:<12} {s!r}" for c, s in missing], n=20)
+        print("  Every one of those is laid out from the hand written per character estimate "
+              "instead of a measured width. This does not depend on the font set: it is a defect "
+              "on every machine.")
+        bad = 1
+
+    if not same_fingerprint:
+        print("  THE ENVELOPE DIFFERS, so no value was compared and none of the numbers below is "
+              "evidence of drift:")
+        if not same_stack:
+            print(f"      site/app.css names   {new['font_stack']}")
+            print(f"      the table was measured under {old.get('font_stack')!r}")
+        if not same_env:
+            print(f"      the table lists {len(old.get('envelope') or [])} families and this "
+                  f"machine shapes under {len(new['envelope'])}")
+        if not same_probes:
+            moved = sorted(f for f in set(old.get("probes") or {}) | set(new["probes"])
+                           if (old.get("probes") or {}).get(f) != new["probes"].get(f))
+            print(f"      {len(moved)} family(s) shape the probe string to a different width "
+                  f"here than on the machine that wrote the table:")
+            show([f"{f}: table {(old.get('probes') or {}).get(f)}, here {new['probes'].get(f)}"
+                  for f in moved], indent="        ")
+        print("  A width measured on a face this machine does not hold cannot be reproduced here, "
+              "and a width measured on a face the table's machine did not hold is not in it. This "
+              "is the reason check 2 is a coverage test and not a byte diff, and the reason this "
+              "check cannot be a CI gate.")
+        if bad:
+            return 1
+        print("VERDICT: membership agrees. The values were NOT judged and this run is not "
+              "evidence that they are right.")
+        return 3
+
+    if changed:
+        print(f"::error::{len(changed)} value(s) differ from the committed table on an envelope "
+              f"this machine measured identically")
+        show([f"{c:<12} {s!r}  table {a}  here {b}  ({b - a:+.2f})" for c, s, a, b in changed],
+             n=20)
+        print("  The fingerprint agrees, so this is not a machine difference. Either a number in "
+              "the table was written by hand, or the browser now shapes these strings "
+              "differently" + ("" if same_engine else
+                               f" (and the engine has moved: the table was measured by "
+                               f"{old.get('engine')!r} and this run by {new['engine']!r})") + ".")
+        print("  THE FIX: run  python3 build/measure_labels.py  on this machine, then run "
+              "python3 build/build_layout.py  and commit the table together with "
+              "site/instance.js and site/layout.js. DO NOT hand write a width: the table is a "
+              "measurement taken in a real browser and a typed number is a guess wearing a "
+              "measurement's clothes.")
+        bad = 1
+
+    if bad:
+        return 1
+    print(f"VERDICT: {len(shared)} value(s) reproduce exactly on this machine's envelope, "
+          f"{len(missing)} missing, {len(surplus)} surplus and not a failure.")
+    return 0
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--check", action="store_true",
+                    help="measure and compare against the committed file, write nothing")
+    args = ap.parse_args()
+
+    old = None
+    if args.check:
+        old = baseline()
+        if old is None:
+            return 2
+
+    stack = css_var("font-ui")
+    families = envelope(stack)
+    job = collect()
+    # Both sides of every comparison below come off this job, and an empty one would report every
+    # table covered, every value unchanged and nothing missing.
+    if not job or not any(v["strings"] for v in job.values()):
+        print("::error::measure_labels: collect() enumerated no strings, so there is nothing to "
+              "measure and nothing this run could establish", file=sys.stderr)
+        return 2
+    try:
+        got = measure(job, families)
+    except CannotMeasure as exc:
+        print(f"::error::measure_labels: {exc}", file=sys.stderr)
+        print("  Nothing was measured, so this run is neither agreement nor disagreement with "
+              "the committed table.", file=sys.stderr)
+        return 2
+
+    doc = document(job, got, stack, families)
 
     if args.check:
-        old = OUT.read_text(encoding="utf-8") if OUT.exists() else ""
-        if old == text:
-            print(f"label widths unchanged, {sum(len(v) for v in got['widths'].values())} strings")
-            return 0
-        print("label widths DIFFER from the committed file; run without --check to update")
-        return 1
+        return check(doc, old)
 
-    OUT.write_text(text, encoding="utf-8")
+    OUT.write_text(serialise(doc), encoding="utf-8")
     n = sum(len(v) for v in got["widths"].values())
-    print(f"{OUT.relative_to(ROOT)}  {n} strings in {len(got['widths'])} contexts  "
+    try:
+        where = OUT.relative_to(ROOT)
+    except ValueError:  # $ZRIVE_LABEL_WIDTHS pointing outside the tree, which a probe does
+        where = OUT
+    print(f"{where}  {n} strings in {len(got['widths'])} contexts  "
           f"{OUT.stat().st_size / 1024:.1f} KB")
     for k, v in sorted(got["widths"].items()):
         print(f"  {k:<12} {len(v):>4} strings")
-    print(f"  {len(distinct)} distinct faces reachable on this machine:")
+    print(f"  {doc['distinct_faces']} distinct faces reachable on this machine:")
+    distinct = {}
+    for fam, w in got["probes"].items():
+        distinct.setdefault(w, []).append(fam)
     for w, fams in sorted(distinct.items()):
         print(f"    probe {w:7.2f}  {', '.join(fams)}")
     return 0
