@@ -14232,7 +14232,7 @@ const FACE_READ = `
 //
 // The fourteen built drawings, seven programmes at two altitudes, in the grain browser's single
 // viewport, in whichever theme the machine prefers, with no window, no filter and both absence
-// switches on. Every card on them is pressed, which is FACE_CARDS of them, and every `text.lbl`
+// switches on. Every card on them is pressed, which is LANE_CARDS of them, and every `text.lbl`
 // under a card is read at rest and again with that card selected, which is LANE_READINGS readings.
 // The population is asserted before it is used, for the reason issue 206's is: a containment over
 // an empty list is vacuously true and prints green.
