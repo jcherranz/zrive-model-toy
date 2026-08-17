@@ -3998,4 +3998,8 @@ body.outline .term-table .term-no {
   margin-bottom: 8px;
 }
 
-#panel .pnote-rel { display: block; }
+/* AND NO `.pnote-rel` BESIDE IT ANY MORE. Issue 132 replaced the sentence that class was written
+   for, `3 relationships: <name> teaches this; ...`, with one row per edge in the relationships
+   region, and a rule left behind for an element nothing builds is the shape this repository has
+   twice caught reassuring a reader: a comment that outlives its mechanism, and a device counted in
+   prose that a grep for it returns zero of. `pnote-rel` returns zero across site/. */
