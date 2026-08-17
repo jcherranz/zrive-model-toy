@@ -192,10 +192,39 @@ That is the trade issue 83 made deliberately, and the reasoning is on the card a
 build/bands.py.
 
 Click a node to select it. The clicked node takes a solid fill, everything except its direct
-neighbours dims, and a side panel lists its properties with a flag on each. Nothing is drawn
+neighbours dims, and the lateral panel opens on it. Nothing is drawn
 around it. A reader arriving by keyboard gets a frame on the node the tab is on, which a mouse
 click does not raise, because where the keyboard is and what is selected are different
 questions.
+
+## The panel, which is a way in and not a readout
+
+**Six regions, and the content follows what is selected.** head, relationships, in this lane, its
+outline, the instructors this drawing holds, what it holds. Four are always there; the outline is
+on a session template, because that is the object the model hangs an agenda on, and the instructors
+region is on a cohort session nobody is teaching.
+
+**The relationships are one row per edge and every row is a press.** They were one sentence naming
+objects that could not be reached from it, and the words, the verbs and the order are the sentence's
+own: an edge that ends on the selected object still reads `<name> teaches this`, because dropping
+`this` states the relationship backwards. A press moves the **selection**, which is one object and
+does not live in the address; the **scope** is the set in the address and no row touches it.
+
+**An absence is never rendered as a fact.** On a cohort session nobody is teaching, the panel names
+the instructors the drawing in front of you holds, each a press to their tile where the reach rows
+are. On a drawing that holds none it says so and says how much of the programme it draws. It never
+says nobody teaches that programme: of the 11 unstaffed sessions exactly one belongs to a module
+with another named instructor, and nothing in the corpus records who *can* teach a module, so a
+computed fallback would be empty ten times out of eleven and dishonest the eleventh.
+
+**The panel carries no count, no fraction and no total, no time control and no way to write
+anything.** `mailto:` and `tel:` are handed to the reader's own client, which is the line issue 157
+drew.
+
+**Its size is pinned.** `scripts/smoke.mjs` holds an exact count of the regions and an exact count
+of everything in the panel that answers a press, summed over every node of two whole drawings, in
+the shape the header's two counts and the sixteen addresses are already held to. A seventh region,
+or a row added inside an existing one, moves a constant in front of a reader.
 
 The drawing is one cohort and there is no route to any other view. A `2nd cohort` switch drew a
 second one, 2Q26, off the same six session templates; it is removed. The page ships exactly one
