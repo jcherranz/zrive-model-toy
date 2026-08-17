@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T16:22:11Z",
+  "generated": "2026-08-17T17:40:56Z",
   "columns": [
     {
       "key": "raw",
@@ -46,17 +46,7 @@
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": [
-        {
-          "id": 247,
-          "title": "The grain control stays, by the owner's decision, and nothing written down says what it is for",
-          "labels": [
-            "limitation",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/247"
-        }
-      ]
+      "cards": []
     },
     {
       "key": "done",
@@ -70,6 +60,15 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/248"
+        },
+        {
+          "id": 247,
+          "title": "The grain control stays, by the owner's decision, and nothing written down says what it is for",
+          "labels": [
+            "limitation",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/247"
         },
         {
           "id": 245,
@@ -123,18 +122,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/235"
-        },
-        {
-          "id": 231,
-          "title": "The smoke workflow's header still explains exit 2 with the old two-cause list, twenty lines above the corrected message",
-          "labels": [
-            "limitation",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/231"
         }
       ],
-      "hidden": 176,
+      "hidden": 177,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
