@@ -323,7 +323,7 @@ report_difference() {
 }
 
 # ---------------------------------------------------------------------------------------------
-# 1. The drawing reproduces, and the thing it reproduces is a snapshot git holds.
+# 1. The drawing reproduces, and the thing it reproduces is a snapshot git holds.  [label: reproduce]
 # ---------------------------------------------------------------------------------------------
 # The disk copy is still saved and put back, because the rebuild deletes it. It is no longer the
 # baseline. It is now a THIRD set of bytes that has to agree with the baseline, and the reason is
@@ -486,7 +486,7 @@ check_reproducible() {
 }
 
 # ---------------------------------------------------------------------------------------------
-# 2. The label width table covers every string the layout measures.
+# 2. The label width table covers every string the layout measures.  [label: cover]
 # ---------------------------------------------------------------------------------------------
 # The table to read is an argument, defaulting to ZRIVE_LABEL_WIDTHS, the same variable
 # build_layout.py honours. That is what lets the self-test point the check at a doctored table
@@ -562,7 +562,7 @@ PY
 }
 
 # ---------------------------------------------------------------------------------------------
-# 3. The widths the builder ASKS FOR are the widths the job declares. Issue 217.
+# 3. The widths the builder ASKS FOR are the widths the job declares. Issue 217.  [label: declares]
 # ---------------------------------------------------------------------------------------------
 # Check 2 above holds the table against the job. scripts/smoke.mjs holds the painted page against
 # the table. Between them sat the arguments: `text_w()` composes its context key at
@@ -934,7 +934,7 @@ PY
 }
 
 # ---------------------------------------------------------------------------------------------
-# 4. And the width it got back is the width it reserved. Issue 220.
+# 4. And the width it got back is the width it reserved. Issue 220.  [label: reserved]
 # ---------------------------------------------------------------------------------------------
 # Check 3 above proves the right question was put to the width table. This one proves the answer
 # was used. Between `text_w()` returning a number and that number becoming a coordinate sits
@@ -1474,7 +1474,7 @@ PY
 }
 
 # ---------------------------------------------------------------------------------------------
-# 5. And the numbers in that table are numbers a browser could have produced. Issue 221.
+# 5. And the numbers in that table are numbers a browser could have produced. Issue 221.  [label: browser]
 # ---------------------------------------------------------------------------------------------
 # WHAT WAS OPEN. Checks 2, 3 and 4 above hold the table's MEMBERSHIP, the arguments put to it and
 # the arithmetic done with the answers. Not one of them reads a number and asks whether it is
@@ -1925,7 +1925,7 @@ PY
 }
 
 # ---------------------------------------------------------------------------------------------
-# 6. The model is well formed.
+# 6. The model is well formed.  [label: well formed]
 # ---------------------------------------------------------------------------------------------
 # stderr is KEPT and not discarded, which is the whole reason these are two lines rather than
 # one. A refusal from check_structure() is a SystemExit and its message is on stderr, so a
@@ -1944,7 +1944,7 @@ check_structure_live() { _model_says --structure; }
 check_structure_armed() { _model_says --structure-self-test; }
 
 # ---------------------------------------------------------------------------------------------
-# 7. The digest census. Issue 116.
+# 7. The digest census. Issue 116.  [label: digest]
 # ---------------------------------------------------------------------------------------------
 # Before this card `drawingDigest` occurred zero times in every gate this repository runs. The
 # value was correct, nothing read it, and the audit changed one glyph in build/model.py, rebuilt
@@ -2110,7 +2110,7 @@ PY
 }
 
 # ---------------------------------------------------------------------------------------------
-# 8. The census of what could look. Issue 168 R4(a).
+# 8. The census of what could look. Issue 168 R4(a).  [label: look]
 # ---------------------------------------------------------------------------------------------
 # THE NOTICES ARE THE EVIDENCE AND THE CORPUS IS THE CROSS-CHECK, in that order and not the other
 # way round. Each gate says on its own face whether it verified or declined, and one of them can
@@ -2530,6 +2530,251 @@ verdict() {  # clean|bad ; reads BASELINE_ORIGIN, CENSUS_UNVERIFIED and CENSUS_N
 }
 
 # ---------------------------------------------------------------------------------------------
+# The step 3 label in scripts/verify.sh, held against this file's own section headers. Issue 229.
+# ---------------------------------------------------------------------------------------------
+# WHAT WENT WRONG, and it went wrong three times in one night. `scripts/verify.sh` prints one
+# sentence for the build gate, and that sentence enumerates what this file checks. It is the line
+# a reader meets first, because it is the line the run prints. It was a hand-written list of a
+# thing that grows: issue 216 corrected it to the six sections the gate had that hour, issue 220
+# added section 4 and issue 221 added section 5, neither card touched the label because
+# `scripts/verify.sh` was outside its file set, and the sentence was wrong again by morning.
+# Nobody did anything wrong. There were two statements of one list and nothing joining them.
+#
+# THAT IS THE `COPY` FAILURE THE SECTION 8 NOTE ABOVE NAMES, and the repair is the one it
+# prescribes: turn the copy into a TERMINATOR by checking it against the run's own reading of
+# reality, so that being wrong is loud on the first run after it appears. Every other enumeration
+# in this apparatus already works that way. EXPECTED_PROBES, EXPECTED_DRAWINGS,
+# EXPECTED_MODEL_GATES, EXPECTED_STEPS and the smoke suite's EXPECTED_ASSERTIONS are all pinned so
+# that growth is a deliberate act. The gate's own section list was the one enumeration with no pin
+# at all.
+#
+# WHAT IS COMPARED, AND WHY IT IS NOT A COUNT. Asserting "the label mentions eight things" would
+# be a second hand-maintained number and would rot in exactly the way the label rotted, which
+# would be this repair failing in its own terms. The source of truth is this file's `^# N.`
+# section banners, read on every run, and nothing about the relation is written down twice.
+#
+# WHAT IS COMPARED, AND WHY IT IS NOT THE WHOLE TITLE EITHER. An exact substring match on a
+# section's full heading would go red on any reasonable rewording of either side, and a gate that
+# punishes editing prose is a gate somebody deletes. So each section declares ONE DISTINCTIVE
+# TOKEN, in a `[label: token]` marker on its own banner line, which is the very line an author
+# writes when adding a section, so there is nothing separate to remember. Three relations are then
+# checked, and each of them is about the pair rather than about either side alone:
+#
+#   the label has exactly one comma-separated clause per section. That is what catches a section
+#   DELETED with its clause left behind, which is the over-claiming direction and the worse one;
+#   a token-membership test alone cannot see it, because the deleted section's token is simply
+#   gone from the source of truth.
+#
+#   section N's token occurs in clause N. That is what catches a section ADDED without the label
+#   moving, and it is what makes "names it" mean something rather than nothing. Order is part of
+#   the claim, so a label that lists the same sections in some other order is refused too.
+#
+#   a token occurs in no clause but its own. A token that matched everywhere would satisfy the
+#   test vacuously, so the instrument refuses tokens that are not distinctive rather than
+#   trusting whoever picked them.
+#
+# AND HERE IS WHAT IT DOES NOT ESTABLISH, written down because a gate that is quiet about its own
+# limits is how the next reader over-reads it. Every one of these was found by pointing an
+# adversary at the code and asking it to pass the check while the label was wrong.
+#
+#   IT COMPARES THE LABEL TO BANNERS AND NOT TO CHECKS. Delete the body of a section and leave its
+#   banner, and the label still "names all eight". The relation is between two pieces of text; the
+#   claim that a banner has a check under it is held by the probes over that check, not here.
+#
+#   A TOKEN CONSTRAINS SPELLING AND NEVER SUBJECT. Rewrite a section's title around a different
+#   check and keep its token, or negate its clause in the label, and this passes. A label reduced
+#   to the eight bare tokens and no prose passes too. What is mechanically checkable is that the
+#   label names each section; whether the sentence beside the name is true stays a reading.
+#
+#   A CLAUSE CAN OVER-CLAIM INSIDE ITSELF. Three checks the gate does not run, appended to one
+#   clause with no comma, are one clause and pass.
+#
+# Those are limits of any textual check, and the alternative is not a better instrument, it is no
+# instrument. What matters is that they are the DIRECTIONS this cannot see, while the direction it
+# was written for, a section added or removed with the label untouched, it cannot miss.
+#
+# A SECTION THAT DECLARES NO TOKEN IS A FAILURE AND NOT A SKIP, same reason the census aborts on
+# a gate that stops saying which state it is in: the omission this whole card is about is exactly
+# an author adding a section and touching nothing else, and absorbing that into a default would
+# be the defect reappearing inside the instrument written to close it.
+#
+# AND THE POPULATION IS ASSERTED. A reader that enumerates zero sections finds zero mismatches and
+# prints clean, which is the failure mode EXPECTED_PROBES exists to prevent one level up. Zero
+# sections, or no label found, is an ABORT at exit 2: the instrument could not answer, which is
+# not the same sentence as "the label is right".
+#
+# It is a self-test instrument and NOT a ninth numbered section, deliberately. The live gate is
+# about the documents this repository ships; this is about two files agreeing with each other, it
+# needs no build, and making it a section would oblige the label to name the check that reads the
+# label.
+#
+# Kept apart from its inputs, like every other reader here, so the self-test can drive it with
+# doctored copies without going near the working tree.
+label_covers_sections() {  # gate-file verify-file
+  ZRIVE_GATE="$1" ZRIVE_VERIFY="$2" python3 - <<'PYLABEL'
+import os
+import re
+import sys
+
+gate_path = os.environ["ZRIVE_GATE"]
+verify_path = os.environ["ZRIVE_VERIFY"]
+
+def abort(msg):
+    print("::error::" + msg)
+    sys.exit(2)
+
+for path in (gate_path, verify_path):
+    if not os.path.isfile(path):
+        abort(f"{path} is not there, so the step 3 label cannot be held against anything.")
+
+gate = open(gate_path, encoding="utf-8").read().split("\n")
+
+# The banner convention: a `# N. ...` line whose next line is the dashed rule. Both halves are
+# required so that an ordinary comment that happens to start with a number is not read as a
+# section, and so that a section is not read past the one place it is declared.
+#
+# AND A NEAR MISS IS A FAILURE, NOT A SILENT OMISSION. The regex defines its own population, so
+# without this the instrument inherits the defect it was written to close one level down: a
+# section written `#9.` instead of `# 9.`, or indented by one space, would simply not be in the
+# population, the label would not have to name it, and the run would be green. So a line that
+# LOOKS like a banner and does not conform, next to a rule, is reported. Loose enough to catch a
+# typed banner and tight enough to leave the numbered list in this file's own header alone, which
+# is indented three spaces and sits next to prose rather than next to a rule.
+BANNER = re.compile(r"^# (\d+)\. (.*)$")
+LOOSE = re.compile(r"^ {0,3}#\s*\d+\.")
+RULE = re.compile(r"^ {0,3}# -{3,}\s*$")
+MARK = re.compile(r"\s*\[label: ([^\]]+)\]\s*$")
+
+sections = []  # (number, title, token or None)
+near_misses = []
+for i, line in enumerate(gate):
+    nxt = gate[i + 1] if i + 1 < len(gate) else ""
+    m = BANNER.match(line)
+    if m and RULE.match(nxt):
+        number, title = int(m.group(1)), m.group(2)
+        mark = MARK.search(title)
+        sections.append((number, MARK.sub("", title), mark.group(1).strip() if mark else None))
+    elif LOOSE.match(line) and any(RULE.match(gate[j]) for j in (i - 2, i - 1, i + 1, i + 2)
+                                   if 0 <= j < len(gate)):
+        # Two lines either side, so a banner separated from its rule by a stray comment line, or
+        # one whose marker wrapped onto the next line, is a near miss and not an invisible section.
+        near_misses.append((i + 1, line))
+
+if not sections:
+    abort(f"{gate_path} declares no numbered sections, so this check enumerated nothing and "
+          "cannot report on the label. A reader that finds no population finds no mismatch "
+          "either, and would print clean over any label at all.")
+
+print(f"    the gate declares {len(sections)} numbered sections")
+
+bad = []
+
+for lineno, line in near_misses:
+    bad.append(f"{gate_path}:{lineno} looks like a section banner and is not one: {line!r}. A "
+               "banner is `# N. Title.  [label: token]` at column one with the dashed rule on the "
+               "next line. A near miss is reported rather than skipped, because a section this "
+               "reader cannot see is a section the label is never made to name.")
+
+for pos, (number, title, token) in enumerate(sections, start=1):
+    if number != pos:
+        bad.append(f"section {number} ({title!r}) is the {pos} section in the file. The banners "
+                   "are read in file order and their numbers must be 1..N in that order.")
+    if not token:
+        bad.append(f"section {number} ({title!r}) declares no `[label: token]` on its banner. "
+                   "Every section names the word the step 3 label must carry for it; a section "
+                   "that names none cannot be held against the label, and a section added and "
+                   "left unmarked is the exact drift issue 229 is about.")
+
+tokens = [t for _, _, t in sections if t]
+dupes = sorted({t for t in tokens if tokens.count(t) > 1})
+for t in dupes:
+    bad.append(f"the token {t!r} is declared by more than one section. A token that does not "
+               "pick out one section cannot say the label names that one.")
+
+# The label. Read out of the source rather than passed in, because the thing under test is the
+# text scripts/verify.sh actually prints.
+#
+# ANCHORED ON THE CALL AND NOT ON THE WORDS, and matched EXACTLY ONCE. A pattern that hunted for
+# any quoted string beginning `3. the build gate:` would be satisfied by a comment quoting the
+# label, and the comment sitting directly over this very call is a standing invitation to write
+# one: the live label could then be reverted to its stale text and the decoy in the comment would
+# answer for it. So the string is taken from the `step_three_state build-gate "..."` call at
+# column one, it may not run past the end of its line, and two such calls are an ABORT rather
+# than a first match, because which of them the run prints is then not a thing this reader knows.
+verify = open(verify_path, encoding="utf-8").read()
+found = re.findall(r'^step_three_state build-gate "([^"\n]*)"', verify, re.MULTILINE)
+if len(found) != 1:
+    abort(f"{verify_path} carries {len(found)} `step_three_state build-gate \"...\"` call(s) at "
+          "column one and this reader needs exactly one. With none there is no label to hold the "
+          "gate's sections against, and a reader saying nothing is wrong would be saying it about "
+          "a sentence that is not printed. With more than one, which label the run prints is not "
+          "something this reader can know, and it must not guess.")
+
+label = found[0]
+if ": " not in label:
+    abort(f"the step 3 label {label!r} carries no `: `, so it has no list of clauses to read. The "
+          "label is a heading and then the sections, in the gate's own order.")
+body = label.split(": ", 1)[1]
+clauses = [c.strip() for c in body.split(", ")]
+
+# Membership first and position second, in that order and not folded together, because the two
+# say different things to whoever reads the refusal. A section added without the label moving
+# fails BOTH, and a refusal that reported only the arithmetic would tell an author the counts
+# differ without telling them which section went unnamed, which is most of the work.
+# A TOKEN MATCHES AT THE START OF A WORD AND NOT MID-WORD. A bare substring test lets a fragment
+# stand in for a word: `rows` is inside `browser`, `clar` is inside `declares`. A section about
+# table rows would then be certified by a clause about a browser, which is the vacuous match this
+# instrument exists not to make. A trailing boundary is deliberately NOT required, so a token
+# declared `digest` is named by a clause saying `digests`.
+def names(token, text):
+    return re.search(r"\b" + re.escape(token), text, re.IGNORECASE) is not None
+
+
+for number, title, token in sections:
+    if token and not names(token, body):
+        bad.append(f"section {number} ({title!r}) declares the token {token!r} and the label "
+                   "does not carry it anywhere. The label is the sentence the run prints for "
+                   "this gate, so a section it never names is a check the reader is not told "
+                   "about.")
+
+if len(clauses) != len(sections):
+    bad.append(f"the label carries {len(clauses)} comma-separated clauses and the gate runs "
+               f"{len(sections)} sections. one clause per section, in the gate's own order: a "
+               "spare clause is the label claiming a check that is not there, and a missing one "
+               "is a section the run never tells the reader about. If the counts look right to "
+               "you, look for a comma INSIDE a clause: the label is split on commas and a clause "
+               "that contains one reads as two.")
+else:
+    for idx, (number, title, token) in enumerate(sections):
+        if not token:
+            continue
+        clause = clauses[idx]
+        if not names(token, clause):
+            bad.append(f"section {number} ({title!r}) declares the token {token!r} and clause "
+                       f"{idx + 1} of the label, {clause!r}, does not carry it. The label must "
+                       "name every section the gate runs, in the gate's order.")
+        elsewhere = [j + 1 for j, other in enumerate(clauses)
+                     if j != idx and names(token, other)]
+        if elsewhere:
+            bad.append(f"section {number}'s token {token!r} also occurs in clause(s) "
+                       f"{elsewhere}. A token that is not distinctive proves nothing about which "
+                       "clause names which section; pick a word that belongs to this one.")
+
+if bad:
+    print(f"::error::the step 3 label in {verify_path} and the sections in {gate_path} disagree "
+          f"on {len(bad)} point(s):")
+    for line in bad:
+        print("  - " + line)
+    print("  The label is the sentence scripts/verify.sh prints for the build gate. Fix whichever")
+    print("  side is wrong, in this commit. Adding a section means adding its clause; removing a")
+    print("  section means removing its clause. That is the whole of issue 229.")
+    sys.exit(1)
+
+print(f"    and the step 3 label names all {len(sections)} of them, in the gate's own order")
+PYLABEL
+}
+
+# ---------------------------------------------------------------------------------------------
 # The self-test. Jidoka: prove the check refuses a bad input before believing it says clean.
 # ---------------------------------------------------------------------------------------------
 # It never touches the generated documents or build/label_widths.json. The byte-difference cases run
@@ -2542,7 +2787,7 @@ verdict() {  # clean|bad ; reads BASELINE_ORIGIN, CENSUS_UNVERIFIED and CENSUS_N
 # probe at a time prints a clean ratio all the way down to 0/0. A count taken from the run cannot
 # notice a probe that did not run. A short run exits 2, "the suite could not answer"; a run that
 # also recorded a failure reports it and exits 1.
-EXPECTED_PROBES=238
+EXPECTED_PROBES=258
 PASS=0
 TOTAL=0
 probe() {
@@ -3973,6 +4218,120 @@ model.ROUTES[cid]["source"] = model.ROUTES[cid]["source"] + ", one more locator"
         blind_build_reading "$bd" '/^reading module-structure/d'
   probe 1 "a reading carrying a line in none of the three forms it has" \
         blind_build_reading "$bd" 's/^schema 1$/schema 1\nwhatever i felt like typing/'
+
+  echo
+  echo "self-test: the step 3 label names every section this gate runs"
+  # Issue 229. Every probe below fails against the pair this repository shipped before this card,
+  # in which the label named six of eight sections and nothing compared the two. The doctored
+  # copies are built with printf on indented lines and never with an unindented heredoc, because
+  # a `# 9.` at column one inside this file would be read as a real ninth section by the very
+  # reader under test.
+  local gate_src="$ROOT/scripts/check_build.sh" verify_src="$ROOT/scripts/verify.sh"
+  local g_ninth="$dir/gate_ninth.sh" g_untokened="$dir/gate_untokened.sh"
+  local g_none="$dir/gate_none.sh" g_deleted="$dir/gate_deleted.sh" g_vague="$dir/gate_vague.sh"
+  local g_typo="$dir/gate_typo.sh" g_fragment="$dir/gate_fragment.sh"
+  local v_reworded="$dir/verify_reworded.sh" v_dropped="$dir/verify_dropped.sh"
+  local v_reordered="$dir/verify_reordered.sh" v_nolabel="$dir/verify_nolabel.sh"
+  local v_decoy="$dir/verify_decoy.sh" v_twice="$dir/verify_twice.sh"
+  local rule='# ---------------------------------------------------------------------------------------------'
+
+  probe 0 "the label this repository ships names every section this gate runs" \
+        label_covers_sections "$gate_src" "$verify_src"
+  probe_says "8 numbered sections" "and it says how many sections it enumerated" \
+        label_covers_sections "$gate_src" "$verify_src"
+
+  # The addition direction, which is how this label went stale twice: a section lands and the
+  # label is not in that card's file set.
+  cp "$gate_src" "$g_ninth"
+  printf '%s\n%s\n' '# 9. A ninth section nobody told the label about.  [label: ninthly]' \
+         "$rule" >>"$g_ninth"
+  probe 1 "a ninth section with the label untouched is refused" \
+        label_covers_sections "$g_ninth" "$verify_src"
+  probe_says "ninthly" "and the refusal names the section the label does not mention" \
+        label_covers_sections "$g_ninth" "$verify_src"
+
+  # And a section that dodges the relation by declaring nothing to match on is the same drift.
+  cp "$gate_src" "$g_untokened"
+  printf '%s\n%s\n' '# 9. A ninth section that declares no token either.' "$rule" >>"$g_untokened"
+  probe 1 "a section that declares no token is refused rather than skipped" \
+        label_covers_sections "$g_untokened" "$verify_src"
+  probe_says 'declares no `[label: token]`' "and the refusal says what the banner is missing" \
+        label_covers_sections "$g_untokened" "$verify_src"
+
+  # The other direction, from the label's side: the clause is still there and no longer names
+  # its section. This is the case an exact-title match would also catch and a count would not.
+  sed 's/the width it got back is the width it reserved/the widths are all quite reasonable/' \
+      "$verify_src" >"$v_reworded"
+  probe 1 "a clause reworded until it no longer names its section is refused" \
+        label_covers_sections "$gate_src" "$v_reworded"
+  probe_says "reserved" "and the refusal names the token that went missing" \
+        label_covers_sections "$gate_src" "$v_reworded"
+
+  # And the clause taken out altogether, which is what #220 and #221 never put in.
+  sed 's/the numbers in that table are ones a browser could have produced, //' \
+      "$verify_src" >"$v_dropped"
+  probe 1 "a clause deleted from the label is refused" \
+        label_covers_sections "$gate_src" "$v_dropped"
+  probe_says "one clause per section" "and the refusal says the label is short a clause" \
+        label_covers_sections "$gate_src" "$v_dropped"
+
+  # A section DELETED with its clause left behind, which is the over-claiming direction: the
+  # label promises a check the gate no longer runs. The token test alone cannot see this, because
+  # the deleted section's token is gone from the source of truth. The clause count is what sees it.
+  sed '/^# 8\. The census of what could look\./d' "$gate_src" >"$g_deleted"
+  probe 1 "a section deleted with its clause left in the label is refused" \
+        label_covers_sections "$g_deleted" "$verify_src"
+
+  # Order is part of the claim, so a label that names the right sections in the wrong places is
+  # not a label a reader can follow down the gate's output.
+  sed 's/the model is well formed, the fourteen digests are the ones these bytes produce/the fourteen digests are the ones these bytes produce, the model is well formed/' \
+      "$verify_src" >"$v_reordered"
+  probe 1 "a label that lists the sections out of the gate's order is refused" \
+        label_covers_sections "$gate_src" "$v_reordered"
+
+  # A token that matches everything would satisfy the relation while saying nothing, which is the
+  # vacuous instrument this card was written to avoid becoming.
+  sed 's/^# 6\. The model is well formed\.  \[label: well formed\]$/# 6. The model is well formed.  [label: the]/' \
+      "$gate_src" >"$g_vague"
+  probe 1 "a token that is not distinctive is refused rather than trusted" \
+        label_covers_sections "$g_vague" "$verify_src"
+
+  # A banner the pattern cannot see would put a section outside the population, and the label
+  # would never have to name it. That is this card's own defect one level down, so a near miss
+  # next to a rule is reported rather than skipped.
+  cp "$gate_src" "$g_typo"
+  printf '%s\n%s\n' '#9. A ninth section whose banner is typed one character wrong.  [label: ninthly]' \
+         "$rule" >>"$g_typo"
+  probe 1 "a banner typed one character wrong is reported and not quietly dropped" \
+        label_covers_sections "$g_typo" "$verify_src"
+
+  # And a token that is a fragment of some other word would satisfy the relation without naming
+  # anything: `rows` sits inside `browser`.
+  sed 's/^# 5\. \(.*\)\[label: browser\]$/# 5. \1[label: rows]/' "$gate_src" >"$g_fragment"
+  probe 1 "a token that is only a fragment of another word is refused" \
+        label_covers_sections "$g_fragment" "$verify_src"
+
+  # The label is taken from the call and not from any quoted string that looks like it. A comment
+  # quoting the correct label, over a live label reverted to its stale text, is the exact way this
+  # instrument could have been made to answer for a sentence the run does not print.
+  { printf '%s\n' '# For the record the label reads "3. the build gate: both documents reproduce, the widths cover, the widths the builder asks for are the widths the job declares, the width it got back is the width it reserved, the numbers in that table are ones a browser could have produced, the model is well formed, the fourteen digests are the ones these bytes produce, and the gates that could not look say so".'
+    sed 's/the width it got back is the width it reserved, the numbers in that table are ones a browser could have produced, //' "$verify_src"; } >"$v_decoy"
+  probe 1 "a comment quoting the right label does not answer for a live label that is wrong" \
+        label_covers_sections "$gate_src" "$v_decoy"
+  { cat "$verify_src"; grep '^step_three_state build-gate "' "$verify_src"; } >"$v_twice"
+  probe 2 "two step 3 labels abort rather than the first one being read as the label" \
+        label_covers_sections "$gate_src" "$v_twice"
+
+  # And the population, because a reader that enumerates nothing reports no mismatch and prints
+  # clean over any label at all. Both halves of the pair get the same treatment.
+  grep -vE '^# [0-9]+\. ' "$gate_src" >"$g_none"
+  probe 2 "a gate with no numbered sections aborts rather than reporting clean" \
+        label_covers_sections "$g_none" "$verify_src"
+  probe_says "enumerated nothing" "and it says that is why it cannot answer" \
+        label_covers_sections "$g_none" "$verify_src"
+  sed '/^step_three_state build-gate "/d' "$verify_src" >"$v_nolabel"
+  probe 2 "a verify file with no step 3 label aborts rather than reporting clean" \
+        label_covers_sections "$gate_src" "$v_nolabel"
 
   rm -rf "$dir"
   echo

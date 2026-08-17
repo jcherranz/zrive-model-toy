@@ -720,17 +720,25 @@ step_may_decline untracked "2. nothing is untracked, so the gates see everything
      "some files are untracked and the repository gate cannot see them; its two steps are about the rest of the tree" \
      check_untracked
 
-# THE LABEL LISTS ALL SIX SECTIONS THE GATE RUNS, AND IT LISTED FOUR. Issue 216, carrying a finding
-# #217's agent made and correctly left alone because this file was outside its own file set. The
-# gate grew a third section with #217, `3. The widths the builder ASKS FOR are the widths the job
-# declares`, and it has had `6. The census of what could look` since issue 168 R4(a); the label
-# named neither. Under-claiming is the milder direction and it still costs something: a summary
-# that under-lists what a gate covers is how a card gets filed for a check that already exists,
-# which happened to this very card, whose own triage went looking for a `window.ZB` reader that was
-# already there and already honest. The label is prose and nothing can check it, which is the same
-# reason the step NUMBERS are asserted a hundred lines up and the descriptions are not, so it is
-# written out in the gate's own order to make the next drift visible by reading.
-step_three_state build-gate "3. the build gate: both documents rebuild, the widths cover, the widths the builder asks for are the widths the job declares, the model is well formed, the fourteen digests are the ones these bytes produce, and the gates that could not look say so" \
+# THE LABEL LISTS EVERY SECTION THE BUILD GATE RUNS, AND SOMETHING NOW HOLDS IT TO THAT. Issue 229.
+# Issue 216 corrected this list to the six sections the gate had that hour, carrying a finding
+# #217's agent made and correctly left alone because this file was outside its own file set. Issue
+# 220 then added a fourth section and issue 221 a fifth, neither card touched this line because
+# this file was outside ITS file set either, and the sentence was wrong again within hours. Three
+# times in one night the instance was fixed and the mechanism was not. Under-claiming is the milder
+# direction and it still costs something: a summary that under-lists what a gate covers is how a
+# card gets filed for a check that already exists, which happened to issue 216 itself, whose own
+# triage went looking for a `window.ZB` reader that was already there and already honest.
+#
+# So this is no longer prose that nothing can check. `scripts/check_build.sh --self-test` reads its
+# own `# N.` section banners and holds them against this label: one comma-separated clause per
+# section, in the gate's order, each clause carrying the distinctive token that section declares in
+# a `[label: token]` marker on its banner line. Adding a section now fails the build gate's
+# self-test, the step directly below this one, until this line names it, and deleting one fails
+# until this line stops naming it. Keep the clauses comma-separated and keep them in the gate's
+# order; the reasoning, and what the check deliberately cannot establish, is written out over that
+# function, under the heading that cites this card.
+step_three_state build-gate "3. the build gate: both documents reproduce, the widths cover, the widths the builder asks for are the widths the job declares, the width it got back is the width it reserved, the numbers in that table are ones a browser could have produced, the model is well formed, the fourteen digests are the ones these bytes produce, and the gates that could not look say so" \
      bash scripts/check_build.sh
 step build-gate-armed "4. prove the build gate fires"     bash scripts/check_build.sh --self-test
 # The provenance gate runs inside build/build_layout.py on every build, so the build gate step
