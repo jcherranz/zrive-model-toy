@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T04:24:05Z",
+  "generated": "2026-08-17T04:36:30Z",
   "columns": [
     {
       "key": "raw",
@@ -59,15 +59,6 @@
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/215"
         },
         {
-          "id": 223,
-          "title": "The smoke workflow's exit-2 message lists two causes of a refusal and tells the reader to re-run, which is wrong for the third",
-          "labels": [
-            "limitation",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/223"
-        },
-        {
           "id": 224,
           "title": "A selected label leaving its lane is measurable on the page and nothing measures it",
           "labels": [
@@ -101,6 +92,15 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/204"
+        },
+        {
+          "id": 223,
+          "title": "The smoke workflow's exit-2 message lists two causes of a refusal and tells the reader to re-run, which is wrong for the third",
+          "labels": [
+            "limitation",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/223"
         }
       ]
     },
