@@ -46,6 +46,34 @@ of what changed and when, and it is meant to be scannable.
   private would return Actions to the billing block that stopped every workflow for eleven hours,
   and it would not undo a disclosure already made.
 
+### Changed
+
+- **THE BUILD WORKFLOW NAMED ITS GATE STEP BY QUOTING THE GATE'S FIRST RUN HEADING, AND NOTHING
+  HELD THE TWO TOGETHER, #237.** `.github/workflows/build.yml` called its build-gate step `The
+  drawing git holds is what the builder produces`, a verbatim copy of `scripts/check_build.sh`'s
+  first `== ` run heading. **Measured at `4b7ec11`**, where #235 reworded that heading to `the
+  drawing git holds is what the builder reproduces` so section 1 carries its declared token: the
+  copy did not move, and the two now differ by one word. The only pinned relation on that step is
+  the `# verify-step: build-gate` marker on the line above, which joins the step to a
+  `scripts/verify.sh` step and has never had an opinion about the `name:` beside it. The sentence
+  was stated in five places and pinned in four.
+- **The copy is gone rather than re-synced.** The step is named `Run the build gate, and report
+  the state it exits in`, which says what the step does: it runs the gate, fails the job on
+  anything other than exit 0 or exit 3, and lifts the corpus-reading state into the job summary. A
+  name that quotes nothing cannot drift from a heading, so there is one fewer statement of the
+  sentence and no fifth pin was bought. **Editing the name to match today's heading was refused**
+  as the repair that restores the appearance of a maintained relation while leaving it exactly as
+  unheld, and **pinning the copy was weighed and refused** as paying a new relation to keep a
+  sentence nobody needs in two places. A comment above the step records both refusals, so the next
+  reader who is tempted to name a step after a line a gate prints meets the argument first.
+- **Nothing else in the workflow moved.** Loading `.github/workflows/build.yml` with a YAML parser
+  before and after gives eight steps whose every key is identical except that one `name:`; the
+  `run:` block, the marker, the triggers, the permissions and the concurrency group are unchanged.
+  `scripts/check_ci_drift.sh` still reports `[OK] build-gate build.yml` and exits 0, its self-test
+  still passes twelve of twelve intended probes, and deleting the marker on purpose turns the check
+  red naming `build-gate`. That pair is the evidence the relation this card was told not to weaken
+  still binds.
+
 ### Added
 
 - **THE RUN HEADINGS WERE A FOURTH STATEMENT OF THE BUILD GATE'S SECTION LIST, THE ONE A READER
