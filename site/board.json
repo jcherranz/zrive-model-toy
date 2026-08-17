@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T06:49:09Z",
+  "generated": "2026-08-17T07:21:01Z",
   "columns": [
     {
       "key": "raw",
@@ -42,6 +42,14 @@
             "idea"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
+        },
+        {
+          "id": 237,
+          "title": "build.yml's build-gate step name quotes the gate's first run heading and nothing holds it there",
+          "labels": [
+            "limitation"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/237"
         }
       ]
     },
