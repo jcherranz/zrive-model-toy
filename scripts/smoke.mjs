@@ -844,7 +844,7 @@ const PHASES = {
 // claim and it now has to hold in the cascade and in the paint at once. What the card bought that
 // is not in the count is the machinery, which is a PNG reader over `zlib` and no dependency, and
 // the class of assertion it makes possible: a contrast read off the pixels rather than composited
-// in JavaScript is in this phase now, at 4.5485 to 1 measured against 4.5558 computed, and the two
+// in JavaScript is in this phase now, at 4.5475 to 1 measured against 4.5558 computed, and the two
 // figures printing side by side is the point of doing it twice.
 const EXPECTED_ASSERTIONS = 354;
 
@@ -15472,6 +15472,12 @@ function decodePng(buf) {
               compression: data[10], filter: data[11], interlace: data[12] };
     } else if (type === 'IDAT') {
       idat.push(Buffer.from(data));
+    } else if (type === 'tRNS') {
+      // Not a decode path and not dead weight: this reader ignores transparency, so an image
+      // carrying a tRNS would be read as opaque and every coverage below would be taken against a
+      // colour the page never painted. Chrome's screenshots carry none. Refused rather than
+      // ignored, which is the difference between a reader that cannot and one that quietly does.
+      throw new Error('the image carries a tRNS chunk, and this reader has no transparency in it');
     } else if (type === 'IEND') { sawEnd = true; break; }
     off += 12 + len;
   }
@@ -15525,6 +15531,9 @@ function decodePng(buf) {
   return { w: hdr.w, h: hdr.h, ch, data: out, took };
 }
 
+// Three channels, whatever the image carries. A screenshot of an opaque page is opaque everywhere,
+// and a tRNS is refused above, so on an RGBA image the fourth channel is 255 in every pixel and
+// dropping it drops nothing. The fixture proof reads the buffer directly and does compare it.
 function pxAt(img, x, y) {
   const i = (y * img.w + x) * img.ch;
   return [img.data[i], img.data[i + 1], img.data[i + 2]];
@@ -15840,10 +15849,11 @@ const RAIL_READ = `(function () {
 // How much a measured width is allowed to fall short of the declared one before it is a failure,
 // and it is a statement about antialiasing rather than a tuned number. A stroke of exactly two CSS
 // px laid at a fractional offset paints one covered pixel and two partly covered ones, and the
-// coverages sum back to the stroke's own width to within the eighth of a count the browser rounds
-// each of them to. Measured on this tree at all three viewports and on both vertical edges of the
-// frame, the six readings run from 1.95 to 2.02 against a declared 2, so a tenth and a half is an
-// order of magnitude over the residual and two orders under the collapse the control produces.
+// coverages sum back to the stroke's own width to within what the browser rounds each of them to.
+// Measured on this tree at all three viewports and on both vertical edges of the frame, the six
+// readings run from 2.0048 to 2.0296 against a declared 2, so a tenth and a half is two orders of
+// magnitude over the residual and is an order under the collapse the control produces, which is
+// 0.3265 at the narrowest viewport and 0.3725 at the widest.
 const RING_PIXEL_SLACK = 0.15;
 
 // The frame's own rectangle, plus a margin for the stroke, which straddles the path and therefore
@@ -15940,20 +15950,30 @@ async function measureTheRing(page) {
   }
   const clip = { x: g.x + g.scrollX - RING_CLIP_PAD, y: g.y + g.scrollY - RING_CLIP_PAD,
                  width: g.w + RING_CLIP_PAD * 2, height: g.h + RING_CLIP_PAD * 2 };
-  // AS PAINTED FIRST, because everything after it is a state this driver put the page in.
+  // AS PAINTED FIRST, because everything after it is a state this driver put the page in. The two
+  // states below are written and put back inside a finally, so a capture that refuses part way
+  // through does not leave the page with a stroke taken off it: a HarnessFailure ends this
+  // viewport, and a viewport that ended is not a place to leave a plant lying.
   const lit = await shoot(page, clip, 'the focus ring as painted');
+  let unlit, matrix;
   // THE GROUND, which is the same rectangle with the stroke taken off and nothing else moved. It
   // is the ring's negative and it is also the denominator: every coverage below is against this.
-  await page.evaluate(ringStyle('stroke', 'none'));
-  const unlit = await shoot(page, clip, 'the focus ring with the stroke taken off');
-  await page.evaluate(ringStyle('stroke', ''));
+  try {
+    await page.evaluate(ringStyle('stroke', 'none'));
+    unlit = await shoot(page, clip, 'the focus ring with the stroke taken off');
+  } finally {
+    await page.evaluate(ringStyle('stroke', ''));
+  }
   // THE CONTROL, AND IT IS RING_UNDO's CONTROL PHOTOGRAPHED. `vector-effect` goes back to `none`,
   // which puts the canvas matrix back into the stroke, and the painted width has to COLLAPSE. A
   // page where taking `non-scaling-stroke` off changes nothing in the PAINT is a page this
   // instrument cannot see, whatever the declarations say.
-  await page.evaluate(ringStyle('vectorEffect', 'none'));
-  const matrix = await shoot(page, clip, 'the focus ring with the canvas matrix put back');
-  await page.evaluate(ringStyle('vectorEffect', ''));
+  try {
+    await page.evaluate(ringStyle('vectorEffect', 'none'));
+    matrix = await shoot(page, clip, 'the focus ring with the canvas matrix put back');
+  } finally {
+    await page.evaluate(ringStyle('vectorEffect', ''));
+  }
 
   const y = Math.min(lit.h - 1, Math.max(0, Math.round(lit.h / 2)));
   const half = Math.floor(lit.w / 2);
@@ -16096,11 +16116,17 @@ async function measureTheRail(page) {
   // AS FOUND FIRST, before anything is written, which is the state a reader arrives on and the same
   // ordering RAIL_READ's own `found` line argues for one screen up.
   const found = await shoot(page, clip, 'the scope rail as the page came up');
-  await page.evaluate(railStyle('none'));
-  const bare = await shoot(page, clip, 'the scope rail with no mask on it');
-  await page.evaluate(railStyle(RAIL_CONTROL_MASK));
-  const control = await shoot(page, clip, 'the scope rail under a fade this run declared');
-  await page.evaluate(railStyle(''));
+  let bare, control;
+  // Both written states are put back in a finally, for the reason measureTheRing states: a capture
+  // that refuses must not leave a mask this file declared on a rail the run is finished with.
+  try {
+    await page.evaluate(railStyle('none'));
+    bare = await shoot(page, clip, 'the scope rail with no mask on it');
+    await page.evaluate(railStyle(RAIL_CONTROL_MASK));
+    control = await shoot(page, clip, 'the scope rail under a fade this run declared');
+  } finally {
+    await page.evaluate(railStyle(''));
+  }
 
   const f = railColumns(found, bare, ground);
   const c = railColumns(control, bare, ground);
@@ -16220,8 +16246,13 @@ async function checkRingAndRail(page) {
   // reports a working instrument on a rail it could not have measured. The first draft of this
   // check did exactly that and the run said so, which is the reason the constant beside
   // RAIL_CONTROL_MASK is written the way it is.
+  // The population, and it is every band as well as the whole. A band that came back short is a
+  // mean over fewer columns than the reading says it took, which is the same vacuity one level
+  // down from a photograph nobody sampled.
   const seen = !railShot.why && railShot.inked >= 30 && railShot.pixels > 0 &&
-               railShot.ctlL.n === 6 && railShot.outL.n === 6 && railShot.middle.n > 0;
+               railShot.ctlL.n === 6 && railShot.ctlR.n === 6 && railShot.ctlMiddle.n > 0 &&
+               railShot.outL.n === 6 && railShot.outR.n === 6 && railShot.middle.n > 0 &&
+               (fits || railShot.midR.n === 8);
   const controlSees = seen && railShot.ctlL.mean !== null && railShot.ctlL.mean <= RAIL_FADED_MAX &&
                       railShot.ctlMiddle.mean !== null && railShot.ctlMiddle.mean >= RAIL_FLAT_MIN;
   // The page's own figure held against this file's, so a stylesheet that moves the fade fails here
@@ -16229,8 +16260,14 @@ async function checkRingAndRail(page) {
   const fadeAgrees = fits || (typeof rail.maskText === 'string' &&
                               rail.maskText.includes(`${RAIL_FADE_PX}px`));
   const railPainted = seen && controlSees && (fits
-    // A rail that fits is a rail nothing is fading, at either end, and the control two lines up is
-    // what says the reading could have seen a fade if one had been there.
+    // A rail that fits is a rail nothing is fading, at either end. SAID PLAINLY, BECAUSE IT IS THE
+    // weakest reading in this phase: where the page carries no mask, the photograph as found and
+    // the photograph with the mask forced off are two pictures of one DOM state, so this branch's
+    // three numbers are 1 by construction and the force of the reading is entirely in the control
+    // above it, which puts a fade of this run's own on the same rail at the same width and watches
+    // the same arithmetic collapse to 0.14. What it therefore says is that nothing at these widths
+    // is taking the rail's edges down BY A MASK, on an instrument shown to see one. An element
+    // painted over the edge is a different claim and this does not make it.
     ? railShot.outL.mean >= RAIL_FLAT_MIN && railShot.outR.mean !== null &&
       railShot.outR.mean >= RAIL_FLAT_MIN && railShot.middle.mean >= RAIL_FLAT_MIN
     // A rail with more to the right of it fades there and nowhere else, and it fades as a gradient
@@ -16268,8 +16305,8 @@ async function checkRingAndRail(page) {
     (fits ? `${rail.content} px of chips in ${rail.width}, nothing off either end`
           : `${rail.content} px of chips in ${rail.width}, ${rail.overflow} off the end`) +
       (railShot.why ? '' : `; ${railShot.inked} inked columns of ${railShot.clip}, outer right ` +
-                       `${railShot.outR.mean} against a middle of ${railShot.middle.mean}, control ` +
-                       `${railShot.ctlL.mean}`));
+                       `${railShot.outR.mean} then ${railShot.midR.mean} against a middle of ` +
+                       `${railShot.middle.mean}, control ${railShot.ctlL.mean}`));
 }
 
 // The five facts a calendar chip carries, read off what the accessibility tree would be handed
@@ -16977,6 +17014,11 @@ async function main() {
 
 main().then(code => process.exit(code)).catch(err => {
   console.error('\nthe suite could not run:\n' + (err && err.message ? err.message : err));
+  // AND THE DETAIL, WHICH USED TO BE DROPPED HERE. Issue 202. A HarnessFailure carries the whole
+  // of why the suite has nothing to say and harnessFail() prints it everywhere else; a refusal
+  // raised before the viewport loop, which is where the pixel reader's own proof is asked, came
+  // out as one line with the argument thrown away.
+  if (err && err.detail) console.error('\n' + String(err.detail));
   console.error('\nVERDICT: the suite could not answer. This is a harness failure, not a page regression.');
   process.exit(2);
 });
