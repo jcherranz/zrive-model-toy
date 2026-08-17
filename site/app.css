@@ -861,10 +861,17 @@ h1 {
    both spend something this card was told not to spend. A scrollbar under the row is 11 px of a
    844 px screen and, on the phone this is actually for, iOS draws an overlay scrollbar that
    appears while a finger is moving and is therefore not a rest state affordance at all. Letting
-   the rail wrap to a second line is the header's own phone sketch one row taller: 32 px, which
-   takes the chrome from 0.1268 of the viewport to 0.1647 against the 0.1730 this file holds itself
-   to, and #142 already spent that line on the term strip. A mask costs no layout at all and it is
-   what a reader already reads as "there is more this way".
+   the rail wrap to a second line is the header's own phone sketch one row taller: 32 px, and
+   #142 already spent that line on the term strip.
+
+   THE TWO FIGURES THAT SENTENCE CARRIED WERE THE HEADER'S AND THE CEILING IS A TOTAL, #248. The
+   header alone goes from 0.1268 of the viewport to 0.1647 for that row, which reads as room under
+   0.1730 and is not: the chrome this file holds itself to is the header AND the footer, the footer
+   is 28 of 844 measured at 390 for that card on two machines, and the total therefore goes from
+   0.1600 to 0.1979, which is OVER the ceiling rather than under it. So this refusal was understated
+   by its own arithmetic. `scripts/smoke.mjs` bounds the total at 0.1730 since #248 and bounded no
+   part of the footer before it. A mask costs no layout at all and it is what a reader already
+   reads as "there is more this way".
 
    ON THE SIDE THAT HAS MORE, AND ONLY WHILE IT HAS. router.js writes the two classes from
    scrollLeft, scrollWidth and clientWidth, so a rail that fits carries neither and a rail scrolled
@@ -2447,8 +2454,15 @@ body.fb-mode .fb-popover select { cursor: pointer; }
      leaves, so a strip sharing that line would be 115 CSS px over twenty four weeks, which is a
      four pixel week and a band a thumb cannot find. Given the row it is 366 wide, the week is 13
      and the three week band is 40 by 26, which is a target a thumb lands on. It costs the header
-     one line, 32 of the 844 a phone has, taking the chrome from 107 to 139 and its share from
-     0.1268 to 0.1647, against the 0.1730 this repository holds itself to.
+     one line, 32 of the 844 a phone has, taking the HEADER from 107 to 139 and the HEADER's share
+     from 0.1268 to 0.1647.
+
+     THAT SHARE IS THE HEADER'S AND 0.1730 IS A TOTAL, #248. The chrome this repository holds
+     itself to is the header and the footer together, and neither figure on the line above has the
+     footer in it. Measured for #248 at 390 by 844, the footer is 28, so the page's total is 135 of
+     844, share 0.1600, and a header of 139 beside that footer is 167 of 844, share 0.1979, which
+     spends more than the ceiling has. The line was taken while nothing enforced the ceiling at all;
+     `scripts/smoke.mjs` bounds the total at 0.1730 since #248.
 
      `flex: 1 1 100%` FOR .hnav's REASON, restated: a flex item sized to its own content never
      meets an edge to wrap at, so the line has to be given rather than left to be taken. */
