@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T04:45:02Z",
+  "generated": "2026-08-17T04:46:00Z",
   "columns": [
     {
       "key": "raw",
@@ -85,6 +85,15 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/229"
+        },
+        {
+          "id": 231,
+          "title": "The smoke workflow's header still explains exit 2 with the old two-cause list, twenty lines above the corrected message",
+          "labels": [
+            "limitation",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/231"
         }
       ]
     },
