@@ -130,8 +130,10 @@ of what changed and when, and it is meant to be scannable.
 
 - **NOTHING RE-MEASURED THE WIDTH TABLE, AND THE TOOL THAT COULD WAS TOO COARSE TO GATE ON, #221.**
   The second half of #217. `build/measure_labels.py --check` existed and **nothing called it**:
-  over the 28 files under `scripts/`, `.github/` and `build/`, `measure_labels` occurs 40 times and
-  exactly two mention `--check`, its own usage line and a comment #220 added recording this gap.
+  over the 28 files under `scripts/`, `.github/` and `build/`, `measure_labels` occurs on 40 lines,
+  41 times, and **exactly two of those lines mention `--check`, both of them prose**: its own usage
+  line, inside the module docstring, and a `//` comment #220 added recording this gap. Classified by
+  reading each line; a first pass that tested for a leading `#` called both of them live calls.
   So a value in `build/label_widths.json` edited by hand **passed every gate in the repository**.
   Halve every entry under `widths["9/400"]`, or exchange `widths["10/400i"]` with
   `widths["10/600i"]` wholesale: the build reproduces, `check_widths_cover` holds, the arguments are
