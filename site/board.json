@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T07:52:20Z",
+  "generated": "2026-08-17T08:06:40Z",
   "columns": [
     {
       "key": "raw",
@@ -50,6 +50,14 @@
             "limitation"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/240"
+        },
+        {
+          "id": 241,
+          "title": "A workflow step is named after verify.sh's step 10 label, and the rule #237 just added forbids the same shape one file over",
+          "labels": [
+            "limitation"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/241"
         }
       ]
     },
