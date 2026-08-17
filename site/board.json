@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T00:17:37Z",
+  "generated": "2026-08-17T00:20:09Z",
   "columns": [
     {
       "key": "raw",
@@ -109,15 +109,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/202"
-        },
-        {
-          "id": 220,
-          "title": "Nothing proves a reserved width was USED, only that it was asked for",
-          "labels": [
-            "limitation",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/220"
         }
       ]
     },
@@ -125,6 +116,15 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 220,
+          "title": "Nothing proves a reserved width was USED, only that it was asked for",
+          "labels": [
+            "limitation",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/220"
+        },
         {
           "id": 217,
           "title": "Nothing holds build_layout.py's own text_w() call sites, and nothing re-measures the width table",
@@ -185,19 +185,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/206"
-        },
-        {
-          "id": 203,
-          "title": "The missing-instructor mark is reserved upright and painted italic, so its label box is the wrong width and nobody measured by how much",
-          "labels": [
-            "bug",
-            "layout",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/203"
         }
       ],
-      "hidden": 157,
+      "hidden": 158,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
