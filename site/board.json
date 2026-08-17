@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T12:21:03Z",
+  "generated": "2026-08-17T13:01:30Z",
   "columns": [
     {
       "key": "raw",
@@ -68,6 +68,15 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/247"
+        },
+        {
+          "id": 248,
+          "title": "The phone chrome ceiling this repository holds itself to is 0.1730 and the only ceiling enforced is 0.2370",
+          "labels": [
+            "limitation",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/248"
         }
       ]
     },
