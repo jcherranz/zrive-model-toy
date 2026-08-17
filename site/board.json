@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T14:27:54Z",
+  "generated": "2026-08-17T15:20:59Z",
   "columns": [
     {
       "key": "raw",
@@ -65,15 +65,6 @@
             "status:in-progress"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
-        },
-        {
-          "id": 248,
-          "title": "The phone chrome ceiling this repository holds itself to is 0.1730 and the only ceiling enforced is 0.2370",
-          "labels": [
-            "limitation",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/248"
         }
       ]
     },
@@ -81,6 +72,15 @@
       "key": "done",
       "title": "Done",
       "cards": [
+        {
+          "id": 248,
+          "title": "The phone chrome ceiling this repository holds itself to is 0.1730 and the only ceiling enforced is 0.2370",
+          "labels": [
+            "limitation",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/248"
+        },
         {
           "id": 245,
           "title": "Three workflow step names state a claim and are not copies, so the #244 search could never see them",
@@ -142,18 +142,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/231"
-        },
-        {
-          "id": 229,
-          "title": "verify.sh step 3's label enumerates the build gate's sections by hand, and nothing holds it against them",
-          "labels": [
-            "limitation",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/229"
         }
       ],
-      "hidden": 174,
+      "hidden": 175,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
