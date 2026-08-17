@@ -177,10 +177,21 @@ of what changed and when, and it is meant to be scannable.
   `R4` a band against `estimate_w()`, the hand written per character model, **read out of the
   builder rather than copied**, because a second copy of an oracle is not an oracle. Every relation
   prints the count of pairs it compared and **refuses when it compared none**.
-  **Three things it deliberately cannot say, written where they are made.** One plausible number
-  nudged by a few per cent. **The 400 block copied over the 600 block**, because `R2` is `>=` and
-  `estimate_w()` takes no weight argument, and that is **not** repaired by tightening `R2` into a
-  ratio band: a machine holding no real bold face synthesises one, and this tree's own table proves
+  **Three things it deliberately cannot say, written where they are made, and every bound measured
+  rather than guessed.** The first draft of this paragraph said "a few per cent" and understated all
+  three. **One plausible number**: the per-string band is the worst case of a crude estimate, so it
+  admits a single width anywhere from 0.35 to 2.60 times what `estimate_w()` says, which on the
+  tightest value is -35% to +58%. **The whole table rescaled**, which is the sharpest, because
+  `R1`, `R2` and `R3` are all scale invariant and a rescale moves every per-context median
+  together: bisected against the check, the accepted window is **x0.74 to x1.29**, pinned as a
+  probe rather than left as a sentence, and **it is not closable by tightening the band**, because
+  the legitimate spread inside the envelope is 130.4/109.82, so a machine resolving only the narrow
+  families measures x0.8422 of this table and must not be refused for it. The tolerance is set by
+  how much two honest machines differ, not by a choice. **The 400 block copied over the 600
+  block**, because `R2` is `>=` and `estimate_w()` takes no weight argument: run rather than
+  argued, that edit exits 0 with `R2` comparing all 2495 of its pairs, and `reserve()` then
+  reserves every selected label at its regular width, which is #203 from the build side. That is
+  **not** repaired by tightening `R2` into a ratio band: a machine holding no real bold face synthesises one, and this tree's own table proves
   synthesis preserves advances here, since all four strings the ghost contexts share with the
   upright ones are identical to the hundredth in italic and upright. A floor above one would refuse
   such a machine for being itself. And **the cross-size relation #221 lists**,
@@ -194,8 +205,23 @@ of what changed and when, and it is meant to be scannable.
   table, an unreadable table, no builder to read `estimate_w()` from, and each pair relation emptied
   so that it compares nothing. **Not refused, which is the other half of this card**: a reworded
   note beside a context, a moved engine string, and a surplus row. `check()` is driven with two
-  documents and no browser, so all four states are probed on a runner; the two exit-2 refusals run
-  the real program with no table and with `$PATH` and the Playwright cache emptied.
+  documents and no browser, so all four states are probed on a runner; the exit-2 refusals run the
+  real program with no table, with a table carrying no fingerprint, with a stylesheet declaring no
+  font stack, and with `$PATH` and the Playwright cache emptied.
+  **An independent adversarial agent was briefed to read the real files and answer two questions,
+  can this pass while a width is wrong and can it go red for a reason that is not a defect, and it
+  found both.** Repaired: a context the table holds that the job no longer declares was read as CSS
+  drift and blamed on the stylesheet, which would have refused a correct table the moment the last
+  ghost node left `build/model.py`, and it is dead weight in exactly the way a surplus row is; CSS
+  values are now compared as numbers where they are numbers, since `.07em` written `0.07em` renders
+  identically and took the first draft red; the builder is no longer shown the table under test,
+  which had put an undeclared upper tolerance of about +10% on the check enforced by lane geometry
+  rather than by any stated relation; a table short of what the job asks for was judged on the
+  remainder, one context emptied leaving 2626 of 5118 values with every relation reporting no
+  violation; every route through a damaged or missing fingerprint landed in exit 3, "the values
+  were not judged", rather than in a refusal; `css_var()` and `css_rule()` were still exiting 1;
+  and five malformed shapes raised instead of being reported, including a width typed in as a
+  string, which is the exact edit this card is about.
   **Nothing under `site/` moved and `build/label_widths.json` is unchanged**, so the fourteen
   digests are where they were.
 
