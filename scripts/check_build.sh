@@ -1941,10 +1941,41 @@ _model_says() {
 }
 
 check_structure_live() { _model_says --structure; }
+
+# ---------------------------------------------------------------------------------------------
+# 7. And the gate that says so refuses the graphs it names. Issue 235.  [label: refuses]
+# ---------------------------------------------------------------------------------------------
+# A BANNER OF ITS OWN, AND THAT IS THE ONE JUDGEMENT ISSUE 235 ASKED FOR. Before this card the run
+# printed nine `== ` headings over eight numbered sections, and this was the ninth: a live check,
+# with a heading a reader watches scroll past, that no `# N.` banner declared and that the step 3
+# label in scripts/verify.sh therefore never named. The card put the question as "either a heading
+# may stand without a section, or the ninth heading is the defect". It is the third answer, and it
+# is the one the evidence supports: the heading was right and the missing banner was the defect.
+#
+# WHY THIS IS A CLAIM AND NOT A SECOND SENTENCE ABOUT SECTION 6. Section 6 says the graph this
+# build ships is well formed. This says the gate that decides that refuses the graphs it names.
+# They fail independently in both directions: delete a rule from build/model.py and every shipped
+# graph still passes while this goes red, and ship a graph that breaks a rule and this stays green
+# while section 6 goes red. Sections 4 and 5 are adjunct claims about the width table in exactly
+# that way and each has a banner. Under-claiming is the milder direction and it still costs
+# something, which is the note over the step 3 label: a summary that under-lists what a gate
+# covers is how a card gets filed for a check that already exists.
+#
+# AND THE ALTERNATIVE WAS WEIGHED AND REJECTED. Letting one section own several headings needs
+# either a per-section count of them, which is a hand-maintained number of precisely the kind
+# issue 229 removed and would rot the same way, or unlimited repeats, which leaves the drift open
+# one level down: add a live check, give it a heading carrying a token some existing section
+# already declares, and neither a banner nor the label ever has to move again. One heading per
+# section, in the banners' own order, closes that and costs one banner here.
+#
+# IT IS NOT WHAT ISSUE 229 SETTLED AND IT DOES NOT REOPEN IT. label_and_headings_cover_sections
+# stays out of the numbering because it runs only under --self-test and numbering it would oblige
+# the label to name the check that reads the label. This one runs in the live gate, the reader
+# already watches it, and naming it in the label is what the label is for.
 check_structure_armed() { _model_says --structure-self-test; }
 
 # ---------------------------------------------------------------------------------------------
-# 7. The digest census. Issue 116.  [label: digest]
+# 8. The digest census. Issue 116.  [label: digest]
 # ---------------------------------------------------------------------------------------------
 # Before this card `drawingDigest` occurred zero times in every gate this repository runs. The
 # value was correct, nothing read it, and the audit changed one glyph in build/model.py, rebuilt
@@ -2110,7 +2141,7 @@ PY
 }
 
 # ---------------------------------------------------------------------------------------------
-# 8. The census of what could look. Issue 168 R4(a).  [label: look]
+# 9. The census of what could look. Issue 168 R4(a).  [label: look]
 # ---------------------------------------------------------------------------------------------
 # THE NOTICES ARE THE EVIDENCE AND THE CORPUS IS THE CROSS-CHECK, in that order and not the other
 # way round. Each gate says on its own face whether it verified or declined, and one of them can
@@ -2530,7 +2561,8 @@ verdict() {  # clean|bad ; reads BASELINE_ORIGIN, CENSUS_UNVERIFIED and CENSUS_N
 }
 
 # ---------------------------------------------------------------------------------------------
-# The step 3 label in scripts/verify.sh, held against this file's own section headers. Issue 229.
+# The step 3 label in scripts/verify.sh AND this file's own `== ` run headings, both held against
+# its `# N.` section banners. Issues 229 and 235.
 # ---------------------------------------------------------------------------------------------
 # WHAT WENT WRONG, and it went wrong three times in one night. `scripts/verify.sh` prints one
 # sentence for the build gate, and that sentence enumerates what this file checks. It is the line
@@ -2540,7 +2572,17 @@ verdict() {  # clean|bad ; reads BASELINE_ORIGIN, CENSUS_UNVERIFIED and CENSUS_N
 # `scripts/verify.sh` was outside its file set, and the sentence was wrong again by morning.
 # Nobody did anything wrong. There were two statements of one list and nothing joining them.
 #
-# THAT IS THE `COPY` FAILURE THE SECTION 8 NOTE ABOVE NAMES, and the repair is the one it
+# AND THE SAME LIST IS STATED A FOURTH TIME, BY THE RUN ITSELF. Issue 235. The `== ` headings the
+# block at the foot of this file prints are what a reader actually watches go past, so they are
+# the most-read statement of the list, and issue 229 left them out of its scope. Measured when
+# that card landed: NINE headings over EIGHT banners, with `reproduce`, `declares`, `well formed`
+# and `look` in no heading at all. The ninth was check_structure_armed, a live check with no
+# banner; it has one now, section 7, and the reasoning is written over it. What this function
+# gained is the second relation: one heading per section, each carrying that section's token, in
+# the banners' own order. Everything below about tokens, populations and near misses is true of
+# both relations, because there is one section population and one matcher for the two of them.
+#
+# THAT IS THE `COPY` FAILURE THE SECTION 9 NOTE ABOVE NAMES, and the repair is the one it
 # prescribes: turn the copy into a TERMINATOR by checking it against the run's own reading of
 # reality, so that being wrong is loud on the first run after it appears. Every other enumeration
 # in this apparatus already works that way. EXPECTED_PROBES, EXPECTED_DRAWINGS,
@@ -2573,21 +2615,34 @@ verdict() {  # clean|bad ; reads BASELINE_ORIGIN, CENSUS_UNVERIFIED and CENSUS_N
 #   test vacuously, so the instrument refuses tokens that are not distinctive rather than
 #   trusting whoever picked them.
 #
-# AND HERE IS WHAT IT DOES NOT ESTABLISH, written down because a gate that is quiet about its own
-# limits is how the next reader over-reads it. Every one of these was found by pointing an
-# adversary at the code and asking it to pass the check while the label was wrong.
+# THE RUN HEADINGS ARE HELD THE SAME WAY AND WITH ONE EXTRA RELATION. Issue 235. Every heading
+# carries the token of EXACTLY ONE section, every section is named by EXACTLY ONE heading, and
+# heading N names section N. The bijection is the point and it is not a count: it is what makes
+# adding a live check a deliberate act in three places at once, because a new heading with no
+# banner is refused, and a new banner with no heading is refused, and the banner then drags the
+# label along with it through the relations above.
 #
-#   IT COMPARES THE LABEL TO BANNERS AND NOT TO CHECKS. Delete the body of a section and leave its
-#   banner, and the label still "names all eight". The relation is between two pieces of text; the
+# AND HERE IS WHAT IT DOES NOT ESTABLISH, written down because a gate that is quiet about its own
+# limits is how the next reader over-reads it. The first three were found by pointing an adversary
+# at the code and asking it to pass the check while the label was wrong. The fourth is issue 235's
+# and follows from the shape of the new relation rather than from an adversary run.
+#
+#   IT COMPARES TEXT TO BANNERS AND NOT TO CHECKS. Delete the body of a section and leave its
+#   banner, and the label still "names all nine". The relation is between pieces of text; the
 #   claim that a banner has a check under it is held by the probes over that check, not here.
 #
 #   A TOKEN CONSTRAINS SPELLING AND NEVER SUBJECT. Rewrite a section's title around a different
 #   check and keep its token, or negate its clause in the label, and this passes. A label reduced
-#   to the eight bare tokens and no prose passes too. What is mechanically checkable is that the
+#   to the nine bare tokens and no prose passes too. What is mechanically checkable is that the
 #   label names each section; whether the sentence beside the name is true stays a reading.
 #
 #   A CLAUSE CAN OVER-CLAIM INSIDE ITSELF. Three checks the gate does not run, appended to one
 #   clause with no comma, are one clause and pass.
+#
+#   AND A HEADING IS NOT TIED TO THE CHECK IT SITS OVER. Issue 235. What is held is that heading N
+#   names section N; that the lines between heading N and heading N+1 call the functions section N
+#   declares is not something this reader looks at. Swapping two headings is caught, because the
+#   order is part of the claim; swapping the two CALLS underneath them is not.
 #
 # Those are limits of any textual check, and the alternative is not a better instrument, it is no
 # instrument. What matters is that they are the DIRECTIONS this cannot see, while the direction it
@@ -2598,19 +2653,20 @@ verdict() {  # clean|bad ; reads BASELINE_ORIGIN, CENSUS_UNVERIFIED and CENSUS_N
 # an author adding a section and touching nothing else, and absorbing that into a default would
 # be the defect reappearing inside the instrument written to close it.
 #
-# AND THE POPULATION IS ASSERTED. A reader that enumerates zero sections finds zero mismatches and
-# prints clean, which is the failure mode EXPECTED_PROBES exists to prevent one level up. Zero
-# sections, or no label found, is an ABORT at exit 2: the instrument could not answer, which is
-# not the same sentence as "the label is right".
+# AND EVERY POPULATION IS ASSERTED. A reader that enumerates zero of anything finds zero
+# mismatches and prints clean, which is the failure mode EXPECTED_PROBES exists to prevent one
+# level up. Zero sections, no label found, or zero run headings, is an ABORT at exit 2: the
+# instrument could not answer, which is not the same sentence as "the label is right".
 #
-# It is a self-test instrument and NOT a ninth numbered section, deliberately. The live gate is
-# about the documents this repository ships; this is about two files agreeing with each other, it
-# needs no build, and making it a section would oblige the label to name the check that reads the
-# label.
+# It is a self-test instrument and NOT a numbered section of its own, deliberately. The live gate
+# is about the documents this repository ships; this is about a file agreeing with itself and with
+# one other, it needs no build, and making it a section would oblige the label to name the check
+# that reads the label, and would oblige the run to print a heading about the check that reads the
+# headings. Issue 235 was told not to relitigate that and did not.
 #
 # Kept apart from its inputs, like every other reader here, so the self-test can drive it with
 # doctored copies without going near the working tree.
-label_covers_sections() {  # gate-file verify-file
+label_and_headings_cover_sections() {  # gate-file verify-file
   ZRIVE_GATE="$1" ZRIVE_VERIFY="$2" python3 - <<'PYLABEL'
 import os
 import re
@@ -2681,15 +2737,108 @@ for pos, (number, title, token) in enumerate(sections, start=1):
                    "are read in file order and their numbers must be 1..N in that order.")
     if not token:
         bad.append(f"section {number} ({title!r}) declares no `[label: token]` on its banner. "
-                   "Every section names the word the step 3 label must carry for it; a section "
-                   "that names none cannot be held against the label, and a section added and "
-                   "left unmarked is the exact drift issue 229 is about.")
+                   "Every section names the word the step 3 label and its own run heading must "
+                   "carry for it; a section that names none cannot be held against either, and a "
+                   "section added and left unmarked is the exact drift issue 229 is about.")
 
 tokens = [t for _, _, t in sections if t]
 dupes = sorted({t for t in tokens if tokens.count(t) > 1})
 for t in dupes:
     bad.append(f"the token {t!r} is declared by more than one section. A token that does not "
                "pick out one section cannot say the label names that one.")
+
+# A TOKEN MATCHES AT THE START OF A WORD AND NOT MID-WORD. A bare substring test lets a fragment
+# stand in for a word: `rows` is inside `browser`, `clar` is inside `declares`. A section about
+# table rows would then be certified by a clause about a browser, which is the vacuous match this
+# instrument exists not to make. A trailing boundary is deliberately NOT required, so a token
+# declared `digest` is named by a clause saying `digests`. ONE MATCHER FOR BOTH RELATIONS, so the
+# label and the run headings cannot come to disagree about what naming a section is.
+def names(token, text):
+    return re.search(r"\b" + re.escape(token), text, re.IGNORECASE) is not None
+
+
+# The run headings, which are the statement a reader actually watches. Issue 235.
+#
+# THE POPULATION IS THE LINE THE RUN PRINTS AND NOTHING THAT LOOKS LIKE IT. `echo "== ..."` at
+# column one, which is where every heading in the run block at the foot of this file sits. Issue
+# 229 found the shadowing trap in its own first draft and it is sharper here, because a heading is
+# one short line and quoting one in a comment is an ordinary thing to do: a reader hunting for any
+# occurrence of `== <text>` would be answered by the comment while the live heading said something
+# else. A comment begins with `#`, a heredoc body is not a command, and this file's own doctored
+# fixtures are built on indented lines, so none of the three is in the population.
+HEADING = re.compile(r'^echo "== (.+)"$')
+LOOSE_HEADING = re.compile(r"""^\s*(?:echo|printf)\s+(?:-\S+\s+)?['"]\s*==""")
+
+headings = []       # (lineno, text)
+heading_misses = []
+for i, line in enumerate(gate):
+    m = HEADING.match(line)
+    if m:
+        headings.append((i + 1, m.group(1)))
+    elif LOOSE_HEADING.match(line):
+        heading_misses.append((i + 1, line))
+
+if not headings:
+    abort(f"{gate_path} prints no run headings, so this check enumerated nothing and cannot "
+          'report on them. A heading is `echo "== Text"` at column one. A reader that finds no '
+          "population finds no mismatch either, and would print clean over a run that announces "
+          "nothing at all.")
+
+print(f"    and it prints {len(headings)} run headings")
+
+# AND A NEAR MISS IS A FAILURE HERE TOO, for the reason it is one for the banners. A heading
+# indented into an `if`, printed with `printf`, or typed `"==the model` without the space, drops
+# out of the population, its section goes unannounced, and nothing says so.
+for lineno, line in heading_misses:
+    bad.append(f"{gate_path}:{lineno} looks like a run heading and is not one: {line!r}. A "
+               'heading is `echo "== Text"` at column one. A near miss is reported rather than '
+               "skipped, because a heading this reader cannot see is a heading nothing holds to "
+               "a banner.")
+
+heading_owner = []  # per heading, the sections whose token it carries
+for lineno, text in headings:
+    hit = [s for s in sections if s[2] and names(s[2], text)]
+    heading_owner.append(hit)
+    if not hit:
+        bad.append(f"the run heading at {gate_path}:{lineno}, {text!r}, carries no section's "
+                   "token, so nothing says which check the reader is being shown. Put the token "
+                   "its banner declares into the heading, or take the heading out.")
+    elif len(hit) > 1:
+        bad.append(f"the run heading at {gate_path}:{lineno}, {text!r}, carries the tokens of "
+                   f"sections {[s[0] for s in hit]}. A heading that names more than one section "
+                   "picks out none of them.")
+
+for number, title, token in sections:
+    if not token:
+        continue
+    mine = [headings[j][0] for j, hit in enumerate(heading_owner)
+            if len(hit) == 1 and hit[0][0] == number]
+    if not mine:
+        bad.append(f"section {number} ({title!r}) declares the token {token!r} and no run heading "
+                   "carries it. The headings are what a reader watches scroll past, so a section "
+                   "none of them names is a check the run performs in silence.")
+    elif len(mine) > 1:
+        bad.append(f"section {number} ({title!r}) is announced by {len(mine)} run headings, at "
+                   f"line(s) {mine}. One heading per section: a section printing two headings is "
+                   "two claims under one banner, and the second is a check neither the banners "
+                   "nor the step 3 label ever has to name. That was the state issue 235 measured, "
+                   "and the repair was a banner for the second claim rather than a licence for "
+                   "the second heading.")
+
+# Membership first and position second, kept apart for the reason the label half keeps them apart.
+if len(headings) != len(sections):
+    bad.append(f"the gate prints {len(headings)} run headings and runs {len(sections)} sections. "
+               "One heading per section, in the gate's own order: a spare heading is a check no "
+               "banner declares and the label therefore never names, and a missing one is a "
+               "section the run performs without telling the reader it is doing it.")
+elif all(len(hit) == 1 for hit in heading_owner):
+    for idx, (hit, (number, title, _token)) in enumerate(zip(heading_owner, sections)):
+        if hit[0][0] != number:
+            bad.append(f"run heading {idx + 1}, at {gate_path}:{headings[idx][0]}, names section "
+                       f"{hit[0][0]} and the {idx + 1} section of the file is section {number} "
+                       f"({title!r}). The run prints its headings in file order, so they must "
+                       "name the sections in the gate's own order or a reader cannot follow the "
+                       "output down the file.")
 
 # The label. Read out of the source rather than passed in, because the thing under test is the
 # text scripts/verify.sh actually prints.
@@ -2721,15 +2870,6 @@ clauses = [c.strip() for c in body.split(", ")]
 # say different things to whoever reads the refusal. A section added without the label moving
 # fails BOTH, and a refusal that reported only the arithmetic would tell an author the counts
 # differ without telling them which section went unnamed, which is most of the work.
-# A TOKEN MATCHES AT THE START OF A WORD AND NOT MID-WORD. A bare substring test lets a fragment
-# stand in for a word: `rows` is inside `browser`, `clar` is inside `declares`. A section about
-# table rows would then be certified by a clause about a browser, which is the vacuous match this
-# instrument exists not to make. A trailing boundary is deliberately NOT required, so a token
-# declared `digest` is named by a clause saying `digests`.
-def names(token, text):
-    return re.search(r"\b" + re.escape(token), text, re.IGNORECASE) is not None
-
-
 for number, title, token in sections:
     if token and not names(token, body):
         bad.append(f"section {number} ({title!r}) declares the token {token!r} and the label "
@@ -2761,16 +2901,18 @@ else:
                        "clause names which section; pick a word that belongs to this one.")
 
 if bad:
-    print(f"::error::the step 3 label in {verify_path} and the sections in {gate_path} disagree "
-          f"on {len(bad)} point(s):")
+    print(f"::error::the step 3 label in {verify_path}, the run headings in {gate_path} and the "
+          f"sections in {gate_path} disagree on {len(bad)} point(s):")
     for line in bad:
         print("  - " + line)
-    print("  The label is the sentence scripts/verify.sh prints for the build gate. Fix whichever")
-    print("  side is wrong, in this commit. Adding a section means adding its clause; removing a")
-    print("  section means removing its clause. That is the whole of issue 229.")
+    print("  The label is the sentence scripts/verify.sh prints for the build gate and the run")
+    print("  headings are what its output prints as it goes. Fix whichever side is wrong, in this")
+    print("  commit. Adding a section means adding its clause and its heading; removing a section")
+    print("  means removing both. That is issues 229 and 235 together.")
     sys.exit(1)
 
 print(f"    and the step 3 label names all {len(sections)} of them, in the gate's own order")
+print(f"    and its {len(headings)} run headings name them one for one, in that same order")
 PYLABEL
 }
 
@@ -2787,7 +2929,7 @@ PYLABEL
 # probe at a time prints a clean ratio all the way down to 0/0. A count taken from the run cannot
 # notice a probe that did not run. A short run exits 2, "the suite could not answer"; a run that
 # also recorded a failure reports it and exits 1.
-EXPECTED_PROBES=258
+EXPECTED_PROBES=272
 PASS=0
 TOTAL=0
 probe() {
@@ -4220,118 +4362,212 @@ model.ROUTES[cid]["source"] = model.ROUTES[cid]["source"] + ", one more locator"
         blind_build_reading "$bd" 's/^schema 1$/schema 1\nwhatever i felt like typing/'
 
   echo
-  echo "self-test: the step 3 label names every section this gate runs"
-  # Issue 229. Every probe below fails against the pair this repository shipped before this card,
-  # in which the label named six of eight sections and nothing compared the two. The doctored
-  # copies are built with printf on indented lines and never with an unindented heredoc, because
-  # a `# 9.` at column one inside this file would be read as a real ninth section by the very
-  # reader under test.
+  echo "self-test: the step 3 label and the run headings name every section this gate runs"
+  # Issues 229 and 235. Every probe in the first half fails against the pair this repository
+  # shipped before #229, in which the label named six of eight sections and nothing compared the
+  # two; every probe in the second half fails against the file this repository shipped before
+  # #235, in which nine run headings stood over eight banners and nothing compared those either.
+  #
+  # THE DOCTORED COPIES ARE BUILT WITH printf AND sed ON INDENTED LINES and never with an
+  # unindented heredoc, because a `# 10.` at column one inside this file would be read as a real
+  # tenth section, and an `echo "== ..."` at column one would be read as a real run heading, by
+  # the very reader under test. Every fixture string below therefore sits inside quotes on a line
+  # that begins with something other than `echo` or `printf`. Comment lines like this one are
+  # safe whatever they quote, which is the whole point the shadowing probe below makes.
   local gate_src="$ROOT/scripts/check_build.sh" verify_src="$ROOT/scripts/verify.sh"
-  local g_ninth="$dir/gate_ninth.sh" g_untokened="$dir/gate_untokened.sh"
+  local g_tenth="$dir/gate_tenth.sh" g_untokened="$dir/gate_untokened.sh"
   local g_none="$dir/gate_none.sh" g_deleted="$dir/gate_deleted.sh" g_vague="$dir/gate_vague.sh"
   local g_typo="$dir/gate_typo.sh" g_fragment="$dir/gate_fragment.sh"
   local v_reworded="$dir/verify_reworded.sh" v_dropped="$dir/verify_dropped.sh"
   local v_reordered="$dir/verify_reordered.sh" v_nolabel="$dir/verify_nolabel.sh"
   local v_decoy="$dir/verify_decoy.sh" v_twice="$dir/verify_twice.sh"
+  local g_nohead="$dir/gate_nohead.sh" g_orphan="$dir/gate_orphan.sh" g_two="$dir/gate_two.sh"
+  local g_dupe="$dir/gate_dupe.sh" g_order="$dir/gate_order.sh" g_shadow="$dir/gate_shadow.sh"
+  local g_indent="$dir/gate_indent.sh" g_noheadings="$dir/gate_noheadings.sh"
+  local g_reverted="$dir/gate_reverted.sh"
   local rule='# ---------------------------------------------------------------------------------------------'
 
-  probe 0 "the label this repository ships names every section this gate runs" \
-        label_covers_sections "$gate_src" "$verify_src"
-  probe_says "8 numbered sections" "and it says how many sections it enumerated" \
-        label_covers_sections "$gate_src" "$verify_src"
+  probe 0 "the label and the headings this repository ships name every section this gate runs" \
+        label_and_headings_cover_sections "$gate_src" "$verify_src"
+  probe_says "9 run headings" "and it says how many run headings it enumerated" \
+        label_and_headings_cover_sections "$gate_src" "$verify_src"
+  probe_says "9 numbered sections" "and it says how many sections it enumerated" \
+        label_and_headings_cover_sections "$gate_src" "$verify_src"
 
   # The addition direction, which is how this label went stale twice: a section lands and the
   # label is not in that card's file set.
-  cp "$gate_src" "$g_ninth"
-  printf '%s\n%s\n' '# 9. A ninth section nobody told the label about.  [label: ninthly]' \
-         "$rule" >>"$g_ninth"
-  probe 1 "a ninth section with the label untouched is refused" \
-        label_covers_sections "$g_ninth" "$verify_src"
-  probe_says "ninthly" "and the refusal names the section the label does not mention" \
-        label_covers_sections "$g_ninth" "$verify_src"
+  cp "$gate_src" "$g_tenth"
+  printf '%s\n%s\n' '# 10. A tenth section nobody told the label about.  [label: tenthly]' \
+         "$rule" >>"$g_tenth"
+  probe 1 "a tenth section with the label untouched is refused" \
+        label_and_headings_cover_sections "$g_tenth" "$verify_src"
+  probe_says "tenthly" "and the refusal names the section the label does not mention" \
+        label_and_headings_cover_sections "$g_tenth" "$verify_src"
 
   # And a section that dodges the relation by declaring nothing to match on is the same drift.
   cp "$gate_src" "$g_untokened"
-  printf '%s\n%s\n' '# 9. A ninth section that declares no token either.' "$rule" >>"$g_untokened"
+  printf '%s\n%s\n' '# 10. A tenth section that declares no token either.' "$rule" >>"$g_untokened"
   probe 1 "a section that declares no token is refused rather than skipped" \
-        label_covers_sections "$g_untokened" "$verify_src"
+        label_and_headings_cover_sections "$g_untokened" "$verify_src"
   probe_says 'declares no `[label: token]`' "and the refusal says what the banner is missing" \
-        label_covers_sections "$g_untokened" "$verify_src"
+        label_and_headings_cover_sections "$g_untokened" "$verify_src"
 
   # The other direction, from the label's side: the clause is still there and no longer names
   # its section. This is the case an exact-title match would also catch and a count would not.
   sed 's/the width it got back is the width it reserved/the widths are all quite reasonable/' \
       "$verify_src" >"$v_reworded"
   probe 1 "a clause reworded until it no longer names its section is refused" \
-        label_covers_sections "$gate_src" "$v_reworded"
+        label_and_headings_cover_sections "$gate_src" "$v_reworded"
   probe_says "reserved" "and the refusal names the token that went missing" \
-        label_covers_sections "$gate_src" "$v_reworded"
+        label_and_headings_cover_sections "$gate_src" "$v_reworded"
 
   # And the clause taken out altogether, which is what #220 and #221 never put in.
   sed 's/the numbers in that table are ones a browser could have produced, //' \
       "$verify_src" >"$v_dropped"
   probe 1 "a clause deleted from the label is refused" \
-        label_covers_sections "$gate_src" "$v_dropped"
+        label_and_headings_cover_sections "$gate_src" "$v_dropped"
   probe_says "one clause per section" "and the refusal says the label is short a clause" \
-        label_covers_sections "$gate_src" "$v_dropped"
+        label_and_headings_cover_sections "$gate_src" "$v_dropped"
 
   # A section DELETED with its clause left behind, which is the over-claiming direction: the
   # label promises a check the gate no longer runs. The token test alone cannot see this, because
   # the deleted section's token is gone from the source of truth. The clause count is what sees it.
-  sed '/^# 8\. The census of what could look\./d' "$gate_src" >"$g_deleted"
+  sed '/^# 9\. The census of what could look\./d' "$gate_src" >"$g_deleted"
   probe 1 "a section deleted with its clause left in the label is refused" \
-        label_covers_sections "$g_deleted" "$verify_src"
+        label_and_headings_cover_sections "$g_deleted" "$verify_src"
 
   # Order is part of the claim, so a label that names the right sections in the wrong places is
   # not a label a reader can follow down the gate's output.
-  sed 's/the model is well formed, the fourteen digests are the ones these bytes produce/the fourteen digests are the ones these bytes produce, the model is well formed/' \
+  sed 's/the model is well formed, the gate that says so refuses the graphs it names/the gate that says so refuses the graphs it names, the model is well formed/' \
       "$verify_src" >"$v_reordered"
   probe 1 "a label that lists the sections out of the gate's order is refused" \
-        label_covers_sections "$gate_src" "$v_reordered"
+        label_and_headings_cover_sections "$gate_src" "$v_reordered"
 
   # A token that matches everything would satisfy the relation while saying nothing, which is the
   # vacuous instrument this card was written to avoid becoming.
   sed 's/^# 6\. The model is well formed\.  \[label: well formed\]$/# 6. The model is well formed.  [label: the]/' \
       "$gate_src" >"$g_vague"
   probe 1 "a token that is not distinctive is refused rather than trusted" \
-        label_covers_sections "$g_vague" "$verify_src"
+        label_and_headings_cover_sections "$g_vague" "$verify_src"
 
   # A banner the pattern cannot see would put a section outside the population, and the label
   # would never have to name it. That is this card's own defect one level down, so a near miss
   # next to a rule is reported rather than skipped.
   cp "$gate_src" "$g_typo"
-  printf '%s\n%s\n' '#9. A ninth section whose banner is typed one character wrong.  [label: ninthly]' \
+  printf '%s\n%s\n' '#10. A tenth section whose banner is typed one character wrong.  [label: tenthly]' \
          "$rule" >>"$g_typo"
   probe 1 "a banner typed one character wrong is reported and not quietly dropped" \
-        label_covers_sections "$g_typo" "$verify_src"
+        label_and_headings_cover_sections "$g_typo" "$verify_src"
 
   # And a token that is a fragment of some other word would satisfy the relation without naming
   # anything: `rows` sits inside `browser`.
   sed 's/^# 5\. \(.*\)\[label: browser\]$/# 5. \1[label: rows]/' "$gate_src" >"$g_fragment"
   probe 1 "a token that is only a fragment of another word is refused" \
-        label_covers_sections "$g_fragment" "$verify_src"
+        label_and_headings_cover_sections "$g_fragment" "$verify_src"
 
   # The label is taken from the call and not from any quoted string that looks like it. A comment
   # quoting the correct label, over a live label reverted to its stale text, is the exact way this
   # instrument could have been made to answer for a sentence the run does not print.
-  { printf '%s\n' '# For the record the label reads "3. the build gate: both documents reproduce, the widths cover, the widths the builder asks for are the widths the job declares, the width it got back is the width it reserved, the numbers in that table are ones a browser could have produced, the model is well formed, the fourteen digests are the ones these bytes produce, and the gates that could not look say so".'
+  { printf '%s\n' '# For the record the label reads "3. the build gate: both documents reproduce, the widths cover, the widths the builder asks for are the widths the job declares, the width it got back is the width it reserved, the numbers in that table are ones a browser could have produced, the model is well formed, the gate that says so refuses the graphs it names, the fourteen digests are the ones these bytes produce, and the gates that could not look say so".'
     sed 's/the width it got back is the width it reserved, the numbers in that table are ones a browser could have produced, //' "$verify_src"; } >"$v_decoy"
   probe 1 "a comment quoting the right label does not answer for a live label that is wrong" \
-        label_covers_sections "$gate_src" "$v_decoy"
+        label_and_headings_cover_sections "$gate_src" "$v_decoy"
   { cat "$verify_src"; grep '^step_three_state build-gate "' "$verify_src"; } >"$v_twice"
   probe 2 "two step 3 labels abort rather than the first one being read as the label" \
-        label_covers_sections "$gate_src" "$v_twice"
+        label_and_headings_cover_sections "$gate_src" "$v_twice"
+
+  # AND NOW THE RUN HEADINGS, ISSUE 235. Every probe from here to the population cases misses
+  # against the file this repository shipped before this card: nine headings over eight banners,
+  # with `reproduce`, `declares`, `well formed` and `look` in none of them, and nothing comparing
+  # the two lists at all.
+  #
+  # The section the run never announces. This is the addition direction for headings and it is
+  # what the old file was doing to four sections at once.
+  grep -vFx 'echo "== and the width it got back is the width it reserved"' "$gate_src" >"$g_nohead"
+  probe 1 "a section the run never announces is refused" \
+        label_and_headings_cover_sections "$g_nohead" "$verify_src"
+  probe_says "in silence" "and the refusal names the section nothing announced" \
+        label_and_headings_cover_sections "$g_nohead" "$verify_src"
+
+  # And the other direction: a heading for a check no banner declares, which is exactly what the
+  # ninth heading was before this card gave it section 7.
+  { cat "$gate_src"
+    printf '%s\n' 'echo "== something the banners never mention"'; } >"$g_orphan"
+  probe 1 "a run heading no section declares is refused" \
+        label_and_headings_cover_sections "$g_orphan" "$verify_src"
+  probe_says "carries no section's token" "and the refusal says what is missing from it" \
+        label_and_headings_cover_sections "$g_orphan" "$verify_src"
+
+  # A heading that names two sections picks out neither, which is the vacuous match again.
+  { cat "$gate_src"
+    printf '%s\n' 'echo "== the digest a browser could have produced"'; } >"$g_two"
+  probe 1 "a run heading that names two sections at once is refused" \
+        label_and_headings_cover_sections "$g_two" "$verify_src"
+
+  # THE SHAPE THIS CARD DECIDED AGAINST, held red on purpose. A section that prints two headings
+  # is two claims under one banner, and the second is a check the banners and the label never have
+  # to name. The repair for the real one was a banner, not a licence.
+  { cat "$gate_src"
+    printf '%s\n' 'echo "== the model is well formed, said a second time"'; } >"$g_dupe"
+  probe 1 "two run headings for one section is refused" \
+        label_and_headings_cover_sections "$g_dupe" "$verify_src"
+
+  # Order is part of the claim here for the same reason it is part of the claim for the label: a
+  # reader follows the output down the file.
+  sed -e 's/^echo "== and the width it got back is the width it reserved"$/echo "== ZZ swapped"/' \
+      -e 's/^echo "== and the numbers in it are numbers a browser could have produced"$/echo "== and the width it got back is the width it reserved"/' \
+      -e 's/^echo "== ZZ swapped"$/echo "== and the numbers in it are numbers a browser could have produced"/' \
+      "$gate_src" >"$g_order"
+  probe 1 "run headings printed out of the gate's order are refused" \
+        label_and_headings_cover_sections "$g_order" "$verify_src"
+
+  # THE REWORDING THIS CARD DID, PUT BACK. Four headings were reworded to carry the token their
+  # banner declares, and the obvious objection to that is that a check satisfied by rewording its
+  # own subject has proved nothing. This is the answer: section 6's heading is reverted to the
+  # exact text this repository shipped before the card, everything else left alone, and the
+  # relation refuses it. It is also what isolates the shadowing probe below, which reverts a
+  # heading AND adds a comment: with this one wired, that one is known to be red for the revert
+  # and not for the line beside it.
+  sed 's/^echo "== the model is well formed: a graph a drawing can be made of"$/echo "== the model is a graph a drawing can be made of"/' \
+      "$gate_src" >"$g_reverted"
+  probe 1 "a heading reverted to the text this card replaced is refused" \
+        label_and_headings_cover_sections "$g_reverted" "$verify_src"
+  probe_says "declares the token 'well formed' and no run heading carries it" \
+        "and the refusal names the section that revert leaves unannounced" \
+        label_and_headings_cover_sections "$g_reverted" "$verify_src"
+
+  # THE SAME TRAP #229 FOUND INSIDE ITS OWN PROBE, pointed at this one. A heading is one short line
+  # and quoting one in a comment is an ordinary thing to do, so a reader hunting for the text
+  # anywhere in the file would be answered by the comment while the live heading said something
+  # else. Here the live heading is reverted AND the correct one is quoted in a comment directly
+  # above it; the population is `echo "..."` at column one, so the comment cannot answer for it.
+  { printf '%s\n' '# For the record the run prints `echo "== and the width it got back is the width it reserved"` here.'
+    sed 's/^echo "== and the width it got back is the width it reserved"$/echo "== and the widths are all quite reasonable"/' "$gate_src"; } >"$g_shadow"
+  probe 1 "a comment quoting the right heading does not answer for a live heading that is wrong" \
+        label_and_headings_cover_sections "$g_shadow" "$verify_src"
+
+  # A heading the pattern cannot see puts a section outside the population and nothing ever makes
+  # the run announce it, which is this card's own defect one level down.
+  sed 's/^echo "== the model is well formed/  echo "== the model is well formed/' \
+      "$gate_src" >"$g_indent"
+  probe 1 "a heading indented out of the population is reported and not quietly dropped" \
+        label_and_headings_cover_sections "$g_indent" "$verify_src"
 
   # And the population, because a reader that enumerates nothing reports no mismatch and prints
-  # clean over any label at all. Both halves of the pair get the same treatment.
+  # clean over any label at all. All three populations get the same treatment.
+  grep -v '^echo "== ' "$gate_src" >"$g_noheadings"
+  probe 2 "a gate that prints no run headings aborts rather than reporting clean" \
+        label_and_headings_cover_sections "$g_noheadings" "$verify_src"
+  probe_says "prints no run headings" "and it says that is why it cannot answer" \
+        label_and_headings_cover_sections "$g_noheadings" "$verify_src"
   grep -vE '^# [0-9]+\. ' "$gate_src" >"$g_none"
   probe 2 "a gate with no numbered sections aborts rather than reporting clean" \
-        label_covers_sections "$g_none" "$verify_src"
+        label_and_headings_cover_sections "$g_none" "$verify_src"
   probe_says "enumerated nothing" "and it says that is why it cannot answer" \
-        label_covers_sections "$g_none" "$verify_src"
+        label_and_headings_cover_sections "$g_none" "$verify_src"
   sed '/^step_three_state build-gate "/d' "$verify_src" >"$v_nolabel"
   probe 2 "a verify file with no step 3 label aborts rather than reporting clean" \
-        label_covers_sections "$gate_src" "$v_nolabel"
+        label_and_headings_cover_sections "$gate_src" "$v_nolabel"
 
   rm -rf "$dir"
   echo
@@ -4360,7 +4596,13 @@ bad=0
 # and git has not been asked yet. resolve_baselines prints one line per document naming it, and
 # the verdict at the foot repeats it. A heading that named a snapshot before the lookup would be
 # the same class of sentence as the one this card is about.
-echo "== the drawing git holds is what the builder produces"
+#
+# AND EVERY HEADING BELOW CARRIES THE TOKEN ITS SECTION DECLARES. Issue 235. These nine lines are
+# the fourth statement of this file's section list and were the last one nothing held to the
+# banners: the run printed nine of them over eight numbered sections and four tokens appeared in
+# none of them. They are checked under --self-test now, one heading per section and in the
+# banners' own order, which is why four of them are worded as they are.
+echo "== the drawing git holds is what the builder reproduces"
 check_reproducible
 rc=$?
 if [ "$rc" -eq 2 ]; then
@@ -4375,7 +4617,7 @@ echo "== the width table covers every string the layout measures"
 check_widths_cover || bad=1
 
 echo
-echo "== and the builder asks it for the faces the page paints in"
+echo "== and the builder asks for the faces the job declares and the page paints in"
 check_widths_asked || bad=1
 
 echo
@@ -4387,7 +4629,7 @@ echo "== and the numbers in it are numbers a browser could have produced"
 check_widths_sane || bad=1
 
 echo
-echo "== the model is a graph a drawing can be made of"
+echo "== the model is well formed: a graph a drawing can be made of"
 check_structure_live || bad=1
 
 echo
@@ -4409,7 +4651,7 @@ fi
 [ "$rc" -eq 0 ] || bad=1
 
 echo
-echo "== and the gates that re-read a corpus say whether they read one"
+echo "== and the gates that re-read a corpus say whether they could look"
 # LAST, AND NOT FIRST. Everything above it is a statement this file makes about bytes it read;
 # this is the statement it makes about what it did not read, and it is put where the reader's eye
 # already is, one line above the verdict that quotes it. The three notices exist either way and

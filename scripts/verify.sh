@@ -738,7 +738,15 @@ step_may_decline untracked "2. nothing is untracked, so the gates see everything
 # until this line stops naming it. Keep the clauses comma-separated and keep them in the gate's
 # order; the reasoning, and what the check deliberately cannot establish, is written out over that
 # function, under the heading that cites this card.
-step_three_state build-gate "3. the build gate: both documents reproduce, the widths cover, the widths the builder asks for are the widths the job declares, the width it got back is the width it reserved, the numbers in that table are ones a browser could have produced, the model is well formed, the fourteen digests are the ones these bytes produce, and the gates that could not look say so" \
+#
+# AND THE SAME BANNERS NOW HOLD THE GATE'S `== ` RUN HEADINGS. Issue 235. Those headings were a
+# fourth statement of the same list and the one a reader actually watches, and #229 left them out
+# of scope: nine headings over eight banners, with four declared tokens in no heading at all. The
+# ninth was `check_structure_armed`, a live check with no banner, so this label named eight of the
+# gate's nine live checks. It is section 7 there now and the clause `the gate that says so refuses
+# the graphs it names` is its clause here. One heading per section and one clause per section, in
+# the same order, all held to the same banners.
+step_three_state build-gate "3. the build gate: both documents reproduce, the widths cover, the widths the builder asks for are the widths the job declares, the width it got back is the width it reserved, the numbers in that table are ones a browser could have produced, the model is well formed, the gate that says so refuses the graphs it names, the fourteen digests are the ones these bytes produce, and the gates that could not look say so" \
      bash scripts/check_build.sh
 step build-gate-armed "4. prove the build gate fires"     bash scripts/check_build.sh --self-test
 # The provenance gate runs inside build/build_layout.py on every build, so the build gate step
