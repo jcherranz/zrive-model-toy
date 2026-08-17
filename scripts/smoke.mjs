@@ -15752,7 +15752,12 @@ async function runGrain(chrome, base) {
       const unread = [];
       if (!table) unread.push(CHIP_WIDTHS_WHY || 'no width table');
       for (const r of table ? rows : []) {
-        const key = `${r.where} ${r.id} ${r.state}`;
+        // ` | ` AND NOT A NUL, WHICH IS WHAT THIS LINE FIRST CARRIED AND WHAT THE REPO GATE CAUGHT.
+        // A raw NUL in a source file makes it binary to `grep`, which is issue 184's whole subject,
+        // and `scripts/check_repo.sh` reads every tracked file as bytes to refuse exactly that. The
+        // separator only has to be one no field holds: `where` and `id` carry neither a space nor a
+        // bar, so the three cannot run together into a key that is two other rows.
+        const key = `${r.where} | ${r.id} | ${r.state}`;
         if (!reserved.has(key)) {
           reserved.set(key, { where: r.where, id: r.id, state: r.state, half: r.half, lw: 0 });
         }
