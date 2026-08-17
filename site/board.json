@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T01:24:14Z",
+  "generated": "2026-08-17T01:25:05Z",
   "columns": [
     {
       "key": "raw",
@@ -50,16 +50,6 @@
       "title": "Backlog",
       "cards": [
         {
-          "id": 204,
-          "title": "The run-time chip placer in render.js is judged by nothing, and #195 deliberately refuses to judge it",
-          "labels": [
-            "enhancement",
-            "limitation",
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/204"
-        },
-        {
           "id": 215,
           "title": "The missing-key caption is painted italic and its line is reserved upright",
           "labels": [
@@ -93,6 +83,16 @@
       "key": "in_progress",
       "title": "In progress",
       "cards": [
+        {
+          "id": 204,
+          "title": "The run-time chip placer in render.js is judged by nothing, and #195 deliberately refuses to judge it",
+          "labels": [
+            "enhancement",
+            "limitation",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/204"
+        },
         {
           "id": 221,
           "title": "build/label_widths.json is never re-measured, and --check is too coarse to gate on",
