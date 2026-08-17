@@ -695,3 +695,25 @@ build on a cited slug that resolves to nothing.
   earliest moment the thing it watches can happen.** The corollary is that the watcher belongs in
   its own file, ahead of everything, and small enough to be obviously correct, rather than inside
   the large file that happens to own the reporting machinery.
+- `kaizen-a-name-that-states-a-claim-is-a-copy-and-a-name-that-states-a-job-is-not` &middot; **When
+  the same sentence turns up in two places, the question is not whether the strings match but
+  whether one of them is stating a claim the other owns.** Issues 237, 240 and 241 are one family:
+  a workflow step named after a line stated elsewhere, with only the `# verify-step:` marker
+  joining the step to anything, and that marker joins two KEYS and has never read the `name:`
+  beside it. The obvious repair is a guard refusing any step name that equals a line the
+  repository already states. **Measured at `bac826e` before designing one: eight of the twenty
+  nine workflow step names are such a copy**, over three populations, being the gates' `== ` run
+  headings, `scripts/verify.sh`'s step labels, which that file also prints as `== ` headings, and
+  `scripts/check_build.sh`'s `# N.` section banners. **Three of the eight state a CLAIM about an
+  outcome and five state the JOB the step runs.** `Every step scripts/verify.sh runs is run by a
+  workflow` was the first kind and had already gone false, because it drops the heading's closing
+  clause and so claimed the check refuses what it in fact excuses. `Prove the repository gate
+  fires` is the second kind: it equals a verify.sh label because verify.sh names the same job the
+  same way, and rewording either side leaves both sentences true. **A guard keyed on string
+  equality would fire on all eight and can never tell the two apart**, so it would buy the removal
+  of three defects at the price of five names deliberately worded away from the obvious one.
+  **The general form: a duplicate is a defect when one copy is a restatement of something another
+  file owns and reworders, and it is a coincidence when both are independent descriptions of the
+  same job. Only the first drifts, and the difference is grammatical rather than textual, which is
+  why this one stays prose.** The corollary is the rule that was shipped instead: name a step
+  after its job, never after a claim.

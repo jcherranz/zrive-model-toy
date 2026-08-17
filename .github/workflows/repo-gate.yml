@@ -59,8 +59,14 @@ jobs:
       #
       # It is here rather than in build.yml because it is about the tracked files and takes no
       # Python, which is this workflow's whole shape. The runner image ships node.
+      #
+      # THE NAME SAYS WHAT THE STEP RUNS AND NO LONGER STATES THE CLAIM. Issue 240, found by
+      # measurement rather than filed: it was `Every shipped script parses`, which is
+      # scripts/verify.sh's step 1 label word for word, and verify.sh prints its step labels as
+      # `== ` run headings. Same shape as the step twenty lines below and as #237, so it goes the
+      # same way. build.yml carries the rule.
       # verify-step: syntax
-      - name: Every shipped script parses
+      - name: Parse every shipped script with node --check
         run: |
           set -euo pipefail
           bad=0
@@ -83,12 +89,35 @@ jobs:
       - name: Prove the CI drift check fires
         run: bash scripts/check_ci_drift.sh --self-test
 
+      # AND THE NAME BELOW DESCRIBES THE JOB RATHER THAN QUOTING THE CHECK. Issue 240. It was
+      # `Every step scripts/verify.sh runs is run by a workflow`, which is a word-for-word PREFIX
+      # of the run heading scripts/check_ci_drift.sh prints, and the same sentence is in that
+      # script's header and is scripts/verify.sh's step 15 label. Four statements, none joined.
+      #
+      # THE TRUNCATION IS WHY THIS ONE WAS ALREADY FALSE. The heading ends `, or is named as one CI
+      # cannot`, and the check does exactly that: it reports three exempt steps as [SKIP] and still
+      # exits 0. A name that stops one clause short claimed the check refuses what it in fact
+      # excuses, which is #237's copy one degree further on, drifted rather than merely unheld.
+      #
+      # The `verify-step: ci-drift` marker on the next line is the only pinned relation here and it
+      # joins two keys. Editing the name back to the full heading was refused for #237's reason: it
+      # restores the appearance of a maintained relation and leaves it exactly as unheld.
       # verify-step: ci-drift
-      - name: Every step scripts/verify.sh runs is run by a workflow
+      - name: Run the CI drift check, joining the workflows to scripts/verify.sh
         run: bash scripts/check_ci_drift.sh
 
       # Jidoka. Prove the gate is armed before believing it when it says clean. A gate that
       # cannot be shown to fire is not a gate.
+      #
+      # THIS NAME AND THE TWO NEAREST IT EQUAL A scripts/verify.sh LABEL AND STAY. Issues 240 and
+      # 241. `Prove the repository gate fires`, `Repository gate, over every tracked file` and
+      # `Prove the CI drift check fires` above are each a verify.sh step label word for word, and
+      # the rule in build.yml did not remove them, so the reader who notices should have the reason
+      # here rather than conclude the rule is decorative. Each of these names the JOB the step runs;
+      # it matches a verify.sh label because verify.sh names the same job the same way, and if
+      # either side is reworded both sentences stay true. The three names #240 and #241 removed
+      # stated a CLAIM about an outcome, and one of them had already gone false. build.yml carries
+      # the rule and the measurement.
       # verify-step: repo-gate-armed
       - name: Prove the repository gate fires
         run: bash scripts/check_repo.sh --self-test
