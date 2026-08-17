@@ -105,6 +105,19 @@ of what changed and when, and it is meant to be scannable.
 - **The six lines in this file that quote 0.1268 against 0.1730 are left as they stand**, because
   they are dated records of what was measured on the day and rewriting a measurement is not
   correcting a claim. This entry is what they are read against from here.
+- **Six controls, every one of them in a copy of `site/`, `scripts/` and `build/` in a scratch
+  directory outside the repository**, KAIZEN.md `kaizen-a-control-mutation-runs-in-a-copy`: the
+  working tree is never mutated, so no revert has to run. Both mutations sit inside
+  `@media (max-width: 760px)`, so neither reaches the two desk viewports. **On the widened bound**,
+  a clean copy passes 364 of 364 at total 135 of 844, share 0.1600; a **footer-only** change, its
+  phone padding 6 px to 30 px, takes the footer to 76 and reddens it alone at total 183 of 844,
+  share 0.2168; a **header-only** change takes the header to 131 and reddens it alone at total 159
+  of 844, share 0.1884; and **removing the `<footer>` element** reddens it with `footerFound` false
+  and both footer figures reading `not measured`, so it **refuses rather than computing on a
+  substitute**. **On the retired header-only bound at `09a449b`, driven from that commit's own
+  bytes, the footer change and the header change are BOTH silent**, 364 of 364 and `VERDICT: clean`
+  on each, which is the gap this card was filed about and the term nothing tested, shown rather
+  than argued.
 - **THE BUILD WORKFLOW NAMED ITS GATE STEP BY QUOTING THE GATE'S FIRST RUN HEADING, AND NOTHING
   HELD THE TWO TOGETHER, #237.** `.github/workflows/build.yml` called its build-gate step `The
   drawing git holds is what the builder produces`, a verbatim copy of `scripts/check_build.sh`'s
