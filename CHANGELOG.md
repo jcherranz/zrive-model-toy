@@ -707,6 +707,26 @@ of what changed and when, and it is meant to be scannable.
 
 ### Fixed
 
+- **THE SMOKE WORKFLOW'S REFUSAL MESSAGE TOLD THE READER TO RE-RUN A FAULT THAT COMES BACK EVERY
+  TIME, #223.** The `2)` arm of the exit-code case in `.github/workflows/smoke.yml` listed two
+  causes of a refusal, "a browser that never started, or a run that recorded fewer assertions than
+  it intends", and closed with one instruction for both: `Re-run before reading anything into it`.
+  #216 added a third cause and it is the commonest, **a resource the page needs that did not
+  arrive**, whose forced cases were a stylesheet 404, a stylesheet served as `text/plain`, an origin
+  answering 200 with a placeholder, and a refused connection. **The omission was the smaller half.**
+  Those cases are persistent: the re-run refuses identically, so the one state whose whole purpose
+  is to say "this run is not evidence" was sending the reader to gather the same non-evidence again,
+  and a genuinely broken deploy re-runs green-lit as a flake. The message now names the third cause
+  and **splits the advice by cause** rather than issuing one instruction for three states: re-run
+  the browser and the count cases; for the resource case read the resource's name out of the log,
+  which the refusal already prints, and fix what serves it. **The exit codes, the `case` structure
+  and everything outside the `2)` arm are untouched**, because the contract is right and #216 and
+  #220 both build on it; only the words were stale. **Proved by forcing the state rather than by
+  reading the YAML back:** the step's `run:` block was extracted from the workflow and executed
+  verbatim under `SMOKE_BREAK_RESOURCE=app.css`, which exits 2 over `stylesheet
+  http://127.0.0.1:<port>/app.css`, and the arm's eight `::error::` lines and its job-summary block
+  were captured from that run. The same block run with no affordance still exits 0 through the `0)`
+  arm.
 - **THE CREDENTIAL GUARD WAS ON ONE OF TWO NETWORK-REACHING GIT CALLS, AND THE UNGUARDED ONE
   PRODUCED THE LIST THE GATE CHECKS, #211.** #208 wrote `GIT_TERMINAL_PROMPT=0` on the fetch in
   `fetch_named_commit` and nowhere else. The call that can actually block is `git ls-tree` in
