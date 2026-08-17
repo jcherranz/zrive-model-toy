@@ -179,6 +179,51 @@
     return out;
   };
 
+  // ---- the boxes the run-time placer actually packed against, issue 204 ---------------------
+  // WHAT WAS UNREADABLE BEFORE THIS. `compose()` below reserves a box per tile and a box per label,
+  // slides every verb chip against them, and throws the whole list away when it returns. So the one
+  // number a run-time placement is a function of, the width reserved for a node's label, reached no
+  // reader at all: issue 207 moved it on 863 of 863 reserves over ten composed drawings and every
+  // instrument in this repository stayed green, correctly, because none of them looks at this path.
+  //
+  // IT IS THE BOX AND NOT THE WIDTH, WHICH IS ISSUE 220'S FINDING ONE FILE OVER. A record of `lw`
+  // alone leaves the arithmetic between the width and the box unwatched, and that arithmetic is a
+  // real place for a defect: `lw + 6` written as `lw - 24` blocks every chip on the page with a box
+  // thirty units narrower than its own label and moves no width at all. So what is recorded is the
+  // box READ BACK OUT of the list it was pushed into, which is the same device `text_w()` and
+  // `layout()` use in build/build_layout.py, and it cannot be a copy that agrees with the list while
+  // the list says something else.
+  //
+  // AND THAT EXAMPLE IS A REASON FOR THE SHAPE OF THIS RECORD AND NOT A CLAIM THAT ANYTHING CATCHES
+  // IT, which the first draft of this comment did not distinguish and an adversarial read of it did.
+  // `lw - 24` is caught on the BUILD side by check_build.sh's `check_reserve_used`, at 570 of 570.
+  // On this side nothing catches it today: the only bound scripts/smoke.mjs puts on a run-time
+  // reserve is one-sided UPWARD, against build/label_widths.json's envelope, so a reserve that is
+  // too NARROW passes it, and the search oracle blocks its own reconstruction with the same narrowed
+  // box and agrees with the placer exactly. The comparison that would catch it is the reserve
+  // against the advance the browser lays the painted label out at, and that one is written up as
+  // withdrawn in scripts/smoke.mjs beside RUNTIME_ENV_SLACK, with the measurement that stopped it.
+  // A reader of this record should take it as the hook that comparison needs, not as one already
+  // made.
+  //
+  // IT IS AN INPUT AND NEVER AN ANSWER, and the line is the one issue 195 drew. A blocked box is an
+  // INPUT to the cost of every candidate position; the position the search settles on is the OUTPUT,
+  // and that is not here. A reader of this map may rebuild the search over these boxes and hold the
+  // painted chip to it, which is a check on the arithmetic of the search; what it may not do is take
+  // a chip's own position from here, because that is the answer being checked. The boxes themselves
+  // are then answerable from two sources this file did not produce: the advance the browser lays the
+  // painted label out at, and the envelope build/label_widths.json measured for the same string.
+  //
+  // KEYED ON THE DRAWING AND NOT ON THE LAST CALL, which matters because `filtered()` memoises. A
+  // window returning to a set of tiles it has drawn before hands back the drawing it made earlier
+  // and composes nothing, so a module-level "last composition" would be a record of some other
+  // picture reported against the one on screen. The record rides on the drawing object, and what is
+  // published is the record belonging to the drawing paint() last painted. A canonical artefact
+  // carries none and this answers null for it, which is the refusal a caller has to read: the
+  // build's own fourteen are the placer oracle's subject and not this one's.
+  var PACKED = null;
+  ZM.placerBoxes = function () { return PACKED; };
+
   // opts.svg      the <svg> the drawing is painted into
   // opts.canvas   the box it sits in, which carries the drawing's width as a custom property
   // opts.drawing  the first drawing, read once for the type palette and the tile size
@@ -554,6 +599,9 @@
     function paint(g) {
       G = g;
       PAINTS++;
+      // Issue 204. What is published is the record belonging to the drawing on screen, set here so
+      // that it changes with the picture rather than with the last composition anything drove.
+      PACKED = (g && g.placerBoxes) || null;
       svg.textContent = '';
       // The viewBox is not set here. It is the view, and the view moves: viewport.js owns it and
       // writes it on every pan, every zoom and every resize. Issue 46. What is still fixed is the
@@ -1517,6 +1565,9 @@
       });
 
       // ---- the verb chips -----------------------------------------------------------
+      // Issue 204. Every box this search is blocked by, recorded as it goes in. See ZM.placerBoxes
+      // above for why it is the box rather than the width and why it is read back out of the list.
+      var packed = { nodes: [], chips: [] };
       var blocked = [];
       nodes.forEach(function (n) {
         var h = boxH(g, n), lw = 0, y = pos[n.id].y;
@@ -1542,6 +1593,9 @@
         blocked.push([n.x, y, g.tile + 6, g.tile + 6]);
         var labH = h - g.tile - g.gapLabel;
         blocked.push([n.x, y + g.tile / 2 + g.gapLabel + labH / 2, lw + 6, labH + 2]);
+        packed.nodes.push({ id: n.id,
+                            tile: blocked[blocked.length - 2],
+                            lab: blocked[blocked.length - 1] });
       });
       // ONE ARRAY THAT GROWS RATHER THAN TWO JOINED ON EVERY CANDIDATE. Issue 145, and it is a
       // repair to the cost and not to the picture: `blocked.concat(chips)` stood inside the
@@ -1615,6 +1669,12 @@
         });
         e.cx = r1(best[0]); e.cy = r1(best[1]);
         boxes.push([e.cx, e.cy, e.cw + 4, CH]);
+        // Issue 204. In placement order, which is the order the record has to be read in: a chip is
+        // weighed against the boxes as they stood when it was placed, so the prefix of this list IS
+        // the state of the search at that moment. The position in it is the search's OUTPUT and a
+        // reader must take that off the painted rect instead; what is an input, and is why the box
+        // is here rather than the width alone, is `e.cw + 4`.
+        packed.chips.push({ key: e.s + '->' + e.t, box: boxes[boxes.length - 1] });
       });
 
       // ---- the extent, and the lane captions -----------------------------------------
@@ -1702,6 +1762,10 @@
       // the sentence cannot appear on a page nobody filtered.
       d.emptyText = emptyText;
       d.filteredFrom = g;
+      // Issue 204, and AFTER the copy above rather than before it. `Object.keys(g)` carries every
+      // property of the drawing this one was composed FROM, so a window over a union would arrive
+      // here holding the union's own record and report it as its own.
+      d.placerBoxes = packed;
       return d;
     }
 

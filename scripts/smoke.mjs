@@ -397,6 +397,19 @@ const PHASES = {
   // no candidate that line offers is cheaper than the one it stands on, which is the claim the
   // doubled prune breaks and every other instrument in this file slept through.
   'the placer oracle':    { count: 3, when: 'grain' },
+  // Issue 204, which is the gap the row above filed against itself: that oracle judges the build's
+  // placer over fourteen artefacts and refuses every drawing site/render.js composes at run time.
+  // Four, and they fail on four different things: that the ten composed drawings handed over the
+  // boxes their own search was blocked by, with the record naming the tiles and the chips the page
+  // painted, without which everything after it is a comparison over nothing; that no label box is
+  // wider than the envelope build/label_widths.json measured for the same strings, which is the
+  // one-sided bound issue 207 argued for and which issue 207's own defect fails by two fifths; that
+  // every chip stands on a candidate its own line offers; and that no candidate is cheaper than the
+  // one it stands on, which is the claim the doubled prune breaks in the browser's copy of the
+  // search. A FIFTH WAS WRITTEN, DRIVEN AND WITHDRAWN, holding each reserve against the advance the
+  // browser lays the painted label out at; RUNTIME_ENV_SLACK's header carries the measurement that
+  // stopped it and the shape the card that finishes it needs.
+  'the run-time placer':  { count: 4, when: 'grain' },
   // Issue 203. Three, and they are three for the same reason the row above is: that both captions
   // were found at all and answered in both states, without which the two comparisons below are
   // vacuously true over an empty list; that each is painted in the size and weight its width was
@@ -846,7 +859,26 @@ const PHASES = {
 // the class of assertion it makes possible: a contrast read off the pixels rather than composited
 // in JavaScript is in this phase now, at 4.5475 to 1 measured against 4.5558 computed, and the two
 // figures printing side by side is the point of doing it twice.
-const EXPECTED_ASSERTIONS = 354;
+// 354 until issue 204, which adds four and closes the gap issue 195 filed against its own oracle.
+// That one judges the build's placer over the fourteen artefacts and refuses every drawing the
+// browser composes, so site/render.js's own copy of the chip search, the one that draws every
+// window, every filter and every union, was held to nothing: issue 207 moved every run-time reserve
+// on the page, 863 of 863, and the digests, the build gate and the placer oracle were all correctly
+// silent. The four judge ten composed drawings, five unions and five windowed. Two are the search,
+// on the grid and at the least cost, which is the oracle above's pair of claims asked of the other
+// implementation and over boxes that implementation now hands out. One is the population, because a
+// record of the boxes a search was blocked by is worth nothing if it is not this drawing's. And one
+// is the ENVELOPE, one-sided, which is what keeps the search half from being circular about its own
+// inputs: a reserve wider than the widest that string shapes under any family the measuring machine
+// could resolve was measured in a face this page does not paint, which is issue 207's defect exactly.
+// A FIFTH WAS WRITTEN AND WITHDRAWN RATHER THAN TUNED. It held each reserve against the advance the
+// browser lays the PAINTED label out at, which is the ideal oracle for that half, and it went red on
+// 555 of the 709 on a clean tree: `getComputedTextLength()` moves with the screen CTM, `widthOf()`
+// caches one answer for the life of the page, and the two readings are taken at two different zooms.
+// The residual runs both ways, 0.6919 units under to 1.6129 over, so there is no honest bound and a
+// band wide enough to hold would be a number chosen to make it pass. RUNTIME_ENV_SLACK's header
+// carries the measurement in full.
+const EXPECTED_ASSERTIONS = 358;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -14377,6 +14409,446 @@ function judgeChips(where, r, table, colX) {
   return out;
 }
 
+// =================================================================================================
+// AND THE OTHER PLACER, THE ONE IN THE BROWSER. Issue 204, filed by issue 195 as the named gap in
+// its own instrument.
+//
+// WHAT WAS JUDGED BY NOTHING. `site/render.js`'s `compose()` is a second, complete copy of the chip
+// search, including issue 171's prune and issue 106's tiebreak, and it runs on every drawing this
+// page composes at run time: every window, every filter and every union. The oracle above judges
+// the fourteen artefacts the build wrote and refuses everything else, and `reflowCheck()` in
+// site/render.js says in its own header that it compares tiles and arcs and never a chip. So the
+// copy that draws most of what a reader of this page actually looks at was held to nothing at all.
+//
+// AND THE GAP WAS MEASURED RATHER THAN FEARED. Issue 207 moved every run-time reserve on this page,
+// on 863 of 863 nodes over ten composed drawings, and the fourteen digests did not move, the build
+// gate was green and the placer oracle above said nothing. All three were correct: none of them
+// looks at this path.
+//
+// WHY IT COULD NOT SIMPLY BE THE ORACLE ABOVE WITH THE DIGEST CHECK TAKEN OUT. That one reconstructs
+// its blocked boxes from `build/label_widths.json`, and argues at length why that is admissible: the
+// table is an INPUT to the build's placement and the oracle never reads the placement's OUTPUT. The
+// run-time placer does not use that table. It measures its own widths in the browser at
+// `widthOf()`, so a run-time oracle needs a different argument about what may be shared, and the
+// obvious shortcut, reading the painted chip width and feeding it back in, is a check that reads
+// the answer it is checking.
+//
+// SO THE SUBJECT IS SPLIT IN TWO AND EACH HALF IS ANSWERED FROM SOMEWHERE THE PLACER IS NOT.
+//
+//   THE SEARCH. `ZM.placerBoxes()` publishes every box the run-time search was blocked by, read
+//   back out of the list it was pushed into rather than recomputed beside it, which is issue 220's
+//   device one file over. Those boxes are INPUTS to the cost of every candidate. This file rebuilds
+//   the whole candidate set from the line's own painted `d`, prunes nothing, and holds the painted
+//   chip to the least of them. What it never reads from the page's own arithmetic is the answer: a
+//   chip's `cx` and `cy` come off the rect a reader is looking at and the position under test is
+//   recomputed here. So this half is HONEST ABOUT THE SEARCH AND CIRCULAR ABOUT THE BOXES, in
+//   exactly the words #220 used about itself.
+//
+//   THE BOXES, WHICH IS WHAT CLOSES THAT CIRCLE AND IS THE HALF #195 COULD NOT HAVE, ANSWERED BY
+//   THE BUILD'S ENVELOPE, ONE-SIDED, WHICH IS THE SHAPE ISSUE 207 ARGUED FOR AND NOT THE ONE IT
+//   REFUSED. `build/label_widths.json` is an ENVELOPE: the widest each string shapes under any
+//   family the measuring machine could resolve. A gate asserting that the run-time reserve EQUALS
+//   it would be red on every machine whose fonts are not that maximum, which is why #207 shipped no
+//   such gate. A one-sided bound is a different claim and survives the machine: a browser gives one
+//   face out of the envelope, so a reserve wider than the envelope is a reserve measured in a face
+//   the page does not paint. Measured before the repair the run-time reserve was over the build on
+//   863 of 863 nodes and after it on none of them, so this is that table turned into a gate.
+//
+// WHAT IT SHARES, NAMED. The specification: the cost function, the candidate set, the placement
+// order and the shapes of the blocked boxes are restated from site/render.js's own account of them
+// rather than imported. The flattening, at RUNTIME_ARC_N, which is definitional and is render.js's
+// own 96 rather than the build's 240. And the boxes, for the search half only, argued above.
+//
+// WHAT IT CANNOT SEE. Everything the oracle above cannot see, for the same reasons: a mutation that
+// leaves the argmin where it was, one inside CHIP_COST_TOL, a change of tiebreak between equals, or
+// a wrong tile position, which moves the chip and this agrees with its new home. Three more of its
+// own. The envelope bound is one-sided, so a reserve that is too NARROW is caught by nothing here,
+// and that is the direction that puts a chip on a label; RUNTIME_ENV_SLACK's header says why the
+// comparison that would catch it is not made and what it would take. The painted chip width is
+// taken as read, which the card allows in as many words and which the same residual forces,
+// because it is an input to the cost of every OTHER chip and only an output for the one being
+// judged. And this judges the ten drawings
+// named below and no others: a composed drawing is a function of a scope and a window, there are
+// more of those than a suite can drive, and the population is pinned rather than sampled so that a
+// run which lost half of it says so.
+//
+// ONE THING IT FOUND THAT IS WORTH A READER'S ATTENTION, recorded here rather than in a commit
+// message. The oracle above refuses a composed drawing on the ground that it "carries no artefact
+// digest", and that is true of a UNION and false of a WINDOW: `compose()` copies every property of
+// the drawing it was composed from, `drawingDigest` among them, so a windowed drawing answers
+// `window.ZT.programme().digest` with the seven hex digits of the artefact it was cut out of. That
+// refusal holds today only because the phase it guards drives no window. This phase does not use it
+// at all: what it reads is `ZM.placerBoxes()`, which is null on a built artefact and a record on a
+// composed one, and which cannot be true of the wrong picture because it rides on the drawing
+// object rather than on the last call.
+
+// render.js's own ARC_N, which is 96 where build_layout.py's is 240. Restated rather than shared,
+// like every other constant above it, so a retune in either copy is a difference this file names.
+const RUNTIME_ARC_N = 96;
+
+// The ten composed drawings, five unions and five windowed, which is the shape of the population
+// issue 207 measured its 863 reserves over and not the same ten addresses: these are named here and
+// come to 709 tiles and 903 chips, which is measured below rather than inherited. Written out rather
+// than generated, because the whole point of a pinned population is that a run which drew nine of
+// them is a run that says so.
+//
+// THE FIVE UNIONS ARE FIVE DIFFERENT SHAPES AND NOT FIVE ADDRESSES. `ZIB+ZSC` is two programmes at
+// the sessions altitude, which is the only altitude the pair budget allows to stay there; `ALL` is
+// the seven-way union, which that same budget takes to the modules altitude and is the largest
+// drawing this page will agree to lay out; `ZCFA+ZIB` pairs the one programme that draws nothing in
+// two of the eight columns with one that fills them. The five windows are four programmes at the
+// sessions altitude and one at the modules altitude, which is the composition #100 and #111 left
+// open and the one `compose()` is reached by most often.
+const RUNTIME_UNIONS = ['#/p/ZIB+ZSC', '#/p/ZBL+ZHR', '#/p/ZPE+ZDS', '#/p/ZCFA+ZIB', '#/p/ALL'];
+const RUNTIME_WINDOWED = ['#/p/ZBL', '#/p/ZSC', '#/p/ZIB', '#/p/ZHR', '#/p/ZBL/modules'];
+const RUNTIME_WEEKS = 3;
+
+// How many nodes and how many chips the ten of them come to, pinned for the reason CHIP_EXPECTED is
+// pinned: a reconstruction that silently weighed a tenth of the corpus and agreed with itself on all
+// of it is the failure this whole block is written against. Both move with the corpus and with the
+// wrap, so a card that changes what the model records changes these and the failure says which way.
+const RUNTIME_NODES = 709;
+const RUNTIME_CHIPS = 903;
+
+// THE ONE COMPARISON THIS PHASE WAS DESIGNED AROUND AND DOES NOT MAKE, WITH THE MEASUREMENT THAT
+// STOPPED IT. Issue 204's first draft held each run-time reserve against the advance the browser
+// lays the PAINTED label out at, read at rest and again under the weight a click turns it to. That
+// is the ideal oracle for this half: a second measurement of the same string, taken by the browser
+// laying out the real element, owing nothing to the probe. It was written, driven, and it went red
+// on 555 of the 709 nodes, and the residual is not a defect in either the placer or this file.
+//
+// WHAT IT IS, MEASURED RATHER THAN GUESSED. `getComputedTextLength()` in Chrome depends on the
+// SCREEN CTM the element is under. Driven on this tree at `#/p/ZBL`, one probe, one string,
+// `Advanced Excel Course`, four viewBoxes and nothing else changed: at a CTM of 10.2467 it answers
+// 103.3476, at 2.5617 it answers 103.3324, at 0.6404 it answers 103.1555 and at 0.1601 it answers
+// 102.9603. That is a spread of 0.3873 units, about a third of one per cent, on the zoom range this
+// canvas actually uses. `widthOf()` measures once and CACHES for the life of the page, at whatever
+// zoom was in force when the drawing first composed; the paint is read later, after the fit has
+// settled on the composed drawing's own extent. So the two numbers are taken at two different
+// scales and cannot be equal.
+//
+// AND IT IS NOT ONE-SIDED, WHICH IS WHY THERE IS NO BOUND HERE EITHER. Measured over the five
+// unions, 595 nodes: the reserve runs from 0.6919 units NARROWER than the widest face the page
+// paints to 1.6129 units WIDER, a ratio from 0.992818 to 1.010933. The painted chip width against
+// its own verb's advance plus two pads runs the same way, from 0.3655 under to 0.2919 over. A
+// one-sided bound would be red in one direction on a clean tree, and a two-sided band wide enough
+// to hold would be a number chosen to make this pass rather than one derived from anything.
+//
+// SO IT IS NOT ASSERTED AND IT IS NOT TUNED INTO A PASS. What this phase holds the reserve to
+// instead is the ENVELOPE below, which is one-sided, has about an eighth of headroom over the paint
+// rather than one per cent, and catches the defect the paint comparison was wanted for: issue 207's
+// probe resolved 14px for text painted at 10 and reserved two fifths too much. The comparison
+// against the paint is a card of its own, and the shape it needs is a reserve re-taken at the zoom
+// the reading is taken at, which is a change to `widthOf()`'s cache and not to this file.
+//
+// The slack the envelope bound carries, and it is the residual above rather than a margin picked to
+// make anything pass. The reserve ran to 1.6129 units over the paint on the corpus below and the
+// envelope stands about an eighth of its own width clear of the paint, so two units is an order
+// under the gap the bound is watching and an order over the noise it must not read as a defect.
+const RUNTIME_ENV_SLACK = 2;
+
+// Everything one composed drawing can be judged from, off the painted SVG and off the one record
+// site/render.js publishes. No coordinate here comes from window.GL.
+//
+// BOTH STATES ARE READ BY DRESSING EVERY CARD AT ONCE AND NOT BY PRESSING THEM ONE AT A TIME. The
+// reserve is `max(regular, bold)` because `.node.sel .lbl` turns a label bold on a click, so the
+// state a click enters is half of what a label box has to hold and a reading of it that never
+// happened is half a population. Issue 206's reader presses each card in turn, which is the right
+// shape for a claim about SELECTION; nothing here is a claim about selection, so what is wanted is
+// the cascade under `.node.sel` and not the machinery that usually puts it there. One class write
+// over every card, one read, one restore: it is the whole population rather than a sample, and
+// it cannot be thrown off by a press the page declines, which is how issue 203's reader came to
+// report a hole. What the two readings decide here is the refusal in judgeRuntimeChips(): a line
+// the page laid out at nothing is a line the reserve under it means nothing about.
+//
+// AND THE CLASS IS RESTORED BEFORE ANYTHING IS RETURNED, because the phases after this one read the
+// same page and two of them pin a census of every face it paints. It is restored in line and not in
+// a `try/finally`, which an adversarial read flagged: nothing between the write and the restore can
+// throw, since both are attribute walks over a list already in hand, and every phase after this one
+// opens with a `goto` whose repaint replaces the whole of `#graph` in any case. Both of those are
+// properties of code elsewhere, so this sentence is the statement of them rather than a guarantee.
+const RUNTIME_PLACER_READ = `
+  function boxOf(el) {
+    return { x: +el.getAttribute('x'), y: +el.getAttribute('y'),
+             w: +el.getAttribute('width'), h: +el.getAttribute('height') };
+  }
+  var svg = document.getElementById('graph');
+  var nodes = [], chips = [], paths = {}, keys = [], groups = [];
+  svg.querySelectorAll('g[data-node]').forEach(function (g) {
+    var r = g.querySelector('rect.tile-bg');
+    if (!r) return;
+    var b = boxOf(r), lines = [], mark = null, tail = null;
+    g.querySelectorAll('text.lbl').forEach(function (t) {
+      var row = { s: t.textContent, rest: t.getComputedTextLength(), sel: null, t: t };
+      if (t.classList.contains('lbl-tail')) tail = row;
+      else if (t.classList.contains('lbl-missing')) mark = row;
+      else lines.push(row);
+    });
+    var rec = { id: g.getAttribute('data-node'), x: b.x + b.w / 2, y: b.y + b.h / 2,
+                side: b.w, high: b.h, lines: lines, mark: mark, tail: tail,
+                ghost: g.classList.contains('ghost') };
+    nodes.push(rec);
+    groups.push(g);
+  });
+  // The bold, in one pass, and put back in the next.
+  var wasSel = groups.map(function (g) { return g.classList.contains('sel'); });
+  groups.forEach(function (g) { g.classList.add('sel'); });
+  nodes.forEach(function (n) {
+    n.lines.forEach(function (r) { r.sel = r.t.getComputedTextLength(); });
+    if (n.mark) n.mark.sel = n.mark.t.getComputedTextLength();
+    if (n.tail) n.tail.sel = n.tail.t.getComputedTextLength();
+  });
+  groups.forEach(function (g, i) { if (!wasSel[i]) g.classList.remove('sel'); });
+  nodes.forEach(function (n) {
+    n.lines.forEach(function (r) { delete r.t; });
+    if (n.mark) delete n.mark.t;
+    if (n.tail) delete n.tail.t;
+  });
+  svg.querySelectorAll('rect.chip-bg').forEach(function (r) {
+    var g = r.parentNode, b = boxOf(r), t = g.querySelector('text.chip-tx');
+    chips.push({ key: g.getAttribute('data-edge'),
+                 cx: b.x + b.w / 2, cy: b.y + b.h / 2, cw: b.w, high: b.h,
+                 verb: t ? t.textContent : null,
+                 // The advance of the verb the browser actually laid out, which is what makes the
+                 // chip's own painted width an input this file has checked rather than one it took
+                 // on trust. It is the one number on a chip that is not the placer's answer.
+                 adv: t ? t.getComputedTextLength() : null,
+                 ghost: g.classList.contains('ghost') });
+  });
+  svg.querySelectorAll('g[data-edge]').forEach(function (g) {
+    var p = g.querySelector('path.edge, path.edge-ghost');
+    if (!p) return;
+    keys.push(g.getAttribute('data-edge'));
+    paths[g.getAttribute('data-edge')] = p.getAttribute('d');
+  });
+  return { nodes: nodes, chips: chips, paths: paths, keys: keys,
+           packed: (window.ZM && typeof window.ZM.placerBoxes === 'function')
+             ? window.ZM.placerBoxes() : undefined,
+           composes: (window.ZM && typeof window.ZM.placerCost === 'function')
+             ? window.ZM.placerCost().composes : null,
+           digest: window.ZT.programme().digest };
+`;
+
+// One composed drawing, judged. Returns a list of findings and never a bare boolean, for the reason
+// judgeChips() above returns one: a state this could not answer in is neither an agreement nor a
+// disagreement, and a check that quietly answers about nothing is the dead instrument this
+// repository keeps finding.
+function judgeRuntimeChips(where, r, table, colX) {
+  const out = { where: where, chips: 0, nodes: 0, offGrid: [], beaten: [], why: [],
+                overEnvelope: [], worstGap: 0, worstBeat: 0, worstEnvHead: Infinity };
+  const say = (m) => { out.why.push(`${where}: ${m}`); return out; };
+
+  if (r.packed === undefined) return say('site/render.js published no window.ZM.placerBoxes');
+  if (r.packed === null) {
+    return say('the drawing on screen carries no record of the boxes the run-time placer packed ' +
+               'against, so it is a built artefact and not a composition');
+  }
+  // AND THERE IS DELIBERATELY NO `composes > 0` BESIDE IT, though `checkPlacer()` above carries one
+  // and this block's first draft copied it. An adversarial read of that copy found it dead:
+  // `PLACER.composes` is monotone and nothing resets it, and `goto` below is a fragment navigation
+  // on a document that stays put, so after the very first composition anything drove it is
+  // permanently true and asks nothing. The guard that works is the line above, because the record
+  // rides on the drawing rather than on a counter: a built artefact answers null however many times
+  // this page has composed something else.
+  if (!r.nodes.length || !r.chips.length) return say('no tiles or no chips on the page');
+  if (!table) return say(CHIP_WIDTHS_WHY || 'no width table');
+
+  // THE RECORD HAS TO BE THIS DRAWING'S, ASSERTED AND NOT ASSUMED. It rides on the drawing object,
+  // so it cannot be the last composition's; what it still could be is a record whose node set has
+  // drifted from what was painted, which would leave a box unaccounted for or a tile unblocked.
+  const packedNode = {};
+  for (const p of r.packed.nodes) {
+    if (packedNode[p.id]) return say(`the record holds ${p.id} twice`);
+    packedNode[p.id] = p;
+  }
+  const packedChip = {};
+  for (const p of r.packed.chips) {
+    if (packedChip[p.key]) return say(`the record holds a chip on ${p.key} twice`);
+    packedChip[p.key] = p;
+  }
+  if (r.packed.nodes.length !== r.nodes.length) {
+    return say(`${r.nodes.length} tiles painted and ${r.packed.nodes.length} blocked`);
+  }
+  if (r.packed.chips.length !== r.chips.length) {
+    return say(`${r.chips.length} chips painted and ${r.packed.chips.length} blocked`);
+  }
+  for (const n of r.nodes) if (!packedNode[n.id]) return say(`${n.id} is painted and not blocked`);
+  for (const c of r.chips) if (!packedChip[c.key]) return say(`${c.key} is painted and not blocked`);
+
+  // The geometry the placer packed with, cross-checked against the page rather than believed, which
+  // is judgeChips()'s own opening and is here for the same reason: if the drawing says otherwise
+  // then the constants restated in this file are not this drawing's.
+  for (const n of r.nodes) {
+    if (Math.abs(n.side - CHIP_TILE) > 0.05 || Math.abs(n.high - CHIP_TILE) > 0.05) {
+      return say(`the tile on ${n.id} is ${n.side} by ${n.high} and this file was written for ` +
+                 `${CHIP_TILE}`);
+    }
+  }
+
+  // ---- the boxes, held against two sources the placer did not produce -------------------------
+  const boxes = [];
+  for (const n of r.nodes) {
+    const p = packedNode[n.id];
+    const nl = n.lines.length + (n.mark ? 1 : 0) + (n.tail ? 1 : 0);
+    const labH = CHIP_LINE_H * nl;
+    // FIRST THE ARITHMETIC BETWEEN THE RESERVE AND THE BOX, which is the layer #220's third
+    // assertion exists for: a reserve that is right and a box built out of it wrongly blocks the
+    // search with something that is not the label. Every term here is the drawing's own.
+    if (Math.abs(p.tile[0] - n.x) > 0.05 || Math.abs(p.tile[1] - n.y) > 0.05 ||
+        Math.abs(p.tile[2] - (CHIP_TILE + CHIP_TILE_PAD)) > 0.05 ||
+        Math.abs(p.tile[3] - (CHIP_TILE + CHIP_TILE_PAD)) > 0.05) {
+      return say(`the tile box blocked for ${n.id} is ${JSON.stringify(p.tile)} and the tile is ` +
+                 `painted at ${n.x}, ${n.y}`);
+    }
+    const wantY = n.y + CHIP_TILE / 2 + CHIP_GAP_LABEL + labH / 2;
+    if (Math.abs(p.lab[0] - n.x) > 0.05 || Math.abs(p.lab[1] - wantY) > 0.05 ||
+        Math.abs(p.lab[3] - (labH + CHIP_LAB_PAD_H)) > 0.05) {
+      return say(`the label box blocked for ${n.id} is ${JSON.stringify(p.lab)} and its ${nl} ` +
+                 `painted line(s) put it at ${wantY.toFixed(2)}, ${(labH + CHIP_LAB_PAD_H)} high`);
+    }
+    // AND THEN THE WIDTH. The reserve is the box less the pad the box adds.
+    const lw = p.lab[2] - CHIP_LAB_PAD_W;
+    // A LINE THE PAGE LAID OUT AT NOTHING IS A REFUSAL AND NOT A READING, which is not the paint
+    // comparison the header above explains this file does not make. It is one thing that
+    // comparison would have caught on the way past and that nothing here would otherwise see:
+    // `body.hide-unrecorded .ghost` is `display: none`, `getComputedTextLength()` answers 0 on an
+    // unrendered text, and issue 207 found `widthOf`'s cache keeping that zero for the life of the
+    // page. No second measurement is needed to know that a string with characters in it does not
+    // advance zero.
+    for (const row of [...n.lines, n.mark, n.tail]) {
+      if (!row) continue;
+      for (const [state, w] of [['at rest', row.rest], ['selected', row.sel]]) {
+        if (!(w > 0)) {
+          return say(`${n.id} paints ${JSON.stringify(row.s)} at a width of ${w} ${state}, so the ` +
+                     'line reserved for it is a line nothing on this page laid out');
+        }
+      }
+    }
+    // AND AGAINST THE BUILD'S ENVELOPE, one-sided. A string the table has never been asked for is
+    // a refusal and not a skip: build_layout.py falls back to an estimate for one, which
+    // check_build.sh already refuses, and a second guess at it here would be an opinion about the
+    // input rather than about the answer.
+    let env = 0;
+    for (const row of n.lines) {
+      const a = chipWidthOf(table, n.ghost ? '10/400i' : '10/400', row.s);
+      const b = chipWidthOf(table, n.ghost ? '10/600i' : '10/600', row.s);
+      if (a === null || b === null) return say(`no measured width for ${JSON.stringify(row.s)}`);
+      env = Math.max(env, a, b);
+    }
+    // `9/400` FOR BOTH CAPTIONS, UPRIGHT, AND THE MARK IS PAINTED ITALIC. That is not this file
+    // choosing a context: it is the one disagreement this tree ships, declared in FACE_KNOWN above
+    // with its argument and its repair card, #215. `build_layout.py` reserves the mark from the
+    // upright row, `judgeChips()` reads the upright row, and this reads the same row, so all three
+    // are wrong together or right together and none of them invents a fourth answer. When #215
+    // moves the reserve to the italic context it has to come back here as well as to FACE_KNOWN.
+    for (const row of [n.mark, n.tail]) {
+      if (!row) continue;
+      const w = chipWidthOf(table, '9/400', row.s);
+      if (w === null) return say(`no measured width for ${JSON.stringify(row.s)}`);
+      env = Math.max(env, w);
+    }
+    out.worstEnvHead = Math.min(out.worstEnvHead, env - lw);
+    // The slack is the shaping residual the header measures, a unit at the very worst on this
+    // corpus against an envelope that stands about an eighth clear of the paint. It is here so that
+    // the bound is a bound on the FACE a reserve was measured in and not on the last digit of a
+    // number the CTM moves.
+    if (lw > env + RUNTIME_ENV_SLACK) {
+      out.overEnvelope.push({ where: where, id: n.id, lw: lw, env: env });
+    }
+    out.nodes++;
+    boxes.push(p.tile);
+    boxes.push(p.lab);
+  }
+
+  // ---- the search ------------------------------------------------------------------------------
+  // Which column a tile is in, from the x values the whole corpus uses. site/render.js answers this
+  // by nearest rather than by equality, because a drawing rounds its coordinates; the list is the
+  // same eight either way and an x that is on none of them is a refusal here.
+  const colOf = (x) => {
+    for (let i = 0; i < colX.length; i++) if (Math.abs(colX[i] - x) < 0.05) return i;
+    return null;
+  };
+  const at = {};
+  for (const n of r.nodes) {
+    const c = colOf(n.x);
+    if (c === null) return say(`the tile on ${n.id} is at x ${n.x}, which is no column of the eight`);
+    at[n.id] = c;
+  }
+
+  const rows = [];
+  for (const c of r.chips) {
+    const cut = String(c.key).indexOf('->');
+    const s = String(c.key).slice(0, cut), t = String(c.key).slice(cut + 2);
+    if (at[s] === undefined || at[t] === undefined) return say(`${c.key} ends on a tile that is not drawn`);
+    if (!r.paths[c.key]) return say(`${c.key} has a chip and no line`);
+    if (c.verb === null) return say(`${c.key} has a chip with no verb on it`);
+    if (!(c.adv > 0)) return say(`${c.key} paints its verb at a width of ${c.adv}`);
+    rows.push({ c: c, s: s, t: t, span: Math.abs(at[t] - at[s]) });
+  }
+  if (rows.length !== r.keys.length) return say(`${rows.length} chips against ${r.keys.length} lines`);
+  rows.sort((a, b) => (b.span - a.span) ||
+                      (a.s < b.s ? -1 : a.s > b.s ? 1 : 0) ||
+                      (a.t < b.t ? -1 : a.t > b.t ? 1 : 0));
+
+  for (const row of rows) {
+    const c = row.c;
+    // THE CHIP'S OWN WIDTH IS TAKEN AS PAINTED, WHICH THE CARD ALLOWS IN AS MANY WORDS AND WHICH A
+    // MEASUREMENT SETTLED RATHER THAN A PREFERENCE. It is an INPUT to the cost of every OTHER chip
+    // and an output only for the one being judged, so the oracle above's move, reconstructing it
+    // from a table and refusing a page that does not reproduce it, has no counterpart here: there
+    // is no table on this path. The obvious substitute was written and driven, holding the rect
+    // against its own verb's painted advance plus two pads, and it refused five of the ten drawings
+    // on a clean tree at 0.2 to 0.3 units. That is the shaping residual RUNTIME_ENV_SLACK's header
+    // measures, arriving on the chip: `widthOf()` measured the verb at the zoom the drawing composed
+    // at and cached it, and the advance is read at the zoom the fit settled on. Widening the check
+    // until it passed would have been a number chosen to make it pass, so the check is not made.
+    // What IS held is the geometry, which is exact on both sides because both come off the same
+    // rounded number.
+    if (Math.abs(c.high - CHIP_H) > 0.05) return say(`the chip on ${c.key} is ${c.high} high`);
+    const blocked = packedChip[c.key].box;
+    if (Math.abs(blocked[2] - (c.cw + CHIP_BOX_PAD)) > 0.05 ||
+        Math.abs(blocked[3] - CHIP_H) > 0.05) {
+      return say(`the box blocked for the chip on ${c.key} is ${JSON.stringify(blocked)} and it is ` +
+                 `painted ${c.cw} by ${c.high}`);
+    }
+
+    const p = parseCubic(r.paths[c.key]);
+    if (!p) return say(`${c.key}: its line is not a single cubic`);
+    const cand = chipCandidates(chipArc(p, RUNTIME_ARC_N));
+    const w = c.cw + CHIP_BOX_PAD;
+
+    let near = null, gap = Infinity;
+    for (const k of cand) {
+      const d = Math.hypot(k.x - c.cx, k.y - c.cy);
+      if (d < gap) { gap = d; near = k; }
+    }
+    out.chips++;
+    out.worstGap = Math.max(out.worstGap, gap);
+    if (gap > CHIP_POS_TOL) {
+      out.offGrid.push({ where: where, key: c.key, gap: gap });
+    } else {
+      const mine = CHIP_W_OVER * chipDepth(near.x, near.y, w, boxes) + near.fixed;
+      let best = Infinity, bestAt = null;
+      for (const k of cand) {
+        const cost = CHIP_W_OVER * chipDepth(k.x, k.y, w, boxes) + k.fixed;
+        if (cost < best) { best = cost; bestAt = k; }
+      }
+      const beat = mine - best;
+      out.worstBeat = Math.max(out.worstBeat, beat);
+      if (beat > CHIP_COST_TOL) {
+        out.beaten.push({ where: where, key: c.key, beat: beat,
+                          from: [near.ds, near.perp], to: [bestAt.ds, bestAt.perp],
+                          moved: Math.hypot(bestAt.x - near.x, bestAt.y - near.y) });
+      }
+    }
+    // The prefix a later chip is weighed against is the chips already down at the positions the
+    // page PAINTED them, which is judgeChips()'s own rule and keeps one bad chip from being blamed
+    // on the chips after it.
+    boxes.push([c.cx, c.cy, w, CHIP_H]);
+  }
+  return out;
+}
+
 // The nine phases, in one function so that the values one phase measures are the values the next
 // one reasons about, which is how build/check_grain.mjs was written and is why the assertions
 // below are that file's, unedited. What changed in the move is the spelling of the harness calls
@@ -14571,6 +15043,126 @@ async function runGrain(chrome, base) {
                 `(${o.moved.toFixed(1)} units away)`).join(', ')}`
             : ''),
         `worst any candidate beat a placed chip by, over ${chips} chips: ${worstBeat.toFixed(4)}`);
+    });
+
+    // ---- and the placer in the browser, issue 204 --------------------------
+    // THE WINDOW IS TAKEN OFF IN A `finally` AND THAT IS NOT TIDINESS. Every phase below this one
+    // is driven by a hash change on the same document, which this page keeps its state across, and
+    // two of them pin a census of every string the fourteen artefacts paint. A group that threw
+    // half way through with a three week window still on would hand them a filtered drawing and
+    // they would report a corpus that had lost most of itself.
+    await group('the run-time placer', async () => {
+      try {
+        const table = chipWidths();
+        const seen = [];
+        // The unions first, with no window, because a union is the composition that reaches the
+        // sectors and the shared nodes; then the windows, which is the composition a reader meets.
+        for (const at of RUNTIME_UNIONS) {
+          await goto(base + at);
+          await setWindow(page, 0);
+          seen.push({ where: at, r: await ev(RUNTIME_PLACER_READ) });
+        }
+        for (const at of RUNTIME_WINDOWED) {
+          await goto(base + at);
+          await setWindow(page, RUNTIME_WEEKS);
+          await sleep(150);
+          seen.push({ where: `${at} over ${RUNTIME_WEEKS} weeks`, r: await ev(RUNTIME_PLACER_READ) });
+        }
+        // The columns, taken off all ten together for the reason the oracle above takes them off
+        // all fourteen: a drawing that leaves a column empty would renumber every column right of
+        // it, which changes the span two ends are apart and with it the order chips are placed in.
+        const colX = [];
+        for (const s of seen) {
+          for (const n of s.r.nodes) if (!colX.some(v => Math.abs(v - n.x) < 0.05)) colX.push(n.x);
+        }
+        colX.sort((a, b) => a - b);
+        const judged = seen.map(s => (colX.length === CHIP_COLS
+          ? judgeRuntimeChips(s.where, s.r, table, colX)
+          : { where: s.where, chips: 0, nodes: 0, offGrid: [], beaten: [],
+              overEnvelope: [], worstGap: 0, worstBeat: 0, worstEnvHead: Infinity,
+              why: [`${s.where}: the ten composed drawings stand on ${colX.length} columns and ` +
+                    `the geometry was computed for ${CHIP_COLS}`] }));
+        const why = judged.reduce((a, j) => a.concat(j.why), []);
+        const offGrid = judged.reduce((a, j) => a.concat(j.offGrid), []);
+        const beaten = judged.reduce((a, j) => a.concat(j.beaten), []);
+        const overEnvelope = judged.reduce((a, j) => a.concat(j.overEnvelope), []);
+        const chips = judged.reduce((a, j) => a + j.chips, 0);
+        const nodes = judged.reduce((a, j) => a + j.nodes, 0);
+        const worstGap = judged.reduce((a, j) => Math.max(a, j.worstGap), 0);
+        const worstBeat = judged.reduce((a, j) => Math.max(a, j.worstBeat), 0);
+        const worstEnvHead = judged.reduce((a, j) => Math.min(a, j.worstEnvHead), Infinity);
+        // The population, printed on the failure as well as on the pass. A refusal stops a drawing
+        // being weighed, so the counts under it are what WAS weighed and a reader of a red run needs
+        // both figures rather than only the sentence that stopped it.
+        const tally = `${judged.length} drawings, ${nodes} tiles, ${chips} chips`;
+
+        // FIRST, THAT THERE WAS A RUN-TIME PLACEMENT TO JUDGE AND THAT IT WAS ALL OF IT. Everything
+        // below rests on ten compositions each handing over a record of the boxes it packed
+        // against, and on that record naming the same tiles and the same chips the page painted. A
+        // run that cannot say has to say so where a reader of the log will see it.
+        assert('the ten drawings this page composes at run time hand over the boxes they packed against',
+          why.length === 0 && judged.length === 10 && nodes === RUNTIME_NODES &&
+            chips === RUNTIME_CHIPS,
+          `all ten composed, ${RUNTIME_NODES} tiles and ${RUNTIME_CHIPS} chips weighed, every ` +
+            'blocked box named by the tile or the chip the page painted for it',
+          why.length ? `${tally} weighed, and ${why.length} could not be compared: ` +
+                       `${why.slice(0, 3).join('; ')}`
+                     : tally,
+          tally);
+
+        // SECOND, THE RESERVE AGAINST THE BUILD'S ENVELOPE, one-sided, which is the shape issue
+        // 207 argued for. A browser gives one face out of the envelope, so a reserve wider than the
+        // envelope was measured in a face this page does not paint.
+        // AND THE HEADROOM IS PART OF THE CLAIM AND NOT ONLY PRINTED BESIDE IT, which is #195's own
+        // standard turned on this phase by an adversarial read. RUNTIME_ENV_SLACK is ABSOLUTE and
+        // the headroom it sits under is PROPORTIONAL, about an eighth of the string, so on a short
+        // enough label the slack would swallow the whole gap and the bound would be green because
+        // it could no longer fail. Requiring the narrowest gap on the corpus to clear the slack is
+        // what stops that happening quietly: measured here at 4.7040 against a slack of 2.
+        assert('and none of them is wider than the envelope build/label_widths.json measured for the same strings',
+          why.length === 0 && nodes > 0 && overEnvelope.length === 0 &&
+            worstEnvHead > RUNTIME_ENV_SLACK,
+          'every run-time reserve at or under the widest that string shapes under any family the ' +
+            'measuring machine could resolve',
+          `${overEnvelope.length} over the envelope` +
+            (overEnvelope.length
+              ? `: ${overEnvelope.slice(0, 4).map(o => `${o.where} ${o.id} reserved ` +
+                  `${o.lw.toFixed(2)} against an envelope of ${o.env.toFixed(2)}`).join(', ')}`
+              : '') +
+            (Number.isFinite(worstEnvHead) && worstEnvHead <= RUNTIME_ENV_SLACK
+              ? `, and the narrowest headroom is ${worstEnvHead.toFixed(4)}, inside the ` +
+                `${RUNTIME_ENV_SLACK} of slack, so this bound could not have failed`
+              : ''),
+          `narrowest headroom between an envelope and the reserve under it, over ${nodes} tiles: ` +
+            `${Number.isFinite(worstEnvHead) ? worstEnvHead.toFixed(4) : 'none read'}`);
+
+        // THIRD, THAT EVERY CHIP IS ON THE GRID ITS OWN LINE OFFERS.
+        assert('every verb chip on a composed drawing stands on a candidate position its own line offers',
+          why.length === 0 && chips > 0 && offGrid.length === 0,
+          `all ${RUNTIME_CHIPS} within ${CHIP_POS_TOL} of a candidate rebuilt in this file from ` +
+            "the line's own d",
+          `${offGrid.length} off the grid` +
+            (offGrid.length ? `: ${offGrid.slice(0, 3).map(o => `${o.where} ${o.key} by ${o.gap.toFixed(2)}`).join(', ')}` : '') +
+            `, worst gap ${worstGap.toFixed(4)}`,
+          `worst gap between a painted chip and the nearest candidate, over ${chips} chips: ` +
+            `${worstGap.toFixed(4)}, against a tolerance of ${CHIP_POS_TOL}`);
+
+        // AND FOURTH, THE CARD ITSELF: nothing cheaper was left on the table by the copy of the
+        // search that runs in the browser. This file prunes nothing, so a prune in that copy which
+        // skips a winner is a candidate found here and not there.
+        assert('and no candidate its own line offers is cheaper than the one it stands on',
+          why.length === 0 && chips > 0 && beaten.length === 0,
+          `no candidate anywhere on the ten composed drawings beating its own chip's placement by ` +
+            `more than ${CHIP_COST_TOL} of cost`,
+          `${beaten.length} chips beaten` +
+            (beaten.length
+              ? `: ${beaten.slice(0, 4).map(o => `${o.where} ${o.key} by ${o.beat.toFixed(2)} ` +
+                  `(${o.moved.toFixed(1)} units away)`).join(', ')}`
+              : ''),
+          `worst any candidate beat a placed chip by, over ${chips} chips: ${worstBeat.toFixed(4)}`);
+      } finally {
+        await setWindow(page, 0);
+      }
     });
 
     // ---- the two captions under a label, issue 203 -------------------------
