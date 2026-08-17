@@ -197,14 +197,13 @@
   // AND THAT EXAMPLE IS A REASON FOR THE SHAPE OF THIS RECORD AND NOT A CLAIM THAT ANYTHING CATCHES
   // IT, which the first draft of this comment did not distinguish and an adversarial read of it did.
   // `lw - 24` is caught on the BUILD side by check_build.sh's `check_reserve_used`, at 570 of 570.
-  // On this side nothing catches it today: the only bound scripts/smoke.mjs puts on a run-time
-  // reserve is one-sided UPWARD, against build/label_widths.json's envelope, so a reserve that is
-  // too NARROW passes it, and the search oracle blocks its own reconstruction with the same narrowed
-  // box and agrees with the placer exactly. The comparison that would catch it is the reserve
-  // against the advance the browser lays the painted label out at, and that one is written up as
-  // withdrawn in scripts/smoke.mjs beside RUNTIME_ENV_SLACK, with the measurement that stopped it.
-  // A reader of this record should take it as the hook that comparison needs, not as one already
-  // made.
+  // On this side it was caught by nothing until issue 228: the only bound scripts/smoke.mjs put on a
+  // run-time reserve was one-sided UPWARD, against build/label_widths.json's envelope, so a reserve
+  // that is too NARROW passed it, and the search oracle blocks its own reconstruction with the same
+  // narrowed box and agrees with the placer exactly. The comparison that catches it is the reserve
+  // against the advance the browser lays the painted label out at, and it is made now, as an
+  // EQUALITY at RUNTIME_ZOOM_READ in scripts/smoke.mjs: this record is the subject of it, and
+  // ZM.probeZooms below is what lets the paint be read at the zoom the reserve was measured at.
   //
   // IT IS AN INPUT AND NEVER AN ANSWER, and the line is the one issue 195 drew. A blocked box is an
   // INPUT to the cost of every candidate position; the position the search settles on is the OUTPUT,
@@ -223,6 +222,47 @@
   // build's own fourteen are the placer oracle's subject and not this one's.
   var PACKED = null;
   ZM.placerBoxes = function () { return PACKED; };
+
+  // ---- the conditions each measurement was taken under, issue 228 ---------------------------
+  // WHY A WIDTH ALONE CANNOT BE HELD AGAINST THE PAINT. `getComputedTextLength()` answers in user
+  // units and the answer moves with the SCREEN CTM the element is under, because the shaping
+  // happens at device resolution and is divided back down. Measured on this tree at `#/p/ZBL`, one
+  // string, `Advanced Excel Course`, four viewBoxes and nothing else changed: 103.3476 at a CTM of
+  // 10.2467, 103.3324 at 2.5617, 103.1555 at 0.6404 and 102.9603 at 0.1601. `widthOf()` below
+  // measures once and CACHES for the life of the page, so a reserve carries the zoom the drawing
+  // that first wanted that string composed at, and the paint is read later, at whatever zoom the
+  // fit has settled on. Issue 204 wrote the comparison anyway, drove it, and withdrew it: the
+  // residual is two-sided, so no honest bound exists over two different zooms.
+  //
+  // SO WHAT IS RECORDED IS WHEN TO LOOK AND NEVER WHAT WAS SEEN. One entry per distinct measuring
+  // condition, and per cache key the index of the condition its measurement was taken under. The
+  // condition is the `viewBox` in force and the box the SVG occupied, which is the whole of the
+  // CTM, plus the CTM itself as the probe read it so that a reader restoring the first two can
+  // check it arrived rather than assume it. NO WIDTH IS PUBLISHED HERE, deliberately: a reader
+  // holding a reserve to the paint may take from this record the zoom to read the paint at and
+  // must take the reserve itself from ZM.placerBoxes(), which is the number that went into the
+  // search. A record carrying the widths would be handing the check its own answer.
+  //
+  // AND A WRONG ENTRY CANNOT BUY A PASS, WHICH IS WHY THIS IS ADMISSIBLE AT ALL. The comparison it
+  // enables is an EQUALITY, exact to the last bit: at one CTM the probe and the painted element
+  // are the same measurement of the same string, measured on this tree at 0.000000 over 182 lines
+  // at three separate zooms. There is no second zoom at which a reserve taken at one zoom is
+  // reproduced, so an entry naming the wrong condition makes the comparison red on essentially
+  // every string rather than green on any. The record is self-validating in the one direction that
+  // matters: it can lose a pass and it cannot manufacture one.
+  //
+  // IT IS THE INSTANCE'S OWN RECORD AND NOT A MODULE-LEVEL ONE, which PROBE above is and which is
+  // safe there because a face is a property of the stylesheet rather than of a drawing. A cache
+  // key is a property of ONE cache, so a second draw() on the same page would publish indices into
+  // a condition list the other instance's keys were never measured against. The closure hands its
+  // own record over as it is built and the last one built is the one on screen.
+  var PZ = null;
+  ZM.probeZooms = function () {
+    if (!PZ) return null;
+    var out = { conds: PZ.conds.slice(), of: {} }, k;
+    for (k in PZ.of) out.of[k] = PZ.of[k];
+    return out;
+  };
 
   // opts.svg      the <svg> the drawing is painted into
   // opts.canvas   the box it sits in, which carries the drawing's width as a custom property
@@ -1344,6 +1384,31 @@
     // been zeroed by a rule nobody was thinking about, and the first time nothing caught it.
     var TW = {};
 
+    // The conditions half of the cache, issue 228, and see ZM.probeZooms above for what may and
+    // may not be read off it. One entry per distinct `viewBox` and box width this probe has ever
+    // measured under, and one index per cache key. The list is scanned rather than compared
+    // against its own tail: a page navigated back to a scope it has drawn before returns to a zoom
+    // it has already measured at, so a tail comparison would file the same condition twice and a
+    // reader counting them would report more zooms than the page has used. It is at most a handful
+    // of entries, one per composition that met a string no earlier one had.
+    var TWZ = { conds: [], of: {} };
+    PZ = TWZ;
+
+    function zoomOf(t) {
+      var vb = svg.getAttribute('viewBox'), bw = svg.getBoundingClientRect().width, i;
+      for (i = 0; i < TWZ.conds.length; i++) {
+        if (TWZ.conds[i].viewBox === vb && TWZ.conds[i].boxWidth === bw) return i;
+      }
+      // The CTM is read off the probe itself and only when the condition is new, so this costs one
+      // matrix per composition that meets a new string rather than one per string. `getScreenCTM()`
+      // answers null for an element in no rendering tree, which this one is in by construction; the
+      // null is carried rather than defaulted, because a condition that could not say what zoom it
+      // stood at is a refusal for the reader and not a zero.
+      var m = t.getScreenCTM();
+      TWZ.conds.push({ viewBox: vb, boxWidth: bw, scale: m ? m.a : null });
+      return TWZ.conds.length - 1;
+    }
+
     function widthOf(s, hostCls, cls) {
       var ctx = hostCls + '|' + cls;
       var k = ctx + '|' + s;
@@ -1355,6 +1420,11 @@
         t.style.display = 'inline';
         t.textContent = s;
         TW[k] = t.getComputedTextLength();
+        // AFTER THE WIDTH AND BEFORE THE PROBE LEAVES THE TREE, both of which matter. The width is
+        // taken first so that nothing here can stand between the caller and the number it asked
+        // for, and the condition is taken while the probe is still mounted because an element out
+        // of the tree has no screen CTM to report.
+        TWZ.of[k] = zoomOf(t);
         if (PROBE[ctx] === undefined) {
           var cs = window.getComputedStyle(t);
           PROBE[ctx] = { host: hostCls, cls: cls, size: cs.fontSize, style: cs.fontStyle,

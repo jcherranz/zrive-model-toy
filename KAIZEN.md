@@ -131,6 +131,34 @@ repoints the moment a lesson is added or removed: two changelog entries citing "
 entry" already meant two different lessons, which is issue 54. `scripts/check_repo.sh` fails the
 build on a cited slug that resolves to nothing.
 
+- `kaizen-a-control-mutation-runs-in-a-copy` &middot; **A control that proves a check can fail must
+  be applied to a copy of the tree and never to the working tree, because the revert is the step
+  that does not run when the run is interrupted.** #228's controls mutated `site/render.js` in place
+  and reverted with `git checkout` after each one. A run was killed between the mutation and the
+  revert, the working tree kept `min` where `max` belongs in `compose()`'s reserve, and the next
+  commit carried it to a pushed branch. Three things did not catch it: `node --check` passes on a
+  valid mutation, `git diff --stat` counts lines rather than reading them, and the mutation is a
+  plausible edit rather than a marker. What caught it was a reader of the diff, one round trip
+  later, and by then it had produced a CI failure that read exactly like a discovery: the run-time
+  reserve short of the bold on 560 of 709 tiles, with every other gate green. **A false finding is
+  the expensive failure here, not a false pass.** The rule is that a control copies `site/`,
+  `scripts/` and `build/` to a scratch directory, mutates the copy, drives the copy and deletes it,
+  so nothing needs to be put back. The second rule is that after any interrupted run the whole
+  working-tree diff is read line by line before it is committed, since the revert that did not run
+  is invisible in a summary.
+- `kaizen-record-the-condition-not-the-answer` &middot; **A measurement taken under ambient state
+  cannot be held against a later one unless the state was recorded with it, and what gets recorded
+  must be the condition rather than the number.** `getComputedTextLength()` answers in user units
+  and moves with the screen CTM, so `widthOf()`'s cache in `site/render.js` carries the zoom the
+  drawing that first wanted a string composed at, while the paint is read at whatever zoom the fit
+  settled on. Issue 204 wrote the comparison, drove it, found the residual two-sided at 0.6919 under
+  to 1.6129 over, and withdrew it rather than picking a band, which was right. Issue 228 made the
+  same comparison exact by recording the `viewBox`, the box and the CTM each probe stood at, and
+  reading the paint back there. The discipline that makes such a record admissible is that it
+  carries no width: a condition tells a checker WHEN to look and hands it none of the answer, and a
+  condition that lies makes the equality red on every string at once rather than green on any, so it
+  can lose a pass and cannot manufacture one. The general shape is that a two-sided residual with no
+  honest bound is usually a missing variable rather than a tolerance waiting to be chosen.
 - `kaizen-a-control-that-leaves-a-group-leaves-the-groups-rules-behind` &middot; **A control that
   moves out of a group loses every rule that was written against the group, and the loss is
   invisible until somebody presses it.** Issue 139 deleted the readout plate and moved the altitude

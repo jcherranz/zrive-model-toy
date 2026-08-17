@@ -406,10 +406,17 @@ const PHASES = {
   // one-sided bound issue 207 argued for and which issue 207's own defect fails by two fifths; that
   // every chip stands on a candidate its own line offers; and that no candidate is cheaper than the
   // one it stands on, which is the claim the doubled prune breaks in the browser's copy of the
-  // search. A FIFTH WAS WRITTEN, DRIVEN AND WITHDRAWN, holding each reserve against the advance the
-  // browser lays the painted label out at; RUNTIME_ENV_SLACK's header carries the measurement that
-  // stopped it and the shape the card that finishes it needs.
-  'the run-time placer':  { count: 4, when: 'grain' },
+  // search. A FIFTH WAS WRITTEN, DRIVEN AND WITHDRAWN by #204 and is now made, which is issue 228:
+  // it holds each reserve against the advance the browser lays the PAINTED label out at, and it
+  // could not be a bound because the two sides were read at two zooms. Three more, and they fail on
+  // three different things: that every painted string names a measurement site/render.js recorded
+  // and that the zoom it was taken at was reached again, without which the two equalities under it
+  // are comparisons over whatever happened to match; that every label box is EXACTLY the widest
+  // advance of its own painted lines plus the pad, which is the direction the envelope bound is
+  // structurally blind to and the direction that puts a chip on a label; and that every chip rect
+  // is exactly its own verb plus two pads, which is the same residual one element over. Four became
+  // seven at #228 and RUNTIME_ZOOM_READ's header says what the three do not prove.
+  'the run-time placer':  { count: 7, when: 'grain' },
   // Issue 203. Three, and they are three for the same reason the row above is: that both captions
   // were found at all and answered in both states, without which the two comparisons below are
   // vacuously true over an empty list; that each is painted in the size and weight its width was
@@ -881,15 +888,24 @@ const PHASES = {
 // is the ENVELOPE, one-sided, which is what keeps the search half from being circular about its own
 // inputs: a reserve wider than the widest that string shapes under any family the measuring machine
 // could resolve was measured in a face this page does not paint, which is issue 207's defect exactly.
-// A FIFTH WAS WRITTEN AND WITHDRAWN RATHER THAN TUNED. It held each reserve against the advance the
-// browser lays the PAINTED label out at, which is the ideal oracle for that half, and it went red on
-// 555 of the 709 on a clean tree: `getComputedTextLength()` moves with the screen CTM, `widthOf()`
-// caches one answer for the life of the page, and the two readings are taken at two different zooms.
-// The residual runs both ways, 0.6919 units under to 1.6129 over, so there is no honest bound and a
-// band wide enough to hold would be a number chosen to make it pass. RUNTIME_ENV_SLACK's header
-// carries the measurement in full.
+// A FIFTH WAS WRITTEN AND WITHDRAWN RATHER THAN TUNED, AND ISSUE 228 MAKES IT AS THREE. It held each
+// reserve against the advance the browser lays the PAINTED label out at, which is the ideal oracle
+// for that half, and it went red on 555 of the 709 on a clean tree: `getComputedTextLength()` moves
+// with the screen CTM, `widthOf()` caches one answer for the life of the page, and the two readings
+// were taken at two different zooms. The residual runs both ways, 0.6919 units under to 1.6129 over,
+// so there was no honest bound and a band wide enough to hold would have been a number chosen to
+// make it pass.
+// 361 until issue 228, which adds three and is that withdrawal answered rather than widened.
+// site/render.js records, per cache key, the CONDITION its measurement was taken under and no width;
+// this file restores each condition and reads the PAINTED element there, so both sides stand at one
+// zoom and the comparison is an EQUALITY to the last bit rather than a bound. 709 label boxes and
+// 903 chip rects, exact, over the same ten drawings. The two-sided residual is still there and is
+// still not judged: it is printed on every pass as the spread between the two zooms, measured at
+// -0.6919 to 1.6129 on this tree, which is #204's own pair of figures arriving as a printed number
+// instead of an argument. RUNTIME_ZOOM_READ's header says which side is the probe and which is the
+// subject, and what the equality therefore does not prove.
 // 358 until issue 224, which adds three and is the card the paragraph above left open in a
-// different place. That withdrawal was about holding a CACHED reserve against a LATER paint, two
+// different place, and which landed before 228 did. That withdrawal was about holding a CACHED reserve against a LATER paint, two
 // readings at two zooms. This holds the PAINTED label against the PAINTED lane, both read off the
 // live document in one pass, so the two sides cannot be at two scales and the phase asserts that
 // rather than assuming it: seven scales per drawing, agreeing to under 0.0000005 on this tree.
@@ -901,7 +917,7 @@ const PHASES = {
 // font stack, where the paint runs from 0.7767 to 1.0578 of the table's number for the same string;
 // a `--font-ui` family swap is the other way round, and while that swap does redden three other
 // assertions here, this is the only thing anywhere that would say a LANE had been left.
-const EXPECTED_ASSERTIONS = 361;
+const EXPECTED_ASSERTIONS = 364;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -14751,13 +14767,11 @@ function judgeChips(where, r, table, colX) {
 //
 // WHAT IT CANNOT SEE. Everything the oracle above cannot see, for the same reasons: a mutation that
 // leaves the argmin where it was, one inside CHIP_COST_TOL, a change of tiebreak between equals, or
-// a wrong tile position, which moves the chip and this agrees with its new home. Three more of its
-// own. The envelope bound is one-sided, so a reserve that is too NARROW is caught by nothing here,
-// and that is the direction that puts a chip on a label; RUNTIME_ENV_SLACK's header says why the
-// comparison that would catch it is not made and what it would take. The painted chip width is
-// taken as read, which the card allows in as many words and which the same residual forces,
-// because it is an input to the cost of every OTHER chip and only an output for the one being
-// judged. And this judges the ten drawings
+// a wrong tile position, which moves the chip and this agrees with its new home. Two more of its
+// own. The envelope bound is one-sided, so a reserve that is too NARROW is caught by nothing in the
+// four assertions this paragraph is about, and that is the direction that puts a chip on a label;
+// issue 228 added three more to this phase that catch it, by an equality rather than a bound, and
+// RUNTIME_ZOOM_READ's header is where that argument lives. And this judges the ten drawings
 // named below and no others: a composed drawing is a function of a scope and a window, there are
 // more of those than a suite can drive, and the population is pinned rather than sampled so that a
 // run which lost half of it says so.
@@ -14800,12 +14814,20 @@ const RUNTIME_WEEKS = 3;
 const RUNTIME_NODES = 709;
 const RUNTIME_CHIPS = 903;
 
-// THE ONE COMPARISON THIS PHASE WAS DESIGNED AROUND AND DOES NOT MAKE, WITH THE MEASUREMENT THAT
-// STOPPED IT. Issue 204's first draft held each run-time reserve against the advance the browser
-// lays the PAINTED label out at, read at rest and again under the weight a click turns it to. That
-// is the ideal oracle for this half: a second measurement of the same string, taken by the browser
-// laying out the real element, owing nothing to the probe. It was written, driven, and it went red
-// on 555 of the 709 nodes, and the residual is not a defect in either the placer or this file.
+// And how many painted strings issue 228's comparison reads, pinned for the same reason: it is one
+// per verb chip and one per label line at rest, with a second in the bold for every line that is
+// not a caption, so it moves with the corpus, with the wrap and with which lines site/render.js
+// reserves in two states rather than one.
+const RUNTIME_READINGS = 2907;
+
+// THE ONE COMPARISON THIS BOUND WAS PUT IN THE PLACE OF, WITH THE MEASUREMENT THAT STOPPED IT AND
+// THE CARD THAT ANSWERED IT. Issue 204's first draft held each run-time reserve against the advance
+// the browser lays the PAINTED label out at, read at rest and again under the weight a click turns
+// it to. That is the ideal oracle for this half: a second measurement of the same string, taken by
+// the browser laying out the real element, owing nothing to the probe. It was written, driven, and
+// it went red on 555 of the 709 nodes, and the residual is not a defect in either the placer or
+// this file. Issue 228 makes the comparison rather than widening it, at RUNTIME_ZOOM_READ below,
+// and what follows is why it could not be made as a bound over two zooms.
 //
 // WHAT IT IS, MEASURED RATHER THAN GUESSED. `getComputedTextLength()` in Chrome depends on the
 // SCREEN CTM the element is under. Driven on this tree at `#/p/ZBL`, one probe, one string,
@@ -14824,12 +14846,21 @@ const RUNTIME_CHIPS = 903;
 // one-sided bound would be red in one direction on a clean tree, and a two-sided band wide enough
 // to hold would be a number chosen to make this pass rather than one derived from anything.
 //
-// SO IT IS NOT ASSERTED AND IT IS NOT TUNED INTO A PASS. What this phase holds the reserve to
-// instead is the ENVELOPE below, which is one-sided, has about an eighth of headroom over the paint
+// SO IT WAS NOT ASSERTED AND IT WAS NOT TUNED INTO A PASS. What this phase holds the reserve to as
+// well is the ENVELOPE below, which is one-sided, has about an eighth of headroom over the paint
 // rather than one per cent, and catches the defect the paint comparison was wanted for: issue 207's
-// probe resolved 14px for text painted at 10 and reserved two fifths too much. The comparison
-// against the paint is a card of its own, and the shape it needs is a reserve re-taken at the zoom
-// the reading is taken at, which is a change to `widthOf()`'s cache and not to this file.
+// probe resolved 14px for text painted at 10 and reserved two fifths too much. It is kept beside
+// issue 228's equality and not replaced by it, because the two are not the same claim: the envelope
+// is a second opinion about the SHAPING, taken on another machine from the real font, and the
+// equality owes everything to the browser it runs in. The envelope also survives a page that has
+// composed nothing, where the record the equality reads is null.
+//
+// AND WHAT ISSUE 228 CHANGED, WHICH IS NEITHER OF THE TWO SIDES. The card #204 filed asked for a
+// reserve RE-TAKEN at the zoom the reading is taken at, which is a change to `widthOf()`'s cache
+// and would have moved the placer. What shipped instead moves nothing: site/render.js records the
+// condition each measurement was taken under, this file restores it and reads the PAINT there, and
+// the reserve is left exactly as it was. Measured over 74 addresses and 58 composed drawings, every
+// painted #graph and every packed box byte-identical to the tree before it.
 //
 // The slack the envelope bound carries, and it is the residual above rather than a margin picked to
 // make anything pass. The reserve ran to 1.6129 units over the paint on the corpus below and the
@@ -14918,6 +14949,277 @@ const RUNTIME_PLACER_READ = `
              ? window.ZM.placerCost().composes : null,
            digest: window.ZT.programme().digest };
 `;
+
+// =================================================================================================
+// AND THE COMPARISON THE HEADER ABOVE SAYS THIS PHASE DOES NOT MAKE. Issue 228, which is issue
+// 204's own withdrawal filed as a card so that it was scheduled rather than left as prose.
+//
+// WHAT WAS WRONG WITH IT, AND IT WAS NEITHER SIDE. `getComputedTextLength()` answers in user units
+// and the answer moves with the screen CTM, because the shaping happens at device resolution and
+// is divided back down. `widthOf()` measures once and caches for the life of the page, so a
+// reserve carries the zoom the drawing that first wanted that string composed at; the paint is
+// read later, at whatever zoom the fit has settled on. Two readings at two zooms cannot be equal,
+// the residual runs both ways, and a band wide enough to hold both directions would be a number
+// chosen to make the check pass.
+//
+// WHAT MAKES IT ANSWERABLE. site/render.js now records, per cache key, the CONDITION its
+// measurement was taken under: the `viewBox` in force, the box the SVG occupied, and the CTM the
+// probe read. No width. This file restores each condition in turn and reads the PAINTED element
+// there, so both sides stand at one zoom and the comparison is an EQUALITY rather than a bound.
+// Measured on this tree: the probe and the painted element answer the same number to the last bit,
+// 0.000000 over 182 lines at three separate zooms, and the reserve reproduces exactly on all 595
+// tiles of the five unions, which is the same population #204 measured its two-sided residual over.
+//
+// WHICH SIDE IS THE PROBE AND WHICH IS THE SUBJECT, said plainly because #195, #202, #206 and #220
+// all turned on it.
+//
+//   THE SUBJECT is the box `ZM.placerBoxes()` hands over, which is the number the run-time search
+//   was actually blocked by, read back out of the list it was pushed into. Nothing here recomputes
+//   it and nothing here reads a width site/render.js measured.
+//
+//   THE PROBE is the browser laying out the real painted `<text>`, at rest and under the weight a
+//   click turns it to. It is a second measurement of the same string by the same engine on a
+//   different element, which is the relationship #206's phase already stands on.
+//
+//   WHAT THEY SHARE is the browser's text shaping, which is the quantity both sides are about and
+//   cannot be got from anywhere else on this path, and the CONDITION, which fixes WHEN to read and
+//   carries no width. A condition that named the wrong zoom would move the probe side off the
+//   reserve on essentially every string at once, because there is no second zoom at which a
+//   reserve taken at one zoom is reproduced: it can lose a pass and it cannot manufacture one.
+//   That is asserted rather than argued, by the third control on the card.
+//
+// WHAT IT THEREFORE PROVES. That every reserve is exactly the widest advance of the strings the
+// page actually paints for that tile, in the classes the cascade actually dresses them in, in both
+// states, and that the arithmetic from those widths into the blocked box adds the pad and nothing
+// else. It catches the direction the envelope bound above is structurally blind to, a reserve that
+// is too NARROW, which is the direction that puts a chip on a label.
+//
+// WHAT IT DOES NOT PROVE, AND THIS IS THE HALF THE CARD IS HONEST ABOUT. It reads the paint at the
+// reserve's OWN zoom, so it accepts a reserve taken at any zoom. Whether the zoom a reserve was
+// cached at is the zoom the reader looks at is exactly the question #204 could not answer with a
+// bound, and this does not answer it either: it converts it from an unmeasurable residual into a
+// stated freedom. What that freedom is worth is measured on every run and printed beside the pass,
+// as the spread between the reserve and the same paint read at the zoom the fit settled on. It
+// proves nothing about the browser's shaping being right, which is the build envelope's half, and
+// nothing about where anything was placed, which is the search's half.
+//
+// AND THE CHIP, WHICH IS THE SAME RESIDUAL ONE ELEMENT OVER. The header above records that holding
+// a painted chip rect against its own verb's advance plus two pads refused five of the ten drawings
+// at 0.2 to 0.3 units, for this reason and no other. It is asserted here, at the verb's own
+// condition, and it is an equality too.
+//
+// WHAT IT CAUGHT ON ITS FIRST RUN IN CI, WHICH WAS THIS FILE'S OWN AUTHOR AND NOT THE PAGE. A
+// control mutation of `compose()`'s reserve, `max(regular, bold)` written as `min(regular, bold)`,
+// which is exactly the mutation #220 found on the build side one file over, survived a killed
+// control run and reached a pushed commit. Nothing else went red: the envelope bound above stayed
+// green at 4.3423 units of headroom, because it is one-sided UPWARD and a narrower reserve passes
+// it, and the search oracle blocked its own reconstruction with the same narrowed box and agreed
+// with the placer exactly. THIS went red on 560 of the 709 tiles and said what had happened rather
+// than that something had: on every one of them the reserve equalled the REST reading to the last
+// bit, which is what `min` returns, while the painted selected face stood up to 7.2070 units wider.
+// A fresh probe on the same page at the same CTM resolved weight 600 and matched the paint in both
+// states, so the probe and the cascade were never in question. That is the positive control for
+// this assertion, executed in CI, unplanned, on the one defect direction nothing else on this path
+// can see.
+
+// `veil` and `veil-hidden`, restated from site/selection.js, which adds them to a group AFTER the
+// drawing was composed: they are how a hidden employer and an undrawn student are held off the
+// screen, and neither rule in site/app.css touches a font property. So they are taken off the class
+// list before a cache key is built out of it, and they are NOT taken off the element before it is
+// measured. That is the direction that keeps the check honest: the reading is of the element
+// exactly as the page paints it, so a veil rule that ever did change a face makes this red rather
+// than making it silent.
+const RUNTIME_VEIL = ['veil', 'veil-hidden'];
+
+// site/render.js's own PADX, which is the pad a verb chip's rect carries on each side of its text,
+// and its r1. Restated rather than shared, like RUNTIME_ARC_N above.
+const RUNTIME_CHIP_PADX = 5;
+const chipR1 = (v) => Math.round(v * 10) / 10;
+
+// Every advance the reserves on one composed drawing are made of, each read at the condition its
+// own measurement was taken under. Returns raw readings and no comparison: the maxima and the
+// equalities are this file's arithmetic, below, so that no part of the answer is computed inside
+// the page it is about.
+//
+// THE `sel` STATE IS WRITTEN AND NOT ASSUMED, IN BOTH DIRECTIONS, which the read above does not
+// need to be. `widthOf()` measures the unselected face on a host with no `sel` on it, so a card
+// that happened to be selected when this ran would have its rest reading taken in the bold and be
+// red for a reason that is not about the page. Every card is undressed for the rest pass, dressed
+// for the sel pass, and put back exactly as it was found.
+const RUNTIME_ZOOM_READ = `
+  var svg = document.getElementById('graph');
+  var veil = ${JSON.stringify(RUNTIME_VEIL)};
+  function bare(e) {
+    var out = [], cs = String(e.getAttribute('class') || '').split(' '), i;
+    for (i = 0; i < cs.length; i++) if (cs[i] && veil.indexOf(cs[i]) < 0) out.push(cs[i]);
+    return out.join(' ');
+  }
+  var z = (window.ZM && typeof window.ZM.probeZooms === 'function') ? window.ZM.probeZooms() : undefined;
+  var packed = (window.ZM && typeof window.ZM.placerBoxes === 'function') ? window.ZM.placerBoxes() : undefined;
+  if (z === undefined) return { why: 'site/render.js published no window.ZM.probeZooms' };
+  if (z === null) return { why: 'this page has measured nothing, so it has composed nothing' };
+  if (!packed) return { why: 'the drawing on screen carries no record of the boxes it packed against' };
+
+  // Every reading this drawing needs, as (element, cache key, state), before anything is measured.
+  var reads = [], nodes = [], chips = [], groups = [];
+  var labBox = {};
+  packed.nodes.forEach(function (p) { labBox[p.id] = p.lab[2]; });
+  svg.querySelectorAll('g[data-node]').forEach(function (g) {
+    var id = g.getAttribute('data-node'), host = bare(g), rec = { id: id, lab2: labBox[id], reads: [] };
+    groups.push(g);
+    g.querySelectorAll('text.lbl').forEach(function (t) {
+      var cls = bare(t), s = t.textContent;
+      // The three shapes site/render.js reserves, and it reserves the tail and the mark in ONE
+      // state where it reserves a line in two. Restated from its own loop rather than inferred.
+      if (t.classList.contains('lbl-tail') || t.classList.contains('lbl-missing')) {
+        rec.reads.push({ t: t, key: host + '|' + cls + '|' + s, sel: false, s: s });
+      } else {
+        rec.reads.push({ t: t, key: host + '|' + cls + '|' + s, sel: false, s: s });
+        rec.reads.push({ t: t, key: host + ' sel|' + cls + '|' + s, sel: true, s: s });
+      }
+    });
+    rec.reads.forEach(function (r) { reads.push(r); });
+    nodes.push(rec);
+  });
+  svg.querySelectorAll('rect.chip-bg').forEach(function (r) {
+    var g = r.parentNode, t = g.querySelector('text.chip-tx');
+    if (!t) return;
+    var rec = { key: g.getAttribute('data-edge'), cw: +r.getAttribute('width'),
+                read: { t: t, key: bare(g) + '|' + bare(t) + '|' + t.textContent,
+                        sel: false, s: t.textContent } };
+    reads.push(rec.read);
+    chips.push(rec);
+  });
+
+  var unmatched = [], byCond = {};
+  reads.forEach(function (r) {
+    var ci = z.of[r.key];
+    r.ci = (ci === undefined) ? null : ci;
+    if (r.ci === null) { unmatched.push(r.key); return; }
+    (byCond[r.ci] || (byCond[r.ci] = [])).push(r);
+  });
+
+  var wasVb = svg.getAttribute('viewBox');
+  var wasSel = groups.map(function (g) { return g.classList.contains('sel'); });
+  var conds = [];
+  Object.keys(byCond).forEach(function (k) {
+    var ci = +k, c = z.conds[ci], list = byCond[k], i;
+    if (c.viewBox === null) svg.removeAttribute('viewBox');
+    else svg.setAttribute('viewBox', c.viewBox);
+    var m = svg.getScreenCTM();
+    conds.push({ i: ci, viewBox: c.viewBox, boxWidth: c.boxWidth, scale: c.scale,
+                 gotScale: m ? m.a : null, gotBoxWidth: svg.getBoundingClientRect().width,
+                 readings: list.length });
+    groups.forEach(function (g) { g.classList.remove('sel'); });
+    for (i = 0; i < list.length; i++) if (!list[i].sel) list[i].w = list[i].t.getComputedTextLength();
+    groups.forEach(function (g) { g.classList.add('sel'); });
+    for (i = 0; i < list.length; i++) if (list[i].sel) list[i].w = list[i].t.getComputedTextLength();
+    groups.forEach(function (g, j) { if (!wasSel[j]) g.classList.remove('sel'); });
+  });
+  if (wasVb === null) svg.removeAttribute('viewBox'); else svg.setAttribute('viewBox', wasVb);
+
+  // AND THE SAME READING AT THE ZOOM THE FIT SETTLED ON, which is not a comparison this file makes
+  // and is the freedom the card is honest about, printed rather than asserted. One pass, at rest
+  // and selected, over the same elements.
+  var atFit = [];
+  groups.forEach(function (g) { g.classList.remove('sel'); });
+  reads.forEach(function (r) { if (!r.sel) r.fit = r.t.getComputedTextLength(); });
+  groups.forEach(function (g) { g.classList.add('sel'); });
+  reads.forEach(function (r) { if (r.sel) r.fit = r.t.getComputedTextLength(); });
+  groups.forEach(function (g, j) { if (!wasSel[j]) g.classList.remove('sel'); });
+
+  var strip = function (r) { return { key: r.key, sel: r.sel, ci: r.ci, w: r.w, fit: r.fit, s: r.s }; };
+  return { conds: conds, unmatched: unmatched, readings: reads.length,
+           restored: svg.getAttribute('viewBox') === wasVb,
+           fitScale: (function () { var m = svg.getScreenCTM(); return m ? m.a : null; })(),
+           nodes: nodes.map(function (n) {
+             return { id: n.id, lab2: n.lab2, reads: n.reads.map(strip) };
+           }),
+           chips: chips.map(function (c) {
+             return { key: c.key, cw: c.cw, read: strip(c.read) };
+           }) };
+`;
+
+// One composed drawing's reserves, held to the paint at the zoom each was measured at. Returns
+// findings and never a bare boolean, for the reason judgeRuntimeChips() below does.
+function judgeRuntimeZoom(where, r) {
+  const out = { where: where, nodes: 0, chips: 0, readings: 0, conds: 0, why: [],
+                offPaint: [], offChip: [], worstFitLo: Infinity, worstFitHi: -Infinity };
+  const say = (m) => { out.why.push(`${where}: ${m}`); return out; };
+  if (!r || r.why) return say(r ? r.why : 'nothing was read');
+  if (!r.restored) return say('the viewBox this file borrowed was not put back');
+  if (r.unmatched.length) {
+    return say(`${r.unmatched.length} painted string(s) name a measurement this page has no ` +
+               `record of, the first being ${JSON.stringify(r.unmatched[0])}`);
+  }
+  if (!r.nodes.length || !r.chips.length) return say('no tiles or no chips on the page');
+  // THE CONDITION HAS TO HAVE ARRIVED, AND IT IS ASSERTED AND NOT ASSUMED. Restoring a `viewBox`
+  // string reproduces the CTM only while the box the SVG occupies is the one it occupied then, and
+  // a phase that read at a zoom it did not reach would be comparing two scales again with no sign
+  // of it. Exact on both, because both are the same number recomputed and not two measurements.
+  for (const c of r.conds) {
+    if (c.scale === null || c.gotScale === null) {
+      return say(`the condition ${c.i} could not say what zoom it stood at`);
+    }
+    if (c.gotScale !== c.scale || c.gotBoxWidth !== c.boxWidth) {
+      return say(`condition ${c.i} was recorded at a CTM of ${c.scale} in a box of ${c.boxWidth} ` +
+                 `and restoring its viewBox reached ${c.gotScale} in ${c.gotBoxWidth}`);
+    }
+  }
+  out.conds = r.conds.length;
+  out.readings = r.readings;
+
+  for (const n of r.nodes) {
+    if (n.lab2 === undefined) return say(`${n.id} is painted and the record blocks no label for it`);
+    if (!n.reads.length) return say(`${n.id} paints no label line at all`);
+    let want = 0, wantRest = 0, wantSel = 0, atCond = null;
+    for (const rd of n.reads) {
+      // A LINE THE PAGE LAID OUT AT NOTHING IS A REFUSAL AND NOT A READING, the same one
+      // judgeRuntimeChips() makes and for the same reason: `getComputedTextLength()` answers 0 for
+      // an unrendered text and issue 207 found a live route to caching that zero.
+      if (!(rd.w > 0)) {
+        return say(`${n.id} lays ${JSON.stringify(rd.s)} out at ${rd.w} at the zoom its own ` +
+                   'reserve was measured at');
+      }
+      if (rd.w > want) { want = rd.w; atCond = rd.ci; }
+      if (rd.sel) wantSel = Math.max(wantSel, rd.w);
+      else wantRest = Math.max(wantRest, rd.w);
+      out.worstFitLo = Math.min(out.worstFitLo, rd.w - rd.fit);
+      out.worstFitHi = Math.max(out.worstFitHi, rd.w - rd.fit);
+    }
+    // THE PAD IS ADDED RATHER THAN SUBTRACTED, WHICH IS NOT A STYLE CHOICE. site/render.js blocks
+    // `lw + 6`, and taking the 6 back off a double is not always the number that went in: for a
+    // short enough string the sum crosses a binade and the round trip loses a bit. Adding the same
+    // pad to this file's own maximum compares two sums rather than a sum against a difference, and
+    // the equality is then exact by construction rather than to within a tolerance nobody derived.
+    if (n.lab2 !== want + CHIP_LAB_PAD_W) {
+      // THE TWO STATES ARE CARRIED SEPARATELY ON A FAILURE AND NOT ONLY THEIR MAXIMUM, because a
+      // reserve short by the whole bold gap and a reserve short by a shaping residual are two
+      // different findings and the maximum alone cannot tell them apart. The condition the winning
+      // reading was taken at goes with them, since a reserve read at the wrong zoom is the third.
+      out.offPaint.push({ where: where, id: n.id, lab2: n.lab2, want: want + CHIP_LAB_PAD_W,
+                          rest: wantRest, sel: wantSel, ci: atCond,
+                          scale: (r.conds.find(c => c.i === atCond) || {}).scale });
+    }
+    out.nodes++;
+  }
+
+  for (const c of r.chips) {
+    const rd = c.read;
+    if (!(rd.w > 0)) {
+      return say(`the chip on ${c.key} lays ${JSON.stringify(rd.s)} out at ${rd.w} at the zoom ` +
+                 'its own reserve was measured at');
+    }
+    out.worstFitLo = Math.min(out.worstFitLo, rd.w - rd.fit);
+    out.worstFitHi = Math.max(out.worstFitHi, rd.w - rd.fit);
+    if (c.cw !== chipR1(rd.w + 2 * RUNTIME_CHIP_PADX)) {
+      out.offChip.push({ where: where, key: c.key, cw: c.cw,
+                         want: chipR1(rd.w + 2 * RUNTIME_CHIP_PADX) });
+    }
+    out.chips++;
+  }
+  return out;
+}
 
 // One composed drawing, judged. Returns a list of findings and never a bare boolean, for the reason
 // judgeChips() above returns one: a state this could not answer in is neither an agreement nor a
@@ -15088,12 +15390,15 @@ function judgeRuntimeChips(where, r, table, colX) {
     // from a table and refusing a page that does not reproduce it, has no counterpart here: there
     // is no table on this path. The obvious substitute was written and driven, holding the rect
     // against its own verb's painted advance plus two pads, and it refused five of the ten drawings
-    // on a clean tree at 0.2 to 0.3 units. That is the shaping residual RUNTIME_ENV_SLACK's header
+    // on a clean tree at 0.2 to 0.3 units. That was the shaping residual RUNTIME_ENV_SLACK's header
     // measures, arriving on the chip: `widthOf()` measured the verb at the zoom the drawing composed
-    // at and cached it, and the advance is read at the zoom the fit settled on. Widening the check
-    // until it passed would have been a number chosen to make it pass, so the check is not made.
-    // What IS held is the geometry, which is exact on both sides because both come off the same
-    // rounded number.
+    // at and cached it, and the advance was read at the zoom the fit settled on. Widening the check
+    // until it passed would have been a number chosen to make it pass, so the check was not made
+    // HERE. Issue 228 makes it, at the verb's own condition and as an equality, in the seventh
+    // assertion of this phase: what this function still takes as painted is the width, which is
+    // sound for the search because it is an input to the cost of every OTHER chip, and what that
+    // one adds is the second source the width itself never had. What IS held here is the geometry,
+    // which is exact on both sides because both come off the same rounded number.
     if (Math.abs(c.high - CHIP_H) > 0.05) return say(`the chip on ${c.key} is ${c.high} high`);
     const blocked = packedChip[c.key].box;
     if (Math.abs(blocked[2] - (c.cw + CHIP_BOX_PAD)) > 0.05 ||
@@ -15347,16 +15652,21 @@ async function runGrain(chrome, base) {
         const seen = [];
         // The unions first, with no window, because a union is the composition that reaches the
         // sectors and the shared nodes; then the windows, which is the composition a reader meets.
+        // AND THE ZOOM READ IS TAKEN SECOND, ON THE SAME DRAWING AND BEFORE THE NEXT ADDRESS.
+        // Issue 228. It borrows the SVG's `viewBox` and every card's `sel` and puts both back, so
+        // it has to run where the drawing it is about is still the one on screen; taking it after
+        // the whole loop would read the last address ten times.
         for (const at of RUNTIME_UNIONS) {
           await goto(base + at);
           await setWindow(page, 0);
-          seen.push({ where: at, r: await ev(RUNTIME_PLACER_READ) });
+          seen.push({ where: at, r: await ev(RUNTIME_PLACER_READ), z: await ev(RUNTIME_ZOOM_READ) });
         }
         for (const at of RUNTIME_WINDOWED) {
           await goto(base + at);
           await setWindow(page, RUNTIME_WEEKS);
           await sleep(150);
-          seen.push({ where: `${at} over ${RUNTIME_WEEKS} weeks`, r: await ev(RUNTIME_PLACER_READ) });
+          seen.push({ where: `${at} over ${RUNTIME_WEEKS} weeks`,
+                      r: await ev(RUNTIME_PLACER_READ), z: await ev(RUNTIME_ZOOM_READ) });
         }
         // The columns, taken off all ten together for the reason the oracle above takes them off
         // all fourteen: a drawing that leaves a column empty would renumber every column right of
@@ -15450,6 +15760,83 @@ async function runGrain(chrome, base) {
                   `(${o.moved.toFixed(1)} units away)`).join(', ')}`
               : ''),
           `worst any candidate beat a placed chip by, over ${chips} chips: ${worstBeat.toFixed(4)}`);
+
+        // ---- and the reserve against the paint, at the zoom the reserve was taken at ----------
+        // Issue 228, which is the comparison the four above are written around not making. See
+        // RUNTIME_ZOOM_READ's header for which side is the probe, which is the subject, what the
+        // two share and what this therefore does not prove.
+        const zj = seen.map(s => judgeRuntimeZoom(s.where, s.z));
+        const zWhy = zj.reduce((a, j) => a.concat(j.why), []);
+        const offPaint = zj.reduce((a, j) => a.concat(j.offPaint), []);
+        const offChip = zj.reduce((a, j) => a.concat(j.offChip), []);
+        const zNodes = zj.reduce((a, j) => a + j.nodes, 0);
+        const zChips = zj.reduce((a, j) => a + j.chips, 0);
+        const readings = zj.reduce((a, j) => a + j.readings, 0);
+        const conds = zj.reduce((a, j) => a + j.conds, 0);
+        const fitLo = zj.reduce((a, j) => Math.min(a, j.worstFitLo), Infinity);
+        const fitHi = zj.reduce((a, j) => Math.max(a, j.worstFitHi), -Infinity);
+        const zTally = `${zj.length} drawings, ${zNodes} tiles, ${zChips} chips, ` +
+                       `${readings} readings over ${conds} restored zoom(s)`;
+        // The spread between the two zooms, measured on this run rather than quoted from the card.
+        // It is what the comparison below is FREE of and not what it holds, and it is printed on
+        // every pass so that a reader can watch it rather than take #204's figures on trust.
+        const fitSay = (Number.isFinite(fitLo) && Number.isFinite(fitHi))
+          ? `the same strings read at the zoom the fit settled on differ by ` +
+            `${fitLo.toFixed(4)} to ${fitHi.toFixed(4)}, which is the freedom this equality does ` +
+            `not judge`
+          : 'nothing was read at the fit';
+
+        // FIFTH, THAT EVERY RESERVE NAMES A MEASUREMENT THIS PAGE RECORDED AND THAT THE ZOOM IT WAS
+        // TAKEN AT WAS REACHED AGAIN. Without it the two equalities below are comparisons over
+        // whatever subset happened to match, which is the vacuous-green shape this file keeps
+        // finding. A painted string whose class list builds a key the record does not hold is a
+        // reserve measured for something other than what is on screen, which is issue 207's defect
+        // in its general form, and it is a refusal here rather than a skip.
+        assert('every run-time reserve names a measurement this page recorded, at a zoom that can be reached again',
+          zWhy.length === 0 && zj.length === 10 && zNodes === RUNTIME_NODES &&
+            zChips === RUNTIME_CHIPS && readings === RUNTIME_READINGS && conds > 0,
+          `${RUNTIME_NODES} tiles and ${RUNTIME_CHIPS} chips, ${RUNTIME_READINGS} painted strings ` +
+            'each keyed to a condition the record holds, every condition restored to the CTM and ' +
+            'the box it was recorded at',
+          zWhy.length ? `${zTally} weighed, and ${zWhy.length} could not be compared: ` +
+                        `${zWhy.slice(0, 3).join('; ')}`
+                      : zTally,
+          zTally);
+
+        // SIXTH, THE CARD ITSELF, AND IT IS AN EQUALITY RATHER THAN A BOUND. The reserve is the
+        // widest advance of the strings the page paints for that tile, in the classes the cascade
+        // dresses them in, at rest and under the weight a click turns them to, and the box is that
+        // number and the pad. This is the direction the envelope bound above cannot see: a reserve
+        // that is too NARROW is the one that puts a chip on a label, and until this it was caught
+        // by nothing on this path.
+        assert('and each is exactly the widest advance the browser lays its own painted lines out at',
+          zWhy.length === 0 && zNodes > 0 && offPaint.length === 0,
+          `all ${RUNTIME_NODES} label boxes equal to the last bit, no tolerance`,
+          (zWhy.length ? `${zWhy.length} drawing(s) refused, so ${zNodes} of ${RUNTIME_NODES} ` +
+                         `boxes were compared at all; ` : '') +
+            `${offPaint.length} not equal` +
+            (offPaint.length
+              ? `: ${offPaint.slice(0, 4).map(o => `${o.where} ${o.id} blocks ${o.lab2} against ` +
+                  `a painted ${o.want} (out by ${(o.lab2 - o.want).toExponential(3)}, at rest ` +
+                  `${o.rest}, selected ${o.sel}, read at CTM ${o.scale})`).join('; ')}`
+              : ''),
+          `${zNodes} label boxes, exact; ${fitSay}`);
+
+        // AND SEVENTH, THE CHIP, which is the same residual one element over and which
+        // RUNTIME_ENV_SLACK's header records as having refused five of these ten drawings at 0.2 to
+        // 0.3 units for exactly this reason. Its own rounding is restated here rather than shared,
+        // so a retune of either is a difference this file names.
+        assert('and every verb chip is its own verb at that zoom plus the two pads it is painted with',
+          zWhy.length === 0 && zChips > 0 && offChip.length === 0,
+          `all ${RUNTIME_CHIPS} chip rects equal to the last bit at one tenth of a unit, no tolerance`,
+          (zWhy.length ? `${zWhy.length} drawing(s) refused, so ${zChips} of ${RUNTIME_CHIPS} ` +
+                         `rects were compared at all; ` : '') +
+            `${offChip.length} not equal` +
+            (offChip.length
+              ? `: ${offChip.slice(0, 4).map(o => `${o.where} ${o.key} is painted ${o.cw} against ` +
+                  `a verb of ${o.want}`).join(', ')}`
+              : ''),
+          `${zChips} chip rects, exact against their own verb plus ${2 * RUNTIME_CHIP_PADX}`);
       } finally {
         await setWindow(page, 0);
       }
