@@ -16737,11 +16737,22 @@ async function runGrain(chrome, base) {
     console.log(`  actual:    ${page.actual.w} by ${page.actual.h}   via ${page.mechanism}`);
     await group('the header', async () => {
       await goto(base + '#/p/ZBL/modules');
+      // THE FOOTER IS READ HERE AND IS NOT YET IN THE BOUND, which is issue 248 taking its
+      // measurement before it decides anything. The page's chrome is the header AND the footer:
+      // site/index.html holds one of each, site/app.css sizes both and gives the footer its own
+      // phone padding, and nothing in this file has ever read the footer's height. The figure
+      // this repository states about itself, 0.1730, was a TOTAL, and the constant below is a
+      // HEADER share, so the two have never been the same quantity. Both are read on one paint
+      // here and printed on the pass line, so the run itself says what the total is on the
+      // machine it ran on, rather than a card asserting a number fitted to one of them.
       const w = await ev(`
         var m = document.scrollingElement;
+        var f = document.querySelector('footer');
         return { scrollWidth: m.scrollWidth, clientWidth: m.clientWidth,
                  header: document.querySelector('header').offsetHeight,
+                 footer: f ? f.offsetHeight : 0,
                  inner: window.innerHeight };`);
+      const chrome4 = n => (n / w.inner).toFixed(4);
       // WRITTEN WITH A TRAILING ZERO, which build/model.py's two sRGB constants already are and
       // for the same reason: a digit, a dot and exactly three digits is how a grouped amount is
       // written in Spanish, the repository's safety gate reads every tracked file and says so,
@@ -16750,12 +16761,16 @@ async function runGrain(chrome, base) {
       assert('the collapsed page does not scroll sideways at 390, and the header is 23.7 per cent or less',
         w.scrollWidth === w.clientWidth && w.header / w.inner <= CHROME_SHARE + 0.0005,
         'no sideways scroll and header chrome at or under 23.7 per cent',
-        JSON.stringify(Object.assign({}, w, { share: (w.header / w.inner).toFixed(4) })),
+        JSON.stringify(Object.assign({}, w, { share: chrome4(w.header),
+                                              footerShare: chrome4(w.footer),
+                                              totalShare: chrome4(w.header + w.footer) })),
         // The measurement on the pass as well as on the failure, since issue 124. A card that is
         // told not to spend a gain somebody else made has to be able to read what the gain is
         // without planting a failure to see it, and the number a run prints is the number a
         // report can quote.
-        `header ${w.header} of ${w.inner}, share ${(w.header / w.inner).toFixed(4)}`);
+        `header ${w.header} of ${w.inner}, share ${chrome4(w.header)}; ` +
+        `footer ${w.footer}, share ${chrome4(w.footer)}; ` +
+        `total chrome ${w.header + w.footer} of ${w.inner}, share ${chrome4(w.header + w.footer)}`);
     });
   } finally {
     phone.close();
