@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T06:40:45Z",
+  "generated": "2026-08-17T06:42:13Z",
   "columns": [
     {
       "key": "raw",
@@ -66,6 +66,15 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/228"
+        },
+        {
+          "id": 235,
+          "title": "The build gate's run headings are a fourth statement of its section list, and they already disagree with it",
+          "labels": [
+            "limitation",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/235"
         }
       ]
     },
