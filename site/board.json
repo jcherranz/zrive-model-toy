@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T04:40:51Z",
+  "generated": "2026-08-17T04:45:02Z",
   "columns": [
     {
       "key": "raw",
@@ -91,22 +91,21 @@
     {
       "key": "in_progress",
       "title": "In progress",
+      "cards": []
+    },
+    {
+      "key": "done",
+      "title": "Done",
       "cards": [
         {
           "id": 223,
           "title": "The smoke workflow's exit-2 message lists two causes of a refusal and tells the reader to re-run, which is wrong for the third",
           "labels": [
             "limitation",
-            "status:in-progress"
+            "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/223"
-        }
-      ]
-    },
-    {
-      "key": "done",
-      "title": "Done",
-      "cards": [
+        },
         {
           "id": 221,
           "title": "build/label_widths.json is never re-measured, and --check is too coarse to gate on",
@@ -169,17 +168,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/208"
-        },
-        {
-          "id": 207,
-          "title": "site/render.js reserves every node label and caption from a probe measured at 14px, because .node .lbl is a descendant selector and the probe is not inside a .node",
-          "labels": [
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/207"
         }
       ],
-      "hidden": 161,
+      "hidden": 162,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
