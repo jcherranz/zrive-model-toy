@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T10:44:02Z",
+  "generated": "2026-08-17T11:38:40Z",
   "columns": [
     {
       "key": "raw",
@@ -24,15 +24,6 @@
             "limitation"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/6"
-        },
-        {
-          "id": 132,
-          "title": "Let's go and try once again with the panel of control header, I need…",
-          "labels": [
-            "bug",
-            "feedback"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
         },
         {
           "id": 144,
@@ -63,7 +54,18 @@
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": []
+      "cards": [
+        {
+          "id": 132,
+          "title": "Let's go and try once again with the panel of control header, I need…",
+          "labels": [
+            "bug",
+            "feedback",
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/132"
+        }
+      ]
     },
     {
       "key": "done",
