@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T01:25:05Z",
+  "generated": "2026-08-17T04:08:10Z",
   "columns": [
     {
       "key": "raw",
@@ -76,6 +76,15 @@
             "status:backlog"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/224"
+        },
+        {
+          "id": 228,
+          "title": "The reserve cannot be held against the painted advance, because widthOf() caches at one zoom and the paint is read at another",
+          "labels": [
+            "limitation",
+            "status:backlog"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/228"
         }
       ]
     },
