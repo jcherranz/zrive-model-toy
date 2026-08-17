@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T06:42:13Z",
+  "generated": "2026-08-17T06:46:53Z",
   "columns": [
     {
       "key": "raw",
@@ -81,17 +81,7 @@
     {
       "key": "in_progress",
       "title": "In progress",
-      "cards": [
-        {
-          "id": 229,
-          "title": "verify.sh step 3's label enumerates the build gate's sections by hand, and nothing holds it against them",
-          "labels": [
-            "limitation",
-            "status:in-progress"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/229"
-        }
-      ]
+      "cards": []
     },
     {
       "key": "done",
@@ -105,6 +95,15 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/231"
+        },
+        {
+          "id": 229,
+          "title": "verify.sh step 3's label enumerates the build gate's sections by hand, and nothing holds it against them",
+          "labels": [
+            "limitation",
+            "status:done"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/229"
         },
         {
           "id": 224,
@@ -160,18 +159,9 @@
             "status:done"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/216"
-        },
-        {
-          "id": 213,
-          "title": "stop_srv kills nothing: the self-test leaks four http servers per run, and 243 are alive on one machine",
-          "labels": [
-            "limitation",
-            "status:done"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/213"
         }
       ],
-      "hidden": 164,
+      "hidden": 165,
       "hiddenUrl": "https://github.com/jcherranz/zrive-model-toy/issues?q=is%3Aissue+is%3Aclosed"
     }
   ]
