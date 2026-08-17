@@ -137,12 +137,16 @@ jobs:
       #
       # THREE EXIT CODES, AND THEY MUST NOT BE COLLAPSED. Issue 67. 1 is a page regression, which
       # is what this workflow exists to report. 2 is the suite saying it could not answer: a
-      # browser that never started after its retry, or a run that recorded fewer assertions than
-      # it says it intends. Both fail the job, because a check that measured a fifth of itself is
-      # not a pass and the incident that produced this card looked exactly like one. They fail it
-      # with different words, because the header of this file argues at length that a browser
-      # failing to start must not read as the page having regressed, and until now the suite said
-      # `VERDICT: the page has regressed` for a browser that never started.
+      # browser that never started after its retry, a run that recorded fewer assertions than it
+      # says it intends, or a resource the page needs that did not arrive. Those three do not
+      # share a remedy, and the 2) arm below says so in the words it prints: the first two are
+      # worth re-running, while a resource that did not arrive is missing again on the next run,
+      # so the refusal names the resource and the name is what to act on. Both codes fail the job,
+      # because a check that measured a fifth of itself is not a pass and the incident that
+      # produced this card looked exactly like one. They fail it with different words, because
+      # the header of this file argues at length that a browser failing to start must not read as
+      # the page having regressed, and until now the suite said `VERDICT: the page has regressed`
+      # for a browser that never started.
       #
       # ONE STEP, BECAUSE THERE IS ONE SUITE. Issue 107 added a second step here for
       # build/check_grain.mjs, whose 33 assertions about the two altitudes of the drawing were run
