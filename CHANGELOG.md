@@ -48,6 +48,86 @@ of what changed and when, and it is meant to be scannable.
 
 ### Added
 
+- **THE SUITE COULD NOT READ A PIXEL, SO TWO ASSERTIONS MODELLED THE PAINTED RESULT INSTEAD OF
+  MEASURING IT, #202.** `scripts/smoke.mjs` had no screenshot and no image decoding, and two of its
+  claims about paint were models rather than measurements. The **focus ring**'s width came from the
+  resolved declarations times the canvas matrix, so it could not see a ring that is the right width
+  and the right colour and is then clipped, painted under something else, or dropped by a
+  forced-colours path; the ring is the one thing a keyboard reader is told about where they are. The
+  **scope rail**'s fade came from the used value of `mask-image`, so it could not see a gradient
+  that resolves and does not actually fade. Both were photographed by hand on #170 and both were
+  right. What was missing is that nothing re-checked them on the next commit.
+- **`Page.captureScreenshot` and a PNG reader over `zlib`, no dependency.** The protocol was already
+  driven directly and three viewports were already opened, so what the card cost is a decoder and a
+  way to sample a rectangle.
+- **Both assertions keep the reading they had and gain the photograph, so the count is unchanged at
+  354.** The claim is the same claim and it now has to hold in the cascade and in the paint at once.
+  The ring is measured as **coverage summed along a line of pixels, on all four sides of the frame**,
+  which lands on the stroke's own width rather than on the count of pixels it tinted:
+  **2.0048/2.0116/2.0081/1.9908 CSS px at 1536 against a declared 2**, its contrast read off the
+  pixels at **4.5185 to 1 against the 4.5558 the model composites in JavaScript**, and its colour
+  held to within 12 counts of the declared stroke, which is the conjunct that catches a ring painted
+  UNDER something. The rail is measured as **the fraction of each column's own ink that survived**,
+  against a photograph of the same rail with every mask, filter and opacity cleared from the rail up
+  to the document: at 390 the outer band of the fade keeps 0.2780 of its ink, the band inside it
+  0.6519, and the middle of the rail 0.97.
+- **The decoder is proved against bytes whose pixels are written down beside it, before it is
+  believed about a page.** A decoder that silently returns zeros is the perfect dead instrument,
+  because a black pixel is a plausible answer. Two fixtures of six by five, **thirty pixels and 210
+  channel values, every one exact**; their five rows carry the **five PNG filter types**, one per
+  row, and the decode records which types it took, so a Paeth branch that is wrong and a fixture
+  that never reaches it cannot both go green; one is RGBA in **two IDAT chunks** and one is RGB,
+  which is what Chrome's screenshots come back as; and the inflated stream must be **exactly one
+  filter byte and one stride per declared row**, which is `build/model.py`'s `#rows|N` terminator
+  against a truncated image whose missing rows decode as black. `shoot()` calls the proof, so no
+  pixel can be read before it has passed.
+- **Every colour type, bit depth and interlace the reader does not read is refused by name** rather
+  than decoded wrongly in silence, and the size the browser answers with is held against the size
+  that was asked for, because `scale: 1` is a request the device scale factor multiplies.
+- **Each measurement carries a control in the same rectangle and asserts its own population.** The
+  ring's control puts the canvas matrix back into the stroke and the **painted** width has to
+  collapse, measured against the lit reading's own colour so a thin stroke cannot renormalise itself
+  back to two pixels: **0.35 against 2.01**. The rail's control declares a fade of its own on the
+  **left** edge, and that side is the finding rather than a detail: at the two widths where the rail
+  fits, its chips stop well before the right edge, so a control declared there photographs two
+  identical pictures and reports a working instrument on a rail it could not have measured. The ring
+  asserts the pixels the stroke moved and the scanline samples are non-zero; the rail asserts it
+  measured at least 30 inked columns.
+- **A capture that did not happen is a `HarnessFailure` and never a failed assertion**, which is
+  #216's line held one card later: it exits 2 under `VERDICT: the suite could not answer` rather
+  than reporting a ring it never photographed. `SMOKE_BREAK_CAPTURE` forces that path, on the same
+  footing as `SMOKE_SKIP_PHASE` and `SMOKE_BREAK_RESOURCE`, and carries its own terminator: a label
+  that matched no capture broke nothing, and a clean verdict from that run would say the refusal
+  works on the strength of a run in which it was never reached.
+- **Six defects came from an adversarial read of this card and not from the author**, and two of
+  them were the kind that ships green.
+  - **The ring photograph was nondeterministic and one run in three called an unmodified page
+    regressed.** All three pictures came back identical, 0 pixels moved, and the assertion reported
+    the ring as absent: the CSSOM write had landed and the composited surface had not.
+    `Page.captureScreenshot` is now given a frame to work with, two `requestAnimationFrame`s awaited
+    after every write, and the deciding pair is **retaken up to three times** where the two come back
+    the same, with the attempt count printed on the pass line.
+  - **The rail's unfaded reference only took the mask off the rail itself**, so a fade painted from
+    anywhere else was in both photographs and divided out to exactly 1. Demonstrated live: a 40px
+    gradient on the rail's **parent** went green at every width and on both edges. The reference now
+    clears the mask, the filter and the opacity from the rail **up to the document**, and the same
+    plant is refused at 0.0657 on the left. What it still cannot see, said in the file rather than
+    left for the next audit, is an element painted OVER the edge.
+  - **`ringEdge` measured Σcoverage ÷ peak coverage**, so it could only overstate: driven to a stroke
+    of 1.6 CSS px it answered 2.0877. Every coverage is taken against the colour the cascade declares
+    now, so the number is the width that is there.
+  - **A horizontal scanline crosses the two vertical strokes and nothing else**, so a ring painted
+    down its sides and not across its top and bottom satisfied every word of the assertion. Four
+    sides are read.
+  - **#170's own modelled control was dead from the day it was written.** `RING_UNDO` computed
+    `declared * matrix` without reading `vectorEffect`, so it did not depend on the write it was
+    controlling: `declared * scale < declared` at every canvas scale under 1, whether or not the
+    write landed. It reads the property now.
+  - **`RAIL_FADED_MAX` is derived rather than measured.** The old figure absorbed a font metric, how
+    far short of the edge the last chip's ink stops, which moves between machines: 0.2780 here and
+    0.3293 on the runner against a threshold of 0.40.
+- **No page bytes change.** Zero-line diff under `site/`.
+
 - **NOTHING PROVED A RESERVED WIDTH WAS USED, ONLY THAT IT WAS ASKED FOR, #220.** #217 named this
   gap and left it open. Four things held parts of the width machinery and all four stopped at the
   same place: `check_widths_cover` holds `build/label_widths.json` against the job that writes it,

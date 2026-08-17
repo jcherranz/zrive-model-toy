@@ -194,6 +194,13 @@
 //                                                reproduces the card. It can never produce a clean
 //                                                verdict either: the only thing it does is take a
 //                                                resource away.
+//      SMOKE_BREAK_CAPTURE                       the same idea for issue 202's capture refusal.
+//                                                Name a substring and every screenshot whose label
+//                                                holds it is asked for with a clip of zero width,
+//                                                which the browser refuses, so
+//                                                `SMOKE_BREAK_CAPTURE=ring` reproduces a run that
+//                                                could not photograph the focus ring. It can never
+//                                                produce a clean verdict either.
 
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
@@ -201,6 +208,9 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+// Issue 202, and it is the whole of what reading a pixel costs in dependencies: `Page.captureScreenshot`
+// answers with a PNG, a PNG is a zlib stream under a row filter, and zlib is in the standard library.
+import zlib from 'node:zlib';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SITE = path.join(ROOT, 'site');
@@ -362,6 +372,10 @@ const PHASES = {
   // Issue 170, R7. Two claims at every width, because both are about a number that is different
   // at each of them: the canvas scale the focus ring was being multiplied by, and whether the
   // scope rail has anything off its ends.
+  // STILL TWO AFTER ISSUE 202, which converted both of them from a model of a painted result into
+  // a measurement of one and added neither. Each now carries a photograph beside the reading it
+  // had, so a repair has to satisfy the cascade and the paint together; the claims are the same
+  // two claims and the count says so.
   'the ring and the rail': { count: 2, when: 'every' },
   // Issue 170, R7. Three claims about the page rather than about a width: what is reachable behind
   // an open sheet, whether the window control is reversible under touch, and whether a calendar
@@ -818,6 +832,20 @@ const PHASES = {
 // The four are the population, the class census in both directions, the containment that says every
 // painted string is measured in the face the cascade paints it in, and its reverse, that every face
 // the table measured is one the drawings paint in.
+// 354 AND STILL 354 AFTER ISSUE 202, which is the third time this file has met a card that changes
+// what an assertion can see without changing how many there are, and the reason for writing it down
+// is the same as the other two. The suite could not read a pixel, so the focus ring and the scope
+// rail were both models of a painted result: the ring's width came from the resolved declarations
+// times the canvas matrix, and the rail's fade came from the used value of `mask-image`. Neither
+// could see a ring that is the right width and the right colour and is then clipped, painted under
+// something or dropped by a forced-colours path, and neither could see a gradient that resolves and
+// does not fade. Both are photographed now, three pictures each, and both readings are KEPT beside
+// the photograph rather than replaced by it, which is why nothing was added: the claim is the same
+// claim and it now has to hold in the cascade and in the paint at once. What the card bought that
+// is not in the count is the machinery, which is a PNG reader over `zlib` and no dependency, and
+// the class of assertion it makes possible: a contrast read off the pixels rather than composited
+// in JavaScript is in this phase now, at 4.5475 to 1 measured against 4.5558 computed, and the two
+// figures printing side by side is the point of doing it twice.
 const EXPECTED_ASSERTIONS = 354;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
@@ -15347,6 +15375,327 @@ function grainReport(KEYS, per, heights, filteredReflow) {
 }
 
 // =================================================================================================
+// READING A PIXEL. Issue 202.
+//
+// Every claim this file makes about paint is made from the DOM and the CSSOM, and two of them are
+// models of a painted result rather than measurements of one: the focus ring, whose width comes
+// from the resolved declarations and the canvas matrix, and the scope rail, whose fade comes from
+// the used value of `mask-image`. Both were photographed by hand on issue 170 and both were right.
+// What was missing is that nothing re-checked them on the next commit.
+//
+// `Page.captureScreenshot` and a reader for what it answers with is the whole of the machinery.
+// The protocol is already driven directly here and three viewports are already opened, so there is
+// no new plumbing to build: a decoder, and a way to sample a rectangle.
+//
+// A DECODER THAT SILENTLY RETURNS ZEROS IS THE PERFECT DEAD INSTRUMENT, because a black pixel is a
+// plausible answer: every comparison below would still run, still find agreement or disagreement,
+// and still report. Four things are done about that, and they are why this block is longer than
+// the fifty lines the card costed it at.
+//
+//   1. IT IS PROVED AGAINST BYTES WHOSE PIXELS ARE WRITTEN DOWN IN THIS FILE, before it is
+//      believed about a page. PIXEL_FIXTURES below are two images of six by five whose thirty
+//      pixels are listed out in PIXEL_FIXTURE_RGBA, and proveTheDecoder() refuses unless every
+//      channel of every one of them comes back exactly.
+//   2. THE FIXTURES REACH EVERY BRANCH THE READER HAS. Their five rows carry the five PNG filter
+//      types, one per row, and the decode records which ones it took, because a Paeth branch that
+//      is wrong and a fixture that never reaches it is the same false green one level down. One
+//      fixture is RGBA and one is RGB, which is what Chrome's own screenshots come back as, and
+//      the RGBA one carries its pixels in two IDAT chunks so the join is exercised as well. Every
+//      colour type, bit depth and interlace this reader does not read is refused by name rather
+//      than decoded wrongly in silence.
+//   3. THE INFLATED LENGTH IS A TERMINATOR, which is build/model.py's `#rows|N` in another
+//      language. A stream cut short decodes into an image of the declared size whose last rows are
+//      whatever the buffer was allocated with, which is black, so the reader requires exactly one
+//      filter byte and one stride for each row the header declared.
+//   4. NOTHING CAN READ A PIXEL BEFORE THE PROOF HAS PASSED, because shoot() calls it. A proof
+//      that sits beside the thing it proves rather than in front of it is a proof somebody can
+//      delete without deleting the reading.
+//
+// AND A CAPTURE THAT DID NOT HAPPEN IS A HarnessFailure AND NEVER A FAILED ASSERTION. Issue 216
+// drew that line for a page whose bytes did not arrive and this is the same line: a decoder handed
+// nothing has nothing to say about the page, so it refuses in those words and the run exits 2
+// under `VERDICT: the suite could not answer` rather than reporting a ring that is not there.
+// =================================================================================================
+
+// The two fixtures, as bytes, and the pixels they carry. Generated once by hand with zlib's own
+// deflate over filter bytes chosen row by row, and cross-checked before they were pasted here
+// against two decoders that are not this one, libpng through Pillow and `file`, both of which
+// agree on six by five, eight bits, RGBA and RGB, non-interlaced, and on all thirty pixels.
+const PIXEL_FIXTURE_W = 6;
+const PIXEL_FIXTURE_H = 5;
+const PIXEL_FIXTURES = [
+  { label: 'RGBA, two IDAT chunks', ch: 4, b64:
+    'iVBORw0KGgoAAAANSUhEUgAAAAYAAAAFCAYAAABmWJ3mAAAAOElEQVR42mNgYGD4DwYMDP/BkOH//4a' +
+    'Ghv+MXCJyGoxYANOXtw9ufnv56GpxVmJEcUZs0Kfn9y5/eH7nMkMVaSoAAAA5SURBVPO6ouD/YrsyGR' +
+    'c3Bdvb2tk7XphcxFB5Tb2B5dZUU46DsdpCXHwvLfyE3m3a/OTbX8aCRwwAUto0neoXZ94AAAAASUVOR' +
+    'K5CYII=' },
+  { label: 'RGB, one IDAT chunk', ch: 3, b64:
+    'iVBORw0KGgoAAAANSUhEUgAAAAYAAAAFCAIAAADpOgqxAAAAWUlEQVR42mNgYGD4////fxAFwg0NDYx' +
+    'cInKMqIDpy9sH314+Ks5KLM6I/fT83ofnd5jXFQWL7cpc3BRsa2d/YXJR5TV1lltTTQ/GanPxvfQTer' +
+    'f5yTfGgkcASj8md5tGuq8AAAAASUVORK5CYII=' }
+];
+
+// Thirty pixels, four channels each, in row order. The RGB fixture carries the same pixels with
+// the fourth channel dropped, so one list judges both. Not a round set on purpose: the two rows in
+// the middle differ from their neighbours by a single count, which is what a reconstruction off by
+// one is visible in, and the fourth row carries this page's own ring colour, its plate and its
+// dark-scheme ring so that the numbers the assertions below compare against appear here as bytes.
+const PIXEL_FIXTURE_RGBA = [
+  0, 0, 0, 255, 255, 255, 255, 255, 255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 128, 128, 128, 255,
+  10, 20, 30, 40, 11, 21, 31, 41, 12, 22, 32, 42, 13, 23, 33, 43, 14, 24, 34, 44, 15, 25, 35, 45,
+  254, 1, 254, 1, 1, 254, 1, 254, 127, 128, 129, 130, 128, 127, 126, 125, 0, 255, 0, 255, 255, 0, 255, 0,
+  45, 114, 210, 255, 45, 114, 210, 255, 249, 251, 252, 255, 249, 251, 252, 255, 76, 144, 240, 255, 30, 30, 30, 255,
+  7, 7, 7, 7, 200, 100, 50, 25, 3, 9, 27, 81, 81, 27, 9, 3, 255, 255, 255, 0, 0, 0, 0, 0
+];
+
+// Every PNG filter type. Named as a set rather than as a count because what the proof needs is
+// that each one was TAKEN, and a count of five would be satisfied by taking one of them five times.
+const PNG_FILTERS = [0, 1, 2, 3, 4];
+
+// The reader. It throws a plain Error naming what it met; callers turn that into the refusal,
+// because the same fault means different things in the two places it can happen.
+function decodePng(buf) {
+  const SIG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+  if (buf.length < 8) throw new Error(`${buf.length} bytes, which is shorter than the signature`);
+  for (let i = 0; i < 8; i++) {
+    if (buf[i] !== SIG[i]) throw new Error('the first eight bytes are not the PNG signature');
+  }
+  let off = 8, hdr = null, sawEnd = false;
+  const idat = [];
+  while (off + 12 <= buf.length) {
+    const len = buf.readUInt32BE(off);
+    const type = buf.toString('latin1', off + 4, off + 8);
+    if (off + 12 + len > buf.length) throw new Error(`the ${type} chunk runs past the end of the file`);
+    const data = buf.subarray(off + 8, off + 8 + len);
+    if (type === 'IHDR') {
+      hdr = { w: data.readUInt32BE(0), h: data.readUInt32BE(4), depth: data[8], colour: data[9],
+              compression: data[10], filter: data[11], interlace: data[12] };
+    } else if (type === 'IDAT') {
+      idat.push(Buffer.from(data));
+    } else if (type === 'tRNS') {
+      // Not a decode path and not dead weight: this reader ignores transparency, so an image
+      // carrying a tRNS would be read as opaque and every coverage below would be taken against a
+      // colour the page never painted. Chrome's screenshots carry none. Refused rather than
+      // ignored, which is the difference between a reader that cannot and one that quietly does.
+      throw new Error('the image carries a tRNS chunk, and this reader has no transparency in it');
+    } else if (type === 'IEND') { sawEnd = true; break; }
+    off += 12 + len;
+  }
+  if (!hdr) throw new Error('there is no IHDR chunk');
+  if (!sawEnd) throw new Error('there is no IEND chunk, so the file is truncated');
+  if (!idat.length) throw new Error('there is no IDAT chunk, so the file carries no pixels');
+  if (hdr.depth !== 8) throw new Error(`bit depth ${hdr.depth}, and this reader reads 8 and nothing else`);
+  if (hdr.interlace !== 0) throw new Error('the image is interlaced, which this reader does not read');
+  if (hdr.compression !== 0 || hdr.filter !== 0) {
+    throw new Error(`compression method ${hdr.compression} and filter method ${hdr.filter}, and ` +
+                    'this reader reads 0 and 0');
+  }
+  const ch = hdr.colour === 2 ? 3 : hdr.colour === 6 ? 4 : 0;
+  if (!ch) {
+    throw new Error(`colour type ${hdr.colour}, and this reader reads 2 (RGB) and 6 (RGBA). A ` +
+                    'palette or a grey image would need a branch no fixture in this file proves.');
+  }
+  if (!(hdr.w > 0 && hdr.h > 0)) throw new Error(`the header declares ${hdr.w} by ${hdr.h}`);
+  const stride = hdr.w * ch;
+  const raw = zlib.inflateSync(Buffer.concat(idat));
+  if (raw.length !== hdr.h * (stride + 1)) {
+    throw new Error(`the decompressed stream is ${raw.length} bytes and a ${hdr.w} by ${hdr.h} ` +
+                    `image of ${ch} channels needs exactly ${hdr.h * (stride + 1)}`);
+  }
+  const out = Buffer.alloc(stride * hdr.h);
+  const took = new Set();
+  let p = 0;
+  for (let y = 0; y < hdr.h; y++) {
+    const ft = raw[p++];
+    took.add(ft);
+    const row = out.subarray(y * stride, (y + 1) * stride);
+    const prev = y ? out.subarray((y - 1) * stride, y * stride) : null;
+    for (let i = 0; i < stride; i++) {
+      const x = raw[p + i];
+      const a = i >= ch ? row[i - ch] : 0;
+      const b = prev ? prev[i] : 0;
+      const c = (prev && i >= ch) ? prev[i - ch] : 0;
+      let v;
+      if (ft === 0) v = x;
+      else if (ft === 1) v = x + a;
+      else if (ft === 2) v = x + b;
+      else if (ft === 3) v = x + ((a + b) >> 1);
+      else if (ft === 4) {
+        const q = a + b - c, pa = Math.abs(q - a), pb = Math.abs(q - b), pc = Math.abs(q - c);
+        v = x + ((pa <= pb && pa <= pc) ? a : (pb <= pc ? b : c));
+      } else throw new Error(`filter type ${ft} on row ${y}, and there are only five`);
+      row[i] = v & 0xff;
+    }
+    p += stride;
+  }
+  return { w: hdr.w, h: hdr.h, ch, data: out, took };
+}
+
+// Three channels, whatever the image carries. A screenshot of an opaque page is opaque everywhere,
+// and a tRNS is refused above, so on an RGBA image the fourth channel is 255 in every pixel and
+// dropping it drops nothing. The fixture proof reads the buffer directly and does compare it.
+function pxAt(img, x, y) {
+  const i = (y * img.w + x) * img.ch;
+  return [img.data[i], img.data[i + 1], img.data[i + 2]];
+}
+
+// The proof, memoised, and what it returns is the sentence the run prints so that a reader can see
+// it happened. It refuses rather than reporting: a reader that cannot read a picture whose pixels
+// are written down beside it has nothing to say about a page.
+let decoderProof = '';
+function proveTheDecoder() {
+  if (decoderProof) return decoderProof;
+  const detail =
+    'The two fixtures in this file are six by five and their thirty pixels are listed beside them.\n' +
+    'They were cross-checked against libpng before they were pasted in, so a disagreement here is\n' +
+    'this reader and not the bytes. Nothing below this point can measure a painted result, and a\n' +
+    'measurement taken with a reader that cannot read is worse than no measurement at all.';
+  const notes = [];
+  let channels = 0;
+  for (const f of PIXEL_FIXTURES) {
+    let img;
+    try {
+      img = decodePng(Buffer.from(f.b64, 'base64'));
+    } catch (err) {
+      throw new HarnessFailure(
+        `the pixel reader could not decode its own ${f.label} fixture: ${err.message}`, detail);
+    }
+    if (img.w !== PIXEL_FIXTURE_W || img.h !== PIXEL_FIXTURE_H || img.ch !== f.ch) {
+      throw new HarnessFailure(
+        `the pixel reader read the ${f.label} fixture as ${img.w} by ${img.h} of ${img.ch} ` +
+        `channels and it is ${PIXEL_FIXTURE_W} by ${PIXEL_FIXTURE_H} of ${f.ch}`, detail);
+    }
+    const missed = PNG_FILTERS.filter(t => !img.took.has(t));
+    if (missed.length) {
+      throw new HarnessFailure(
+        `decoding the ${f.label} fixture took filter types ${[...img.took].sort().join(', ')} and ` +
+        `never reached ${missed.join(', ')}`,
+        'Each row of a fixture carries a different one of the five, so a type that was not taken\n' +
+        'means the bytes are not the bytes this file thinks they are, and the branch nobody\n' +
+        'reached is a branch nothing has ever proved.\n\n' + detail);
+    }
+    const wrong = [];
+    for (let y = 0; y < img.h; y++) {
+      for (let x = 0; x < img.w; x++) {
+        const at = (y * img.w + x) * 4;
+        for (let c = 0; c < img.ch; c++) {
+          const got = img.data[(y * img.w + x) * img.ch + c];
+          const want = PIXEL_FIXTURE_RGBA[at + c];
+          channels++;
+          if (got !== want && wrong.length < 6) wrong.push(`(${x},${y}) channel ${c}: ${got} for ${want}`);
+          else if (got !== want) wrong.push('');
+        }
+      }
+    }
+    if (wrong.length) {
+      throw new HarnessFailure(
+        `the pixel reader disagreed with the ${f.label} fixture on ${wrong.length} channel value(s)`,
+        'The first few: ' + wrong.filter(Boolean).join('; ') + '\n\n' + detail);
+    }
+    notes.push(`${f.label} ${img.w}x${img.h}, ${img.w * img.h} pixels, filter types ` +
+               `${[...img.took].sort().join('')}`);
+  }
+  // The population of the proof itself, which is the same demand this file makes of every
+  // measurement below: a comparison over nothing agrees with everything.
+  if (channels !== PIXEL_FIXTURE_W * PIXEL_FIXTURE_H * 7) {
+    throw new HarnessFailure(
+      `the proof compared ${channels} channel values and the two fixtures hold ` +
+      `${PIXEL_FIXTURE_W * PIXEL_FIXTURE_H * 7}`,
+      'A proof that read fewer pixels than the fixtures carry has agreed about the part it read\n' +
+      'and said nothing about the rest.\n\n' + detail);
+  }
+  decoderProof = `${notes.join('; ')}; ${channels} channel values, every one exact`;
+  return decoderProof;
+}
+
+// THE AFFORDANCE, on the same footing as SMOKE_SKIP_PHASE and issue 216's SMOKE_BREAK_RESOURCE,
+// and for the same reason: a capture that fails is otherwise the hardest thing in this block to
+// reach. Name a substring and every screenshot whose label holds it is asked for with a clip of
+// zero width, which the browser refuses in its own words, so the refusal below fires on the
+// browser's answer rather than on a fault this file invented. It can never produce a clean
+// verdict: the only thing it does is take a reading away.
+const BREAK_CAPTURE = process.env.SMOKE_BREAK_CAPTURE || '';
+let captureBroken = 0;
+
+// One rectangle of the page, decoded. The clip is in CSS pixels of the DOCUMENT, so a caller
+// hands in a viewport rect and this adds the scroll offsets it was given.
+async function shoot(page, clip, what) {
+  proveTheDecoder();
+  refuseUnlessTheDocumentArrived(page, `the page a screenshot of ${what} would be taken from`);
+  const detail =
+    'A screenshot that was not taken is not a reading of the page, so there is nothing here to be\n' +
+    'right or wrong about. This is the same line issue 216 drew for a resource that did not\n' +
+    'arrive: a suite that reported a ring it never photographed would be putting a failure on the\n' +
+    'page\'s side of the ledger for a fault of its own.';
+  const want = { x: Math.round(clip.x), y: Math.round(clip.y),
+                 width: Math.round(clip.width), height: Math.round(clip.height) };
+  if (!(want.width > 0 && want.height > 0)) {
+    throw new HarnessFailure(
+      `the rectangle this run meant to photograph for ${what} is ${want.width} by ${want.height}`,
+      'An empty rectangle photographs nothing, and a comparison over nothing agrees with\n' +
+      'everything.\n\n' + detail);
+  }
+  const broken = BREAK_CAPTURE && what.includes(BREAK_CAPTURE);
+  if (broken) captureBroken++;
+  let answer;
+  try {
+    answer = await page.send('Page.captureScreenshot', {
+      format: 'png',
+      captureBeyondViewport: false,
+      fromSurface: true,
+      clip: { x: want.x, y: want.y, width: broken ? 0 : want.width, height: want.height, scale: 1 }
+    });
+  } catch (err) {
+    if (err instanceof HarnessFailure) throw err;
+    throw new HarnessFailure(`the browser would not photograph ${what}: ${err.message}`, detail);
+  }
+  if (!answer || typeof answer.data !== 'string' || !answer.data.length) {
+    throw new HarnessFailure(`the browser answered with no image for ${what}`, detail);
+  }
+  let img;
+  try {
+    img = decodePng(Buffer.from(answer.data, 'base64'));
+  } catch (err) {
+    throw new HarnessFailure(
+      `the screenshot of ${what} came back as something this reader cannot read: ${err.message}`,
+      detail);
+  }
+  // THE SIZE IS ASKED FOR AND CHECKED, which is not a formality. `scale: 1` is a request and the
+  // browser multiplies it by the device scale factor, so a runner whose devicePixelRatio is not 1
+  // would answer with an image of twice the width and every coordinate computed below would land
+  // on the wrong pixel while looking perfectly plausible.
+  if (img.w !== want.width || img.h !== want.height) {
+    throw new HarnessFailure(
+      `the screenshot of ${what} came back ${img.w} by ${img.h} and ${want.width} by ` +
+      `${want.height} was asked for`,
+      'The likeliest cause is a device scale factor other than 1, which multiplies the image and\n' +
+      'leaves every coordinate this file computes pointing at the wrong pixel.\n\n' + detail);
+  }
+  return img;
+}
+
+// How much of `ink` is in this pixel when the alternative is `ground`, by least squares over the
+// three channels. One where the pixel is the paint, zero where it is the ground, and the fraction
+// between is what antialiasing left, which is why a width summed this way lands on 2.00 for a two
+// pixel stroke rather than on the three pixels the stroke touched.
+function coverage(got, ground, ink) {
+  let dot = 0, sq = 0;
+  for (let c = 0; c < 3; c++) {
+    const v = ink[c] - ground[c];
+    dot += (got[c] - ground[c]) * v;
+    sq += v * v;
+  }
+  return sq > 0 ? dot / sq : 0;
+}
+
+// Two photographs, byte for byte. Used to tell "the state this run wrote did not reach the screen"
+// from "the state this run wrote changed nothing", which are the two readings of one picture and
+// are opposite verdicts: the first is a fault of the runner and the second is a finding.
+function sameImage(a, b) {
+  return a.w === b.w && a.h === b.h && a.ch === b.ch && a.data.equals(b.data);
+}
+
+// =================================================================================================
 // WHAT A KEYBOARD CAN SEE AND WHAT A FINGER CAN REACH. Issue 170.
 // =================================================================================================
 // The audit's R7 is five findings and none of them was a claim this suite could make. It counted
@@ -15380,12 +15729,15 @@ const RING_MIN_RATIO = 3.0000;
 // translucent since #133, and the composite is what a reader's eye meets, so it is computed the way
 // checkPlate computes it and out of the same three readings.
 //
-// WHAT THIS DOES NOT MEASURE, named rather than left for the next audit. It is a model of the paint
-// and not the paint: the width comes from the resolved declarations and the matrix, and the control
-// below shares that model, so neither can see a ring that is the right width and the right colour
-// and is then clipped, painted under something, or dropped by a forced-colours path. Those were
-// photographed by hand at 2560, 1536 and 390 in both schemes on the card that added this, and a
-// suite that wanted them held would need a pixel reading this file has no machinery for.
+// WHAT THIS ON ITS OWN DOES NOT MEASURE, and issue 202 is the card that stopped it being the end
+// of the reading. This part is a model of the paint and not the paint: the width comes from the
+// resolved declarations and the matrix, and the control below shares that model, so neither can
+// see a ring that is the right width and the right colour and is then clipped, painted under
+// something, or dropped by a forced-colours path. Those were photographed by hand at 2560, 1536
+// and 390 in both schemes on the card that added this. They are photographed by the run now, in
+// measureTheRing() below, and this reading is kept beside the photograph rather than replaced by
+// it: two implementations of one claim that agree are worth more than either, and the numbers they
+// print side by side are what says so.
 const RING_READ = `(function () {
   var n = document.querySelector('#graph .node');
   if (!n) return JSON.stringify({ why: 'the drawing has no node to focus' });
@@ -15433,6 +15785,15 @@ const RING_READ = `(function () {
 // has to COLLAPSE, because the matrix is back in it. If it does not collapse, the reading above was
 // not measuring the matrix at all and the pass it produced means nothing, which is a third state
 // and is reported as one rather than as a green.
+//
+// AND IT WAS DEAD FROM THE DAY IT WAS WRITTEN, WHICH AN ADVERSARIAL READ ON ISSUE 202 FOUND. The
+// width below was `parseFloat(cs.strokeWidth) * m.a`, which reads the declared width and the
+// matrix and never reads `vectorEffect` at all, so it did not depend on the write two lines above
+// it: `declared * scale < declared` is true at every canvas scale under 1, whether or not the
+// write landed, and deleting the write left the control still "biting". It reads the same
+// expression RING_READ reads, off the same property, so the collapse is now the write's doing.
+// The photographed control in measureTheRing() below was live from the start and is what the
+// assertion leans on; this one is a second implementation of that claim and now says something.
 const RING_UNDO = `(function () {
   var n = document.querySelector('#graph .node');
   var f = n && n.querySelector('.focus-frame');
@@ -15441,9 +15802,11 @@ const RING_UNDO = `(function () {
   f.style.vectorEffect = 'none';
   var cs = getComputedStyle(f);
   var m = f.getScreenCTM();
-  var w = parseFloat(cs.strokeWidth) * (m ? m.a : 0);
+  var effect = cs.vectorEffect;
+  var declared = parseFloat(cs.strokeWidth);
+  var w = effect === 'non-scaling-stroke' ? declared : declared * (m ? m.a : 0);
   f.style.vectorEffect = had;
-  return JSON.stringify({ why: '', painted: +w.toFixed(4) });
+  return JSON.stringify({ why: '', painted: +w.toFixed(4), effect: effect });
 })()`;
 
 // WHAT THE RAIL SAYS ABOUT ITSELF, READ AT THREE SCROLL POSITIONS AND PUT BACK. The claim is not
@@ -15452,12 +15815,14 @@ const RING_UNDO = `(function () {
 // end says nothing at all. A static read of a class name is the instrument #168 replaced one file
 // over and this deliberately is not one.
 //
-// WHAT THIS DOES NOT MEASURE, said rather than left for the next audit: it does not photograph the
-// fade. It reads the used value of `mask-image`, which is a resolved value and goes to `none` the
-// moment the rule is deleted or the class is not written, and it drives the geometry that decides
-// which class is written. A mask changed to a gradient that does not actually fade would pass this
-// and would need a pixel reading, which this suite has no machinery for and which would be a larger
-// thing than the one rule it checks.
+// WHAT THIS ON ITS OWN DOES NOT MEASURE, and issue 202 is the card that stopped it being the end
+// of the reading: it does not photograph the fade. It reads the used value of `mask-image`, which
+// is a resolved value and goes to `none` the moment the rule is deleted or the class is not
+// written, and it drives the geometry that decides which class is written. A mask changed to a
+// gradient that resolves and does not actually fade would pass this. measureTheRail() below
+// photographs it, and this reading is kept beside the photograph rather than replaced by it: what
+// the classes say and what the paint does are two claims, and a repair that fixed one of them
+// would be shipping the other broken.
 const RAIL_READ = `(function () {
   var r = document.getElementById('pgrail');
   if (!r) return JSON.stringify({ why: 'there is no scope rail on this page' });
@@ -15485,12 +15850,455 @@ const RAIL_READ = `(function () {
     return read();
   }
   var out = { why: '', overflow: max, width: r.clientWidth, content: r.scrollWidth,
+              // The used value in full, and not the two words read() reduces it to. Issue 202
+              // holds the fade the pixels are measured over against the figure the stylesheet
+              // declares, and the string "a gradient" does not carry a figure.
+              maskText: getComputedStyle(r).maskImage,
               found: found, rest: at(0), mid: max > 2 ? at(Math.round(max / 2)) : null,
               end: at(max) };
   r.scrollLeft = was;
   r.dispatchEvent(new Event('scroll'));
   return JSON.stringify(out);
 })()`;
+
+// =================================================================================================
+// THE TWO PHOTOGRAPHS. Issue 202.
+// =================================================================================================
+// How much a measured width is allowed to fall short of the declared one before it is a failure,
+// and it is a statement about antialiasing rather than a tuned number. A stroke of exactly two CSS
+// px laid at a fractional offset paints one covered pixel and two partly covered ones, and the
+// coverages sum back to the stroke's own width to within what the browser rounds each of them to.
+// Measured on this tree at all three viewports and on both vertical edges of the frame, the six
+// readings run from 2.0048 to 2.0296 against a declared 2, so a tenth and a half is two orders of
+// magnitude over the residual and is an order under the collapse the control produces, which is
+// 0.3265 at the narrowest viewport and 0.3725 at the widest.
+const RING_PIXEL_SLACK = 0.15;
+
+// The frame's own rectangle, plus a margin for the stroke, which straddles the path and therefore
+// paints outside the box the rect reports. Four is comfortably over the one CSS px a two px stroke
+// puts outside, and the whole point of the margin is that the background either side of the ring
+// is in the photograph: a ring with nothing around it cannot be measured against anything.
+const RING_CLIP_PAD = 4;
+
+// Where the ring's colour is allowed to land against the colour the cascade declares for it, per
+// channel out of 255. It is the conjunct that catches a ring painted UNDER something: a ring
+// composited beneath a translucent layer keeps its width, keeps its position and changes its hue,
+// and every other reading in this phase would go green over it. Twelve is loose enough that the
+// browser's own eighth-of-a-count rounding on a fully covered pixel cannot reach it and tight
+// enough that the faintest wash over the drawing would.
+const RING_HUE_SLACK = 12;
+
+// How many times the lit and unlit pair is retaken when the two come back identical, and it is
+// LAUNCH_ATTEMPTS' argument in another place: the evidence supports a retry and not a budget. The
+// adversarial read that found this saw it once in three runs and never twice in one, and every
+// attempt is counted into the line the assertion prints, so a retry that keeps saving a run shows
+// up as a number a reader can see rather than as a silence. A page whose ring is genuinely absent
+// spends all three and then fails, which is the right answer and costs two photographs.
+const RING_FRAME_ATTEMPTS = 3;
+
+// The rectangle to photograph, the state to photograph it in, and the colour the cascade says the
+// ring should be. Taken once so that the three photographs are of one rectangle.
+const RING_FRAME_READ = `(function () {
+  var n = document.querySelector('#graph .node');
+  if (!n) return JSON.stringify({ why: 'the drawing has no node to focus' });
+  n.focus();
+  var f = n.querySelector('.focus-frame');
+  if (!f) return JSON.stringify({ why: 'the focused node carries no focus frame' });
+  var r = f.getBoundingClientRect();
+  if (!(r.width > 0 && r.height > 0)) {
+    return JSON.stringify({ why: 'the focus frame has no box: ' + r.width + ' by ' + r.height });
+  }
+  return JSON.stringify({ why: '', x: r.x, y: r.y, w: r.width, h: r.height,
+                          scrollX: window.scrollX, scrollY: window.scrollY,
+                          stroke: getComputedStyle(f).stroke,
+                          inViewport: r.left >= 0 && r.top >= 0 &&
+                                      r.right <= innerWidth && r.bottom <= innerHeight });
+})()`;
+
+// The three states, written through the CSSOM. `style-src-attr 'none'` in this page's policy drops
+// a style ATTRIBUTE and does not reach a property set from script, which RING_UNDO above has
+// relied on since issue 170 and which the run proves rather than assumes: the two photographs
+// below differ, and a write the policy had swallowed would leave them identical.
+function ringStyle(prop, value) {
+  return `(function () {
+    var f = document.querySelector('#graph .node .focus-frame');
+    if (!f) return 'no frame';
+    f.style[${JSON.stringify(prop)}] = ${JSON.stringify(value)};
+    return '';
+  })()`;
+}
+
+// One edge of the ring, measured across a line of pixels. `walk` hands back the pixel at step i
+// from each of the two photographs, so the same arithmetic reads a horizontal scanline for the
+// two vertical strokes and a vertical one for the two horizontal strokes.
+//
+// THE COLOUR THE COVERAGES ARE TAKEN AGAINST IS THE ONE THE CASCADE DECLARES, and it was the
+// brightest pixel on the line until an adversarial read on issue 202 measured what that costs. A
+// peak pixel is 1.0 by construction whatever fraction of it the stroke actually covered, so the
+// sum was the true width divided by the peak's own coverage and could only overstate: driven to a
+// stroke of 1.6 CSS px at a subpixel offset, that reading answered 2.0877. Against the declared
+// colour the same drive answers the width that is there. What the peak pixel is used for now is
+// the hue and the contrast, which are questions about the paint and not about the geometry.
+function ringEdge(lit, unlit, ink, n, walk) {
+  let peak = -1, peakAt = -1;
+  for (let i = 0; i < n; i++) {
+    const a = walk(lit, i), b = walk(unlit, i);
+    const d = Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]), Math.abs(a[2] - b[2]));
+    if (d > peak) { peak = d; peakAt = i; }
+  }
+  if (peakAt < 0 || peak <= 0) return { width: 0, peak, run: 0, ink: null, ground: null };
+  let width = 0, run = 0;
+  for (const step of [0, -1, 1]) {
+    for (let i = peakAt + (step || 0); i >= 0 && i < n; i += (step || 1)) {
+      const c = coverage(walk(lit, i), walk(unlit, i), ink);
+      if (c <= 0.01) break;
+      width += c;
+      run++;
+      if (!step) break;
+    }
+  }
+  return { width: +width.toFixed(4), peak, run, ink: walk(lit, peakAt), ground: walk(unlit, peakAt) };
+}
+
+// The same line measured in a state the ring is NOT expected to survive, against the same declared
+// colour. The denominator has to be the same one, or a stroke a tenth as wide would normalise
+// itself back to its own peak and measure two pixels again, which is the shape of every dead
+// instrument in this repository.
+function ringEdgeAgainst(other, unlit, ink, n, walk) {
+  let width = 0;
+  for (let i = 0; i < n; i++) {
+    const c = coverage(walk(other, i), walk(unlit, i), ink);
+    if (c > 0.01) width += c;
+  }
+  return +width.toFixed(4);
+}
+
+// A FRAME IS FORCED AND WAITED ON BETWEEN EVERY WRITE AND THE PHOTOGRAPH THAT FOLLOWS IT, and this
+// is not belt and braces. An adversarial read on issue 202 ran the suite four times against an
+// unmodified tree and one run in three reported `VERDICT: the page has regressed` at 1536: all
+// three photographs came back identical, 0 pixels moved, and the assertion said the ring was not
+// painted. The write had landed and the surface had not: `Page.captureScreenshot` handed back a
+// composited frame from before it. Two frames, because one rAF fires before the style change is
+// composited and the second cannot run until it has been.
+const NEXT_FRAME =
+  'new Promise(function (r) { requestAnimationFrame(function () { requestAnimationFrame(r); }); })';
+
+async function measureTheRing(page) {
+  const g = JSON.parse(await page.evaluate(RING_FRAME_READ));
+  if (g.why) return { why: g.why };
+  if (!g.inViewport) {
+    return { why: 'the focus frame is not wholly on the screen, so it cannot be photographed whole' };
+  }
+  // The colour the cascade declares for the stroke, read before anything is written, and the
+  // oracle every coverage below is taken against. A declared stroke this suite cannot read is a
+  // reading it cannot take, and it says so rather than throwing: a throw out of here is caught by
+  // group() as a phase that did not finish, which loses the OTHER assertion in this phase as well
+  // and reports the loss as an arithmetic failure two screens later.
+  let want;
+  try { want = parsePaint(g.stroke); } catch (err) { return { why: err.message }; }
+  const ink = [want.r, want.g, want.b];
+  const clip = { x: g.x + g.scrollX - RING_CLIP_PAD, y: g.y + g.scrollY - RING_CLIP_PAD,
+                 width: g.w + RING_CLIP_PAD * 2, height: g.h + RING_CLIP_PAD * 2 };
+
+  // Three photographs of one rectangle, and the pair that decides is retaken rather than believed
+  // where the two came back the same. A lit picture identical to an unlit one is either a ring
+  // that is not painted or a frame that did not arrive, and those are opposite verdicts: the
+  // second is a fault of this runner and must not be reported as a page. The attempts are counted
+  // and printed, so a retry that keeps saving a run is visible in the log rather than silent,
+  // which is what LAUNCH_ATTEMPTS above does for the same reason.
+  let lit, unlit, matrix, tries = 0;
+  for (; tries < RING_FRAME_ATTEMPTS; tries++) {
+    await page.evaluate(NEXT_FRAME);
+    lit = await shoot(page, clip, 'the focus ring as painted');
+    // THE GROUND, which is the same rectangle with the stroke taken off and nothing else moved. It
+    // is the ring's negative, and it is the ground every contrast below is read against.
+    try {
+      await page.evaluate(ringStyle('stroke', 'none'));
+      await page.evaluate(NEXT_FRAME);
+      unlit = await shoot(page, clip, 'the focus ring with the stroke taken off');
+    } finally {
+      await page.evaluate(ringStyle('stroke', ''));
+    }
+    if (!sameImage(lit, unlit)) break;
+  }
+  // THE CONTROL, AND IT IS RING_UNDO's CONTROL PHOTOGRAPHED. `vector-effect` goes back to `none`,
+  // which puts the canvas matrix back into the stroke, and the painted width has to COLLAPSE. A
+  // page where taking `non-scaling-stroke` off changes nothing in the PAINT is a page this
+  // instrument cannot see, whatever the declarations say. It is one implementation of a correct
+  // ring and not the only one: a frame moved inside a `scale(1/k)` group, which render.js already
+  // does for `.capbtn-frame`, would paint two CSS px and not collapse here. That is a red on a
+  // correct page and it is the trade this control makes, said rather than left to be discovered.
+  try {
+    await page.evaluate(ringStyle('vectorEffect', 'none'));
+    await page.evaluate(NEXT_FRAME);
+    matrix = await shoot(page, clip, 'the focus ring with the canvas matrix put back');
+  } finally {
+    await page.evaluate(ringStyle('vectorEffect', ''));
+  }
+
+  // FOUR EDGES AND NOT TWO. Issue 202, and it is an adversarial read's finding: a horizontal
+  // scanline crosses the two vertical strokes and nothing else, so a ring painted down its sides
+  // and not across its top and bottom satisfied every word of the assertion. The two horizontal
+  // strokes are read down a column at the frame's own centre, by the same arithmetic.
+  const y = Math.min(lit.h - 1, Math.max(0, Math.round(lit.h / 2)));
+  const x = Math.min(lit.w - 1, Math.max(0, Math.round(lit.w / 2)));
+  const halfW = Math.floor(lit.w / 2), halfH = Math.floor(lit.h / 2);
+  const row = (off, len) => (img, i) => pxAt(img, off + i, y);
+  const col = (off, len) => (img, i) => pxAt(img, x, off + i);
+  const lines = {
+    left:   { n: halfW, walk: row(0, halfW) },
+    right:  { n: lit.w - halfW, walk: row(halfW, lit.w - halfW) },
+    top:    { n: halfH, walk: col(0, halfH) },
+    bottom: { n: lit.h - halfH, walk: col(halfH, lit.h - halfH) }
+  };
+  const read = {};
+  for (const [name, l] of Object.entries(lines)) read[name] = ringEdge(lit, unlit, ink, l.n, l.walk);
+
+  // The population. A pixel check that sampled no pixels reports no disagreements, so the count is
+  // taken and asserted rather than assumed from the fact that a rectangle was photographed.
+  let painted = 0;
+  for (let yy = 0; yy < lit.h; yy++) {
+    for (let xx = 0; xx < lit.w; xx++) {
+      const a = pxAt(lit, xx, yy), b = pxAt(unlit, xx, yy);
+      if (Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]), Math.abs(a[2] - b[2])) > 8) painted++;
+    }
+  }
+  const names = Object.keys(lines);
+  const out = {
+    // `tries` is the index the loop left off on, so a pair that came back on the first attempt is
+    // one and an exhausted budget is the budget, not one past it.
+    why: '', clip: `${lit.w}x${lit.h}`, pixels: lit.w * lit.h * 3, painted,
+    tries: Math.min(tries + 1, RING_FRAME_ATTEMPTS),
+    edges: names.map(k => read[k].width),
+    worst: Math.min(...names.map(k => read[k].width)),
+    samples: names.reduce((a, k) => a + read[k].run, 0),
+    declared: g.stroke, hue: null, ratio: null, control: null
+  };
+  const found = names.filter(k => read[k].ink);
+  if (found.length === names.length) {
+    out.control = Math.max(...names.map(k => ringEdgeAgainst(matrix, unlit, ink, lines[k].n, lines[k].walk)));
+    // The hue and the contrast are read off the edge whose peak pixel changed LEAST, which is the
+    // conservative one of the four: a ring half covered on one edge is judged on that edge.
+    const worse = names.map(k => read[k]).reduce((a, b) => (a.peak <= b.peak ? a : b));
+    out.ink = worse.ink;
+    out.ground = worse.ground;
+    out.hue = Math.max(Math.abs(worse.ink[0] - want.r), Math.abs(worse.ink[1] - want.g),
+                       Math.abs(worse.ink[2] - want.b));
+    out.ratio = ratio4({ r: worse.ink[0], g: worse.ink[1], b: worse.ink[2] },
+                       { r: worse.ground[0], g: worse.ground[1], b: worse.ground[2] });
+  }
+  return out;
+}
+
+// How much of a column's ink survives before it counts as faded, and how much has to survive
+// before it counts as untouched.
+//
+// THE FADED FIGURE IS DERIVED AND NOT TUNED, and it is derived because the measured one moves with
+// the fonts. The stylesheet's ramp is linear over its own 22px, so a column d px in from the edge
+// keeps d/22 of its ink and the six outermost INKED columns average (k + 5.5) / 22, where k is how
+// far short of the edge the last chip's ink stops. k is a font metric: this tree ends its last chip
+// about 3.4 px short and averages 0.2780, the CI runner about 4.6 and averages 0.3293. Half admits a
+// k of five and a half, which is half as much dead margin again as the wider of those two, and the
+// defect this has to catch gives 1: a gradient that resolves and does not fade takes nothing down
+// at all. The claim that it is a GRADIENT rather than a step is carried by RAIL_STEP_MIN below and
+// not by this figure, so loosening it costs that claim nothing.
+//
+// The flat figure is the same reading from the other side. Measured at 390, the middle of the rail
+// keeps 0.97 and a single column clear of both edges runs between 0.92 and 1.03; the mask's own
+// layer promotion is what puts that band either side of one rather than on it, which is why every
+// reading here is a band mean and not a floor under each column.
+const RAIL_FADED_MAX = 0.50;
+const RAIL_FLAT_MIN = 0.85;
+const RAIL_STEP_MIN = 0.10;
+
+// A column with less ink than this in it is not measured at all: dividing a small number by a small
+// number is how a blank column reports whatever the noise felt like. Summed over three channels and
+// every row of a 26px rail, sixty counts is a hair of one antialiased glyph edge, and it left 237
+// of 256 columns measurable at the narrow width and 398 of 499 at the wide one.
+const RAIL_INK_FLOOR = 60;
+
+// The stylesheet's own fade, in CSS px, and the run holds the page to it rather than taking it on
+// trust: the control below has to declare a gradient of its own, so the figure has to be written
+// somewhere, and the assertion reads the page's used `mask-image` and refuses a different one.
+const RAIL_FADE_PX = 22;
+
+// The control gradient. It fades the LEFT edge, and that side is not a detail. At the two widths
+// where the rail fits, its chips stop well before the right edge, so there is no ink under a right
+// hand fade to take down and a control declared there would photograph two identical pictures and
+// report a working instrument. The chips start hard against the left edge at every width.
+const RAIL_CONTROL_MASK =
+  `linear-gradient(to left, #000 calc(100% - ${RAIL_FADE_PX}px), transparent)`;
+
+const RAIL_GEOMETRY_READ = `(function () {
+  var r = document.getElementById('pgrail');
+  if (!r) return JSON.stringify({ why: 'there is no scope rail on this page' });
+  var b = r.getBoundingClientRect();
+  if (!(b.width > 8 && b.height > 4)) {
+    return JSON.stringify({ why: 'the scope rail has no box: ' + b.width + ' by ' + b.height });
+  }
+  // The ground the rail is painted on. The rail declares no background of its own, so what shows
+  // through where the mask takes a chip away is whatever is behind it, and that is read off the
+  // page rather than off a pixel this file picked out of a corner.
+  var head = r.closest('header') || document.querySelector('header');
+  return JSON.stringify({ why: '', x: b.x, y: b.y, w: b.width, h: b.height,
+                          scrollX: window.scrollX, scrollY: window.scrollY,
+                          ground: head ? getComputedStyle(head).backgroundColor : '',
+                          inViewport: b.left >= 0 && b.top >= 0 &&
+                                      b.right <= innerWidth && b.bottom <= innerHeight });
+})()`;
+
+function railStyle(value) {
+  return `(function () {
+    var r = document.getElementById('pgrail');
+    if (!r) return 'no rail';
+    r.style.maskImage = ${JSON.stringify(value)};
+    return '';
+  })()`;
+}
+
+// THE UNFADED REFERENCE, AND IT IS WIDER THAN THE RAIL BECAUSE AN ADVERSARIAL READ ON ISSUE 202
+// SHOWED WHY IT HAS TO BE. Every reading below is a quotient whose denominator is a photograph of
+// the rail with the fade taken off, and the first version took it off the rail's OWN `mask-image`
+// and nothing else. A fade painted from anywhere else is in both photographs, divides out to
+// exactly 1, and passes: demonstrated live, a 40px gradient on the rail's PARENT went green at
+// every width and on both edges, including the `and nowhere else` half of this assertion's own
+// title. The mask moving one element up in a refactor is the ordinary way in.
+//
+// So the suppression walks from the rail to the document and clears, on each ancestor and on the
+// rail itself, every property that can take a strip of an element's edge down: the mask under both
+// spellings, a filter, and an opacity. Written through the CSSOM and put back from what was there,
+// which is a value and not a guess, so an element that carried an inline mask keeps it.
+//
+// WHAT IT STILL CANNOT SEE, said rather than left for the next audit: an element PAINTED OVER the
+// edge, including a `::before` or a `::after` on the rail. Reaching those needs a rule rather than
+// a property, and a rule needs a stylesheet this page's policy would have to be asked about. What
+// this assertion claims is therefore that nothing is taking the rail's edges down by a mask, a
+// filter or an opacity, anywhere between the rail and the document, on an instrument the control
+// below shows can see a fade.
+const RAIL_FADE_PROPS = ['maskImage', 'webkitMaskImage', 'filter', 'opacity'];
+
+function railSuppress(on) {
+  return `(function () {
+    var r = document.getElementById('pgrail');
+    if (!r) return 'no rail';
+    var props = ${JSON.stringify(RAIL_FADE_PROPS)};
+    if (!window.__railWas) window.__railWas = null;
+    if (${on ? 'true' : 'false'}) {
+      var saved = [];
+      for (var el = r; el && el.nodeType === 1; el = el.parentElement) {
+        var one = { el: el, v: [] };
+        for (var i = 0; i < props.length; i++) {
+          one.v.push(el.style[props[i]]);
+          el.style[props[i]] = props[i] === 'opacity' ? '1' : 'none';
+        }
+        saved.push(one);
+      }
+      window.__railWas = saved;
+      return String(saved.length);
+    }
+    var was = window.__railWas;
+    if (!was) return 'nothing to put back';
+    for (var j = 0; j < was.length; j++) {
+      for (var k = 0; k < props.length; k++) was[j].el.style[props[k]] = was[j].v[k];
+    }
+    window.__railWas = null;
+    return '';
+  })()`;
+}
+
+// Per column: how much ink the unmasked photograph carries away from the ground, and how much of it
+// the photograph under test still carries. The quotient is what fraction of that column survived,
+// which is the mask's own alpha where a mask is what took it, and it is normalised per column so a
+// chip with more ink in it than its neighbour does not read as a column that faded less.
+function railColumns(img, bare, ground) {
+  const cols = [];
+  for (let x = 0; x < img.w; x++) {
+    let ink = 0, kept = 0;
+    for (let y = 0; y < img.h; y++) {
+      const p = pxAt(img, x, y), r = pxAt(bare, x, y);
+      ink += Math.abs(r[0] - ground.r) + Math.abs(r[1] - ground.g) + Math.abs(r[2] - ground.b);
+      kept += Math.abs(p[0] - ground.r) + Math.abs(p[1] - ground.g) + Math.abs(p[2] - ground.b);
+    }
+    cols.push({ x, ink, kept, a: ink >= RAIL_INK_FLOOR ? kept / ink : null });
+  }
+  return cols;
+}
+
+// A band of inked columns counted inward from one edge, and its mean. Counted over the INKED
+// columns rather than over pixels, because the outermost pixels of a rail whose last chip stopped
+// short carry nothing at all and a band that included them would be measuring the header.
+function railBand(cols, side, skip, take) {
+  const inked = cols.filter(c => c.a !== null);
+  const seq = side === 'right' ? inked.slice().reverse() : inked;
+  const band = seq.slice(skip, skip + take);
+  return { n: band.length,
+           mean: band.length ? +(band.reduce((s, c) => s + c.a, 0) / band.length).toFixed(4) : null };
+}
+
+// The middle, which is every inked column clear of both fades by four pixels. It is the reading
+// that says a fade is a fade and not the whole rail going pale.
+function railMiddle(cols, w) {
+  const keep = cols.filter(c => c.a !== null &&
+                                c.x >= RAIL_FADE_PX + 4 && c.x <= w - 1 - (RAIL_FADE_PX + 4));
+  return { n: keep.length,
+           mean: keep.length ? +(keep.reduce((s, c) => s + c.a, 0) / keep.length).toFixed(4) : null };
+}
+
+async function measureTheRail(page) {
+  const g = JSON.parse(await page.evaluate(RAIL_GEOMETRY_READ));
+  if (g.why) return { why: g.why };
+  if (!g.inViewport) return { why: 'the scope rail is not wholly on the screen' };
+  let ground;
+  try { ground = parsePaint(g.ground); } catch (err) { return { why: err.message }; }
+  if (ground.a !== 1) {
+    return { why: `the ground behind the rail is ${g.ground}, which is not opaque, so what a ` +
+                  'faded chip reveals is not a colour this run knows' };
+  }
+  const clip = { x: g.x + g.scrollX, y: g.y + g.scrollY, width: Math.floor(g.w), height: g.h };
+  // AS FOUND FIRST, before anything is written, which is the state a reader arrives on and the same
+  // ordering RAIL_READ's own `found` line argues for one screen up.
+  const found = await shoot(page, clip, 'the scope rail as the page came up');
+  let bare, control;
+  // Both written states are put back in a finally, for the reason measureTheRing states: a capture
+  // that refuses must not leave a mask this file declared on a rail the run is finished with.
+  let suppressed = '';
+  try {
+    suppressed = await page.evaluate(railSuppress(true));
+    bare = await shoot(page, clip, 'the scope rail with nothing fading it');
+  } finally {
+    await page.evaluate(railSuppress(false));
+  }
+  try {
+    await page.evaluate(railStyle(RAIL_CONTROL_MASK));
+    control = await shoot(page, clip, 'the scope rail under a fade this run declared');
+  } finally {
+    await page.evaluate(railStyle(''));
+  }
+  // The suppression has to have reached something, or `bare` is the page again and every quotient
+  // below is 1 by construction. It returns the number of elements it wrote, the rail included, so
+  // one is the rail alone and anything less is a walk that did not happen.
+  if (!(Number(suppressed) >= 2)) {
+    return { why: `the fade suppression wrote ${JSON.stringify(suppressed)} elements, and the ` +
+                  'reference it produces is the page itself' };
+  }
+
+  const f = railColumns(found, bare, ground);
+  const c = railColumns(control, bare, ground);
+  const inked = f.filter(x => x.a !== null).length;
+  return {
+    why: '', clip: `${found.w}x${found.h}`, pixels: found.w * found.h * 3, inked,
+    ground: `${ground.r},${ground.g},${ground.b}`,
+    // The found reading, at both edges and in the middle.
+    outL: railBand(f, 'left', 0, 6), outR: railBand(f, 'right', 0, 6),
+    midR: railBand(f, 'right', 8, 8), middle: railMiddle(f, found.w),
+    // The control, which fades the left edge whatever the page was doing. Its left band has to
+    // COLLAPSE, or this whole reading is being taken with an instrument that cannot see a fade;
+    // and where the page's own mask was fading the right edge, replacing it puts that edge back,
+    // which is the same claim from the other side.
+    ctlL: railBand(c, 'left', 0, 6), ctlR: railBand(c, 'right', 0, 6),
+    ctlMiddle: railMiddle(c, control.w)
+  };
+}
 
 async function checkRingAndRail(page) {
   // ONE. THE KEYBOARD'S MARK ON A NODE IS A MARK. Every node in the drawing is a focus stop and
@@ -15513,24 +16321,67 @@ async function checkRingAndRail(page) {
   // The control has to have bitten, or the reading above was not reading the matrix. A page where
   // taking `non-scaling-stroke` off changes nothing is a page this instrument cannot see.
   const controlBit = !ring.why && undo.painted !== null && undo.painted < ring.painted - 0.01;
-  assert('the keyboard\'s mark on a node is two CSS px and clears 3 to 1 against the plate it is on',
+
+  // AND NOW THE PHOTOGRAPH, which is the whole of issue 202 on this assertion. Everything above is
+  // the model: it reads the declarations and the matrix and multiplies. Everything below is the
+  // paint: three pictures of the same rectangle, and a width in CSS px summed out of the coverage
+  // of the pixels the stroke actually moved, on all four sides of the frame. The model cannot see
+  // a ring that is right in the cascade and clipped, covered or dropped on the way to the screen;
+  // the photograph cannot see the reason a ring is wrong. Both are conjuncts here, so a repair has
+  // to satisfy the two.
+  const shot = await measureTheRing(page);
+  const floor = RING_MIN_PX - RING_PIXEL_SLACK;
+  // The population, asserted rather than assumed. A rectangle photographed and never sampled
+  // reports no disagreement, and so does one where the ring fell outside every window.
+  const sampled = !shot.why && shot.painted > 0 && shot.samples > 0 && shot.pixels > 0 &&
+                  Array.isArray(shot.edges) && shot.edges.length === 4;
+  // The control, photographed. RING_UNDO's claim is that the width collapses when the matrix goes
+  // back into the stroke; this is that claim about the picture rather than about the arithmetic,
+  // and both readings are now against the colour the cascade declares, so neither a thin stroke
+  // nor a faint one can renormalise itself back to two pixels.
+  const shotControl = !shot.why && shot.control !== null && shot.control < floor &&
+                      shot.control < shot.worst - 1;
+  const painted = !shot.why && sampled &&
+                  shot.edges.every(w => w >= floor) &&
+                  shot.hue !== null && shot.hue <= RING_HUE_SLACK &&
+                  shot.ratio !== null && shot.ratio >= RING_MIN_RATIO && shotControl;
+  assert('the keyboard\'s mark on a node is two CSS px of paint on all four sides at 3 to 1, photographed and not modelled',
     !ring.why && ring.focused === true && ring.visible === true &&
-      ring.painted >= RING_MIN_PX && ratio !== null && ratio >= RING_MIN_RATIO && controlBit,
-    `a ring of at least ${RING_MIN_PX} CSS px at ${RING_MIN_RATIO} or better, and a control that ` +
-      'puts the canvas matrix back and sees the width collapse',
+      ring.painted >= RING_MIN_PX && ratio !== null && ratio >= RING_MIN_RATIO && controlBit &&
+      painted,
+    `a ring of at least ${RING_MIN_PX} CSS px at ${RING_MIN_RATIO} or better in the declarations ` +
+      'AND on every one of the four sides in the pixels, its colour within ' +
+      `${RING_HUE_SLACK} of the declared stroke, and a control that puts the canvas matrix back ` +
+      'and sees the painted width collapse',
     ring.why
       ? ring.why
-      : `${ring.painted} CSS px (${ring.declared} declared, ${ring.effect}, canvas scale ` +
+      : `modelled ${ring.painted} CSS px (${ring.declared} declared, ${ring.effect}, canvas scale ` +
         `${ring.scale}) at ${ratio === null ? 'a contrast this suite could not read' : ratio} to 1` +
-        (controlBit ? '' : `; the control read ${undo.painted} and did not collapse the width, ` +
-                           'so this reading is not measuring the matrix'),
-    `${ring.painted} CSS px at ${ratio} to 1, canvas scale ${ring.scale}, control ${undo.painted}`);
+        (controlBit ? '' : `; the modelled control read ${undo.painted} under ${undo.effect} and ` +
+                           'did not collapse the width, so that reading is not measuring the matrix') +
+        '; ' + (shot.why
+          ? `and the page could not be photographed: ${shot.why}`
+          : `photographed ${shot.edges.join(', ')} CSS px on the left, right, top and bottom of a ` +
+            `${shot.clip} picture in ${shot.tries} attempt(s), ${shot.painted} pixels moved, hue ` +
+            `${shot.hue} off the declared ${shot.declared}, ${shot.ratio} to 1 off the pixels, ` +
+            `control ${shot.control}` +
+            (sampled ? '' : ' — and it sampled nothing, so it agreed with everything')),
+    shot.why
+      ? `modelled only: ${ring.painted} CSS px at ${ratio} to 1`
+      : `${shot.edges.join('/')} CSS px photographed on four sides against ${ring.painted} ` +
+        `modelled, ${shot.ratio} to 1 off ${shot.painted} moved pixels of ${shot.clip}, control ` +
+        `${shot.control}, canvas scale ${ring.scale}` +
+        (shot.tries > 1 ? `, after ${shot.tries} attempts at a frame` : ''));
 
   // TWO. THE RAIL SAYS WHICH WAY IT CONTINUES, AND SAYS NOTHING WHERE IT DOES NOT. At 390 the eight
   // chips are 426 px of content in a 256 px box and three programmes are off the right of it at
   // rest; at 1536 and 2560 the rail fits and a fade there would be the page saying there is more
   // when there is not. Both are asserted, and the second is why this runs at every width rather
   // than only at the narrow one.
+  // THE PHOTOGRAPH IS TAKEN FIRST, before RAIL_READ drives the rail to three scroll positions.
+  // What is being measured here is the fade the page came up carrying, and a reading taken after a
+  // driven scroll would be a reading of a state this file put the page in.
+  const railShot = await measureTheRail(page);
   const rail = JSON.parse(await page.evaluate(RAIL_READ));
   const fits = !rail.why && rail.overflow <= 1;
   // The state AS FOUND is asserted first and it is the state a reader arrives on: the page has
@@ -15543,18 +16394,79 @@ async function checkRingAndRail(page) {
        !rail.rest.l && rail.rest.rt && rail.rest.mask === 'a gradient' &&
        rail.end.l && !rail.end.rt && rail.end.mask === 'a gradient' &&
        (rail.mid === null || (rail.mid.l && rail.mid.rt))));
-  assert('the scope rail says which way it continues, and says nothing where it continues neither way',
-    ok,
-    fits ? 'a rail that fits, carrying no fade on either edge, as found and when driven'
-         : 'a fade on the right as the page came up and at rest, on the left at the far end, and ' +
-           'on both in between',
+  // AND THE FADE ITSELF, PHOTOGRAPHED, which is the whole of issue 202 on this assertion. The
+  // reading above says a gradient is the used value of `mask-image`; a gradient that resolves and
+  // does not fade satisfies it exactly. What is measured here is what fraction of each column's own
+  // ink survived, against a photograph of the same rail with no mask on it at all.
+  //
+  // THE CONTROL FADES THE LEFT EDGE AT EVERY WIDTH AND IT IS WHY THIS IS NOT A DEAD INSTRUMENT.
+  // At 1536 and 1440 the chips end well before the right edge, so a right-hand fade there has no
+  // ink to take down: a control declared on that side photographs two identical pictures and
+  // reports a working instrument on a rail it could not have measured. The first draft of this
+  // check did exactly that and the run said so, which is the reason the constant beside
+  // RAIL_CONTROL_MASK is written the way it is.
+  // The population, and it is every band as well as the whole. A band that came back short is a
+  // mean over fewer columns than the reading says it took, which is the same vacuity one level
+  // down from a photograph nobody sampled.
+  const seen = !railShot.why && railShot.inked >= 30 && railShot.pixels > 0 &&
+               railShot.ctlL.n === 6 && railShot.ctlR.n === 6 && railShot.ctlMiddle.n > 0 &&
+               railShot.outL.n === 6 && railShot.outR.n === 6 && railShot.middle.n > 0 &&
+               (fits || railShot.midR.n === 8);
+  const controlSees = seen && railShot.ctlL.mean !== null && railShot.ctlL.mean <= RAIL_FADED_MAX &&
+                      railShot.ctlMiddle.mean !== null && railShot.ctlMiddle.mean >= RAIL_FLAT_MIN;
+  // The page's own figure held against this file's, so a stylesheet that moves the fade fails here
+  // and says so rather than quietly putting the middle band inside the gradient.
+  const fadeAgrees = fits || (typeof rail.maskText === 'string' &&
+                              rail.maskText.includes(`${RAIL_FADE_PX}px`));
+  const railPainted = seen && controlSees && (fits
+    // A rail that fits is a rail nothing is fading, at either end, and the same claim is the
+    // `nowhere else` half of the overflow branch below. SCOPED PLAINLY, because an adversarial read
+    // on issue 202 found the first version of it claiming more than it could see: the reference is
+    // the rail with every mask, filter and opacity cleared from the rail UP TO THE DOCUMENT, so
+    // what these numbers rule out is a fade painted by any of those three, anywhere on that chain.
+    // An element painted OVER the edge, a `::before` or a `::after` among them, is a different
+    // claim and this does not make it. The control beside it is what says the arithmetic could have
+    // shown a fade at all: it puts one of this run's own on the same rail at the same width and
+    // watches the same numbers collapse to 0.14.
+    ? railShot.outL.mean >= RAIL_FLAT_MIN && railShot.outR.mean !== null &&
+      railShot.outR.mean >= RAIL_FLAT_MIN && railShot.middle.mean >= RAIL_FLAT_MIN
+    // A rail with more to the right of it fades there and nowhere else, and it fades as a gradient
+    // rather than as a step: three bands, each below the one inside it by a real margin.
+    : railShot.outR.mean !== null && railShot.outR.mean <= RAIL_FADED_MAX &&
+      railShot.midR.mean !== null && railShot.midR.mean >= railShot.outR.mean + RAIL_STEP_MIN &&
+      railShot.middle.mean >= railShot.midR.mean + RAIL_STEP_MIN &&
+      railShot.middle.mean >= RAIL_FLAT_MIN &&
+      railShot.outL.mean >= RAIL_FLAT_MIN &&
+      // and putting a different mask on it puts that edge back, which is the fade being the mask's
+      // doing rather than something else the rail was carrying at that edge.
+      railShot.ctlR.mean !== null && railShot.ctlR.mean >= RAIL_FLAT_MIN);
+  assert('the scope rail fades where it continues and nowhere else, photographed and not modelled',
+    ok && railPainted && fadeAgrees,
+    fits ? 'a rail that fits, carrying no fade on either edge, as found, when driven, and in the ' +
+           'paint, with a fade this run declares proving the picture could have shown one'
+         : 'a fade on the right as the page came up and at rest, on the left at the far end, on ' +
+           'both in between, and a painted gradient at that edge whose three bands descend to ' +
+           `${RAIL_FADED_MAX} or below while the middle of the rail stays whole`,
     rail.why
       ? rail.why
       : `${rail.content} px of chips in ${rail.width}: as found ` +
         `${JSON.stringify(rail.found)}, rest ${JSON.stringify(rail.rest)}, mid ` +
-        `${JSON.stringify(rail.mid)}, end ${JSON.stringify(rail.end)}`,
-    fits ? `${rail.content} px of chips in ${rail.width}, nothing off either end`
-         : `${rail.content} px of chips in ${rail.width}, ${rail.overflow} off the end`);
+        `${JSON.stringify(rail.mid)}, end ${JSON.stringify(rail.end)}` +
+        (fadeAgrees ? '' : `; the used mask is ${JSON.stringify(rail.maskText)} and this file ` +
+                           `holds the fade at ${RAIL_FADE_PX}px`) +
+        '; ' + (railShot.why
+          ? `and the rail could not be photographed: ${railShot.why}`
+          : `photographed ${railShot.clip} over ${railShot.inked} inked columns on ` +
+            `${railShot.ground}: left ${railShot.outL.mean}, right ${railShot.outR.mean}, the band inside it ` +
+            `${railShot.midR.mean}, the middle ${railShot.middle.mean}; under a fade this run declared, ` +
+            `left ${railShot.ctlL.mean}, right ${railShot.ctlR.mean}, middle ${railShot.ctlMiddle.mean}` +
+            (controlSees ? '' : ' — and the control saw no fade, so this picture could not have ' +
+                                'shown one either')),
+    (fits ? `${rail.content} px of chips in ${rail.width}, nothing off either end`
+          : `${rail.content} px of chips in ${rail.width}, ${rail.overflow} off the end`) +
+      (railShot.why ? '' : `; ${railShot.inked} inked columns of ${railShot.clip}, outer right ` +
+                       `${railShot.outR.mean} then ${railShot.midR.mean} against a middle of ` +
+                       `${railShot.middle.mean}, control ${railShot.ctlL.mean}`));
 }
 
 // The five facts a calendar chip carries, read off what the accessibility tree would be handed
@@ -16055,6 +16967,9 @@ async function main() {
       '  SMOKE_SKIP_PHASE                          skip one phase, to prove the count assertion fires',
       '  SMOKE_BREAK_RESOURCE                      refuse every url holding this substring at the',
       '                                            network layer, to prove the load refusal fires',
+      '  SMOKE_BREAK_CAPTURE                       ask for a clip of zero width on every screenshot',
+      '                                            whose label holds this substring, to prove the',
+      '                                            capture refusal fires',
       '',
       '  Exit 0 clean, 1 the page has regressed, 2 the suite could not answer for itself.'
     ].join('\n'));
@@ -16086,6 +17001,12 @@ async function main() {
                     'of what this suite claims, and they run outside the viewport loop, so ' +
                     'nothing else here would report their absence.');
   }
+  // THE PIXEL READER, PROVED BEFORE A BROWSER IS STARTED. Issue 202. shoot() calls this too, so
+  // nothing can read a pixel without it having passed; it is called here as well so that the line
+  // is in every log, including a run that photographs nothing, and so that a reader who is not
+  // proved never costs the time of a browser launch.
+  console.log(`pixels:  ${proveTheDecoder()}`);
+
   if (SKIP_PHASE && !Object.prototype.hasOwnProperty.call(PHASES, SKIP_PHASE)) {
     throw new Error(`SMOKE_SKIP_PHASE names "${SKIP_PHASE}", which is not a phase. A typo here ` +
                     'would skip nothing and read as a clean run. The phases are:\n  ' +
@@ -16210,6 +17131,18 @@ async function main() {
       'would say the refusal works on the strength of a run in which it was never reached.');
   }
 
+  // THE OTHER AFFORDANCE'S TERMINATOR, and it is the same argument one card later. Issue 202. A
+  // label that matched no capture broke nothing, so the run that followed proves nothing about the
+  // capture refusal, and a clean verdict from it would say the refusal works on the strength of a
+  // run in which it was never reached.
+  if (BREAK_CAPTURE && captureBroken === 0) {
+    harnessFail(
+      `SMOKE_BREAK_CAPTURE names "${BREAK_CAPTURE}" and no screenshot this run took was labelled with it`,
+      'Nothing was broken, so this run exercised the capture refusal exactly as much as a run with\n' +
+      'the variable unset. The labels are the words after "a screenshot of" in the refusals, and\n' +
+      'the shortest that reaches every one of them is "the".');
+  }
+
   if (harnessFindings.length) {
     console.log('\nharness findings, which are about the runner and not about the page:');
     for (const h of harnessFindings) {
@@ -16241,6 +17174,11 @@ async function main() {
 
 main().then(code => process.exit(code)).catch(err => {
   console.error('\nthe suite could not run:\n' + (err && err.message ? err.message : err));
+  // AND THE DETAIL, WHICH USED TO BE DROPPED HERE. Issue 202. A HarnessFailure carries the whole
+  // of why the suite has nothing to say and harnessFail() prints it everywhere else; a refusal
+  // raised before the viewport loop, which is where the pixel reader's own proof is asked, came
+  // out as one line with the argument thrown away.
+  if (err && err.detail) console.error('\n' + String(err.detail));
   console.error('\nVERDICT: the suite could not answer. This is a harness failure, not a page regression.');
   process.exit(2);
 });
