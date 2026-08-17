@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-17T07:40:53Z",
+  "generated": "2026-08-17T07:52:20Z",
   "columns": [
     {
       "key": "raw",
@@ -42,6 +42,14 @@
             "idea"
           ],
           "url": "https://github.com/jcherranz/zrive-model-toy/issues/144"
+        },
+        {
+          "id": 240,
+          "title": "repo-gate.yml's drift step is named after the check's own run heading, and the sentence is stated four times unheld",
+          "labels": [
+            "limitation"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/240"
         }
       ]
     },
