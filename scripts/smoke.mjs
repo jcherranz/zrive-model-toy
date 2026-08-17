@@ -393,7 +393,12 @@ const PHASES = {
   'reach':                { count: 3, when: 'behavioural' },
   'the gutter on a phone': { count: 2, when: 'narrow' },
   'console and requests': { count: 3, when: 'every' },
-  'two artefacts':        { count: 4, when: 'grain' },
+  // 4 until issue 247, which adds one and replaces none: what each altitude draws that the other
+  // draws none of, over all fourteen drawings. The four already here are about the artefacts being
+  // two, about the address reaching them, about the two tall ones shrinking and about the one that
+  // does not shrink at all; none of them is about the exchange, which is the sentence the control's
+  // own justification rests on. See GRAIN_SYLLABUS_TILES.
+  'two artefacts':        { count: 5, when: 'grain' },
   'the count':            { count: 3, when: 'grain' },
   'well formed':          { count: 8, when: 'grain' },
   'the fold':             { count: 3, when: 'grain' },
@@ -927,7 +932,13 @@ const PHASES = {
 // font stack, where the paint runs from 0.7767 to 1.0578 of the table's number for the same string;
 // a `--font-ui` family swap is the other way round, and while that swap does redden three other
 // assertions here, this is the only thing anywhere that would say a LANE had been left.
-const EXPECTED_ASSERTIONS = 371;
+// 371 until issue 247, which adds one to `two artefacts` and replaces none. `grain` came through
+// three redesigns without ever being argued for or against, and that card writes down what it is
+// for; the sentence it writes carries counts, so the counts go into an assertion rather than into a
+// comment that cannot go red. What is asserted is the EXCHANGE, that each altitude draws a class of
+// object the other draws none of, which is the half of the control's justification no assertion
+// here had. GRAIN_SYLLABUS_TILES says why two totals and a rule rather than one number.
+const EXPECTED_ASSERTIONS = 372;
 
 // One retry on a failed browser start, which is what the evidence supports: the CI rerun that gave
 // 70 of 70 started its browser on the first attempt. A larger budget would turn a genuinely broken
@@ -13832,6 +13843,33 @@ const GRAIN_KEYS = ['ZIB', 'ZSC', 'ZBL', 'ZPE', 'ZHR', 'ZDS', 'ZCFA'];
 const GRAIN_VIEWPORT = { w: 1536, h: 839, emulate: true, pointer: false };
 const GRAIN_PHONE = { w: 390, h: 844, emulate: true, pointer: false };
 
+// WHAT EACH ALTITUDE DRAWS THAT THE OTHER DRAWS NONE OF. Issue 247, and it is the one claim the
+// paragraph beside the control in site/index.html rests on that nothing here asserted. Every other
+// justification on that row was argued again during one of three redesigns; `grain` survived by not
+// being questioned, so the sentence saying what it is FOR was written for the first time by that
+// card, and a sentence carrying numbers is a claim that belongs in an assertion rather than in a
+// comment nobody can redden.
+//
+// THE CLAIM IS AN EXCHANGE AND NOT A SHRINK, which is what the measurement refused. Over the seven
+// single-programme drawings the two syllabus lanes hold 166 tiles at the sessions grain and 76 at
+// modules; 60 of the 76 are Module and Module delivery objects, and NO sessions drawing anywhere in
+// this document paints one of those. The remaining 16, which is 76 less 60 and is derived here
+// rather than typed a third time, are the session templates and cohort sessions the syllabus
+// records no module for, and that is a RULE rather than a table of seven numbers fitted to this
+// corpus: every session template still standing at the modules grain carries a module_name saying
+// the syllabus records none, so a template that folded away wrongly is caught by the rule and not
+// only by the total.
+//
+// TWO TOTALS AND A RULE, BECAUSE THEY FAIL ON THREE DIFFERENT THINGS. A control that stopped
+// switching artefacts at all leaves the modules count at 0 and the syllabus count at 166; a
+// drawing that quietly lost tiles moves a total and leaves the rule silent; and a template folded
+// into a module the syllabus does put it in breaks the rule while both totals still add up.
+const GRAIN_SYLLABUS_TILES = { sessions: 166, modules: 76 };
+const GRAIN_MODULE_TILES = 60;
+// What the surviving templates' own `module_name` has to say. Matched rather than compared whole,
+// because this bounds the sentence the model writes and is not a second copy of it.
+const GRAIN_NO_MODULE_RE = /no module recorded/;
+
 // Everything about one drawing that can be read off the painted page rather than off a claim
 // about it. Boxes are in SVG user units, taken from the attributes the build wrote.
 const GRAIN_READ = `
@@ -13845,9 +13883,29 @@ const GRAIN_READ = `
   var svg = document.getElementById('graph');
   var tiles = [], chips = [], ids = {}, edges = [], folds = 0, foldSum = 0;
   var tileAt = {}, heads = [];
+  // Issue 247. WHAT KIND OF OBJECT EACH PAINTED TILE IS, and the raw module_name of every session
+  // template among them, joined by id out of the instance document. The join is here and the
+  // JUDGEMENT is in the driver: this hands over a type and a string and decides nothing, so the
+  // page cannot agree with the assertion by sharing its reasoning. Both lists are walked because
+  // an id names one object across the two altitudes and neither list holds all of them.
+  var TYPE = {}, MODNAME = {};
+  [window.GI.views, window.GI.collapsed].forEach(function (list) {
+    list.forEach(function (v) {
+      v.nodes.forEach(function (n) {
+        TYPE[n.id] = n.type;
+        (n.props || []).forEach(function (p) { if (p.k === 'module_name') MODNAME[n.id] = p.v; });
+      });
+    });
+  });
+  var kinds = {}, tplModule = [];
   svg.querySelectorAll('g[data-node], g[data-outside]').forEach(function (g) {
     var id = g.getAttribute('data-node') || g.getAttribute('data-outside');
     ids[id] = true;
+    var t = TYPE[id] || '(no type in the instance document)';
+    kinds[t] = (kinds[t] || 0) + 1;
+    if (t === 'SessionTemplate') {
+      tplModule.push({ id: id, module: MODNAME[id] === undefined ? null : MODNAME[id] });
+    }
     var r = g.querySelector('rect.tile-bg');
     if (r) { tiles.push(box(r)); tileAt[id] = box(r); }
   });
@@ -13895,7 +13953,7 @@ const GRAIN_READ = `
   });
   return { tiles: tiles.length, chips: chips.length, edges: edges.length,
            tileOverlap: tileOverlap, chipPile: chipPile, chipWorst: chipWorst,
-           dangling: dangling, heads: heads,
+           dangling: dangling, heads: heads, kinds: kinds, tplModule: tplModule,
            folds: folds, foldSum: foldSum, tails: counted,
            // The DRAWING's extent, off the page's own report, and NOT the viewBox: the canvas is
            // a viewport onto a plane, so the viewBox is where the reader is looking and moves
@@ -15965,6 +16023,53 @@ async function runGrain(chrome, base) {
         'no module tile, and the same tile count at both altitudes',
         `${per['ZCFA/modules'].grain.modules} modules, ` +
         `${per['ZCFA/modules'].tiles} tiles against ${per['ZCFA/sessions'].tiles}`);
+
+      // ---- the exchange, issue 247 -----------------------------------------
+      // See GRAIN_SYLLABUS_TILES above for why this exists at all. The counts are taken off the
+      // PAINTED tiles of all fourteen drawings, joined to a type by id, and the rule is judged
+      // here rather than in the page.
+      const inLanes = (g, ks) => KEYS.reduce(
+        (a, k) => a + ks.reduce((b, t) => b + (per[k + '/' + g].kinds[t] || 0), 0), 0);
+      const MODULEISH = ['Module', 'ModuleDelivery'];
+      const SESSIONISH = ['SessionTemplate', 'CohortSession'];
+      const untyped = KEYS.reduce((a, k) => a.concat(['sessions', 'modules'].map(
+        g => (per[k + '/' + g].kinds['(no type in the instance document)'] || 0)
+          ? `${k}/${g}` : null)).filter(Boolean), []);
+      const strays = [];
+      for (const k of KEYS) {
+        for (const t of per[k + '/modules'].tplModule) {
+          if (!GRAIN_NO_MODULE_RE.test(String(t.module))) {
+            strays.push(`${k} ${t.id} ${JSON.stringify(t.module)}`);
+          }
+        }
+      }
+      const got = {
+        sessionsModuleish: inLanes('sessions', MODULEISH),
+        modulesModuleish: inLanes('modules', MODULEISH),
+        sessionsSyllabus: inLanes('sessions', SESSIONISH),
+        modulesSyllabus: inLanes('modules', SESSIONISH)
+      };
+      assert('each altitude draws a class of object the other draws none of, and every session ' +
+             'template that survives a fold is one the syllabus records no module for',
+        untyped.length === 0 && strays.length === 0 &&
+          got.sessionsModuleish === 0 &&
+          got.modulesModuleish === GRAIN_MODULE_TILES &&
+          got.sessionsSyllabus === GRAIN_SYLLABUS_TILES.sessions &&
+          got.modulesSyllabus + got.modulesModuleish === GRAIN_SYLLABUS_TILES.modules,
+        `no Module or Module delivery painted anywhere at the sessions grain, ` +
+          `${GRAIN_MODULE_TILES} of them at modules, and the two syllabus lanes holding ` +
+          `${GRAIN_SYLLABUS_TILES.sessions} tiles at sessions against ` +
+          `${GRAIN_SYLLABUS_TILES.modules} at modules, of which ` +
+          `${GRAIN_SYLLABUS_TILES.modules - GRAIN_MODULE_TILES} are templates and sessions the ` +
+          `syllabus records no module for`,
+        untyped.length
+          ? `${untyped.length} drawing(s) painted a tile the instance document has no type for: ` +
+            untyped.join(', ')
+          : (strays.length
+            ? `${strays.length} template(s) left standing at the modules grain that the syllabus ` +
+              `does put in a module: ${strays.slice(0, 4).join('; ')}`
+            : JSON.stringify(got)),
+        `${got.modulesSyllabus} template and session tile(s) survive the fold over the seven`);
     });
 
     // ---- where every verb chip is, issue 195 -------------------------------

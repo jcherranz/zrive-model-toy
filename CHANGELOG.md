@@ -48,6 +48,51 @@ of what changed and when, and it is meant to be scannable.
 
 ### Changed
 
+- **THE GRAIN CONTROL NOW SAYS WHAT IT IS FOR, AND THE INTERACTION IS UNCHANGED ON PURPOSE, #247.**
+  `grain` is the one control of the original nine that came through three redesigns without ever
+  being argued for or against; every other survivor was justified again during one of them. The
+  owner ruled that it stays, so the removal question is closed and what was missing was the written
+  reason. It is now beside the control in `site/index.html`, and nothing executable under `site/`
+  moved: the whole of that change is inside HTML comments, and the rendered page off the tree that
+  landed as `737193a` is identical to `2e7563a` on every box, count and control it was compared on,
+  at 1440 by 900 and at 390 by 844, on three addresses. Stripping the comments and collapsing
+  whitespace leaves the two files byte for byte the same markup.
+- **MEASURED FIRST, BECAUSE A REDESIGN THAT STARTS FROM AN UNSTATED PURPOSE REPRODUCES THE PROBLEM
+  ONE LAYER UP.** Population, driven on the running page at `2e7563a`: the seven single-programme
+  addresses at both altitudes, fourteen drawings, at 1440 by 900 and again at 390 by 844, plus
+  `#/p/ALL`, `#/p/ZSC+ZBL` and `#/p/ZIB+ZCFA`. **The two altitudes exchange a class of object and
+  neither is a summary of the other.** Six lanes at both, on all seven, at both viewports. The two
+  syllabus lanes hold 166 tiles at sessions and 76 at modules; **not one of the 330 tiles the seven
+  sessions drawings paint is a Module or a Module delivery**, 60 of the 76 are, and the other 16 are
+  the templates and cohort sessions the syllabus records no module for.
+- **AND IT IS NOT A ZOOM LEVEL, WHICH IS THE READING ITS NAME INVITES.** The fit moves on two of the
+  seven, Z-BL 0.3088 to 1.1317 and Z-SC 0.3223 to 1.1317 at 1440 by 900, and does not move at all on
+  the other five, 1.1317 at both. At 390 by 844 the fit is bound by the drawing's width, the same
+  1230 at both altitudes, so the same two go 0.2622 to 0.2780 and 0.2737 to 0.2780: **on the phone
+  it is a content control.** On `#/p/ZIB+ZCFA` it costs size, 66 tiles on 77 lines at both altitudes
+  with the fit going down, 0.6774 to 0.6399.
+- **THE SECOND HALF OF THE CARD IS ANSWERED AND SHIPS NOTHING, WHICH THE CARD ALLOWS.** #132 landed
+  first and was read before anything was designed. The panel is not where `grain` belongs, because
+  `grain` is a property of the drawing and the panel is a property of a selection, so a reader with
+  nothing selected could not reach it. **What #132 did give it, without being designed to, is
+  somewhere for the press to land:** with a Z-BL session template selected, following the `modules`
+  row leaves the panel open on the module that swallowed it and `in this lane` goes from 28 rows to
+  5; from a cohort session it lands on the module delivery and that lane goes from 29 to 6, and
+  `its outline` drops out, which is the honest statement that a module carries no agenda. Three
+  redesigns were considered and each is refused in writing beside the control: moving it into the
+  panel, greying `modules` on Z-CFA the way a budget refusal greys `sessions`, and spending the
+  phone's headroom on it.
+- **THE PARAGRAPH CARRIES COUNTS, SO THE COUNTS ARE IN AN ASSERTION.** `scripts/smoke.mjs` gains one
+  in `two artefacts`, `EXPECTED_ASSERTIONS` 371 at `2e7563a` to 372, that phase's row 4 to 5. Two
+  totals and a rule, because they fail on three different things, and the rule is that every session
+  template still standing at the modules grain carries a `module_name` saying the syllabus records
+  none. **Both directions driven, each mutation in a copy of the tree and never in it.** A copy
+  whose `drawingAt` always answers with the sessions artefact, which is this control silently
+  ceasing to do anything, turns 25 assertions red including this one. A copy where one surviving
+  template is given a module the syllabus does record turns **exactly one** red, this one, and the
+  other 371 stay green, so the rule half is proved to fire on something nothing else here can see.
+  On the unmutated tree the suite is 372 of 372.
+  KAIZEN.md `kaizen-a-justification-written-from-the-motivating-case-is-false-on-the-rest`.
 - **THE PHONE CHROME CEILING THIS REPOSITORY STATES IS A TOTAL AND THE ONLY THING ENFORCED WAS THE
   HEADER, #248.** `scripts/smoke.mjs` bounded `header.offsetHeight / window.innerHeight` at 0.2370
   and read no other element. The page has one `<footer>` in `site/index.html` and seven rules for it
