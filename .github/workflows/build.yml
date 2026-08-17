@@ -168,15 +168,17 @@ jobs:
       # it back to equality would restore the appearance of a maintained relation and leave it
       # exactly as unheld, so the copy is gone instead of re-synced: a name that describes what the
       # step does cannot drift from a heading it does not quote. DO NOT NAME THIS STEP, OR ANY
-      # OTHER, AFTER A LINE A GATE PRINTS.
+      # OTHER, AFTER A LINE A GATE PRINTS; SEE THE QUALIFIED FORM BELOW, WHICH SUPERSEDES THIS
+      # SENTENCE AND IS THE OPERATIVE ONE. Issue 245.
       #
-      # READ THAT AS A RULE ABOUT QUOTING AND NOT AS A TEST ON STRINGS, WHICH IS WHAT IT MEANT AND
-      # NOT WHAT IT SAYS. Issue 245. Taken literally it forbids any step name equal to a line a gate
-      # prints, and scripts/verify.sh prints `== $name` for every step it runs, so all fifteen of
-      # its labels are such lines. Five step names in this directory equal one of them and this
+      # READ IT AS A RULE ABOUT QUOTING AND NOT AS A TEST ON STRINGS, WHICH IS WHAT IT MEANT AND
+      # NOT WHAT IT SAYS. Taken literally it forbids any step name equal to a line a gate prints,
+      # and scripts/verify.sh prints `== $name` for every step it runs, so all fifteen of its
+      # labels are such lines. Five step names in this directory equal one of them and this
       # repository decided, under #240 and #241, to KEEP all five. The sentence above condemns them
-      # and was never meant to. It is qualified sixty lines down, under the second rule, with the
-      # measurement that forced the qualification; read both before applying either.
+      # and was never meant to. Do not act on it alone: the qualification is at the foot of this
+      # comment block, under `THE TWO RULES ABOVE ARE ONE RULE`, with the measurement that forced
+      # it, and it is what decides.
       #
       # AND THAT RULE ALREADY REACHED FURTHER THAN IT LOOKED, WHICH IS WHY IT NEEDED NO WIDENING.
       # Issue 241. The step at the bottom of this file was named after scripts/verify.sh's step 10
