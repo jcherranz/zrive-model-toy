@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-16T23:59:32Z",
+  "generated": "2026-08-17T00:00:28Z",
   "columns": [
     {
       "key": "raw",
@@ -50,14 +50,6 @@
       "title": "Backlog",
       "cards": [
         {
-          "id": 202,
-          "title": "The suite cannot read a pixel, so two assertions model the painted result instead of measuring it",
-          "labels": [
-            "status:backlog"
-          ],
-          "url": "https://github.com/jcherranz/zrive-model-toy/issues/202"
-        },
-        {
           "id": 204,
           "title": "The run-time chip placer in render.js is judged by nothing, and #195 deliberately refuses to judge it",
           "labels": [
@@ -91,6 +83,14 @@
       "key": "in_progress",
       "title": "In progress",
       "cards": [
+        {
+          "id": 202,
+          "title": "The suite cannot read a pixel, so two assertions model the painted result instead of measuring it",
+          "labels": [
+            "status:in-progress"
+          ],
+          "url": "https://github.com/jcherranz/zrive-model-toy/issues/202"
+        },
         {
           "id": 220,
           "title": "Nothing proves a reserved width was USED, only that it was asked for",
