@@ -128,6 +128,98 @@ of what changed and when, and it is meant to be scannable.
     0.3293 on the runner against a threshold of 0.40.
 - **No page bytes change.** Zero-line diff under `site/`.
 
+- **THE PLACER THAT RUNS IN THE BROWSER WAS JUDGED BY NOTHING, AND #195 REFUSED TO JUDGE IT, #204.**
+  `site/render.js`'s `compose()` is a second, complete copy of the chip search, prune and tiebreak
+  included, and it places every chip on every drawing the page composes at run time: every window,
+  every filter, every union. #195's placer oracle judges the fourteen built artefacts and refuses
+  everything else by name; `reflowCheck()` says in its own header that it compares tiles and arcs and
+  never a chip. **The gap was measured rather than feared: #207 moved every run-time reserve on the
+  page, 863 of 863 over ten composed drawings, and the fourteen digests, the build gate and the
+  placer oracle were all correctly silent, because none of them looks at this path.**
+  **What #195 could not simply be extended to do.** Its blocked boxes come out of
+  `build/label_widths.json`, admissible because the table is an INPUT to the build's placement and
+  the oracle never reads the placement's OUTPUT. The run-time placer does not use that table; it
+  measures in the browser at `widthOf()`. So the shortcut, reading the painted chip width back into
+  the cost, is a check reading the answer it checks.
+  **The hook, and it is #220's device one file over.** `compose()` computed `lw` per node and threw
+  it away. It now records every box the search was blocked by, **read back out of the array it was
+  pushed into** rather than recomputed beside it, so a `lw + 6` written as `lw - 24` moves the record
+  with the search instead of hiding behind it. The record rides on the drawing object and
+  `ZM.placerBoxes()` publishes the one belonging to the drawing `paint()` last painted, which is
+  memo-safe: `filtered()` hands back a drawing it made earlier and composes nothing, and a
+  module-level "last composition" would have reported some other picture. **A built artefact carries
+  none and it answers null**, which is the refusal a caller reads.
+  **Four assertions over ten composed drawings, five unions and five windowed**, which is the
+  shape of the population #207 measured its 863 over, though not the same ten addresses: **709 tiles
+  and 903 chips**, measured rather than inherited. Two are the search, rebuilt
+  from each line's own painted `d` with **nothing pruned**, holding the painted chip to the least
+  candidate: **worst gap 0.1111 against a tolerance of 0.25, and no candidate anywhere beat a placed
+  chip**. One is the population. And one is the **envelope**, one-sided: no run-time reserve wider
+  than the widest that string shapes under any family the measuring machine could resolve, which is
+  the shape #207 argued for in place of the equality it refused, and which #207's own defect fails by
+  two fifths. **Measured on a clean tree: worst gap between a painted chip and its nearest candidate
+  0.1376 against a tolerance of 0.25, worst any candidate beat a placed chip by 0.0000, and the
+  narrowest headroom between an envelope and the reserve under it 4.7040 units.** The suite is 358
+  assertions, 358 passed.
+  **BOTH HALVES WERE MADE TO FAIL ON PURPOSE, IN A COPY OF THE TREE WITH THE SITE REBUILT FROM IT,
+  AND EACH FIRES ON ONE ASSERTION AND NOT THE OTHER**, which is what says the two claims are two
+  claims. Doubling the prune floor in `site/render.js`, which is #171's own two-character edit
+  applied to the browser's copy of the search, leaves **136 of the 903 chips beaten, the worst by
+  16.64 against a tolerance of 1**, and **every other assertion in the suite stays green**, which is
+  the gap this card exists for said as a measurement. Undoing #207 by mounting the probe outside the
+  cascade again puts **709 of 709 reserves over the envelope**, `st1` reserved 144.58 against an
+  envelope of 130.54, and the search assertions stay green because the placer is still optimal
+  against the boxes it was given. The population assertion is armed by `SMOKE_SKIP_PHASE`, on the
+  same footing as every other phase.
+  **AND AN INDEPENDENT ADVERSARIAL READ FOUND FIVE THINGS, THREE OF THEM REAL.** The severe one is
+  that `site/render.js`'s own new comment justified recording the BOX rather than the width with the
+  `lw - 24` example and read as though something catches it. Nothing on this side does: the envelope
+  bound is one-sided upward, so a reserve that is too NARROW passes it, and the search oracle blocks
+  its reconstruction with the same narrowed box and agrees with the placer exactly. #220's build-side
+  gate still catches that edit at 570 of 570; the run-time side does not, the comment now says so,
+  and it is the withdrawn comparison that would close it. Second, **nothing asserted the envelope's
+  own headroom**, and `RUNTIME_ENV_SLACK` is ABSOLUTE where the headroom is PROPORTIONAL, so on a
+  short enough label the slack would swallow the gap and the bound would be green because it could
+  no longer fail; the narrowest gap on the corpus now has to clear the slack, 4.7040 against 2.
+  Third, **the `composes > 0` guard was dead**: `PLACER.composes` is monotone and `goto` is a
+  fragment navigation, so after the first composition anything drove it is permanently true. It is
+  gone, and the guard that works, the record answering null on a built artefact, says why in its
+  place. Two more were checked and are not defects: the mark caption is looked up in the upright
+  `9/400` row, which is the disagreement `FACE_KNOWN` already declares and #215 repairs, so all three
+  readers are wrong together rather than a fourth answer being invented; and the `sel` write is
+  restored in line rather than in a `try/finally`, which holds because nothing between the two can
+  throw and every later phase repaints `#graph` anyway. **The reviewer's own arithmetic over
+  `site/layout.js` independently reproduced the five unions at 595 nodes and 781 edges, which is
+  exactly what the drive measures.**
+  **So it is honest about the search and circular about the boxes**, in #220's own words, with the
+  envelope closing the half that matters: a reserve measured in a face the page does not paint.
+  **THE FIFTH ASSERTION WAS WRITTEN, DRIVEN AND WITHDRAWN RATHER THAN TUNED, AND THAT IS THE FINDING
+  THIS CARD LEAVES BEHIND.** It held each reserve against the advance the browser lays the PAINTED
+  label out at, read at rest and again under the weight a click turns it to, which is the ideal
+  oracle for that half: a second measurement of the same string owing nothing to the probe. **On a
+  clean tree it went red on 555 of 863.** The cause was measured and not guessed:
+  `getComputedTextLength()` moves with the screen CTM. One probe, one string, four viewBoxes and
+  nothing else changed: **103.3476 at a CTM of 10.2467, 103.3324 at 2.5617, 103.1555 at 0.6404 and
+  102.9603 at 0.1601**, a spread of 0.3873 units over the zoom range this canvas uses. `widthOf()`
+  measures once and **caches for the life of the page**, at whatever zoom was in force when the
+  drawing composed; the paint is read after the fit has settled on the composed drawing's own extent.
+  **And the residual runs both ways**, measured over the five unions and 595 nodes: from **0.6919
+  units narrower** than the widest painted face to **1.6129 wider**, a ratio of 0.992818 to 1.010933,
+  with the painted chip width against its own verb's advance plus two pads running **0.3655 under to
+  0.2919 over**. A one-sided bound would be red in one direction on a clean tree and a band wide
+  enough to hold would be a number chosen to make it pass, so **it is not asserted**. The comparison
+  is a card of its own and the shape it needs is a reserve re-taken at the zoom the reading is taken
+  at, which is a change to `widthOf()`'s cache and not to the suite.
+  **One thing the card found on the way past.** #195 refuses a composed drawing on the ground that it
+  "carries no artefact digest". That is **true of a union and false of a window**: `compose()` copies
+  every property of the drawing it was composed from, `drawingDigest` among them, so a windowed
+  drawing answers `window.ZT.programme().digest` with the seven hex digits of the artefact it was cut
+  out of. The refusal holds today only because the phase it guards drives no window. #204 does not
+  use it.
+  **The page changes and nothing painted moves.** The record is a property on a JavaScript object;
+  no attribute, no element and no coordinate is different. Photographed at 2560, 1536 and 390 in both
+  schemes on `#/p/ZIB+ZSC`, which is a composed drawing and the path this touches.
+
 - **NOTHING RE-MEASURED THE WIDTH TABLE, AND THE TOOL THAT COULD WAS TOO COARSE TO GATE ON, #221.**
   The second half of #217. `build/measure_labels.py --check` existed and **nothing called it**:
   over the 28 files under `scripts/`, `.github/` and `build/`, `measure_labels` occurs on 40 lines,
